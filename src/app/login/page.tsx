@@ -126,6 +126,12 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600 mb-2">
+            계정이 없으신가요?{' '}
+            <a href="/register" className="font-medium text-blue-600 hover:underline">
+              회원가입
+            </a>
+          </p>
           <p className="text-sm text-gray-600">
             <a href="/" className="text-blue-600 hover:underline">
               메인 페이지로 돌아가기

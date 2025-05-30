@@ -12,7 +12,6 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'caregiver', // 기본값: 요양보호사
     phone: '',
     organization: ''
   });
@@ -47,7 +46,7 @@ export default function RegisterPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role,
+        role: 'admin',
         phone: formData.phone,
         organization: formData.organization
       });
@@ -77,7 +76,7 @@ export default function RegisterPage() {
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-900">케어베케이션</h1>
-          <p className="text-gray-600 mt-2">새 계정 만들기</p>
+          <p className="text-gray-600 mt-2">관리자 계정 만들기</p>
         </div>
 
         {successMessage ? (
@@ -150,23 +149,6 @@ export default function RegisterPage() {
                 minLength={6}
                 required
               />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                직원 유형
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="caregiver">요양보호사</option>
-                <option value="office">사무직</option>
-              </select>
             </div>
 
             <div className="mb-4">
