@@ -10,6 +10,18 @@ export default function LandingPage() {
   const handleGoToAdminPage = () => {
     router.push('/admin');
   };
+      
+  // 임시 관리자 로그인 함수
+  const handleTempAdminLogin = () => {
+    // 실제 애플리케이션에서는 절대 사용하지 마세요.
+    // 테스트 및 개발 목적으로만 사용됩니다.
+    localStorage.setItem('authToken', 'temp-admin-token-for-dev-only');
+    localStorage.setItem('organizationName', '임시 테스트 기관');
+    localStorage.setItem('userName', '테스트 관리자');
+    localStorage.setItem('userEmail', 'admin@example.com');
+    localStorage.setItem('userRole', 'admin');
+    router.push('/admin');
+  };
 
   // 앱 스토어/플레이 스토어 링크 (실제 링크로 교체 필요)
   const appStoreLink = "#"; // 예시: "https://apps.apple.com/app/your-app"
@@ -55,7 +67,7 @@ export default function LandingPage() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-            </div>
+        </div>
             <h2 className="text-3xl font-bold text-blue-800 mb-4">앱으로 휴가 신청</h2>
             <p className="text-gray-600 mb-8 text-center">
               개인 휴가 신청 및 일정 확인은<br />모바일 앱에서 더욱 편리하게 이용하세요.
@@ -79,13 +91,13 @@ export default function LandingPage() {
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 512 512"><path d="M429.6 288.7c20.4-10.4 34.1-30.1 34.1-53.2 0-32.8-26.6-59.4-59.4-59.4s-59.4 26.6-59.4 59.4c0 23.1 13.7 42.8 34.1 53.2-56.3 14.8-96.2 66.8-96.2 127.9 0 73.1 59.4 132.5 132.5 132.5s132.5-59.4 132.5-132.5c0-61.2-39.9-113.2-96.2-127.9zm-96.2-59.4c0-16.3 13.2-29.5 29.5-29.5s29.5 13.2 29.5 29.5-13.2 29.5-29.5 29.5-29.5-13.2-29.5-29.5zM144.2 176.1c1.7-8.7 2.9-17.6 3.5-26.6 0-1.6.1-3.3.1-4.9 0-2.8-.1-5.6-.3-8.4-.2-3.8-.5-7.6-1-11.4-.6-5.4-1.6-10.8-2.8-16-.3-1.2-.5-2.4-.8-3.6-1.2-5.1-2.8-10.1-4.6-14.9-2.5-6.6-5.6-12.9-9.1-18.8-6.8-11.4-15.3-21.5-25.1-29.8C90.1 27.2 73.3 16 53.9 16 24.2 16 0 40.2 0 69.9c0 20.4 11.3 38.2 28.3 47.9-1.7 8.6-2.8 17.5-3.3 26.5-.6 9.9-.8 20-.8 30.1 0 22.3 2.6 43.9 7.5 64.2 1.7 7.2 3.8 14.1 6.2 20.8 5.7 15.8 13.9 30.2 24.1 42.5 15.8 19.2 36.2 34.8 59.3 45.3 2.5 1.1 5.1 2.2 7.7 3.2 21.2 8.4 44.3 12.9 68.2 12.9 7.8 0 15.5-.4 23.1-1.3 12.7-1.4 25-3.9 36.6-7.4 8.9-2.7 17.5-5.9 25.7-9.7 2.7-1.2 5.3-2.5 7.9-3.9 1.3-.7 2.6-1.4 3.9-2.1 11.5-6.3 22-14.1 31.2-23.2 2.7-2.7 5.3-5.5 7.7-8.3 3.8-4.4 7.3-9.1 10.4-13.9 1.3-2 2.6-4.1 3.8-6.2 3.3-5.8 6.2-11.9 8.6-18.2.8-2.1 1.6-4.2 2.3-6.3 3.3-9.5 5.8-19.4 7.4-29.6 1.1-6.8 1.8-13.8 2-20.8.1-2.3.1-4.6.1-6.9.1-3.1 0-6.2-.1-9.3-.1-4.3-.4-8.6-.8-12.9-.5-5.3-1.3-10.6-2.3-15.7-.2-1.1-.5-2.2-.7-3.3-1.1-5.1-2.5-10-4.1-14.8-2.2-6.6-4.9-12.8-8.1-18.6-6.3-11.4-14.3-21.4-23.6-29.7-14.3-12.7-31-22.4-49.2-28.4-1.2-.4-2.4-.8-3.6-1.1-16.9-5.1-34.9-7.9-53.4-7.9-11.4 0-22.6.9-33.4 2.7-11.8 1.9-23.2 4.8-33.8 8.5-4.7 1.6-9.3 3.5-13.7 5.6-1.1.5-2.2 1-3.3 1.5zM140.9 222c-3.1-10.9-4.8-22.3-4.8-34 0-6.4.6-12.7 1.7-18.9 1.7-9.6 4.5-18.8 8.1-27.4 6.1-14.4 15-27.2 26-37.7 5.6-5.4 11.7-10.1 18.1-14.1 1.5-.9 3-1.8 4.5-2.6 11.7-6.4 24.2-9.8 37-9.8 9.3 0 18.4 1.7 27.1 5.1 10.1 3.9 19.5 9.4 27.8 16.3 11.3 9.4 20.4 21.2 26.7 34.7 4.1 8.7 7.1 18.2 8.9 28.1 1.3 7.2 2 14.7 2 22.2 0 14.4-2.1 28.4-6.1 41.4-6.1 20-17.7 37.3-33.1 49.8-13.4 10.8-29.3 18.1-46.5 21.2-4.8.9-9.7 1.3-14.6 1.3-13.9 0-27.4-3.1-39.8-8.9-16.1-7.6-29.7-19.2-40.1-33.8-7.1-9.9-12.6-21.2-16.2-33.5zM165.3 106.3c-9.2 10.3-16.3 22.4-20.8 35.7-2.9 8.5-4.4 17.4-4.4 26.4 0 10.9 1.9 21.5 5.5 31.4 5.4 15.2 14.1 28.6 25.4 39.5 11.3 10.9 24.8 19.2 39.8 24.3 13.1 4.3 26.9 6.5 40.9 6.5 12.7 0 25.2-1.8 37.1-5.2 15.1-4.3 28.8-11.4 40.4-20.7 9.7-7.8 17.8-17.4 23.9-28.4 4.8-8.6 8-18.2 9.6-28.2 1-6.4 1.5-13 1.5-19.6 0-11.1-1.9-21.9-5.6-31.9-5.7-15.5-14.6-29.2-26.2-40.4-11.6-11.2-25.6-19.8-41.1-25.2-13.5-4.6-27.8-7-42.6-7-13.4 0-26.5 1.9-38.8 5.6-14.4 4.2-27.6 10.8-38.9 19.3z"/></svg>
                 Google Play
               </a>
-            </div>
+      </div>
           </motion.div>
 
           {/* 관리자: 페이지 이동 안내 */}
-          <motion.div 
+            <motion.div
             initial={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }} 
+              animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.5, ease: "easeOut" }}
             className="bg-white rounded-xl shadow-xl p-8 flex flex-col items-center hover:shadow-2xl transition-shadow duration-300"
           >
@@ -105,6 +117,15 @@ export default function LandingPage() {
             >
               관리자 페이지로 이동
             </button>
+            {/* 개발용 임시 관리자 로그인 버튼 */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={handleTempAdminLogin}
+                className="mt-4 px-6 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition duration-300 shadow-md text-sm"
+              >
+                (임시) 관리자 즉시 로그인
+              </button>
+            )}
           </motion.div>
         </div>
       </section>
@@ -144,7 +165,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-2xl font-semibold mb-3 text-gray-800">{feature.title}</h3>
                   <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </motion.div>
+            </motion.div>
               ))
             }
           </div>
@@ -181,6 +202,15 @@ export default function LandingPage() {
             >
               관리자 페이지로 이동하기
             </button>
+            {/* 개발용 임시 관리자 로그인 버튼 */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={handleTempAdminLogin}
+                className="mt-4 px-8 py-3 rounded-lg bg-yellow-400 text-gray-800 font-semibold hover:bg-yellow-500 transition duration-300 shadow-md"
+              >
+                (임시) 관리자 즉시 로그인
+              </button>
+            )}
           </motion.div>
         </div>
       </section>

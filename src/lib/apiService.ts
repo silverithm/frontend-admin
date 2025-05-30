@@ -63,9 +63,14 @@ export async function login(email: string, password: string) {
   
   const data = await response.json();
   
-  // 토큰을 로컬 스토리지에 저장
+  // 토큰 및 사용자 정보를 로컬 스토리지에 저장
   if (data.token) {
     localStorage.setItem('authToken', data.token);
+    // 사용자 정보도 저장 (필요에 따라 선택적으로 저장)
+    localStorage.setItem('userName', data.name || '');
+    localStorage.setItem('userEmail', data.email || '');
+    localStorage.setItem('userRole', data.role || '');
+    localStorage.setItem('organizationName', data.organizationName || ''); // 회사 이름 저장
   }
   
   return data;
@@ -97,6 +102,10 @@ export async function register(userData: {
 
 export async function logout() {
   localStorage.removeItem('authToken');
+  localStorage.removeItem('userName');
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('organizationName'); // 로그아웃 시 회사 이름도 삭제
 }
 
 // 휴무 관련 API 함수들
@@ -153,20 +162,76 @@ export async function getAllVacationRequests() {
   return fetchWithAuth('/vacations/all');
 }
 
-// 사용자 관련 API 함수들
+// 회사(조직) 정보 관련 API 함수들
+export async function getOrganizationProfile() {
+  return fetchWithAuth('/organization/profile');
+}
+
+export async function updateOrganizationProfile(profileData: any) { // 타입은 실제 데이터 구조에 맞게 정의
+  return fetchWithAuth('/organization/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profileData),
+  });
+}
+
+// 직원(사용자) 가입 승인 관련 API 함수들
+export interface PendingUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string; // 요청된 역할
+  requestedAt: string; // 가입 요청 시간
+  // 기타 필요한 정보
+}
+
+export async function getPendingUsers(): Promise<PendingUser[]> {
+  return fetchWithAuth('/admin/pending-users');
+}
+
+export async function approveUser(userId: string) {
+  return fetchWithAuth(`/admin/users/${userId}/approve`, {
+    method: 'POST',
+  });
+}
+
+export async function rejectUser(userId: string) {
+  return fetchWithAuth(`/admin/users/${userId}/reject`, {
+    method: 'POST',
+  });
+}
+
+// 회원 관리 관련 API 함수들
 export async function getAllUsers() {
-  return fetchWithAuth('/users');
+  return fetchWithAuth('/admin/users');
 }
 
-export async function getUserById(id: string) {
-  return fetchWithAuth(`/users/${id}`);
+export async function getMemberUsers() {
+  return fetchWithAuth('/admin/users/members');
 }
 
-export async function updateUserRole(id: string, role: string) {
-  return fetchWithAuth(`/users/${id}/role`, {
-    method: 'PATCH',
+export async function deleteUser(userId: string) {
+  return fetchWithAuth(`/admin/users/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function updateUserStatus(userId: string, status: 'active' | 'inactive') {
+  return fetchWithAuth(`/admin/users/${userId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function updateUserRole(userId: string, role: 'caregiver' | 'office' | 'admin') {
+  return fetchWithAuth(`/admin/users/${userId}/role`, {
+    method: 'PUT',
     body: JSON.stringify({ role }),
   });
+}
+
+// 사용자 관련 API 함수들
+export async function getUserById(id: string) {
+  return fetchWithAuth(`/users/${id}`);
 }
 
 export async function deactivateUser(id: string) {

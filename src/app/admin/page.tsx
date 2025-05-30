@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { format, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { DayInfo, VacationRequest, VacationLimit } from '@/types/vacation';
-import { getAllVacationRequests, getVacationsForMonth, getVacationLimitsForMonth, setVacationLimit as apiSetVacationLimit, updateVacationStatus, deleteVacation as apiDeleteVacation, logout as apiLogout } from '@/lib/apiService';
+import { getAllVacationRequests, getVacationsForMonth, getVacationLimitsForMonth, setVacationLimit as apiSetVacationLimit, updateVacationStatus, deleteVacation as apiDeleteVacation, logout as apiLogout, getPendingUsers, approveUser, rejectUser, type PendingUser } from '@/lib/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import VacationCalendar from '@/components/VacationCalendar';
 import AdminPanel from '@/components/AdminPanel';
 import VacationDetails from '@/components/VacationDetails';
+import UserManagement from '@/components/UserManagement';
 
 export default function AdminPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'vacation' | 'users'>('vacation');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -20,9 +22,11 @@ export default function AdminPage() {
   const [showLimitPanel, setShowLimitPanel] = useState(false);
   const [vacationDays, setVacationDays] = useState<Record<string, DayInfo>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({ show: false, message: '', type: 'success' });
   const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
   const [pendingRequests, setPendingRequests] = useState<VacationRequest[]>([]);
+  const [organizationName, setOrganizationName] = useState<string | null>(null);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [allRequests, setAllRequests] = useState<VacationRequest[]>([]);
@@ -32,6 +36,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
+    const orgName = localStorage.getItem('organizationName');
+    if (orgName) {
+      setOrganizationName(orgName);
+    }
+
     if (!token) {
       router.push('/login');
     } else {
@@ -41,8 +50,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (localStorage.getItem('authToken')) {
-        fetchMonthData();
-        fetchAllRequests();
+      fetchMonthData();
+      fetchAllRequests();
+        fetchPendingUsers();
     }
   }, [currentDate]);
 
@@ -186,9 +196,9 @@ export default function AdminPage() {
       setDateVacations([]);
       showNotification('날짜 상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
       if ((error as Error).message.includes('인증')) router.push('/login');
-    } finally {
-      setIsLoading(false);
-    }
+      } finally {
+        setIsLoading(false);
+      }
   };
 
   const handleNextMonth = () => setCurrentDate(prev => addMonths(prev, 1));
@@ -198,7 +208,7 @@ export default function AdminPage() {
     if (!date) return;
     setSelectedDate(date);
     setShowDetails(true);
-    await fetchDateDetails(date);
+      await fetchDateDetails(date);
   };
 
   const handleCloseDetails = () => {
@@ -258,7 +268,7 @@ export default function AdminPage() {
       if ((error as Error).message.includes('인증')) router.push('/login');
     }
   };
-
+  
   const handleDeleteVacation = async (vacationId: string) => {
     try {
       await apiDeleteVacation(vacationId);
@@ -271,8 +281,8 @@ export default function AdminPage() {
       if ((error as Error).message.includes('인증')) router.push('/login');
     }
   };
-
-  const showNotification = (message: string, type: string) => {
+  
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ show: true, message, type });
     setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
   };
@@ -288,6 +298,39 @@ export default function AdminPage() {
     setNameFilter(null);
     setSortOrder('latest');
     await fetchAllRequests(); 
+  };
+
+  const fetchPendingUsers = async () => {
+    try {
+      const users = await getPendingUsers();
+      setPendingUsers(users || []);
+    } catch (error) {
+      console.error('가입 대기 직원 목록 로드 오류:', error);
+      showNotification('가입 대기 직원 목록을 불러오는데 실패했습니다.', 'error');
+      if ((error as Error).message.includes('인증')) router.push('/login');
+    }
+  };
+
+  const handleApproveUser = async (userId: string) => {
+    try {
+      await approveUser(userId);
+      showNotification('직원 가입을 승인했습니다.', 'success');
+      fetchPendingUsers();
+    } catch (error) {
+      console.error('직원 가입 승인 오류:', error);
+      showNotification('직원 가입 승인에 실패했습니다.', 'error');
+    }
+  };
+
+  const handleRejectUser = async (userId: string) => {
+    try {
+      await rejectUser(userId);
+      showNotification('직원 가입을 거절했습니다.', 'info');
+      fetchPendingUsers();
+    } catch (error) {
+      console.error('직원 가입 거절 오류:', error);
+      showNotification('직원 가입 거절에 실패했습니다.', 'error');
+    }
   };
 
   if (isLoading && !localStorage.getItem('authToken')) {
@@ -311,217 +354,545 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-4 sm:p-6">
-      <header className="mb-6 flex flex-col sm:flex-row justify-between items-center">
-        <h1 className="text-3xl sm:text-4xl font-bold text-blue-700">관리자 대시보드</h1>
-        <button
-          onClick={handleLogout}
-          className="mt-4 sm:mt-0 px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg shadow transition duration-300"
-        >
-          로그아웃
-        </button>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-700">
-              {format(currentDate, 'yyyy년 MM월', { locale: ko })}
-            </h2>
-            <div className="flex gap-2">
-              <button onClick={handlePrevMonth} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">이전달</button>
-              <button onClick={handleNextMonth} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">다음달</button>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* 헤더 영역 */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {organizationName ? `${organizationName} 관리자 페이지` : '관리자 페이지'}
+              </h1>
+              {activeTab === 'vacation' && (
+                <span className="ml-4 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                  대기 중인 요청: {pendingRequests.length}건
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => router.push('/admin/organization-profile')}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                기관 프로필
+              </button>
+                <button 
+                  onClick={handleLogout}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  로그아웃
+                </button>
             </div>
           </div>
-          <VacationCalendar
-            currentDate={currentDate}
-            setCurrentDate={setCurrentDate}
-            // vacationDays={vacationDays as any}
-            onDateSelect={handleDateSelect} 
-            roleFilter={roleFilter}
-            onRequestSelect={(date) => handleDateSelect(date)} 
-          />
-          <div className="mt-6 flex flex-col sm:flex-row justify-end items-center gap-4">
-            <p className="text-sm text-gray-600">휴무 인원 제한 설정:</p>
-            <button 
-              onClick={handleShowLimitPanel}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
+
+          {/* 탭 네비게이션 */}
+          <div className="mt-4 border-b border-gray-200">
+            <nav className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('vacation')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'vacation'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                휴무 관리
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'users'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                회원 관리
+                {pendingUsers.length > 0 && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {pendingUsers.length}
+                  </span>
+                )}
+              </button>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* 메인 콘텐츠 */}
+      <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 알림 메시지 */}
+        <AnimatePresence>
+          {notification.show && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={`mb-6 p-4 rounded-md ${
+                notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 
+                notification.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 
+                'bg-blue-50 text-blue-800 border border-blue-200'
+              }`}
             >
-              일별/역할별 제한 설정
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h2 className="text-2xl font-semibold text-gray-700 mb-4">승인 대기중인 휴무 ({pendingRequests.length}건)</h2>
-          {pendingRequests.length > 0 ? (
-            <ul className="space-y-3 max-h-96 overflow-y-auto">
-              {pendingRequests.map(req => (
-                <li key={req.id} className="p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
-                  <p className="font-semibold text-yellow-800">{req.userName} ({req.role})</p>
-                  <p className="text-sm text-yellow-700">{format(new Date(req.date), 'MM월 dd일')} - {req.reason}</p>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => handleApproveVacation(req.id)} className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">승인</button>
-                    <button onClick={() => handleRejectVacation(req.id)} className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">거절</button>
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  {notification.type === 'success' && (
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  {notification.type === 'error' && (
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  {(!notification.type || notification.type === 'info') && (
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium">{notification.message}</p>
+                </div>
+                <div className="ml-auto pl-3">
+                  <div className="-mx-1.5 -my-1.5">
+                    <button 
+                      onClick={() => setNotification({ ...notification, show: false })}
+                      className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-50"
+                    >
+                      <span className="sr-only">닫기</span>
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500">승인 대기중인 요청이 없습니다.</p>
+                </div>
+              </div>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </AnimatePresence>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-semibold text-gray-700 mb-6">전체 휴무 요청 관리</h2>
-        
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-          <div>
-            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">상태</label>
-            <select id="statusFilter" value={statusFilter} onChange={e => toggleStatusFilter(e.target.value as any)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm">
-              <option value="all">전체</option>
-              <option value="pending">승인대기</option>
-              <option value="approved">승인됨</option>
-              <option value="rejected">반려됨</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="roleFilterInput" className="block text-sm font-medium text-gray-700 mb-1">직원 유형</label>
-            <select id="roleFilterInput" value={roleFilter} onChange={e => toggleRoleFilter(e.target.value as any)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm">
-              <option value="all">전체</option>
-              <option value="caregiver">요양보호사</option>
-              <option value="office">사무직</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="nameFilterInput" className="block text-sm font-medium text-gray-700 mb-1">이름</label>
-            <input type="text" id="nameFilterInput" placeholder="이름으로 검색" value={nameFilter || ''} onChange={e => toggleNameFilter(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm" />
-          </div>
-          <div>
-            <label htmlFor="sortOrderSelect" className="block text-sm font-medium text-gray-700 mb-1">정렬</label>
-            <select id="sortOrderSelect" value={sortOrder} onChange={e => toggleSortOrder(e.target.value as any)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm">
-              <option value="latest">신청일 최신순</option>
-              <option value="oldest">신청일 오래된순</option>
-              <option value="vacation-date-asc">휴무일 빠른순</option>
-              <option value="vacation-date-desc">휴무일 느린순</option>
-              <option value="name">이름순</option>
-            </select>
-          </div>
-          <button onClick={resetFilter} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">필터 초기화</button>
-        </div>
+        {/* 탭별 컨텐츠 */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'vacation' ? (
+            <motion.div
+              key="vacation"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* 대기 중인 사용자 목록 - 휴무 관리 탭에서만 표시 */}
+              {pendingUsers.length > 0 && (
+                <div className="mb-8 bg-white shadow overflow-hidden sm:rounded-lg">
+                  <div className="px-4 py-5 sm:px-6 bg-yellow-50 border-b border-yellow-200">
+                    <h3 className="text-lg leading-6 font-medium text-yellow-800">
+                      가입 승인 대기 중인 사용자 ({pendingUsers.length}명)
+                    </h3>
+                  </div>
+                  <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
+                    <dl className="sm:divide-y sm:divide-gray-200">
+                      {pendingUsers.map(user => (
+                        <div key={user.id} className="py-4 sm:py-5 sm:grid sm:grid-cols-5 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                          <dt className="text-sm font-medium text-gray-500">
+                            이름
+                          </dt>
+                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0">
+                            {user.name}
+                          </dd>
+                          <dt className="text-sm font-medium text-gray-500 mt-2 sm:mt-0">
+                            이메일
+                          </dt>
+                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0">
+                            {user.email}
+                          </dd>
+                          <dd className="mt-2 sm:mt-0 flex justify-end gap-2">
+                            <button 
+                              onClick={() => handleApproveUser(user.id)}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            >
+                              승인
+                            </button>
+                            <button
+                              onClick={() => handleRejectUser(user.id)}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                              거부
+                            </button>
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                </div>
+              )}
 
-        <div className="overflow-x-auto">
-          {filteredRequests.length > 0 ? (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청자</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">직원 유형</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">휴무일</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">사유</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청일시</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map(req => (
-                  <tr key={req.id} className={`${req.status === 'rejected' ? 'bg-red-50' : req.status === 'approved' ? 'bg-green-50' : ''}`}>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{req.userName}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{req.role === 'caregiver' ? '요양보호사' : '사무직'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{format(new Date(req.date), 'yyyy-MM-dd')}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title={req.reason}>{req.reason}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${req.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                          req.status === 'rejected' ? 'bg-red-100 text-red-800' : 
-                          'bg-yellow-100 text-yellow-800'}
-                      `}>
-                        {req.status === 'pending' ? '승인대기' : req.status === 'approved' ? '승인됨' : '반려됨'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {req.createdAt ? format(new Date(req.createdAt), 'yyyy-MM-dd HH:mm') : '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium flex gap-2">
-                      {req.status === 'pending' && (
-                        <>
-                          <button onClick={() => handleApproveVacation(req.id)} className="text-green-600 hover:text-green-800">승인</button>
-                          <button onClick={() => handleRejectVacation(req.id)} className="text-orange-600 hover:text-orange-800">반려</button>
-                        </>
-                      )}
-                      <button onClick={() => handleDeleteVacation(req.id)} className="text-red-600 hover:text-red-800">삭제</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {/* 휴무 캘린더와 컨트롤 패널 */}
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* 캘린더 영역 */}
+                <div className="lg:w-3/5 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center">
+                      <button
+                        onClick={handlePrevMonth}
+                        className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                        disabled={isLoading}
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      <h2 className="text-xl font-semibold text-gray-800 mx-2">
+                        {format(currentDate, 'yyyy년 MM월', { locale: ko })}
+                      </h2>
+                      <button
+                        onClick={handleNextMonth}
+                        className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                        disabled={isLoading}
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleShowLimitPanel}
+                        className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                      >
+                        휴무 제한 설정
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <VacationCalendar
+                    currentDate={currentDate}
+                    setCurrentDate={setCurrentDate}
+                    onDateSelect={handleDateSelect}
+                    isAdmin={true}
+                    roleFilter={roleFilter}
+                    nameFilter={nameFilter}
+                  />
+                </div>
+
+                {/* 필터 및 휴무 목록 */}
+                <div className="lg:w-2/5 flex flex-col gap-4">
+                  {/* 필터 패널 */}
+                  <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">필터 및 정렬</h3>
+                    
+                    <div className="space-y-4">
+                      {/* 상태 필터 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">상태별 필터</label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => toggleStatusFilter('all')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              statusFilter === 'all' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            전체
+                          </button>
+                          <button
+                            onClick={() => toggleStatusFilter('pending')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              statusFilter === 'pending' 
+                                ? 'bg-yellow-500 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            대기중
+                          </button>
+                          <button
+                            onClick={() => toggleStatusFilter('approved')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              statusFilter === 'approved' 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            승인됨
+                          </button>
+                          <button
+                            onClick={() => toggleStatusFilter('rejected')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              statusFilter === 'rejected' 
+                                ? 'bg-red-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            거부됨
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 직원 유형 필터 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">직원 유형</label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => toggleRoleFilter('all')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              roleFilter === 'all' 
+                                ? 'bg-indigo-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            전체
+                          </button>
+                          <button
+                            onClick={() => toggleRoleFilter('caregiver')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              roleFilter === 'caregiver' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            요양보호사
+                          </button>
+                          <button
+                            onClick={() => toggleRoleFilter('office')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              roleFilter === 'office' 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            사무직
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* 정렬 옵션 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">정렬</label>
+                        <div className="flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => toggleSortOrder('latest')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              sortOrder === 'latest' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            최신순
+                          </button>
+                          <button 
+                            onClick={() => toggleSortOrder('oldest')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              sortOrder === 'oldest' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            오래된순
+                          </button>
+                          <button 
+                            onClick={() => toggleSortOrder('vacation-date-asc')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              sortOrder === 'vacation-date-asc' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            휴무일 오름차순
+                          </button>
+                          <button 
+                            onClick={() => toggleSortOrder('vacation-date-desc')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              sortOrder === 'vacation-date-desc' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            휴무일 내림차순
+                          </button>
+                          <button 
+                            onClick={() => toggleSortOrder('name')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              sortOrder === 'name' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            이름순
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* 필터 초기화 버튼 */}
+                      <button 
+                        onClick={resetFilter}
+                        className="w-full mt-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        필터 초기화
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* 휴무 목록 */}
+                  <div className="flex-grow bg-white p-5 rounded-lg shadow-sm border border-gray-200 overflow-auto">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">휴무 요청 목록</h3>
+                    
+                    {isLoading ? (
+                      <div className="flex justify-center items-center h-32">
+                        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                      </div>
+                    ) : filteredRequests.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        조건에 맞는 휴무 요청이 없습니다.
+                      </div>
+                    ) : (
+                      <ul className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                        {filteredRequests.map(request => (
+                          <li key={request.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <div className="font-medium text-gray-900">{request.userName}</div>
+                                <div className="text-sm text-gray-500">{request.date}</div>
+                              </div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                request.status === 'approved' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : request.status === 'pending' 
+                                    ? 'bg-yellow-100 text-yellow-800' 
+                                    : 'bg-red-100 text-red-800'
+                              }`}>
+                                {request.status === 'approved' ? '승인됨' : request.status === 'pending' ? '대기중' : '거부됨'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 text-xs rounded-md ${
+                                  request.role === 'caregiver' 
+                                    ? 'bg-blue-50 text-blue-700' 
+                                    : 'bg-green-50 text-green-700'
+                                }`}>
+                                  {request.role === 'caregiver' ? '요양보호사' : '사무직'}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {request.createdAt ? new Date(Number(request.createdAt)).toLocaleDateString() : ''}
+                                </span>
+                              </div>
+                              {request.status === 'pending' && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleApproveVacation(request.id)}
+                                    className="p-1 text-green-600 hover:bg-green-50 rounded-full"
+                                    title="승인"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectVacation(request.id)}
+                                    className="p-1 text-red-600 hover:bg-red-50 rounded-full"
+                                    title="거부"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteVacation(request.id)}
+                                    className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
+                                    title="삭제"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           ) : (
-            <p className="text-center py-8 text-gray-500">표시할 휴무 요청이 없습니다.</p>
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <UserManagement 
+                organizationName={organizationName || undefined}
+                onNotification={showNotification}
+              />
+            </motion.div>
           )}
-        </div> 
-      </div>
+        </AnimatePresence>
+      </main>
 
-      <AnimatePresence>
-        {showDetails && selectedDate && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
-          >
-            <VacationDetails
-              date={selectedDate}
-              vacations={dateVacations}
-              onClose={handleCloseDetails}
-              isLoading={isLoading}
-              maxPeople={Number(vacationDays[format(selectedDate, 'yyyy-MM-dd')]?.limit ?? 3)}
-              onVacationUpdated={handleVacationUpdated}
-              onApplyVacation={handleVacationUpdated}
-              isAdmin={true}
-              roleFilter={roleFilter}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 모달 컴포넌트들 - 휴무 관리 탭에서만 표시 */}
+      {activeTab === 'vacation' && (
+        <AnimatePresence>
+          {showDetails && selectedDate && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black bg-opacity-50"
+              onClick={handleCloseDetails}
+            >
+              <motion.div
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md"
+              >
+                <VacationDetails
+                  date={selectedDate}
+                  vacations={dateVacations}
+                  onClose={handleCloseDetails}
+                  onApplyVacation={() => {}}
+                  onVacationUpdated={handleVacationUpdated}
+                  isLoading={isLoading}
+                  roleFilter={roleFilter}
+                  isAdmin={true}
+                />
+              </motion.div>
+            </motion.div>
+          )}
 
-      <AnimatePresence>
-        {showLimitPanel && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
-          >
-            <AdminPanel
-              currentDate={currentDate}
-              onClose={handleCloseLimitPanel}
-              onUpdateSuccess={async () => {
-                await fetchMonthData();
-                handleCloseLimitPanel();
-              }} 
-              vacationLimits={vacationLimits}
-              onLimitSet={handleLimitSet}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {notification.show && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className={`fixed bottom-6 right-6 px-6 py-3 rounded-lg shadow-xl text-white text-sm font-semibold 
-              ${notification.type === 'success' ? 'bg-green-500' : notification.type === 'error' ? 'bg-red-500' : 'bg-blue-500'}
-            `}
-          >
-            {notification.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </main>
+          {showLimitPanel && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black bg-opacity-50"
+              onClick={handleCloseLimitPanel}
+            >
+              <motion.div
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AdminPanel
+                  currentDate={currentDate}
+                  onClose={handleCloseLimitPanel}
+                  onUpdateSuccess={fetchMonthData}
+                  vacationLimits={vacationLimits}
+                  onLimitSet={handleLimitSet}
+                  vacationDays={vacationDays}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+    </div>
   );
 } 
