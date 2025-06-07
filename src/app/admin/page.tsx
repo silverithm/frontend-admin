@@ -140,8 +140,20 @@ export default function AdminPage() {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       
-      // JWT 토큰 가져오기
+      // JWT 토큰과 companyId 가져오기
       const token = localStorage.getItem('authToken');
+      const companyId = localStorage.getItem('companyId');
+      
+      if (!companyId) {
+        console.error('CompanyId가 localStorage에 없습니다. 로그인 정보:', {
+          token: !!token,
+          userName: localStorage.getItem('userName'),
+          userId: localStorage.getItem('userId'),
+          companyName: localStorage.getItem('companyName')
+        });
+        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
+      }
+      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -150,13 +162,13 @@ export default function AdminPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      // 캘린더 데이터 조회
+      // 캘린더 데이터 조회 (companyId 포함)
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0);
       const startDateStr = format(startDate, 'yyyy-MM-dd');
       const endDateStr = format(endDate, 'yyyy-MM-dd');
       
-      const calendarResponse = await fetch(`/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}`, {
+      const calendarResponse = await fetch(`/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&companyId=${companyId}`, {
         headers
       });
       
@@ -166,8 +178,8 @@ export default function AdminPage() {
       
       const calendarData = await calendarResponse.json();
       
-      // 휴가 제한 데이터 조회
-      const limitsResponse = await fetch(`/api/vacation/limits?start=${startDateStr}&end=${endDateStr}`, {
+      // 휴가 제한 데이터 조회 (companyId 포함)
+      const limitsResponse = await fetch(`/api/vacation/limits?start=${startDateStr}&end=${endDateStr}&companyId=${companyId}`, {
         headers
       });
       
@@ -221,14 +233,22 @@ export default function AdminPage() {
     } catch (error) {
       console.error('월별 휴무 데이터 로드 중 오류 발생:', error);
       showNotification('월별 휴무 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증')) router.push('/login');
+      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
+        router.push('/login');
+      }
     }
   };
 
   const fetchAllRequests = async () => {
     try {
-      // JWT 토큰 가져오기
+      // JWT 토큰과 companyId 가져오기
       const token = localStorage.getItem('authToken');
+      const companyId = localStorage.getItem('companyId');
+      
+      if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+      }
+      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -237,7 +257,7 @@ export default function AdminPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch('/api/vacation/requests', {
+      const response = await fetch(`/api/vacation/requests?companyId=${companyId}`, {
         method: 'GET',
         headers,
       });
@@ -292,7 +312,9 @@ export default function AdminPage() {
     } catch (error) {
       console.error('전체 휴무 요청을 불러오는 중 오류 발생:', error);
       showNotification('전체 휴무 요청을 불러오는 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증')) router.push('/login');
+      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
+        router.push('/login');
+      }
     }
   };
 
@@ -368,8 +390,20 @@ export default function AdminPage() {
 
   const handleLimitSet = async (date: Date, maxPeople: number, role: 'caregiver' | 'office') => {
     try {
-      // JWT 토큰 가져오기
+      // JWT 토큰과 companyId 가져오기
       const token = localStorage.getItem('authToken');
+      const companyId = localStorage.getItem('companyId');
+      
+      if (!companyId) {
+        console.error('CompanyId가 localStorage에 없습니다. 로그인 정보:', {
+          token: !!token,
+          userName: localStorage.getItem('userName'),
+          userId: localStorage.getItem('userId'),
+          companyName: localStorage.getItem('companyName')
+        });
+        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
+      }
+      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -385,7 +419,7 @@ export default function AdminPage() {
         role
       }];
       
-      const response = await fetch('/api/vacation/limits', {
+      const response = await fetch(`/api/vacation/limits?companyId=${companyId}`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ limits }),
@@ -400,7 +434,9 @@ export default function AdminPage() {
     } catch (error) {
       console.error('휴무 제한 설정 중 오류 발생:', error);
       showNotification('휴무 제한 설정 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증')) router.push('/login');
+      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
+        router.push('/login');
+      }
     }
   };
 

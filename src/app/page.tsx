@@ -111,12 +111,28 @@ export default function LandingPage() {
             <p className="text-gray-600 mb-8 text-center">
               직원 휴무 일정 승인 및 전체 현황 관리는<br /> 관리자 페이지에서 진행해 주세요.
             </p>
-            <button 
-              onClick={handleGoToAdminPage}
-              className="px-10 py-4 rounded-lg bg-teal-600 text-white font-semibold hover:bg-teal-700 transition duration-300 shadow-md"
-            >
-              관리자 페이지로 이동
-            </button>
+            <div className="flex flex-col gap-3 w-full">
+              <button 
+                onClick={handleGoToAdminPage}
+                className="px-10 py-4 rounded-lg bg-teal-600 text-white font-semibold hover:bg-teal-700 transition duration-300 shadow-md"
+              >
+                관리자 페이지로 이동
+              </button>
+              <div className="flex gap-2 justify-center">
+                <button 
+                  onClick={() => router.push('/login')}
+                  className="px-6 py-2 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition duration-300 text-sm"
+                >
+                  로그인
+                </button>
+                <button 
+                  onClick={() => router.push('/signup')}
+                  className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition duration-300 text-sm"
+                >
+                  회원가입
+                </button>
+              </div>
+            </div>
             {/* 개발용 임시 관리자 로그인 버튼 */}
             {process.env.NODE_ENV === 'development' && (
               <button

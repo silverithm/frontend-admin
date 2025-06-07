@@ -136,8 +136,14 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`요청 월: ${requestMonth}`);
       console.log(`요청 날짜 범위: ${startDateStr} ~ ${endDateStr}`);
 
+      // companyId 가져오기
+      const companyId = localStorage.getItem('companyId');
+      if (!companyId) {
+        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
+      }
+
       // nameFilter가 있을 경우 URL에 추가
-      let url = `/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&_t=${now}&_r=${requestId}&_retry=${retry}`;
+      let url = `/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&companyId=${companyId}&_t=${now}&_r=${requestId}&_retry=${retry}`;
       
       if (nameFilter) {
         url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
@@ -285,8 +291,14 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       const formattedDate = format(date, 'yyyy-MM-dd');
       console.log(`선택된 날짜 데이터 가져오기: ${formattedDate}`);
       
+      // companyId 가져오기
+      const companyId = localStorage.getItem('companyId');
+      if (!companyId) {
+        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
+      }
+      
       // nameFilter가 있을 경우 URL에 추가
-      let cacheParam = `?role=${roleFilter}&_t=${Date.now()}&_r=${Math.random().toString(36).substring(2, 8)}`;
+      let cacheParam = `?role=${roleFilter}&companyId=${companyId}&_t=${Date.now()}&_r=${Math.random().toString(36).substring(2, 8)}`;
       
       if (nameFilter) {
         cacheParam += `&nameFilter=${encodeURIComponent(nameFilter)}`;

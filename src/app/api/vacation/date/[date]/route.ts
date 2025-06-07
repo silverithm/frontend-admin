@@ -32,8 +32,11 @@ export async function GET(
     
     // nameFilter 파라미터 추출
     const nameFilter = request.nextUrl.searchParams.get('nameFilter');
+    
+    // companyId 파라미터 추출
+    const companyId = request.nextUrl.searchParams.get('companyId');
 
-    console.log(`[Frontend API] 날짜 ${dateParam}에 대한 휴가 요청 조회 프록시 시작 (role=${role}, nameFilter=${nameFilter || 'none'})`);
+    console.log(`[Frontend API] 날짜 ${dateParam}에 대한 휴가 요청 조회 프록시 시작 (role=${role}, nameFilter=${nameFilter || 'none'}, companyId=${companyId})`);
 
     // 유효한 날짜 형식인지 확인
     if (!dateParam.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -44,12 +47,18 @@ export async function GET(
       });
     }
 
+    if (!companyId) {
+      return NextResponse.json({
+        error: 'companyId 파라미터가 필요합니다.'
+      }, { status: 400, headers });
+    }
+
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    // 백엔드 API URL 구성
-    let backendUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?role=${role}`;
+    // 백엔드 API URL 구성 (companyId 포함)
+    let backendUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?role=${role}&companyId=${companyId}`;
     
     if (nameFilter) {
       backendUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;

@@ -26,12 +26,13 @@ export async function GET(request: NextRequest) {
     const endDate = url.searchParams.get('endDate');
     const roleFilter = url.searchParams.get('roleFilter') || 'all';
     const nameFilter = url.searchParams.get('nameFilter');
+    const companyId = url.searchParams.get('companyId');
     const timestamp = url.searchParams.get('_t');
     const requestId = url.searchParams.get('_r');
     const retryCount = url.searchParams.get('_retry') || '0';
 
     console.log(`[Frontend API] 휴가 캘린더 요청 프록시 - ID: ${requestId || 'unknown'}, 시도: ${retryCount}`);
-    console.log(`[Frontend API] 백엔드로 전달: ${startDate} ~ ${endDate}, 역할: ${roleFilter}, 이름: ${nameFilter || 'none'}`);
+    console.log(`[Frontend API] 백엔드로 전달: ${startDate} ~ ${endDate}, 역할: ${roleFilter}, 이름: ${nameFilter || 'none'}, companyId: ${companyId}`);
 
     // 파라미터 유효성 검사
     if (!startDate || !endDate) {
@@ -40,12 +41,18 @@ export async function GET(request: NextRequest) {
       }, { status: 400, headers });
     }
 
+    if (!companyId) {
+      return NextResponse.json({
+        error: 'companyId 파라미터가 필요합니다.'
+      }, { status: 400, headers });
+    }
+
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    // 백엔드 API URL 구성
-    let backendUrl = `${BACKEND_URL}/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${roleFilter}`;
+    // 백엔드 API URL 구성 (companyId 포함)
+    let backendUrl = `${BACKEND_URL}/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${roleFilter}&companyId=${companyId}`;
     
     if (nameFilter) {
       backendUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;

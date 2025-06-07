@@ -25,10 +25,11 @@ export interface Location {
   [key: string]: any;
 }
 
-// 로그인 응답 DTO
+// 로그인 응답 DTO (companyId 추가)
 export interface SigninResponseDTO {
   userId: number;
   userName: string;
+  companyId?: number; // companyId 추가
   companyName: string;
   companyAddress: Location;
   companyAddressName: string;
@@ -37,19 +38,18 @@ export interface SigninResponseDTO {
   customerKey: string;
 }
 
-// 사용자 역할
+// 사용자 역할 (백엔드와 일치하도록 수정)
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  CAREGIVER = 'CAREGIVER',
-  OFFICE = 'OFFICE'
+  ROLE_ADMIN = 'ROLE_ADMIN',
+  ROLE_CLIENT = 'ROLE_CLIENT'
 }
 
-// 사용자 데이터 DTO
+// 사용자 데이터 DTO (백엔드 UserDataDTO와 일치)
 export interface UserDataDTO {
   name: string;
   email: string;
   password: string;
-  role: UserRole;
+  role: string; // 백엔드에서 문자열로 받으므로 string으로 변경
   companyName: string;
   companyAddress: string;
 }

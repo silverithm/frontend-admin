@@ -6,6 +6,14 @@ import { SigninResponseDTO, TokenInfo, UserDataDTO, FindPasswordResponse, Passwo
 // API 기본 URL (환경에 따라 변경될 수 있음)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+// CompanyId 가져오기 헬퍼 함수
+function getCompanyId(): string {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('companyId') || '';
+  }
+  return '';
+}
+
 // JWT 토큰이 필요하지 않은 공통 fetch 함수 (로그인용)
 async function fetchWithoutAuth(url: string, options: RequestInit = {}) {
   // 기본 헤더 설정
@@ -58,6 +66,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
+    localStorage.removeItem('companyId');
     
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
@@ -76,25 +85,35 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
 // ================== 휴가 관련 API ==================
 
-// 휴가 캘린더 데이터 조회
+// 휴가 캘린더 데이터 조회 (companyId 추가)
 export async function getVacationCalendar(startDate: string, endDate: string, roleFilter = 'all', nameFilter?: string) {
-  let url = `/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${roleFilter}`;
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  let url = `/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${roleFilter}&companyId=${companyId}`;
   if (nameFilter) {
     url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
   }
   return fetchWithAuth(url);
 }
 
-// 특정 날짜 휴가 데이터 조회
+// 특정 날짜 휴가 데이터 조회 (companyId 추가)
 export async function getVacationForDate(date: string, role = 'caregiver', nameFilter?: string) {
-  let url = `/api/vacation/date/${date}?role=${role}`;
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  let url = `/api/vacation/date/${date}?role=${role}&companyId=${companyId}`;
   if (nameFilter) {
     url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
   }
   return fetchWithAuth(url);
 }
 
-// 휴가 신청 생성
+// 휴가 신청 생성 (companyId 추가)
 export async function createVacationRequest(vacationData: {
   userName: string;
   date: string;
@@ -103,7 +122,12 @@ export async function createVacationRequest(vacationData: {
   userId: string;
   type: string;
 }) {
-  return fetchWithAuth('/api/vacation/submit', {
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/vacation/submit?companyId=${companyId}`, {
     method: 'POST',
     body: JSON.stringify(vacationData),
   });
@@ -131,23 +155,38 @@ export async function deleteVacation(id: string, deleteData: { isAdmin: boolean;
   });
 }
 
-// 모든 휴가 요청 조회
+// 모든 휴가 요청 조회 (companyId 추가)
 export async function getAllVacationRequests() {
-  return fetchWithAuth('/api/vacation/requests');
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/vacation/requests?companyId=${companyId}`);
 }
 
-// 휴가 제한 조회
+// 휴가 제한 조회 (companyId 추가)
 export async function getVacationLimits(startDate: string, endDate: string) {
-  return fetchWithAuth(`/api/vacation/limits?start=${startDate}&end=${endDate}`);
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/vacation/limits?start=${startDate}&end=${endDate}&companyId=${companyId}`);
 }
 
-// 휴가 제한 저장
+// 휴가 제한 저장 (companyId 추가)
 export async function saveVacationLimits(limits: Array<{
   date: string;
   maxPeople: number;
   role: string;
 }>) {
-  return fetchWithAuth('/api/vacation/limits', {
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/vacation/limits?companyId=${companyId}`, {
     method: 'POST',
     body: JSON.stringify({ limits }),
   });
@@ -212,6 +251,12 @@ export async function signin(email: string, password: string): Promise<SigninRes
       localStorage.setItem('refreshToken', data.tokenInfo.refreshToken);
       localStorage.setItem('tokenExpirationTime', data.tokenInfo.accessTokenExpirationTime?.toString() || '');
       
+      // companyId 필수 검증
+      if (!data.companyId) {
+        console.error('백엔드 응답에 companyId가 없습니다:', data);
+        throw new Error('로그인 응답에 회사 ID가 포함되어 있지 않습니다. 관리자에게 문의하세요.');
+      }
+      
       // 사용자 정보 저장
       localStorage.setItem('userName', data.userName || '');
       localStorage.setItem('userId', data.userId?.toString() || '');
@@ -219,9 +264,13 @@ export async function signin(email: string, password: string): Promise<SigninRes
       localStorage.setItem('companyAddressName', data.companyAddressName || '');
       localStorage.setItem('customerKey', data.customerKey || '');
       
-      console.log('로그인 정보 저장 완료');
+      // companyId 저장 (필수값)
+      localStorage.setItem('companyId', data.companyId.toString());
+      
+      console.log('로그인 정보 저장 완료, companyId:', data.companyId);
     } else {
       console.warn('토큰 정보가 없는 응답:', data);
+      throw new Error('로그인 응답에 토큰 정보가 없습니다.');
     }
     
     return data;
@@ -297,6 +346,7 @@ export async function logout() {
   localStorage.removeItem('userName');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userId');
+  localStorage.removeItem('companyId');
   localStorage.removeItem('companyName');
   localStorage.removeItem('companyAddressName');
   localStorage.removeItem('customerKey');
@@ -315,7 +365,7 @@ export async function getAllCompanies() {
   return fetchWithAuth('/api/v1/members/companies');
 }
 
-// 회원가입 요청 (JWT 토큰 없이 요청)
+// 회원가입 요청 (JWT 토큰 없이 요청) - companyId 필요
 export async function submitJoinRequest(requestData: {
   username: string;
   password: string;
@@ -333,14 +383,24 @@ export async function submitJoinRequest(requestData: {
   });
 }
 
-// 모든 가입 요청 조회
+// 모든 가입 요청 조회 (companyId 추가)
 export async function getAllJoinRequests() {
-  return fetchWithAuth('/api/v1/members/join-requests');
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/v1/members/join-requests?companyId=${companyId}`);
 }
 
-// 대기중인 가입 요청 조회
+// 대기중인 가입 요청 조회 (companyId 추가)
 export async function getPendingJoinRequests() {
-  return fetchWithAuth('/api/v1/members/join-requests/pending');
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/v1/members/join-requests/pending?companyId=${companyId}`);
 }
 
 // 가입 요청 승인
@@ -358,19 +418,34 @@ export async function rejectJoinRequest(requestId: string, adminId: string, reje
   });
 }
 
-// 회원 목록 조회
+// 회원 목록 조회 (companyId 추가)
 export async function getAllMembers() {
-  return fetchWithAuth('/api/v1/members');
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/v1/members?companyId=${companyId}`);
 }
 
-// 역할별 회원 조회
+// 역할별 회원 조회 (companyId 추가)
 export async function getMembersByRole(role: string) {
-  return fetchWithAuth(`/api/v1/members?role=${role}`);
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/v1/members?companyId=${companyId}&role=${role}`);
 }
 
-// 상태별 회원 조회
+// 상태별 회원 조회 (companyId 추가)
 export async function getMembersByStatus(status: string) {
-  return fetchWithAuth(`/api/v1/members?status=${status}`);
+  const companyId = getCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+  }
+  
+  return fetchWithAuth(`/api/v1/members?companyId=${companyId}&status=${status}`);
 }
 
 // 특정 회원 조회
@@ -434,15 +509,16 @@ export async function updateVacationStatus(id: string, status: 'pending' | 'appr
 }
 
 export async function setVacationLimit(date: Date, maxPeople: number, role: 'caregiver' | 'office') {
-  const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+  const dateString = date.toISOString().split('T')[0];
   return saveVacationLimits([{
-    date: formattedDate,
+    date: dateString,
     maxPeople,
-    role,
+    role
   }]);
 }
 
-// PendingUser 인터페이스 (호환성을 위해 유지)
+// ================== 사용자 관리 인터페이스 ==================
+
 export interface PendingUser {
   id: string;
   name: string;
@@ -451,71 +527,79 @@ export interface PendingUser {
   requestedAt: string;
 }
 
-// 기존 함수명과의 호환성
+// 대기중인 사용자 조회 (기존 코드 호환용)
 export async function getPendingUsers(): Promise<PendingUser[]> {
-  const response = await getPendingJoinRequests();
-  return response.requests?.map((req: any) => ({
-    id: req.id?.toString(),
-    name: req.name,
-    email: req.email,
-    role: req.requestedRole,
-    requestedAt: req.createdAt,
-  })) || [];
+  try {
+    const response = await getPendingJoinRequests();
+    return response.requests || [];
+  } catch (error) {
+    console.error('대기중인 사용자 조회 오류:', error);
+    return [];
+  }
 }
 
+// 사용자 승인 (기존 코드 호환용)
 export async function approveUser(userId: string) {
-  const adminId = localStorage.getItem('userId') || '1'; // 관리자 ID
+  const adminId = localStorage.getItem('userId') || '';
   return approveJoinRequest(userId, adminId);
 }
 
+// 사용자 거부 (기존 코드 호환용)
 export async function rejectUser(userId: string, reason = '승인 기준에 부합하지 않음') {
-  const adminId = localStorage.getItem('userId') || '1'; // 관리자 ID
+  const adminId = localStorage.getItem('userId') || '';
   return rejectJoinRequest(userId, adminId, reason);
 }
 
+// 모든 사용자 조회 (기존 코드 호환용)
 export async function getAllUsers() {
   return getAllMembers();
 }
 
+// 멤버 사용자 조회 (기존 코드 호환용)
 export async function getMemberUsers() {
-  return getMembersByRole('caregiver');
+  return getAllMembers();
 }
 
+// 사용자 삭제 (기존 코드 호환용)
 export async function deleteUser(userId: string) {
   return deleteMember(userId);
 }
 
+// 사용자 상태 업데이트 (기존 코드 호환용)
 export async function updateUserStatus(userId: string, status: 'active' | 'inactive') {
   return updateMember(userId, { status });
 }
 
+// 사용자 역할 업데이트 (기존 코드 호환용)
 export async function updateUserRole(userId: string, role: 'caregiver' | 'office' | 'admin') {
   return updateMember(userId, { role });
 }
 
+// 사용자 조회 (기존 코드 호환용)
 export async function getUserById(id: string) {
   return getMemberById(id);
 }
 
+// 사용자 비활성화 (기존 코드 호환용)
 export async function deactivateUser(id: string) {
-  return updateUserStatus(id, 'inactive');
+  return updateMember(id, { status: 'inactive' });
 }
 
-// ================== 기관 정보 관련 API ==================
+// ================== 조직 관리 API ==================
 
-// 기관 프로필 조회
+// 조직 프로필 조회
 export async function getOrganizationProfile() {
-  return fetchWithAuth('/api/v1/company/profile');
+  return fetchWithAuth('/api/v1/organization/profile');
 }
 
-// 기관 프로필 업데이트
+// 조직 프로필 업데이트
 export async function updateOrganizationProfile(profileData: {
   name: string;
   address?: string;
   contactEmail?: string;
   contactPhone?: string;
 }) {
-  return fetchWithAuth('/api/v1/company/profile', {
+  return fetchWithAuth('/api/v1/organization/profile', {
     method: 'PUT',
     body: JSON.stringify(profileData),
   });

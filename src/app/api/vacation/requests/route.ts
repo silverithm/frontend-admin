@@ -19,12 +19,24 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[API] 전체 휴무 요청 조회 시작');
     
+    // URL에서 companyId 파라미터 추출
+    const url = new URL(request.url);
+    const companyId = url.searchParams.get('companyId');
+    
+    if (!companyId) {
+      console.error('[API] companyId 파라미터가 필요합니다');
+      return NextResponse.json(
+        { error: 'companyId 파라미터가 필요합니다' },
+        { status: 400, headers }
+      );
+    }
+    
     // 클라이언트에서 전달받은 JWT 토큰 가져오기
     const authToken = request.headers.get('authorization');
     
-    // 백엔드 API URL
+    // 백엔드 API URL (companyId 포함)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const apiUrl = `${backendUrl}/api/vacation/requests`;
+    const apiUrl = `${backendUrl}/api/vacation/requests?companyId=${companyId}`;
     
     // 백엔드로 요청 헤더 구성
     const backendHeaders: Record<string, string> = {
@@ -49,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log(`[API] 전체 휴무 요청 조회 결과: ${data?.length || 0}건 반환`);
+    console.log(`[API] 전체 휴무 요청 조회 결과: ${data?.requests?.length || 0}건 반환`);
     
     return NextResponse.json(data, { headers });
   } catch (error) {

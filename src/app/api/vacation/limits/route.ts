@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start');
     const end = searchParams.get('end');
+    const companyId = searchParams.get('companyId');
 
     // 날짜 유효성 검사
     if (!start || !end || !isValidDateFormat(start) || !isValidDateFormat(end)) {
@@ -36,14 +37,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`[API] 휴가 제한 조회 요청: ${start} ~ ${end}`);
+    if (!companyId) {
+      console.error('[API] companyId 파라미터가 필요합니다');
+      return NextResponse.json(
+        { error: 'companyId 파라미터가 필요합니다' },
+        { status: 400, headers }
+      );
+    }
+
+    console.log(`[API] 휴가 제한 조회 요청: ${start} ~ ${end}, companyId: ${companyId}`);
     
     // 클라이언트에서 전달받은 JWT 토큰 가져오기
     const authToken = request.headers.get('authorization');
     
-    // 백엔드 API URL
+    // 백엔드 API URL (companyId 포함)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const apiUrl = `${backendUrl}/api/vacation/limits?start=${start}&end=${end}`;
+    const apiUrl = `${backendUrl}/api/vacation/limits?start=${start}&end=${end}&companyId=${companyId}`;
     
     // 백엔드로 요청 헤더 구성
     const backendHeaders: Record<string, string> = {
@@ -83,11 +92,23 @@ export async function GET(request: NextRequest) {
 // POST: 휴가 제한 설정
 export async function POST(request: NextRequest) {
   try {
+    // URL에서 companyId 파라미터 추출
+    const { searchParams } = new URL(request.url);
+    const companyId = searchParams.get('companyId');
+
+    if (!companyId) {
+      console.error('[API] companyId 파라미터가 필요합니다');
+      return NextResponse.json(
+        { error: 'companyId 파라미터가 필요합니다' },
+        { status: 400, headers }
+      );
+    }
+    
     // 요청 본문에서 데이터 추출
     const body = await request.json();
     const { limits } = body;
     
-    console.log(`[Limits API] POST 요청 받음, ${limits?.length || 0}개 항목, 현재 시간: ${new Date().toISOString()}`);
+    console.log(`[Limits API] POST 요청 받음, ${limits?.length || 0}개 항목, companyId: ${companyId}, 현재 시간: ${new Date().toISOString()}`);
     
     if (!limits || !Array.isArray(limits)) {
       console.error('[Limits API] 잘못된 요청 형식:', body);
@@ -100,9 +121,9 @@ export async function POST(request: NextRequest) {
     // 클라이언트에서 전달받은 JWT 토큰 가져오기
     const authToken = request.headers.get('authorization');
     
-    // 백엔드 API URL
+    // 백엔드 API URL (companyId 포함)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const apiUrl = `${backendUrl}/api/vacation/limits`;
+    const apiUrl = `${backendUrl}/api/vacation/limits?companyId=${companyId}`;
     
     // 백엔드로 요청 헤더 구성
     const backendHeaders: Record<string, string> = {
