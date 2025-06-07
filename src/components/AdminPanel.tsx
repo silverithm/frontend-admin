@@ -34,7 +34,19 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
     try {
       const monthStart = startOfMonth(panelDate);
       const monthEnd = endOfMonth(panelDate);
-      const response = await fetch(`/api/vacation/limits?start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(monthEnd, 'yyyy-MM-dd')}`);
+      
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('authToken');
+      const headers: Record<string, string> = {};
+      
+      // JWT 토큰이 있으면 Authorization 헤더 추가
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`/api/vacation/limits?start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(monthEnd, 'yyyy-MM-dd')}`, {
+        headers
+      });
       
       if (!response.ok) {
         throw new Error('휴무 제한 정보를 가져오는데 실패했습니다.');
@@ -131,7 +143,8 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          ...(localStorage.getItem('authToken') && { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` })
         },
         body: JSON.stringify({ 
           limits: saveLimits,

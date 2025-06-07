@@ -79,13 +79,31 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const currentRequestIdRef = React.useRef<string | null>(null);
+  const lastFetchTimeRef = React.useRef<number>(0);
+  const fetchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  const fetchCalendarData = useCallback(async (date: Date, retry = 0) => {
+  const fetchCalendarData = useCallback(async (date: Date, retry = 0, forceRefresh = false) => {
+    // 중복 요청 방지: 짧은 시간 내 동일한 요청 방지
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchTimeRef.current;
+    const minInterval = 500; // 최소 500ms 간격
+    
+    if (!forceRefresh && timeSinceLastFetch < minInterval) {
+      console.log(`요청 간격이 너무 짧음 (${timeSinceLastFetch}ms). 무시됨.`);
+      return;
+    }
+    
     if (retry >= MAX_RETRY_COUNT) {
       setError(`${retry}회 재시도 후에도 데이터를 가져오지 못했습니다. 페이지를 새로고침해 주세요.`);
       setIsLoading(false);
       setIsMonthChanging(false);
       return;
+    }
+
+    // 이전 타이머 취소
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+      fetchTimeoutRef.current = null;
     }
 
     if (abortControllerRef.current) {
@@ -98,6 +116,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
     setIsLoading(true);
     setError('');
+    lastFetchTimeRef.current = now;
 
     try {
       const requestId = Math.random().toString(36).substring(2, 15);
@@ -118,7 +137,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`요청 날짜 범위: ${startDateStr} ~ ${endDateStr}`);
 
       // nameFilter가 있을 경우 URL에 추가
-      let url = `/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&_t=${Date.now()}&_r=${requestId}&_retry=${retry}`;
+      let url = `/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&_t=${now}&_r=${requestId}&_retry=${retry}`;
       
       if (nameFilter) {
         url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
@@ -127,13 +146,22 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       
       console.log(`캘린더 API 요청 URL: ${url}`);
       
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('authToken');
+      const headers: Record<string, string> = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      };
+      
+      // JWT 토큰이 있으면 Authorization 헤더 추가
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(url, {
         signal: signal,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
+        headers,
         cache: 'no-store'
       });
 
@@ -157,7 +185,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           const delay = Math.min(1000 * Math.pow(2, retry), MAX_RETRY_DELAY);
           console.log(`잘못된 월 데이터 응답. 무시하고 ${delay}ms 후 재시도합니다.`);
           
-          setTimeout(() => {
+          fetchTimeoutRef.current = setTimeout(() => {
             // 재시도할 때 현재 활성화된 요청이 있는지 확인
             const currentId = currentRequestIdRef.current;
             if (currentId) {
@@ -185,7 +213,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const delay = Math.min(1000 * Math.pow(2, retry), MAX_RETRY_DELAY);
             console.log(`잘못된 월 데이터 응답. 무시하고 ${delay}ms 후 재시도합니다.`);
             
-            setTimeout(() => {
+            fetchTimeoutRef.current = setTimeout(() => {
               // 재시도할 때 현재 활성화된 요청이 있는지 확인
               const currentId = currentRequestIdRef.current;
               if (currentId) {
@@ -237,7 +265,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         const delay = Math.min(1000 * Math.pow(2, retry), MAX_RETRY_DELAY);
         console.log(`${delay}ms 후 재시도합니다 (${retry + 1}/${MAX_RETRY_COUNT})`);
         
-        setTimeout(() => {
+        fetchTimeoutRef.current = setTimeout(() => {
           // 재시도할 때 현재 활성화된 요청이 있는지 확인
           const currentId = currentRequestIdRef.current;
           if (currentId) {
@@ -265,14 +293,23 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         console.log(`이름 필터 적용: ${nameFilter}`);
       }
       
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('authToken');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache',
+        'Pragma': 'no-cache',
+        'X-Request-Time': new Date().toISOString()
+      };
+      
+      // JWT 토큰이 있으면 Authorization 헤더 추가
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/vacation/date/${formattedDate}${cacheParam}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache',
-          'Pragma': 'no-cache',
-          'X-Request-Time': new Date().toISOString()
-        },
+        headers,
         cache: 'no-store'
       });
       
@@ -311,28 +348,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   const handleRefresh = useCallback(() => {
-    const refreshData = async () => {
-      try {
-        await fetchCalendarData(currentDate);
-        
-        setTimeout(async () => {
-          console.log('지연 데이터 갱신 실행...');
-          await fetchCalendarData(currentDate);
-          
-          if (selectedDate) {
-            fetchSelectedDateData(selectedDate);
-          }
-        }, 1000);
-      } catch (err) {
-        console.error('새로고침 중 오류:', err);
-      }
-    };
-
     console.log('수동 새로고침 요청');
     setIsLoading(true);
-    refreshData();
+    fetchCalendarData(currentDate, 0, true); // forceRefresh = true
     logAllVacations();
-  }, [fetchCalendarData, currentDate, selectedDate, fetchSelectedDateData, logAllVacations]);
+  }, [fetchCalendarData, currentDate, logAllVacations]);
 
   const prevMonth = useCallback(() => {
     if (isButtonDisabled) return;
@@ -399,47 +419,30 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 캘린더 초기 로드
   useEffect(() => {
     console.log('캘린더 마운트됨 - 초기 데이터 로드 시작');
-    fetchCalendarData(currentDate);
+    fetchCalendarData(currentDate, 0, true); // forceRefresh = true로 초기 로드
     
-    // 30초마다 자동 새로고침
-    const refreshInterval = setInterval(() => {
-      console.log('자동 새로고침 실행');
-      fetchCalendarData(currentDate);
-    }, 30000);
-    
-    return () => clearInterval(refreshInterval);
-  }, [fetchCalendarData, currentDate]);
-
-  // 월 변경시 데이터 로드
-  useEffect(() => {
-    console.log('월 변경됨 - 데이터 로드');
-    if (!isMonthChanging) {
-      fetchCalendarData(currentDate);
-    } else {
-      console.log('월 변경 중 - 중복 요청 방지');
-    }
-  }, [currentDate, isMonthChanging, fetchCalendarData]);
-
-  // 탭이 포커스를 받았을 때 데이터 새로고침
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('페이지 포커스 복귀 - 데이터 새로고침');
-        fetchCalendarData(currentDate);
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
       }
     };
+  }, []); // currentDate 의존성 제거하여 중복 요청 방지
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [fetchCalendarData, currentDate]);
+  // 월 변경시 데이터 로드만 처리
+  useEffect(() => {
+    console.log('월 변경됨 - 데이터 로드');
+    fetchCalendarData(currentDate, 0, true); // forceRefresh = true
+  }, [currentDate, fetchCalendarData]);
 
   // 필터 변경시 데이터 로드
   useEffect(() => {
     console.log(`필터 변경됨: ${roleFilter} - 데이터 로드`);
-    fetchCalendarData(currentDate);
-  }, [roleFilter, fetchCalendarData, currentDate]);
+    fetchCalendarData(currentDate, 0, true); // forceRefresh = true
+  }, [roleFilter, nameFilter, fetchCalendarData, currentDate]);
 
   useEffect(() => {
     setRetryCount(0);
@@ -580,26 +583,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     console.log('관리자 패널 닫힘, 데이터 즉시 새로고침...');
     
     setIsLoading(true);
+    fetchCalendarData(currentDate, 0, true); // forceRefresh = true
     
-    const refreshData = async () => {
-      try {
-        await fetchCalendarData(currentDate);
-        
-        setTimeout(async () => {
-          console.log('지연 데이터 갱신 실행...');
-          await fetchCalendarData(currentDate);
-          
-          if (selectedDate) {
-            console.log('선택된 날짜 데이터 갱신...');
-            await fetchSelectedDateData(selectedDate);
-          }
-        }, 1000);
-      } catch (error) {
-        console.error('데이터 새로고침 중 오류:', error);
-      }
-    };
-    
-    refreshData();
+    if (selectedDate) {
+      console.log('선택된 날짜 데이터 갱신...');
+      fetchSelectedDateData(selectedDate);
+    }
   };
 
   return (
@@ -610,8 +599,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           <p>요청한 월({format(currentDate, 'yyyy년 MM월')})의 데이터를 가져오지 못했습니다. 새로고침 버튼을 눌러 다시 시도해주세요.</p>
         </div>
       )}
-      <div className="p-2 sm:p-6 flex flex-col">
-        <div className="flex justify-between items-center mb-2 sm:mb-6">
+      <div className="p-3 sm:p-6 md:p-8 flex flex-col">
+        <div className="flex justify-between items-center mb-3 sm:mb-6 md:mb-8">
           <div className="flex items-center space-x-1 sm:space-x-4">
             <div className="bg-blue-100 p-1 sm:p-2 rounded-full text-blue-600">
               <FiCalendar size={14} className="sm:w-5 sm:h-5" />
@@ -693,7 +682,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </div>
 
         <motion.div 
-          className="grid grid-cols-7 gap-x-1 gap-y-2 sm:gap-x-3 sm:gap-y-4"
+          className="grid grid-cols-7 gap-x-1 gap-y-3 sm:gap-x-4 sm:gap-y-5 md:gap-x-5 md:gap-y-6"
           initial="hidden"
           animate="visible"
           variants={{
@@ -724,28 +713,28 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 key={index}
                 variants={fadeInVariants}
                 onClick={() => handleDateClick(day)}
-                className={`p-1 sm:p-2 min-h-[44px] sm:min-h-[96px] rounded-lg sm:rounded-xl relative cursor-pointer transition-all ${
+                className={`p-1 sm:p-3 min-h-[60px] sm:min-h-[120px] md:min-h-[140px] rounded-lg sm:rounded-xl relative cursor-pointer transition-all ${
                   !isCurrentMonth ? 'opacity-40' : ''
                 } ${isSelected ? 'ring-2 ring-blue-500 scale-[1.02] shadow-md z-10' : ''}
                 ${dayColor.bg}
                 ${isPast ? 'cursor-not-allowed opacity-60' : ''}
                 hover:shadow-sm overflow-hidden`}
               >
-                <div className={`flex justify-between items-start`}>
-                  <div className={`text-[10px] sm:text-sm font-semibold ${
+                <div className={`flex justify-between items-start mb-1`}>
+                  <div className={`text-xs sm:text-sm md:text-base font-semibold ${
                     isSunday ? 'text-red-500' : 
                     isSaturday ? 'text-blue-500' : 
                     'text-black'}
                   `}>
                     {format(day, 'd')}
                     {isCurrentDay && (
-                      <span className="ml-0.5 sm:ml-1 inline-flex h-1 w-1 sm:h-2 sm:w-2 rounded-full bg-blue-500"></span>
+                      <span className="ml-0.5 sm:ml-1 inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500"></span>
                     )}
                   </div>
                   
                   {isCurrentMonth && roleFilter !== 'all' && (
                     <span className={`
-                      text-[6px] sm:text-xs font-medium px-0.5 sm:px-1.5 py-0 sm:py-0.5 rounded-full inline-flex items-center
+                      text-[8px] sm:text-xs md:text-sm font-medium px-1 sm:px-1.5 py-0.5 rounded-full inline-flex items-center
                       ${
                         vacationersCount >= maxPeople
                           ? 'bg-red-100 text-red-600' 
@@ -758,12 +747,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 </div>
                 
                 {isCurrentMonth && vacations && vacations.length > 0 && (
-                  <div className="mt-0.5 sm:mt-1.5 max-h-16 sm:max-h-12 md:max-h-16 overflow-hidden">
+                  <div className="space-y-0.5 sm:space-y-1 max-h-20 sm:max-h-20 md:max-h-28 overflow-hidden">
                     {vacations
-                      .slice(0, 3)
+                      .slice(0, 4)
                       .map((vacation, idx) => (
-                        <div key={idx} className="flex items-center text-[6px] sm:text-xs mb-0.5">
-                          <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-xs mr-0.5 sm:mr-1 px-0.5 sm:px-1 py-0 sm:py-0.5 rounded-full
+                        <div key={idx} className="flex items-center text-[8px] sm:text-xs md:text-sm">
+                          <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full
                             ${vacation.status === 'approved' 
                               ? 'bg-green-100 text-green-600' 
                               : vacation.status === 'rejected'
@@ -775,20 +764,23 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               ? '거절'
                               : '대기'}
                           </span>
-                          <span className={`max-w-full sm:truncate sm:max-w-[60%] break-all ${
+                          <span className={`flex-1 leading-tight ${
                             vacation.status === 'rejected'
                               ? 'text-red-600 line-through'
-                              : 'text-black'
-                          }`}>
+                              : 'text-gray-800'
+                          }`}
+                          title={vacation.userName || '이름 없음'}>
                             {vacation.userName || `이름 없음`}
                           </span>
                           {vacation.type === 'mandatory' && (
-                            <MdStar className="hidden sm:inline ml-0.5 text-amber-500 flex-shrink-0" size={10} />
+                            <MdStar className="ml-0.5 text-amber-500 flex-shrink-0" size={10} />
                           )}
                         </div>
                       ))}
-                    {vacations.length > 3 && (
-                      <div className="text-[6px] sm:text-xs text-gray-500 mt-0.5">+{vacations.length - 3}명</div>
+                    {vacations.length > 4 && (
+                      <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
+                        +{vacations.length - 4}명 더
+                      </div>
                     )}
                   </div>
                 )}
@@ -816,28 +808,28 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </motion.div>
       </div>
 
-      <div className="px-3 sm:px-6 py-2 sm:py-3 border-t border-gray-100">
-        <p className="text-[9px] sm:text-xs text-gray-500 mb-1 sm:mb-2 font-medium">상태 표시</p>
-        <div className="flex flex-wrap gap-1.5 sm:gap-3">
+      <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
+        <p className="text-xs sm:text-sm md:text-base text-gray-500 mb-2 sm:mb-3 font-medium">상태 표시</p>
+        <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
           <div className="flex items-center">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full mr-1 sm:mr-1.5"></div>
-            <span className="text-[9px] sm:text-xs text-gray-600">여유</span>
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full mr-1.5 sm:mr-2"></div>
+            <span className="text-xs sm:text-sm md:text-base text-gray-600">여유</span>
           </div>
           <div className="flex items-center">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full mr-1 sm:mr-1.5"></div>
-            <span className="text-[9px] sm:text-xs text-gray-600">마감</span>
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full mr-1.5 sm:mr-2"></div>
+            <span className="text-xs sm:text-sm md:text-base text-gray-600">마감</span>
           </div>
           <div className="flex items-center ml-2 sm:ml-4">
-            <span className="text-[8px] sm:text-xs px-0.5 sm:px-1 py-0 sm:py-0.5 bg-green-100 text-green-600 rounded-full mr-1 sm:mr-1.5">승인</span>
-            <span className="text-[9px] sm:text-xs text-gray-600">승인됨</span>
+            <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-100 text-green-600 rounded-full mr-1.5 sm:mr-2">승인</span>
+            <span className="text-xs sm:text-sm md:text-base text-gray-600">승인됨</span>
           </div>
           <div className="flex items-center">
-            <span className="text-[8px] sm:text-xs px-0.5 sm:px-1 py-0 sm:py-0.5 bg-yellow-100 text-yellow-600 rounded-full mr-1 sm:mr-1.5">대기</span>
-            <span className="text-[9px] sm:text-xs text-gray-600">대기중</span>
+            <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-100 text-yellow-600 rounded-full mr-1.5 sm:mr-2">대기</span>
+            <span className="text-xs sm:text-sm md:text-base text-gray-600">대기중</span>
           </div>
           <div className="flex items-center">
-            <span className="text-[8px] sm:text-xs px-0.5 sm:px-1 py-0 sm:py-0.5 bg-red-100 text-red-600 rounded-full mr-1 sm:mr-1.5">거절</span>
-            <span className="text-[9px] sm:text-xs text-gray-600">거부됨</span>
+            <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-600 rounded-full mr-1.5 sm:mr-2">거절</span>
+            <span className="text-xs sm:text-sm md:text-base text-gray-600">거부됨</span>
           </div>
         </div>
       </div>

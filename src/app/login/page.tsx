@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { login } from '@/lib/apiService';
+import { signin } from '@/lib/apiService';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,14 +28,31 @@ export default function LoginPage() {
     setError('');
 
     try {
+      console.log('로그인 폼 제출:', { email: formData.email });
+      
       // Spring Boot 백엔드로 로그인 요청
-      await login(formData.email, formData.password);
+      const result = await signin(formData.email, formData.password);
+      console.log('로그인 성공:', result);
       
       // 로그인 성공 후 관리자 페이지로 이동
       router.push('/admin');
     } catch (error) {
       console.error('로그인 오류:', error);
-      setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      
+      // 더 자세한 오류 메시지 표시
+      if (error instanceof Error) {
+        if (error.message.includes('400')) {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+        } else if (error.message.includes('401')) {
+          setError('인증에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+        } else if (error.message.includes('500')) {
+          setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          setError(`로그인 오류: ${error.message}`);
+        }
+      } else {
+        setError('알 수 없는 오류가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }

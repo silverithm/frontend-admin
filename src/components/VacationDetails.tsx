@@ -81,11 +81,20 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
     setDeleteError('');
 
     try {
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('authToken');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // JWT 토큰이 있으면 Authorization 헤더 추가
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/vacation/delete/${selectedVacation.id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           password: deletePassword
         })

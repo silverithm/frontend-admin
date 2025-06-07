@@ -1,8 +1,4 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { VacationLimit } from '@/types/vacation';
-import { getVacationLimitsForMonth, setVacationLimit, getVacationLimits } from '@/lib/vacationService';
-import { format, parseISO } from 'date-fns';
-import { parse } from 'date-fns';
 
 // 응답 헤더를 추가하여 캐시 방지
 const headers = {
@@ -41,18 +37,45 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`[API] 휴가 제한 조회 요청: ${start} ~ ${end}`);
-    const startDate = new Date(start);
-    const endDate = new Date(end);
     
-    const limits = await getVacationLimits(startDate, endDate);
-    console.log(`[API] 휴가 제한 조회 결과: ${limits.length}건 반환`);
+    // 클라이언트에서 전달받은 JWT 토큰 가져오기
+    const authToken = request.headers.get('authorization');
     
-    return NextResponse.json({ limits });
+    // 백엔드 API URL
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const apiUrl = `${backendUrl}/api/vacation/limits?start=${start}&end=${end}`;
+    
+    // 백엔드로 요청 헤더 구성
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (authToken) {
+      backendHeaders['Authorization'] = authToken;
+    }
+    
+    console.log(`[API] 백엔드 요청: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: backendHeaders,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[API] 백엔드 응답 오류:', response.status, errorText);
+      throw new Error(`백엔드 API 오류: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`[API] 휴가 제한 조회 결과: ${data.limits?.length || 0}건 반환`);
+    
+    return NextResponse.json(data, { headers });
   } catch (error) {
     console.error('[API] 휴가 제한 조회 오류:', error);
     return NextResponse.json(
       { error: '휴가 제한 조회 중 오류가 발생했습니다' },
-      { status: 500 }
+      { status: 500, headers }
     );
   }
 }
@@ -64,41 +87,48 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { limits } = body;
     
-    console.log(`[Limits API] POST 요청 받음, ${limits.length}개 항목, 현재 시간: ${new Date().toISOString()}`);
+    console.log(`[Limits API] POST 요청 받음, ${limits?.length || 0}개 항목, 현재 시간: ${new Date().toISOString()}`);
     
     if (!limits || !Array.isArray(limits)) {
       console.error('[Limits API] 잘못된 요청 형식:', body);
       return NextResponse.json(
         { error: '올바른 형식의 휴가 제한 데이터가 필요합니다' },
-        { status: 400 }
+        { status: 400, headers }
       );
     }
     
-    console.log('[Limits API] 휴가 제한 저장 시작...');
-    const savedLimits = [];
+    // 클라이언트에서 전달받은 JWT 토큰 가져오기
+    const authToken = request.headers.get('authorization');
     
-    // 각 제한 항목을 저장
-    for (const limit of limits) {
-      // id가 없으면 date+role을 id로 보정
-      const id = limit.id ?? `${limit.date}_${limit.role ?? 'caregiver'}`;
-      const { date, maxPeople, role } = limit;
-      
-      if (!date || maxPeople === undefined) {
-        console.warn(`[Limits API] 잘못된 데이터 항목 건너뜀:`, limit);
-        continue;
-      }
-      
-      try {
-        console.log(`[Limits API] 휴가 제한 저장: ${date}, 최대 ${maxPeople}명, id: ${id}, role: ${role}`);
-        const result = await setVacationLimit(date, maxPeople, role ?? 'caregiver');
-        savedLimits.push(result);
-        console.log(`[Limits API] 제한 저장 성공: ${date}, role: ${role}`);
-      } catch (err) {
-        console.error(`[Limits API] 제한 항목 저장 중 오류(계속 진행): ${date}, role: ${role}`, err);
-      }
+    // 백엔드 API URL
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const apiUrl = `${backendUrl}/api/vacation/limits`;
+    
+    // 백엔드로 요청 헤더 구성
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (authToken) {
+      backendHeaders['Authorization'] = authToken;
     }
     
-    console.log(`[Limits API] 저장 완료, ${savedLimits.length}개 항목, 타임스탬프: ${Date.now()}`);
+    console.log(`[API] 백엔드 요청: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: backendHeaders,
+      body: JSON.stringify({ limits }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[API] 백엔드 응답 오류:', response.status, errorText);
+      throw new Error(`백엔드 API 오류: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`[Limits API] 저장 완료, 타임스탬프: ${Date.now()}`);
     
     // 캐시 방지 헤더를 포함한 성공 응답
     const responseHeaders = {
@@ -109,15 +139,7 @@ export async function POST(request: NextRequest) {
       'x-timestamp': Date.now().toString()
     };
     
-    return NextResponse.json(
-      {
-        success: true,
-        message: `${savedLimits.length}개의 휴가 제한이 저장되었습니다.`,
-        limits: savedLimits,
-        timestamp: Date.now()
-      },
-      { headers: responseHeaders }
-    );
+    return NextResponse.json(data, { headers: responseHeaders });
   } catch (error) {
     console.error('[Limits API] 휴가 제한 저장 중 오류:', error);
     

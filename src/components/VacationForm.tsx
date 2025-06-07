@@ -68,12 +68,21 @@ const VacationForm: React.FC<VacationFormProps> = ({
         const baseUrl = window.location.origin;
         const apiUrl = `${baseUrl}/api/vacation/request`;
         
+        // JWT 토큰 가져오기
+        const token = localStorage.getItem('authToken');
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        
+        // JWT 토큰이 있으면 Authorization 헤더 추가
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         // fetch API를 사용하여 휴무 신청
         const response = await fetch(apiUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             userName: userName.trim(),
             reason: reason.trim(),

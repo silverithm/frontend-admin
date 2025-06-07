@@ -18,25 +18,16 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers });
 }
 
-// Next.js 15.3.1에서는 라우트 파라미터 처리 방식이 변경됨
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const { id } = await params;
+    console.log('[Frontend API] 비밀번호 변경 요청 프록시 시작');
     
-    if (!id) {
-      return NextResponse.json(
-        { error: '휴가 ID가 누락되었습니다' },
-        { status: 400 }
-      );
-    }
-    
-    // 요청 바디 파싱 (삭제 요청 정보)
+    // 요청 바디 파싱
     const requestBody = await request.json();
     
-    console.log(`[Frontend API] 휴가 삭제 요청 프록시: ID=${id}`, requestBody);
+    console.log('[Frontend API] 비밀번호 변경 데이터:', { 
+      email: requestBody.email 
+    });
 
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
@@ -54,8 +45,8 @@ export async function DELETE(
     }
 
     // 백엔드로 요청 전달
-    const backendResponse = await fetch(`${BACKEND_URL}/api/vacation/delete/${id}`, {
-      method: 'DELETE',
+    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/change/password`, {
+      method: 'POST',
       headers: backendHeaders,
       body: JSON.stringify(requestBody),
     });
@@ -64,20 +55,20 @@ export async function DELETE(
       console.error(`[Frontend API] 백엔드 응답 오류: ${backendResponse.status} ${backendResponse.statusText}`);
       const errorData = await backendResponse.json().catch(() => ({}));
       return NextResponse.json({
-        error: errorData.error || `백엔드 서버 오류: ${backendResponse.status}`
+        error: errorData.error || errorData.message || `비밀번호 변경 실패: ${backendResponse.status}`
       }, { status: backendResponse.status, headers });
     }
 
     const data = await backendResponse.json();
     
-    console.log(`[Frontend API] 휴가 삭제 백엔드 응답 성공: ID=${id}`);
+    console.log('[Frontend API] 비밀번호 변경 백엔드 응답 성공');
     
     return NextResponse.json(data, { headers });
       
   } catch (error) {
-    console.error('[Frontend API] 휴가 삭제 오류:', error);
+    console.error('[Frontend API] 비밀번호 변경 오류:', error);
     return NextResponse.json({
-      error: '휴가 삭제 처리 중 오류가 발생했습니다.'
+      error: '비밀번호 변경 처리 중 오류가 발생했습니다.'
     }, { status: 500, headers });
   }
 } 

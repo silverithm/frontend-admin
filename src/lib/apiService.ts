@@ -1,12 +1,13 @@
 // apiService.ts - Spring Boot 백엔드 API 호출을 위한 서비스
 
 import { VacationRequest, VacationLimit } from '@/types/vacation';
+import { SigninResponseDTO, TokenInfo, UserDataDTO, FindPasswordResponse, PasswordChangeRequest, UserRole } from '@/types/auth';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-// 공통 fetch 함수
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
+// JWT 토큰이 필요하지 않은 공통 fetch 함수 (로그인용)
+async function fetchWithoutAuth(url: string, options: RequestInit = {}) {
   // 기본 헤더 설정
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -18,6 +19,51 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     ...options,
     headers,
   });
+  
+  // 응답이 OK가 아닌 경우 에러 처리
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || errorData?.message || `API 오류: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+// JWT 토큰이 포함된 공통 fetch 함수
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  // 로컬 스토리지에서 JWT 토큰 가져오기
+  const token = localStorage.getItem('authToken');
+  
+  // 기본 헤더 설정
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers as Record<string, string>,
+  };
+  
+  // JWT 토큰이 있으면 Authorization 헤더 추가
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  // fetch 요청 실행
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    ...options,
+    headers,
+  });
+  
+  // 인증 오류 처리 (401 Unauthorized)
+  if (response.status === 401) {
+    // 토큰 삭제 및 로그인 페이지로 리다이렉트
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+  }
   
   // 응답이 OK가 아닌 경우 에러 처리
   if (!response.ok) {
@@ -109,15 +155,21 @@ export async function saveVacationLimits(limits: Array<{
 
 // ================== 멤버 관련 API ==================
 
-// 멤버 로그인
-export async function login(username: string, password: string) {
-  const response = await fetchWithAuth('/api/v1/members/signin', {
+// 멤버 로그인 (기존 - 호환성을 위해 유지)
+export async function login(email: string, password: string) {
+  const response = await fetchWithoutAuth('/api/v1/signin', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
   
-  // 로그인 성공 시 필요한 정보 저장
+  // 로그인 성공 시 JWT 토큰과 사용자 정보 저장
   if (response.success && response.data) {
+    // JWT 토큰 저장 (백엔드에서 token 필드로 반환한다고 가정)
+    if (response.token || response.data.token) {
+      localStorage.setItem('authToken', response.token || response.data.token);
+    }
+    
+    // 사용자 정보 저장
     localStorage.setItem('userName', response.data.name || '');
     localStorage.setItem('userRole', response.data.role || '');
     localStorage.setItem('userId', response.data.id?.toString() || '');
@@ -126,11 +178,128 @@ export async function login(username: string, password: string) {
   return response;
 }
 
-// 로그아웃
+// ================== 새로운 사용자 인증 API ==================
+
+// 사용자 로그인 (새로운 API)
+export async function signin(email: string, password: string): Promise<SigninResponseDTO> {
+  try {
+    console.log('로그인 시도:', { email });
+    
+    const response = await fetch(`${API_BASE_URL}/api/v1/signin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    console.log('백엔드 응답 상태:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('백엔드 오류 응답:', errorText);
+      throw new Error(`로그인 실패: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('로그인 응답 데이터:', data);
+    
+    // 로그인 성공 시 JWT 토큰과 사용자 정보 저장
+    if (data && data.tokenInfo) {
+      // JWT 토큰 저장
+      localStorage.setItem('authToken', data.tokenInfo.accessToken);
+      localStorage.setItem('refreshToken', data.tokenInfo.refreshToken);
+      localStorage.setItem('tokenExpirationTime', data.tokenInfo.accessTokenExpirationTime?.toString() || '');
+      
+      // 사용자 정보 저장
+      localStorage.setItem('userName', data.userName || '');
+      localStorage.setItem('userId', data.userId?.toString() || '');
+      localStorage.setItem('companyName', data.companyName || '');
+      localStorage.setItem('companyAddressName', data.companyAddressName || '');
+      localStorage.setItem('customerKey', data.customerKey || '');
+      
+      console.log('로그인 정보 저장 완료');
+    } else {
+      console.warn('토큰 정보가 없는 응답:', data);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('signin 함수 오류:', error);
+    throw error;
+  }
+}
+
+// 사용자 회원가입
+export async function signup(userData: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  companyName: string;
+  companyAddress: string;
+}): Promise<TokenInfo> {
+  const response = await fetchWithoutAuth('/api/v1/signup', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+  
+  // 회원가입 성공 시 JWT 토큰 저장 (자동 로그인)
+  if (response && response.accessToken) {
+    localStorage.setItem('authToken', response.accessToken);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('tokenExpirationTime', response.accessTokenExpirationTime?.toString() || '');
+  }
+  
+  return response;
+}
+
+// 비밀번호 찾기
+export async function findPassword(email: string): Promise<FindPasswordResponse> {
+  return fetchWithoutAuth(`/api/v1/find/password?email=${encodeURIComponent(email)}`, {
+    method: 'POST',
+  });
+}
+
+// 비밀번호 변경
+export async function changePassword(passwordData: PasswordChangeRequest): Promise<string> {
+  return fetchWithAuth('/api/v1/change/password', {
+    method: 'POST',
+    body: JSON.stringify(passwordData),
+  });
+}
+
+// 호환성을 위한 register 함수 (기존 페이지용)
+export async function register(userData: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  phone?: string;
+  organization?: string;
+}): Promise<TokenInfo> {
+  return signup({
+    name: userData.name,
+    email: userData.email,
+    password: userData.password,
+    role: userData.role,
+    companyName: userData.organization || '',
+    companyAddress: ''
+  });
+}
+
+// 로그아웃 (업데이트)
 export async function logout() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('tokenExpirationTime');
   localStorage.removeItem('userName');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userId');
+  localStorage.removeItem('companyName');
+  localStorage.removeItem('companyAddressName');
+  localStorage.removeItem('customerKey');
 }
 
 // FCM 토큰 업데이트
@@ -146,7 +315,7 @@ export async function getAllCompanies() {
   return fetchWithAuth('/api/v1/members/companies');
 }
 
-// 회원가입 요청
+// 회원가입 요청 (JWT 토큰 없이 요청)
 export async function submitJoinRequest(requestData: {
   username: string;
   password: string;
@@ -158,7 +327,7 @@ export async function submitJoinRequest(requestData: {
   position?: string;
   companyId: number;
 }) {
-  return fetchWithAuth('/api/v1/members/join-request', {
+  return fetchWithoutAuth('/api/v1/members/join-request', {
     method: 'POST',
     body: JSON.stringify(requestData),
   });
@@ -330,4 +499,24 @@ export async function getUserById(id: string) {
 
 export async function deactivateUser(id: string) {
   return updateUserStatus(id, 'inactive');
+}
+
+// ================== 기관 정보 관련 API ==================
+
+// 기관 프로필 조회
+export async function getOrganizationProfile() {
+  return fetchWithAuth('/api/v1/company/profile');
+}
+
+// 기관 프로필 업데이트
+export async function updateOrganizationProfile(profileData: {
+  name: string;
+  address?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+}) {
+  return fetchWithAuth('/api/v1/company/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profileData),
+  });
 } 

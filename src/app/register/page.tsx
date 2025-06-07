@@ -46,7 +46,7 @@ export default function RegisterPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: 'admin',
+        role: 'ADMIN',
         phone: formData.phone,
         organization: formData.organization
       });

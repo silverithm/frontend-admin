@@ -27,13 +27,25 @@ export async function PUT(
     
     console.log(`[Frontend API] 휴가 거부 요청 프록시: ID=${id}`);
 
+    // JWT 토큰 추출
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    // 백엔드 요청 헤더 구성
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    // JWT 토큰이 있으면 Authorization 헤더 추가
+    if (token) {
+      backendHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
     // 백엔드로 요청 전달
     const backendResponse = await fetch(`${BACKEND_URL}/api/vacation/reject/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: backendHeaders,
     });
 
     if (!backendResponse.ok) {
