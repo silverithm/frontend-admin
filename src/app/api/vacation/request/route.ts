@@ -1,59 +1,60 @@
-import { NextResponse } from 'next/server';
-import { createVacationRequest } from '@/lib/vacationService';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+// 백엔드 API URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://69af-211-177-230-196.ngrok-free.app';
+
+// 기본 CORS 및 캐시 방지 헤더 설정
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+};
+
+// OPTIONS 요청에 대한 핸들러
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers });
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
+    console.log('[Frontend API] 휴가 신청 요청 프록시 시작');
     
-    // 필수 필드 검증
-    if (!data.userName || !data.date) {
-      return NextResponse.json(
-        { error: '이름과 날짜는 필수 입력 항목입니다.' },
-        { status: 400 }
-      );
-    }
+    // 요청 바디 파싱
+    const requestBody = await request.json();
     
-    // 직원 유형 검증
-    if (!data.role || !['caregiver', 'office', 'all'].includes(data.role)) {
-      return NextResponse.json(
-        { error: '올바른 직원 유형을 선택해주세요.' },
-        { status: 400 }
-      );
-    }
-    
-    // 비밀번호 검증
-    if (!data.password) {
-      return NextResponse.json(
-        { error: '삭제를 위한 비밀번호가 필요합니다.' },
-        { status: 400 }
-      );
-    }
-    
-    // userId 생성 (실제 앱에서는 인증 시스템에서 가져옴)
-    const userId = `user_${Date.now()}`;
-    
-    // 휴가 신청 생성
-    const vacationRequest = await createVacationRequest({
-      userId,
-      userName: data.userName,
-      date: data.date,
-      reason: data.reason || '',
-      status: 'pending', // 기본값은 대기 상태
-      type: data.type || 'regular',
-      role: data.role, // 직원 유형 추가
-      password: data.password, // 비밀번호 추가
-      updatedAt: new Date().toISOString()
+    console.log('[Frontend API] 휴가 신청 데이터:', requestBody);
+
+    // 백엔드로 요청 전달
+    const backendResponse = await fetch(`${BACKEND_URL}/api/vacation/submit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
+
+    if (!backendResponse.ok) {
+      console.error(`[Frontend API] 백엔드 응답 오류: ${backendResponse.status} ${backendResponse.statusText}`);
+      const errorData = await backendResponse.json().catch(() => ({}));
+      return NextResponse.json({
+        error: errorData.error || `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
+    }
+
+    const data = await backendResponse.json();
     
-    return NextResponse.json({ 
-      success: true,
-      data: vacationRequest
-    });
+    console.log('[Frontend API] 휴가 신청 백엔드 응답 성공');
+    
+    return NextResponse.json(data, { headers });
+      
   } catch (error) {
-    console.error('휴가 신청 처리 중 오류:', error);
-    return NextResponse.json(
-      { error: '휴가 신청을 처리하는 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    console.error('[Frontend API] 휴가 신청 오류:', error);
+    return NextResponse.json({
+      error: '휴가 신청 처리 중 오류가 발생했습니다.'
+    }, { status: 500, headers });
   }
 } 

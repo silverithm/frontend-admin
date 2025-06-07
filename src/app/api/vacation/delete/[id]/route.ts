@@ -1,81 +1,71 @@
-import { NextResponse } from 'next/server';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { NextRequest, NextResponse } from 'next/server';
+
+// 백엔드 API URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://69af-211-177-230-196.ngrok-free.app';
+
+// 기본 CORS 및 캐시 방지 헤더 설정
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+};
+
+// OPTIONS 요청에 대한 핸들러
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers });
+}
 
 // Next.js 15.3.1에서는 라우트 파라미터 처리 방식이 변경됨
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  
-  if (!id) {
-    return NextResponse.json(
-      { error: '휴가 ID가 누락되었습니다' },
-      { status: 400 }
-    );
-  }
-  
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    // 요청 본문에서 비밀번호와 관리자 여부 추출
-    const requestData = await request.json().catch(() => ({}));
-    const { password, isAdmin } = requestData;
+    const { id } = await params;
     
-    const vacationDocRef = doc(db, 'vacations', id);
-    const vacationSnap = await getDoc(vacationDocRef);
-    
-    if (!vacationSnap.exists()) {
+    if (!id) {
       return NextResponse.json(
-        { error: '해당 휴가 신청을 찾을 수 없습니다' },
-        { status: 404 }
+        { error: '휴가 ID가 누락되었습니다' },
+        { status: 400 }
       );
     }
     
-    const vacationData = vacationSnap.data();
+    // 요청 바디 파싱 (삭제 요청 정보)
+    const requestBody = await request.json();
     
-    // 관리자가 아닌 경우에만 비밀번호 검증
-    if (!isAdmin) {
-      if (!password || !password.trim()) {
-        return NextResponse.json(
-          { error: '비밀번호가 필요합니다' },
-          { status: 400 }
-        );
-      }
-      
-      console.log('삭제 요청 정보:', {
-        id,
-        inputPassword: password,
-        storedPassword: vacationData.password,
-        passwordMatch: vacationData.password === password,
-        vacationUser: vacationData.userName,
-        vacationDate: vacationData.date,
-        isAdmin
-      });
-      
-      // 비밀번호 검증
-      if (vacationData.password !== password) {
-        return NextResponse.json(
-          { error: '비밀번호가 일치하지 않습니다' },
-          { status: 403 }
-        );
-      }
-    } else {
-      console.log('관리자 권한으로 휴가 삭제 요청:', {
-        id,
-        vacationUser: vacationData.userName,
-        vacationDate: vacationData.date
-      });
+    console.log(`[Frontend API] 휴가 삭제 요청 프록시: ID=${id}`, requestBody);
+
+    // 백엔드로 요청 전달
+    const backendResponse = await fetch(`${BACKEND_URL}/api/vacation/delete/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!backendResponse.ok) {
+      console.error(`[Frontend API] 백엔드 응답 오류: ${backendResponse.status} ${backendResponse.statusText}`);
+      const errorData = await backendResponse.json().catch(() => ({}));
+      return NextResponse.json({
+        error: errorData.error || `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
     }
+
+    const data = await backendResponse.json();
     
-    // 휴가 문서 삭제
-    await deleteDoc(vacationDocRef);
+    console.log(`[Frontend API] 휴가 삭제 백엔드 응답 성공: ID=${id}`);
     
-    return NextResponse.json(
-      { message: '휴가 신청이 삭제되었습니다' },
-      { status: 200 }
-    );
+    return NextResponse.json(data, { headers });
+      
   } catch (error) {
-    console.error('휴가 삭제 중 오류 발생:', error);
-    return NextResponse.json(
-      { error: '휴가 삭제 중 오류가 발생했습니다' },
-      { status: 500 }
-    );
+    console.error('[Frontend API] 휴가 삭제 오류:', error);
+    return NextResponse.json({
+      error: '휴가 삭제 처리 중 오류가 발생했습니다.'
+    }, { status: 500, headers });
   }
 } 
