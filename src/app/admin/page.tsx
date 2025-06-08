@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { DayInfo, VacationRequest, VacationLimit } from '@/types/vacation';
-import { deleteVacation as apiDeleteVacation, logout as apiLogout } from '@/lib/apiService';
+import { deleteVacation as apiDeleteVacation, logout as apiLogout, getVacationCalendar, getVacationLimits, saveVacationLimits, getAllVacationRequests, getVacationForDate } from '@/lib/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import VacationCalendar from '@/components/VacationCalendar';
 import AdminPanel from '@/components/AdminPanel';
@@ -157,54 +157,17 @@ export default function AdminPage() {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       
-      // JWT 토큰과 companyId 가져오기
-      const token = localStorage.getItem('authToken');
-      const companyId = localStorage.getItem('companyId');
+      console.log('[fetchMonthData] 월별 데이터 가져오기 시작:', { year, month });
       
-      if (!companyId) {
-        console.error('CompanyId가 localStorage에 없습니다. 로그인 정보:', {
-          token: !!token,
-          userName: localStorage.getItem('userName'),
-          userId: localStorage.getItem('userId'),
-          companyName: localStorage.getItem('companyName')
-        });
-        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
-      }
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // 캘린더 데이터 조회 (companyId 포함)
+      // 캘린더 데이터 조회
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0);
       const startDateStr = format(startDate, 'yyyy-MM-dd');
       const endDateStr = format(endDate, 'yyyy-MM-dd');
       
-      const calendarResponse = await fetch(`/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&companyId=${companyId}`, {
-        headers
-      });
-      
-      if (!calendarResponse.ok) {
-        throw new Error('휴가 캘린더 데이터를 가져오는데 실패했습니다.');
-      }
-      
-      const calendarData = await calendarResponse.json();
-      
-      // 휴가 제한 데이터 조회 (companyId 포함)
-      const limitsResponse = await fetch(`/api/vacation/limits?start=${startDateStr}&end=${endDateStr}&companyId=${companyId}`, {
-        headers
-      });
-      
-      if (!limitsResponse.ok) {
-        throw new Error('휴가 제한 데이터를 가져오는데 실패했습니다.');
-      }
-      
-      const limitsData = await limitsResponse.json();
+      // apiService 함수들 사용 (토큰 갱신 로직 포함)
+      const calendarData = await getVacationCalendar(startDateStr, endDateStr, roleFilter);
+      const limitsData = await getVacationLimits(startDateStr, endDateStr);
 
       const limitsMap: Record<string, VacationLimit> = {};
       const limits = Array.isArray(limitsData.limits) ? limitsData.limits : [];
@@ -247,6 +210,8 @@ export default function AdminPage() {
         else days[date].status = 'over';
       });
       setVacationDays(days);
+      
+      console.log('[fetchMonthData] 월별 데이터 가져오기 완료');
     } catch (error) {
       console.error('월별 휴무 데이터 로드 중 오류 발생:', error);
       showNotification('월별 휴무 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
@@ -258,32 +223,11 @@ export default function AdminPage() {
 
   const fetchAllRequests = async () => {
     try {
-      // JWT 토큰과 companyId 가져오기
-      const token = localStorage.getItem('authToken');
-      const companyId = localStorage.getItem('companyId');
+      console.log('[fetchAllRequests] 전체 휴무 요청 가져오기 시작');
       
-      if (!companyId) {
-        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
-      }
+      // apiService의 getAllVacationRequests 함수 사용 (토큰 갱신 로직 포함)
+      const data = await getAllVacationRequests();
       
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`/api/vacation/requests?companyId=${companyId}`, {
-        method: 'GET',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API 응답 오류: ${response.status}`);
-      }
-      
-      const data = await response.json();
       console.log('API 응답 데이터:', data);
       
       // 데이터가 배열인지 확인
@@ -326,6 +270,8 @@ export default function AdminPage() {
       setAllRequests(requestsArray); 
       const pendingOnly = requestsArray.filter((req: VacationRequest) => req.status === 'pending');
       setPendingRequests(pendingOnly);
+      
+      console.log('[fetchAllRequests] 전체 휴무 요청 가져오기 완료');
     } catch (error) {
       console.error('전체 휴무 요청을 불러오는 중 오류 발생:', error);
       showNotification('전체 휴무 요청을 불러오는 중 오류가 발생했습니다.', 'error');
@@ -340,39 +286,11 @@ export default function AdminPage() {
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
       
-      // JWT 토큰과 companyId 가져오기
-      const token = localStorage.getItem('authToken');
-      const companyId = localStorage.getItem('companyId');
+      console.log('날짜 상세 조회 요청:', { formattedDate, roleFilter });
       
-      if (!companyId) {
-        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
-      }
+      // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
+      const data = await getVacationForDate(formattedDate, roleFilter === 'all' ? 'caregiver' : roleFilter, nameFilter || undefined);
       
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      let url = `/api/vacation/date/${formattedDate}?role=${roleFilter}&companyId=${companyId}`;
-      if (nameFilter) {
-        url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
-      }
-      
-      console.log('날짜 상세 조회 요청:', { url, formattedDate, roleFilter, companyId });
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API 응답 오류: ${response.status}`);
-      }
-      
-      const data = await response.json();
       console.log('날짜 상세 데이터:', data);
       
       // 데이터에서 휴가 목록 추출
@@ -417,28 +335,6 @@ export default function AdminPage() {
 
   const handleLimitSet = async (date: Date, maxPeople: number, role: 'caregiver' | 'office') => {
     try {
-      // JWT 토큰과 companyId 가져오기
-      const token = localStorage.getItem('authToken');
-      const companyId = localStorage.getItem('companyId');
-      
-      if (!companyId) {
-        console.error('CompanyId가 localStorage에 없습니다. 로그인 정보:', {
-          token: !!token,
-          userName: localStorage.getItem('userName'),
-          userId: localStorage.getItem('userId'),
-          companyName: localStorage.getItem('companyName')
-        });
-        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
-      }
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
       const formattedDate = format(date, 'yyyy-MM-dd');
       const limits = [{
         date: formattedDate,
@@ -446,17 +342,17 @@ export default function AdminPage() {
         role
       }];
       
-      const response = await fetch(`/api/vacation/limits?companyId=${companyId}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ limits }),
-      });
+      console.log('[handleLimitSet] 휴가 제한 설정 시작:', { date: formattedDate, maxPeople, role });
       
-      if (!response.ok) {
-        throw new Error(`API 응답 오류: ${response.status}`);
-      }
+      // apiService의 saveVacationLimits 함수 사용 (토큰 갱신 로직 포함)
+      await saveVacationLimits(limits);
       
+      console.log('[handleLimitSet] 휴가 제한 설정 성공, 데이터 새로고침 시작');
+      
+      // 휴가 제한 설정 후 최신 데이터 가져오기
       await fetchMonthData();
+      
+      console.log('[handleLimitSet] 데이터 새로고침 완료');
       showNotification('휴무 제한 인원이 설정되었습니다.', 'success');
     } catch (error) {
       console.error('휴무 제한 설정 중 오류 발생:', error);

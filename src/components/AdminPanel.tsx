@@ -173,47 +173,19 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
       }
       
       const result = await response.json();
-      console.log('[AdminPanel] 저장 성공:', result);
+      console.log('[AdminPanel] API 저장 결과:', result);
       
-      // 성공 메시지 표시
-      setMessage({ type: 'success', text: '휴가 제한이 성공적으로 저장되었습니다' });
+      // 성공 후 최신 데이터 새로고침
+      await onUpdateSuccess();
       
-      // 변경 사항이 저장된 후 성공 콜백 호출
-      if (onUpdateSuccess) {
-        console.log('[AdminPanel] 성공 콜백 호출');
-        try {
-          await onUpdateSuccess();
-          console.log('[AdminPanel] 첫 번째 데이터 갱신 완료');
-        } catch (err) {
-          console.error('[AdminPanel] 첫 번째 데이터 갱신 실패:', err);
-        }
-        setTimeout(async () => {
-          try {
-            console.log('[AdminPanel] 지연 성공 콜백 호출');
-            await onUpdateSuccess();
-            console.log('[AdminPanel] 두 번째 데이터 갱신 완료');
-          } catch (err) {
-            console.error('[AdminPanel] 두 번째 데이터 갱신 실패:', err);
-          }
-        }, 1000);
-      }
-      
-      // 저장 후 최신 데이터 즉시 반영
-      await fetchMonthLimits();
-      
-      // 약간의 지연 후 패널 닫기
-      setTimeout(() => {
-        if (onClose) {
-          console.log('[AdminPanel] 패널 닫기');
-          onClose();
-        }
-      }, 1500);
-      
-    } catch (error) {
-      console.error('[AdminPanel] 저장 중 오류:', error);
-      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다');
+      setMessage({ type: 'success', text: '휴무 제한 설정이 저장되었습니다!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      console.error('제한 저장 오류:', err);
+      setError('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setMessage({ type: 'error', text: '저장 중 오류가 발생했습니다.' });
+      setTimeout(() => setMessage(null), 3000);
     } finally {
-      // 로딩 상태 해제
       setIsSaving(false);
       setIsSubmitting(false);
     }

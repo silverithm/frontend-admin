@@ -26,45 +26,143 @@ function verifyToken(request: NextRequest): JWTPayload | null {
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+// 백엔드 API URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://69af-211-177-230-196.ngrok-free.app';
+
+// 기본 CORS 헤더 설정
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+};
+
+// OPTIONS 요청에 대한 핸들러
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers });
+}
+
+// PUT: 사용자 승인/거부/상태변경
+export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    const tokenPayload = verifyToken(request);
+    const { userId } = params;
+    const url = new URL(request.url);
+    const action = url.searchParams.get('action'); // 'approve', 'reject', 또는 undefined
+    const adminId = url.searchParams.get('adminId');
+
+    // JWT 토큰 추출
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    let backendUrl: string;
+    let method = 'PUT';
+    let body = null;
+
+    // 사용자 상태 변경 요청인지 확인 (action이 없고 body에 status가 있는 경우)
+    const requestBody = await request.json().catch(() => null);
     
-    if (!tokenPayload) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    if (!action && requestBody?.status) {
+      // 사용자 상태 변경
+      backendUrl = `${BACKEND_URL}/api/v1/members/${userId}`;
+      body = JSON.stringify(requestBody);
+      console.log(`[Admin Proxy] 사용자 상태 변경 요청:`, { userId, status: requestBody.status });
+    } else if (action && adminId) {
+      // 가입 승인/거부
+      if (action === 'approve') {
+        backendUrl = `${BACKEND_URL}/api/v1/members/join-requests/${userId}/approve?adminId=${adminId}`;
+      } else if (action === 'reject') {
+        backendUrl = `${BACKEND_URL}/api/v1/members/join-requests/${userId}/reject?adminId=${adminId}`;
+        body = JSON.stringify(requestBody);
+      } else {
+        return NextResponse.json({
+          error: '지원하지 않는 action입니다.'
+        }, { status: 400, headers });
+      }
+      console.log(`[Admin Proxy] ${action} 요청:`, { userId, adminId });
+    } else {
+      return NextResponse.json({
+        error: 'action과 adminId 파라미터가 필요하거나 status가 포함된 body가 필요합니다.'
+      }, { status: 400, headers });
     }
 
-    // 현재 사용자가 관리자인지 확인
-    if (tokenPayload.role !== 'admin') {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
+    // 백엔드로 요청 전달
+    const backendResponse = await fetch(backendUrl, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      ...(body && { body }),
+    });
+
+    console.log('[Admin Proxy] 백엔드 응답 상태:', backendResponse.status);
+
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
+      console.error('[Admin Proxy] 백엔드 오류 응답:', errorText);
+      
+      return NextResponse.json({
+        error: `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
     }
 
+    const data = await backendResponse.json();
+    console.log('[Admin Proxy] 백엔드 응답 성공');
+    
+    return NextResponse.json(data, { headers });
+      
+  } catch (error) {
+    console.error('[Admin Proxy] 요청 처리 중 오류:', error);
+    return NextResponse.json({
+      error: '서버 내부 오류가 발생했습니다.'
+    }, { status: 500, headers });
+  }
+}
+
+// DELETE: 사용자 삭제
+export async function DELETE(request: NextRequest, { params }: { params: { userId: string } }) {
+  try {
     const { userId } = params;
 
-    // 자기 자신을 삭제하려고 하는지 확인
-    if (tokenPayload.userId === userId) {
-      return NextResponse.json({ error: '자기 자신은 삭제할 수 없습니다.' }, { status: 400 });
+    // JWT 토큰 추출
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    console.log('[Admin Proxy] 사용자 삭제 요청:', { userId });
+
+    // 백엔드로 요청 전달
+    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/members/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+
+    console.log('[Admin Proxy] 백엔드 응답 상태:', backendResponse.status);
+
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
+      console.error('[Admin Proxy] 백엔드 오류 응답:', errorText);
+      
+      return NextResponse.json({
+        error: `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
     }
 
-    // TODO: 실제 데이터베이스에서 사용자 삭제 로직
-    // 1. 사용자와 관련된 모든 데이터 확인 (휴무 기록 등)
-    // 2. 사용자 삭제 또는 비활성화
-    // 3. 관련 데이터 처리 (보관 또는 삭제)
-
-    console.log(`사용자 ${userId} 삭제 처리`);
-
-    return NextResponse.json({ 
-      message: '사용자가 삭제되었습니다.',
-      userId 
-    });
+    const data = await backendResponse.json();
+    console.log('[Admin Proxy] 사용자 삭제 성공');
+    
+    return NextResponse.json(data, { headers });
+      
   } catch (error) {
-    console.error('사용자 삭제 오류:', error);
-    return NextResponse.json(
-      { error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    console.error('[Admin Proxy] 요청 처리 중 오류:', error);
+    return NextResponse.json({
+      error: '서버 내부 오류가 발생했습니다.'
+    }, { status: 500, headers });
   }
 } 

@@ -43,8 +43,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     setIsLoading(true);
     try {
       // 가입 대기 중인 사용자 가져오기
-      const pendingData = await getPendingUsers();
-      const formattedPendingUsers = (pendingData || []).map((user: PendingUser) => ({
+      const pendingData: any = await getPendingUsers();
+      console.log('Pending users response:', pendingData);
+      
+      // 백엔드에서 {requests: [...]} 구조로 응답
+      const pendingArray = pendingData?.requests || [];
+      
+      const formattedPendingUsers = pendingArray.map((user: PendingUser) => ({
         id: user.id,
         email: user.email,
         name: user.name,
@@ -55,11 +60,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       setPendingUsers(formattedPendingUsers);
 
       // 기존 회원 목록 가져오기
-      const membersData = await getMemberUsers();
-      setMembers(membersData.users || []);
+      const membersData: any = await getMemberUsers();
+      console.log('Members response:', membersData);
+      
+      // 백엔드에서 {members: [...]} 구조로 응답
+      const membersArray = membersData?.members || [];
+      
+      setMembers(membersArray);
     } catch (error) {
       console.error('사용자 목록 로드 오류:', error);
       onNotification('사용자 목록을 불러오는데 실패했습니다.', 'error');
+      // 오류 발생 시 빈 배열로 초기화
+      setPendingUsers([]);
+      setMembers([]);
     } finally {
       setIsLoading(false);
     }

@@ -1,61 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// 백엔드 API URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://69af-211-177-230-196.ngrok-free.app';
+
+// 기본 CORS 헤더 설정
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+};
+
+// OPTIONS 요청에 대한 핸들러
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers });
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Authorization 헤더 확인
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
-    }
-
-    // URL 파라미터에서 companyId 가져오기
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
+    console.log('[Admin Proxy] 대기중인 사용자 목록 요청');
+    
+    // URL에서 검색 파라미터 추출
+    const url = new URL(request.url);
+    const companyId = url.searchParams.get('companyId');
 
     if (!companyId) {
-      return NextResponse.json({ error: 'companyId가 필요합니다.' }, { status: 400 });
+      return NextResponse.json({
+        error: 'companyId 파라미터가 필요합니다.'
+      }, { status: 400, headers });
     }
 
-    // 백엔드 API 호출 - 가입 요청 조회
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const apiUrl = `${backendUrl}/api/v1/members/join-requests/pending?companyId=${companyId}`;
+    // JWT 토큰 추출
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
 
-    console.log('[Pending Users API] 백엔드 API 호출:', apiUrl);
+    console.log('[Admin Proxy] 백엔드로 요청 전달:', { companyId });
 
-    const backendResponse = await fetch(apiUrl, {
+    // 백엔드로 요청 전달 (적절한 엔드포인트 사용)
+    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/members/join-requests/pending?companyId=${companyId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader,
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
       },
     });
 
+    console.log('[Admin Proxy] 백엔드 응답 상태:', backendResponse.status);
+
     if (!backendResponse.ok) {
-      console.error('[Pending Users API] 백엔드 응답 오류:', backendResponse.status, backendResponse.statusText);
-      return NextResponse.json(
-        { error: '대기 중인 사용자 목록을 가져오는데 실패했습니다.' },
-        { status: backendResponse.status }
-      );
+      const errorText = await backendResponse.text();
+      console.error('[Admin Proxy] 백엔드 오류 응답:', errorText);
+      
+      return NextResponse.json({
+        error: `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
     }
 
     const data = await backendResponse.json();
-    console.log('[Pending Users API] 백엔드 응답 데이터:', data);
-
-    // 백엔드에서 온 데이터를 프론트엔드 형식에 맞게 변환
-    const pendingUsers = (data.joinRequests || data.requests || []).map((request: any) => ({
-      id: request.id?.toString(),
-      name: request.name,
-      email: request.email,
-      role: request.role,
-      requestedAt: request.createdAt,
-    }));
-
-    return NextResponse.json(pendingUsers);
+    console.log('[Admin Proxy] 백엔드 응답 성공');
+    
+    return NextResponse.json(data, { headers });
+      
   } catch (error) {
-    console.error('[Pending Users API] 가입 대기 사용자 조회 오류:', error);
-    return NextResponse.json(
-      { error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    console.error('[Admin Proxy] 요청 처리 중 오류:', error);
+    return NextResponse.json({
+      error: '서버 내부 오류가 발생했습니다.'
+    }, { status: 500, headers });
   }
 } 

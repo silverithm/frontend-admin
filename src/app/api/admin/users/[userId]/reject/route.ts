@@ -23,7 +23,7 @@ export async function POST(
     const rejectReason = body.reason || '승인 기준에 부합하지 않음'; // 기본 사유
 
     // 백엔드 API 호출 - 가입 요청 거절
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     const apiUrl = `${backendUrl}/api/v1/members/join-requests/${userId}/reject?adminId=${adminId}`;
 
     console.log('[Reject User API] 백엔드 API 호출:', apiUrl);

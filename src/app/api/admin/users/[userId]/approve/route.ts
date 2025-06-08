@@ -22,7 +22,7 @@ export async function POST(
     const adminId = body.adminId || 'admin'; // 기본값 설정
 
     // 백엔드 API 호출 - 가입 요청 승인
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     const apiUrl = `${backendUrl}/api/v1/members/join-requests/${userId}/approve?adminId=${adminId}`;
 
     console.log('[Approve User API] 백엔드 API 호출:', apiUrl);

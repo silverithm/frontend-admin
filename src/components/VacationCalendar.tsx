@@ -7,6 +7,7 @@ import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } 
 import AdminPanel from './AdminPanel';
 import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers } from 'react-icons/fi';
 import { MdStar } from 'react-icons/md';
+import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -141,40 +142,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`요청 월: ${requestMonth}`);
       console.log(`요청 날짜 범위: ${startDateStr} ~ ${endDateStr}`);
 
-      // companyId 가져오기
-      const companyId = localStorage.getItem('companyId');
-      if (!companyId) {
-        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
-      }
-
-      // nameFilter가 있을 경우 URL에 추가
-      let url = `/api/vacation/calendar?startDate=${startDateStr}&endDate=${endDateStr}&roleFilter=${roleFilter}&companyId=${companyId}&_t=${now}&_r=${requestId}&_retry=${retry}`;
+      console.log(`캘린더 API 요청: startDate=${startDateStr}, endDate=${endDateStr}, roleFilter=${roleFilter}, nameFilter=${nameFilter}`);
       
-      if (nameFilter) {
-        url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
-        console.log(`이름 필터 적용: ${nameFilter}`);
-      }
-      
-      console.log(`캘린더 API 요청 URL: ${url}`);
-      
-      // JWT 토큰 가져오기
-      const token = localStorage.getItem('authToken');
-      const headers: Record<string, string> = {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      };
-      
-      // JWT 토큰이 있으면 Authorization 헤더 추가
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(url, {
-        signal: signal,
-        headers,
-        cache: 'no-store'
-      });
+      // apiService의 getVacationCalendar 함수 사용 (토큰 갱신 로직 포함)
+      const data = await getVacationCalendar(startDateStr, endDateStr, roleFilter, nameFilter || undefined);
 
       if (signal.aborted) {
         console.log('요청이 취소되었습니다.');
@@ -186,31 +157,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         return;
       }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API 오류:', errorData);
-        
-        if (errorData.error && errorData.error.includes('월 불일치')) {
-          console.error(`응답 데이터 월 불일치! 요청: ${requestMonth.substring(5)}, 응답: ${errorData.error.match(/응답: (\d{2})월/)?.[1] || '알 수 없음'} (시도: ${retry + 1}/${MAX_RETRY_COUNT})`);
-          
-          const delay = Math.min(1000 * Math.pow(2, retry), MAX_RETRY_DELAY);
-          console.log(`잘못된 월 데이터 응답. 무시하고 ${delay}ms 후 재시도합니다.`);
-          
-          fetchTimeoutRef.current = setTimeout(() => {
-            // 재시도할 때 현재 활성화된 요청이 있는지 확인
-            const currentId = currentRequestIdRef.current;
-            if (currentId) {
-              fetchCalendarData(date, retry + 1);
-            }
-          }, delay);
-          return;
-        }
-        
-        throw new Error(errorData.error || '알 수 없는 오류가 발생했습니다.');
-      }
-
-      const data = await response.json();
-      
       const dates = Object.keys(data.dates || {});
       if (dates.length > 0) {
         const firstDateMonth = dates[0].substring(0, 7);
@@ -296,45 +242,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       const formattedDate = format(date, 'yyyy-MM-dd');
       console.log(`선택된 날짜 데이터 가져오기: ${formattedDate}`);
       
-      // companyId 가져오기
-      const companyId = localStorage.getItem('companyId');
-      if (!companyId) {
-        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
-      }
+      console.log(`이름 필터 적용: ${nameFilter}`);
       
-      // nameFilter가 있을 경우 URL에 추가
-      let cacheParam = `?role=${roleFilter}&companyId=${companyId}&_t=${Date.now()}&_r=${Math.random().toString(36).substring(2, 8)}`;
+      // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
+      const data = await getVacationForDate(formattedDate, roleFilter === 'all' ? 'caregiver' : roleFilter, nameFilter || undefined);
       
-      if (nameFilter) {
-        cacheParam += `&nameFilter=${encodeURIComponent(nameFilter)}`;
-        console.log(`이름 필터 적용: ${nameFilter}`);
-      }
-      
-      // JWT 토큰 가져오기
-      const token = localStorage.getItem('authToken');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache',
-        'Pragma': 'no-cache',
-        'X-Request-Time': new Date().toISOString()
-      };
-      
-      // JWT 토큰이 있으면 Authorization 헤더 추가
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`/api/vacation/date/${formattedDate}${cacheParam}`, {
-        method: 'GET',
-        headers,
-        cache: 'no-store'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API 응답 오류: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
       console.log(`날짜 상세 데이터 (${roleFilter}):`, data);
       console.log(`선택된 날짜 ${formattedDate}의 제한 인원(${roleFilter}): ${data.maxPeople}`);
       
@@ -940,7 +852,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         <AdminPanel
           currentDate={selectedDate || currentDate}
           onClose={handleCloseAdminPanel}
-          onUpdateSuccess={() => fetchCalendarData(currentDate)}
+          onUpdateSuccess={async () => {
+            console.log('[VacationCalendar] AdminPanel 성공 콜백 - 캘린더 데이터 새로고침 시작');
+            await fetchCalendarData(currentDate);
+            console.log('[VacationCalendar] 캘린더 데이터 새로고침 완료');
+          }}
         />
       )}
 
