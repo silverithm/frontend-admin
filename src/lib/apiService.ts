@@ -531,59 +531,141 @@ export interface PendingUser {
 // 대기중인 사용자 조회 (기존 코드 호환용)
 export async function getPendingUsers(): Promise<PendingUser[]> {
   try {
-    const response = await getPendingJoinRequests();
-    return response.requests || [];
+    const companyId = getCompanyId();
+    if (!companyId) {
+      throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    
+    const response = await fetch(`/api/admin/users/pending?companyId=${companyId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('대기중인 사용자 목록을 가져오는데 실패했습니다.');
+    }
+
+    return await response.json();
   } catch (error) {
     console.error('대기중인 사용자 조회 오류:', error);
-    return [];
+    throw error;
   }
 }
 
 // 사용자 승인 (기존 코드 호환용)
 export async function approveUser(userId: string) {
-  const adminId = localStorage.getItem('userId') || '';
-  return approveJoinRequest(userId, adminId);
+  // 현재 로그인한 사용자의 ID 가져오기
+  const adminId = localStorage.getItem('userId') || 'admin';
+  
+  const response = await fetch(`/api/admin/users/${userId}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+    },
+    body: JSON.stringify({ adminId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '사용자 승인에 실패했습니다.');
+  }
+
+  return await response.json();
 }
 
 // 사용자 거부 (기존 코드 호환용)
 export async function rejectUser(userId: string, reason = '승인 기준에 부합하지 않음') {
-  const adminId = localStorage.getItem('userId') || '';
-  return rejectJoinRequest(userId, adminId, reason);
+  // 현재 로그인한 사용자의 ID 가져오기
+  const adminId = localStorage.getItem('userId') || 'admin';
+  
+  const response = await fetch(`/api/admin/users/${userId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+    },
+    body: JSON.stringify({ adminId, reason }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '사용자 거절에 실패했습니다.');
+  }
+
+  return await response.json();
 }
 
 // 모든 사용자 조회 (기존 코드 호환용)
 export async function getAllUsers() {
-  return getAllMembers();
+  return getMemberUsers();
 }
 
 // 멤버 사용자 조회 (기존 코드 호환용)
 export async function getMemberUsers() {
-  return getAllMembers();
+  try {
+    const companyId = getCompanyId();
+    if (!companyId) {
+      throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    
+    const response = await fetch(`/api/admin/users/members?companyId=${companyId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('회원 목록을 가져오는데 실패했습니다.');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('회원 목록 조회 오류:', error);
+    throw error;
+  }
 }
 
 // 사용자 삭제 (기존 코드 호환용)
 export async function deleteUser(userId: string) {
-  return deleteMember(userId);
+  const response = await fetch(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '사용자 삭제에 실패했습니다.');
+  }
+
+  return await response.json();
 }
 
 // 사용자 상태 업데이트 (기존 코드 호환용)
 export async function updateUserStatus(userId: string, status: 'active' | 'inactive') {
-  return updateMember(userId, { status });
-}
+  const response = await fetch(`/api/admin/users/${userId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+    },
+    body: JSON.stringify({ status }),
+  });
 
-// 사용자 역할 업데이트 (기존 코드 호환용)
-export async function updateUserRole(userId: string, role: 'caregiver' | 'office' | 'admin') {
-  return updateMember(userId, { role });
-}
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '사용자 상태 변경에 실패했습니다.');
+  }
 
-// 사용자 조회 (기존 코드 호환용)
-export async function getUserById(id: string) {
-  return getMemberById(id);
-}
-
-// 사용자 비활성화 (기존 코드 호환용)
-export async function deactivateUser(id: string) {
-  return updateMember(id, { status: 'inactive' });
+  return await response.json();
 }
 
 // ================== 조직 관리 API ==================

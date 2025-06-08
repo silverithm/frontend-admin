@@ -1,69 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-
-interface JWTPayload {
-  userId: string;
-  email: string;
-  role: string;
-  organizationId?: string;
-}
-
-function verifyToken(request: NextRequest): JWTPayload | null {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null;
-    }
-
-    const token = authHeader.substring(7);
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
-    const decoded = jwt.verify(token, secret) as JWTPayload;
-    
-    return decoded;
-  } catch (error) {
-    console.error('토큰 검증 오류:', error);
-    return null;
-  }
-}
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
-    const tokenPayload = verifyToken(request);
-    
-    if (!tokenPayload) {
+    // Authorization 헤더 확인
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
-    }
-
-    // 현재 사용자가 관리자인지 확인
-    if (tokenPayload.role !== 'admin') {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
     const { userId } = params;
     const body = await request.json();
     const { status } = body;
 
-    // 상태 값 검증
-    if (!status || !['active', 'inactive'].includes(status)) {
-      return NextResponse.json({ error: '유효하지 않은 상태값입니다.' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: 'userId가 필요합니다.' }, { status: 400 });
     }
 
-    // TODO: 실제 데이터베이스에서 사용자 상태 변경 로직
-    // 1. 사용자 상태를 새로운 값으로 변경
-    // 2. 변경 날짜 기록
+    if (!status || !['active', 'inactive'].includes(status)) {
+      return NextResponse.json({ error: '유효한 상태값이 필요합니다. (active, inactive)' }, { status: 400 });
+    }
 
-    console.log(`사용자 ${userId} 상태를 ${status}로 변경`);
+    // 백엔드 API 호출 - 사용자 상태 변경
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const apiUrl = `${backendUrl}/api/v1/members/${userId}`;
+
+    console.log('[Update User Status API] 백엔드 API 호출:', apiUrl);
+
+    const backendResponse = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        status
+      }),
+    });
+
+    if (!backendResponse.ok) {
+      console.error('[Update User Status API] 백엔드 응답 오류:', backendResponse.status, backendResponse.statusText);
+      const errorText = await backendResponse.text();
+      console.error('[Update User Status API] 오류 상세:', errorText);
+      return NextResponse.json(
+        { error: '사용자 상태 변경에 실패했습니다.' },
+        { status: backendResponse.status }
+      );
+    }
+
+    const data = await backendResponse.json();
+    console.log('[Update User Status API] 백엔드 응답 데이터:', data);
 
     return NextResponse.json({ 
-      message: `사용자 상태가 ${status}로 변경되었습니다.`,
+      message: '사용자 상태가 변경되었습니다.',
       userId,
-      status
+      status,
+      user: data
     });
   } catch (error) {
-    console.error('사용자 상태 변경 오류:', error);
+    console.error('[Update User Status API] 사용자 상태 변경 오류:', error);
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다.' },
       { status: 500 }

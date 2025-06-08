@@ -180,19 +180,6 @@ export default function OrganizationProfilePage() {
                 <h2 className="text-2xl font-bold text-gray-900">기관 정보</h2>
                 <p className="text-gray-600 mt-1">기관의 기본 정보를 관리할 수 있습니다</p>
               </div>
-              {!isEditing && (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    정보 수정
-                  </span>
-                </button>
-              )}
             </div>
 
             {successMessage && (
@@ -314,7 +301,7 @@ export default function OrganizationProfilePage() {
                 <div className="pt-6 border-t border-gray-100">
                   <div className="text-center">
                     <p className="text-sm text-gray-500">기관 정보 관리</p>
-                    <p className="text-xs text-gray-400 mt-1">기관의 기본 정보를 확인하고 수정할 수 있습니다.</p>
+                    <p className="text-xs text-gray-400 mt-1">기관의 기본 정보를 확인할 수 있습니다.</p>
                   </div>
                 </div>
               </div>
