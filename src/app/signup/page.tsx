@@ -24,6 +24,7 @@ export default function SignupPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
   // 다음 주소 API 스크립트 로드
   useEffect(() => {
@@ -118,6 +119,12 @@ export default function SignupPage() {
     // 회사 주소 검증
     if (!formData.address) {
       setError('회사 주소를 입력해주세요.');
+      return false;
+    }
+
+    // 개인정보 수집 및 이용 동의 검증
+    if (!privacyAgreed) {
+      setError('개인정보 수집 및 이용에 동의해주세요.');
       return false;
     }
 
@@ -294,6 +301,34 @@ export default function SignupPage() {
               >
                 주소 검색
               </button>
+            </div>
+          </div>
+
+          {/* 개인정보 수집 및 이용 동의 */}
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div className="flex items-start space-x-3">
+              <input
+                type="checkbox"
+                id="privacyAgreement"
+                checked={privacyAgreed}
+                onChange={(e) => setPrivacyAgreed(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-1"
+              />
+              <div className="flex-1">
+                <label htmlFor="privacyAgreement" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  개인정보 수집 및 이용에 동의합니다 <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  <a 
+                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/consent/1.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    개인정보 수집 및 이용 동의서 보기
+                  </a>
+                </p>
+              </div>
             </div>
           </div>
 

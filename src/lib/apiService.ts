@@ -350,6 +350,7 @@ export async function logout() {
   localStorage.removeItem('companyName');
   localStorage.removeItem('companyAddressName');
   localStorage.removeItem('customerKey');
+  localStorage.removeItem('organizationName'); // 이전 버전 호환성
 }
 
 // FCM 토큰 업데이트

@@ -7,20 +7,8 @@ import { motion } from 'framer-motion';
 export default function LandingPage() {
   const router = useRouter();
 
-  const handleGoToAdminPage = () => {
-    router.push('/admin');
-  };
-      
-  // 임시 관리자 로그인 함수
-  const handleTempAdminLogin = () => {
-    // 실제 애플리케이션에서는 절대 사용하지 마세요.
-    // 테스트 및 개발 목적으로만 사용됩니다.
-    localStorage.setItem('authToken', 'temp-admin-token-for-dev-only');
-    localStorage.setItem('organizationName', '임시 테스트 기관');
-    localStorage.setItem('userName', '테스트 관리자');
-    localStorage.setItem('userEmail', 'admin@example.com');
-    localStorage.setItem('userRole', 'admin');
-    router.push('/admin');
+  const handleGoToLogin = () => {
+    router.push('/login');
   };
 
   // 앱 스토어/플레이 스토어 링크 (실제 링크로 교체 필요)
@@ -111,37 +99,12 @@ export default function LandingPage() {
             <p className="text-gray-600 mb-8 text-center">
               직원 휴무 일정 승인 및 전체 현황 관리는<br /> 관리자 페이지에서 진행해 주세요.
             </p>
-            <div className="flex flex-col gap-3 w-full">
-              <button 
-                onClick={handleGoToAdminPage}
-                className="px-10 py-4 rounded-lg bg-teal-600 text-white font-semibold hover:bg-teal-700 transition duration-300 shadow-md"
-              >
-                관리자 페이지로 이동
-              </button>
-              <div className="flex gap-2 justify-center">
-                <button 
-                  onClick={() => router.push('/login')}
-                  className="px-6 py-2 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition duration-300 text-sm"
-                >
-                  로그인
-                </button>
-                <button 
-                  onClick={() => router.push('/signup')}
-                  className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition duration-300 text-sm"
-                >
-                  회원가입
-                </button>
-              </div>
-            </div>
-            {/* 개발용 임시 관리자 로그인 버튼 */}
-            {process.env.NODE_ENV === 'development' && (
-              <button
-                onClick={handleTempAdminLogin}
-                className="mt-4 px-6 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition duration-300 shadow-md text-sm"
-              >
-                (임시) 관리자 즉시 로그인
-              </button>
-            )}
+            <button 
+              onClick={handleGoToLogin}
+              className="px-10 py-4 rounded-lg bg-teal-600 text-white font-semibold hover:bg-teal-700 transition duration-300 shadow-md"
+            >
+              관리자 로그인
+            </button>
           </motion.div>
         </div>
       </section>
@@ -213,20 +176,11 @@ export default function LandingPage() {
             transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
           >
             <button 
-              onClick={handleGoToAdminPage}
+              onClick={handleGoToLogin}
               className="px-12 py-4 rounded-lg bg-white text-blue-600 font-bold text-lg hover:bg-blue-50 transition duration-300 shadow-lg"
             >
-              관리자 페이지로 이동하기
+              관리자 로그인
             </button>
-            {/* 개발용 임시 관리자 로그인 버튼 */}
-            {process.env.NODE_ENV === 'development' && (
-              <button
-                onClick={handleTempAdminLogin}
-                className="mt-4 px-8 py-3 rounded-lg bg-yellow-400 text-gray-800 font-semibold hover:bg-yellow-500 transition duration-300 shadow-md"
-              >
-                (임시) 관리자 즉시 로그인
-              </button>
-            )}
           </motion.div>
         </div>
       </section>
@@ -241,9 +195,23 @@ export default function LandingPage() {
             </div>
             <div className="text-center md:text-right">
               <p className="text-gray-400">&copy; {new Date().getFullYear()} 케어베케이션. 모든 권리 보유.</p>
-              {/* <p className="text-gray-500 text-sm mt-1">
-                <a href="#" className="hover:text-white">개인정보처리방침</a> | <a href="#" className="hover:text-white">이용약관</a>
-              </p> */}
+              <p className="text-gray-500 text-sm mt-1">
+                <a 
+                  href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-white"
+                >
+                  개인정보처리방침
+                </a> | <a 
+                  href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-white"
+                >
+                  이용약관
+                </a>
+              </p>
             </div>
           </div>
         </div>

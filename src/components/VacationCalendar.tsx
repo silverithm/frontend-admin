@@ -15,6 +15,8 @@ interface VacationCalendarProps extends CalendarProps {
   setCurrentDate: (date: Date | SetStateAction<Date>) => void;
   roleFilter?: 'all' | 'caregiver' | 'office';
   nameFilter?: string | null;
+  onShowLimitPanel?: () => void;
+  onNameFilterChange?: (name: string | null) => void;
 }
 
 const VacationCalendar: React.FC<VacationCalendarProps> = ({
@@ -26,6 +28,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   setCurrentDate,
   roleFilter = 'all',
   nameFilter = null,
+  onShowLimitPanel,
+  onNameFilterChange,
 }) => {
   const [calendarData, setCalendarData] = useState<VacationData>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -36,9 +40,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [showMonthError, setShowMonthError] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [error, setError] = useState('');
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   
-  const BUTTON_DELAY = 750;
-
   const MAX_RETRY_COUNT = 3;
   const MAX_RETRY_DELAY = 1000;
 
@@ -383,10 +388,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       return newDate;
     });
     
-    setTimeout(() => {
-      setIsButtonDisabled(false);
-    }, BUTTON_DELAY);
-  }, [isButtonDisabled, BUTTON_DELAY, setCurrentDate, setIsMonthChanging]);
+    setIsButtonDisabled(false);
+  }, [isButtonDisabled, setCurrentDate, setIsMonthChanging]);
 
   const nextMonth = useCallback(() => {
     if (isButtonDisabled) return;
@@ -405,10 +408,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       return newDate;
     });
     
-    setTimeout(() => {
-      setIsButtonDisabled(false);
-    }, BUTTON_DELAY);
-  }, [isButtonDisabled, BUTTON_DELAY, setCurrentDate, setIsMonthChanging]);
+    setIsButtonDisabled(false);
+  }, [isButtonDisabled, setCurrentDate, setIsMonthChanging]);
 
   const resetToCurrentMonth = useCallback(() => {
     if (isButtonDisabled) return;
@@ -423,10 +424,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     
     setCurrentDate(startOfMonth(new Date()));
     
-    setTimeout(() => {
-      setIsButtonDisabled(false);
-    }, BUTTON_DELAY);
-  }, [isButtonDisabled, BUTTON_DELAY, setCurrentDate, setIsMonthChanging]);
+    setIsButtonDisabled(false);
+  }, [isButtonDisabled, setCurrentDate, setIsMonthChanging]);
 
   // 캘린더 초기 로드
   useEffect(() => {
@@ -603,6 +602,57 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
   };
 
+  const handleMonthSelect = (year: number, month: number) => {
+    const newDate = new Date(year, month, 1);
+    setCurrentDate(newDate);
+    setShowMonthPicker(false);
+  };
+
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+  };
+
+  const handleMonthClick = (month: number) => {
+    setSelectedMonth(month);
+  };
+
+  const handleApplyDateSelection = () => {
+    const newDate = new Date(selectedYear, selectedMonth, 1);
+    setCurrentDate(newDate);
+    setShowMonthPicker(false);
+  };
+
+  const handleOpenMonthPicker = () => {
+    setSelectedYear(currentDate.getFullYear());
+    setSelectedMonth(currentDate.getMonth());
+    setShowMonthPicker(true);
+  };
+
+  const handleNameClick = (userName: string) => {
+    if (onNameFilterChange) {
+      // 현재 선택된 이름과 같으면 필터 해제, 다르면 새로운 필터 적용
+      const newFilter = nameFilter === userName ? null : userName;
+      onNameFilterChange(newFilter);
+    }
+  };
+
+  const generateMonthPickerData = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    
+    // 현재 연도 기준으로 ±5년 (더 넓은 범위)
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(i);
+    }
+    
+    const months = [
+      '1월', '2월', '3월', '4월', '5월', '6월',
+      '7월', '8월', '9월', '10월', '11월', '12월'
+    ];
+    
+    return { years, months };
+  };
+
   return (
     <div className="w-full bg-white rounded-xl shadow-lg overflow-hidden">
       {showMonthError && (
@@ -618,9 +668,19 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <FiCalendar size={14} className="sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-2xl font-bold text-gray-800">
+              <div className="text-base sm:text-2xl font-bold text-gray-800 flex items-center">
                 {format(currentDate, 'yyyy년 MM월', { locale: ko })}
-              </h2>
+                <button
+                  onClick={handleOpenMonthPicker}
+                  className="ml-2 sm:ml-3 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all duration-200 flex items-center space-x-1"
+                >
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">월 선택</span>
+                  <span className="sm:hidden">선택</span>
+                </button>
+              </div>
               <p className="text-[10px] sm:text-sm text-gray-500">
                 휴무 일정 캘린더
               </p>
@@ -676,6 +736,21 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             >
               <FiRefreshCw size={12} className={`${isLoading ? 'animate-spin' : ''}`} />
             </button>
+            {isAdmin && onShowLimitPanel && (
+              <button
+                onClick={onShowLimitPanel}
+                disabled={isLoading}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
+                  isLoading
+                    ? 'bg-indigo-50 text-indigo-300 cursor-not-allowed'
+                    : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:scale-105'
+                }`}
+                aria-label="휴무 제한 설정"
+              >
+                <span className="hidden sm:inline">휴무 제한 설정</span>
+                <span className="sm:hidden">제한 설정</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -779,10 +854,25 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           <span className={`flex-1 leading-tight ${
                             vacation.status === 'rejected'
                               ? 'text-red-600 line-through'
-                              : 'text-gray-800'
+                              : nameFilter === vacation.userName
+                                ? 'text-blue-600 font-semibold cursor-pointer hover:text-blue-800'
+                                : 'text-gray-800 cursor-pointer hover:text-blue-600'
                           }`}
-                          title={vacation.userName || '이름 없음'}>
+                          title={vacation.userName || '이름 없음'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (vacation.userName) {
+                              handleNameClick(vacation.userName);
+                            }
+                          }}>
                             {vacation.userName || `이름 없음`}
+                            {nameFilter === vacation.userName && (
+                              <span className="ml-1 inline-flex items-center">
+                                <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            )}
                           </span>
                           {vacation.type === 'mandatory' && (
                             <MdStar className="ml-0.5 text-amber-500 flex-shrink-0" size={10} />
@@ -853,6 +943,117 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           onUpdateSuccess={() => fetchCalendarData(currentDate)}
         />
       )}
+
+      {/* 월 선택 모달 */}
+      <AnimatePresence>
+        {showMonthPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+            onClick={() => setShowMonthPicker(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">월 선택</h3>
+                  <button
+                    onClick={() => setShowMonthPicker(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <FiX size={20} />
+                  </button>
+                </div>
+                
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="space-y-6">
+                    {(() => {
+                      const { years, months } = generateMonthPickerData();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth();
+                      
+                      return (
+                        <>
+                          {/* 연도 선택 섹션 */}
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-3">연도 선택</h4>
+                            <div className="grid grid-cols-4 gap-2">
+                              {years.map((year) => (
+                                <button
+                                  key={year}
+                                  onClick={() => handleYearSelect(year)}
+                                  className={`p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    year === selectedYear
+                                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                                      : year === currentYear
+                                        ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                  }`}
+                                >
+                                  {year}년
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* 월 선택 섹션 */}
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-3">월 선택</h4>
+                            <div className="grid grid-cols-4 gap-2">
+                              {months.map((month, index) => (
+                                <button
+                                  key={month}
+                                  onClick={() => handleMonthClick(index)}
+                                  className={`p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    index === selectedMonth
+                                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                                      : index === currentMonth && selectedYear === currentYear
+                                        ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                  }`}
+                                >
+                                  {month}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+                
+                {/* 액션 버튼들 */}
+                <div className="pt-4 border-t border-gray-200 flex gap-3">
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      setSelectedYear(today.getFullYear());
+                      setSelectedMonth(today.getMonth());
+                    }}
+                    className="flex-1 p-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+                  >
+                    오늘로 이동
+                  </button>
+                  <button
+                    onClick={handleApplyDateSelection}
+                    className="flex-1 p-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 shadow-sm"
+                  >
+                    {selectedYear}년 {selectedMonth + 1}월 선택
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

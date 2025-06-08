@@ -35,8 +35,14 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
       const monthStart = startOfMonth(panelDate);
       const monthEnd = endOfMonth(panelDate);
       
-      // JWT 토큰 가져오기
+      // JWT 토큰과 companyId 가져오기
       const token = localStorage.getItem('authToken');
+      const companyId = localStorage.getItem('companyId');
+      
+      if (!companyId) {
+        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
+      }
+      
       const headers: Record<string, string> = {};
       
       // JWT 토큰이 있으면 Authorization 헤더 추가
@@ -44,7 +50,7 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch(`/api/vacation/limits?start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(monthEnd, 'yyyy-MM-dd')}`, {
+      const response = await fetch(`/api/vacation/limits?start=${format(monthStart, 'yyyy-MM-dd')}&end=${format(monthEnd, 'yyyy-MM-dd')}&companyId=${companyId}`, {
         headers
       });
       
@@ -125,6 +131,14 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
       setIsSaving(true);
       setIsSubmitting(true);
       setError('');
+      
+      // companyId 가져오기
+      const companyId = localStorage.getItem('companyId');
+      
+      if (!companyId) {
+        throw new Error('회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
+      }
+      
       // 저장할 데이터에서 role이 'all'인 것은 제외
       const saveLimits = limits.filter(l => l.role === 'caregiver' || l.role === 'office');
       console.log('[AdminPanel] 저장할 제한 데이터:', saveLimits);
@@ -138,7 +152,7 @@ const AdminPanel = ({ currentDate, onClose, onUpdateSuccess, vacationLimits, onL
           }
         }
       }
-      const response = await fetch(`/api/vacation/limits?_t=${timestamp}`, {
+      const response = await fetch(`/api/vacation/limits?_t=${timestamp}&companyId=${companyId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
