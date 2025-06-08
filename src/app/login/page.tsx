@@ -60,7 +60,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 p-4 relative">
+      {/* 뒤로가기 버튼 */}
+      <button
+        onClick={() => router.push('/')}
+        className="absolute top-6 left-6 z-10 flex items-center space-x-2 px-4 py-2 bg-white/10 backdrop-blur-lg border border-blue-400/20 rounded-xl text-blue-100 hover:bg-white/20 hover:text-white transition-all duration-300 shadow-lg hover:scale-105"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span className="text-sm font-medium">메인으로</span>
+      </button>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

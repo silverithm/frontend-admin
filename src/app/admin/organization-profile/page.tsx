@@ -340,9 +340,6 @@ export default function OrganizationProfilePage() {
                 </div>
               </div>
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:space-x-8">
-                <p className="text-blue-200/80 text-lg font-medium leading-relaxed mb-2 lg:mb-0">
-                  효율적인 휴무 관리를 위한 <span className="text-blue-300 font-semibold">최고의 솔루션</span>
-                </p>
                 <div className="flex items-center text-blue-300/50 text-sm">
                   <a 
                     href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 

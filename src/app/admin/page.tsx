@@ -1218,105 +1218,81 @@ export default function AdminPage() {
 
       {/* 푸터 */}
       <footer className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-t border-blue-800/30 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
             {/* 브랜드 섹션 */}
-            <div className="text-center lg:text-left">
-              <div className="flex items-center justify-center lg:justify-start mb-4">
-                <div className="relative">
-                  <Image
-                    src="/images/logo-text.png"
-                    alt="케어브이 로고"
-                    width={140}
-                    height={47}
-                    className="transition-transform duration-300 hover:scale-105"
-                  />
-                </div>
+            <div className="text-left flex flex-col h-full">
+              <div className="flex justify-start mb-4">
+                <Image
+                  src="/images/logo-text.png"
+                  alt="케어브이 로고"
+                  width={140}
+                  height={47}
+                  className="transition-transform duration-300 hover:scale-105"
+                />
               </div>
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:space-x-8">
-                <p className="text-blue-200/80 text-lg font-medium leading-relaxed mb-2 lg:mb-0">
-                  효율적인 휴무 관리를 위한 <span className="text-blue-300 font-semibold">최고의 솔루션</span>
-                </p>
-                <div className="flex items-center text-blue-300/50 text-sm">
-                  <a 
-                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
-                  >
-                    개인정보처리방침
-                  </a>
-                  <span className="mx-2">|</span>
-                  <a 
-                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
-                  >
-                    이용약관
-                  </a>
+              
+            </div>
+
+            {/* 회사 정보 섹션 */}
+            <div className="text-left flex flex-col h-full">
+              <h3 className="text-blue-100 font-semibold text-lg mb-3">회사 정보</h3>
+              <div className="space-y-2 text-sm text-blue-200/70 flex-grow">
+                <div className="flex flex-col sm:flex-row sm:justify-between">
+                  <p><span className="text-blue-300">회사명:</span> silverithm</p>
+                  <p><span className="text-blue-300">대표자:</span> 김준형</p>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between">
+                  <p><span className="text-blue-300">사업자등록번호:</span> 107-21-26475</p>
+                  <p><span className="text-blue-300">주소:</span> 서울특별시 신림동 1547-10</p>
                 </div>
               </div>
             </div>
 
-            {/* 링크 및 정보 섹션 */}
-            <div className="text-center lg:text-right">
-              <div className="mb-6">
-                <div className="flex flex-col sm:flex-row lg:flex-col space-y-3 sm:space-y-0 sm:space-x-6 lg:space-x-0 lg:space-y-3 justify-center lg:justify-end">
-                  <a 
-                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="group inline-flex items-center text-blue-300/80 hover:text-white transition-all duration-300 text-sm font-medium"
-                  >
-                    <svg className="w-4 h-4 mr-2 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    개인정보처리방침
-                    <svg className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                  <a 
-                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="group inline-flex items-center text-blue-300/80 hover:text-white transition-all duration-300 text-sm font-medium"
-                  >
-                    <svg className="w-4 h-4 mr-2 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    이용약관
-                    <svg className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
+            {/* 연락처 섹션 */}
+            <div className="text-left flex flex-col h-full">
+              <h3 className="text-blue-100 font-semibold text-lg mb-3">연락처</h3>
+              <div className="space-y-2 text-sm text-blue-200/70 flex-grow">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                  <span className="text-blue-300">이메일:</span>
+                  <a href="mailto:ggprgrkjh@naver.com" className="hover:text-white transition-colors">
+                    ggprgrkjh@naver.com
                   </a>
                 </div>
-              </div>
-              
-              <div className="pt-6 border-t border-white/10">
-                <div className="flex items-center justify-center lg:justify-end mb-3">
-                  <div className="flex items-center text-blue-200/60 text-sm">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                    </svg>
-                    &copy; {new Date().getFullYear()} 케어브이. 모든 권리 보유.
-                  </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                  <span className="text-blue-300">전화번호:</span>
+                  <a href="tel:010-4549-2094" className="hover:text-white transition-colors">
+                    010-4549-2094
+                  </a>
                 </div>
-                <p className="text-blue-300/50 text-xs">
-                  Made with <span className="text-red-400 text-sm">♥</span> for better workflow management
-                </p>
               </div>
             </div>
           </div>
-          
-          {/* 하단 장식 라인 */}
-          <div className="mt-8 pt-6 border-t border-white/10">
-            <div className="flex items-center justify-center">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+
+          {/* 저작권 및 링크 정보 */}
+          <div className="border-t border-blue-400/20 pt-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-blue-200/60 text-sm">
+                &copy; 2025 케어브이. 모든 권리 보유.
+              </p>
+              <div className="flex items-center space-x-4 text-sm">
+                <a 
+                  href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-300/80 hover:text-white transition-colors"
+                >
+                  개인정보처리방침
+                </a>
+                <span className="text-blue-400/50">|</span>
+                <a 
+                  href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-300/80 hover:text-white transition-colors"
+                >
+                  이용약관
+                </a>
               </div>
             </div>
           </div>
