@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { signup } from '@/lib/apiService';
+import Image from 'next/image';
 
 // 다음 주소 API 타입 정의
 declare global {
@@ -193,7 +194,15 @@ export default function SignupPage() {
         className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-900">케어베케이션</h1>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/images/logo.png"
+              alt="케어베케이션 로고"
+              width={200}
+              height={67}
+              className="transition-transform duration-300 hover:scale-105"
+            />
+          </div>
           <p className="text-gray-600 mt-2">관리자 회원가입</p>
         </div>
 

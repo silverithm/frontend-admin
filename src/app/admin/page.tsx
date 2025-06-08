@@ -11,6 +11,7 @@ import VacationCalendar from '@/components/VacationCalendar';
 import AdminPanel from '@/components/AdminPanel';
 import VacationDetails from '@/components/VacationDetails';
 import UserManagement from '@/components/UserManagement';
+import Image from 'next/image';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -666,14 +667,25 @@ export default function AdminPage() {
   // 클라이언트 사이드가 아직 준비되지 않았거나 로딩 중일 때
   if (!isClient || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <svg className="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p className="ml-3 text-lg text-gray-700">
-          {!isClient ? '페이지를 준비하는 중...' : '데이터를 불러오는 중...'}
-        </p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900">
+        <div className="flex flex-col items-center space-y-6">
+          <Image
+            src="/images/logo.png"
+            alt="케어브이 로고"
+            width={160}
+            height={53}
+            className="mb-4"
+          />
+          <div className="flex items-center space-x-3">
+            <svg className="animate-spin h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-lg text-blue-100 font-medium">
+              {!isClient ? '페이지를 준비하는 중...' : '데이터를 불러오는 중...'}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -681,34 +693,46 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* 헤더 영역 */}
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg border-b border-blue-500/20">
+      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-b border-blue-800/30 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Image
+                    src="/images/logo-text.png"
+                    alt="케어브이 로고"
+                    width={140}
+                    height={47}
+                    className="transition-transform duration-300 hover:scale-105"
+                  />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">
+                  <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
                     관리자 페이지
                   </h1>
                   {companyName && (
-                    <p className="text-blue-100 text-sm font-medium">
+                    <p className="text-blue-200/90 text-sm font-medium mt-0.5 flex items-center">
+                      <svg className="w-3 h-3 mr-1.5 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                      </svg>
                       {companyName}
                     </p>
                   )}
                 </div>
               </div>
               {activeTab === 'vacation' && (
-                <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-                  <span className="text-white text-sm font-medium flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    대기 중인 요청: {pendingRequests.length}건
+                <div className="hidden sm:block ml-6 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-yellow-400/30 shadow-lg">
+                  <span className="text-yellow-100 text-sm font-semibold flex items-center">
+                    <div className="relative mr-3">
+                      <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {pendingRequests.length > 0 && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
+                    대기 중인 요청: <span className="ml-1 text-yellow-300 font-bold">{pendingRequests.length}건</span>
                   </span>
                 </div>
               )}
@@ -716,10 +740,10 @@ export default function AdminPage() {
             <div className="flex items-center space-x-3">
               <button 
                 onClick={() => router.push('/admin/organization-profile')}
-                className="px-4 py-2.5 text-sm font-medium text-blue-600 bg-white/90 backdrop-blur-sm border border-white/20 rounded-lg shadow-sm hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
+                className="group px-4 py-2.5 text-sm font-medium text-blue-700 bg-white/95 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-white hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
               >
                 <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-2 text-blue-600 group-hover:text-blue-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                   기관 프로필
@@ -727,10 +751,10 @@ export default function AdminPage() {
               </button>
               <button 
                 onClick={handleLogout}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white/90 backdrop-blur-sm border border-white/20 rounded-lg shadow-sm hover:bg-white hover:text-gray-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
+                className="group px-4 py-2.5 text-sm font-medium text-slate-700 bg-white/90 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
               >
                 <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-2 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
                   로그아웃
@@ -740,14 +764,14 @@ export default function AdminPage() {
           </div>
 
           {/* 탭 네비게이션 */}
-          <div className="mt-6 border-b border-white/20">
+          <div className="mt-8 border-b border-white/10">
             <nav className="flex space-x-8">
               <button
                 onClick={() => setActiveTab('vacation')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
+                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
                   activeTab === 'vacation'
-                    ? 'border-white text-white shadow-sm'
-                    : 'border-transparent text-blue-200 hover:text-white hover:border-white/50'
+                    ? 'text-white border-b-2 border-blue-400 shadow-lg'
+                    : 'text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30'
                 }`}
               >
                 <span className="flex items-center">
@@ -756,13 +780,16 @@ export default function AdminPage() {
                   </svg>
                   휴무 관리
                 </span>
+                {activeTab === 'vacation' && (
+                  <div className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('users')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
+                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
                   activeTab === 'users'
-                    ? 'border-white text-white shadow-sm'
-                    : 'border-transparent text-blue-200 hover:text-white hover:border-white/50'
+                    ? 'text-white border-b-2 border-blue-400 shadow-lg'
+                    : 'text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30'
                 }`}
               >
                 <span className="flex items-center">
@@ -771,6 +798,9 @@ export default function AdminPage() {
                   </svg>
                   회원 관리
                 </span>
+                {activeTab === 'users' && (
+                  <div className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                )}
               </button>
             </nav>
           </div>
@@ -796,7 +826,7 @@ export default function AdminPage() {
                 <div className="flex-shrink-0">
                   {notification.type === 'success' && (
                     <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}
                   {notification.type === 'error' && (
@@ -1187,32 +1217,107 @@ export default function AdminPage() {
       )}
 
       {/* 푸터 */}
-      <footer className="py-10 bg-gray-900 text-white">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0 text-center md:text-left">
-              <h3 className="text-2xl font-bold">케어베케이션</h3>
-              <p className="text-gray-400 mt-1">효율적인 휴무 관리를 위한 최고의 솔루션</p>
+      <footer className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-t border-blue-800/30 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* 브랜드 섹션 */}
+            <div className="text-center lg:text-left">
+              <div className="flex items-center justify-center lg:justify-start mb-4">
+                <div className="relative">
+                  <Image
+                    src="/images/logo-text.png"
+                    alt="케어브이 로고"
+                    width={140}
+                    height={47}
+                    className="transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:space-x-8">
+                <p className="text-blue-200/80 text-lg font-medium leading-relaxed mb-2 lg:mb-0">
+                  효율적인 휴무 관리를 위한 <span className="text-blue-300 font-semibold">최고의 솔루션</span>
+                </p>
+                <div className="flex items-center text-blue-300/50 text-sm">
+                  <a 
+                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    개인정보처리방침
+                  </a>
+                  <span className="mx-2">|</span>
+                  <a 
+                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    이용약관
+                  </a>
+                </div>
+              </div>
             </div>
-            <div className="text-center md:text-right">
-              <p className="text-gray-400">&copy; {new Date().getFullYear()} 케어베케이션. 모든 권리 보유.</p>
-              <p className="text-gray-500 text-sm mt-1">
-                <a 
-                  href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-white"
-                >
-                  개인정보처리방침
-                </a> | <a 
-                  href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-white"
-                >
-                  이용약관
-                </a>
-              </p>
+
+            {/* 링크 및 정보 섹션 */}
+            <div className="text-center lg:text-right">
+              <div className="mb-6">
+                <div className="flex flex-col sm:flex-row lg:flex-col space-y-3 sm:space-y-0 sm:space-x-6 lg:space-x-0 lg:space-y-3 justify-center lg:justify-end">
+                  <a 
+                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center text-blue-300/80 hover:text-white transition-all duration-300 text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4 mr-2 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    개인정보처리방침
+                    <svg className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <a 
+                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center text-blue-300/80 hover:text-white transition-all duration-300 text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4 mr-2 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    이용약관
+                    <svg className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+              
+              <div className="pt-6 border-t border-white/10">
+                <div className="flex items-center justify-center lg:justify-end mb-3">
+                  <div className="flex items-center text-blue-200/60 text-sm">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    &copy; {new Date().getFullYear()} 케어브이. 모든 권리 보유.
+                  </div>
+                </div>
+                <p className="text-blue-300/50 text-xs">
+                  Made with <span className="text-red-400 text-sm">♥</span> for better workflow management
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* 하단 장식 라인 */}
+          <div className="mt-8 pt-6 border-t border-white/10">
+            <div className="flex items-center justify-center">
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              </div>
             </div>
           </div>
         </div>

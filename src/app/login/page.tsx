@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { signin } from '@/lib/apiService';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,21 +60,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+        className="bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-6 w-full max-w-md border border-blue-400/20"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-900">케어베케이션</h1>
-          <p className="text-gray-600 mt-2">관리자 로그인</p>
+          <div className="flex justify-center mb-4 pr-7">
+            <Image
+              src="/images/logo-text.png"
+              alt="케어브이 로고"
+              width={200}
+              height={67}
+              className="transition-transform duration-300 hover:scale-105"
+            />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-blue-100 mb-1">
               이메일
             </label>
             <input
@@ -82,14 +90,14 @@ export default function LoginPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-blue-300/30 rounded-lg bg-white/10 text-white placeholder-blue-200/60 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 backdrop-blur-sm"
               placeholder="이메일 주소 입력"
               required
             />
           </div>
 
           <div className="mb-6">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-blue-100 mb-1">
               비밀번호
             </label>
             <input
@@ -98,14 +106,14 @@ export default function LoginPage() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-blue-300/30 rounded-lg bg-white/10 text-white placeholder-blue-200/60 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 backdrop-blur-sm"
               placeholder="비밀번호 입력"
               required
             />
           </div>
 
           {error && (
-            <div className="mb-4 p-2 bg-red-50 text-red-600 rounded-lg text-sm">
+            <div className="mb-4 p-2 bg-red-500/20 text-red-200 rounded-lg text-sm border border-red-400/30">
               {error}
             </div>
           )}
@@ -113,7 +121,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex justify-center"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex justify-center shadow-xl"
           >
             {isLoading ? (
               <svg
@@ -143,9 +151,9 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-blue-200/60">
             계정이 없으신가요?{' '}
-            <a href="/signup" className="font-medium text-blue-600 hover:underline">
+            <a href="/signup" className="font-medium text-blue-300 hover:text-white hover:underline transition-colors">
               회원가입
             </a>
           </p>

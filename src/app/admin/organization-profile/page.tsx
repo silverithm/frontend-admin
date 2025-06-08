@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getOrganizationProfile, updateOrganizationProfile } from '@/lib/apiService';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 interface OrganizationProfileData {
   name: string;
@@ -130,25 +131,29 @@ export default function OrganizationProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 모던 헤더 */}
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg">
+      <header className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-b border-blue-800/30 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
+                <div className="relative">
+                  <Image
+                    src="/images/logo.png"
+                    alt="케어베케이션 로고"
+                    width={120}
+                    height={40}
+                    className="transition-transform duration-300 hover:scale-105"
+                  />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">기관 프로필</h1>
-                  <p className="text-blue-100 text-sm font-medium">기관 정보 관리</p>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">기관 프로필</h1>
+                  <p className="text-blue-200/90 text-sm font-medium">기관 정보 관리</p>
                 </div>
               </div>
             </div>
             <button 
               onClick={() => router.push('/admin')} 
-              className="px-4 py-2.5 text-sm font-medium text-blue-600 bg-white/90 backdrop-blur-sm border border-white/20 rounded-lg shadow-sm hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
+              className="px-4 py-2.5 text-sm font-medium text-blue-700 bg-white/95 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-white hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
             >
               <span className="flex items-center">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,32 +324,48 @@ export default function OrganizationProfilePage() {
       </main>
 
       {/* 푸터 */}
-      <footer className="py-10 bg-gray-900 text-white">
-        <div className="container mx-auto px-4">
+      <footer className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-t border-blue-800/30 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0 text-center md:text-left">
-              <h3 className="text-2xl font-bold">케어베케이션</h3>
-              <p className="text-gray-400 mt-1">효율적인 휴무 관리를 위한 최고의 솔루션</p>
+              <div className="flex items-center justify-center md:justify-start mb-4">
+                <div className="relative">
+                  <Image
+                    src="/images/logo.png"
+                    alt="케어베케이션 로고"
+                    width={140}
+                    height={47}
+                    className="transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:space-x-8">
+                <p className="text-blue-200/80 text-lg font-medium leading-relaxed mb-2 lg:mb-0">
+                  효율적인 휴무 관리를 위한 <span className="text-blue-300 font-semibold">최고의 솔루션</span>
+                </p>
+                <div className="flex items-center text-blue-300/50 text-sm">
+                  <a 
+                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    개인정보처리방침
+                  </a>
+                  <span className="mx-2">|</span>
+                  <a 
+                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    이용약관
+                  </a>
+                </div>
+              </div>
             </div>
             <div className="text-center md:text-right">
-              <p className="text-gray-400">&copy; {new Date().getFullYear()} 케어베케이션. 모든 권리 보유.</p>
-              <p className="text-gray-500 text-sm mt-1">
-                <a 
-                  href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-white"
-                >
-                  개인정보처리방침
-                </a> | <a 
-                  href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-white"
-                >
-                  이용약관
-                </a>
-              </p>
+              <p className="text-blue-200/70">&copy; {new Date().getFullYear()} 케어베케이션. 모든 권리 보유.</p>
             </div>
           </div>
         </div>
