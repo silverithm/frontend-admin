@@ -5,7 +5,7 @@ import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
-import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
 import { MdStar } from 'react-icons/md';
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 
@@ -552,9 +552,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const currentYear = new Date().getFullYear();
     const years = [];
     
-    // 현재 연도 기준으로 ±5년 (더 넓은 범위)
-    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-      years.push(i);
+    // 현재 연도에서 앞뒤로 2년씩
+    for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+      years.push(year);
     }
     
     const months = [
@@ -563,6 +563,36 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     ];
     
     return { years, months };
+  };
+
+  // 현재 월의 모든 날짜 생성
+  const calendarDates = useMemo(() => {
+    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 });
+    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 });
+    
+    const dates: Date[] = [];
+    let current = start;
+    
+    while (current <= end) {
+      dates.push(new Date(current));
+      current = addDays(current, 1);
+    }
+    
+    return dates;
+  }, [currentDate]);
+
+  // 휴가 기간 아이콘 가져오기
+  const getDurationIcon = (duration?: string) => {
+    switch (duration) {
+      case 'FULL_DAY':
+        return <FiSun className="text-yellow-500" size={8} />;
+      case 'HALF_DAY_AM':
+        return <FiSunrise className="text-orange-500" size={8} />;
+      case 'HALF_DAY_PM':
+        return <FiSunset className="text-purple-500" size={8} />;
+      default:
+        return <FiSun className="text-yellow-500" size={8} />;
+    }
   };
 
   return (
@@ -692,7 +722,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             }
           }}
         >
-          {dateRange.map((day, index) => {
+          {calendarDates.map((day, index) => {
             const isCurrentDay = isToday(day);
             const isSelected = selectedDate && isSameDay(day, selectedDate);
             const isCurrentMonth = isSameMonth(day, currentDate);
@@ -762,6 +792,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               : vacation.status === 'rejected'
                               ? '거절'
                               : '대기'}
+                          </span>
+                          <span className="flex-shrink-0 mr-1">
+                            {getDurationIcon(vacation.duration)}
                           </span>
                           <span className={`flex-1 leading-tight ${
                             vacation.status === 'rejected'

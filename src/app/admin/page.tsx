@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { DayInfo, VacationRequest, VacationLimit } from '@/types/vacation';
+import { DayInfo, VacationRequest, VacationLimit, VACATION_DURATION_OPTIONS, VacationDuration } from '@/types/vacation';
 import { deleteVacation as apiDeleteVacation, logout as apiLogout, getVacationCalendar, getVacationLimits, saveVacationLimits, getAllVacationRequests, getVacationForDate } from '@/lib/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import VacationCalendar from '@/components/VacationCalendar';
@@ -12,6 +12,7 @@ import AdminPanel from '@/components/AdminPanel';
 import VacationDetails from '@/components/VacationDetails';
 import UserManagement from '@/components/UserManagement';
 import Image from 'next/image';
+import { FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -288,13 +289,56 @@ export default function AdminPage() {
       
       console.log('날짜 상세 조회 요청:', { formattedDate, roleFilter });
       
-      // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
-      const data = await getVacationForDate(formattedDate, roleFilter === 'all' ? 'caregiver' : roleFilter, nameFilter || undefined);
+      // roleFilter 처리 수정: 'all'일 때 그대로 전달
+      const requestRole = roleFilter === 'all' ? 'all' : roleFilter;
       
-      console.log('날짜 상세 데이터:', data);
+      console.log('실제 요청할 role:', requestRole);
+      
+      // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
+      const data = await getVacationForDate(formattedDate, requestRole, nameFilter || undefined);
+      
+      console.log('날짜 상세 데이터 원본 응답:', data);
+      console.log('날짜 상세 데이터 응답 구조:', {
+        hasVacations: !!data.vacations,
+        vacationsLength: data.vacations?.length,
+        vacationsArray: data.vacations,
+        totalVacationers: data.totalVacationers,
+        maxPeople: data.maxPeople,
+        fullDataStructure: JSON.stringify(data, null, 2)
+      });
       
       // 데이터에서 휴가 목록 추출
-      const vacations = Array.isArray(data.vacations) ? data.vacations : [];
+      const vacations = Array.isArray(data.vacations) ? data.vacations.map((vacation: any) => ({
+        ...vacation,
+        duration: vacation.duration || 'FULL_DAY' // duration이 없으면 기본값 설정
+      })) : [];
+      
+      console.log('추출된 휴가 목록:', {
+        extractedVacations: vacations,
+        firstVacation: vacations[0],
+        vacationCount: vacations.length
+      });
+      
+      // duration 필드 확인
+      if (vacations.length > 0) {
+        console.log('첫 번째 휴가의 duration 정보:', {
+          duration: vacations[0].duration,
+          hasDuration: 'duration' in vacations[0],
+          allFields: Object.keys(vacations[0])
+        });
+        
+        // 모든 휴가의 duration 정보 확인
+        vacations.forEach((vacation: any, index: number) => {
+          console.log(`휴가 ${index + 1} 정보:`, {
+            userName: vacation.userName,
+            date: vacation.date,
+            status: vacation.status,
+            duration: vacation.duration,
+            hasDuration: 'duration' in vacation
+          });
+        });
+      }
+      
       setDateVacations(vacations);
     } catch (error) {
       console.error('날짜 상세 정보 로드 중 오류 발생:', error);
@@ -547,17 +591,46 @@ export default function AdminPage() {
 
   // 휴무 날짜를 포맷팅하는 함수 (YYYY-MM-DD 형식)
   const formatVacationDate = (dateValue: any): string => {
-    if (!dateValue) return '';
+    if (!dateValue) return '-';
     
-    // 이미 YYYY-MM-DD 형식인 경우
-    if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-      const [year, month, day] = dateValue.split('-');
-      return `${year}.${month}.${day}`;
+    try {
+      const date = new Date(dateValue);
+      const now = new Date();
+      const diffTime = Math.abs(date.getTime() - now.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        return '오늘';
+      } else if (diffDays === 1) {
+        return date > now ? '내일' : '어제';
+      } else if (diffDays <= 7) {
+        return date > now ? `${diffDays}일 후` : `${diffDays}일 전`;
+      } else {
+        return format(date, 'MM/dd', { locale: ko });
+      }
+    } catch (error) {
+      return '-';
     }
-    
-    // 다른 형식인 경우 일반 날짜 포맷팅 사용
-    const formatted = formatDate(dateValue);
-    return formatted;
+  };
+
+  // 휴가 기간 아이콘 가져오기
+  const getDurationIcon = (duration?: VacationDuration) => {
+    switch (duration) {
+      case 'FULL_DAY':
+        return <FiSun size={10} className="text-yellow-500" />;
+      case 'HALF_DAY_AM':
+        return <FiSunrise size={10} className="text-orange-500" />;
+      case 'HALF_DAY_PM':
+        return <FiSunset size={10} className="text-purple-500" />;
+      default:
+        return <FiSun size={10} className="text-yellow-500" />;
+    }
+  };
+
+  // 휴가 기간 텍스트 가져오기
+  const getDurationText = (duration?: VacationDuration) => {
+    const option = VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
+    return option ? option.displayName : '연차';
   };
 
   // 클라이언트 사이드가 아직 준비되지 않았거나 로딩 중일 때
@@ -991,6 +1064,10 @@ export default function AdminPage() {
                                 }`}>
                                   {request.role === 'caregiver' ? '요양' : '사무'}
                                 </span>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
+                                  {getDurationIcon(request.duration)}
+                                  <span>{getDurationText(request.duration)}</span>
+                                </span>
                                 <span className="text-[9px] text-gray-500">
                                   {formatDate(request.createdAt)}
                                 </span>
@@ -1077,6 +1154,16 @@ export default function AdminPage() {
                   onApplyVacation={() => {}}
                   onVacationUpdated={handleVacationUpdated}
                   isLoading={isLoading}
+                  maxPeople={(() => {
+                    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+                    const keyBase = dateKey;
+                    const officeLimit = vacationLimits[`${keyBase}_office`]?.maxPeople ?? 3;
+                    const caregiverLimit = vacationLimits[`${keyBase}_caregiver`]?.maxPeople ?? 3;
+                    
+                    if (roleFilter === 'office') return officeLimit;
+                    else if (roleFilter === 'caregiver') return caregiverLimit;
+                    else return Math.max(officeLimit, caregiverLimit); // 전체일 때는 더 큰 값
+                  })()}
                   roleFilter={roleFilter}
                   isAdmin={true}
                 />

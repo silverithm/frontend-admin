@@ -1,3 +1,36 @@
+// 휴가 기간 타입
+export type VacationDuration = 'FULL_DAY' | 'HALF_DAY_AM' | 'HALF_DAY_PM';
+
+// 휴가 기간 정보
+export interface VacationDurationInfo {
+  value: VacationDuration;
+  displayName: string;
+  description: string;
+  days: number;
+}
+
+// 휴가 기간 옵션들
+export const VACATION_DURATION_OPTIONS: VacationDurationInfo[] = [
+  {
+    value: 'FULL_DAY',
+    displayName: '연차',
+    description: '하루 종일',
+    days: 1.0
+  },
+  {
+    value: 'HALF_DAY_AM',
+    displayName: '오전 반차',
+    description: '오전 반일',
+    days: 0.5
+  },
+  {
+    value: 'HALF_DAY_PM',
+    displayName: '오후 반차',
+    description: '오후 반일',
+    days: 0.5
+  }
+];
+
 export interface VacationRequest {
   id: string;
   userId: string;
@@ -7,6 +40,7 @@ export interface VacationRequest {
   status: 'pending' | 'approved' | 'rejected' | 'canceled';
   type: 'regular' | 'mandatory' | 'sick' | 'other';
   role: 'caregiver' | 'office' | 'all';  // 요양보호사, 사무실, 전체
+  duration: VacationDuration; // 휴가 기간 (연차/반차)
   createdAt: string;
   updatedAt: string;
   password?: string;  // 등록 시 입력한 비밀번호 (삭제 시 확인용)

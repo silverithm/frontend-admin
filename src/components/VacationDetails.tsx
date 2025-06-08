@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { VacationDetailsProps, VacationRequest } from '@/types/vacation';
+import { VacationDetailsProps, VacationRequest, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import VacationForm from './VacationForm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiUser, FiBriefcase, FiUserPlus, FiTrash2, FiLock } from 'react-icons/fi';
+import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiUser, FiBriefcase, FiUserPlus, FiTrash2, FiLock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
 
 const VacationDetails: React.FC<VacationDetailsProps> = ({
   date,
@@ -130,6 +130,26 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
     }
   };
 
+  // 휴가 기간 아이콘 가져오기
+  const getDurationIcon = (duration?: string) => {
+    switch (duration) {
+      case 'FULL_DAY':
+        return <FiSun size={14} className="sm:w-4 sm:h-4" />;
+      case 'HALF_DAY_AM':
+        return <FiSunrise size={14} className="sm:w-4 sm:h-4" />;
+      case 'HALF_DAY_PM':
+        return <FiSunset size={14} className="sm:w-4 sm:h-4" />;
+      default:
+        return <FiSun size={14} className="sm:w-4 sm:h-4" />;
+    }
+  };
+
+  // 휴가 기간 텍스트 가져오기
+  const getDurationText = (duration?: string) => {
+    const option = VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
+    return option ? option.displayName : '연차';
+  };
+
   // 유효한(승인됨 또는 대기중) 휴무 수 계산
   const validVacationCount = vacations.filter(v => v.status !== 'rejected').length;
   const remainingSlots = maxPeople - validVacationCount;
@@ -247,6 +267,12 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mt-2">
+                          {/* 휴가 기간 뱃지 */}
+                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
+                            {getDurationIcon(vacation.duration)}
+                            <span className="ml-1.5">{getDurationText(vacation.duration)}</span>
+                          </div>
+                          
                           {/* 휴무 유형 뱃지 */}
                           <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-gray-200 bg-white">
                             <FiClock className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />

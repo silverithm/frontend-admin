@@ -58,7 +58,12 @@ export async function GET(
     const token = authHeader?.replace('Bearer ', '');
 
     // 백엔드 API URL 구성 (companyId 포함)
-    let backendUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?role=${role}&companyId=${companyId}`;
+    let backendUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?companyId=${companyId}`;
+    
+    // role이 'all'이 아닌 경우에만 role 파라미터 추가
+    if (role !== 'all') {
+      backendUrl += `&role=${role}`;
+    }
     
     if (nameFilter) {
       backendUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;
@@ -77,22 +82,103 @@ export async function GET(
       backendHeaders['Authorization'] = `Bearer ${token}`;
     }
 
-    // 백엔드로 요청 전달
-    const backendResponse = await fetch(backendUrl, {
-      method: 'GET',
-      headers: backendHeaders,
-    });
+    let data;
 
-    if (!backendResponse.ok) {
-      console.error(`[Frontend API] 백엔드 응답 오류: ${backendResponse.status} ${backendResponse.statusText}`);
-      return NextResponse.json({
-        error: `백엔드 서버 오류: ${backendResponse.status}`
-      }, { status: backendResponse.status, headers });
+    // role이 'all'인 경우 caregiver와 office 데이터를 모두 가져와서 합치기
+    if (role === 'all') {
+      console.log(`[Frontend API] role=all이므로 caregiver와 office 데이터를 모두 가져옵니다.`);
+      
+      try {
+        // caregiver 데이터 요청
+        let caregiverUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?companyId=${companyId}&role=caregiver`;
+        if (nameFilter) {
+          caregiverUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;
+        }
+        
+        const caregiverResponse = await fetch(caregiverUrl, {
+          method: 'GET',
+          headers: backendHeaders,
+        });
+        
+        // office 데이터 요청
+        let officeUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?companyId=${companyId}&role=office`;
+        if (nameFilter) {
+          officeUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;
+        }
+        
+        const officeResponse = await fetch(officeUrl, {
+          method: 'GET',
+          headers: backendHeaders,
+        });
+
+        if (!caregiverResponse.ok || !officeResponse.ok) {
+          console.error(`[Frontend API] 백엔드 응답 오류 - caregiver: ${caregiverResponse.status}, office: ${officeResponse.status}`);
+          return NextResponse.json({
+            error: `백엔드 서버 오류`
+          }, { status: 500, headers });
+        }
+
+        const caregiverData = await caregiverResponse.json();
+        const officeData = await officeResponse.json();
+        
+        console.log(`[Frontend API] caregiver 데이터:`, caregiverData);
+        console.log(`[Frontend API] office 데이터:`, officeData);
+
+        // 두 데이터를 합치기
+        data = {
+          date: dateParam,
+          vacations: [
+            ...(caregiverData.vacations || []),
+            ...(officeData.vacations || [])
+          ],
+          totalVacationers: (caregiverData.totalVacationers || 0) + (officeData.totalVacationers || 0),
+          maxPeople: Math.max(caregiverData.maxPeople || 0, officeData.maxPeople || 0)
+        };
+        
+        console.log(`[Frontend API] 합쳐진 데이터:`, data);
+        
+      } catch (error) {
+        console.error('[Frontend API] role=all 처리 중 오류:', error);
+        return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { 
+          status: 500, 
+          headers 
+        });
+      }
+    } else {
+      // 단일 role 요청
+      const backendResponse = await fetch(backendUrl, {
+        method: 'GET',
+        headers: backendHeaders,
+      });
+
+      if (!backendResponse.ok) {
+        console.error(`[Frontend API] 백엔드 응답 오류: ${backendResponse.status} ${backendResponse.statusText}`);
+        return NextResponse.json({
+          error: `백엔드 서버 오류: ${backendResponse.status}`
+        }, { status: backendResponse.status, headers });
+      }
+
+      data = await backendResponse.json();
     }
-
-    const data = await backendResponse.json();
     
     console.log(`[Frontend API] 날짜 ${dateParam} 백엔드 응답 성공: ${data.totalVacationers || 0}명의 휴가자`);
+    console.log(`[Frontend API] 백엔드 응답 전체 데이터:`, JSON.stringify(data, null, 2));
+    
+    // vacations 배열에 duration 필드가 있는지 확인
+    if (data.vacations && Array.isArray(data.vacations) && data.vacations.length > 0) {
+      console.log(`[Frontend API] 첫 번째 휴가 객체:`, data.vacations[0]);
+      console.log(`[Frontend API] 첫 번째 휴가의 duration:`, data.vacations[0].duration);
+      console.log(`[Frontend API] 모든 휴가의 duration 정보:`, 
+        data.vacations.map((v: any, i: number) => ({
+          index: i,
+          userName: v.userName,
+          duration: v.duration,
+          hasDuration: 'duration' in v
+        }))
+      );
+    } else {
+      console.log(`[Frontend API] 휴가 데이터가 없거나 배열이 아닙니다:`, data.vacations);
+    }
     
     return NextResponse.json(data, { 
       status: 200, 

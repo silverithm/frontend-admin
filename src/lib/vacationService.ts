@@ -1,4 +1,4 @@
-import { VacationRequest, VacationLimit } from '@/types/vacation';
+import { VacationRequest, VacationLimit, VacationDuration } from '@/types/vacation';
 import { format } from 'date-fns';
 import { getVacationCalendar, getVacationForDate, getVacationLimits as apiGetVacationLimits, getAllVacationRequests } from './apiService';
 
@@ -28,6 +28,7 @@ export async function getVacationsForMonth(year: number, month: number) {
             reason: vacation.reason || '(사유 미입력)',
             userId: vacation.userId,
             type: vacation.type || 'regular',
+            duration: vacation.duration || 'FULL_DAY',
             createdAt: vacation.createdAt,
             updatedAt: vacation.updatedAt
           })));
@@ -64,6 +65,7 @@ export async function getVacationRequestsForDateRange(startDate: string, endDate
             reason: vacation.reason || '(사유 미입력)',
             userId: vacation.userId,
             type: vacation.type || 'regular',
+            duration: vacation.duration || 'FULL_DAY',
             createdAt: vacation.createdAt,
             updatedAt: vacation.updatedAt
           })));
@@ -87,6 +89,9 @@ export async function getVacationsForDate(date: Date) {
     
     const response = await getVacationForDate(formattedDate, 'all');
     
+    console.log('백엔드 응답 데이터:', response);
+    console.log('백엔드 응답의 vacations:', response.vacations);
+    
     const vacations: VacationRequest[] = response.vacations?.map((vacation: any) => ({
       id: vacation.id?.toString(),
       userName: vacation.userName,
@@ -96,11 +101,14 @@ export async function getVacationsForDate(date: Date) {
       reason: vacation.reason || '(사유 미입력)',
       userId: vacation.userId,
       type: vacation.type || 'regular',
+      duration: vacation.duration || 'FULL_DAY',
       createdAt: vacation.createdAt,
       updatedAt: vacation.updatedAt
     })) || [];
     
     console.log(`${formattedDate} 휴가 데이터 ${vacations.length}건 로드 완료`);
+    console.log('변환된 휴가 데이터:', vacations);
+    
     return vacations;
   } catch (error) {
     console.error('특정 날짜 휴가 데이터 조회 중 오류:', error);
@@ -230,6 +238,7 @@ export async function getAllVacationRequestsData() {
       reason: vacation.reason || '(사유 미입력)',
       userId: vacation.userId,
       type: vacation.type || 'regular',
+      duration: vacation.duration || 'FULL_DAY',
       createdAt: vacation.createdAt,
       updatedAt: vacation.updatedAt
     })) || [];

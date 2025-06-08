@@ -299,6 +299,7 @@ export async function createVacationRequest(vacationData: {
   reason: string;
   userId: string;
   type: string;
+  duration: string;
 }) {
   const companyId = getCompanyId();
   if (!companyId) {

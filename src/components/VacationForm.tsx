@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { VacationFormProps } from '@/types/vacation';
-import { FiUser, FiBriefcase, FiUsers, FiCalendar, FiClock, FiLock } from 'react-icons/fi';
+import { VacationFormProps, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import { FiUser, FiBriefcase, FiUsers, FiCalendar, FiClock, FiLock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
 
 const VacationForm: React.FC<VacationFormProps> = ({ 
   initialDate, 
@@ -18,6 +18,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
   const [password, setPassword] = useState('');
   const [type, setType] = useState<'regular' | 'mandatory'>('regular');
   const [role, setRole] = useState<'caregiver' | 'office' | 'all'>(roleFilter && roleFilter !== 'all' ? roleFilter : 'caregiver');
+  const [duration, setDuration] = useState<VacationDuration>('FULL_DAY');
   const [errors, setErrors] = useState({
     userName: '',
     reason: '',
@@ -89,6 +90,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
             password: password.trim(),
             type,
             role,
+            duration,
             date: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
           })
         });
@@ -112,6 +114,20 @@ const VacationForm: React.FC<VacationFormProps> = ({
       } finally {
         setIsSubmitting(false);
       }
+    }
+  };
+
+  // 휴가 기간 아이콘 가져오기
+  const getDurationIcon = (durationType: VacationDuration) => {
+    switch (durationType) {
+      case 'FULL_DAY':
+        return <FiSun size={16} />;
+      case 'HALF_DAY_AM':
+        return <FiSunrise size={16} />;
+      case 'HALF_DAY_PM':
+        return <FiSunset size={16} />;
+      default:
+        return <FiSun size={16} />;
     }
   };
 
@@ -151,6 +167,45 @@ const VacationForm: React.FC<VacationFormProps> = ({
           {errors.userName && (
             <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.userName}</p>
           )}
+        </div>
+        
+        <div>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
+            휴가 기간 *
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+            {VACATION_DURATION_OPTIONS.map((option) => (
+              <label 
+                key={option.value}
+                className={`flex items-center p-3 sm:p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  duration === option.value ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-300' : ''
+                } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="duration"
+                  value={option.value}
+                  checked={duration === option.value}
+                  onChange={() => setDuration(option.value)}
+                  className="hidden"
+                  disabled={isSubmitting}
+                />
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mr-3 ${
+                  duration === option.value ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {getDurationIcon(option.value)}
+                </div>
+                <div className="flex-1">
+                  <div className="text-gray-700 font-medium text-xs sm:text-sm">
+                    {option.displayName}
+                  </div>
+                  <div className="text-gray-500 text-xs">
+                    {option.description} ({option.days}일)
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
         
         <div>
