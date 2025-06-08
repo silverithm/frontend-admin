@@ -1100,6 +1100,13 @@ export default function AdminPage() {
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
                                   <span>{getDurationText(request.duration)}</span>
                                 </span>
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
+                                  request.type === 'mandatory' 
+                                    ? 'bg-orange-50 text-orange-700' 
+                                    : 'bg-gray-50 text-gray-700'
+                                }`}>
+                                  {getVacationTypeText(request.type)}
+                                </span>
                                 <span className="text-[9px] text-gray-500">
                                   {formatDate(request.createdAt)}
                                 </span>
