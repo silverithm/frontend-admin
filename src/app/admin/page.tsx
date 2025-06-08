@@ -12,7 +12,6 @@ import AdminPanel from '@/components/AdminPanel';
 import VacationDetails from '@/components/VacationDetails';
 import UserManagement from '@/components/UserManagement';
 import Image from 'next/image';
-import { FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -613,24 +612,58 @@ export default function AdminPage() {
     }
   };
 
-  // 휴가 기간 아이콘 가져오기
-  const getDurationIcon = (duration?: VacationDuration) => {
-    switch (duration) {
-      case 'FULL_DAY':
-        return <FiSun size={10} className="text-yellow-500" />;
-      case 'HALF_DAY_AM':
-        return <FiSunrise size={10} className="text-orange-500" />;
-      case 'HALF_DAY_PM':
-        return <FiSunset size={10} className="text-purple-500" />;
-      default:
-        return <FiSun size={10} className="text-yellow-500" />;
-    }
-  };
-
   // 휴가 기간 텍스트 가져오기
   const getDurationText = (duration?: VacationDuration) => {
     const option = VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
     return option ? option.displayName : '연차';
+  };
+
+  // 휴무 유형 한글 변환
+  const getVacationTypeText = (type?: string) => {
+    switch (type) {
+      case 'regular':
+        return '일반 휴무';
+      case 'mandatory':
+        return '필수 휴무';
+      case 'personal':
+        return '개인 휴무';
+      case 'sick':
+        return '병가';
+      case 'emergency':
+        return '긴급 휴무';
+      case 'family':
+        return '가족 돌봄 휴무';
+      default:
+        return type || '일반 휴무';
+    }
+  };
+
+  // 상태 한글 변환
+  const getStatusText = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return '승인됨';
+      case 'pending':
+        return '대기중';
+      case 'rejected':
+        return '거부됨';
+      default:
+        return status || '알 수 없음';
+    }
+  };
+
+  // 역할 한글 변환
+  const getRoleText = (role?: string) => {
+    switch (role) {
+      case 'caregiver':
+        return '요양보호사';
+      case 'office':
+        return '사무직';
+      case 'admin':
+        return '관리자';
+      default:
+        return role || '직원';
+    }
   };
 
   // 클라이언트 사이드가 아직 준비되지 않았거나 로딩 중일 때
@@ -1052,7 +1085,7 @@ export default function AdminPage() {
                                     ? 'bg-yellow-100 text-yellow-800' 
                                     : 'bg-red-100 text-red-800'
                               }`}>
-                                {request.status === 'approved' ? '승인' : request.status === 'pending' ? '대기' : '거부'}
+                                {getStatusText(request.status)}
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
@@ -1062,10 +1095,9 @@ export default function AdminPage() {
                                     ? 'bg-blue-50 text-blue-700' 
                                     : 'bg-green-50 text-green-700'
                                 }`}>
-                                  {request.role === 'caregiver' ? '요양' : '사무'}
+                                  {getRoleText(request.role)}
                                 </span>
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
-                                  {getDurationIcon(request.duration)}
                                   <span>{getDurationText(request.duration)}</span>
                                 </span>
                                 <span className="text-[9px] text-gray-500">
@@ -1104,6 +1136,14 @@ export default function AdminPage() {
                                 </div>
                               )}
                             </div>
+                            {/* 사유 표시 */}
+                            {request.reason && request.reason !== '(사유 미입력)' && (
+                              <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
+                                <div className="text-[9px] text-gray-600">
+                                  <span className="font-medium text-gray-700">사유:</span> {request.reason}
+                                </div>
+                              </div>
+                            )}
                           </li>
                         ))}
                       </ul>

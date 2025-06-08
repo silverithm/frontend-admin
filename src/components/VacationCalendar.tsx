@@ -581,17 +581,51 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     return dates;
   }, [currentDate]);
 
-  // 휴가 기간 아이콘 가져오기
-  const getDurationIcon = (duration?: string) => {
-    switch (duration) {
-      case 'FULL_DAY':
-        return <FiSun className="text-yellow-500" size={8} />;
-      case 'HALF_DAY_AM':
-        return <FiSunrise className="text-orange-500" size={8} />;
-      case 'HALF_DAY_PM':
-        return <FiSunset className="text-purple-500" size={8} />;
+  // 휴무 유형 한글 변환
+  const getVacationTypeText = (type?: string) => {
+    switch (type) {
+      case 'regular':
+        return '일반 휴무';
+      case 'mandatory':
+        return '필수 휴무';
+      case 'personal':
+        return '개인 휴무';
+      case 'sick':
+        return '병가';
+      case 'emergency':
+        return '긴급 휴무';
+      case 'family':
+        return '가족 돌봄 휴무';
       default:
-        return <FiSun className="text-yellow-500" size={8} />;
+        return type || '일반 휴무';
+    }
+  };
+
+  // 상태 한글 변환
+  const getStatusText = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return '승인됨';
+      case 'pending':
+        return '대기중';
+      case 'rejected':
+        return '거부됨';
+      default:
+        return status || '알 수 없음';
+    }
+  };
+
+  // 역할 한글 변환
+  const getRoleText = (role?: string) => {
+    switch (role) {
+      case 'caregiver':
+        return '요양보호사';
+      case 'office':
+        return '사무직';
+      case 'admin':
+        return '관리자';
+      default:
+        return role || '직원';
     }
   };
 
@@ -787,14 +821,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               : vacation.status === 'rejected'
                               ? 'bg-red-100 text-red-600'
                               : 'bg-yellow-100 text-yellow-600'}`}>
-                            {vacation.status === 'approved' 
-                              ? '승인' 
-                              : vacation.status === 'rejected'
-                              ? '거절'
-                              : '대기'}
-                          </span>
-                          <span className="flex-shrink-0 mr-1">
-                            {getDurationIcon(vacation.duration)}
+                            {getStatusText(vacation.status)}
                           </span>
                           <span className={`flex-1 leading-tight ${
                             vacation.status === 'rejected'

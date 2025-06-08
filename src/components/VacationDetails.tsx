@@ -5,7 +5,7 @@ import { ko } from 'date-fns/locale';
 import { VacationDetailsProps, VacationRequest, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import VacationForm from './VacationForm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiUser, FiBriefcase, FiUserPlus, FiTrash2, FiLock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
+import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiUser, FiBriefcase, FiUserPlus, FiTrash2, FiLock } from 'react-icons/fi';
 
 const VacationDetails: React.FC<VacationDetailsProps> = ({
   date,
@@ -130,24 +130,58 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
     }
   };
 
-  // 휴가 기간 아이콘 가져오기
-  const getDurationIcon = (duration?: string) => {
-    switch (duration) {
-      case 'FULL_DAY':
-        return <FiSun size={14} className="sm:w-4 sm:h-4" />;
-      case 'HALF_DAY_AM':
-        return <FiSunrise size={14} className="sm:w-4 sm:h-4" />;
-      case 'HALF_DAY_PM':
-        return <FiSunset size={14} className="sm:w-4 sm:h-4" />;
-      default:
-        return <FiSun size={14} className="sm:w-4 sm:h-4" />;
-    }
-  };
-
   // 휴가 기간 텍스트 가져오기
   const getDurationText = (duration?: string) => {
     const option = VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
     return option ? option.displayName : '연차';
+  };
+
+  // 휴무 유형 한글 변환
+  const getVacationTypeText = (type?: string) => {
+    switch (type) {
+      case 'regular':
+        return '일반 휴무';
+      case 'mandatory':
+        return '필수 휴무';
+      case 'personal':
+        return '개인 휴무';
+      case 'sick':
+        return '병가';
+      case 'emergency':
+        return '긴급 휴무';
+      case 'family':
+        return '가족 돌봄 휴무';
+      default:
+        return type || '일반 휴무';
+    }
+  };
+
+  // 상태 한글 변환
+  const getStatusText = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return '승인됨';
+      case 'pending':
+        return '대기중';
+      case 'rejected':
+        return '거부됨';
+      default:
+        return status || '알 수 없음';
+    }
+  };
+
+  // 역할 한글 변환
+  const getRoleText = (role?: string) => {
+    switch (role) {
+      case 'caregiver':
+        return '요양보호사';
+      case 'office':
+        return '사무직';
+      case 'admin':
+        return '관리자';
+      default:
+        return role || '직원';
+    }
   };
 
   // 유효한(승인됨 또는 대기중) 휴무 수 계산
@@ -253,7 +287,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                                   ? 'bg-yellow-100 text-yellow-600 border border-yellow-200'
                                   : 'bg-red-100 text-red-600 border border-red-200'
                             }`}>
-                              {vacation.status === 'approved' ? '승인됨' : vacation.status === 'pending' ? '대기중' : '거부됨'}
+                              {getStatusText(vacation.status)}
                             </span>
                             <button 
                               onClick={() => handleDeleteClick(vacation)} 
@@ -269,14 +303,13 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                         <div className="flex flex-wrap gap-2 mt-2">
                           {/* 휴가 기간 뱃지 */}
                           <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
-                            {getDurationIcon(vacation.duration)}
-                            <span className="ml-1.5">{getDurationText(vacation.duration)}</span>
+                            <span>{getDurationText(vacation.duration)}</span>
                           </div>
                           
                           {/* 휴무 유형 뱃지 */}
                           <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-gray-200 bg-white">
                             <FiClock className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />
-                            <span className="text-gray-700">{vacation.type === 'regular' ? '일반 휴무' : vacation.type === 'mandatory' ? '필수 휴무' : vacation.type}</span>
+                            <span className="text-gray-700">{getVacationTypeText(vacation.type)}</span>
                           </div>
                           
                           {/* 직원 유형 뱃지 */}
@@ -292,7 +325,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                             ) : (
                               <FiBriefcase className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             )}
-                            <span>{vacation.role === 'caregiver' ? '요양보호사' : '사무직'}</span>
+                            <span>{getRoleText(vacation.role)}</span>
                           </div>
                           
                           {vacation.reason && (
