@@ -43,9 +43,9 @@ export async function OPTIONS() {
 }
 
 // PUT: 사용자 승인/거부/상태변경
-export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
     const url = new URL(request.url);
     const action = url.searchParams.get('action'); // 'approve', 'reject', 또는 undefined
     const adminId = url.searchParams.get('adminId');
@@ -122,9 +122,9 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
 }
 
 // DELETE: 사용자 삭제
-export async function DELETE(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
 
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');

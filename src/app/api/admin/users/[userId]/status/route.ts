@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Authorization 헤더 확인
@@ -11,7 +11,7 @@ export async function PUT(
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
 
-    const { userId } = params;
+    const { userId } = await params;
     const body = await request.json();
     const { status } = body;
 
