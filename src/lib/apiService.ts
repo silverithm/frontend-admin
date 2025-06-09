@@ -4,7 +4,7 @@ import { VacationRequest, VacationLimit } from '@/types/vacation';
 import { SigninResponseDTO, TokenInfo, UserDataDTO, FindPasswordResponse, PasswordChangeRequest, UserRole } from '@/types/auth';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://69af-211-177-230-196.ngrok-free.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
 console.log('[API Service] 사용 중인 API_BASE_URL:', API_BASE_URL);
 

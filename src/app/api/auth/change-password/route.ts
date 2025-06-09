@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // 백엔드 API URL
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://69af-211-177-230-196.ngrok-free.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
 // 기본 CORS 및 캐시 방지 헤더 설정
 const headers = {
