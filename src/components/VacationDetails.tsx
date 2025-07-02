@@ -136,6 +136,11 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
     return option ? option.displayName : '연차';
   };
 
+  // 휴가 기간이 유효한지 확인하는 함수
+  const isValidDuration = (duration?: string) => {
+    return duration && VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
+  };
+
   // 휴무 유형 한글 변환
   const getVacationTypeText = (type?: string) => {
     switch (type) {
@@ -301,10 +306,12 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {/* 휴가 기간 뱃지 */}
-                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
-                            <span>{getDurationText(vacation.duration)}</span>
-                          </div>
+                          {/* 휴가 기간 뱃지 - 유효한 duration일 때만 표시 */}
+                          {isValidDuration(vacation.duration) && (
+                            <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
+                              <span>{getDurationText(vacation.duration)}</span>
+                            </div>
+                          )}
                           
                           {/* 휴무 유형 뱃지 */}
                           <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-gray-200 bg-white">
