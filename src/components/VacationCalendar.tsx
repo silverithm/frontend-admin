@@ -616,6 +616,19 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
   };
 
+  // 휴가 기간에 따른 색상 클래스 반환
+  const getDurationColorClass = (duration?: string) => {
+    switch (duration) {
+      case 'FULL_DAY':
+        return 'bg-blue-500'; // 연차는 파란색
+      case 'HALF_DAY_AM':
+      case 'HALF_DAY_PM':
+        return 'bg-green-500'; // 반차는 초록색
+      default:
+        return 'bg-blue-500';
+    }
+  };
+
   // 휴가 기간이 유효한지 확인하는 함수
   const isValidDuration = (duration?: string) => {
     return duration && ['FULL_DAY', 'HALF_DAY_AM', 'HALF_DAY_PM'].includes(duration);
@@ -882,12 +895,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           }}>
                             <span className="truncate">{vacation.userName || `이름 없음`}</span>
                             {isValidDuration(vacation.duration) && (
-                              <span className="w-3 h-3 rounded-full bg-purple-500 text-white text-[6px] font-bold flex items-center justify-center flex-shrink-0">
+                              <span className={`w-3 h-3 rounded-full ${getDurationColorClass(vacation.duration)} text-white text-[8px] font-bold flex items-center justify-center flex-shrink-0`}>
                                 {getDurationShortText(vacation.duration)}
                               </span>
                             )}
                             {vacation.type === 'mandatory' && (
-                              <span className="w-3 h-3 rounded-full bg-red-500 text-white text-[6px] font-bold flex items-center justify-center flex-shrink-0">
+                              <span className="w-3 h-3 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center flex-shrink-0">
                                 필
                               </span>
                             )}
@@ -935,52 +948,49 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
       <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
         <p className="text-xs sm:text-sm md:text-base text-gray-500 mb-2 sm:mb-3 font-medium">상태 표시</p>
-        <div className="space-y-2 sm:space-y-3">
+        <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6 items-center">
           {/* 인원 상태 */}
-          <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
-            <h4 className="text-xs sm:text-sm font-medium text-gray-700 w-full mb-1">인원 상태</h4>
-            <div className="flex items-center">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full mr-1.5 sm:mr-2"></div>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">여유</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full mr-1.5 sm:mr-2"></div>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">마감</span>
-            </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full mr-1 sm:mr-1.5"></div>
+            <span className="text-xs sm:text-sm text-gray-600">여유</span>
           </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full mr-1 sm:mr-1.5"></div>
+            <span className="text-xs sm:text-sm text-gray-600">마감</span>
+          </div>
+          
+          {/* 구분선 */}
+          <div className="w-px h-4 bg-gray-300"></div>
           
           {/* 승인 상태 */}
-          <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
-            <h4 className="text-xs sm:text-sm font-medium text-gray-700 w-full mb-1">승인 상태</h4>
-            <div className="flex items-center">
-              <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-100 text-green-600 rounded-full mr-1.5 sm:mr-2">승인</span>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">승인됨</span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-100 text-yellow-600 rounded-full mr-1.5 sm:mr-2">대기</span>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">대기중</span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-600 rounded-full mr-1.5 sm:mr-2">거절</span>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">거부됨</span>
-            </div>
+          <div className="flex items-center">
+            <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-600 rounded-full mr-1 sm:mr-1.5">승인</span>
+            <span className="text-xs sm:text-sm text-gray-600">승인됨</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-600 rounded-full mr-1 sm:mr-1.5">대기</span>
+            <span className="text-xs sm:text-sm text-gray-600">대기중</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full mr-1 sm:mr-1.5">거절</span>
+            <span className="text-xs sm:text-sm text-gray-600">거부됨</span>
           </div>
           
+          {/* 구분선 */}
+          <div className="w-px h-4 bg-gray-300"></div>
+          
           {/* 휴가 유형 */}
-          <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
-            <h4 className="text-xs sm:text-sm font-medium text-gray-700 w-full mb-1">휴가 유형 & 기간</h4>
-            <div className="flex items-center">
-              <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-purple-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1.5 sm:mr-2">연</span>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">연차</span>
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-purple-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1.5 sm:mr-2">반</span>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">반차</span>
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1.5 sm:mr-2">필</span>
-              <span className="text-xs sm:text-sm md:text-base text-gray-600">필수 휴무</span>
-            </div>
+          <div className="flex items-center">
+            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-blue-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">연</span>
+            <span className="text-xs sm:text-sm text-gray-600">연차</span>
+          </div>
+          <div className="flex items-center">
+            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-green-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">반</span>
+            <span className="text-xs sm:text-sm text-gray-600">반차</span>
+          </div>
+          <div className="flex items-center">
+            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">필</span>
+            <span className="text-xs sm:text-sm text-gray-600">필수 휴무</span>
           </div>
         </div>
       </div>
