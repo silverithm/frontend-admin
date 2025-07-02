@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
 import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
-import { MdStar } from 'react-icons/md';
+
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -44,6 +44,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const MAX_RETRY_COUNT = 3;
   const MAX_RETRY_DELAY = 1000;
@@ -387,7 +388,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     
     setSelectedDate(date);
     
-    fetchSelectedDateData(date);
+    // fetchSelectedDateData 제거 - 상위 컴포넌트에서 필터링 처리
     
     if (onDateSelect) {
       onDateSelect(date);
@@ -601,6 +602,25 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
   };
 
+  // 휴가 기간을 짧게 표시하는 함수 (동그라미 안에 표시용)
+  const getDurationShortText = (duration?: string) => {
+    switch (duration) {
+      case 'FULL_DAY':
+        return '연';
+      case 'HALF_DAY_AM':
+        return '반';
+      case 'HALF_DAY_PM':
+        return '반';
+      default:
+        return '연';
+    }
+  };
+
+  // 휴가 기간이 유효한지 확인하는 함수
+  const isValidDuration = (duration?: string) => {
+    return duration && ['FULL_DAY', 'HALF_DAY_AM', 'HALF_DAY_PM'].includes(duration);
+  };
+
   // 상태 한글 변환
   const getStatusText = (status?: string) => {
     switch (status) {
@@ -727,6 +747,21 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 <span className="sm:hidden">제한 설정</span>
               </button>
             )}
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              disabled={isLoading}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
+                isLoading
+                  ? 'bg-purple-50 text-purple-300 cursor-not-allowed'
+                  : isExpanded
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-purple-50 hover:bg-purple-100 text-purple-600 hover:scale-105'
+              }`}
+              aria-label={isExpanded ? "접기" : "펼치기"}
+            >
+              <span className="hidden sm:inline">{isExpanded ? "접기" : "펼치기"}</span>
+              <span className="sm:hidden">{isExpanded ? "접기" : "펼치기"}</span>
+            </button>
           </div>
         </div>
 
@@ -776,12 +811,16 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 key={index}
                 variants={fadeInVariants}
                 onClick={() => handleDateClick(day)}
-                className={`p-1 sm:p-3 min-h-[60px] sm:min-h-[120px] md:min-h-[140px] rounded-lg sm:rounded-xl relative cursor-pointer transition-all ${
+                className={`p-1 sm:p-3 ${
+                  isExpanded 
+                    ? 'min-h-[80px] sm:min-h-[200px] md:min-h-[240px]'
+                    : 'min-h-[60px] sm:min-h-[120px] md:min-h-[140px]'
+                } rounded-lg sm:rounded-xl relative cursor-pointer transition-all ${
                   !isCurrentMonth ? 'opacity-40' : ''
                 } ${isSelected ? 'ring-2 ring-blue-500 scale-[1.02] shadow-md z-10' : ''}
                 ${dayColor.bg}
                 ${isPast ? 'cursor-not-allowed opacity-60' : ''}
-                hover:shadow-sm overflow-hidden`}
+                hover:shadow-sm ${isExpanded ? '' : 'overflow-hidden'}`}
               >
                 <div className={`flex justify-between items-start mb-1`}>
                   <div className={`text-xs sm:text-sm md:text-base font-semibold ${
@@ -810,9 +849,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 </div>
                 
                 {isCurrentMonth && vacations && vacations.length > 0 && (
-                  <div className="space-y-0.5 sm:space-y-1 max-h-20 sm:max-h-20 md:max-h-28 overflow-hidden">
+                  <div className={`space-y-0.5 sm:space-y-1 ${
+                    isExpanded 
+                      ? 'max-h-none' 
+                      : 'max-h-20 sm:max-h-20 md:max-h-28 overflow-hidden'
+                  }`}>
                     {vacations
-                      .slice(0, 4)
+                      .slice(0, isExpanded ? vacations.length : 4)
                       .map((vacation, idx) => (
                         <div key={idx} className="flex items-center text-[8px] sm:text-xs md:text-sm">
                           <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full
@@ -823,7 +866,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               : 'bg-yellow-100 text-yellow-600'}`}>
                             {getStatusText(vacation.status)}
                           </span>
-                          <span className={`flex-1 leading-tight ${
+                          <span className={`flex-1 leading-tight flex items-center gap-1 ${
                             vacation.status === 'rejected'
                               ? 'text-red-600 line-through'
                               : nameFilter === vacation.userName
@@ -837,21 +880,29 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               handleNameClick(vacation.userName);
                             }
                           }}>
-                            {vacation.userName || `이름 없음`}
+                            <span className="truncate">{vacation.userName || `이름 없음`}</span>
+                            {isValidDuration(vacation.duration) && (
+                              <span className="w-3 h-3 rounded-full bg-purple-500 text-white text-[6px] font-bold flex items-center justify-center flex-shrink-0">
+                                {getDurationShortText(vacation.duration)}
+                              </span>
+                            )}
+                            {vacation.type === 'mandatory' && (
+                              <span className="w-3 h-3 rounded-full bg-red-500 text-white text-[6px] font-bold flex items-center justify-center flex-shrink-0">
+                                필
+                              </span>
+                            )}
                             {nameFilter === vacation.userName && (
-                              <span className="ml-1 inline-flex items-center">
+                              <span className="inline-flex items-center flex-shrink-0">
                                 <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               </span>
                             )}
                           </span>
-                          {vacation.type === 'mandatory' && (
-                            <MdStar className="ml-0.5 text-amber-500 flex-shrink-0" size={10} />
-                          )}
+
                         </div>
                       ))}
-                    {vacations.length > 4 && (
+                    {!isExpanded && vacations.length > 4 && (
                       <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
                         +{vacations.length - 4}명 더
                       </div>
@@ -884,26 +935,52 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
       <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
         <p className="text-xs sm:text-sm md:text-base text-gray-500 mb-2 sm:mb-3 font-medium">상태 표시</p>
-        <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
-          <div className="flex items-center">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full mr-1.5 sm:mr-2"></div>
-            <span className="text-xs sm:text-sm md:text-base text-gray-600">여유</span>
+        <div className="space-y-2 sm:space-y-3">
+          {/* 인원 상태 */}
+          <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-700 w-full mb-1">인원 상태</h4>
+            <div className="flex items-center">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full mr-1.5 sm:mr-2"></div>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">여유</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full mr-1.5 sm:mr-2"></div>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">마감</span>
+            </div>
           </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full mr-1.5 sm:mr-2"></div>
-            <span className="text-xs sm:text-sm md:text-base text-gray-600">마감</span>
+          
+          {/* 승인 상태 */}
+          <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-700 w-full mb-1">승인 상태</h4>
+            <div className="flex items-center">
+              <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-100 text-green-600 rounded-full mr-1.5 sm:mr-2">승인</span>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">승인됨</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-100 text-yellow-600 rounded-full mr-1.5 sm:mr-2">대기</span>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">대기중</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-600 rounded-full mr-1.5 sm:mr-2">거절</span>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">거부됨</span>
+            </div>
           </div>
-          <div className="flex items-center ml-2 sm:ml-4">
-            <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-100 text-green-600 rounded-full mr-1.5 sm:mr-2">승인</span>
-            <span className="text-xs sm:text-sm md:text-base text-gray-600">승인됨</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-100 text-yellow-600 rounded-full mr-1.5 sm:mr-2">대기</span>
-            <span className="text-xs sm:text-sm md:text-base text-gray-600">대기중</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-100 text-red-600 rounded-full mr-1.5 sm:mr-2">거절</span>
-            <span className="text-xs sm:text-sm md:text-base text-gray-600">거부됨</span>
+          
+          {/* 휴가 유형 */}
+          <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-700 w-full mb-1">휴가 유형 & 기간</h4>
+            <div className="flex items-center">
+              <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-purple-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1.5 sm:mr-2">연</span>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">연차</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-purple-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1.5 sm:mr-2">반</span>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">반차</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1.5 sm:mr-2">필</span>
+              <span className="text-xs sm:text-sm md:text-base text-gray-600">필수 휴무</span>
+            </div>
           </div>
         </div>
       </div>

@@ -367,7 +367,7 @@ export default function AdminPage() {
       return;
     }
     setSelectedDate(date);
-    await fetchDateDetails(date);
+    // fetchDateDetails 제거 - 이미 로드된 allRequests 데이터를 사용
   };
 
   const handleCloseDetails = () => {
@@ -1096,9 +1096,9 @@ export default function AdminPage() {
                         {filteredRequests.map(request => (
                           <li key={request.id} className="p-2 bg-gray-50 rounded border border-gray-200 hover:shadow-sm transition-shadow">
                             <div className="flex justify-between items-start mb-1">
-                              <div className="flex items-center gap-1 min-w-0 flex-1 mr-2">
+                              <div>
                                 <div 
-                                  className={`font-medium text-xs cursor-pointer transition-colors duration-200 flex items-center gap-1 min-w-0 ${
+                                  className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
                                     nameFilter === request.userName
                                       ? 'text-blue-600 font-bold'
                                       : 'text-gray-900 hover:text-blue-600'
@@ -1110,26 +1110,16 @@ export default function AdminPage() {
                                   }}
                                   title={`${request.userName} ${nameFilter === request.userName ? '필터 해제' : '필터링'}`}
                                 >
-                                  <span className="truncate">{request.userName}</span>
-                                  {isValidDuration(request.duration) && (
-                                    <span className="w-5 h-5 rounded-full bg-purple-500 text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm">
-                                      {getDurationShortText(request.duration)}
-                                    </span>
-                                  )}
-                                  {request.type === 'mandatory' && (
-                                    <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm">
-                                      필
-                                    </span>
-                                  )}
+                                  {request.userName}
                                   {nameFilter === request.userName && (
-                                    <span className="inline-flex items-center flex-shrink-0">
+                                    <span className="ml-1 inline-flex items-center">
                                       <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                       </svg>
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-gray-500 flex-shrink-0">{formatVacationDate(request.date)}</div>
+                                <div className="text-[10px] text-gray-500">{formatVacationDate(request.date)}</div>
                               </div>
                               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
                                 request.status === 'approved' 
@@ -1142,20 +1132,27 @@ export default function AdminPage() {
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-0.5 min-w-0 flex-1 mr-2">
-                                <span className={`px-1 py-0.5 text-[8px] rounded flex-shrink-0 ${
+                              <div className="flex items-center gap-1">
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
                                   request.role === 'caregiver' 
                                     ? 'bg-blue-50 text-blue-700' 
                                     : 'bg-green-50 text-green-700'
                                 }`}>
                                   {getRoleText(request.role)}
                                 </span>
-                                {request.type !== 'mandatory' && (
-                                  <span className="px-1 py-0.5 text-[8px] rounded bg-gray-50 text-gray-700 flex-shrink-0 truncate">
-                                    {getVacationTypeText(request.type)}
+                                {isValidDuration(request.duration) && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
+                                    <span>{getDurationText(request.duration)}</span>
                                   </span>
                                 )}
-                                <span className="text-[8px] text-gray-500 flex-shrink-0">
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
+                                  request.type === 'mandatory' 
+                                    ? 'bg-orange-50 text-orange-700' 
+                                    : 'bg-gray-50 text-gray-700'
+                                }`}>
+                                  {getVacationTypeText(request.type)}
+                                </span>
+                                <span className="text-[9px] text-gray-500">
                                   {formatDate(request.createdAt)}
                                 </span>
                               </div>
