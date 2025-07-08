@@ -178,8 +178,8 @@ const AdminPanel = ({
 
       console.log("실제 데이터:", response);
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!response.success) {
+        const errorData = await response;
         console.error("[AdminPanel] 저장 실패:", errorData);
         throw new Error(errorData.error || "저장 중 오류가 발생했습니다");
       }
