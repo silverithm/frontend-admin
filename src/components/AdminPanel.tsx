@@ -176,6 +176,8 @@ const AdminPanel = ({
 
       console.log("vacationLimit : " + response);
 
+      console.log("실제 데이터:", response);
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error("[AdminPanel] 저장 실패:", errorData);
