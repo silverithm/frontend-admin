@@ -184,7 +184,7 @@ const AdminPanel = ({
         throw new Error(errorData.error || "저장 중 오류가 발생했습니다");
       }
 
-      const result = await response.json();
+      const result = await response;
       console.log("[AdminPanel] API 저장 결과:", result);
 
       // 성공 후 최신 데이터 새로고침
