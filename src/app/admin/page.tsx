@@ -1,21 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { format, addMonths, subMonths, isSameDay } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { DayInfo, VacationRequest, VacationLimit, VACATION_DURATION_OPTIONS, VacationDuration } from '@/types/vacation';
-import { deleteVacation as apiDeleteVacation, logout as apiLogout, getVacationCalendar, getVacationLimits, saveVacationLimits, getAllVacationRequests, getVacationForDate } from '@/lib/apiService';
-import { motion, AnimatePresence } from 'framer-motion';
-import VacationCalendar from '@/components/VacationCalendar';
-import AdminPanel from '@/components/AdminPanel';
-import VacationDetails from '@/components/VacationDetails';
-import UserManagement from '@/components/UserManagement';
-import Image from 'next/image';
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { format, addMonths, subMonths, isSameDay } from "date-fns";
+import { ko } from "date-fns/locale";
+import {
+  DayInfo,
+  VacationRequest,
+  VacationLimit,
+  VACATION_DURATION_OPTIONS,
+  VacationDuration,
+} from "@/types/vacation";
+import {
+  deleteVacation as apiDeleteVacation,
+  logout as apiLogout,
+  getVacationCalendar,
+  getVacationLimits,
+  saveVacationLimits,
+  getAllVacationRequests,
+  getVacationForDate,
+} from "@/lib/apiService";
+import { motion, AnimatePresence } from "framer-motion";
+import VacationCalendar from "@/components/VacationCalendar";
+import AdminPanel from "@/components/AdminPanel";
+import VacationDetails from "@/components/VacationDetails";
+import UserManagement from "@/components/UserManagement";
+import Image from "next/image";
 
 export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'vacation' | 'users'>('vacation');
+  const [activeTab, setActiveTab] = useState<"vacation" | "users">("vacation");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -23,19 +37,33 @@ export default function AdminPage() {
   const [showLimitPanel, setShowLimitPanel] = useState(false);
   const [vacationDays, setVacationDays] = useState<Record<string, DayInfo>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({ show: false, message: '', type: 'success' });
-  const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({ show: false, message: "", type: "success" });
+  const [vacationLimits, setVacationLimits] = useState<
+    Record<string, VacationLimit>
+  >({});
   const [pendingRequests, setPendingRequests] = useState<VacationRequest[]>([]);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
-  const [companyAddressName, setCompanyAddressName] = useState<string | null>(null);
+  const [companyAddressName, setCompanyAddressName] = useState<string | null>(
+    null
+  );
   const [userName, setUserName] = useState<string | null>(null);
-  
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("all");
   const [allRequests, setAllRequests] = useState<VacationRequest[]>([]);
-  const [roleFilter, setRoleFilter] = useState<'all' | 'caregiver' | 'office'>('all');
+  const [roleFilter, setRoleFilter] = useState<"all" | "caregiver" | "office">(
+    "all"
+  );
   const [nameFilter, setNameFilter] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest' | 'vacation-date-asc' | 'vacation-date-desc' | 'name'>('latest');
+  const [sortOrder, setSortOrder] = useState<
+    "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name"
+  >("latest");
 
   const [isClient, setIsClient] = useState(false);
 
@@ -46,13 +74,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isClient) return; // 클라이언트 사이드가 아니면 실행하지 않음
-    
-    const token = localStorage.getItem('authToken');
-    const orgName = localStorage.getItem('organizationName');
-    const companyNameData = localStorage.getItem('companyName');
-    const companyAddressNameData = localStorage.getItem('companyAddressName');
-    const userNameData = localStorage.getItem('userName');
-    
+
+    const token = localStorage.getItem("authToken");
+    const orgName = localStorage.getItem("organizationName");
+    const companyNameData = localStorage.getItem("companyName");
+    const companyAddressNameData = localStorage.getItem("companyAddressName");
+    const userNameData = localStorage.getItem("userName");
+
     if (orgName) {
       setOrganizationName(orgName);
     }
@@ -67,7 +95,7 @@ export default function AdminPage() {
     }
 
     if (!token) {
-      router.push('/login');
+      router.push("/login");
     } else {
       fetchInitialData();
     }
@@ -75,8 +103,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isClient) return; // 클라이언트 사이드가 아니면 실행하지 않음
-    
-    if (localStorage.getItem('authToken')) {
+
+    if (localStorage.getItem("authToken")) {
       fetchMonthData();
       fetchAllRequests();
     }
@@ -85,77 +113,93 @@ export default function AdminPage() {
   const filteredRequests = useMemo(() => {
     // allRequests가 배열인지 확인
     if (!Array.isArray(allRequests)) {
-      console.warn('allRequests가 배열이 아닙니다:', allRequests);
+      console.warn("allRequests가 배열이 아닙니다:", allRequests);
       return [];
     }
-    
+
     let filtered = allRequests;
-    
+
     // 선택된 날짜 필터링 추가
     if (selectedDate) {
-      const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-      filtered = filtered.filter(request => request.date === selectedDateStr);
+      const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+      filtered = filtered.filter((request) => request.date === selectedDateStr);
     }
-    
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(request => request.status === statusFilter);
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((request) => request.status === statusFilter);
     }
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter(request => request.role === roleFilter);
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((request) => request.role === roleFilter);
     }
     if (nameFilter) {
-      filtered = filtered.filter(request => request.userName === nameFilter);
+      filtered = filtered.filter((request) => request.userName === nameFilter);
     }
-    
+
     // filtered가 배열인지 다시 확인
     if (!Array.isArray(filtered)) {
-      console.warn('filtered가 배열이 아닙니다:', filtered);
+      console.warn("filtered가 배열이 아닙니다:", filtered);
       return [];
     }
-    
+
     let sorted = [...filtered];
-    switch(sortOrder) {
-      case 'latest':
-        sorted.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+    switch (sortOrder) {
+      case "latest":
+        sorted.sort(
+          (a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)
+        );
         break;
-      case 'oldest':
-        sorted.sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+      case "oldest":
+        sorted.sort(
+          (a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0)
+        );
         break;
-      case 'vacation-date-asc':
-        sorted.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      case "vacation-date-asc":
+        sorted.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
         break;
-      case 'vacation-date-desc':
-        sorted.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      case "vacation-date-desc":
+        sorted.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
         break;
-      case 'name':
-        sorted.sort((a, b) => (a.userName || '').localeCompare(b.userName || ''));
+      case "name":
+        sorted.sort((a, b) =>
+          (a.userName || "").localeCompare(b.userName || "")
+        );
         break;
     }
     return sorted;
-  }, [allRequests, statusFilter, roleFilter, nameFilter, sortOrder, selectedDate]);
+  }, [
+    allRequests,
+    statusFilter,
+    roleFilter,
+    nameFilter,
+    sortOrder,
+    selectedDate,
+  ]);
 
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
       await Promise.all([fetchMonthData(), fetchAllRequests()]);
     } catch (error) {
-        console.error("초기 데이터 로드 실패:", error);
-        showNotification('데이터를 불러오는데 실패했습니다. 다시 시도해주세요.', 'error');
-        if ((error as Error).message.includes('인증')) {
-            router.push('/login');
-        }
+      console.error("초기 데이터 로드 실패:", error);
+      showNotification(
+        "데이터를 불러오는데 실패했습니다. 다시 시도해주세요.",
+        "error"
+      );
+      if ((error as Error).message.includes("인증")) {
+        router.push("/login");
+      }
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-        await apiLogout();
-        router.push('/');
+      await apiLogout();
+      router.push("/");
     } catch (error) {
-        console.error("로그아웃 실패:", error);
-        showNotification('로그아웃 중 오류가 발생했습니다.', 'error');
+      console.error("로그아웃 실패:", error);
+      showNotification("로그아웃 중 오류가 발생했습니다.", "error");
     }
   };
 
@@ -163,17 +207,24 @@ export default function AdminPage() {
     try {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
-      
-      console.log('[fetchMonthData] 월별 데이터 가져오기 시작:', { year, month });
-      
+
+      console.log("[fetchMonthData] 월별 데이터 가져오기 시작:", {
+        year,
+        month,
+      });
+
       // 캘린더 데이터 조회
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0);
-      const startDateStr = format(startDate, 'yyyy-MM-dd');
-      const endDateStr = format(endDate, 'yyyy-MM-dd');
-      
+      const startDateStr = format(startDate, "yyyy-MM-dd");
+      const endDateStr = format(endDate, "yyyy-MM-dd");
+
       // apiService 함수들 사용 (토큰 갱신 로직 포함)
-      const calendarData = await getVacationCalendar(startDateStr, endDateStr, roleFilter);
+      const calendarData = await getVacationCalendar(
+        startDateStr,
+        endDateStr,
+        roleFilter
+      );
       const limitsData = await getVacationLimits(startDateStr, endDateStr);
 
       const limitsMap: Record<string, VacationLimit> = {};
@@ -182,61 +233,72 @@ export default function AdminPage() {
         limitsMap[`${limit.date}_${limit.role}`] = limit;
       });
       setVacationLimits(limitsMap);
-      
+
       const days: Record<string, DayInfo> = {};
       const dates = calendarData.dates || {};
-      
+
       // 캘린더 데이터에서 휴가 정보 추출
-      Object.keys(dates).forEach(dateKey => {
+      Object.keys(dates).forEach((dateKey) => {
         const dateData = dates[dateKey];
         if (dateData && dateData.vacations) {
           days[dateKey] = {
             date: dateKey,
             count: dateData.totalVacationers || 0,
-            people: Array.isArray(dateData.vacations) ? dateData.vacations.filter((v: VacationRequest) => v.status !== 'rejected') : []
+            people: Array.isArray(dateData.vacations)
+              ? dateData.vacations.filter(
+                  (v: VacationRequest) => v.status !== "rejected"
+                )
+              : [],
           };
         }
       });
-      
-      Object.keys(days).forEach(date => {
-        const keyBase = date; 
+
+      Object.keys(days).forEach((date) => {
+        const keyBase = date;
         const officeLimit = limitsMap[`${keyBase}_office`]?.maxPeople ?? 3;
-        const caregiverLimit = limitsMap[`${keyBase}_caregiver`]?.maxPeople ?? 3;
-        
+        const caregiverLimit =
+          limitsMap[`${keyBase}_caregiver`]?.maxPeople ?? 3;
+
         let currentLimit = 3;
-        if (roleFilter === 'office') currentLimit = officeLimit;
-        else if (roleFilter === 'caregiver') currentLimit = caregiverLimit;
+        if (roleFilter === "office") currentLimit = officeLimit;
+        else if (roleFilter === "caregiver") currentLimit = caregiverLimit;
         else {
-            currentLimit = caregiverLimit; 
+          currentLimit = caregiverLimit;
         }
 
         const currentCount = days[date].count;
         days[date].limit = currentLimit;
-        if (currentCount < currentLimit) days[date].status = 'available';
-        else if (currentCount === currentLimit) days[date].status = 'full';
-        else days[date].status = 'over';
+        if (currentCount < currentLimit) days[date].status = "available";
+        else if (currentCount === currentLimit) days[date].status = "full";
+        else days[date].status = "over";
       });
       setVacationDays(days);
-      
-      console.log('[fetchMonthData] 월별 데이터 가져오기 완료');
+
+      console.log("[fetchMonthData] 월별 데이터 가져오기 완료");
     } catch (error) {
-      console.error('월별 휴무 데이터 로드 중 오류 발생:', error);
-      showNotification('월별 휴무 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
-        router.push('/login');
+      console.error("월별 휴무 데이터 로드 중 오류 발생:", error);
+      showNotification(
+        "월별 휴무 데이터를 불러오는 중 오류가 발생했습니다.",
+        "error"
+      );
+      if (
+        (error as Error).message.includes("인증") ||
+        (error as Error).message.includes("회사 ID")
+      ) {
+        router.push("/login");
       }
     }
   };
 
   const fetchAllRequests = async () => {
     try {
-      console.log('[fetchAllRequests] 전체 휴무 요청 가져오기 시작');
-      
+      console.log("[fetchAllRequests] 전체 휴무 요청 가져오기 시작");
+
       // apiService의 getAllVacationRequests 함수 사용 (토큰 갱신 로직 포함)
       const data = await getAllVacationRequests();
-      
-      console.log('API 응답 데이터:', data);
-      
+
+      console.log("API 응답 데이터:", data);
+
       // 데이터가 배열인지 확인
       let requestsArray: VacationRequest[] = [];
       if (Array.isArray(data)) {
@@ -246,14 +308,14 @@ export default function AdminPage() {
       } else if (data && Array.isArray(data.data)) {
         requestsArray = data.data;
       } else {
-        console.warn('예상하지 못한 API 응답 형태:', data);
+        console.warn("예상하지 못한 API 응답 형태:", data);
         requestsArray = [];
       }
-      
+
       // 첫 번째 요청 객체의 구조 상세 로그
       if (requestsArray.length > 0) {
         const firstRequest = requestsArray[0];
-        console.log('첫 번째 요청 객체 상세 구조:', {
+        console.log("첫 번째 요청 객체 상세 구조:", {
           id: firstRequest.id,
           userName: firstRequest.userName,
           date: firstRequest.date,
@@ -262,28 +324,42 @@ export default function AdminPage() {
           createdAtType: typeof firstRequest.createdAt,
           status: firstRequest.status,
           role: firstRequest.role,
-          fullObject: firstRequest
+          fullObject: firstRequest,
         });
-        
+
         // 날짜 파싱 테스트
-        console.log('날짜 파싱 테스트:');
-        console.log('request.date:', firstRequest.date);
-        console.log('new Date(request.date):', new Date(firstRequest.date));
-        console.log('request.createdAt:', firstRequest.createdAt);
-        console.log('new Date(Number(request.createdAt)):', new Date(Number(firstRequest.createdAt)));
-        console.log('new Date(request.createdAt):', new Date(firstRequest.createdAt));
+        console.log("날짜 파싱 테스트:");
+        console.log("request.date:", firstRequest.date);
+        console.log("new Date(request.date):", new Date(firstRequest.date));
+        console.log("request.createdAt:", firstRequest.createdAt);
+        console.log(
+          "new Date(Number(request.createdAt)):",
+          new Date(Number(firstRequest.createdAt))
+        );
+        console.log(
+          "new Date(request.createdAt):",
+          new Date(firstRequest.createdAt)
+        );
       }
-      
-      setAllRequests(requestsArray); 
-      const pendingOnly = requestsArray.filter((req: VacationRequest) => req.status === 'pending');
+
+      setAllRequests(requestsArray);
+      const pendingOnly = requestsArray.filter(
+        (req: VacationRequest) => req.status === "pending"
+      );
       setPendingRequests(pendingOnly);
-      
-      console.log('[fetchAllRequests] 전체 휴무 요청 가져오기 완료');
+
+      console.log("[fetchAllRequests] 전체 휴무 요청 가져오기 완료");
     } catch (error) {
-      console.error('전체 휴무 요청을 불러오는 중 오류 발생:', error);
-      showNotification('전체 휴무 요청을 불러오는 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
-        router.push('/login');
+      console.error("전체 휴무 요청을 불러오는 중 오류 발생:", error);
+      showNotification(
+        "전체 휴무 요청을 불러오는 중 오류가 발생했습니다.",
+        "error"
+      );
+      if (
+        (error as Error).message.includes("인증") ||
+        (error as Error).message.includes("회사 ID")
+      ) {
+        router.push("/login");
       }
     }
   };
@@ -291,48 +367,54 @@ export default function AdminPage() {
   const fetchDateDetails = async (date: Date) => {
     setIsLoading(true);
     try {
-      const formattedDate = format(date, 'yyyy-MM-dd');
-      
-      console.log('날짜 상세 조회 요청:', { formattedDate, roleFilter });
-      
+      const formattedDate = format(date, "yyyy-MM-dd");
+
+      console.log("날짜 상세 조회 요청:", { formattedDate, roleFilter });
+
       // roleFilter 처리 수정: 'all'일 때 그대로 전달
-      const requestRole = roleFilter === 'all' ? 'all' : roleFilter;
-      
-      console.log('실제 요청할 role:', requestRole);
-      
+      const requestRole = roleFilter === "all" ? "all" : roleFilter;
+
+      console.log("실제 요청할 role:", requestRole);
+
       // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
-      const data = await getVacationForDate(formattedDate, requestRole, nameFilter || undefined);
-      
-      console.log('날짜 상세 데이터 원본 응답:', data);
-      console.log('날짜 상세 데이터 응답 구조:', {
+      const data = await getVacationForDate(
+        formattedDate,
+        requestRole,
+        nameFilter || undefined
+      );
+
+      console.log("날짜 상세 데이터 원본 응답:", data);
+      console.log("날짜 상세 데이터 응답 구조:", {
         hasVacations: !!data.vacations,
         vacationsLength: data.vacations?.length,
         vacationsArray: data.vacations,
         totalVacationers: data.totalVacationers,
         maxPeople: data.maxPeople,
-        fullDataStructure: JSON.stringify(data, null, 2)
+        fullDataStructure: JSON.stringify(data, null, 2),
       });
-      
+
       // 데이터에서 휴가 목록 추출
-      const vacations = Array.isArray(data.vacations) ? data.vacations.map((vacation: any) => ({
-        ...vacation,
-        duration: vacation.duration || 'FULL_DAY' // duration이 없으면 기본값 설정
-      })) : [];
-      
-      console.log('추출된 휴가 목록:', {
+      const vacations = Array.isArray(data.vacations)
+        ? data.vacations.map((vacation: any) => ({
+            ...vacation,
+            duration: vacation.duration || "FULL_DAY", // duration이 없으면 기본값 설정
+          }))
+        : [];
+
+      console.log("추출된 휴가 목록:", {
         extractedVacations: vacations,
         firstVacation: vacations[0],
-        vacationCount: vacations.length
+        vacationCount: vacations.length,
       });
-      
+
       // duration 필드 확인
       if (vacations.length > 0) {
-        console.log('첫 번째 휴가의 duration 정보:', {
+        console.log("첫 번째 휴가의 duration 정보:", {
           duration: vacations[0].duration,
-          hasDuration: 'duration' in vacations[0],
-          allFields: Object.keys(vacations[0])
+          hasDuration: "duration" in vacations[0],
+          allFields: Object.keys(vacations[0]),
         });
-        
+
         // 모든 휴가의 duration 정보 확인
         vacations.forEach((vacation: any, index: number) => {
           console.log(`휴가 ${index + 1} 정보:`, {
@@ -340,26 +422,32 @@ export default function AdminPage() {
             date: vacation.date,
             status: vacation.status,
             duration: vacation.duration,
-            hasDuration: 'duration' in vacation
+            hasDuration: "duration" in vacation,
           });
         });
       }
-      
+
       setDateVacations(vacations);
     } catch (error) {
-      console.error('날짜 상세 정보 로드 중 오류 발생:', error);
+      console.error("날짜 상세 정보 로드 중 오류 발생:", error);
       setDateVacations([]);
-      showNotification('날짜 상세 정보를 불러오는 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
-        router.push('/login');
+      showNotification(
+        "날짜 상세 정보를 불러오는 중 오류가 발생했습니다.",
+        "error"
+      );
+      if (
+        (error as Error).message.includes("인증") ||
+        (error as Error).message.includes("회사 ID")
+      ) {
+        router.push("/login");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleNextMonth = () => setCurrentDate(prev => addMonths(prev, 1));
-  const handlePrevMonth = () => setCurrentDate(prev => subMonths(prev, 1));
+  const handleNextMonth = () => setCurrentDate((prev) => addMonths(prev, 1));
+  const handlePrevMonth = () => setCurrentDate((prev) => subMonths(prev, 1));
 
   const handleDateSelect = async (date: Date | null) => {
     if (!date) {
@@ -372,45 +460,58 @@ export default function AdminPage() {
 
   const handleCloseDetails = () => {
     setShowDetails(false);
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   };
 
   const handleShowLimitPanel = () => {
     setShowLimitPanel(true);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   };
 
   const handleCloseLimitPanel = () => {
     setShowLimitPanel(false);
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   };
 
-  const handleLimitSet = async (date: Date, maxPeople: number, role: 'caregiver' | 'office') => {
+  const handleLimitSet = async (
+    date: Date,
+    maxPeople: number,
+    role: "caregiver" | "office"
+  ) => {
     try {
-      const formattedDate = format(date, 'yyyy-MM-dd');
-      const limits = [{
+      const formattedDate = format(date, "yyyy-MM-dd");
+      const limits = [
+        {
+          date: formattedDate,
+          maxPeople,
+          role,
+        },
+      ];
+
+      console.log("[handleLimitSet] 휴가 제한 설정 시작:", {
         date: formattedDate,
         maxPeople,
-        role
-      }];
-      
-      console.log('[handleLimitSet] 휴가 제한 설정 시작:', { date: formattedDate, maxPeople, role });
-      
+        role,
+      });
+
       // apiService의 saveVacationLimits 함수 사용 (토큰 갱신 로직 포함)
       await saveVacationLimits(limits);
-      
-      console.log('[handleLimitSet] 휴가 제한 설정 성공, 데이터 새로고침 시작');
-      
+
+      console.log("[handleLimitSet] 휴가 제한 설정 성공, 데이터 새로고침 시작");
+
       // 휴가 제한 설정 후 최신 데이터 가져오기
       await fetchMonthData();
-      
-      console.log('[handleLimitSet] 데이터 새로고침 완료');
-      showNotification('휴무 제한 인원이 설정되었습니다.', 'success');
+
+      console.log("[handleLimitSet] 데이터 새로고침 완료");
+      showNotification("휴무 제한 인원이 설정되었습니다.", "success");
     } catch (error) {
-      console.error('휴무 제한 설정 중 오류 발생:', error);
-      showNotification('휴무 제한 설정 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증') || (error as Error).message.includes('회사 ID')) {
-        router.push('/login');
+      console.error("휴무 제한 설정 중 오류 발생:", error);
+      showNotification("휴무 제한 설정 중 오류가 발생했습니다.", "error");
+      if (
+        (error as Error).message.includes("인증") ||
+        (error as Error).message.includes("회사 ID")
+      ) {
+        router.push("/login");
       }
     }
   };
@@ -418,162 +519,203 @@ export default function AdminPage() {
   const handleVacationUpdated = async () => {
     await fetchInitialData();
     if (selectedDate) {
-        await fetchDateDetails(selectedDate);
+      await fetchDateDetails(selectedDate);
     }
   };
 
   const handleApproveVacation = async (vacationId: string) => {
     try {
-      console.log('휴무 승인 시작:', { vacationId, type: typeof vacationId });
-      
+      console.log("휴무 승인 시작:", { vacationId, type: typeof vacationId });
+
       // JWT 토큰 가져오기
-      const token = localStorage.getItem('authToken');
-      console.log('JWT 토큰 상태:', { hasToken: !!token, tokenLength: token?.length });
-      
+      const token = localStorage.getItem("authToken");
+      console.log("JWT 토큰 상태:", {
+        hasToken: !!token,
+        tokenLength: token?.length,
+      });
+
       if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+        throw new Error("인증 토큰이 없습니다.");
       }
-      
+
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       };
-      
-      console.log('승인 요청 전송:', { url: `/api/vacation/approve/${vacationId}`, headers });
-      
-      const response = await fetch(`/api/vacation/approve/${vacationId}`, {
-        method: 'PUT',
+
+      console.log("승인 요청 전송:", {
+        url: `/api/vacation/approve/${vacationId}`,
         headers,
       });
-      
-      console.log('승인 응답 상태:', { status: response.status, ok: response.ok });
-      
+
+      const response = await fetch(`/api/vacation/approve/${vacationId}`, {
+        method: "PUT",
+        headers,
+      });
+
+      console.log("승인 응답 상태:", {
+        status: response.status,
+        ok: response.ok,
+      });
+
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('승인 오류 응답:', errorData);
+        console.error("승인 오류 응답:", errorData);
         throw new Error(`휴무 승인 실패: ${response.status} - ${errorData}`);
       }
-      
+
       const result = await response.json();
-      console.log('승인 성공 응답:', result);
-      
-      showNotification('휴무 요청이 승인되었습니다.', 'success');
+      console.log("승인 성공 응답:", result);
+
+      showNotification("휴무 요청이 승인되었습니다.", "success");
       await handleVacationUpdated();
     } catch (error) {
-      console.error('휴무 승인 중 상세 오류:', {
+      console.error("휴무 승인 중 상세 오류:", {
         error,
         message: (error as Error).message,
         stack: (error as Error).stack,
-        vacationId
+        vacationId,
       });
-      showNotification(`휴무 승인 중 오류가 발생했습니다: ${(error as Error).message}`, 'error');
-      if ((error as Error).message.includes('인증')) router.push('/login');
+      showNotification(
+        `휴무 승인 중 오류가 발생했습니다: ${(error as Error).message}`,
+        "error"
+      );
+      if ((error as Error).message.includes("인증")) router.push("/login");
     }
   };
 
   const handleRejectVacation = async (vacationId: string) => {
     try {
-      console.log('휴무 거절 시작:', { vacationId, type: typeof vacationId });
-      
+      console.log("휴무 거절 시작:", { vacationId, type: typeof vacationId });
+
       // JWT 토큰 가져오기
-      const token = localStorage.getItem('authToken');
-      console.log('JWT 토큰 상태:', { hasToken: !!token, tokenLength: token?.length });
-      
+      const token = localStorage.getItem("authToken");
+      console.log("JWT 토큰 상태:", {
+        hasToken: !!token,
+        tokenLength: token?.length,
+      });
+
       if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+        throw new Error("인증 토큰이 없습니다.");
       }
-      
+
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       };
-      
-      console.log('거절 요청 전송:', { url: `/api/vacation/reject/${vacationId}`, headers });
-      
-      const response = await fetch(`/api/vacation/reject/${vacationId}`, {
-        method: 'PUT',
+
+      console.log("거절 요청 전송:", {
+        url: `/api/vacation/reject/${vacationId}`,
         headers,
       });
-      
-      console.log('거절 응답 상태:', { status: response.status, ok: response.ok });
-      
+
+      const response = await fetch(`/api/vacation/reject/${vacationId}`, {
+        method: "PUT",
+        headers,
+      });
+
+      console.log("거절 응답 상태:", {
+        status: response.status,
+        ok: response.ok,
+      });
+
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('거절 오류 응답:', errorData);
+        console.error("거절 오류 응답:", errorData);
         throw new Error(`휴무 거절 실패: ${response.status} - ${errorData}`);
       }
-      
+
       const result = await response.json();
-      console.log('거절 성공 응답:', result);
-      
-      showNotification('휴무 요청이 거절되었습니다.', 'success');
+      console.log("거절 성공 응답:", result);
+
+      showNotification("휴무 요청이 거절되었습니다.", "success");
       await handleVacationUpdated();
     } catch (error) {
-      console.error('휴무 거절 중 상세 오류:', {
+      console.error("휴무 거절 중 상세 오류:", {
         error,
         message: (error as Error).message,
         stack: (error as Error).stack,
-        vacationId
+        vacationId,
       });
-      showNotification(`휴무 거절 중 오류가 발생했습니다: ${(error as Error).message}`, 'error');
-      if ((error as Error).message.includes('인증')) router.push('/login');
+      showNotification(
+        `휴무 거절 중 오류가 발생했습니다: ${(error as Error).message}`,
+        "error"
+      );
+      if ((error as Error).message.includes("인증")) router.push("/login");
     }
   };
-  
+
   const handleDeleteVacation = async (vacationId: string) => {
     try {
       await apiDeleteVacation(vacationId, { isAdmin: true });
-      showNotification('휴무가 삭제되었습니다.', 'success');
+      showNotification("휴무가 삭제되었습니다.", "success");
       await handleVacationUpdated();
-      if(showDetails) handleCloseDetails();
+      if (showDetails) handleCloseDetails();
     } catch (error) {
-      console.error('휴무 삭제 중 오류 발생:', error);
-      showNotification('휴무 삭제 중 오류가 발생했습니다.', 'error');
-      if ((error as Error).message.includes('인증')) router.push('/login');
+      console.error("휴무 삭제 중 오류 발생:", error);
+      showNotification("휴무 삭제 중 오류가 발생했습니다.", "error");
+      if ((error as Error).message.includes("인증")) router.push("/login");
     }
   };
-  
-  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+
+  const showNotification = (
+    message: string,
+    type: "success" | "error" | "info"
+  ) => {
     setNotification({ show: true, message, type });
-    setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
+    setTimeout(
+      () => setNotification((prev) => ({ ...prev, show: false })),
+      3000
+    );
   };
 
-  const toggleStatusFilter = (status: 'all' | 'pending' | 'approved' | 'rejected') => setStatusFilter(status);
-  const toggleRoleFilter = (role: 'all' | 'caregiver' | 'office') => setRoleFilter(role);
-  const toggleNameFilter = (name: string) => setNameFilter(name === '전체' || name === '' ? null : name);
-  const toggleSortOrder = (order: 'latest' | 'oldest' | 'vacation-date-asc' | 'vacation-date-desc' | 'name') => setSortOrder(order);
+  const toggleStatusFilter = (
+    status: "all" | "pending" | "approved" | "rejected"
+  ) => setStatusFilter(status);
+  const toggleRoleFilter = (role: "all" | "caregiver" | "office") =>
+    setRoleFilter(role);
+  const toggleNameFilter = (name: string) =>
+    setNameFilter(name === "전체" || name === "" ? null : name);
+  const toggleSortOrder = (
+    order:
+      | "latest"
+      | "oldest"
+      | "vacation-date-asc"
+      | "vacation-date-desc"
+      | "name"
+  ) => setSortOrder(order);
 
   const resetFilter = async () => {
-    setStatusFilter('all');
-    setRoleFilter('all');
+    setStatusFilter("all");
+    setRoleFilter("all");
     setNameFilter(null);
-    setSortOrder('latest');
-    await fetchAllRequests(); 
+    setSortOrder("latest");
+    await fetchAllRequests();
   };
 
   // 날짜를 안전하게 포맷팅하는 함수
   const formatDate = (dateValue: any): string => {
-    if (!dateValue) return '';
-    
-    console.log('포맷팅할 날짜 값:', { dateValue, type: typeof dateValue });
-    
+    if (!dateValue) return "";
+
+    console.log("포맷팅할 날짜 값:", { dateValue, type: typeof dateValue });
+
     let date: Date;
-    
+
     // 이미 Date 객체인 경우
     if (dateValue instanceof Date) {
       date = dateValue;
     }
     // 문자열인 경우
-    else if (typeof dateValue === 'string') {
+    else if (typeof dateValue === "string") {
       // ISO 형식 (YYYY-MM-DD) 체크
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-        date = new Date(dateValue + 'T00:00:00.000Z');
+        date = new Date(dateValue + "T00:00:00.000Z");
       } else {
         date = new Date(dateValue);
       }
     }
     // 숫자인 경우 (타임스탬프)
-    else if (typeof dateValue === 'number') {
+    else if (typeof dateValue === "number") {
       // 밀리초 단위가 아닌 초 단위인 경우 (길이가 10자리)
       if (dateValue.toString().length === 10) {
         date = new Date(dateValue * 1000);
@@ -583,114 +725,119 @@ export default function AdminPage() {
     }
     // 그 외의 경우
     else {
-      console.warn('알 수 없는 날짜 형식:', dateValue);
-      return '';
+      console.warn("알 수 없는 날짜 형식:", dateValue);
+      return "";
     }
-    
+
     // 유효한 날짜인지 확인
     if (isNaN(date.getTime())) {
-      console.warn('유효하지 않은 날짜:', dateValue);
-      return '';
+      console.warn("유효하지 않은 날짜:", dateValue);
+      return "";
     }
-    
-    console.log('파싱된 날짜:', date);
-    return date.toLocaleDateString('ko-KR');
+
+    console.log("파싱된 날짜:", date);
+    return date.toLocaleDateString("ko-KR");
   };
 
   // 휴무 날짜를 포맷팅하는 함수 (YYYY-MM-DD 형식)
   const formatVacationDate = (dateValue: any): string => {
-    if (!dateValue) return '-';
-    
+    if (!dateValue) return "-";
+
     try {
       const date = new Date(dateValue);
       const now = new Date();
       const diffTime = Math.abs(date.getTime() - now.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) {
-        return '오늘';
+        return "오늘";
       } else if (diffDays === 1) {
-        return date > now ? '내일' : '어제';
+        return date > now ? "내일" : "어제";
       } else if (diffDays <= 7) {
         return date > now ? `${diffDays}일 후` : `${diffDays}일 전`;
       } else {
-        return format(date, 'MM/dd', { locale: ko });
+        return format(date, "MM/dd", { locale: ko });
       }
     } catch (error) {
-      return '-';
+      return "-";
     }
   };
 
   // 휴가 기간 텍스트 가져오기
   const getDurationText = (duration?: VacationDuration) => {
-    const option = VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
-    return option ? option.displayName : '연차';
+    const option = VACATION_DURATION_OPTIONS.find(
+      (opt) => opt.value === duration
+    );
+    return option ? option.displayName : "연차";
   };
 
   // 휴가 기간이 유효한지 확인하는 함수
   const isValidDuration = (duration?: VacationDuration) => {
-    return duration && VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
+    return (
+      duration &&
+      VACATION_DURATION_OPTIONS.find((opt) => opt.value === duration)
+    );
   };
 
   // 휴가 기간을 짧게 표시하는 함수 (동그라미 안에 표시용)
   const getDurationShortText = (duration?: VacationDuration) => {
     switch (duration) {
-      case 'FULL_DAY':
-        return '연';
-      case 'HALF_DAY_AM':
-        return '반';
-      case 'HALF_DAY_PM':
-        return '반';
+      case "FULL_DAY":
+        return "연";
+      case "HALF_DAY_AM":
+        return "반";
+      case "HALF_DAY_PM":
+        return "반";
       default:
-        return '연';
+        return "연";
     }
   };
 
   // 휴무 유형 한글 변환
   const getVacationTypeText = (type?: string) => {
     switch (type) {
-      case 'regular':
-        return '일반 휴무';
-      case 'mandatory':
-        return '필수 휴무';
-      case 'personal':
-        return '개인 휴무';
-      case 'sick':
-        return '병가';
-      case 'emergency':
-        return '긴급 휴무';
-      case 'family':
-        return '가족 돌봄 휴무';
+      case "regular":
+        return "일반 휴무";
+      case "mandatory":
+        return "필수 휴무";
+      case "personal":
+        return "개인 휴무";
+      case "sick":
+        return "병가";
+      case "emergency":
+        return "긴급 휴무";
+      case "family":
+        return "가족 돌봄 휴무";
       default:
-        return type || '일반 휴무';
+        return type || "일반 휴무";
     }
   };
 
   // 상태 한글 변환
   const getStatusText = (status?: string) => {
     switch (status) {
-      case 'approved':
-        return '승인됨';
-      case 'pending':
-        return '대기중';
-      case 'rejected':
-        return '거부됨';
+      case "approved":
+        return "승인됨";
+      case "pending":
+        return "대기중";
+      case "rejected":
+        return "거부됨";
       default:
-        return status || '알 수 없음';
+        return status || "알 수 없음";
     }
   };
 
   // 역할 한글 변환
   const getRoleText = (role?: string) => {
     switch (role) {
-      case 'caregiver':
-        return '요양보호사';
-      case 'office':
-        return '사무직';
-      case 'admin':
-        return '관리자';
+      case "caregiver":
+        return "요양보호사";
+      case "office":
+        return "사무직";
+      case "admin":
+        return "관리자";
       default:
-        return role || '직원';
+        return role || "직원";
     }
   };
 
@@ -707,12 +854,30 @@ export default function AdminPage() {
             className="mb-4"
           />
           <div className="flex items-center space-x-3">
-            <svg className="animate-spin h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              className="animate-spin h-8 w-8 text-blue-400"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             <p className="text-lg text-blue-100 font-medium">
-              {!isClient ? '페이지를 준비하는 중...' : '데이터를 불러오는 중...'}
+              {!isClient
+                ? "페이지를 준비하는 중..."
+                : "데이터를 불러오는 중..."}
             </p>
           </div>
         </div>
@@ -743,49 +908,90 @@ export default function AdminPage() {
                   </h1>
                   {companyName && (
                     <p className="text-blue-200/90 text-sm font-medium mt-0.5 flex items-center">
-                      <svg className="w-3 h-3 mr-1.5 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                      <svg
+                        className="w-3 h-3 mr-1.5 text-blue-300"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       {companyName}
                     </p>
                   )}
                 </div>
               </div>
-              {activeTab === 'vacation' && (
+              {activeTab === "vacation" && (
                 <div className="hidden sm:block ml-6 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-yellow-400/30 shadow-lg">
                   <span className="text-yellow-100 text-sm font-semibold flex items-center">
                     <div className="relative mr-3">
-                      <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-4 h-4 text-yellow-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                       {pendingRequests.length > 0 && (
                         <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                       )}
                     </div>
-                    대기 중인 요청: <span className="ml-1 text-yellow-300 font-bold">{pendingRequests.length}건</span>
+                    대기 중인 요청:{" "}
+                    <span className="ml-1 text-yellow-300 font-bold">
+                      {pendingRequests.length}건
+                    </span>
                   </span>
                 </div>
               )}
             </div>
             <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => router.push('/admin/organization-profile')}
+              <button
+                onClick={() => router.push("/admin/organization-profile")}
                 className="group px-4 py-2.5 text-sm font-medium text-blue-700 bg-white/95 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-white hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
               >
                 <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-blue-600 group-hover:text-blue-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  <svg
+                    className="w-4 h-4 mr-2 text-blue-600 group-hover:text-blue-700 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
                   </svg>
                   기관 프로필
                 </span>
               </button>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="group px-4 py-2.5 text-sm font-medium text-slate-700 bg-white/90 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
               >
                 <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-2 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <svg
+                    className="w-4 h-4 mr-2 group-hover:text-red-600 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
                   </svg>
                   로그아웃
                 </span>
@@ -797,38 +1003,58 @@ export default function AdminPage() {
           <div className="mt-8 border-b border-white/10">
             <nav className="flex space-x-8">
               <button
-                onClick={() => setActiveTab('vacation')}
+                onClick={() => setActiveTab("vacation")}
                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                  activeTab === 'vacation'
-                    ? 'text-white border-b-2 border-blue-400 shadow-lg'
-                    : 'text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30'
+                  activeTab === "vacation"
+                    ? "text-white border-b-2 border-blue-400 shadow-lg"
+                    : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                 }`}
               >
                 <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
                   </svg>
                   휴무 관리
                 </span>
-                {activeTab === 'vacation' && (
+                {activeTab === "vacation" && (
                   <div className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                 )}
               </button>
               <button
-                onClick={() => setActiveTab('users')}
+                onClick={() => setActiveTab("users")}
                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                  activeTab === 'users'
-                    ? 'text-white border-b-2 border-blue-400 shadow-lg'
-                    : 'text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30'
+                  activeTab === "users"
+                    ? "text-white border-b-2 border-blue-400 shadow-lg"
+                    : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                 }`}
               >
                 <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                    />
                   </svg>
                   회원 관리
                 </span>
-                {activeTab === 'users' && (
+                {activeTab === "users" && (
                   <div className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                 )}
               </button>
@@ -847,26 +1073,52 @@ export default function AdminPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className={`mb-6 p-4 rounded-md ${
-                notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 
-                notification.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 
-                'bg-blue-50 text-blue-800 border border-blue-200'
+                notification.type === "success"
+                  ? "bg-green-50 text-green-800 border border-green-200"
+                  : notification.type === "error"
+                  ? "bg-red-50 text-red-800 border border-red-200"
+                  : "bg-blue-50 text-blue-800 border border-blue-200"
               }`}
             >
               <div className="flex">
                 <div className="flex-shrink-0">
-                  {notification.type === 'success' && (
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  {notification.type === "success" && (
+                    <svg
+                      className="h-5 w-5 text-green-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
-                  {notification.type === 'error' && (
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  {notification.type === "error" && (
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
-                  {(!notification.type || notification.type === 'info') && (
-                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  {(!notification.type || notification.type === "info") && (
+                    <svg
+                      className="h-5 w-5 text-blue-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
                 </div>
@@ -875,13 +1127,23 @@ export default function AdminPage() {
                 </div>
                 <div className="ml-auto pl-3">
                   <div className="-mx-1.5 -my-1.5">
-                    <button 
-                      onClick={() => setNotification({ ...notification, show: false })}
+                    <button
+                      onClick={() =>
+                        setNotification({ ...notification, show: false })
+                      }
                       className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-50"
                     >
                       <span className="sr-only">닫기</span>
-                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -893,7 +1155,7 @@ export default function AdminPage() {
 
         {/* 탭별 컨텐츠 */}
         <AnimatePresence mode="wait">
-          {activeTab === 'vacation' ? (
+          {activeTab === "vacation" ? (
             <motion.div
               key="vacation"
               initial={{ opacity: 0, y: 20 }}
@@ -921,49 +1183,53 @@ export default function AdminPage() {
                 <div className="xl:w-1/5 flex flex-col gap-4">
                   {/* 필터 패널 */}
                   <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                    <h3 className="text-sm font-medium text-gray-800 mb-3">필터</h3>
-                    
+                    <h3 className="text-sm font-medium text-gray-800 mb-3">
+                      필터
+                    </h3>
+
                     <div className="space-y-3">
                       {/* 상태 필터 */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">상태</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          상태
+                        </label>
                         <div className="grid grid-cols-2 gap-1">
                           <button
-                            onClick={() => toggleStatusFilter('all')}
+                            onClick={() => toggleStatusFilter("all")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              statusFilter === 'all' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              statusFilter === "all"
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             전체
                           </button>
                           <button
-                            onClick={() => toggleStatusFilter('pending')}
+                            onClick={() => toggleStatusFilter("pending")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              statusFilter === 'pending' 
-                                ? 'bg-yellow-500 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              statusFilter === "pending"
+                                ? "bg-yellow-500 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             대기
                           </button>
                           <button
-                            onClick={() => toggleStatusFilter('approved')}
+                            onClick={() => toggleStatusFilter("approved")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              statusFilter === 'approved' 
-                                ? 'bg-green-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              statusFilter === "approved"
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             승인
                           </button>
                           <button
-                            onClick={() => toggleStatusFilter('rejected')}
+                            onClick={() => toggleStatusFilter("rejected")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              statusFilter === 'rejected' 
-                                ? 'bg-red-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              statusFilter === "rejected"
+                                ? "bg-red-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             거부
@@ -973,61 +1239,65 @@ export default function AdminPage() {
 
                       {/* 직원 유형 필터 */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">직원</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          직원
+                        </label>
                         <div className="grid grid-cols-1 gap-1">
                           <button
-                            onClick={() => toggleRoleFilter('all')}
+                            onClick={() => toggleRoleFilter("all")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              roleFilter === 'all' 
-                                ? 'bg-indigo-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              roleFilter === "all"
+                                ? "bg-indigo-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             전체
                           </button>
                           <button
-                            onClick={() => toggleRoleFilter('caregiver')}
+                            onClick={() => toggleRoleFilter("caregiver")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              roleFilter === 'caregiver' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              roleFilter === "caregiver"
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             요양보호사
                           </button>
                           <button
-                            onClick={() => toggleRoleFilter('office')}
+                            onClick={() => toggleRoleFilter("office")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              roleFilter === 'office' 
-                                ? 'bg-green-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              roleFilter === "office"
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             사무직
                           </button>
                         </div>
                       </div>
-                      
+
                       {/* 정렬 옵션 */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">정렬</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          정렬
+                        </label>
                         <div className="grid grid-cols-1 gap-1">
-                          <button 
-                            onClick={() => toggleSortOrder('latest')}
+                          <button
+                            onClick={() => toggleSortOrder("latest")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              sortOrder === 'latest' 
-                                ? 'bg-purple-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              sortOrder === "latest"
+                                ? "bg-purple-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             최신순
                           </button>
-                          <button 
-                            onClick={() => toggleSortOrder('name')}
+                          <button
+                            onClick={() => toggleSortOrder("name")}
                             className={`px-2 py-1 text-[10px] font-medium rounded ${
-                              sortOrder === 'name' 
-                                ? 'bg-purple-600 text-white' 
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              sortOrder === "name"
+                                ? "bg-purple-600 text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }`}
                           >
                             이름순
@@ -1038,24 +1308,38 @@ export default function AdminPage() {
                       {/* 이름 필터 표시 */}
                       {nameFilter && (
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">선택된 직원</label>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            선택된 직원
+                          </label>
                           <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                            <span className="text-[10px] font-medium text-blue-800">{nameFilter}</span>
+                            <span className="text-[10px] font-medium text-blue-800">
+                              {nameFilter}
+                            </span>
                             <button
                               onClick={() => setNameFilter(null)}
                               className="text-blue-600 hover:text-blue-800 ml-1"
                               title="필터 해제"
                             >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
                               </svg>
                             </button>
                           </div>
                         </div>
                       )}
-                      
+
                       {/* 필터 초기화 버튼 */}
-                      <button 
+                      <button
                         onClick={resetFilter}
                         className="w-full mt-2 px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
@@ -1063,15 +1347,16 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* 휴무 목록 */}
                   <div className="flex-grow bg-white p-3 rounded-lg shadow-sm border border-gray-200 overflow-auto">
                     <div className="mb-3">
                       <h3 className="text-sm font-medium text-gray-800">
-                        {selectedDate 
-                          ? `${format(selectedDate, 'yyyy년 MM월 dd일', { locale: ko })} 휴무 목록`
-                          : '전체 휴무 목록'
-                        }
+                        {selectedDate
+                          ? `${format(selectedDate, "yyyy년 MM월 dd일", {
+                              locale: ko,
+                            })} 휴무 목록`
+                          : "전체 휴무 목록"}
                       </h3>
                       {selectedDate && (
                         <button
@@ -1082,7 +1367,7 @@ export default function AdminPage() {
                         </button>
                       )}
                     </div>
-                    
+
                     {isLoading ? (
                       <div className="flex justify-center items-center h-32">
                         <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
@@ -1093,109 +1378,177 @@ export default function AdminPage() {
                       </div>
                     ) : (
                       <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                        {filteredRequests.map(request => (
-                          <li key={request.id} className="p-2 bg-gray-50 rounded border border-gray-200 hover:shadow-sm transition-shadow">
+                        {filteredRequests.map((request) => (
+                          <li
+                            key={request.id}
+                            className="p-2 bg-gray-50 rounded border border-gray-200 hover:shadow-sm transition-shadow"
+                          >
                             <div className="flex justify-between items-start mb-1">
                               <div>
-                                <div 
+                                <div
                                   className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
                                     nameFilter === request.userName
-                                      ? 'text-blue-600 font-bold'
-                                      : 'text-gray-900 hover:text-blue-600'
+                                      ? "text-blue-600 font-bold"
+                                      : "text-gray-900 hover:text-blue-600"
                                   }`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const newFilter = nameFilter === request.userName ? null : request.userName;
+                                    const newFilter =
+                                      nameFilter === request.userName
+                                        ? null
+                                        : request.userName;
                                     setNameFilter(newFilter);
                                   }}
-                                  title={`${request.userName} ${nameFilter === request.userName ? '필터 해제' : '필터링'}`}
+                                  title={`${request.userName} ${
+                                    nameFilter === request.userName
+                                      ? "필터 해제"
+                                      : "필터링"
+                                  }`}
                                 >
                                   {request.userName}
                                   {nameFilter === request.userName && (
                                     <span className="ml-1 inline-flex items-center">
-                                      <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      <svg
+                                        className="w-3 h-3 text-blue-600"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                          clipRule="evenodd"
+                                        />
                                       </svg>
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-gray-500">{formatVacationDate(request.date)}</div>
+                                <div className="text-[10px] text-gray-500">
+                                  {formatVacationDate(request.date)}
+                                </div>
                               </div>
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
-                                request.status === 'approved' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : request.status === 'pending' 
-                                    ? 'bg-yellow-100 text-yellow-800' 
-                                    : 'bg-red-100 text-red-800'
-                              }`}>
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
+                                  request.status === "approved"
+                                    ? "bg-green-100 text-green-800"
+                                    : request.status === "pending"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
                                 {getStatusText(request.status)}
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1">
-                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                  request.role === 'caregiver' 
-                                    ? 'bg-blue-50 text-blue-700' 
-                                    : 'bg-green-50 text-green-700'
-                                }`}>
+                                <span
+                                  className={`px-1.5 py-0.5 text-[9px] rounded ${
+                                    request.role === "caregiver"
+                                      ? "bg-blue-50 text-blue-700"
+                                      : "bg-green-50 text-green-700"
+                                  }`}
+                                >
                                   {getRoleText(request.role)}
                                 </span>
                                 {isValidDuration(request.duration) && (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
-                                    <span>{getDurationText(request.duration)}</span>
+                                    <span>
+                                      {getDurationText(request.duration)}
+                                    </span>
                                   </span>
                                 )}
-                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                  request.type === 'mandatory' 
-                                    ? 'bg-orange-50 text-orange-700' 
-                                    : 'bg-gray-50 text-gray-700'
-                                }`}>
+                                <span
+                                  className={`px-1.5 py-0.5 text-[9px] rounded ${
+                                    request.type === "mandatory"
+                                      ? "bg-orange-50 text-orange-700"
+                                      : "bg-gray-50 text-gray-700"
+                                  }`}
+                                >
                                   {getVacationTypeText(request.type)}
                                 </span>
                                 <span className="text-[9px] text-gray-500">
                                   {formatDate(request.createdAt)}
                                 </span>
                               </div>
-                              {request.status === 'pending' && (
+                              {request.status === "pending" && (
                                 <div className="flex gap-0.5">
                                   <button
-                                    onClick={() => handleApproveVacation(request.id)}
+                                    onClick={() =>
+                                      handleApproveVacation(request.id)
+                                    }
                                     className="p-0.5 text-green-600 hover:bg-green-50 rounded"
                                     title="승인"
                                   >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M5 13l4 4L19 7"
+                                      />
                                     </svg>
                                   </button>
                                   <button
-                                    onClick={() => handleRejectVacation(request.id)}
+                                    onClick={() =>
+                                      handleRejectVacation(request.id)
+                                    }
                                     className="p-0.5 text-red-600 hover:bg-red-50 rounded"
                                     title="거부"
                                   >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                      />
                                     </svg>
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteVacation(request.id)}
+                                    onClick={() =>
+                                      handleDeleteVacation(request.id)
+                                    }
                                     className="p-0.5 text-gray-600 hover:bg-gray-100 rounded"
                                     title="삭제"
                                   >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                      />
                                     </svg>
                                   </button>
                                 </div>
                               )}
                             </div>
                             {/* 사유 표시 */}
-                            {request.reason && request.reason !== '(사유 미입력)' && (
-                              <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
-                                <div className="text-[9px] text-gray-600">
-                                  <span className="font-medium text-gray-700">사유:</span> {request.reason}
+                            {request.reason &&
+                              request.reason !== "(사유 미입력)" && (
+                                <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
+                                  <div className="text-[9px] text-gray-600">
+                                    <span className="font-medium text-gray-700">
+                                      사유:
+                                    </span>{" "}
+                                    {request.reason}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
                           </li>
                         ))}
                       </ul>
@@ -1212,7 +1565,7 @@ export default function AdminPage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <UserManagement 
+              <UserManagement
                 organizationName={companyName || undefined}
                 onNotification={showNotification}
               />
@@ -1222,10 +1575,10 @@ export default function AdminPage() {
       </main>
 
       {/* 모달 컴포넌트들 - 휴무 관리 탭에서만 표시 */}
-      {activeTab === 'vacation' && (
+      {activeTab === "vacation" && (
         <AnimatePresence>
           {showDetails && selectedDate && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1247,13 +1600,15 @@ export default function AdminPage() {
                   onVacationUpdated={handleVacationUpdated}
                   isLoading={isLoading}
                   maxPeople={(() => {
-                    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+                    const dateKey = format(selectedDate, "yyyy-MM-dd");
                     const keyBase = dateKey;
-                    const officeLimit = vacationLimits[`${keyBase}_office`]?.maxPeople ?? 3;
-                    const caregiverLimit = vacationLimits[`${keyBase}_caregiver`]?.maxPeople ?? 3;
-                    
-                    if (roleFilter === 'office') return officeLimit;
-                    else if (roleFilter === 'caregiver') return caregiverLimit;
+                    const officeLimit =
+                      vacationLimits[`${keyBase}_office`]?.maxPeople ?? 3;
+                    const caregiverLimit =
+                      vacationLimits[`${keyBase}_caregiver`]?.maxPeople ?? 3;
+
+                    if (roleFilter === "office") return officeLimit;
+                    else if (roleFilter === "caregiver") return caregiverLimit;
                     else return Math.max(officeLimit, caregiverLimit); // 전체일 때는 더 큰 값
                   })()}
                   roleFilter={roleFilter}
@@ -1282,7 +1637,6 @@ export default function AdminPage() {
                   onClose={handleCloseLimitPanel}
                   onUpdateSuccess={fetchMonthData}
                   vacationLimits={vacationLimits}
-                  onLimitSet={handleLimitSet}
                   vacationDays={vacationDays}
                 />
               </motion.div>
@@ -1306,37 +1660,56 @@ export default function AdminPage() {
                   className="transition-transform duration-300 hover:scale-105"
                 />
               </div>
-              
             </div>
 
             {/* 회사 정보 섹션 */}
             <div className="text-left flex flex-col h-full">
-              <h3 className="text-blue-100 font-semibold text-lg mb-3">회사 정보</h3>
+              <h3 className="text-blue-100 font-semibold text-lg mb-3">
+                회사 정보
+              </h3>
               <div className="space-y-2 text-sm text-blue-200/70 flex-grow">
                 <div className="flex flex-col sm:flex-row sm:justify-between">
-                  <p><span className="text-blue-300">회사명:</span> silverithm</p>
-                  <p><span className="text-blue-300">대표자:</span> 김준형</p>
+                  <p>
+                    <span className="text-blue-300">회사명:</span> silverithm
+                  </p>
+                  <p>
+                    <span className="text-blue-300">대표자:</span> 김준형
+                  </p>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between">
-                  <p><span className="text-blue-300">사업자등록번호:</span> 107-21-26475</p>
-                  <p><span className="text-blue-300">주소:</span> 서울특별시 신림동 1547-10</p>
+                  <p>
+                    <span className="text-blue-300">사업자등록번호:</span>{" "}
+                    107-21-26475
+                  </p>
+                  <p>
+                    <span className="text-blue-300">주소:</span> 서울특별시
+                    신림동 1547-10
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* 연락처 섹션 */}
             <div className="text-left flex flex-col h-full">
-              <h3 className="text-blue-100 font-semibold text-lg mb-3">연락처</h3>
+              <h3 className="text-blue-100 font-semibold text-lg mb-3">
+                연락처
+              </h3>
               <div className="space-y-2 text-sm text-blue-200/70 flex-grow">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                   <span className="text-blue-300">이메일:</span>
-                  <a href="mailto:ggprgrkjh@naver.com" className="hover:text-white transition-colors">
+                  <a
+                    href="mailto:ggprgrkjh@naver.com"
+                    className="hover:text-white transition-colors"
+                  >
                     ggprgrkjh@naver.com
                   </a>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                   <span className="text-blue-300">전화번호:</span>
-                  <a href="tel:010-4549-2094" className="hover:text-white transition-colors">
+                  <a
+                    href="tel:010-4549-2094"
+                    className="hover:text-white transition-colors"
+                  >
                     010-4549-2094
                   </a>
                 </div>
@@ -1351,18 +1724,18 @@ export default function AdminPage() {
                 &copy; 2025 케어브이. 모든 권리 보유.
               </p>
               <div className="flex items-center space-x-4 text-sm">
-                <a 
-                  href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html" 
-                  target="_blank" 
+                <a
+                  href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-300/80 hover:text-white transition-colors"
                 >
                   개인정보처리방침
                 </a>
                 <span className="text-blue-400/50">|</span>
-                <a 
-                  href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d" 
-                  target="_blank" 
+                <a
+                  href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-300/80 hover:text-white transition-colors"
                 >
@@ -1375,4 +1748,4 @@ export default function AdminPage() {
       </footer>
     </div>
   );
-} 
+}

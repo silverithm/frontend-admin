@@ -308,9 +308,9 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                         <div className="flex flex-wrap gap-2 mt-2">
                           {/* 휴가 기간 뱃지 - 유효한 duration일 때만 표시 */}
                           {isValidDuration(vacation.duration) && (
-                            <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
-                              <span>{getDurationText(vacation.duration)}</span>
-                            </div>
+                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
+                            <span>{getDurationText(vacation.duration)}</span>
+                          </div>
                           )}
                           
                           {/* 휴무 유형 뱃지 */}
