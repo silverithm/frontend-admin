@@ -177,7 +177,6 @@ export default function AdminPage() {
   ]);
 
   const fetchInitialData = async () => {
-    setIsLoading(true);
     try {
       await Promise.all([fetchMonthData(), fetchAllRequests()]);
     } catch (error) {
@@ -189,8 +188,6 @@ export default function AdminPage() {
       if ((error as Error).message.includes("인증")) {
         router.push("/login");
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -853,8 +850,8 @@ export default function AdminPage() {
     }
   };
 
-  // 클라이언트 사이드가 아직 준비되지 않았거나 로딩 중일 때
-  if (!isClient || isLoading) {
+  // 클라이언트 사이드가 아직 준비되지 않았을 때만 로딩 화면 표시
+  if (!isClient) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900">
         <div className="flex flex-col items-center space-y-6">
