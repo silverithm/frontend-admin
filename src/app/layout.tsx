@@ -12,10 +12,17 @@ export const metadata: Metadata = {
   openGraph: {
     title: "휴무 관리 시스템",
     description: "휴무 신청 및 관리를 위한 캘린더 시스템",
-    images: ["/images/logo.png"],
+    images: [
+      {
+        url: "/images/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "휴무 관리 시스템 로고",
+      }
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "휴무 관리 시스템",
     description: "휴무 신청 및 관리를 위한 캘린더 시스템",
     images: ["/images/logo.png"],
