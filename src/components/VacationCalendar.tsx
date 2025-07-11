@@ -39,7 +39,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [isMonthChanging, setIsMonthChanging] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [showMonthError, setShowMonthError] = useState(false);
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [error, setError] = useState('');
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -90,15 +89,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const fetchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const fetchCalendarData = useCallback(async (date: Date, retry = 0, forceRefresh = false) => {
-    // 중복 요청 방지: 짧은 시간 내 동일한 요청 방지
-    const now = Date.now();
-    const timeSinceLastFetch = now - lastFetchTimeRef.current;
-    const minInterval = 500; // 최소 500ms 간격
-    
-    if (!forceRefresh && timeSinceLastFetch < minInterval) {
-      console.log(`요청 간격이 너무 짧음 (${timeSinceLastFetch}ms). 무시됨.`);
-      return;
-    }
     
     if (retry >= MAX_RETRY_COUNT) {
       setError(`${retry}회 재시도 후에도 데이터를 가져오지 못했습니다. 페이지를 새로고침해 주세요.`);
@@ -123,7 +113,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
     setIsLoading(true);
     setError('');
-    lastFetchTimeRef.current = now;
+    lastFetchTimeRef.current = Date.now();
 
     try {
       const requestId = Math.random().toString(36).substring(2, 15);
@@ -285,9 +275,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   }, [fetchCalendarData, currentDate, logAllVacations]);
 
   const prevMonth = useCallback(() => {
-    if (isButtonDisabled) return;
-    
-    setIsButtonDisabled(true);
     setIsMonthChanging(true);
     
     // 이전 요청 취소
@@ -300,14 +287,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`월 변경: ${format(prev, 'yyyy-MM')} → ${format(newDate, 'yyyy-MM')}`);
       return newDate;
     });
-    
-    setIsButtonDisabled(false);
-  }, [isButtonDisabled, setCurrentDate, setIsMonthChanging]);
+  }, [setCurrentDate, setIsMonthChanging]);
 
   const nextMonth = useCallback(() => {
-    if (isButtonDisabled) return;
-    
-    setIsButtonDisabled(true);
     setIsMonthChanging(true);
     
     // 이전 요청 취소
@@ -320,14 +302,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`월 변경: ${format(prev, 'yyyy-MM')} → ${format(newDate, 'yyyy-MM')}`);
       return newDate;
     });
-    
-    setIsButtonDisabled(false);
-  }, [isButtonDisabled, setCurrentDate, setIsMonthChanging]);
+  }, [setCurrentDate, setIsMonthChanging]);
 
   const resetToCurrentMonth = useCallback(() => {
-    if (isButtonDisabled) return;
-    
-    setIsButtonDisabled(true);
     setIsMonthChanging(true);
     
     // 이전 요청 취소
@@ -336,9 +313,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
     
     setCurrentDate(startOfMonth(new Date()));
-    
-    setIsButtonDisabled(false);
-  }, [isButtonDisabled, setCurrentDate, setIsMonthChanging]);
+  }, [setCurrentDate, setIsMonthChanging]);
 
   // 캘린더 초기 로드
   useEffect(() => {
@@ -699,9 +674,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           <div className="flex space-x-0.5 sm:space-x-2">
             <button 
               onClick={prevMonth}
-              disabled={isButtonDisabled || isLoading}
+              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isButtonDisabled || isLoading 
+                isLoading 
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50' 
                   : 'hover:bg-gray-100 text-gray-600'
               }`}
@@ -711,9 +686,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             </button>
             <button 
               onClick={resetToCurrentMonth}
-              disabled={isButtonDisabled || isLoading}
+              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isButtonDisabled || isLoading
+                isLoading
                   ? 'bg-blue-50 text-blue-300 cursor-not-allowed opacity-50'
                   : 'bg-blue-50 hover:bg-blue-100 text-blue-600'
               }`}
@@ -723,9 +698,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             </button>
             <button 
               onClick={nextMonth}
-              disabled={isButtonDisabled || isLoading}
+              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isButtonDisabled || isLoading
+                isLoading
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
                   : 'hover:bg-gray-100 text-gray-600'
               }`}

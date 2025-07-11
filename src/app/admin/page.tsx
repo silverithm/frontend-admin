@@ -52,6 +52,7 @@ export default function AdminPage() {
     null
   );
   const [userName, setUserName] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
@@ -524,6 +525,7 @@ export default function AdminPage() {
   };
 
   const handleApproveVacation = async (vacationId: string) => {
+    setIsProcessing(true);
     try {
       console.log("휴무 승인 시작:", { vacationId, type: typeof vacationId });
 
@@ -581,10 +583,13 @@ export default function AdminPage() {
         "error"
       );
       if ((error as Error).message.includes("인증")) router.push("/login");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleRejectVacation = async (vacationId: string) => {
+    setIsProcessing(true);
     try {
       console.log("휴무 거절 시작:", { vacationId, type: typeof vacationId });
 
@@ -642,6 +647,8 @@ export default function AdminPage() {
         "error"
       );
       if ((error as Error).message.includes("인증")) router.push("/login");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -1470,48 +1477,22 @@ export default function AdminPage() {
                                 </span>
                               </div>
                               {request.status === "pending" && (
-                                <div className="flex gap-0.5">
+                                <div className="flex gap-1">
                                   <button
                                     onClick={() =>
                                       handleApproveVacation(request.id)
                                     }
-                                    className="p-0.5 text-green-600 hover:bg-green-50 rounded"
-                                    title="승인"
+                                    className="px-2 py-1 text-xs text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
                                   >
-                                    <svg
-                                      className="w-3 h-3"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M5 13l4 4L19 7"
-                                      />
-                                    </svg>
+                                    승인
                                   </button>
                                   <button
                                     onClick={() =>
                                       handleRejectVacation(request.id)
                                     }
-                                    className="p-0.5 text-red-600 hover:bg-red-50 rounded"
-                                    title="거부"
+                                    className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
                                   >
-                                    <svg
-                                      className="w-3 h-3"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                      />
-                                    </svg>
+                                    거절
                                   </button>
                                   <button
                                     onClick={() =>
@@ -1746,6 +1727,35 @@ export default function AdminPage() {
           </div>
         </div>
       </footer>
+
+      {/* 로딩 오버레이 */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex flex-col items-center space-y-4">
+            <svg
+              className="animate-spin h-8 w-8 text-blue-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <p className="text-gray-700 font-medium">처리 중...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
