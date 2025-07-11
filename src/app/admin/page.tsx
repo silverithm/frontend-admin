@@ -1749,7 +1749,7 @@ export default function AdminPage() {
 
             {/* 로딩 오버레이 */}
             {isProcessing && (
-                <div className="fixed inset-0 z-50 bg-white/20">
+                <div className="fixed inset-0 z-50 bg-white/40">
                     {/* 로딩 스피너 */}
                     <div className="relative flex items-center justify-center h-full">
                             <svg

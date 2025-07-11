@@ -691,7 +691,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             </button>
             <button 
               onClick={nextMonth}
-              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
                 isLoading
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
@@ -703,7 +702,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             </button>
             <button
               onClick={handleRefresh}
-              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
                 isLoading
                   ? 'bg-green-50 text-green-300 cursor-not-allowed'
@@ -716,7 +714,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             {isAdmin && onShowLimitPanel && (
               <button
                 onClick={onShowLimitPanel}
-                disabled={isLoading}
                 className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
                   isLoading
                     ? 'bg-indigo-50 text-indigo-300 cursor-not-allowed'
@@ -730,7 +727,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             )}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              disabled={isLoading}
               className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
                 isLoading
                   ? 'bg-purple-50 text-purple-300 cursor-not-allowed'
