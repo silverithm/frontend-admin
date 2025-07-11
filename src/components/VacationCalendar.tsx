@@ -667,11 +667,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           <div className="flex space-x-0.5 sm:space-x-2">
             <button 
               onClick={prevMonth}
-              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isLoading 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50' 
-                  : 'hover:bg-gray-100 text-gray-600'
+               'hover:bg-gray-100 text-gray-600'
               }`}
               aria-label="이전 달"
             >
@@ -679,11 +676,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             </button>
             <button 
               onClick={resetToCurrentMonth}
-              disabled={isLoading}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isLoading
-                  ? 'bg-blue-50 text-blue-300 cursor-not-allowed opacity-50'
-                  : 'bg-blue-50 hover:bg-blue-100 text-blue-600'
+               'bg-blue-50 hover:bg-blue-100 text-blue-600'
               }`}
               aria-label="이번 달로 돌아가기"
             >
@@ -692,9 +686,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             <button 
               onClick={nextMonth}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isLoading
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-                  : 'hover:bg-gray-100 text-gray-600'
+                  'hover:bg-gray-100 text-gray-600'
               }`}
               aria-label="다음 달"
             >
@@ -703,9 +695,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             <button
               onClick={handleRefresh}
               className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                isLoading
-                  ? 'bg-green-50 text-green-300 cursor-not-allowed'
-                  : 'bg-green-50 hover:bg-green-100 text-green-600'
+                'bg-green-50 hover:bg-green-100 text-green-600'
               }`}
               aria-label="데이터 새로고침"
             >
@@ -715,9 +705,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <button
                 onClick={onShowLimitPanel}
                 className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
-                  isLoading
-                    ? 'bg-indigo-50 text-indigo-300 cursor-not-allowed'
-                    : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:scale-105'
+                  'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:scale-105'
                 }`}
                 aria-label="휴무 제한 설정"
               >
