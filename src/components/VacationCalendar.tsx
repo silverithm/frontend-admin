@@ -36,7 +36,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [isMonthChanging, setIsMonthChanging] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [showMonthError, setShowMonthError] = useState(false);
   const [error, setError] = useState('');
@@ -93,7 +92,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     if (retry >= MAX_RETRY_COUNT) {
       setError(`${retry}회 재시도 후에도 데이터를 가져오지 못했습니다. 페이지를 새로고침해 주세요.`);
       setIsLoading(false);
-      setIsMonthChanging(false);
       return;
     }
 
@@ -199,7 +197,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         setCalendarData(data.dates || {});
         setRetryCount(0);
         setIsLoading(false);
-        setIsMonthChanging(false);
       }
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -223,7 +220,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       } else {
         setError('데이터를 가져오지 못했습니다. 페이지를 새로고침해 주세요.');
         setIsLoading(false);
-        setIsMonthChanging(false);
       }
     }
   }, [roleFilter, MAX_RETRY_COUNT, MAX_RETRY_DELAY, nameFilter]);
@@ -275,7 +271,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   }, [fetchCalendarData, currentDate, logAllVacations]);
 
   const prevMonth = useCallback(() => {
-    setIsMonthChanging(true);
     
     // 이전 요청 취소
     if (abortControllerRef.current) {
@@ -287,10 +282,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`월 변경: ${format(prev, 'yyyy-MM')} → ${format(newDate, 'yyyy-MM')}`);
       return newDate;
     });
-  }, [setCurrentDate, setIsMonthChanging]);
+  }, [setCurrentDate]);
 
   const nextMonth = useCallback(() => {
-    setIsMonthChanging(true);
     
     // 이전 요청 취소
     if (abortControllerRef.current) {
@@ -302,10 +296,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       console.log(`월 변경: ${format(prev, 'yyyy-MM')} → ${format(newDate, 'yyyy-MM')}`);
       return newDate;
     });
-  }, [setCurrentDate, setIsMonthChanging]);
+  }, [setCurrentDate]);
 
   const resetToCurrentMonth = useCallback(() => {
-    setIsMonthChanging(true);
     
     // 이전 요청 취소
     if (abortControllerRef.current) {
@@ -313,7 +306,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
     
     setCurrentDate(startOfMonth(new Date()));
-  }, [setCurrentDate, setIsMonthChanging]);
+  }, [setCurrentDate]);
 
   // 캘린더 초기 로드
   useEffect(() => {
