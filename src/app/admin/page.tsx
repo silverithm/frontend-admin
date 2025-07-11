@@ -1736,7 +1736,7 @@ export default function AdminPage() {
 
       {/* 로딩 오버레이 */}
       {isProcessing && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <svg
             className="animate-spin h-8 w-8 text-blue-600"
             xmlns="http://www.w3.org/2000/svg"
