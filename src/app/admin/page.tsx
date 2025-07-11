@@ -36,7 +36,8 @@ export default function AdminPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [showLimitPanel, setShowLimitPanel] = useState(false);
   const [vacationDays, setVacationDays] = useState<Record<string, DayInfo>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
@@ -289,6 +290,7 @@ export default function AdminPage() {
   };
 
   const fetchAllRequests = async () => {
+    setIsLoadingRequests(true);
     try {
       console.log("[fetchAllRequests] 전체 휴무 요청 가져오기 시작");
 
@@ -359,6 +361,8 @@ export default function AdminPage() {
       ) {
         router.push("/login");
       }
+    } finally {
+      setIsLoadingRequests(false);
     }
   };
 
@@ -1377,7 +1381,7 @@ export default function AdminPage() {
                       )}
                     </div>
 
-                    {isLoading ? (
+                    {isLoadingRequests ? (
                       <div className="flex justify-center items-center h-32">
                         <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                       </div>
