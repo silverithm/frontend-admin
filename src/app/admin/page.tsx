@@ -366,7 +366,6 @@ export default function AdminPage() {
   };
 
   const fetchDateDetails = async (date: Date) => {
-    setIsLoading(true);
     try {
       const formattedDate = format(date, "yyyy-MM-dd");
 
@@ -442,8 +441,6 @@ export default function AdminPage() {
       ) {
         router.push("/login");
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
