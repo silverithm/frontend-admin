@@ -518,9 +518,17 @@ export default function AdminPage() {
   };
 
   const handleVacationUpdated = async () => {
-    await fetchInitialData();
-    if (selectedDate) {
-      await fetchDateDetails(selectedDate);
+    try {
+      await Promise.all([fetchMonthData(), fetchAllRequests()]);
+      if (selectedDate) {
+        await fetchDateDetails(selectedDate);
+      }
+    } catch (error) {
+      console.error("휴무 데이터 업데이트 실패:", error);
+      showNotification(
+        "데이터를 업데이트하는데 실패했습니다. 다시 시도해주세요.",
+        "error"
+      );
     }
   };
 
@@ -1482,7 +1490,7 @@ export default function AdminPage() {
                                     onClick={() =>
                                       handleApproveVacation(request.id)
                                     }
-                                    className="px-2 py-1 text-xs text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
+                                    className="px-1.5 py-0.5 text-[10px] text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
                                   >
                                     승인
                                   </button>
@@ -1490,7 +1498,7 @@ export default function AdminPage() {
                                     onClick={() =>
                                       handleRejectVacation(request.id)
                                     }
-                                    className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
+                                    className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
                                   >
                                     거절
                                   </button>
@@ -1730,8 +1738,8 @@ export default function AdminPage() {
 
       {/* 로딩 오버레이 */}
       {isProcessing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 flex flex-col items-center space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex flex-col items-center space-y-4 shadow-xl">
             <svg
               className="animate-spin h-8 w-8 text-blue-600"
               xmlns="http://www.w3.org/2000/svg"
