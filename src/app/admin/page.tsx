@@ -1185,7 +1185,7 @@ export default function AdminPage() {
                             {/* 휴무 캘린더와 컨트롤 패널 */}
                             <div className="flex flex-col xl:flex-row gap-6">
                                 {/* 캘린더 영역 */}
-                                <div className="xl:w-4/5 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                                <div className="xl:w-4/5 bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit">
                                     <VacationCalendar
                                         currentDate={currentDate}
                                         setCurrentDate={setCurrentDate}
