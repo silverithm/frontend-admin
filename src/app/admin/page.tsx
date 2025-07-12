@@ -1399,7 +1399,7 @@ export default function AdminPage() {
                                                 조건에 맞는 휴무 요청이 없습니다.
                                             </div>
                                         ) : (
-                                            <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                                            <ul className="space-y-2 max-h-[100vh] overflow-y-auto pr-1">
                                                 {filteredRequests.map((request) => (
                                                     <li
                                                         key={request.id}
