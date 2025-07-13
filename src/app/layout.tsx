@@ -7,15 +7,27 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: '케어브이',
   description: '요양기관,주간보호 근무표 작성 서비스',
+  metadataBase: new URL('http://carev.kr'),
   openGraph: {
     title: '케어브이',
-    description: '요양기관, 주관보호 근무표 작성 서비스',
-    images: ['/images/carev-logo-text.png'],
+    description: '요양기관, 주간보호 근무표 작성 서비스',
+    url: 'http://carev.kr',
+    siteName: '케어브이',
+    images: [
+      {
+        url: '/images/carev-logo-text.png',
+        width: 1200,
+        height: 630,
+        alt: '케어브이 로고',
+      }
+    ],
+    locale: 'ko_KR',
+    type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: '케어브이',
-    description: '요양기관, 주관보호 근무표 작성 서비스',
+    description: '요양기관, 주간보호 근무표 작성 서비스',
     images: ['/images/carev-logo-text.png'],
   },
   icons: {
