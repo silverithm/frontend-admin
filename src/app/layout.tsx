@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   keywords: '요양기관, 장기요양, 주간보호, 주간보호센터, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 장기요양기관, 노인요양, 재가요양, 방문요양, 요양시설',
   metadataBase: new URL('https://carev.kr'),
   openGraph: {
-    title: '케어브이 - 요양기관 장기요양 주간보호 근무표 휴무관리',
+    title: '케어브이',
     description: '요양기관, 주간보호 근무표 작성 서비스',
     url: 'https://carev.kr',
     siteName: '케어브이',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: '케어브이 - 요양기관 장기요양 주간보호 근무표 휴무관리',
+    title: '케어브이',
     description: '요양기관, 주간보호 근무표 작성 서비스',
     images: ['/images/carev-logo-text.png'],
   },
