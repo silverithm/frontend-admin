@@ -3,9 +3,31 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // 디자인 이미지 배열
+  const designImages = [
+    '/images/design 6.png',
+    '/images/design 5.png',
+    '/images/desigin 2.png',
+    '/images/desigin 3.png',
+    '/images/design 1.png',
+    '/images/design 4.png'
+  ];
+
+  // 이전 이미지로 이동
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? designImages.length - 1 : prev - 1));
+  };
+
+  // 다음 이미지로 이동
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev === designImages.length - 1 ? 0 : prev + 1));
+  };
 
   const handleGoToLogin = (e?: React.MouseEvent) => {
     if (e) {
@@ -198,6 +220,87 @@ export default function LandingPage() {
               ))
             }
           </div>
+        </div>
+      </section>
+
+      {/* 화면 미리보기 섹션 */}
+      <section className="py-20 bg-slate-900/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent"
+          >
+            케어브이 화면 미리보기
+          </motion.h2>
+          
+          {/* 이미지 슬라이드 */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="relative max-w-4xl mx-auto"
+          >
+            <div className="relative bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-blue-400/20 overflow-hidden">
+              {/* 이미지 컨테이너 */}
+              <div className="relative aspect-[16/10] bg-gray-900/50 rounded-lg overflow-hidden">
+                <Image
+                  src={designImages[currentImageIndex]}
+                  alt={`케어브이 디자인 ${currentImageIndex + 1}`}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              
+              {/* 이미지 인디케이터 */}
+              <div className="flex justify-center gap-2 mt-6">
+                {designImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex 
+                        ? 'w-8 bg-blue-500' 
+                        : 'bg-blue-300/50 hover:bg-blue-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              
+              {/* 이전/다음 버튼 */}
+              <button
+                onClick={handlePrevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all duration-300 border border-white/20"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all duration-300 border border-white/20"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* 설명 텍스트 */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="text-center text-blue-100/80 mt-8 text-lg"
+            >
+              직관적인 인터페이스로 휴무 관리를 더욱 쉽고 편리하게
+            </motion.p>
+          </motion.div>
         </div>
       </section>
 
