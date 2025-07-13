@@ -6,24 +6,24 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: '케어브이',
-  description: '케어브이 휴무 관리 시스템',
+  description: '요양기관,주간보호 근무표 작성 서비스',
   openGraph: {
     title: '케어브이',
-    description: '케어브이 휴무 관리 시스템',
-    images: ['/images/logo.png'],
+    description: '요양기관, 주관보호 근무표 작성 서비스',
+    images: ['/images/carev-logo-text.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: '케어브이',
-    description: '케어브이 휴무 관리 시스템',
-    images: ['/images/logo.png'],
+    description: '요양기관, 주관보호 근무표 작성 서비스',
+    images: ['/images/carev-logo-text.png'],
   },
   icons: {
     icon: [
-      { url: '/images/logo.png', type: 'image/png' },
+      { url: '/images/carev-favicon.png', type: 'image/png' },
     ],
-    shortcut: '/images/logo.png',
-    apple: '/images/logo.png',
+    shortcut: '/images/carev-favicon.png',
+    apple: '/images/carev-favicon.png',
   },
 }
 
