@@ -3,31 +3,18 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-
 export default function LandingPage() {
   const router = useRouter();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // 디자인 이미지 배열
   const designImages = [
-    '/images/design 6.png',
-    '/images/design 5.png',
+    '/images/design 1.png',
     '/images/desigin 2.png',
     '/images/desigin 3.png',
-    '/images/design 1.png',
-    '/images/design 4.png'
+    '/images/design 4.png',
+    '/images/design 5.png',
+    '/images/design 6.png'
   ];
-
-  // 이전 이미지로 이동
-  const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => (prev === 0 ? designImages.length - 1 : prev - 1));
-  };
-
-  // 다음 이미지로 이동
-  const handleNextImage = () => {
-    setCurrentImageIndex((prev) => (prev === designImages.length - 1 ? 0 : prev + 1));
-  };
 
   const handleGoToLogin = (e?: React.MouseEvent) => {
     if (e) {
@@ -223,8 +210,37 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 화면 미리보기 섹션 */}
-      <section className="py-20 bg-slate-900/50 backdrop-blur-sm">
+      {/* 디자인 이미지 섹션 */}
+      <section className="py-20 bg-slate-900/50 backdrop-blur-sm overflow-x-auto">
+        <div className="min-w-max px-4">
+          {/* 이미지 리스트 */}
+          <div className="flex gap-4 justify-center">
+            {designImages.map((image, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="flex-shrink-0"
+              >
+                <div className="relative w-[300px] h-[500px] bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-4 border border-blue-400/20 overflow-hidden hover:scale-105 transition-transform duration-300">
+                  <Image
+                    src={image}
+                    alt={`케어브이 디자인 ${index + 1}`}
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 가입 및 승인 절차 안내 섹션 */}
+      <section className="py-20 bg-slate-800/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
@@ -233,74 +249,115 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent"
           >
-            케어브이 화면 미리보기
+            케어브이 가입 및 승인 절차 안내
           </motion.h2>
           
-          {/* 이미지 슬라이드 */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="relative max-w-4xl mx-auto"
-          >
-            <div className="relative bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-blue-400/20 overflow-hidden">
-              {/* 이미지 컨테이너 */}
-              <div className="relative aspect-[16/10] bg-gray-900/50 rounded-lg overflow-hidden">
-                <Image
-                  src={designImages[currentImageIndex]}
-                  alt={`케어브이 디자인 ${currentImageIndex + 1}`}
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              
-              {/* 이미지 인디케이터 */}
-              <div className="flex justify-center gap-2 mt-6">
-                {designImages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      index === currentImageIndex 
-                        ? 'w-8 bg-blue-500' 
-                        : 'bg-blue-300/50 hover:bg-blue-300'
-                    }`}
-                  />
-                ))}
-              </div>
-              
-              {/* 이전/다음 버튼 */}
-              <button
-                onClick={handlePrevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all duration-300 border border-white/20"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={handleNextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all duration-300 border border-white/20"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                {
+                  step: "1",
+                  role: "[관리자]",
+                  title: "웹사이트 가입",
+                  description: "근무표 관리자가 먼저 웹사이트에서 회사 정보를 등록하며 가입을 완료합니다.",
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  ),
+                  color: "from-blue-400 to-indigo-500"
+                },
+                {
+                  step: "2",
+                  role: "[직원]",
+                  title: "앱 가입 요청",
+                  description: "직원은 앱에서 가입 시, 등록된 소속 회사를 선택하고 가입을 요청합니다.",
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  ),
+                  color: "from-indigo-400 to-purple-500"
+                },
+                {
+                  step: "3",
+                  role: "[관리자]",
+                  title: "가입 승인",
+                  description: "관리자는 웹사이트에서(회원 관리) 직원의 가입 요청을 확인하고 승인합니다.",
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ),
+                  color: "from-green-400 to-teal-500"
+                },
+                {
+                  step: "4",
+                  role: "[직원]",
+                  title: "앱 로그인",
+                  description: "관리자의 승인이 완료되면, 직원은 앱에 정상적으로 로그인할 수 있습니다.",
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                  ),
+                  color: "from-purple-400 to-pink-500"
+                }
+              ].map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="relative"
+                >
+                  {/* 연결선 (마지막 아이템 제외) */}
+                  {index < 3 && (
+                    <div className="hidden lg:block absolute top-1/3 -right-3 w-6 h-0.5 bg-gradient-to-r from-blue-400/50 to-indigo-400/50"></div>
+                  )}
+                  
+                  <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl hover:bg-white/15 transition-all duration-300 border border-blue-400/20 h-full">
+                    {/* 단계 번호 */}
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4 shadow-xl mx-auto`}>
+                      <span className="text-2xl font-bold text-white">{item.step}</span>
+                    </div>
+                    
+                    {/* 아이콘 */}
+                    <div className="flex justify-center mb-4 text-blue-400">
+                      {item.icon}
+                    </div>
+                    
+                    {/* 역할 */}
+                    <div className="text-center mb-2">
+                      <span className={`text-sm font-medium px-3 py-1 rounded-full bg-gradient-to-r ${item.color} bg-opacity-20 text-white`}>
+                        {item.role}
+                      </span>
+                    </div>
+                    
+                    {/* 제목 */}
+                    <h3 className="text-xl font-semibold text-white text-center mb-3">{item.title}</h3>
+                    
+                    {/* 설명 */}
+                    <p className="text-blue-100/80 text-center text-sm leading-relaxed">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
             
-            {/* 설명 텍스트 */}
-            <motion.p
+            {/* 추가 안내 */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-center text-blue-100/80 mt-8 text-lg"
+              transition={{ duration: 0.7, delay: 0.4 }}
+              className="mt-12 text-center"
             >
-              직관적인 인터페이스로 휴무 관리를 더욱 쉽고 편리하게
-            </motion.p>
-          </motion.div>
+              <p className="text-blue-100/80 text-lg">
+                ✨ 간단한 4단계로 케어브이 서비스 이용을 시작하세요!
+              </p>
+            </motion.div>
+          </div>
         </div>
       </section>
 
