@@ -832,9 +832,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       </>
                     ) : vacations && vacations.length > 0 ? (
                       // 데이터가 있을 때
-                      vacations
-                        .slice(0, isExpanded ? vacations.length : 4)
-                        .map((vacation, idx) => (
+                      <>
+                        {vacations
+                          .slice(0, isExpanded ? vacations.length : 4)
+                          .map((vacation, idx) => (
                         <div key={idx} className="flex items-center text-[8px] sm:text-xs md:text-sm">
                           <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full
                             ${vacation.status === 'approved' 
@@ -872,7 +873,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                             {nameFilter === vacation.userName && (
                               <span className="inline-flex items-center flex-shrink-0">
                                 <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414햣L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               </span>
                             )}
@@ -880,11 +881,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
                         </div>
                         ))}
-                      {!isExpanded && vacations.length > 4 && (
-                        <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
-                          +{vacations.length - 4}명 더
-                        </div>
-                      )}
+                        {!isExpanded && vacations.length > 4 && (
+                          <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
+                            +{vacations.length - 4}명 더
+                          </div>
+                        )}
+                      </>
                     ) : null}
                   </div>
                 )}
