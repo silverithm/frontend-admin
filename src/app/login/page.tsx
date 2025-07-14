@@ -18,12 +18,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     // 컴포넌트 마운트 시 저장된 이메일 불러오기
-    const savedEmail = localStorage.getItem('rememberedEmail');
-    const isRemembered = localStorage.getItem('rememberEmail') === 'true';
-    
-    if (savedEmail && isRemembered) {
-      setFormData(prev => ({ ...prev, email: savedEmail }));
-      setRememberEmail(true);
+    try {
+      const savedEmail = localStorage.getItem('rememberedEmail');
+      const isRemembered = localStorage.getItem('rememberEmail') === 'true';
+      
+      if (savedEmail && isRemembered) {
+        setFormData(prev => ({ ...prev, email: savedEmail }));
+        setRememberEmail(true);
+      }
+    } catch (error) {
+      console.error('localStorage 접근 오류:', error);
     }
   }, []);
 
@@ -36,7 +40,18 @@ export default function LoginPage() {
   };
 
   const handleRememberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRememberEmail(e.target.checked);
+    const checked = e.target.checked;
+    setRememberEmail(checked);
+    
+    // 체크 해제 시 즉시 localStorage에서 삭제
+    if (!checked) {
+      try {
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberEmail');
+      } catch (error) {
+        console.error('localStorage 삭제 오류:', error);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,12 +67,16 @@ export default function LoginPage() {
       console.log('로그인 성공:', result);
       
       // 아이디 기억하기 처리
-      if (rememberEmail) {
-        localStorage.setItem('rememberedEmail', formData.email);
-        localStorage.setItem('rememberEmail', 'true');
-      } else {
-        localStorage.removeItem('rememberedEmail');
-        localStorage.removeItem('rememberEmail');
+      try {
+        if (rememberEmail) {
+          localStorage.setItem('rememberedEmail', formData.email);
+          localStorage.setItem('rememberEmail', 'true');
+        } else {
+          localStorage.removeItem('rememberedEmail');
+          localStorage.removeItem('rememberEmail');
+        }
+      } catch (error) {
+        console.error('localStorage 저장 오류:', error);
       }
       
       // 로그인 성공 후 관리자 페이지로 이동
@@ -116,7 +135,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+          <div className="mb-2">
             <label htmlFor="email" className="block text-sm font-medium text-blue-100 mb-1">
               이메일
             </label>
@@ -130,6 +149,22 @@ export default function LoginPage() {
               placeholder="이메일 주소 입력"
               required
             />
+          </div>
+
+          <div className="mb-6 flex items-center">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                id="rememberEmail"
+                checked={rememberEmail}
+                onChange={handleRememberChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-white/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+              <span className="ml-3 text-sm text-blue-100">
+                이메일 기억하기
+              </span>
+            </label>
           </div>
 
           <div className="mb-6">
@@ -148,18 +183,6 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="mb-4 flex items-center">
-            <input
-              type="checkbox"
-              id="rememberEmail"
-              checked={rememberEmail}
-              onChange={handleRememberChange}
-              className="w-4 h-4 text-blue-500 bg-white/10 border-blue-300/30 rounded focus:ring-blue-400 focus:ring-2"
-            />
-            <label htmlFor="rememberEmail" className="ml-2 text-sm text-blue-100">
-              이메일 기억하기
-            </label>
-          </div>
 
           {error && (
             <div className="mb-4 p-2 bg-red-500/20 text-red-200 rounded-lg text-sm border border-red-400/30">
