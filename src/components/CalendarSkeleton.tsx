@@ -43,10 +43,7 @@ const CalendarSkeleton: React.FC = () => {
         <div className="skeleton rounded h-4 w-20 mb-3"></div>
         <div className="flex flex-wrap gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="skeleton rounded-full w-4 h-4"></div>
-              <div className="skeleton rounded w-12 h-4"></div>
-            </div>
+            <div key={i} className="skeleton rounded-full w-16 h-4"></div>
           ))}
         </div>
       </div>
