@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import Navbar from '@/components/Navbar';
+
 export default function LandingPage() {
   const router = useRouter();
   
@@ -54,8 +56,10 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white">
+      <Navbar />
+      
       {/* 히어로 섹션 */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 pt-20 pb-10">
+      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-10">
         {/* 배경 장식 */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20"></div>
@@ -68,16 +72,22 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 30 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="flex justify-center items-center mb-8"
+            className="mb-6"
           >
-            <Image
-              src="/images/logo-text.png"
-              alt="케어브이 로고"
-              width={400}
-              height={133}
-              className="transition-transform duration-300 hover:scale-105"
-            />
+            <span className="inline-block px-4 py-2 bg-blue-500/20 backdrop-blur-sm rounded-full text-blue-200 text-sm font-medium border border-blue-400/30 mb-6">
+              🚀 스마트한 휴무 관리의 시작
+            </span>
           </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent leading-tight"
+          >
+            케어브이로 시작하는<br />
+            <span className="text-4xl md:text-6xl">효율적인 근무 관리</span>
+          </motion.h1>
           
           <motion.p 
             initial={{ opacity: 0, y: 30 }} 
@@ -85,8 +95,8 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="text-xl md:text-2xl text-blue-100/90 mb-12 max-w-3xl mx-auto leading-relaxed"
           >
-            요양보호사 및 사무직 직원들의 휴무 관리를 앱과 웹에서<br />
-            더욱 간편하고 효율적으로 경험하세요.
+            요양보호사와 사무직 직원들의 휴무 관리를 혁신적으로 개선합니다.<br />
+            복잡한 일정 관리를 단순하게, 승인 프로세스를 빠르게.
           </motion.p>
         </div>
 
@@ -160,7 +170,7 @@ export default function LandingPage() {
       </section>
 
       {/* 주요 기능 섹션 */}
-      <section className="py-20 bg-slate-800/50 backdrop-blur-sm">
+      <section id="features" className="py-20 bg-slate-800/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
@@ -240,7 +250,7 @@ export default function LandingPage() {
       </section>
 
       {/* 가입 및 승인 절차 안내 섹션 */}
-      <section className="py-20 bg-slate-800/50 backdrop-blur-sm">
+      <section id="process" className="py-20 bg-slate-800/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
@@ -400,7 +410,7 @@ export default function LandingPage() {
       </section>
 
       {/* 푸터 */}
-      <footer className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-t border-blue-800/30 backdrop-blur-sm">
+      <footer id="contact" className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-t border-blue-800/30 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
             {/* 브랜드 섹션 */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { signin } from '@/lib/apiService';
@@ -14,6 +14,18 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
+
+  useEffect(() => {
+    // 컴포넌트 마운트 시 저장된 이메일 불러오기
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    const isRemembered = localStorage.getItem('rememberEmail') === 'true';
+    
+    if (savedEmail && isRemembered) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+      setRememberEmail(true);
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -21,6 +33,10 @@ export default function LoginPage() {
       ...formData,
       [name]: value,
     });
+  };
+
+  const handleRememberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRememberEmail(e.target.checked);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,6 +50,15 @@ export default function LoginPage() {
       // Spring Boot 백엔드로 로그인 요청
       const result = await signin(formData.email, formData.password);
       console.log('로그인 성공:', result);
+      
+      // 아이디 기억하기 처리
+      if (rememberEmail) {
+        localStorage.setItem('rememberedEmail', formData.email);
+        localStorage.setItem('rememberEmail', 'true');
+      } else {
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberEmail');
+      }
       
       // 로그인 성공 후 관리자 페이지로 이동
       router.push('/admin');
@@ -121,6 +146,19 @@ export default function LoginPage() {
               placeholder="비밀번호 입력"
               required
             />
+          </div>
+
+          <div className="mb-4 flex items-center">
+            <input
+              type="checkbox"
+              id="rememberEmail"
+              checked={rememberEmail}
+              onChange={handleRememberChange}
+              className="w-4 h-4 text-blue-500 bg-white/10 border-blue-300/30 rounded focus:ring-blue-400 focus:ring-2"
+            />
+            <label htmlFor="rememberEmail" className="ml-2 text-sm text-blue-100">
+              이메일 기억하기
+            </label>
           </div>
 
           {error && (
