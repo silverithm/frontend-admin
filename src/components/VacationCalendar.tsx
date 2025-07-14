@@ -824,10 +824,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       // 로딩 중일 때 스켈레톤 표시
                       <>
                         {[0, 1, 2].map((i) => (
-                          <div key={i} className="flex items-center gap-1">
-                            <div className="skeleton rounded-full w-12 h-3 sm:w-14 sm:h-4"></div>
-                            <div className="skeleton rounded w-16 h-3 sm:w-20 sm:h-4"></div>
-                          </div>
+                          <div key={i} className="skeleton rounded-full w-full h-3 sm:h-4"></div>
                         ))}
                       </>
                     ) : vacations && vacations.length > 0 ? (
