@@ -152,17 +152,16 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-6 flex items-center">
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="rememberEmail" className="flex items-center cursor-pointer group">
               <input
                 type="checkbox"
                 id="rememberEmail"
                 checked={rememberEmail}
                 onChange={handleRememberChange}
-                className="sr-only peer"
+                className="w-5 h-5 text-blue-500 bg-white/10 border-2 border-blue-300/30 rounded focus:ring-2 focus:ring-blue-400 focus:ring-offset-0 focus:ring-offset-transparent checked:bg-blue-500 checked:border-blue-500 transition-all duration-200 cursor-pointer"
               />
-              <div className="w-11 h-6 bg-white/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-              <span className="ml-3 text-sm text-blue-100">
-                이메일 기억하기
+              <span className="ml-2 text-sm text-blue-100 group-hover:text-white transition-colors">
+                저장
               </span>
             </label>
           </div>
