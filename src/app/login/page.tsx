@@ -161,7 +161,7 @@ export default function LoginPage() {
                 className="w-5 h-5 text-blue-500 bg-white/10 border-2 border-blue-300/30 rounded focus:ring-2 focus:ring-blue-400 focus:ring-offset-0 focus:ring-offset-transparent checked:bg-blue-500 checked:border-blue-500 transition-all duration-200 cursor-pointer"
               />
               <span className="ml-2 text-sm text-blue-100 group-hover:text-white transition-colors">
-                저장
+                이메일 저장
               </span>
             </label>
           </div>
