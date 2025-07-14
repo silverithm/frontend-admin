@@ -221,10 +221,10 @@ export default function LandingPage() {
       </section>
 
       {/* 디자인 이미지 섹션 */}
-      <section className="py-20 bg-slate-900/50 backdrop-blur-sm overflow-x-auto">
-        <div className="min-w-max px-4">
-          {/* 이미지 리스트 */}
-          <div className="flex gap-4 justify-center">
+      <section className="py-20 bg-slate-900/50 backdrop-blur-sm">
+        <div className="container mx-auto px-8 lg:px-16">
+          {/* 이미지 그리드 */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {designImages.map((image, index) => (
               <motion.div
                 key={index}
@@ -232,17 +232,15 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="flex-shrink-0"
+                className="aspect-[9/16] relative bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-2 border border-blue-400/20 overflow-hidden hover:scale-105 transition-transform duration-300"
               >
-                <div className="relative w-[300px] h-[500px] bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-4 border border-blue-400/20 overflow-hidden hover:scale-105 transition-transform duration-300">
-                  <Image
-                    src={image}
-                    alt={`케어브이 디자인 ${index + 1}`}
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
+                <Image
+                  src={image}
+                  alt={`케어브이 디자인 ${index + 1}`}
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </motion.div>
             ))}
           </div>
