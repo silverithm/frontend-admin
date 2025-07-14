@@ -731,37 +731,32 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </div>
         </div>
 
-        {/* 로딩 중일 때 스켈레톤 표시 */}
-        {isLoading ? (
-          <CalendarSkeleton />
-        ) : (
-          <>
-            <div className="grid grid-cols-7 border-b border-gray-200">
-              {WEEKDAYS.map((day, index) => (
-                <div 
-                  key={day} 
-                  className={`py-0.5 sm:py-2 text-center font-medium text-[8px] sm:text-sm ${
-                    index === 0 ? 'text-red-500' : 
-                    index === 6 ? 'text-indigo-500' : 'text-gray-600'
-                  }`}
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <motion.div 
-              className="grid grid-cols-7 gap-x-1 gap-y-3 sm:gap-x-4 sm:gap-y-5 md:gap-x-5 md:gap-y-6"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                visible: {
-                  transition: {
-                    staggerChildren: 0.01
-                  }
-                }
-              }}
+        <div className="grid grid-cols-7 border-b border-gray-200">
+          {WEEKDAYS.map((day, index) => (
+            <div 
+              key={day} 
+              className={`py-0.5 sm:py-2 text-center font-medium text-[8px] sm:text-sm ${
+                index === 0 ? 'text-red-500' : 
+                index === 6 ? 'text-indigo-500' : 'text-gray-600'
+              }`}
             >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <motion.div 
+          className="grid grid-cols-7 gap-x-1 gap-y-3 sm:gap-x-4 sm:gap-y-5 md:gap-x-5 md:gap-y-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            visible: {
+              transition: {
+                staggerChildren: 0.01
+              }
+            }
+          }}
+        >
           {calendarDates.map((day, index) => {
             const isCurrentDay = isToday(day);
             const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -819,15 +814,27 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   )}
                 </div>
                 
-                {isCurrentMonth && vacations && vacations.length > 0 && (
+                {isCurrentMonth && (
                   <div className={`space-y-0.5 sm:space-y-1 ${
                     isExpanded 
                       ? 'max-h-none' 
                       : 'max-h-20 sm:max-h-20 md:max-h-28 overflow-hidden'
                   }`}>
-                    {vacations
-                      .slice(0, isExpanded ? vacations.length : 4)
-                      .map((vacation, idx) => (
+                    {isLoading ? (
+                      // 로딩 중일 때 스켈레톤 표시
+                      <>
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <div className="skeleton rounded-full w-12 h-3 sm:w-14 sm:h-4"></div>
+                            <div className="skeleton rounded w-16 h-3 sm:w-20 sm:h-4"></div>
+                          </div>
+                        ))}
+                      </>
+                    ) : vacations && vacations.length > 0 ? (
+                      // 데이터가 있을 때
+                      vacations
+                        .slice(0, isExpanded ? vacations.length : 4)
+                        .map((vacation, idx) => (
                         <div key={idx} className="flex items-center text-[8px] sm:text-xs md:text-sm">
                           <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full
                             ${vacation.status === 'approved' 
@@ -872,12 +879,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           </span>
 
                         </div>
-                      ))}
-                    {!isExpanded && vacations.length > 4 && (
-                      <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
-                        +{vacations.length - 4}명 더
-                      </div>
-                    )}
+                        ))}
+                      {!isExpanded && vacations.length > 4 && (
+                        <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
+                          +{vacations.length - 4}명 더
+                        </div>
+                      )}
+                    ) : null}
                   </div>
                 )}
                 
@@ -901,9 +909,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               </motion.div>
             );
           })}
-            </motion.div>
+        </motion.div>
+      </div>
 
-            <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
+      <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
         <p className="text-xs sm:text-sm md:text-base text-gray-500 mb-2 sm:mb-3 font-medium">상태 표시</p>
         <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6 items-center">
           {/* 인원 상태 */}
@@ -950,9 +959,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             <span className="text-xs sm:text-sm text-gray-600">필수 휴무</span>
           </div>
         </div>
-            </div>
-          </>
-        )}
       </div>
 
       {isAdmin && showAdminPanel && (
