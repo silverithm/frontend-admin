@@ -5,6 +5,7 @@ import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
+import CalendarSkeleton from './CalendarSkeleton';
 import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
@@ -730,32 +731,37 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-7 border-b border-gray-200">
-          {WEEKDAYS.map((day, index) => (
-            <div 
-              key={day} 
-              className={`py-0.5 sm:py-2 text-center font-medium text-[8px] sm:text-sm ${
-                index === 0 ? 'text-red-500' : 
-                index === 6 ? 'text-indigo-500' : 'text-gray-600'
-              }`}
-            >
-              {day}
+        {/* 로딩 중일 때 스켈레톤 표시 */}
+        {isLoading ? (
+          <CalendarSkeleton />
+        ) : (
+          <>
+            <div className="grid grid-cols-7 border-b border-gray-200">
+              {WEEKDAYS.map((day, index) => (
+                <div 
+                  key={day} 
+                  className={`py-0.5 sm:py-2 text-center font-medium text-[8px] sm:text-sm ${
+                    index === 0 ? 'text-red-500' : 
+                    index === 6 ? 'text-indigo-500' : 'text-gray-600'
+                  }`}
+                >
+                  {day}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <motion.div 
-          className="grid grid-cols-7 gap-x-1 gap-y-3 sm:gap-x-4 sm:gap-y-5 md:gap-x-5 md:gap-y-6"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: {
-              transition: {
-                staggerChildren: 0.01
-              }
-            }
-          }}
-        >
+            <motion.div 
+              className="grid grid-cols-7 gap-x-1 gap-y-3 sm:gap-x-4 sm:gap-y-5 md:gap-x-5 md:gap-y-6"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: 0.01
+                  }
+                }
+              }}
+            >
           {calendarDates.map((day, index) => {
             const isCurrentDay = isToday(day);
             const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -895,10 +901,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               </motion.div>
             );
           })}
-        </motion.div>
-      </div>
+            </motion.div>
 
-      <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
+            <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
         <p className="text-xs sm:text-sm md:text-base text-gray-500 mb-2 sm:mb-3 font-medium">상태 표시</p>
         <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6 items-center">
           {/* 인원 상태 */}
@@ -945,6 +950,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             <span className="text-xs sm:text-sm text-gray-600">필수 휴무</span>
           </div>
         </div>
+            </div>
+          </>
+        )}
       </div>
 
       {isAdmin && showAdminPanel && (
