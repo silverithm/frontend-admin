@@ -41,10 +41,7 @@ const CalendarSkeleton: React.FC = () => {
               {/* 휴가자 정보 플레이스홀더 (2-3개) */}
               <div className="space-y-1">
                 {[0, 1, 2].slice(0, Math.random() > 0.5 ? 2 : 3).map((i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <div className="skeleton rounded w-10 h-3 sm:w-12 sm:h-4"></div>
-                    <div className="skeleton rounded-full w-16 h-3 sm:w-20 sm:h-4"></div>
-                  </div>
+                  <div key={i} className="skeleton rounded-full w-full h-3 sm:h-4"></div>
                 ))}
               </div>
             </div>
