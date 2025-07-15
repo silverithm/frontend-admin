@@ -503,17 +503,44 @@ export async function signup(userData: {
 
 // 비밀번호 찾기
 export async function findPassword(email: string): Promise<FindPasswordResponse> {
-  return fetchWithoutAuth(`/api/v1/find/password?email=${encodeURIComponent(email)}`, {
+  const params = new URLSearchParams();
+  params.append('email', email);
+  
+  const response = await fetch(`${API_BASE_URL}/api/v1/find/password`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'ngrok-skip-browser-warning': 'true',
+    },
+    body: params,
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || '비밀번호 찾기 요청에 실패했습니다.');
+  }
+
+  return response.json();
 }
 
 // 비밀번호 변경
 export async function changePassword(passwordData: PasswordChangeRequest): Promise<string> {
-  return fetchWithAuth('/api/v1/change/password', {
+  const response = await fetch(`${API_BASE_URL}/api/v1/change/password`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('accessToken')}`,
+      'ngrok-skip-browser-warning': 'true',
+    },
     body: JSON.stringify(passwordData),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || '비밀번호 변경에 실패했습니다.');
+  }
+
+  return response.text();
 }
 
 // 호환성을 위한 register 함수 (기존 페이지용)
