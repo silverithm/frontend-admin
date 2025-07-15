@@ -261,6 +261,20 @@ export default function OrganizationProfilePage() {
               </form>
             ) : (
               <div className="space-y-8">
+                <div className="flex justify-end gap-2 mb-4">
+                  <button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                  >
+                    비밀번호 변경
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                  >
+                    회원탈퇴
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* 기관 정보 카드 */}
                   <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-200">
@@ -305,29 +319,6 @@ export default function OrganizationProfilePage() {
                         <h3 className="text-sm font-medium text-gray-500">관리자명</h3>
                         <p className="text-lg font-semibold text-gray-900">{profile.adminName || '정보 없음'}</p>
                       </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-6 border-t border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-500">기관 정보 관리</p>
-                      <p className="text-xs text-gray-400 mt-1">기관의 기본 정보를 확인할 수 있습니다.</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowPasswordModal(true)}
-                        className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                      >
-                        비밀번호 변경
-                      </button>
-                      <button
-                        onClick={() => setShowDeleteModal(true)}
-                        className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
-                      >
-                        회원탈퇴
-                      </button>
                     </div>
                   </div>
                 </div>
