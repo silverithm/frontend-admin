@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { signin } from '@/lib/apiService';
+import { motion, AnimatePresence } from 'framer-motion';
+import { signin, findPassword } from '@/lib/apiService';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -15,6 +15,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
+  const [showFindPassword, setShowFindPassword] = useState(false);
+  const [findPasswordEmail, setFindPasswordEmail] = useState('');
+  const [findPasswordLoading, setFindPasswordLoading] = useState(false);
+  const [findPasswordMessage, setFindPasswordMessage] = useState('');
+  const [findPasswordError, setFindPasswordError] = useState('');
 
   useEffect(() => {
     // 컴포넌트 마운트 시 저장된 이메일 불러오기
@@ -182,6 +187,15 @@ export default function LoginPage() {
             />
           </div>
 
+          <div className="flex justify-end mb-4">
+            <button
+              type="button"
+              onClick={() => setShowFindPassword(true)}
+              className="text-sm text-blue-300 hover:text-white transition-colors"
+            >
+              비밀번호 찾기
+            </button>
+          </div>
 
           {error && (
             <div className="mb-4 p-2 bg-red-500/20 text-red-200 rounded-lg text-sm border border-red-400/30">
@@ -230,6 +244,128 @@ export default function LoginPage() {
           </p>
         </div>
       </motion.div>
+
+      {/* 비밀번호 찾기 모달 */}
+      <AnimatePresence>
+        {showFindPassword && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowFindPassword(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-6 w-full max-w-md border border-blue-400/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold text-white mb-4">비밀번호 찾기</h2>
+              <p className="text-blue-100/80 mb-6">
+                가입 시 사용한 이메일 주소를 입력하시면<br />
+                임시 비밀번호를 보내드립니다.
+              </p>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setFindPasswordLoading(true);
+                  setFindPasswordError('');
+                  setFindPasswordMessage('');
+
+                  try {
+                    const response = await findPassword(findPasswordEmail);
+                    setFindPasswordMessage('임시 비밀번호가 이메일로 전송되었습니다.');
+                    setTimeout(() => {
+                      setShowFindPassword(false);
+                      setFindPasswordEmail('');
+                      setFindPasswordMessage('');
+                    }, 3000);
+                  } catch (error) {
+                    setFindPasswordError('이메일 전송에 실패했습니다. 다시 시도해주세요.');
+                  } finally {
+                    setFindPasswordLoading(false);
+                  }
+                }}
+              >
+                <div className="mb-4">
+                  <label htmlFor="findPasswordEmail" className="block text-sm font-medium text-blue-100 mb-1">
+                    이메일
+                  </label>
+                  <input
+                    type="email"
+                    id="findPasswordEmail"
+                    value={findPasswordEmail}
+                    onChange={(e) => setFindPasswordEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-blue-300/30 rounded-lg bg-white/10 text-white placeholder-blue-200/60 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 backdrop-blur-sm"
+                    placeholder="이메일 주소 입력"
+                    required
+                  />
+                </div>
+
+                {findPasswordError && (
+                  <div className="mb-4 p-2 bg-red-500/20 text-red-200 rounded-lg text-sm border border-red-400/30">
+                    {findPasswordError}
+                  </div>
+                )}
+
+                {findPasswordMessage && (
+                  <div className="mb-4 p-2 bg-green-500/20 text-green-200 rounded-lg text-sm border border-green-400/30">
+                    {findPasswordMessage}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={findPasswordLoading}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex justify-center shadow-xl"
+                  >
+                    {findPasswordLoading ? (
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    ) : (
+                      '전송'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFindPassword(false);
+                      setFindPasswordEmail('');
+                      setFindPasswordError('');
+                      setFindPasswordMessage('');
+                    }}
+                    className="px-6 py-3 border border-blue-300/30 text-blue-100 hover:bg-white/10 rounded-lg transition duration-300"
+                  >
+                    취소
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 
