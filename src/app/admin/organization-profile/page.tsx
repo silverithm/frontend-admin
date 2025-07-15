@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getOrganizationProfile, updateOrganizationProfile, deleteUser, changePassword } from '@/lib/apiService';
+import { getOrganizationProfile, updateOrganizationProfile, deleteAdminUser, changePassword } from '@/lib/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
@@ -592,7 +592,7 @@ export default function OrganizationProfilePage() {
                     setError('');
 
                     try {
-                      await deleteUser();
+                      await deleteAdminUser();
                       // 탈퇴 성공 시 로그인 페이지로 이동
                       router.push('/login');
                     } catch (err) {
