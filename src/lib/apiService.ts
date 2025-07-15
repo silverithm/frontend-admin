@@ -598,17 +598,17 @@ export async function deleteAdminUser(): Promise<string> {
 // 로그아웃 (업데이트)
 export async function logout() {
     try {
-        // 서버에 로그아웃 요청 (선택사항)
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-            await fetchWithoutAuth('/api/v1/logout', {
-                method: 'POST',
-                body: JSON.stringify({refreshToken}),
-            }).catch(() => {
-                // 로그아웃 API 실패해도 클라이언트 정리는 계속 진행
-                console.warn('서버 로그아웃 요청 실패 - 클라이언트 정리 계속 진행');
-            });
-        }
+        // // 서버에 로그아웃 요청 (선택사항)
+        // const refreshToken = localStorage.getItem('refreshToken');
+        // if (refreshToken) {
+        //     await fetchWithoutAuth('/api/v1/logout', {
+        //         method: 'POST',
+        //         body: JSON.stringify({refreshToken}),
+        //     }).catch(() => {
+        //         // 로그아웃 API 실패해도 클라이언트 정리는 계속 진행
+        //         console.warn('서버 로그아웃 요청 실패 - 클라이언트 정리 계속 진행');
+        //     });
+        // }
     } catch (error) {
         console.warn('로그아웃 API 호출 중 오류:', error);
     } finally {
