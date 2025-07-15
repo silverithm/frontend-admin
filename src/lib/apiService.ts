@@ -572,7 +572,7 @@ export async function register(userData: {
 // 관리자 회원탈퇴
 export async function deleteAdminUser(): Promise<string> {
     try {
-        const response = await fetchWithAuth('/v1/users', {
+        const response = await fetchWithAuth('/api/v1/users', {
             method: 'DELETE',
         });
 
