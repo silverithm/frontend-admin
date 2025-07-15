@@ -47,11 +47,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    return new NextResponse(responseText, {
+    return NextResponse.json({
+      message: responseText || 'success'
+    }, { 
       status: 200,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+      headers 
     });
   } catch (error) {
     console.error('회원탈퇴 API 오류:', error);
