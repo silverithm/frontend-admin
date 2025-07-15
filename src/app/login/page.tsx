@@ -71,6 +71,9 @@ export default function LoginPage() {
       const result = await signin(formData.email, formData.password);
       console.log('로그인 성공:', result);
       
+      // 로그인한 사용자 이메일 저장
+      localStorage.setItem('userEmail', formData.email);
+      
       // 아이디 기억하기 처리
       try {
         if (rememberEmail) {

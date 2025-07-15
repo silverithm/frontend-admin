@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getOrganizationProfile, updateOrganizationProfile } from '@/lib/apiService';
-import { motion } from 'framer-motion';
+import { getOrganizationProfile, updateOrganizationProfile, deleteUser, changePassword } from '@/lib/apiService';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
 interface OrganizationProfileData {
@@ -24,6 +24,17 @@ export default function OrganizationProfilePage() {
   const [formData, setFormData] = useState<OrganizationProfileData | null>(null);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -299,9 +310,25 @@ export default function OrganizationProfilePage() {
                 </div>
                 
                 <div className="pt-6 border-t border-gray-100">
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">기관 정보 관리</p>
-                    <p className="text-xs text-gray-400 mt-1">기관의 기본 정보를 확인할 수 있습니다.</p>
+                  <div className="flex justify-between items-center">
+                    <div className="text-center flex-1">
+                      <p className="text-sm text-gray-500">기관 정보 관리</p>
+                      <p className="text-xs text-gray-400 mt-1">기관의 기본 정보를 확인할 수 있습니다.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowPasswordModal(true)}
+                        className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                      >
+                        비밀번호 변경
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                      >
+                        회원탈퇴
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -354,6 +381,237 @@ export default function OrganizationProfilePage() {
           </div>
         </div>
       </footer>
+
+      {/* 비밀번호 변경 모달 */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPasswordModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">비밀번호 변경</h2>
+              
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setPasswordError('');
+
+                  // 유효성 검사
+                  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                    setPasswordError('새 비밀번호가 일치하지 않습니다.');
+                    return;
+                  }
+
+                  if (passwordForm.newPassword.length < 6) {
+                    setPasswordError('비밀번호는 6자 이상이어야 합니다.');
+                    return;
+                  }
+
+                  setIsChangingPassword(true);
+
+                  try {
+                    const userEmail = localStorage.getItem('userEmail') || '';
+                    await changePassword({
+                      email: userEmail,
+                      currentPassword: passwordForm.currentPassword,
+                      newPassword: passwordForm.newPassword
+                    });
+                    
+                    setSuccessMessage('비밀번호가 성공적으로 변경되었습니다.');
+                    setShowPasswordModal(false);
+                    setPasswordForm({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: ''
+                    });
+                  } catch (err) {
+                    setPasswordError('비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인해주세요.');
+                  } finally {
+                    setIsChangingPassword(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                    현재 비밀번호
+                  </label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                    새 비밀번호
+                  </label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                    새 비밀번호 확인
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                {passwordError && (
+                  <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                    {passwordError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordForm({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                      });
+                      setPasswordError('');
+                    }}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isChangingPassword}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {isChangingPassword ? '변경 중...' : '비밀번호 변경'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 회원탈퇴 확인 모달 */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">회원탈퇴</h2>
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                  <p className="text-red-800 text-sm font-medium mb-2">⚠️ 경고</p>
+                  <p className="text-red-700 text-sm">
+                    회원탈퇴 시 모든 데이터가 삭제되며, 이는 복구할 수 없습니다.<br />
+                    탈퇴를 원하시면 아래에 <strong>"탈퇴하겠습니다"</strong>라고 입력해주세요.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="deleteConfirm" className="block text-sm font-medium text-gray-700 mb-2">
+                    탈퇴 확인
+                  </label>
+                  <input
+                    type="text"
+                    id="deleteConfirm"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="탈퇴하겠습니다"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmText('');
+                    setError('');
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (deleteConfirmText !== '탈퇴하겠습니다') {
+                      setError('확인 문구를 정확히 입력해주세요.');
+                      return;
+                    }
+
+                    setIsDeleting(true);
+                    setError('');
+
+                    try {
+                      await deleteUser();
+                      // 탈퇴 성공 시 로그인 페이지로 이동
+                      router.push('/login');
+                    } catch (err) {
+                      setError('회원탈퇴에 실패했습니다. 다시 시도해주세요.');
+                      console.error(err);
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                  disabled={deleteConfirmText !== '탈퇴하겠습니다' || isDeleting}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {isDeleting ? '탈퇴 처리 중...' : '회원탈퇴'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 

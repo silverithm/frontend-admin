@@ -535,6 +535,36 @@ export async function register(userData: {
   });
 }
 
+// 회원탈퇴
+export async function deleteUser(): Promise<string> {
+  const token = localStorage.getItem('accessToken');
+  
+  if (!token) {
+    throw new Error('인증 토큰이 없습니다.');
+  }
+
+  const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/v1/users`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('회원탈퇴에 실패했습니다.');
+  }
+
+  // 탈퇴 성공 시 로컬 스토리지 정리
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('companyId');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('role');
+
+  const result = await response.text();
+  return result;
+}
+
 // 로그아웃 (업데이트)
 export async function logout() {
   try {
