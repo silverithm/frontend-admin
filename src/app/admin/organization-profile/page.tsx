@@ -543,7 +543,7 @@ export default function OrganizationProfilePage() {
                   <p className="text-red-800 text-sm font-medium mb-2">⚠️ 경고</p>
                   <p className="text-red-700 text-sm">
                     회원탈퇴 시 모든 데이터가 삭제되며, 이는 복구할 수 없습니다.<br />
-                    탈퇴를 원하시면 아래에 <strong>"탈퇴하겠습니다"</strong>라고 입력해주세요.
+                    탈퇴를 원하시면 아래에 <strong>&ldquo;탈퇴하겠습니다&rdquo;</strong>라고 입력해주세요.
                   </p>
                 </div>
 
