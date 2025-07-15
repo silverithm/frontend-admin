@@ -571,34 +571,28 @@ export async function register(userData: {
 
 // 관리자 회원탈퇴
 export async function deleteAdminUser(): Promise<string> {
-    const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+    try {
+        const response = await fetchWithAuth('/v1/users', {
+            method: 'DELETE',
+        });
 
-    if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+        // 탈퇴 성공 시 로컬 스토리지 정리
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('companyId');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('role');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('companyName');
+        localStorage.removeItem('companyAddressName');
+
+        return 'success';
+    } catch (error) {
+        console.error('회원탈퇴 오류:', error);
+        throw new Error('회원탈퇴에 실패했습니다.');
     }
-
-    const response = await fetchWithAuth("/api/v1/users", {
-        method: 'DELETE',
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || '회원탈퇴에 실패했습니다.');
-    }
-
-    // 탈퇴 성공 시 로컬 스토리지 정리
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('companyId');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('role');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('companyName');
-    localStorage.removeItem('companyAddressName');
-
-    return 'success';
 }
 
 // 로그아웃 (업데이트)
