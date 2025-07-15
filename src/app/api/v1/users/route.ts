@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
+// 기본 CORS 및 캐시 방지 헤더 설정
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+};
+
+// OPTIONS 요청에 대한 핸들러
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers });
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     // Authorization 헤더 가져오기
