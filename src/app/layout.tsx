@@ -44,7 +44,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: '', // Google Search Console 인증 코드 추가 필요
-    // naver: '', // 네이버 웹마스터도구는 별도 meta 태그로 추가 필요
+    other: {
+      'naver-site-verification': '58069dba17e679f9ee99b6e6cef839633dac960e',
+    },
   },
   alternates: {
     canonical: 'https://carev.kr',
