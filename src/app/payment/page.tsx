@@ -6,8 +6,8 @@ import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 
-// 토스페이먼츠 클라이언트 키 (환경변수로 관리하는 것을 권장)
-const TOSS_CLIENT_KEY = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
+// 토스페이먼츠 클라이언트 키
+const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -78,6 +78,11 @@ export default function PaymentPage() {
   const handlePayment = async () => {
     if (!customerKey) {
       alert('사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.');
+      return;
+    }
+
+    if (!TOSS_CLIENT_KEY) {
+      alert('결제 설정에 오류가 있습니다. 관리자에게 문의해주세요.');
       return;
     }
 

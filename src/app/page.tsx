@@ -154,17 +154,9 @@ export default function LandingPage() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">관리자 페이지</h2>
-            <p className="text-blue-100/80 mb-4 text-center leading-relaxed">
+            <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
               직원 휴무 일정 승인 및 전체 현황 관리는<br /> 관리자 페이지에서 진행해 주세요.
             </p>
-            <div className="bg-yellow-400/20 backdrop-blur-sm px-4 py-3 rounded-xl border border-yellow-400/30 mb-6">
-              <p className="text-yellow-100 text-sm font-semibold text-center">
-                🎉 30일 무료 체험 후 월 9,900원
-              </p>
-              <p className="text-yellow-200/80 text-xs text-center mt-1">
-                무료 체험 기간 동안 모든 기능을 제한 없이 이용하세요
-              </p>
-            </div>
             <div className="flex flex-col gap-3">
               <button 
                 onClick={handleGoToLogin}
@@ -372,6 +364,182 @@ export default function LandingPage() {
               <p className="text-blue-100/80 text-lg">
                 ✨ 간단한 4단계로 케어브이 서비스 이용을 시작하세요!
               </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* 가격 정보 섹션 */}
+      <section id="pricing" className="py-20 bg-slate-900/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent"
+          >
+            케어브이 가격 안내
+          </motion.h2>
+          
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* 무료 체험 카드 */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-blue-400/20 hover:bg-white/15 transition-all duration-300"
+              >
+                <div className="text-center">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">30일 무료 체험</h3>
+                  <div className="text-4xl font-bold text-green-400 mb-4">무료</div>
+                  <p className="text-blue-100/80 mb-6 leading-relaxed">
+                    케어브이의 모든 기능을 30일간 무료로 체험해보세요
+                  </p>
+                  <ul className="space-y-3 text-left text-blue-100/80 text-sm">
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      모든 휴가 관리 기능 이용
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      직원 등록 및 관리
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      실시간 알림 및 승인
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      고객 지원
+                    </li>
+                  </ul>
+                </div>
+              </motion.div>
+
+              {/* 유료 구독 카드 */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 relative"
+              >
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                    추천 플랜
+                  </span>
+                </div>
+                <div className="text-center mt-4">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Basic 플랜</h3>
+                  <div className="flex items-center justify-center mb-4">
+                    <span className="text-4xl font-bold text-blue-300">₩9,900</span>
+                    <span className="text-blue-200/70 ml-2">/월</span>
+                  </div>
+                  <p className="text-blue-100/80 mb-6 leading-relaxed">
+                    무료 체험 이후 모든 기능을 계속 이용하세요
+                  </p>
+                  <ul className="space-y-3 text-left text-blue-100/80 text-sm">
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      모든 휴가 관리 기능
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      무제한 직원 등록
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      실시간 알림 기능
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      데이터 백업 및 복원
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      우선 고객 지원
+                    </li>
+                  </ul>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* 추가 정보 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="mt-12 text-center"
+            >
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-blue-400/20">
+                <h3 className="text-xl font-semibold text-white mb-4">💡 가격 정책 안내</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-blue-100/80 text-sm">
+                  <div className="text-left">
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <span className="text-blue-400 mr-2">•</span>
+                        30일 무료 체험 후 자동으로 Basic 플랜으로 전환
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-400 mr-2">•</span>
+                        매월 자동 결제 (언제든 취소 가능)
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-400 mr-2">•</span>
+                        부가세 포함 가격
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="text-left">
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <span className="text-blue-400 mr-2">•</span>
+                        결제는 안전한 토스페이먼츠를 통해 처리
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-400 mr-2">•</span>
+                        구독 취소 시 다음 결제일까지 이용 가능
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-400 mr-2">•</span>
+                        데이터는 구독 취소 후에도 30일간 보관
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
