@@ -22,9 +22,9 @@ const Navbar: React.FC = () => {
   }, []);
 
   const navLinks = [
-    { href: '#pricing', label: '가격' },
     { href: '#features', label: '주요 기능' },
     { href: '#process', label: '가입 절차' },
+    { href: '#pricing', label: '가격' },
     { href: '#contact', label: '문의하기' },
   ];
 
