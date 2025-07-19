@@ -29,7 +29,7 @@ import Image from "next/image";
 
 export default function AdminPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"vacation" | "users">("vacation");
+    const [activeTab, setActiveTab] = useState<"vacation" | "users" | "subscription">("vacation");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -1077,6 +1077,35 @@ export default function AdminPage() {
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
+                            <button
+                                onClick={() => setActiveTab("subscription")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeTab === "subscription"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                  구독 관리
+                </span>
+                                {activeTab === "subscription" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
                         </nav>
                     </div>
                 </div>
@@ -1555,7 +1584,7 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </motion.div>
-                    ) : (
+                    ) : activeTab === "users" ? (
                         <motion.div
                             key="users"
                             initial={{opacity: 0, y: 20}}
@@ -1567,6 +1596,25 @@ export default function AdminPage() {
                                 organizationName={companyName || undefined}
                                 onNotification={showNotification}
                             />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="subscription"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <div className="bg-white rounded-lg shadow-sm p-6">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-4">구독 관리</h2>
+                                <p className="text-gray-600 mb-6">구독 상태를 확인하고 관리할 수 있습니다.</p>
+                                <button
+                                    onClick={() => router.push('/subscription')}
+                                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                >
+                                    구독 관리 페이지로 이동
+                                </button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>

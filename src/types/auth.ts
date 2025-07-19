@@ -1,3 +1,5 @@
+import { SubscriptionResponseDTO } from './subscription';
+
 // 사용자 로그인 DTO
 export interface UserSigninDTO {
   email: string;
@@ -11,12 +13,6 @@ export interface TokenInfo {
   accessTokenExpirationTime: number;
   refreshToken: string;
   refreshTokenExpirationTime: number;
-}
-
-// 구독 정보 (필요시 확장)
-export interface SubscriptionResponseDTO {
-  // 구독 관련 필드들 (백엔드에서 정의된 구조에 따라 확장)
-  [key: string]: any;
 }
 
 // 위치 정보
