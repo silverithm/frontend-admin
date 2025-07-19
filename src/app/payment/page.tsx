@@ -183,10 +183,10 @@ export default function PaymentPage() {
           </button>
 
           <button
-            onClick={() => router.push('/subscription')}
+            onClick={() => router.push('/admin')}
             className="w-full mt-3 py-2 px-4 text-gray-600 hover:text-gray-800 text-sm"
           >
-            돌아가기
+            관리자 페이지로 돌아가기
           </button>
         </div>
 

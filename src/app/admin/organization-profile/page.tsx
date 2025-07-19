@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getOrganizationProfile, updateOrganizationProfile, deleteAdminUser, changePassword } from '@/lib/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import SubscriptionInfo from '@/components/SubscriptionInfo';
 
 interface OrganizationProfileData {
   name: string;
@@ -307,6 +308,12 @@ export default function OrganizationProfilePage() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* 구독 정보 섹션 */}
+                <div className="mt-12 pt-8 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-6">구독 정보</h3>
+                  <SubscriptionInfo />
                 </div>
 
                 {/* 계정 설정 섹션 */}

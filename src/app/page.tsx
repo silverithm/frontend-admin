@@ -154,9 +154,17 @@ export default function LandingPage() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">관리자 페이지</h2>
-            <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
+            <p className="text-blue-100/80 mb-4 text-center leading-relaxed">
               직원 휴무 일정 승인 및 전체 현황 관리는<br /> 관리자 페이지에서 진행해 주세요.
             </p>
+            <div className="bg-yellow-400/20 backdrop-blur-sm px-4 py-3 rounded-xl border border-yellow-400/30 mb-6">
+              <p className="text-yellow-100 text-sm font-semibold text-center">
+                🎉 30일 무료 체험 후 월 9,900원
+              </p>
+              <p className="text-yellow-200/80 text-xs text-center mt-1">
+                무료 체험 기간 동안 모든 기능을 제한 없이 이용하세요
+              </p>
+            </div>
             <div className="flex flex-col gap-3">
               <button 
                 onClick={handleGoToLogin}

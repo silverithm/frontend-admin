@@ -60,9 +60,12 @@ export default function SubscriptionStatus() {
         className="flex items-center space-x-2 px-3 py-2 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-400/30 hover:bg-red-500/30 transition-all duration-300"
       >
         <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-        <span className="text-red-100 text-sm font-medium">
-          {subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
-        </span>
+        <div className="flex flex-col">
+          <span className="text-red-100 text-sm font-medium">
+            {subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
+          </span>
+          <span className="text-red-200/70 text-xs">월 9,900원으로 계속하기</span>
+        </div>
       </button>
     );
   }
@@ -71,9 +74,12 @@ export default function SubscriptionStatus() {
     return (
       <div className="flex items-center space-x-2 px-3 py-2 bg-yellow-500/20 backdrop-blur-sm rounded-lg border border-yellow-400/30">
         <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-        <span className="text-yellow-100 text-sm font-medium">
-          무료 체험 {daysRemaining}일 남음
-        </span>
+        <div className="flex flex-col">
+          <span className="text-yellow-100 text-sm font-medium">
+            무료 체험 {daysRemaining}일 남음
+          </span>
+          <span className="text-yellow-200/70 text-xs">이후 월 9,900원</span>
+        </div>
       </div>
     );
   }
@@ -82,9 +88,12 @@ export default function SubscriptionStatus() {
     return (
       <div className="flex items-center space-x-2 px-3 py-2 bg-green-500/20 backdrop-blur-sm rounded-lg border border-green-400/30">
         <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-        <span className="text-green-100 text-sm font-medium">
-          Basic 플랜 활성
-        </span>
+        <div className="flex flex-col">
+          <span className="text-green-100 text-sm font-medium">
+            Basic 플랜 활성
+          </span>
+          <span className="text-green-200/70 text-xs">월 9,900원</span>
+        </div>
       </div>
     );
   }
