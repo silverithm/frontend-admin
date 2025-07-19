@@ -9,13 +9,9 @@ interface SubscriptionGuardProps {
   children: React.ReactNode;
 }
 
-// 구독 확인이 필요없는 페이지들
-const PUBLIC_PATHS = [
-  '/login',
-  '/signup',
-  '/subscription',
-  '/payment',
-  '/api'
+// 구독 확인이 필요한 페이지들 (admin 경로만)
+const PROTECTED_PATHS = [
+  '/admin'
 ];
 
 export default function SubscriptionGuard({ children }: SubscriptionGuardProps) {
@@ -26,8 +22,8 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   const [showBlockModal, setShowBlockModal] = useState(false);
 
   useEffect(() => {
-    // 공개 페이지는 구독 확인하지 않음
-    if (PUBLIC_PATHS.some(path => pathname.startsWith(path))) {
+    // 보호된 페이지(/admin)가 아니면 구독 확인하지 않음
+    if (!PROTECTED_PATHS.some(path => pathname.startsWith(path))) {
       setLoading(false);
       return;
     }

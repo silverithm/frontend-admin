@@ -25,6 +25,7 @@ import VacationCalendar from "@/components/VacationCalendar";
 import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
+import SubscriptionInfo from "@/components/SubscriptionInfo";
 import Image from "next/image";
 
 export default function AdminPage() {
@@ -1605,16 +1606,7 @@ export default function AdminPage() {
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h2 className="text-2xl font-bold text-gray-900 mb-4">구독 관리</h2>
-                                <p className="text-gray-600 mb-6">구독 상태를 확인하고 관리할 수 있습니다.</p>
-                                <button
-                                    onClick={() => router.push('/subscription')}
-                                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                >
-                                    구독 관리 페이지로 이동
-                                </button>
-                            </div>
+                            <SubscriptionInfo />
                         </motion.div>
                     )}
                 </AnimatePresence>
