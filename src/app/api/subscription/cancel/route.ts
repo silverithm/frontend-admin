@@ -10,7 +10,7 @@ export async function PUT() {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscription/cancel`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscriptions/cancel`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${authToken}`,

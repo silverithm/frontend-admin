@@ -10,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscription`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscriptions`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscription`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/subscriptions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`,
