@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SubscriptionResponseDTO, SubscriptionType, SubscriptionBillingType, SubscriptionStatus } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
+import { useAlert } from '@/components/Alert';
 
 export default function SubscriptionPage() {
   const router = useRouter();
+  const { showAlert, AlertContainer } = useAlert();
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,9 +44,17 @@ export default function SubscriptionPage() {
       setLoading(true);
       await subscriptionService.cancelSubscription();
       await fetchSubscription();
-      alert('구독이 취소되었습니다.');
+      showAlert({
+        type: 'success',
+        title: '구독 취소 완료',
+        message: '구독이 취소되었습니다.'
+      });
     } catch (err) {
-      alert('구독 취소에 실패했습니다.');
+      showAlert({
+        type: 'error',
+        title: '구독 취소 실패',
+        message: '구독 취소에 실패했습니다.'
+      });
       console.error(err);
     } finally {
       setLoading(false);
@@ -71,7 +81,9 @@ export default function SubscriptionPage() {
   const daysRemaining = subscription ? subscriptionService.getDaysRemaining(subscription) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <>
+      <AlertContainer />
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">구독 관리</h1>
 
@@ -224,6 +236,7 @@ export default function SubscriptionPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

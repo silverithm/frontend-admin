@@ -5,8 +5,7 @@ import { getVacationCalendar, getVacationForDate, getVacationLimits as apiGetVac
 // 특정 월의 휴가 신청 데이터 가져오기
 export async function getVacationsForMonth(year: number, month: number) {
   try {
-    console.log(`getVacationsForMonth 호출: ${year}년 ${month}월`);
-    
+
     // 월의 시작일과 마지막 일을 계산
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // 해당 월의 마지막 날
@@ -36,7 +35,6 @@ export async function getVacationsForMonth(year: number, month: number) {
       });
     }
     
-    console.log(`${year}년 ${month}월 휴가 데이터 ${vacations.length}건 로드 완료`);
     return vacations;
   } catch (error) {
     console.error('월별 휴가 데이터 조회 중 오류:', error);
@@ -47,8 +45,6 @@ export async function getVacationsForMonth(year: number, month: number) {
 // 날짜 범위별 휴가 신청 데이터 가져오기
 export async function getVacationRequestsForDateRange(startDate: string, endDate: string) {
   try {
-    console.log(`날짜 범위별 휴가 데이터 조회: ${startDate} ~ ${endDate}`);
-    
     const response = await getVacationCalendar(startDate, endDate);
     
     const vacations: VacationRequest[] = [];
@@ -73,7 +69,6 @@ export async function getVacationRequestsForDateRange(startDate: string, endDate
       });
     }
     
-    console.log(`날짜 범위 휴가 데이터 ${vacations.length}건 로드 완료`);
     return vacations;
   } catch (error) {
     console.error('날짜 범위별 휴가 데이터 조회 중 오류:', error);
@@ -85,12 +80,8 @@ export async function getVacationRequestsForDateRange(startDate: string, endDate
 export async function getVacationsForDate(date: Date) {
   try {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    console.log(`특정 날짜 휴가 데이터 조회: ${formattedDate}`);
     
     const response = await getVacationForDate(formattedDate, 'all');
-    
-    console.log('백엔드 응답 데이터:', response);
-    console.log('백엔드 응답의 vacations:', response.vacations);
     
     const vacations: VacationRequest[] = response.vacations?.map((vacation: any) => ({
       id: vacation.id?.toString(),
@@ -106,9 +97,6 @@ export async function getVacationsForDate(date: Date) {
       updatedAt: vacation.updatedAt
     })) || [];
     
-    console.log(`${formattedDate} 휴가 데이터 ${vacations.length}건 로드 완료`);
-    console.log('변환된 휴가 데이터:', vacations);
-    
     return vacations;
   } catch (error) {
     console.error('특정 날짜 휴가 데이터 조회 중 오류:', error);
@@ -119,8 +107,6 @@ export async function getVacationsForDate(date: Date) {
 // 특정 월의 휴가 제한 데이터 가져오기
 export async function getVacationLimitsForMonth(year: number, month: number) {
   try {
-    console.log(`휴가 제한 데이터 조회: ${year}년 ${month}월`);
-    
     // 월의 시작일과 마지막 일을 계산
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // 해당 월의 마지막 날
@@ -134,7 +120,6 @@ export async function getVacationLimitsForMonth(year: number, month: number) {
       role: limit.role
     })) || [];
     
-    console.log(`${year}년 ${month}월 휴가 제한 데이터 ${limits.length}건 로드 완료`);
     return limits;
   } catch (error) {
     console.error('월별 휴가 제한 데이터 조회 중 오류:', error);
@@ -145,8 +130,6 @@ export async function getVacationLimitsForMonth(year: number, month: number) {
 // 날짜 범위별 휴가 제한 데이터 가져오기
 export async function getVacationLimitsForMonthRange(startDate: string, endDate: string) {
   try {
-    console.log(`날짜 범위별 휴가 제한 데이터 조회: ${startDate} ~ ${endDate}`);
-    
     const response = await apiGetVacationLimits(startDate, endDate);
     
     const limits: VacationLimit[] = response.limits?.map((limit: any) => ({
@@ -156,7 +139,6 @@ export async function getVacationLimitsForMonthRange(startDate: string, endDate:
       role: limit.role
     })) || [];
     
-    console.log(`날짜 범위 휴가 제한 데이터 ${limits.length}건 로드 완료`);
     return limits;
   } catch (error) {
     console.error('날짜 범위별 휴가 제한 데이터 조회 중 오류:', error);
@@ -168,7 +150,6 @@ export async function getVacationLimitsForMonthRange(startDate: string, endDate:
 export async function getVacationLimitForDate(date: Date, role: 'caregiver' | 'office') {
   try {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    console.log(`특정 날짜 휴가 제한 조회: ${formattedDate}, 역할: ${role}`);
     
     const response = await getVacationForDate(formattedDate, role);
     
@@ -204,7 +185,6 @@ export async function getVacationLimitForDate(date: Date, role: 'caregiver' | 'o
 export async function setVacationLimit(date: Date, maxPeople: number, role: 'caregiver' | 'office') {
   try {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    console.log(`휴가 제한 설정: ${formattedDate}, 최대인원: ${maxPeople}, 역할: ${role}`);
     
     const limits = [{
       date: formattedDate,
@@ -214,7 +194,6 @@ export async function setVacationLimit(date: Date, maxPeople: number, role: 'car
     
     const response = await import('./apiService').then(api => api.saveVacationLimits(limits));
     
-    console.log('휴가 제한 설정 완료');
     return response;
   } catch (error) {
     console.error('휴가 제한 설정 중 오류:', error);
@@ -225,8 +204,6 @@ export async function setVacationLimit(date: Date, maxPeople: number, role: 'car
 // 모든 휴가 요청 데이터 가져오기
 export async function getAllVacationRequestsData() {
   try {
-    console.log('모든 휴가 요청 데이터 조회');
-    
     const response = await getAllVacationRequests();
     
     const vacations: VacationRequest[] = response.requests?.map((vacation: any) => ({
@@ -243,7 +220,6 @@ export async function getAllVacationRequestsData() {
       updatedAt: vacation.updatedAt
     })) || [];
     
-    console.log(`모든 휴가 요청 데이터 ${vacations.length}건 로드 완료`);
     return vacations;
   } catch (error) {
     console.error('모든 휴가 요청 데이터 조회 중 오류:', error);
@@ -256,7 +232,6 @@ export async function getVacationLimits(startDate: Date, endDate: Date) {
   try {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
-    console.log(`휴가 제한 정보 조회: ${startDateStr} ~ ${endDateStr}`);
     
     const response = await apiGetVacationLimits(startDateStr, endDateStr);
     
@@ -267,7 +242,6 @@ export async function getVacationLimits(startDate: Date, endDate: Date) {
       role: limit.role
     })) || [];
     
-    console.log(`휴가 제한 정보 ${limits.length}건 로드 완료`);
     return limits;
   } catch (error) {
     console.error('휴가 제한 정보 조회 중 오류:', error);

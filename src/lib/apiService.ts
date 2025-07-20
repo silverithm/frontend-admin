@@ -51,8 +51,6 @@ async function refreshAccessToken(): Promise<string> {
     }
 
     try {
-        console.log('[Token Refresh] Refresh token 요청 시작');
-
         const response = await fetch(`${API_BASE_URL}/api/v1/refresh-token`, {
             method: 'POST',
             headers: {
@@ -66,7 +64,6 @@ async function refreshAccessToken(): Promise<string> {
         }
 
         const data = await response.json();
-        console.log('[Token Refresh] 백엔드 응답:', data);
 
         // 백엔드에서 TokenInfo 객체를 직접 반환
         if (data && data.accessToken) {
@@ -75,7 +72,6 @@ async function refreshAccessToken(): Promise<string> {
             localStorage.setItem('refreshToken', data.refreshToken);
             localStorage.setItem('tokenExpirationTime', data.accessTokenExpirationTime?.toString() || '');
 
-            console.log('[Token Refresh] 새로운 토큰 저장 완료');
             return data.accessToken;
         } else {
             console.error('[Token Refresh] 응답 구조 오류:', data);
@@ -89,7 +85,6 @@ async function refreshAccessToken(): Promise<string> {
 
 // 로그아웃 및 리다이렉트 처리
 const handleLogout = () => {
-    console.log('[Auth] 토큰 갱신 실패 - 로그아웃 처리');
 
     // 모든 토큰 및 사용자 정보 삭제
     localStorage.removeItem('authToken');
@@ -169,8 +164,6 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
     // Next.js API 라우트를 통한 프록시 방식
     const fullUrl = url.startsWith('/api') ? url : `/api${url}`;
 
-    console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`);
-    console.log(`[API Mode] Using Next.js proxy`);
 
     try {
         // fetch 요청 실행
@@ -181,14 +174,11 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
 
         // 401 Unauthorized - JWT 토큰 만료 또는 무효
         if (response.status === 401) {
-            console.log('[API Auth] 401 응답 - 토큰 갱신 시도');
 
             try {
                 // 토큰 갱신 시도
                 const newToken = await refreshAccessToken();
                 headers['Authorization'] = `Bearer ${newToken}`;
-
-                console.log('[API Auth] 토큰 갱신 성공 - 요청 재시도');
 
                 // 갱신된 토큰으로 요청 재시도
                 const retryResponse = await fetch(fullUrl, {
@@ -202,7 +192,6 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
                 }
 
                 const result = await retryResponse.json();
-                console.log(`[API Success] ${options.method || 'GET'} ${url} - 재시도 성공`);
                 return result;
 
             } catch (refreshError) {
@@ -235,7 +224,6 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
         }
 
         const result = await response.json();
-        console.log(`[API Success] ${options.method || 'GET'} ${url} - 응답 완료`);
         return result;
     } catch (error) {
         console.error(`[API Error] ${options.method || 'GET'} ${fullUrl}:`, error);
@@ -371,14 +359,12 @@ export async function saveVacationLimits(limits: Array<{
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
 
-    console.log('[saveVacationLimits] 휴가 제한 저장 시작:', {limits, companyId});
 
     const result = await fetchWithAuth(`/api/vacation/limits?companyId=${companyId}`, {
         method: 'POST',
         body: JSON.stringify({limits}),
     });
 
-    console.log('[saveVacationLimits] 휴가 제한 저장 완료:', result);
     return result;
 }
 
@@ -423,7 +409,6 @@ export async function login(email: string, password: string) {
 // 사용자 로그인 (새로운 API)
 export async function signin(email: string, password: string): Promise<SigninResponseDTO> {
     try {
-        console.log('로그인 시도:', {email});
 
         // 직접 백엔드 ngrok URL로 요청
         const response = await fetch(`${API_BASE_URL}/api/v1/signin`, {
@@ -436,7 +421,6 @@ export async function signin(email: string, password: string): Promise<SigninRes
             body: JSON.stringify({email, password}),
         });
 
-        console.log('백엔드 응답 상태:', response.status, response.statusText);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
@@ -445,7 +429,6 @@ export async function signin(email: string, password: string): Promise<SigninRes
         }
 
         const data = await response.json();
-        console.log('로그인 응답 데이터:', data);
 
         // 로그인 성공 시 JWT 토큰과 사용자 정보 저장
         if (data && data.tokenInfo) {
@@ -469,10 +452,8 @@ export async function signin(email: string, password: string): Promise<SigninRes
 
             // companyId 저장 (필수값)
             localStorage.setItem('companyId', data.companyId.toString());
-
-            console.log('로그인 정보 저장 완료, companyId:', data.companyId);
         } else {
-            console.warn('토큰 정보가 없는 응답:', data);
+            console.error('로그인 응답에 토큰 정보가 없습니다:', data);
             throw new Error('로그인 응답에 토큰 정보가 없습니다.');
         }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SubscriptionResponseDTO } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
+import { useAlert } from './Alert';
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ const PROTECTED_PATHS = [
 export default function SubscriptionGuard({ children }: SubscriptionGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { showAlert, AlertContainer } = useAlert();
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -62,8 +64,13 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       
       // 500 에러 시 서버 오류 알림 후 랜딩페이지로
       if (error.status >= 500) {
-        alert('서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도하거나 고객센터에 문의해주세요.');
-        router.push('/');
+        showAlert({
+          type: 'error',
+          title: '서버 오류',
+          message: '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도하거나 고객센터에 문의해주세요.',
+          duration: 7000
+        });
+        setTimeout(() => router.push('/'), 3000);
         return;
       }
       
@@ -133,5 +140,10 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <AlertContainer />
+      {children}
+    </>
+  );
 }

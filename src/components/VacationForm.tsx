@@ -4,6 +4,7 @@ import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { VacationFormProps, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import { FiUser, FiBriefcase, FiUsers, FiCalendar, FiClock, FiLock } from 'react-icons/fi';
+import { useAlert } from './Alert';
 
 const VacationForm: React.FC<VacationFormProps> = ({ 
   initialDate, 
@@ -13,6 +14,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
   setIsSubmitting,
   roleFilter
 }) => {
+  const { showAlert, AlertContainer } = useAlert();
   const [userName, setUserName] = useState('');
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
@@ -110,7 +112,11 @@ const VacationForm: React.FC<VacationFormProps> = ({
           console.error('에러 스택:', error.stack);
         }
         
-        alert('휴무 신청 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
+        showAlert({
+          type: 'error',
+          title: '휴무 신청 실패',
+          message: '휴무 신청 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.'
+        });
       } finally {
         setIsSubmitting(false);
       }
@@ -118,7 +124,9 @@ const VacationForm: React.FC<VacationFormProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+    <>
+      <AlertContainer />
+      <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
       {/* 헤더 */}
       <div className="border-b pb-3 sm:pb-4 mb-4 sm:mb-5">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
@@ -360,7 +368,8 @@ const VacationForm: React.FC<VacationFormProps> = ({
           </button>
         </div>
       </form>
-    </div>
+      </div>
+    </>
   );
 };
 

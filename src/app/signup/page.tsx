@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { signup } from '@/lib/apiService';
+import { useAlert } from '@/components/Alert';
 import Image from 'next/image';
 
 // 다음 주소 API 타입 정의
@@ -15,6 +16,7 @@ declare global {
 
 export default function SignupPage() {
   const router = useRouter();
+  const { showAlert, AlertContainer } = useAlert();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -68,7 +70,11 @@ export default function SignupPage() {
         }
       }).open();
     } else {
-      alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      showAlert({
+        type: 'warning',
+        title: '주소 검색 서비스 로딩 중',
+        message: '주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'
+      });
     }
   };
 
@@ -162,7 +168,11 @@ export default function SignupPage() {
       console.log('회원가입 성공:', result);
       
       // 회원가입 성공 후 로그인 페이지로 이동
-      alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
+      showAlert({
+        type: 'success',
+        title: '회원가입 완료',
+        message: '회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.'
+      });
       router.push('/login');
     } catch (error) {
       console.error('회원가입 오류:', error);
@@ -186,7 +196,9 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
+    <>
+      <AlertContainer />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -393,6 +405,7 @@ export default function SignupPage() {
           </p>
         </div>
       </motion.div>
-    </div>
+      </div>
+    </>
   );
 } 

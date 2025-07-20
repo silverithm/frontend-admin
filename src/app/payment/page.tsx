@@ -5,6 +5,7 @@ import {useRouter, useSearchParams} from 'next/navigation';
 import {loadTossPayments} from '@tosspayments/payment-sdk';
 import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
 import {subscriptionService} from '@/services/subscription';
+import {useAlert} from '@/components/Alert';
 
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
@@ -12,6 +13,7 @@ const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
 export default function PaymentPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { showAlert, AlertContainer } = useAlert();
     const [loading, setLoading] = useState(false);
     const [customerKey, setCustomerKey] = useState<string>('');
     const [userInfo, setUserInfo] = useState({
@@ -67,11 +69,19 @@ export default function PaymentPage() {
 
             await subscriptionService.createOrUpdateSubscription(subscriptionData);
 
-            alert('결제가 완료되었습니다! Basic 플랜을 이용하실 수 있습니다.');
+            showAlert({
+              type: 'success',
+              title: '결제 완료',
+              message: '결제가 완료되었습니다! Basic 플랜을 이용하실 수 있습니다.'
+            });
             router.push('/admin');
         } catch (error) {
             console.error('구독 생성 실패:', error);
-            alert('결제는 완료되었으나 구독 활성화에 실패했습니다. 고객센터에 문의해주세요.');
+            showAlert({
+              type: 'warning',
+              title: '구독 활성화 실패',
+              message: '결제는 완료되었으나 구독 활성화에 실패했습니다. 고객센터에 문의해주세요.'
+            });
         } finally {
             setLoading(false);
         }
@@ -79,17 +89,29 @@ export default function PaymentPage() {
 
     const handlePayment = async () => {
         if (!customerKey) {
-            alert('사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.');
+            showAlert({
+              type: 'error',
+              title: '사용자 정보 오류',
+              message: '사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.'
+            });
             return;
         }
 
         if (!agreementChecked) {
-            alert('정기 구독 서비스 이용약관에 동의해주세요.');
+            showAlert({
+              type: 'warning',
+              title: '약관 동의 필수',
+              message: '정기 구독 서비스 이용약관에 동의해주세요.'
+            });
             return;
         }
 
         if (!TOSS_CLIENT_KEY) {
-            alert('결제 설정에 오류가 있습니다. 관리자에게 문의해주세요.');
+            showAlert({
+              type: 'error',
+              title: '결제 설정 오류',
+              message: '결제 설정에 오류가 있습니다. 관리자에게 문의해주세요.'
+            });
             return;
         }
 
@@ -110,7 +132,11 @@ export default function PaymentPage() {
             });
         } catch (error) {
             console.error('결제 오류:', error);
-            alert('결제 중 오류가 발생했습니다.');
+            showAlert({
+              type: 'error',
+              title: '결제 오류',
+              message: '결제 중 오류가 발생했습니다.'
+            });
         } finally {
             setLoading(false);
         }
@@ -120,13 +146,19 @@ export default function PaymentPage() {
     useEffect(() => {
         const success = searchParams.get('success');
         if (success === 'false') {
-            alert('결제가 취소되었습니다.');
+            showAlert({
+              type: 'info',
+              title: '결제 취소',
+              message: '결제가 취소되었습니다.'
+            });
             router.push('/subscription-check');
         }
     }, [searchParams, router]);
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <>
+            <AlertContainer />
+            <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md mx-auto">
                 <div className="bg-white shadow rounded-lg p-6">
                     <h1 className="text-2xl font-bold text-gray-900 mb-6">Basic 플랜 결제</h1>
@@ -285,6 +317,7 @@ export default function PaymentPage() {
                     </p>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 }

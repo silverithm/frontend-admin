@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { SubscriptionResponseDTO, SubscriptionType, SubscriptionBillingType, SubscriptionStatus } from '@/types/subscription';
 import { PaymentFailureResponseDTO, PaymentFailureReason } from '@/types/payment';
 import { subscriptionService } from '@/services/subscription';
+import { useAlert } from './Alert';
 
 export default function SubscriptionInfo() {
   const router = useRouter();
+  const { showAlert, AlertContainer } = useAlert();
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,9 +79,17 @@ export default function SubscriptionInfo() {
       setLoading(true);
       await subscriptionService.cancelSubscription();
       await fetchSubscription();
-      alert('구독이 취소되었습니다.');
+      showAlert({
+        type: 'success',
+        title: '구독 취소 완료',
+        message: '구독이 취소되었습니다.'
+      });
     } catch (err) {
-      alert('구독 취소에 실패했습니다.');
+      showAlert({
+        type: 'error',
+        title: '구독 취소 실패',
+        message: '구독 취소에 실패했습니다.'
+      });
       console.error(err);
     } finally {
       setLoading(false);
@@ -110,7 +120,9 @@ export default function SubscriptionInfo() {
   const daysRemaining = subscription ? subscriptionService.getDaysRemaining(subscription) : 0;
 
   return (
-    <div className="space-y-6">
+    <>
+      <AlertContainer />
+      <div className="space-y-6">
       {/* 현재 구독 정보 카드 */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
@@ -366,6 +378,7 @@ export default function SubscriptionInfo() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

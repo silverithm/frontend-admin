@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signin, findPassword } from '@/lib/apiService';
 import { subscriptionService } from '@/services/subscription';
+import { useAlert } from '@/components/Alert';
 import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showAlert, AlertContainer } = useAlert();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -20,7 +22,7 @@ export default function LoginPage() {
   const [findPasswordEmail, setFindPasswordEmail] = useState('');
   const [findPasswordLoading, setFindPasswordLoading] = useState(false);
   const [findPasswordMessage, setFindPasswordMessage] = useState('');
-  const [findPasswordError, setFindPasswordError] = useState('');
+  const [findPasswordError, setFindPasswordError] = useState('');  
 
   useEffect(() => {
     // 컴포넌트 마운트 시 저장된 이메일 불러오기
@@ -81,8 +83,13 @@ export default function LoginPage() {
         router.push('/subscription-check');
       } else if (error.status >= 500) {
         // 500 에러 시 에러 메시지 표시 후 랜딩페이지로
-        alert('서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도하거나 고객센터에 문의해주세요.');
-        router.push('/');
+        showAlert({
+          type: 'error',
+          title: '서버 오류',
+          message: '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도하거나 고객센터에 문의해주세요.',
+          duration: 7000
+        });
+        setTimeout(() => router.push('/'), 3000);
       } else {
         // 기타 오류 시 관리자 페이지로 (SubscriptionGuard가 처리)
         router.push('/admin');
@@ -140,7 +147,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 p-4 relative">
+    <>
+      <AlertContainer />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 p-4 relative">
       {/* 뒤로가기 버튼 */}
       <button
         onClick={() => router.push('/')}
@@ -397,6 +406,7 @@ export default function LoginPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </>
   );
 } 

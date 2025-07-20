@@ -70,7 +70,7 @@ export default function SubscriptionCheckPage() {
       router.push('/admin');
     } catch (err) {
       setError('무료 구독 생성에 실패했습니다. 다시 시도해주세요.');
-      console.error('Free subscription creation error:', err);
+      console.error('무료 구독 생성 오류:', err);
     } finally {
       setCreatingFree(false);
     }
