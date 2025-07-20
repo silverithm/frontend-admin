@@ -13,7 +13,6 @@ import {
 // API 기본 URL (환경에 따라 변경될 수 있음)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
-console.log('[API Service] 사용 중인 API_BASE_URL:', API_BASE_URL);
 
 // 토큰 갱신 중복 방지를 위한 플래그
 let isRefreshing = false;
