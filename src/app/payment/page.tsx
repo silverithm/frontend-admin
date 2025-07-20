@@ -85,8 +85,54 @@ export default function PaymentPage() {
                 if (error?.message) {
                     const errorString = error.message;
                     
-                    // JSON 형태의 에러 메시지 파싱
-                    if (errorString.includes('{') && errorString.includes('}')) {
+                    // 내부 시스템 에러 필터링 (사용자에게 노출하지 않음)
+                    const internalErrors = [
+                        'User not found with email',
+                        'Internal server error',
+                        'Database connection',
+                        'Null pointer',
+                        'Authentication failed',
+                        'Token expired',
+                        'Unauthorized access'
+                    ];
+                    
+                    const isInternalError = internalErrors.some(pattern => 
+                        errorString.toLowerCase().includes(pattern.toLowerCase())
+                    );
+                    
+                    // 내부 에러인 경우 결제 관련 에러만 추출
+                    if (isInternalError) {
+                        // 결제 실패 관련 JSON만 추출
+                        const paymentErrorMatch = errorString.match(/결제 실패[^{]*({[^}]*code[^}]*})/);
+                        if (paymentErrorMatch) {
+                            const paymentErrorData = JSON.parse(paymentErrorMatch[1]);
+                            if (paymentErrorData.message) {
+                                errorMessage = paymentErrorData.message;
+                                
+                                // 결제 에러 코드에 따른 제목 및 메시지 설정
+                                switch (paymentErrorData.code) {
+                                    case 'REJECT_ACCOUNT_PAYMENT':
+                                        errorTitle = '결제 실패 - 잔액 부족';
+                                        errorMessage = paymentErrorData.message + '\n\n다른 결제 수단을 이용해 주세요.';
+                                        break;
+                                    case 'REJECT_CARD_PAYMENT':
+                                        errorTitle = '결제 실패 - 카드 오류';
+                                        errorMessage = paymentErrorData.message + '\n\n카드 정보를 확인하거나 다른 카드를 이용해 주세요.';
+                                        break;
+                                    case 'NOT_FOUND_BILLING':
+                                        errorTitle = '결제 실패 - 빌링 정보 오류';
+                                        errorMessage = paymentErrorData.message + '\n\n페이지를 새로고침 후 다시 시도해 주세요.';
+                                        break;
+                                    default:
+                                        errorTitle = '결제 실패';
+                                        errorMessage = paymentErrorData.message;
+                                }
+                            }
+                        }
+                        // 내부 에러이지만 결제 정보가 없는 경우 기본 메시지 사용하고 진행
+                    }
+                    // 내부 에러가 아닌 경우 또는 결제 정보 추출 후 일반 JSON 파싱
+                    else if (errorString.includes('{') && errorString.includes('}')) {
                         const jsonMatch = errorString.match(/{.*}/);
                         if (jsonMatch) {
                             const errorData = JSON.parse(jsonMatch[0]);
@@ -158,7 +204,7 @@ export default function PaymentPage() {
             console.error('구독 생성 실패:', {
                 title: errorTitle,
                 message: errorMessage,
-                originalError: error
+                originalError: error?.message
             });
             
             showAlert({
