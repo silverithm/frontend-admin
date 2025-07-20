@@ -94,8 +94,22 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   if (showBlockModal) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-          <div className="text-center">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+          {/* 좌측 상단 뒤로가기 버튼 */}
+          <button
+            onClick={() => {
+              localStorage.clear();
+              window.location.href = 'https://carev.kr';
+            }}
+            className="absolute left-6 top-6 text-gray-500 hover:text-gray-700 flex items-center"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            뒤로가기
+          </button>
+
+          <div className="text-center pt-8">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
               <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -118,23 +132,19 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
 
             <div className="space-y-3">
               <button
-                onClick={() => router.push('/payment')}
+                onClick={() => {
+                  setShowBlockModal(false);
+                  router.push('/payment');
+                }}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
               >
                 결제하기
               </button>
 
               <button
-                onClick={() => router.back()}
-                className="w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-300 transition-colors font-medium"
-              >
-                뒤로 가기
-              </button>
-
-              <button
                 onClick={() => {
                   localStorage.clear();
-                  router.push('/login');
+                  window.location.href = 'https://carev.kr';
                 }}
                 className="w-full text-gray-500 hover:text-gray-700 text-sm"
               >
