@@ -27,6 +27,7 @@ export default function PaymentPage() {
         // localStorage에서 사용자 정보 가져오기
         const storedCustomerKey = localStorage.getItem('customerKey');
         const userName = localStorage.getItem('userName') || '';
+        const userEmail = localStorage.getItem('userEmail') || '';
         const userId = localStorage.getItem('userId') || '';
 
         // customerKey가 없으면 userId를 기반으로 생성
@@ -35,7 +36,15 @@ export default function PaymentPage() {
 
         setUserInfo({
             name: userName,
-            email: '' // 이메일 정보가 localStorage에 없으므로 빈 값으로 설정
+            email: userEmail || '' // 이메일이 없으면 빈 문자열로 설정
+        });
+
+        // 디버깅: 로드된 사용자 정보 확인
+        console.log('결제 페이지 사용자 정보 로드:', {
+            userName,
+            userEmail,
+            userId,
+            customerKey: key
         });
     }, []);
 
@@ -117,6 +126,16 @@ export default function PaymentPage() {
             return;
         }
 
+        if (!userInfo.email) {
+            showAlert({
+              type: 'error',
+              title: '이메일 정보 누락',
+              message: '이메일 정보가 필요합니다. 다시 로그인해주세요.'
+            });
+            router.push('/login');
+            return;
+        }
+
         if (!agreementChecked) {
             showAlert({
               type: 'warning',
@@ -178,6 +197,20 @@ export default function PaymentPage() {
             <div className="max-w-md mx-auto">
                 <div className="bg-white shadow rounded-lg p-6">
                     <h1 className="text-2xl font-bold text-gray-900 mb-6">Basic 플랜 결제</h1>
+
+                    {/* 사용자 정보 표시 */}
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h3 className="font-medium text-gray-700 mb-2">결제자 정보</h3>
+                        <div className="text-sm text-gray-600 space-y-1">
+                            <p><span className="font-medium">이름:</span> {userInfo.name || '정보 없음'}</p>
+                            <p><span className="font-medium">이메일:</span> {userInfo.email || '정보 없음'}</p>
+                        </div>
+                        {(!userInfo.name || !userInfo.email) && (
+                            <p className="text-xs text-red-500 mt-2">
+                                * 결제자 정보가 누락되었습니다. 다시 로그인해주세요.
+                            </p>
+                        )}
+                    </div>
 
                     <div className="mb-6">
                         <div className="bg-blue-50 rounded-lg p-4">
@@ -309,9 +342,9 @@ export default function PaymentPage() {
 
                     <button
                         onClick={handlePayment}
-                        disabled={loading || !customerKey || !agreementChecked}
+                        disabled={loading || !customerKey || !agreementChecked || !userInfo.name || !userInfo.email}
                         className={`w-full py-3 px-4 rounded-md text-white font-medium transition-colors ${
-                            loading || !customerKey || !agreementChecked
+                            loading || !customerKey || !agreementChecked || !userInfo.name || !userInfo.email
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-blue-600 hover:bg-blue-700'
                         }`}
