@@ -16,18 +16,24 @@ export const subscriptionService = {
     if (!response.ok) {
       // 에러 응답의 내용을 확인
       let errorMessage = 'Failed to fetch subscription';
+      let errorData: any = {};
+      
       try {
-        const errorData = await response.json();
-        // 백엔드에서 보낸 정확한 에러 메시지 사용
-        if (errorData.error || errorData.message) {
-          errorMessage = errorData.error || errorData.message;
+        errorData = await response.json();
+        // 백엔드의 GlobalExceptionHandler가 반환하는 error 필드 사용
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
         }
       } catch {
         // JSON 파싱 실패 시 기본 메시지 사용
+        errorMessage = `HTTP ${response.status} error`;
       }
       
       const error = new Error(errorMessage);
       (error as any).status = response.status;
+      (error as any).data = errorData;
       throw error;
     }
 
@@ -48,7 +54,24 @@ export const subscriptionService = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create subscription');
+      let errorMessage = 'Failed to create subscription';
+      let errorData: any = {};
+      
+      try {
+        errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status} error`;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = errorData;
+      throw error;
     }
 
     return response.json();
@@ -67,7 +90,24 @@ export const subscriptionService = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to cancel subscription');
+      let errorMessage = 'Failed to cancel subscription';
+      let errorData: any = {};
+      
+      try {
+        errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status} error`;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = errorData;
+      throw error;
     }
 
     return response.json();
@@ -86,7 +126,24 @@ export const subscriptionService = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create free subscription');
+      let errorMessage = 'Failed to create free subscription';
+      let errorData: any = {};
+      
+      try {
+        errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status} error`;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = errorData;
+      throw error;
     }
 
     return response.json();

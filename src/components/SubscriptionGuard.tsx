@@ -50,9 +50,17 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       }
     } catch (error: any) {
       console.error('구독 확인 실패:', error);
+      console.error('Error details:', {
+        status: error.status,
+        message: error.message,
+        data: error.data
+      });
       
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
-      if (error.status === 404 && error.message.includes('No subscription found')) {
+      // 백엔드 GlobalExceptionHandler의 error 필드 확인
+      if (error.status === 404 && 
+          (error.message === 'No subscription found' || 
+           error.data?.error === 'No subscription found')) {
         router.push('/subscription-check');
         return;
       }
