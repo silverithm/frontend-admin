@@ -52,8 +52,14 @@ export default function SubscriptionInfo() {
     router.push('/payment');
   };
 
-  const getFailureReasonText = (reason: PaymentFailureReason): string => {
-    switch (reason) {
+  const getFailureReasonText = (failure: PaymentFailureResponseDTO): string => {
+    // failureReasonDescription이 있으면 그것을 사용 (예: "잔액 부족")
+    if (failure.failureReasonDescription && failure.failureReasonDescription.trim() !== '') {
+      return failure.failureReasonDescription;
+    }
+    
+    // 없으면 enum 기반 기본 메시지
+    switch (failure.failureReason) {
       case PaymentFailureReason.CARD_EXPIRED:
         return '카드 유효기간 만료';
       case PaymentFailureReason.INSUFFICIENT_FUNDS:
@@ -66,8 +72,10 @@ export default function SubscriptionInfo() {
         return '네트워크 오류';
       case PaymentFailureReason.SYSTEM_ERROR:
         return '시스템 오류';
+      case PaymentFailureReason.OTHER:
+        return '결제 실패';
       default:
-        return '기타 오류';
+        return '결제 실패';
     }
   };
 
@@ -342,7 +350,7 @@ export default function SubscriptionInfo() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-medium text-red-900">
-                        {getFailureReasonText(failure.failureReason)}
+                        {getFailureReasonText(failure)}
                       </p>
                       <p className="text-xs text-red-600">
                         {new Date(failure.failedAt).toLocaleDateString('ko-KR')} • {failure.subscriptionType} 플랜
