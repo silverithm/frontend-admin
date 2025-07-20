@@ -29,6 +29,7 @@ export interface SubscriptionResponseDTO {
   endDate: string;
   status: SubscriptionStatus;
   amount: number;
+  hasUsedFreeSubscription: boolean;
 }
 
 // 구독 요청 DTO

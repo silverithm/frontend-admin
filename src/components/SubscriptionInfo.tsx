@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SubscriptionResponseDTO, SubscriptionType, SubscriptionBillingType, SubscriptionStatus } from '@/types/subscription';
+import { PaymentFailureResponseDTO, PaymentFailureReason } from '@/types/payment';
 import { subscriptionService } from '@/services/subscription';
 
 export default function SubscriptionInfo() {
@@ -10,9 +11,12 @@ export default function SubscriptionInfo() {
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentFailures, setPaymentFailures] = useState<PaymentFailureResponseDTO[]>([]);
+  const [loadingPaymentFailures, setLoadingPaymentFailures] = useState(false);
 
   useEffect(() => {
     fetchSubscription();
+    fetchPaymentFailures();
   }, []);
 
   const fetchSubscription = async () => {
@@ -28,8 +32,40 @@ export default function SubscriptionInfo() {
     }
   };
 
+  const fetchPaymentFailures = async () => {
+    try {
+      setLoadingPaymentFailures(true);
+      const data = await subscriptionService.getMyPaymentFailures(0, 3); // 최근 3개만
+      setPaymentFailures(data.content);
+    } catch (err) {
+      console.error('결제 실패 정보 조회 실패:', err);
+      // 결제 실패 정보는 선택적이므로 에러를 무시
+    } finally {
+      setLoadingPaymentFailures(false);
+    }
+  };
+
   const handlePayment = () => {
     router.push('/payment');
+  };
+
+  const getFailureReasonText = (reason: PaymentFailureReason): string => {
+    switch (reason) {
+      case PaymentFailureReason.CARD_EXPIRED:
+        return '카드 유효기간 만료';
+      case PaymentFailureReason.INSUFFICIENT_FUNDS:
+        return '잔액 부족';
+      case PaymentFailureReason.CARD_DECLINED:
+        return '카드사 승인 거절';
+      case PaymentFailureReason.INVALID_CARD:
+        return '유효하지 않은 카드';
+      case PaymentFailureReason.NETWORK_ERROR:
+        return '네트워크 오류';
+      case PaymentFailureReason.SYSTEM_ERROR:
+        return '시스템 오류';
+      default:
+        return '기타 오류';
+    }
   };
 
   const handleCancelSubscription = async () => {
@@ -248,6 +284,67 @@ export default function SubscriptionInfo() {
               <span className="font-medium">우선 고객 지원</span>
             </li>
           </ul>
+        </div>
+      )}
+
+      {/* 결제 실패 정보 섹션 */}
+      {paymentFailures.length > 0 && (
+        <div className="bg-red-50 rounded-xl border border-red-200 p-6">
+          <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
+            <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center mr-2">
+              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            최근 결제 실패 내역
+          </h3>
+          
+          <div className="space-y-3">
+            {paymentFailures.map((failure) => (
+              <div key={failure.id} className="bg-white rounded-lg p-4 border border-red-200">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-medium text-red-900">
+                      {getFailureReasonText(failure.failureReason)}
+                    </p>
+                    <p className="text-sm text-red-700">
+                      {failure.failureReasonDescription}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-red-900">
+                      ₩{failure.attemptedAmount.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-red-600">
+                      {new Date(failure.failedAt).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                </div>
+                
+                {failure.failureMessage && (
+                  <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-800">
+                    {failure.failureMessage}
+                  </div>
+                )}
+                
+                <div className="mt-3 flex justify-between items-center text-xs text-red-600">
+                  <span>{failure.subscriptionType} 플랜 • {failure.billingType}</span>
+                  <button
+                    onClick={handlePayment}
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
+                  >
+                    다시 결제하기
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 p-3 bg-red-100 rounded-lg">
+            <p className="text-sm text-red-800">
+              💡 결제 실패가 반복될 경우 카드 정보를 확인하거나 다른 결제 방법을 이용해 주세요.
+            </p>
+          </div>
         </div>
       )}
     </div>

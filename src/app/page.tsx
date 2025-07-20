@@ -544,7 +544,6 @@ export default function LandingPage() {
                                 </div>
                             </motion.div>
                         </div>
-
                         {/* 자동 갱신 안내 */}
                         <motion.div
                             initial={{opacity: 0, y: 20}}

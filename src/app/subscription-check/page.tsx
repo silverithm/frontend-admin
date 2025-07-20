@@ -82,6 +82,10 @@ export default function SubscriptionCheckPage() {
 
   // 만료된 구독이 있는 경우
   const isExpiredSubscription = subscription && subscriptionService.needsPayment(subscription);
+  
+  // 무료 체험을 한 번이라도 사용한 경우 (무료로 시작하기 버튼 숨김 용도)
+  const hasUsedFreeTrial = subscriptionService.hasUsedFreeSubscription(subscription);
+  const canUseFreeSubscription = subscriptionService.canUseFreeSubscription(subscription);
 
   if (loading) {
     return (
@@ -215,21 +219,25 @@ export default function SubscriptionCheckPage() {
           >
             <div className="mb-12">
               <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
-                케어브이에 오신 것을 환영합니다!
+                {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
               </h1>
               <p className="text-xl text-blue-100/90 leading-relaxed max-w-2xl mx-auto">
-                효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.
+                {!canUseFreeSubscription 
+                  ? '무료 체험 기간이 종료되었습니다. 서비스를 계속 이용하시려면 Basic 플랜을 구독해주세요.'
+                  : '효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.'
+                }
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* 무료 체험 카드 */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-blue-400/20 hover:bg-white/15 transition-all duration-300"
-              >
+            <div className={`grid gap-8 ${canUseFreeSubscription ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-md mx-auto'}`}>
+              {/* 무료 체험 카드 - 무료 체험을 사용할 수 있는 경우만 표시 */}
+              {canUseFreeSubscription && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-blue-400/20 hover:bg-white/15 transition-all duration-300"
+                >
                 <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-xl">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -263,24 +271,25 @@ export default function SubscriptionCheckPage() {
                   </li>
                 </ul>
 
-                <button
-                  onClick={handleCreateFreeSubscription}
-                  disabled={creatingFree}
-                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-xl ${
-                    creatingFree
-                      ? 'bg-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:scale-105'
-                  } text-white`}
-                >
-                  {creatingFree ? '시작하는 중...' : '무료로 시작하기'}
-                </button>
-              </motion.div>
+                  <button
+                    onClick={handleCreateFreeSubscription}
+                    disabled={creatingFree}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-xl ${
+                      creatingFree
+                        ? 'bg-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:scale-105'
+                    } text-white`}
+                  >
+                    {creatingFree ? '시작하는 중...' : '무료로 시작하기'}
+                  </button>
+                </motion.div>
+              )}
 
               {/* 유료 구독 카드 */}
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: !canUseFreeSubscription ? 0 : 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ duration: 0.6, delay: !canUseFreeSubscription ? 0.1 : 0.2 }}
                 className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 relative"
               >
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -302,7 +311,10 @@ export default function SubscriptionCheckPage() {
                     <span className="text-blue-200/70 ml-2">/월</span>
                   </div>
                   <p className="text-blue-100/80 mb-6 leading-relaxed">
-                    무료 체험 없이 바로 모든 기능을 이용하세요
+                    {!canUseFreeSubscription 
+                      ? '지속적인 서비스 이용을 위해 Basic 플랜을 구독하세요'
+                      : '무료 체험 없이 바로 모든 기능을 이용하세요'
+                    }
                   </p>
                   
                   <ul className="space-y-3 text-left text-blue-100/80 text-sm mb-8">

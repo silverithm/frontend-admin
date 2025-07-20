@@ -1,4 +1,5 @@
 import { SubscriptionResponseDTO, SubscriptionRequestDTO, SubscriptionStatus } from '@/types/subscription';
+import { PaymentFailurePage } from '@/types/payment';
 
 export const subscriptionService = {
   // 구독 정보 조회
@@ -170,8 +171,18 @@ export const subscriptionService = {
 
   needsPayment(subscription: SubscriptionResponseDTO): boolean {
     return this.isFreeTrialExpired(subscription) || 
+           this.isPaidSubscriptionExpired(subscription) ||
            subscription.status === SubscriptionStatus.EXPIRED ||
            subscription.status === SubscriptionStatus.INACTIVE;
+  },
+
+  isPaidSubscriptionExpired(subscription: SubscriptionResponseDTO): boolean {
+    // 유료 구독의 경우 endDate 직접 확인
+    if (subscription.planName !== 'FREE') {
+      const endDate = new Date(subscription.endDate);
+      return endDate < new Date();
+    }
+    return false;
   },
 
   getDaysRemaining(subscription: SubscriptionResponseDTO): number {
@@ -180,5 +191,51 @@ export const subscriptionService = {
     const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
+  },
+
+  // 무료 체험 사용 여부 확인
+  hasUsedFreeSubscription(subscription: SubscriptionResponseDTO | null): boolean {
+    return subscription ? subscription.hasUsedFreeSubscription : false;
+  },
+
+  // 무료 체험을 사용할 수 있는지 확인
+  canUseFreeSubscription(subscription: SubscriptionResponseDTO | null): boolean {
+    return !this.hasUsedFreeSubscription(subscription);
+  },
+
+  // 결제 실패 정보 조회
+  async getMyPaymentFailures(page: number = 0, size: number = 10): Promise<PaymentFailurePage> {
+    const token = localStorage.getItem('authToken');
+    
+    const response = await fetch(`/api/v1/payment-failures?page=${page}&size=${size}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch payment failures';
+      let errorData: any = {};
+      
+      try {
+        errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status} error`;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = errorData;
+      throw error;
+    }
+
+    return response.json();
   }
 };
