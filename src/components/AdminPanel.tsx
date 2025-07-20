@@ -82,7 +82,6 @@ const AdminPanel = ({
       const data = await response.json();
 
       // API 응답 확인 로그 추가
-      console.log("[AdminPanel] API 응답 limits:", data.limits);
       // 날짜별로 데이터 정리
       const existingLimits = data.limits || [];
       const allLimits: VacationLimit[] = [];
@@ -170,7 +169,6 @@ const AdminPanel = ({
       const saveLimits = limits.filter(
         (l) => l.role === "caregiver" || l.role === "office"
       );
-      console.log("[AdminPanel] 저장할 제한 데이터:", saveLimits);
 
       const response = await saveVacationLimits(saveLimits);
 
@@ -181,7 +179,6 @@ const AdminPanel = ({
       }
 
       const result = await response;
-      console.log("[AdminPanel] API 저장 결과:", result);
 
       // 성공 후 최신 데이터 새로고침
       await onUpdateSuccess();

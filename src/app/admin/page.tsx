@@ -208,10 +208,7 @@ export default function AdminPage() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
 
-            console.log("[fetchMonthData] 월별 데이터 가져오기 시작:", {
-                year,
-                month,
-            });
+
 
             // 캘린더 데이터 조회
             const startDate = new Date(year, month, 1);
@@ -274,7 +271,6 @@ export default function AdminPage() {
             });
             setVacationDays(days);
 
-            console.log("[fetchMonthData] 월별 데이터 가져오기 완료");
         } catch (error) {
             console.error("월별 휴무 데이터 로드 중 오류 발생:", error);
             showNotification(
@@ -293,12 +289,10 @@ export default function AdminPage() {
     const fetchAllRequests = async () => {
         setIsLoadingRequests(true);
         try {
-            console.log("[fetchAllRequests] 전체 휴무 요청 가져오기 시작");
 
             // apiService의 getAllVacationRequests 함수 사용 (토큰 갱신 로직 포함)
             const data = await getAllVacationRequests();
 
-            console.log("API 응답 데이터:", data);
 
             // 데이터가 배열인지 확인
             let requestsArray: VacationRequest[] = [];
@@ -316,31 +310,9 @@ export default function AdminPage() {
             // 첫 번째 요청 객체의 구조 상세 로그
             if (requestsArray.length > 0) {
                 const firstRequest = requestsArray[0];
-                console.log("첫 번째 요청 객체 상세 구조:", {
-                    id: firstRequest.id,
-                    userName: firstRequest.userName,
-                    date: firstRequest.date,
-                    dateType: typeof firstRequest.date,
-                    createdAt: firstRequest.createdAt,
-                    createdAtType: typeof firstRequest.createdAt,
-                    status: firstRequest.status,
-                    role: firstRequest.role,
-                    fullObject: firstRequest,
-                });
 
-                // 날짜 파싱 테스트
-                console.log("날짜 파싱 테스트:");
-                console.log("request.date:", firstRequest.date);
-                console.log("new Date(request.date):", new Date(firstRequest.date));
-                console.log("request.createdAt:", firstRequest.createdAt);
-                console.log(
-                    "new Date(Number(request.createdAt)):",
-                    new Date(Number(firstRequest.createdAt))
-                );
-                console.log(
-                    "new Date(request.createdAt):",
-                    new Date(firstRequest.createdAt)
-                );
+
+
             }
 
             setAllRequests(requestsArray);
@@ -349,7 +321,6 @@ export default function AdminPage() {
             );
             setPendingRequests(pendingOnly);
 
-            console.log("[fetchAllRequests] 전체 휴무 요청 가져오기 완료");
         } catch (error) {
             console.error("전체 휴무 요청을 불러오는 중 오류 발생:", error);
             showNotification(
@@ -371,12 +342,10 @@ export default function AdminPage() {
         try {
             const formattedDate = format(date, "yyyy-MM-dd");
 
-            console.log("날짜 상세 조회 요청:", {formattedDate, roleFilter});
 
             // roleFilter 처리 수정: 'all'일 때 그대로 전달
             const requestRole = roleFilter === "all" ? "all" : roleFilter;
 
-            console.log("실제 요청할 role:", requestRole);
 
             // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
             const data = await getVacationForDate(
@@ -385,15 +354,6 @@ export default function AdminPage() {
                 nameFilter || undefined
             );
 
-            console.log("날짜 상세 데이터 원본 응답:", data);
-            console.log("날짜 상세 데이터 응답 구조:", {
-                hasVacations: !!data.vacations,
-                vacationsLength: data.vacations?.length,
-                vacationsArray: data.vacations,
-                totalVacationers: data.totalVacationers,
-                maxPeople: data.maxPeople,
-                fullDataStructure: JSON.stringify(data, null, 2),
-            });
 
             // 데이터에서 휴가 목록 추출
             const vacations = Array.isArray(data.vacations)
@@ -403,31 +363,9 @@ export default function AdminPage() {
                 }))
                 : [];
 
-            console.log("추출된 휴가 목록:", {
-                extractedVacations: vacations,
-                firstVacation: vacations[0],
-                vacationCount: vacations.length,
-            });
 
-            // duration 필드 확인
-            if (vacations.length > 0) {
-                console.log("첫 번째 휴가의 duration 정보:", {
-                    duration: vacations[0].duration,
-                    hasDuration: "duration" in vacations[0],
-                    allFields: Object.keys(vacations[0]),
-                });
 
-                // 모든 휴가의 duration 정보 확인
-                vacations.forEach((vacation: any, index: number) => {
-                    console.log(`휴가 ${index + 1} 정보:`, {
-                        userName: vacation.userName,
-                        date: vacation.date,
-                        status: vacation.status,
-                        duration: vacation.duration,
-                        hasDuration: "duration" in vacation,
-                    });
-                });
-            }
+
 
             setDateVacations(vacations);
         } catch (error) {
@@ -488,21 +426,15 @@ export default function AdminPage() {
                 },
             ];
 
-            console.log("[handleLimitSet] 휴가 제한 설정 시작:", {
-                date: formattedDate,
-                maxPeople,
-                role,
-            });
+
 
             // apiService의 saveVacationLimits 함수 사용 (토큰 갱신 로직 포함)
             await saveVacationLimits(limits);
 
-            console.log("[handleLimitSet] 휴가 제한 설정 성공, 데이터 새로고침 시작");
 
             // 휴가 제한 설정 후 최신 데이터 가져오기
             await fetchMonthData();
 
-            console.log("[handleLimitSet] 데이터 새로고침 완료");
             showNotification("휴무 제한 인원이 설정되었습니다.", "success");
         } catch (error) {
             console.error("휴무 제한 설정 중 오류 발생:", error);
@@ -534,14 +466,10 @@ export default function AdminPage() {
     const handleApproveVacation = async (vacationId: string) => {
         setIsProcessing(true);
         try {
-            console.log("휴무 승인 시작:", {vacationId, type: typeof vacationId});
 
             // JWT 토큰 가져오기
             const token = localStorage.getItem("authToken");
-            console.log("JWT 토큰 상태:", {
-                hasToken: !!token,
-                tokenLength: token?.length,
-            });
+
 
             if (!token) {
                 throw new Error("인증 토큰이 없습니다.");
@@ -552,20 +480,14 @@ export default function AdminPage() {
                 Authorization: `Bearer ${token}`,
             };
 
-            console.log("승인 요청 전송:", {
-                url: `/api/vacation/approve/${vacationId}`,
-                headers,
-            });
+
 
             const response = await fetch(`/api/vacation/approve/${vacationId}`, {
                 method: "PUT",
                 headers,
             });
 
-            console.log("승인 응답 상태:", {
-                status: response.status,
-                ok: response.ok,
-            });
+
 
             if (!response.ok) {
                 const errorData = await response.text();
@@ -574,7 +496,6 @@ export default function AdminPage() {
             }
 
             const result = await response.json();
-            console.log("승인 성공 응답:", result);
 
             showNotification("휴무 요청이 승인되었습니다.", "success");
             await handleVacationUpdated();
@@ -598,14 +519,10 @@ export default function AdminPage() {
     const handleRejectVacation = async (vacationId: string) => {
         setIsProcessing(true);
         try {
-            console.log("휴무 거절 시작:", {vacationId, type: typeof vacationId});
 
             // JWT 토큰 가져오기
             const token = localStorage.getItem("authToken");
-            console.log("JWT 토큰 상태:", {
-                hasToken: !!token,
-                tokenLength: token?.length,
-            });
+
 
             if (!token) {
                 throw new Error("인증 토큰이 없습니다.");
@@ -616,20 +533,14 @@ export default function AdminPage() {
                 Authorization: `Bearer ${token}`,
             };
 
-            console.log("거절 요청 전송:", {
-                url: `/api/vacation/reject/${vacationId}`,
-                headers,
-            });
+
 
             const response = await fetch(`/api/vacation/reject/${vacationId}`, {
                 method: "PUT",
                 headers,
             });
 
-            console.log("거절 응답 상태:", {
-                status: response.status,
-                ok: response.ok,
-            });
+
 
             if (!response.ok) {
                 const errorData = await response.text();
@@ -638,7 +549,6 @@ export default function AdminPage() {
             }
 
             const result = await response.json();
-            console.log("거절 성공 응답:", result);
 
             showNotification("휴무 요청이 거절되었습니다.", "success");
             await handleVacationUpdated();
@@ -711,7 +621,6 @@ export default function AdminPage() {
     const formatDate = (dateValue: any): string => {
         if (!dateValue) return "";
 
-        console.log("포맷팅할 날짜 값:", {dateValue, type: typeof dateValue});
 
         let date: Date;
 
@@ -749,7 +658,6 @@ export default function AdminPage() {
             return "";
         }
 
-        console.log("파싱된 날짜:", date);
         return date.toLocaleDateString("ko-KR");
     };
 

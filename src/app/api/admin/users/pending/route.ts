@@ -18,8 +18,7 @@ export async function OPTIONS() {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[Admin Proxy] 대기중인 사용자 목록 요청');
-    
+
     // URL에서 검색 파라미터 추출
     const url = new URL(request.url);
     const companyId = url.searchParams.get('companyId');
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    console.log('[Admin Proxy] 백엔드로 요청 전달:', { companyId });
 
     // 백엔드로 요청 전달 (적절한 엔드포인트 사용)
     const backendResponse = await fetch(`${BACKEND_URL}/api/v1/members/join-requests/pending?companyId=${companyId}`, {
@@ -47,7 +45,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log('[Admin Proxy] 백엔드 응답 상태:', backendResponse.status);
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
@@ -59,8 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await backendResponse.json();
-    console.log('[Admin Proxy] 백엔드 응답 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

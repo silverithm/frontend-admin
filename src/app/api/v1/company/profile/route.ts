@@ -21,7 +21,6 @@ export async function OPTIONS() {
 // 기관 프로필 조회
 export async function GET(request: NextRequest) {
   try {
-    console.log('[Frontend API] 기관 프로필 조회 요청');
 
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
@@ -54,8 +53,7 @@ export async function GET(request: NextRequest) {
 
     const data = await backendResponse.json();
     
-    console.log('[Frontend API] 기관 프로필 조회 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {
@@ -69,7 +67,6 @@ export async function GET(request: NextRequest) {
 // 기관 프로필 업데이트
 export async function PUT(request: NextRequest) {
   try {
-    console.log('[Frontend API] 기관 프로필 업데이트 요청');
 
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
@@ -106,8 +103,7 @@ export async function PUT(request: NextRequest) {
 
     const data = await backendResponse.json();
     
-    console.log('[Frontend API] 기관 프로필 업데이트 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

@@ -26,7 +26,6 @@ export async function POST(
     const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     const apiUrl = `${backendUrl}/api/v1/members/join-requests/${userId}/reject?adminId=${adminId}`;
 
-    console.log('[Reject User API] 백엔드 API 호출:', apiUrl);
 
     const backendResponse = await fetch(apiUrl, {
       method: 'PUT',
@@ -50,7 +49,6 @@ export async function POST(
     }
 
     const data = await backendResponse.json();
-    console.log('[Reject User API] 백엔드 응답 데이터:', data);
 
     return NextResponse.json({ 
       message: '사용자 가입이 거절되었습니다.',

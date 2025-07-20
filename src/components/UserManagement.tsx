@@ -44,8 +44,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       // 가입 대기 중인 사용자 가져오기
       const pendingData: any = await getPendingUsers();
-      console.log('Pending users response:', pendingData);
-      
+
       // 백엔드에서 {requests: [...]} 구조로 응답
       const pendingArray = pendingData?.requests || [];
       
@@ -61,8 +60,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
 
       // 기존 회원 목록 가져오기
       const membersData: any = await getMemberUsers();
-      console.log('Members response:', membersData);
-      
+
       // 백엔드에서 {members: [...]} 구조로 응답
       const membersArray = membersData?.members || [];
       

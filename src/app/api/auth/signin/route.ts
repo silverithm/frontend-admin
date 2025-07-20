@@ -18,8 +18,7 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Signin Proxy] 로그인 요청 시작');
-    
+
     // 요청 본문 추출
     const body = await request.json();
     const { email, password } = body;
@@ -30,7 +29,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400, headers });
     }
 
-    console.log('[Signin Proxy] 백엔드로 로그인 요청 전달:', { email });
 
     // 백엔드로 요청 전달
     const backendResponse = await fetch(`${BACKEND_URL}/api/v1/signin`, {
@@ -43,7 +41,6 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ email, password }),
     });
 
-    console.log('[Signin Proxy] 백엔드 응답 상태:', backendResponse.status);
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
@@ -55,8 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await backendResponse.json();
-    console.log('[Signin Proxy] 백엔드 응답 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

@@ -149,11 +149,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      console.log('회원가입 폼 제출:', { 
-        email: formData.email, 
-        username: formData.username,
-        organizationName: formData.organizationName 
-      });
+
       
       // 백엔드 UserDataDTO 구조에 맞춰 회원가입 요청
       const result = await signup({
@@ -165,8 +161,7 @@ export default function SignupPage() {
         companyAddress: formData.address,
       });
       
-      console.log('회원가입 성공:', result);
-      
+
       // 회원가입 성공 후 로그인 페이지로 이동
       showAlert({
         type: 'success',

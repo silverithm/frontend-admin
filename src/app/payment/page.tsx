@@ -40,12 +40,7 @@ export default function PaymentPage() {
         });
 
         // 디버깅: 로드된 사용자 정보 확인
-        console.log('결제 페이지 사용자 정보 로드:', {
-            userName,
-            userEmail,
-            userId,
-            customerKey: key
-        });
+
     }, []);
 
     const handleBillingSuccess = useCallback(async (authKey: string) => {

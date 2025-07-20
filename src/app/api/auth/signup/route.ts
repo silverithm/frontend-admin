@@ -20,17 +20,11 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Frontend API] 사용자 회원가입 요청 프록시 시작');
-    
+
     // 요청 바디 파싱
     const requestBody = await request.json();
     
-    console.log('[Frontend API] 회원가입 데이터:', { 
-      name: requestBody.name, 
-      email: requestBody.email,
-      role: requestBody.role,
-      companyName: requestBody.companyName
-    });
+
 
     // 백엔드로 요청 전달 (JWT 토큰 없이)
     const backendResponse = await fetch(`${BACKEND_URL}/api/v1/signup`, {
@@ -52,8 +46,7 @@ export async function POST(request: NextRequest) {
 
     const data = await backendResponse.json();
     
-    console.log('[Frontend API] 회원가입 백엔드 응답 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

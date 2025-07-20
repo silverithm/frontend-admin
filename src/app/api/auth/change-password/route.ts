@@ -20,14 +20,11 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Frontend API] 비밀번호 변경 요청 프록시 시작');
-    
+
     // 요청 바디 파싱
     const requestBody = await request.json();
     
-    console.log('[Frontend API] 비밀번호 변경 데이터:', { 
-      email: requestBody.email 
-    });
+
 
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
@@ -61,8 +58,7 @@ export async function POST(request: NextRequest) {
 
     const data = await backendResponse.json();
     
-    console.log('[Frontend API] 비밀번호 변경 백엔드 응답 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

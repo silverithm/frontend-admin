@@ -17,8 +17,7 @@ export async function OPTIONS() {
 // GET: 전체 휴무 요청 조회
 export async function GET(request: NextRequest) {
   try {
-    console.log('[API] 전체 휴무 요청 조회 시작');
-    
+
     // URL에서 companyId 파라미터 추출
     const url = new URL(request.url);
     const companyId = url.searchParams.get('companyId');
@@ -47,8 +46,7 @@ export async function GET(request: NextRequest) {
       backendHeaders['Authorization'] = authToken;
     }
     
-    console.log(`[API] 백엔드 요청: ${apiUrl}`);
-    
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: backendHeaders,
@@ -61,8 +59,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log(`[API] 전체 휴무 요청 조회 결과: ${data?.requests?.length || 0}건 반환`);
-    
+
     return NextResponse.json(data, { headers });
   } catch (error) {
     console.error('[API] 전체 휴무 요청 조회 오류:', error);

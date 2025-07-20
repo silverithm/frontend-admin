@@ -20,8 +20,7 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Frontend API] 비밀번호 찾기 요청 프록시 시작');
-    
+
     // URL에서 email 파라미터 추출
     const url = new URL(request.url);
     const email = url.searchParams.get('email');
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400, headers });
     }
 
-    console.log('[Frontend API] 비밀번호 찾기 이메일:', email);
 
     // 백엔드로 요청 전달 (JWT 토큰 없이)
     const backendResponse = await fetch(`${BACKEND_URL}/api/v1/find/password?email=${encodeURIComponent(email)}`, {
@@ -53,8 +51,7 @@ export async function POST(request: NextRequest) {
 
     const data = await backendResponse.json();
     
-    console.log('[Frontend API] 비밀번호 찾기 백엔드 응답 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

@@ -65,7 +65,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       // 사용자 상태 변경
       backendUrl = `${BACKEND_URL}/api/v1/members/${userId}`;
       body = JSON.stringify(requestBody);
-      console.log(`[Admin Proxy] 사용자 상태 변경 요청:`, { userId, status: requestBody.status });
     } else if (action && adminId) {
       // 가입 승인/거부
       if (action === 'approve') {
@@ -78,7 +77,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           error: '지원하지 않는 action입니다.'
         }, { status: 400, headers });
       }
-      console.log(`[Admin Proxy] ${action} 요청:`, { userId, adminId });
     } else {
       return NextResponse.json({
         error: 'action과 adminId 파라미터가 필요하거나 status가 포함된 body가 필요합니다.'
@@ -97,7 +95,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       ...(body && { body }),
     });
 
-    console.log('[Admin Proxy] 백엔드 응답 상태:', backendResponse.status);
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
@@ -109,8 +106,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const data = await backendResponse.json();
-    console.log('[Admin Proxy] 백엔드 응답 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {
@@ -130,7 +126,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    console.log('[Admin Proxy] 사용자 삭제 요청:', { userId });
 
     // 백엔드로 요청 전달
     const backendResponse = await fetch(`${BACKEND_URL}/api/v1/members/${userId}`, {
@@ -143,7 +138,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       },
     });
 
-    console.log('[Admin Proxy] 백엔드 응답 상태:', backendResponse.status);
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
@@ -155,8 +149,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const data = await backendResponse.json();
-    console.log('[Admin Proxy] 사용자 삭제 성공');
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

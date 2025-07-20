@@ -31,8 +31,6 @@ export async function GET(request: NextRequest) {
     const requestId = url.searchParams.get('_r');
     const retryCount = url.searchParams.get('_retry') || '0';
 
-    console.log(`[Frontend API] 휴가 캘린더 요청 프록시 - ID: ${requestId || 'unknown'}, 시도: ${retryCount}`);
-    console.log(`[Frontend API] 백엔드로 전달: ${startDate} ~ ${endDate}, 역할: ${roleFilter}, 이름: ${nameFilter || 'none'}, companyId: ${companyId}`);
 
     // 파라미터 유효성 검사
     if (!startDate || !endDate) {
@@ -58,7 +56,6 @@ export async function GET(request: NextRequest) {
       backendUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;
     }
 
-    console.log(`[Frontend API] 백엔드 요청 URL: ${backendUrl}`);
 
     // 백엔드 요청 헤더 구성
     const backendHeaders: Record<string, string> = {
@@ -86,8 +83,7 @@ export async function GET(request: NextRequest) {
 
     const data = await backendResponse.json();
     
-    console.log(`[Frontend API] 백엔드 응답 성공 - ID: ${requestId || 'unknown'}, 날짜 수: ${Object.keys(data.dates || {}).length}`);
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

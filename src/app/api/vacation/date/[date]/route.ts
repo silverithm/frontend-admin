@@ -36,7 +36,6 @@ export async function GET(
     // companyId 파라미터 추출
     const companyId = request.nextUrl.searchParams.get('companyId');
 
-    console.log(`[Frontend API] 날짜 ${dateParam}에 대한 휴가 요청 조회 프록시 시작 (role=${role}, nameFilter=${nameFilter || 'none'}, companyId=${companyId})`);
 
     // 유효한 날짜 형식인지 확인
     if (!dateParam.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -69,7 +68,6 @@ export async function GET(
       backendUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;
     }
 
-    console.log(`[Frontend API] 백엔드 요청 URL: ${backendUrl}`);
 
     // 백엔드 요청 헤더 구성
     const backendHeaders: Record<string, string> = {
@@ -86,8 +84,7 @@ export async function GET(
 
     // role이 'all'인 경우 caregiver와 office 데이터를 모두 가져와서 합치기
     if (role === 'all') {
-      console.log(`[Frontend API] role=all이므로 caregiver와 office 데이터를 모두 가져옵니다.`);
-      
+
       try {
         // caregiver 데이터 요청
         let caregiverUrl = `${BACKEND_URL}/api/vacation/date/${dateParam}?companyId=${companyId}&role=caregiver`;
@@ -121,8 +118,6 @@ export async function GET(
         const caregiverData = await caregiverResponse.json();
         const officeData = await officeResponse.json();
         
-        console.log(`[Frontend API] caregiver 데이터:`, caregiverData);
-        console.log(`[Frontend API] office 데이터:`, officeData);
 
         // 두 데이터를 합치기
         data = {
@@ -135,8 +130,7 @@ export async function GET(
           maxPeople: Math.max(caregiverData.maxPeople || 0, officeData.maxPeople || 0)
         };
         
-        console.log(`[Frontend API] 합쳐진 데이터:`, data);
-        
+
       } catch (error) {
         console.error('[Frontend API] role=all 처리 중 오류:', error);
         return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { 
@@ -161,23 +155,12 @@ export async function GET(
       data = await backendResponse.json();
     }
     
-    console.log(`[Frontend API] 날짜 ${dateParam} 백엔드 응답 성공: ${data.totalVacationers || 0}명의 휴가자`);
-    console.log(`[Frontend API] 백엔드 응답 전체 데이터:`, JSON.stringify(data, null, 2));
+
     
     // vacations 배열에 duration 필드가 있는지 확인
     if (data.vacations && Array.isArray(data.vacations) && data.vacations.length > 0) {
-      console.log(`[Frontend API] 첫 번째 휴가 객체:`, data.vacations[0]);
-      console.log(`[Frontend API] 첫 번째 휴가의 duration:`, data.vacations[0].duration);
-      console.log(`[Frontend API] 모든 휴가의 duration 정보:`, 
-        data.vacations.map((v: any, i: number) => ({
-          index: i,
-          userName: v.userName,
-          duration: v.duration,
-          hasDuration: 'duration' in v
-        }))
-      );
+
     } else {
-      console.log(`[Frontend API] 휴가 데이터가 없거나 배열이 아닙니다:`, data.vacations);
     }
     
     return NextResponse.json(data, { 

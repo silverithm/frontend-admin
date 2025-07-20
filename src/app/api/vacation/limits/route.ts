@@ -45,8 +45,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`[API] 휴가 제한 조회 요청: ${start} ~ ${end}, companyId: ${companyId}`);
-    
+
     // 클라이언트에서 전달받은 JWT 토큰 가져오기
     const authToken = request.headers.get('authorization');
     
@@ -63,8 +62,7 @@ export async function GET(request: NextRequest) {
       backendHeaders['Authorization'] = authToken;
     }
     
-    console.log(`[API] 백엔드 요청: ${apiUrl}`);
-    
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: backendHeaders,
@@ -77,8 +75,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log(`[API] 휴가 제한 조회 결과: ${data.limits?.length || 0}건 반환`);
-    
+
     return NextResponse.json(data, { headers });
   } catch (error) {
     console.error('[API] 휴가 제한 조회 오류:', error);
@@ -108,8 +105,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { limits } = body;
     
-    console.log(`[Limits API] POST 요청 받음, ${limits?.length || 0}개 항목, companyId: ${companyId}, 현재 시간: ${new Date().toISOString()}`);
-    
+
     if (!limits || !Array.isArray(limits)) {
       console.error('[Limits API] 잘못된 요청 형식:', body);
       return NextResponse.json(
@@ -134,8 +130,7 @@ export async function POST(request: NextRequest) {
       backendHeaders['Authorization'] = authToken;
     }
     
-    console.log(`[API] 백엔드 요청: ${apiUrl}`);
-    
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: backendHeaders,
@@ -149,8 +144,7 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log(`[Limits API] 저장 완료, 타임스탬프: ${Date.now()}`);
-    
+
     // 캐시 방지 헤더를 포함한 성공 응답
     const responseHeaders = {
       ...headers,

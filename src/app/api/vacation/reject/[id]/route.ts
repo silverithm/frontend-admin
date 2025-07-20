@@ -25,7 +25,6 @@ export async function PUT(
   try {
     const { id } = await params;
     
-    console.log(`[Frontend API] 휴가 거부 요청 프록시: ID=${id}`);
 
     // JWT 토큰 추출
     const authHeader = request.headers.get('authorization');
@@ -58,8 +57,7 @@ export async function PUT(
 
     const data = await backendResponse.json();
     
-    console.log(`[Frontend API] 휴가 거부 백엔드 응답 성공: ID=${id}`);
-    
+
     return NextResponse.json(data, { headers });
       
   } catch (error) {

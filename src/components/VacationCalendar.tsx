@@ -61,7 +61,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 로그에 모든 휴가 데이터 출력
   const logAllVacations = useCallback(() => {
     if (Object.keys(calendarData).length === 0) {
-      console.log('로그 출력 건너뜀: 휴가 데이터가 없습니다.');
       return;
     }
     
@@ -77,7 +76,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           const vacationersInfo = filteredVacations.map(v => 
             `${v.userName}(${v.role}, ${v.status})`
           ).join(', ');
-          console.log(`${dateKey}의 휴무 신청자 필터링 후 (${filteredVacations.length}명): ${vacationersInfo}`);
         }
       }
     });
@@ -103,7 +101,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
 
     if (abortControllerRef.current) {
-      console.log('이전 요청 취소됨');
       abortControllerRef.current.abort();
     }
 
@@ -118,8 +115,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       const requestId = Math.random().toString(36).substring(2, 15);
       currentRequestIdRef.current = requestId;
       
-      console.log(`캘린더 데이터 가져오기 시작: ${date.toISOString()}`);
-      
+
       const year = date.getFullYear();
       const month = date.getMonth();
       const startDate = new Date(year, month, 1);
@@ -128,22 +124,16 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       const startDateStr = format(startDate, 'yyyy-MM-dd');
       const endDateStr = format(endDate, 'yyyy-MM-dd');
       const requestMonth = format(startDate, 'yyyy-MM');
-      
-      console.log(`요청 월: ${requestMonth}`);
-      console.log(`요청 날짜 범위: ${startDateStr} ~ ${endDateStr}`);
 
-      console.log(`캘린더 API 요청: startDate=${startDateStr}, endDate=${endDateStr}, roleFilter=${roleFilter}, nameFilter=${nameFilter}`);
       
       // apiService의 getVacationCalendar 함수 사용 (토큰 갱신 로직 포함)
       const data = await getVacationCalendar(startDateStr, endDateStr, roleFilter, nameFilter || undefined);
 
       if (signal.aborted) {
-        console.log('요청이 취소되었습니다.');
         return;
       }
 
       if (currentRequestIdRef.current !== requestId) {
-        console.log(`요청 ID 불일치로 응답 무시 (현재: ${currentRequestIdRef.current}, 응답: ${requestId})`);
         return;
       }
 
@@ -158,8 +148,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           
           if (!hasRequestMonthData) {
             const delay = Math.min(1000 * Math.pow(2, retry), MAX_RETRY_DELAY);
-            console.log(`잘못된 월 데이터 응답. 무시하고 ${delay}ms 후 재시도합니다.`);
-            
+
             fetchTimeoutRef.current = setTimeout(() => {
               // 재시도할 때 현재 활성화된 요청이 있는지 확인
               const currentId = currentRequestIdRef.current;
@@ -190,18 +179,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       }
       
       if (currentRequestIdRef.current === requestId) {
-        console.log('캘린더 데이터 가져오기 완료');
-        
+
         const dateKeys = Object.keys(data.dates || {});
-        console.log(`응답 데이터 날짜 키 (${dateKeys.length}개): ${dateKeys.slice(0, 3).join(', ')}${dateKeys.length > 3 ? '...' : ''}`);
-        
+
         setCalendarData(data.dates || {});
         setRetryCount(0);
         setIsLoading(false);
       }
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('요청이 취소되었습니다.');
         return;
       }
       
@@ -209,8 +195,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       
       if (retry < MAX_RETRY_COUNT - 1) {
         const delay = Math.min(1000 * Math.pow(2, retry), MAX_RETRY_DELAY);
-        console.log(`${delay}ms 후 재시도합니다 (${retry + 1}/${MAX_RETRY_COUNT})`);
-        
+
         fetchTimeoutRef.current = setTimeout(() => {
           // 재시도할 때 현재 활성화된 요청이 있는지 확인
           const currentId = currentRequestIdRef.current;
@@ -228,24 +213,18 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const fetchSelectedDateData = async (date: Date) => {
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      console.log(`선택된 날짜 데이터 가져오기: ${formattedDate}`);
-      
-      console.log(`이름 필터 적용: ${nameFilter}`);
-      
+
+
       // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
       const data = await getVacationForDate(formattedDate, roleFilter === 'all' ? 'caregiver' : roleFilter, nameFilter || undefined);
       
-      console.log(`날짜 상세 데이터 (${roleFilter}):`, data);
-      console.log(`선택된 날짜 ${formattedDate}의 제한 인원(${roleFilter}): ${data.maxPeople}`);
-      
+
       if (data) {
-        console.log(`CalendarData 현재 키:`, Object.keys(calendarData));
-        
+
         const newCalendarData = { ...calendarData };
         
         const dateKey = data.date || formattedDate;
-        console.log(`API 응답의 날짜 키: ${dateKey}, 요청한 날짜: ${formattedDate}, 역할: ${roleFilter}`);
-        
+
         // 이미 API에서 role에 따라 필터링된 데이터를 반환하므로 추가 필터링 불필요
         newCalendarData[formattedDate] = {
           date: formattedDate,
@@ -256,7 +235,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           : (data.vacations || []).filter((v: VacationRequest) => v.status !== 'rejected').length
         };
         
-        console.log(`${formattedDate} 날짜 데이터 업데이트 완료:`, newCalendarData[formattedDate]);
         setCalendarData(newCalendarData);
       }
     } catch (error) {
@@ -265,7 +243,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   const handleRefresh = useCallback(() => {
-    console.log('수동 새로고침 요청');
     setIsLoading(true);
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
     logAllVacations();
@@ -280,7 +257,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     
     setCurrentDate((prev: Date) => {
       const newDate = subMonths(prev, 1);
-      console.log(`월 변경: ${format(prev, 'yyyy-MM')} → ${format(newDate, 'yyyy-MM')}`);
       return newDate;
     });
   }, [setCurrentDate]);
@@ -294,7 +270,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     
     setCurrentDate((prev: Date) => {
       const newDate = addMonths(prev, 1);
-      console.log(`월 변경: ${format(prev, 'yyyy-MM')} → ${format(newDate, 'yyyy-MM')}`);
       return newDate;
     });
   }, [setCurrentDate]);
@@ -311,7 +286,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   // 캘린더 초기 로드
   useEffect(() => {
-    console.log('캘린더 마운트됨 - 초기 데이터 로드 시작');
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true로 초기 로드
     
     // 컴포넌트 언마운트 시 정리
@@ -327,13 +301,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   // 월 변경시 데이터 로드만 처리
   useEffect(() => {
-    console.log('월 변경됨 - 데이터 로드');
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
   }, [currentDate, fetchCalendarData]);
 
   // 필터 변경시 데이터 로드
   useEffect(() => {
-    console.log(`필터 변경됨: ${roleFilter} - 데이터 로드`);
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
   }, [roleFilter, nameFilter, fetchCalendarData, currentDate]);
 
@@ -349,7 +321,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       setSelectedDate(null);
       
       if (onDateSelect) {
-        console.log('날짜 선택 해제, onDateSelect(null) 호출');
         onDateSelect(null);
       }
       return;
@@ -459,10 +430,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       vacations = vacations.filter(vacation => vacation.userName === nameFilter);
     }
     
-    if (vacations.length > 0) {
-      console.log(`${dateKey}의 휴무 신청자 필터링 후 (${vacations.length}명):`, 
-        vacations.map(v => `${v.userName}(${v.role}, ${v.status})`).join(', '));
-    }
+
     
     return vacations;
   };
@@ -473,13 +441,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   const handleCloseAdminPanel = () => {
     setShowAdminPanel(false);
-    console.log('관리자 패널 닫힘, 데이터 즉시 새로고침...');
-    
+
     setIsLoading(true);
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
     
     if (selectedDate) {
-      console.log('선택된 날짜 데이터 갱신...');
       fetchSelectedDateData(selectedDate);
     }
   };
@@ -965,9 +931,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           currentDate={selectedDate || currentDate}
           onClose={handleCloseAdminPanel}
           onUpdateSuccess={async () => {
-            console.log('[VacationCalendar] AdminPanel 성공 콜백 - 캘린더 데이터 새로고침 시작');
             await fetchCalendarData(currentDate);
-            console.log('[VacationCalendar] 캘린더 데이터 새로고침 완료');
           }}
         />
       )}
