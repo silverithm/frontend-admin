@@ -10,10 +10,10 @@ export async function GET() {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     
     if (!backendUrl) {
-      console.error('NEXT_PUBLIC_BACKEND_URL is not configured');
+      console.error('NEXT_PUBLIC_API_URL is not configured');
       return NextResponse.json(
         { message: 'Backend URL not configured' },
         { status: 500 }
@@ -71,10 +71,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     
     if (!backendUrl) {
-      console.error('NEXT_PUBLIC_BACKEND_URL is not configured');
+      console.error('NEXT_PUBLIC_API_URL is not configured');
       return NextResponse.json(
         { message: 'Backend URL not configured' },
         { status: 500 }
