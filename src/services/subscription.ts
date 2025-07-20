@@ -207,7 +207,7 @@ export const subscriptionService = {
   async getMyPaymentFailures(page: number = 0, size: number = 10): Promise<PaymentFailurePage> {
     const token = localStorage.getItem('authToken');
     
-    const response = await fetch(`/api/v1/payment-failures?page=${page}&size=${size}`, {
+    const response = await fetch(`/api/v1/subscriptions/payment-failures?page=${page}&size=${size}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

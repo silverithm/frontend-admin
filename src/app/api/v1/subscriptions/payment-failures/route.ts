@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/payment-failures?page=${page}&size=${size}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/subscriptions/payment-failures?page=${page}&size=${size}`, {
       method: 'GET',
       headers: {
         'Authorization': authorization,
