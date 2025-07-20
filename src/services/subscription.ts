@@ -5,7 +5,7 @@ export const subscriptionService = {
   async getMySubscription(): Promise<SubscriptionResponseDTO> {
     const token = localStorage.getItem('authToken');
     
-    const response = await fetch('/api/subscription', {
+    const response = await fetch('/api/v1/subscriptions', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -44,7 +44,7 @@ export const subscriptionService = {
   async createOrUpdateSubscription(data: SubscriptionRequestDTO): Promise<SubscriptionResponseDTO> {
     const token = localStorage.getItem('authToken');
     
-    const response = await fetch('/api/subscription', {
+    const response = await fetch('/api/v1/subscriptions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -81,7 +81,7 @@ export const subscriptionService = {
   async cancelSubscription(): Promise<SubscriptionResponseDTO> {
     const token = localStorage.getItem('authToken');
     
-    const response = await fetch('/api/subscription/cancel', {
+    const response = await fetch('/api/v1/subscriptions/cancel', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -117,7 +117,7 @@ export const subscriptionService = {
   async createFreeSubscription(): Promise<SubscriptionResponseDTO> {
     const token = localStorage.getItem('authToken');
     
-    const response = await fetch('/api/subscription/free', {
+    const response = await fetch('/api/v1/subscriptions/free', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
