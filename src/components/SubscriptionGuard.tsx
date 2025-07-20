@@ -65,8 +65,14 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
         return;
       }
       
+      // 500 에러 시 서버 오류 알림 후 랜딩페이지로
+      if (error.status >= 500) {
+        alert('서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도하거나 고객센터에 문의해주세요.');
+        router.push('/');
+        return;
+      }
+      
       // 기타 API 오류 시 일단 통과시킴 (백엔드 연결 문제 등)
-      // 서버 연결 실패, 500 에러 등의 경우 사용자가 서비스를 이용할 수 있도록 함
     } finally {
       setLoading(false);
     }

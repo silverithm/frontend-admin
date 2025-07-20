@@ -51,7 +51,11 @@ export default function SubscriptionCheckPage() {
         setHasSubscription(false);
       } else {
         // 서버 오류인 경우 에러 메시지 표시
-        setError('구독 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        if (err.status >= 500) {
+          setError('서버 오류');
+        } else {
+          setError('구독 정보 확인 실패');
+        }
       }
     } finally {
       setLoading(false);
@@ -113,8 +117,56 @@ export default function SubscriptionCheckPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-16">
+        {/* 에러 발생 시 표시 */}
+        {error && !loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <div className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-red-400/20 mb-8">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              
+              <h1 className="text-3xl font-bold text-white mb-4">구독 정보 확인에 실패했습니다</h1>
+              <p className="text-red-200/80 mb-8 text-lg leading-relaxed">
+                {error === '서버 오류' 
+                  ? '서버에 일시적인 문제가 발생했습니다.'
+                  : '구독 정보를 불러올 수 없습니다.'}
+                <br />
+                잠시 후 다시 시도하거나 고객센터에 문의해주세요.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-3 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/20"
+                >
+                  다시 시도
+                </button>
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 hover:scale-105 transition-all duration-300 shadow-xl"
+                >
+                  메인으로 돌아가기
+                </button>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-red-400/20">
+                <p className="text-sm text-red-200/60">
+                  문의: support@carev.kr | 고객센터: 1234-5678
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* 만료된 구독이 있는 경우 */}
-        {isExpiredSubscription && (
+        {!error && isExpiredSubscription && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -159,7 +211,7 @@ export default function SubscriptionCheckPage() {
         )}
 
         {/* 구독이 없는 경우 */}
-        {!hasSubscription && (
+        {!error && !hasSubscription && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

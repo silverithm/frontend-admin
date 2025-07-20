@@ -85,9 +85,12 @@ export default function LoginPage() {
           (error.message === 'No subscription found' || 
            error.data?.error === 'No subscription found')) {
         router.push('/subscription-check');
+      } else if (error.status >= 500) {
+        // 500 에러 시 에러 메시지 표시 후 랜딩페이지로
+        alert('서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도하거나 고객센터에 문의해주세요.');
+        router.push('/');
       } else {
         // 기타 오류 시 관리자 페이지로 (SubscriptionGuard가 처리)
-        // 서버 오류나 네트워크 문제가 있어도 사용자가 서비스에 접근할 수 있도록 함
         router.push('/admin');
       }
     }
