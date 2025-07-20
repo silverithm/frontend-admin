@@ -69,14 +69,17 @@ export default function SubscriptionStatus() {
 
   if (subscription.planName === SubscriptionType.FREE && subscription.status === Status.ACTIVE) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 bg-yellow-500/20 backdrop-blur-sm rounded-lg border border-yellow-400/30">
+      <button
+        onClick={handlePayment}
+        className="flex items-center space-x-2 px-3 py-2 bg-yellow-500/20 backdrop-blur-sm rounded-lg border border-yellow-400/30 hover:bg-yellow-500/30 transition-all duration-300 cursor-pointer"
+      >
         <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
         <div className="flex flex-col">
           <span className="text-yellow-100 text-sm font-medium">
             무료 체험 {daysRemaining}일 남음
           </span>
         </div>
-      </div>
+      </button>
     );
   }
 

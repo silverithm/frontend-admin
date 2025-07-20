@@ -147,6 +147,12 @@ export default function SubscriptionInfo() {
                 <p className="text-sm text-blue-600 mt-1">
                   무료 체험이 종료되면 서비스 이용이 제한됩니다.
                 </p>
+                <button
+                  onClick={handlePayment}
+                  className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  지금 Basic 플랜 시작하기 (₩9,900/월)
+                </button>
               </div>
             )}
 
