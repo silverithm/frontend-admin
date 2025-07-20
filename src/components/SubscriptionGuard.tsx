@@ -50,11 +50,6 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       }
     } catch (error: any) {
       console.error('구독 확인 실패:', error);
-      console.error('Error details:', {
-        status: error.status,
-        message: error.message,
-        data: error.data
-      });
       
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
       // 백엔드 GlobalExceptionHandler의 error 필드 확인
@@ -113,7 +108,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
 
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <p className="text-lg font-semibold text-blue-900">Basic 플랜</p>
-              <p className="text-2xl font-bold text-blue-900">₩9,900<span className="text-sm font-normal">/월</span></p>
+              <p className="text-sm text-blue-700">모든 기능을 이용하실 수 있습니다</p>
             </div>
 
             <button

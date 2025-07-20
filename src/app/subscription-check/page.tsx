@@ -38,11 +38,6 @@ export default function SubscriptionCheckPage() {
       }
     } catch (err: any) {
       console.error('구독 확인 실패:', err);
-      console.error('Error details:', {
-        status: err.status,
-        message: err.message,
-        data: err.data
-      });
       
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
       if (err.status === 404 && 
@@ -204,7 +199,7 @@ export default function SubscriptionCheckPage() {
                 onClick={handleGoToPayment}
                 className="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 hover:scale-105 transition-all duration-300 shadow-xl"
               >
-                구독 갱신하기 (월 9,900원)
+                구독 갱신하기
               </button>
             </div>
           </motion.div>

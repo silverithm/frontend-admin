@@ -20,8 +20,6 @@ export async function GET() {
       );
     }
 
-    console.log('Fetching subscription from:', `${backendUrl}/api/v1/subscriptions`);
-    
     const response = await fetch(`${backendUrl}/api/v1/subscriptions`, {
       method: 'GET',
       headers: {
@@ -39,8 +37,6 @@ export async function GET() {
       data = { message: 'Failed to parse response from backend' };
     }
     
-    console.log('Backend response status:', response.status);
-    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(data, { status: response.status });
@@ -81,8 +77,6 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Creating subscription at:', `${backendUrl}/api/v1/subscriptions`);
-    console.log('Request body:', body);
 
     const response = await fetch(`${backendUrl}/api/v1/subscriptions`, {
       method: 'POST',
@@ -102,8 +96,6 @@ export async function POST(request: Request) {
       data = { message: 'Failed to parse response from backend' };
     }
     
-    console.log('Backend response status:', response.status);
-    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(data, { status: response.status });

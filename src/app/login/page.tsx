@@ -73,12 +73,6 @@ export default function LoginPage() {
         router.push('/admin');
       }
     } catch (error: any) {
-      console.log('구독 정보 없음 또는 오류:', error);
-      console.log('Error details:', {
-        status: error.status,
-        message: error.message,
-        data: error.data
-      });
       
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
       if (error.status === 404 && 
@@ -102,11 +96,8 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('로그인 폼 제출:', { email: formData.email });
-      
       // Spring Boot 백엔드로 로그인 요청
       const result = await signin(formData.email, formData.password);
-      console.log('로그인 성공:', result);
       
       // 로그인한 사용자 이메일 저장
       localStorage.setItem('userEmail', formData.email);
