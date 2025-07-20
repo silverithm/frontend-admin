@@ -80,9 +80,6 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     }
   };
 
-  const handleGoToSubscription = () => {
-    router.push('/subscription');
-  };
 
   // 로딩 중
   if (loading) {
@@ -115,25 +112,35 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
 
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <p className="text-lg font-semibold text-blue-900">Basic 플랜</p>
-              <p className="text-sm text-blue-700">모든 기능을 이용하실 수 있습니다</p>
+              <p className="text-2xl font-bold text-blue-900 mt-1">₩9,900<span className="text-sm font-normal">/월</span></p>
+              <p className="text-sm text-blue-700 mt-1">모든 기능을 이용하실 수 있습니다</p>
             </div>
 
-            <button
-              onClick={handleGoToSubscription}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
-            >
-              구독하러 가기
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push('/payment')}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                결제하기
+              </button>
 
-            <button
-              onClick={() => {
-                localStorage.clear();
-                router.push('/login');
-              }}
-              className="w-full mt-3 text-gray-600 hover:text-gray-800 text-sm"
-            >
-              로그아웃
-            </button>
+              <button
+                onClick={() => router.back()}
+                className="w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-300 transition-colors font-medium"
+              >
+                뒤로 가기
+              </button>
+
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  router.push('/login');
+                }}
+                className="w-full text-gray-500 hover:text-gray-700 text-sm"
+              >
+                로그아웃
+              </button>
+            </div>
           </div>
         </div>
       </div>
