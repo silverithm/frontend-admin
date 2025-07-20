@@ -51,13 +51,14 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     } catch (error: any) {
       console.error('구독 확인 실패:', error);
       
-      // 404 에러 (구독 없음)인 경우 구독 확인 페이지로 이동
-      if (error.message.includes('Failed to fetch subscription')) {
+      // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
+      if (error.status === 404 && error.message.includes('No subscription found')) {
         router.push('/subscription-check');
         return;
       }
       
       // 기타 API 오류 시 일단 통과시킴 (백엔드 연결 문제 등)
+      // 서버 연결 실패, 500 에러 등의 경우 사용자가 서비스를 이용할 수 있도록 함
     } finally {
       setLoading(false);
     }

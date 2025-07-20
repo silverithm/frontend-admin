@@ -37,11 +37,12 @@ export default function SubscriptionCheckPage() {
         router.push('/admin');
       }
     } catch (err: any) {
-      // 404 에러 (구독 없음)인 경우
-      if (err.message.includes('Failed to fetch subscription')) {
+      // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
+      if (err.status === 404 && err.message.includes('No subscription found')) {
         setHasSubscription(false);
       } else {
-        setError('구독 정보를 확인하는 중 오류가 발생했습니다.');
+        // 서버 오류인 경우 에러 메시지 표시
+        setError('구독 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         console.error('Subscription check error:', err);
       }
     } finally {

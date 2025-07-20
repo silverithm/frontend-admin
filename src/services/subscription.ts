@@ -14,7 +14,21 @@ export const subscriptionService = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch subscription');
+      // 에러 응답의 내용을 확인
+      let errorMessage = 'Failed to fetch subscription';
+      try {
+        const errorData = await response.json();
+        // 백엔드에서 보낸 정확한 에러 메시지 사용
+        if (errorData.error || errorData.message) {
+          errorMessage = errorData.error || errorData.message;
+        }
+      } catch {
+        // JSON 파싱 실패 시 기본 메시지 사용
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      throw error;
     }
 
     return response.json();
