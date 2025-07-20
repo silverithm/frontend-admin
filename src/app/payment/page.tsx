@@ -76,13 +76,95 @@ export default function PaymentPage() {
               message: '결제가 완료되었습니다! Basic 플랜을 이용하실 수 있습니다.'
             });
             router.push('/admin');
-        } catch {
-            // 보안: 에러 로그에서 민감한 정보 제거
-            console.error('구독 생성 실패');
+        } catch (error: any) {
+            // 에러 메시지 파싱
+            let errorMessage = '구독 활성화에 실패했습니다. 고객센터에 문의해주세요.';
+            let errorTitle = '구독 활성화 실패';
+            
+            try {
+                if (error?.message) {
+                    const errorString = error.message;
+                    
+                    // JSON 형태의 에러 메시지 파싱
+                    if (errorString.includes('{') && errorString.includes('}')) {
+                        const jsonMatch = errorString.match(/{.*}/);
+                        if (jsonMatch) {
+                            const errorData = JSON.parse(jsonMatch[0]);
+                            if (errorData.message) {
+                                errorMessage = errorData.message;
+                                
+                                // 에러 코드에 따른 제목 및 메시지 설정
+                                switch (errorData.code) {
+                                    case 'REJECT_ACCOUNT_PAYMENT':
+                                        errorTitle = '결제 실패 - 잔액 부족';
+                                        errorMessage = errorData.message + '\n\n다른 결제 수단을 이용해 주세요.';
+                                        break;
+                                    case 'REJECT_CARD_PAYMENT':
+                                        errorTitle = '결제 실패 - 카드 오류';
+                                        errorMessage = errorData.message + '\n\n카드 정보를 확인하거나 다른 카드를 이용해 주세요.';
+                                        break;
+                                    case 'INVALID_REQUEST':
+                                        errorTitle = '결제 실패 - 요청 오류';
+                                        errorMessage = errorData.message + '\n\n잠시 후 다시 시도해 주세요.';
+                                        break;
+                                    case 'NOT_FOUND_BILLING':
+                                        errorTitle = '결제 실패 - 빌링 정보 오류';
+                                        errorMessage = errorData.message + '\n\n페이지를 새로고침 후 다시 시도해 주세요.';
+                                        break;
+                                    case 'INVALID_CARD_COMPANY':
+                                        errorTitle = '결제 실패 - 지원하지 않는 카드';
+                                        break;
+                                    case 'INVALID_CARD_NUMBER':
+                                        errorTitle = '결제 실패 - 잘못된 카드번호';
+                                        break;
+                                    case 'INVALID_EXPIRED_YEAR':
+                                    case 'INVALID_EXPIRED_MONTH':
+                                        errorTitle = '결제 실패 - 카드 유효기간 오류';
+                                        break;
+                                    case 'INVALID_BIRTH':
+                                        errorTitle = '결제 실패 - 생년월일 오류';
+                                        break;
+                                    case 'INVALID_PASSWORD':
+                                        errorTitle = '결제 실패 - 비밀번호 오류';
+                                        break;
+                                    case 'REJECT_CARD_COMPANY':
+                                        errorTitle = '결제 실패 - 카드사 거절';
+                                        break;
+                                    case 'FAILED_PAYMENT_INTERNAL_SYSTEM_PROCESSING':
+                                        errorTitle = '결제 실패 - 시스템 오류';
+                                        break;
+                                    case 'FAILED_INTERNAL_SYSTEM_PROCESSING':
+                                        errorTitle = '결제 실패 - 내부 시스템 오류';
+                                        break;
+                                    case 'UNAUTHORIZED_REQUEST':
+                                        errorTitle = '결제 실패 - 인증 오류';
+                                        break;
+                                    default:
+                                        errorTitle = '결제 실패';
+                                }
+                            }
+                        }
+                    }
+                    // 일반 문자열 에러 메시지
+                    else if (errorString.length > 0) {
+                        errorMessage = errorString;
+                    }
+                }
+            } catch (parseError) {
+                console.error('에러 메시지 파싱 실패:', parseError);
+                // 파싱 실패 시 기본 메시지 유지
+            }
+            
+            console.error('구독 생성 실패:', {
+                title: errorTitle,
+                message: errorMessage,
+                originalError: error
+            });
+            
             showAlert({
-              type: 'warning',
-              title: '구독 활성화 실패',
-              message: '구독 활성화에 실패했습니다. 고객센터에 문의해주세요.'
+              type: 'error',
+              title: errorTitle,
+              message: errorMessage
             });
         } finally {
             setLoading(false);
