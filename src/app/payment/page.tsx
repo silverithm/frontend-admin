@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useCallback} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {loadTossPayments} from '@tosspayments/payment-sdk';
 import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
@@ -39,33 +39,25 @@ export default function PaymentPage() {
         });
     }, []);
 
-    // 결제 성공 처리
-    useEffect(() => {
-        const paymentKey = searchParams.get('paymentKey');
-        const orderId = searchParams.get('orderId');
-        const amount = searchParams.get('amount');
-
-        if (paymentKey && orderId && amount) {
-            handlePaymentSuccess(paymentKey, orderId, Number(amount));
-        }
-    }, [searchParams]);
-
-    const handlePaymentSuccess = async (paymentKey: string, orderId: string, amount: number) => {
+    const handleBillingSuccess = useCallback(async (authKey: string) => {
         try {
             setLoading(true);
 
-            // 구독 생성 요청
+            // 보안: authKey를 변수에서 즉시 제거 (메모리에서 빠른 해제)
             const subscriptionData: SubscriptionRequestDTO = {
                 planName: SubscriptionType.BASIC,
                 billingType: SubscriptionBillingType.MONTHLY,
                 amount: 9900,
                 customerKey: customerKey,
-                authKey: paymentKey,
+                authKey: authKey,
                 orderName: 'Basic 플랜 월간 구독',
                 customerEmail: userInfo.email,
                 customerName: userInfo.name,
                 taxFreeAmount: 0
             };
+
+            // authKey 사용 후 즉시 변수 초기화 (보안)
+            authKey = '';
 
             await subscriptionService.createOrUpdateSubscription(subscriptionData);
 
@@ -75,17 +67,45 @@ export default function PaymentPage() {
               message: '결제가 완료되었습니다! Basic 플랜을 이용하실 수 있습니다.'
             });
             router.push('/admin');
-        } catch (error) {
-            console.error('구독 생성 실패:', error);
+        } catch {
+            // 보안: 에러 로그에서 민감한 정보 제거
+            console.error('구독 생성 실패');
             showAlert({
               type: 'warning',
               title: '구독 활성화 실패',
-              message: '결제는 완료되었으나 구독 활성화에 실패했습니다. 고객센터에 문의해주세요.'
+              message: '구독 활성화에 실패했습니다. 고객센터에 문의해주세요.'
             });
         } finally {
             setLoading(false);
         }
-    };
+    }, [customerKey, userInfo.email, userInfo.name, showAlert, router]);
+
+    // 빌링 인증 성공 처리
+    useEffect(() => {
+        const authKey = searchParams.get('authKey');
+        const customerKeyParam = searchParams.get('customerKey');
+
+        if (authKey && customerKeyParam) {
+            // 보안 검증: authKey 형식 확인 (TossPayments authKey는 특정 패턴을 가짐)
+            if (!authKey.match(/^[A-Za-z0-9_-]+$/)) {
+                console.error('유효하지 않은 authKey 형식');
+                showAlert({
+                    type: 'error',
+                    title: '결제 오류',
+                    message: '결제 정보가 유효하지 않습니다.'
+                });
+                return;
+            }
+
+            // 보안: 즉시 URL에서 민감한 정보 제거
+            const url = new URL(window.location.href);
+            url.searchParams.delete('authKey');
+            url.searchParams.delete('customerKey');
+            window.history.replaceState({}, '', url.toString());
+            
+            handleBillingSuccess(authKey);
+        }
+    }, [searchParams, handleBillingSuccess, showAlert]);
 
     const handlePayment = async () => {
         if (!customerKey) {
@@ -119,14 +139,10 @@ export default function PaymentPage() {
             setLoading(true);
 
             const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
-            const orderId = `order_${Date.now()}`;
 
-            // 토스페이먼츠 결제 위젯 호출
-            await tossPayments.requestPayment('카드', {
-                amount: 9900,
-                orderId: orderId,
-                orderName: 'Basic 플랜 월간 구독',
-                customerName: userInfo.name,
+            // 토스페이먼츠 빌링 인증 위젯 호출 (구독 결제용)
+            await tossPayments.requestBillingAuth('카드', {
+                customerKey: customerKey,
                 successUrl: `${window.location.origin}/payment?success=true`,
                 failUrl: `${window.location.origin}/payment?success=false`,
             });
@@ -153,7 +169,7 @@ export default function PaymentPage() {
             });
             router.push('/subscription-check');
         }
-    }, [searchParams, router]);
+    }, [searchParams, router, showAlert]);
 
     return (
         <>
