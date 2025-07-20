@@ -15,6 +15,7 @@ export default function SubscriptionInfo() {
   const [error, setError] = useState<string | null>(null);
   const [paymentFailures, setPaymentFailures] = useState<PaymentFailureResponseDTO[]>([]);
   const [loadingPaymentFailures, setLoadingPaymentFailures] = useState(false);
+  const [showPaymentFailures, setShowPaymentFailures] = useState(false);
 
   useEffect(() => {
     fetchSubscription();
@@ -302,80 +303,93 @@ export default function SubscriptionInfo() {
       {/* 결제 실패 정보 섹션 */}
       {paymentFailures.length > 0 && (
         <div className="bg-red-50 rounded-xl border border-red-200 p-6">
-          <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
-            <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center mr-2">
-              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            최근 결제 실패 내역
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-red-900 flex items-center">
+              <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center mr-2">
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              결제 실패 ({paymentFailures.length}건)
+            </h3>
+            <button
+              onClick={() => setShowPaymentFailures(!showPaymentFailures)}
+              className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+            >
+              {showPaymentFailures ? (
+                <>
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                  </svg>
+                  숨기기
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  상세 보기
+                </>
+              )}
+            </button>
+          </div>
           
-          <div className="space-y-3">
-            {paymentFailures.map((failure) => (
-              <div key={failure.id} className="bg-white rounded-lg p-4 border border-red-200">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-medium text-red-900">
-                      {getFailureReasonText(failure.failureReason)}
-                    </p>
-                    <p className="text-sm text-red-700">
-                      {failure.failureReasonDescription}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-red-900">
-                      ₩{failure.attemptedAmount.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-red-600">
-                      {new Date(failure.failedAt).toLocaleDateString('ko-KR')}
-                    </p>
+          {showPaymentFailures && (
+            <>
+              <div className="space-y-3">
+                {paymentFailures.map((failure) => (
+                <div key={failure.id} className="bg-white rounded-lg p-4 border border-red-200">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-medium text-red-900">
+                        {getFailureReasonText(failure.failureReason)}
+                      </p>
+                      <p className="text-xs text-red-600">
+                        {new Date(failure.failedAt).toLocaleDateString('ko-KR')} • {failure.subscriptionType} 플랜
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-red-900">
+                        ₩{failure.attemptedAmount.toLocaleString()}
+                      </p>
+                      <button
+                        onClick={handlePayment}
+                        className="mt-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
+                      >
+                        재결제
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
+              </div>
+              
+              <div className="mt-4 space-y-3">
+                <div className="p-3 bg-red-100 rounded-lg">
+                  <p className="text-sm text-red-800">
+                    💡 결제 실패가 반복될 경우 카드 정보를 확인하거나 다른 결제 방법을 이용해 주세요.
+                  </p>
+                </div>
                 
-                {failure.failureMessage && (
-                  <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-800">
-                    {failure.failureMessage}
+                {paymentFailures.length >= 3 && (
+                  <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800 mb-1">⚠️ 중요 안내</p>
+                        <p className="text-sm text-yellow-700">
+                          결제 실패가 <span className="font-semibold">3회 이상</span> 발생하면 정기 결제가 자동으로 비활성화됩니다. 
+                          서비스 중단을 방지하려면 결제 방법을 확인하고 즉시 재결제해 주세요.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
-                
-                <div className="mt-3 flex justify-between items-center text-xs text-red-600">
-                  <span>{failure.subscriptionType} 플랜 • {failure.billingType}</span>
-                  <button
-                    onClick={handlePayment}
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
-                  >
-                    다시 결제하기
-                  </button>
-                </div>
               </div>
-            ))}
-          </div>
-          
-          <div className="mt-4 space-y-3">
-            <div className="p-3 bg-red-100 rounded-lg">
-              <p className="text-sm text-red-800">
-                💡 결제 실패가 반복될 경우 카드 정보를 확인하거나 다른 결제 방법을 이용해 주세요.
-              </p>
-            </div>
-            
-            {paymentFailures.length >= 3 && (
-              <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-yellow-800 mb-1">⚠️ 중요 안내</p>
-                    <p className="text-sm text-yellow-700">
-                      결제 실패가 <span className="font-semibold">3회 이상</span> 발생하면 정기 결제가 자동으로 비활성화됩니다. 
-                      서비스 중단을 방지하려면 결제 방법을 확인하고 즉시 재결제해 주세요.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
       </div>
