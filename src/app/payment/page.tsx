@@ -66,7 +66,7 @@ export default function PaymentPage() {
       await subscriptionService.createOrUpdateSubscription(subscriptionData);
       
       alert('결제가 완료되었습니다! Basic 플랜을 이용하실 수 있습니다.');
-      router.push('/subscription');
+      router.push('/admin');
     } catch (error) {
       console.error('구독 생성 실패:', error);
       alert('결제는 완료되었으나 구독 활성화에 실패했습니다. 고객센터에 문의해주세요.');
@@ -114,7 +114,7 @@ export default function PaymentPage() {
     const success = searchParams.get('success');
     if (success === 'false') {
       alert('결제가 취소되었습니다.');
-      router.push('/subscription');
+      router.push('/subscription-check');
     }
   }, [searchParams, router]);
 

@@ -59,6 +59,25 @@ export const subscriptionService = {
     return response.json();
   },
 
+  // 무료 구독 생성
+  async createFreeSubscription(): Promise<SubscriptionResponseDTO> {
+    const token = localStorage.getItem('authToken');
+    
+    const response = await fetch('/api/subscription/free', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create free subscription');
+    }
+
+    return response.json();
+  },
+
   // 구독 상태 확인 헬퍼 함수들
   isActive(subscription: SubscriptionResponseDTO): boolean {
     return subscription.status === SubscriptionStatus.ACTIVE;

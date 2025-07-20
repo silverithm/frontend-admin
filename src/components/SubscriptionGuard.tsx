@@ -44,13 +44,20 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       const data = await subscriptionService.getMySubscription();
       setSubscription(data);
 
-      // 구독이 필요한 경우
+      // 구독이 필요한 경우 (만료된 경우)
       if (subscriptionService.needsPayment(data)) {
         setShowBlockModal(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('구독 확인 실패:', error);
-      // API 오류 시 일단 통과시킴 (백엔드 연결 문제 등)
+      
+      // 404 에러 (구독 없음)인 경우 구독 확인 페이지로 이동
+      if (error.message.includes('Failed to fetch subscription')) {
+        router.push('/subscription-check');
+        return;
+      }
+      
+      // 기타 API 오류 시 일단 통과시킴 (백엔드 연결 문제 등)
     } finally {
       setLoading(false);
     }

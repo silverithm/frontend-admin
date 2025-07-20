@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signin, findPassword } from '@/lib/apiService';
+import { subscriptionService } from '@/services/subscription';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -59,6 +60,31 @@ export default function LoginPage() {
     }
   };
 
+  const checkSubscriptionAndRedirect = async () => {
+    try {
+      // 구독 정보 확인
+      const subscription = await subscriptionService.getMySubscription();
+      
+      // 활성 구독이 있으면 관리자 페이지로
+      if (subscriptionService.isActive(subscription)) {
+        router.push('/admin');
+      } else {
+        // 만료된 구독이 있으면 관리자 페이지로 (SubscriptionGuard가 처리)
+        router.push('/admin');
+      }
+    } catch (error: any) {
+      console.log('구독 정보 없음 또는 오류:', error);
+      
+      // 구독이 없으면 (404) 구독 확인 페이지로
+      if (error.message.includes('Failed to fetch subscription')) {
+        router.push('/subscription-check');
+      } else {
+        // 기타 오류 시 관리자 페이지로 (SubscriptionGuard가 처리)
+        router.push('/admin');
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -87,8 +113,8 @@ export default function LoginPage() {
         console.error('localStorage 저장 오류:', error);
       }
       
-      // 로그인 성공 후 관리자 페이지로 이동
-      router.push('/admin');
+      // 로그인 성공 후 구독 상태 확인
+      await checkSubscriptionAndRedirect();
     } catch (error) {
       console.error('로그인 오류:', error);
       
