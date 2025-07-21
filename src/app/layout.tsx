@@ -201,6 +201,36 @@ export default function RootLayout({
         <meta name="twitter:image" content="https://carev.kr/opengraph-image" />
         <meta name="twitter:creator" content="@carev_kr" />
         
+        {/* 카카오톡 미리보기를 위한 추가 메타태그 */}
+        <meta property="og:image:secure_url" content="https://carev.kr/opengraph-image" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="article:author" content="케어브이" />
+        <meta property="article:publisher" content="케어브이" />
+        <meta name="application-name" content="케어브이" />
+        
+        {/* 카카오톡 전용 추가 설정 */}
+        <meta property="og:rich_attachment" content="true" />
+        <meta name="format-detection" content="telephone=no" />
+        
+        {/* 모바일 앱 연동을 위한 메타태그 */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="케어브이" />
+        
+        {/* 검색엔진 최적화를 위한 추가 태그 */}
+        <meta name="subject" content="휴무관리 서비스" />
+        <meta name="classification" content="Business" />
+        <meta name="category" content="휴무관리,근무표,장기요양,주간보호" />
+        <meta name="coverage" content="Worldwide" />
+        <meta name="distribution" content="Global" />
+        <meta name="rating" content="General" />
+        <meta name="revisit-after" content="7 days" />
+        
+        {/* 소셜 미디어 최적화 */}
+        <meta property="fb:app_id" content="케어브이" />
+        <meta name="pinterest-rich-pin" content="true" />
+        
         {/* 추가 메타 태그 */}
         <meta name="theme-color" content="#10B981" />
         <meta name="msapplication-TileColor" content="#10B981" />
