@@ -26,8 +26,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: 'https://carev.kr/images/carev-logo-text.png',
-        width: 1200,
-        height: 630,
+        width: 2048,
+        height: 1000,
         alt: '케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램',
         type: 'image/png',
       }
@@ -187,9 +187,9 @@ export default function RootLayout({
         <meta property="og:description" content="근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요." />
         <meta property="og:url" content="https://carev.kr" />
         <meta property="og:site_name" content="케어브이" />
-        <meta property="og:image" content="https://carev.kr/opengraph-image" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image" content="https://carev.kr/images/carev-logo-text.png" />
+        <meta property="og:image:width" content="2048" />
+        <meta property="og:image:height" content="1000" />
         <meta property="og:image:alt" content="케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="ko_KR" />
@@ -198,11 +198,11 @@ export default function RootLayout({
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="케어브이" />
         <meta name="twitter:description" content="근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요." />
-        <meta name="twitter:image" content="https://carev.kr/opengraph-image" />
+        <meta name="twitter:image" content="https://carev.kr/images/carev-logo-text.png" />
         <meta name="twitter:creator" content="@carev_kr" />
         
         {/* 카카오톡 미리보기를 위한 추가 메타태그 */}
-        <meta property="og:image:secure_url" content="https://carev.kr/opengraph-image" />
+        <meta property="og:image:secure_url" content="https://carev.kr/images/carev-logo-text.png" />
         <meta property="og:image:type" content="image/png" />
         <meta property="article:author" content="케어브이" />
         <meta property="article:publisher" content="케어브이" />
