@@ -6,7 +6,7 @@ import SubscriptionGuard from '@/components/SubscriptionGuard'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '케어브이',
+  title: '케어브이 - 주간보호센터, 장기요양기관 근무표',
   description: '근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요.',
   keywords: '주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터',
   authors: [{ name: '케어브이' }],
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL('https://carev.kr'),
   openGraph: {
-    title: '케어브이',
+    title: '케어브이 - 주간보호센터, 장기요양기관 근무표',
     description: '근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요.',
     url: 'https://carev.kr',
     siteName: '케어브이',
