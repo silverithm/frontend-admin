@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState, useCallback, useRef} from 'react';
+import {useEffect, useState, useCallback} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {loadTossPayments} from '@tosspayments/payment-sdk';
 import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
@@ -23,7 +23,8 @@ export default function PaymentPage() {
     });
     const [agreementChecked, setAgreementChecked] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
-    const processedAuthKeysRef = useRef<Set<string>>(new Set());
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [userInfoLoaded, setUserInfoLoaded] = useState(false);
 
     useEffect(() => {
         // localStorage에서 사용자 정보 가져오기
@@ -40,6 +41,9 @@ export default function PaymentPage() {
             name: userName,
             email: userEmail || '' // 이메일이 없으면 빈 문자열로 설정
         });
+
+        // 사용자 정보 로딩 완료 표시
+        setUserInfoLoaded(true);
 
         // 디버깅: 로드된 사용자 정보 확인
         console.log('Payment page - loaded user info:', {
@@ -60,9 +64,8 @@ export default function PaymentPage() {
                 showAlert({
                     type: 'error',
                     title: '사용자 정보 오류',
-                    message: '사용자 정보가 불완전합니다. 다시 로그인해주세요.'
+                    message: '사용자 정보가 불완전합니다. 페이지를 새로고침 후 다시 시도해주세요.'
                 });
-                router.push('/login');
                 return;
             }
 
@@ -274,16 +277,15 @@ export default function PaymentPage() {
 
     // 빌링 인증 성공 처리
     useEffect(() => {
+        // 사용자 정보가 로드되지 않았으면 대기
+        if (!userInfoLoaded) {
+            return;
+        }
+
         const authKey = searchParams.get('authKey');
         const customerKeyParam = searchParams.get('customerKey');
 
-        if (authKey && customerKeyParam) {
-            // 이미 처리된 authKey인지 확인 (중복 실행 방지)
-            if (processedAuthKeysRef.current.has(authKey)) {
-                console.log('이미 처리된 authKey:', authKey);
-                return;
-            }
-
+        if (authKey && customerKeyParam && !isProcessingPayment) {
             // 보안 검증: authKey 형식 확인 (TossPayments authKey는 특정 패턴을 가짐)
             if (!authKey.match(/^[A-Za-z0-9_-]+$/)) {
                 console.error('유효하지 않은 authKey 형식');
@@ -295,8 +297,8 @@ export default function PaymentPage() {
                 return;
             }
 
-            // 처리된 authKey로 표시 (중복 실행 방지)
-            processedAuthKeysRef.current.add(authKey);
+            // 처리 중 플래그 설정 (중복 실행 방지)
+            setIsProcessingPayment(true);
 
             // 보안: 즉시 URL에서 민감한 정보 제거
             const url = new URL(window.location.href);
@@ -304,9 +306,11 @@ export default function PaymentPage() {
             url.searchParams.delete('customerKey');
             window.history.replaceState({}, '', url.toString());
             
-            handleBillingSuccess(authKey);
+            handleBillingSuccess(authKey).finally(() => {
+                setIsProcessingPayment(false);
+            });
         }
-    }, [searchParams, handleBillingSuccess, showAlert]);
+    }, [searchParams, handleBillingSuccess, showAlert, userInfoLoaded, isProcessingPayment]);
 
     const handlePayment = async () => {
         if (!customerKey) {
