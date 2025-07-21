@@ -106,9 +106,6 @@ export default function LoginPage() {
       // Spring Boot 백엔드로 로그인 요청
       const result = await signin(formData.email, formData.password);
       
-      // 로그인한 사용자 이메일 저장 (백엔드에서 이메일을 반환하지 않으므로 입력값 사용)
-      localStorage.setItem('userEmail', formData.email);
-      
 
       
       // 아이디 기억하기 처리

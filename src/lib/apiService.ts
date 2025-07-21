@@ -91,6 +91,7 @@ const handleLogout = () => {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('tokenExpirationTime');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
     localStorage.removeItem('companyId');
@@ -445,6 +446,7 @@ export async function signin(email: string, password: string): Promise<SigninRes
 
             // 사용자 정보 저장
             localStorage.setItem('userName', data.userName || '');
+            localStorage.setItem('userEmail', data.userEmail || email); // 백엔드에서 userEmail을 반환하거나 입력한 email 사용
             localStorage.setItem('userId', data.userId?.toString() || '');
             localStorage.setItem('companyName', data.companyName || '');
             localStorage.setItem('companyAddressName', data.companyAddressName || '');
@@ -597,6 +599,7 @@ export async function logout() {
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('tokenExpirationTime');
         localStorage.removeItem('userName');
+        localStorage.removeItem('userEmail');
         localStorage.removeItem('userRole');
         localStorage.removeItem('userId');
         localStorage.removeItem('companyId');

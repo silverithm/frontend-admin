@@ -40,6 +40,12 @@ export default function PaymentPage() {
         });
 
         // 디버깅: 로드된 사용자 정보 확인
+        console.log('Payment page - loaded user info:', {
+            userName,
+            userEmail,
+            userId,
+            customerKey: key
+        });
 
     }, []);
 
