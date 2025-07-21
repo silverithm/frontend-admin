@@ -73,7 +73,7 @@ export default function PaymentPage() {
             const subscriptionData: SubscriptionRequestDTO = {
                 planName: SubscriptionType.BASIC,
                 billingType: SubscriptionBillingType.MONTHLY,
-                amount: 100,
+                amount: 9900,
                 customerKey: customerKey,
                 authKey: authKey,
                 orderName: 'Basic 플랜 월간 구독',
