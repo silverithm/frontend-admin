@@ -174,9 +174,37 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        {/* 추가 메타 태그 - Next.js metadata API가 처리하지 않는 것들만 */}
+        {/* 서버사이드 메타 태그 - 크롤러를 위한 정적 태그들 */}
+        <title>케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스</title>
+        <meta name="description" content="주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요." />
+        <meta name="keywords" content="주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터" />
+        <meta name="author" content="케어브이" />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        
+        {/* Open Graph 메타 태그 */}
+        <meta property="og:title" content="케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스" />
+        <meta property="og:description" content="주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요." />
+        <meta property="og:url" content="https://carev.kr" />
+        <meta property="og:site_name" content="케어브이" />
+        <meta property="og:image" content="https://carev.kr/opengraph-image" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="ko_KR" />
+        
+        {/* Twitter Card 메타 태그 */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스" />
+        <meta name="twitter:description" content="주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요." />
+        <meta name="twitter:image" content="https://carev.kr/opengraph-image" />
+        <meta name="twitter:creator" content="@carev_kr" />
+        
+        {/* 추가 메타 태그 */}
         <meta name="theme-color" content="#10B981" />
         <meta name="msapplication-TileColor" content="#10B981" />
+        <link rel="canonical" href="https://carev.kr" />
         
         <script
           type="application/ld+json"
