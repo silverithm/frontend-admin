@@ -6,21 +6,30 @@ import SubscriptionGuard from '@/components/SubscriptionGuard'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '케어브이',
-  description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스',
+  title: '케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스',
+  description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요.',
   keywords: '주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터',
+  authors: [{ name: '케어브이' }],
+  creator: '케어브이',
+  publisher: '케어브이',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   metadataBase: new URL('https://carev.kr'),
   openGraph: {
     title: '케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스',
-    description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스',
+    description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요.',
     url: 'https://carev.kr',
     siteName: '케어브이',
     images: [
       {
-        url: 'https://carev.kr/images/carev-logo-text.png', // 절대 URL로 변경
+        url: 'https://carev.kr/images/carev-logo-text.png',
         width: 1200,
         height: 630,
         alt: '케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램',
+        type: 'image/png',
       }
     ],
     locale: 'ko_KR',
@@ -29,8 +38,9 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스',
-    description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스',
-    images: ['https://carev.kr/images/carev-logo-text.png'], // 절대 URL로 변경
+    description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요.',
+    images: ['https://carev.kr/images/carev-logo-text.png'],
+    creator: '@carev_kr',
   },
   robots: {
     index: true,
@@ -44,7 +54,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'google-site-verification=your-google-verification-code', // Google Search Console에서 발급받은 코드로 교체 필요
+    google: 'google-site-verification=your-google-verification-code',
     other: {
       'naver-site-verification': '58069dba17e679f9ee99b6e6cef839633dac960e',
     },
@@ -164,6 +174,10 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* 추가 메타 태그 - Next.js metadata API가 처리하지 않는 것들만 */}
+        <meta name="theme-color" content="#10B981" />
+        <meta name="msapplication-TileColor" content="#10B981" />
+        
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
