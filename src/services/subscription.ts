@@ -114,6 +114,42 @@ export const subscriptionService = {
     return response.json();
   },
 
+  // 구독 활성화
+  async activateSubscription(): Promise<SubscriptionResponseDTO> {
+    const token = localStorage.getItem('authToken');
+    
+    const response = await fetch('/api/v1/subscriptions/activate', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to activate subscription';
+      let errorData: any = {};
+      
+      try {
+        errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status} error`;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = errorData;
+      throw error;
+    }
+
+    return response.json();
+  },
+
   // 무료 구독 생성
   async createFreeSubscription(): Promise<SubscriptionResponseDTO> {
     const token = localStorage.getItem('authToken');
@@ -153,6 +189,10 @@ export const subscriptionService = {
   // 구독 상태 확인 헬퍼 함수들
   isActive(subscription: SubscriptionResponseDTO): boolean {
     return subscription.status === SubscriptionStatus.ACTIVE;
+  },
+
+  isCanceled(subscription: SubscriptionResponseDTO): boolean {
+    return subscription.status === SubscriptionStatus.CANCELED;
   },
 
   isFreeTrialExpired(subscription: SubscriptionResponseDTO): boolean {

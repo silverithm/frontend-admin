@@ -16,6 +16,7 @@ export default function SubscriptionInfo() {
   const [paymentFailures, setPaymentFailures] = useState<PaymentFailureResponseDTO[]>([]);
   const [loadingPaymentFailures, setLoadingPaymentFailures] = useState(false);
   const [showPaymentFailures, setShowPaymentFailures] = useState(false);
+  const [activating, setActivating] = useState(false);
 
   useEffect(() => {
     fetchSubscription();
@@ -105,6 +106,28 @@ export default function SubscriptionInfo() {
     }
   };
 
+  const handleActivateSubscription = async () => {
+    try {
+      setActivating(true);
+      await subscriptionService.activateSubscription();
+      await fetchSubscription();
+      showAlert({
+        type: 'success',
+        title: '구독 활성화 완료',
+        message: '구독이 다시 활성화되었습니다. 정기 결제가 재개됩니다.'
+      });
+    } catch (err) {
+      showAlert({
+        type: 'error',
+        title: '구독 활성화 실패',
+        message: '구독 활성화에 실패했습니다.'
+      });
+      console.error(err);
+    } finally {
+      setActivating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8">
@@ -160,16 +183,20 @@ export default function SubscriptionInfo() {
                   'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 
                 subscription.status === SubscriptionStatus.EXPIRED ? 
                   'bg-gradient-to-r from-red-50 to-rose-50 border-red-200' : 
+                subscription.status === SubscriptionStatus.CANCELLED ?
+                  'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
                   'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'
               }`}>
                 <p className={`text-sm font-medium mb-1 ${
                   subscription.status === SubscriptionStatus.ACTIVE ? 'text-green-700' : 
                   subscription.status === SubscriptionStatus.EXPIRED ? 'text-red-700' : 
+                  subscription.status === SubscriptionStatus.CANCELLED ? 'text-orange-700' :
                   'text-gray-700'
                 }`}>상태</p>
                 <p className={`text-xl font-bold ${
                   subscription.status === SubscriptionStatus.ACTIVE ? 'text-green-900' : 
                   subscription.status === SubscriptionStatus.EXPIRED ? 'text-red-900' : 
+                  subscription.status === SubscriptionStatus.CANCELLED ? 'text-orange-900' :
                   'text-gray-900'
                 }`}>
                   {subscription.status === SubscriptionStatus.ACTIVE ? '활성' :
@@ -229,6 +256,29 @@ export default function SubscriptionInfo() {
                   className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
                 >
                   Basic 플랜 시작하기 (₩9,900/월)
+                </button>
+              </div>
+            )}
+
+            {/* 취소된 구독에 대한 안내 문구 */}
+            {subscriptionService.isCanceled(subscription) && (
+              <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-sm text-orange-800 mb-2">
+                  구독이 취소되었지만 <strong>{new Date(subscription.endDate).toLocaleDateString('ko-KR')}</strong>까지 서비스를 계속 이용하실 수 있습니다.
+                </p>
+                <p className="text-sm text-orange-700">
+                  구독을 다시 활성화하면 정기 결제일마다 자동으로 결제가 재개됩니다.
+                </p>
+                <button
+                  onClick={handleActivateSubscription}
+                  disabled={activating}
+                  className={`mt-3 w-full px-4 py-2 rounded-lg transition-colors ${
+                    activating
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {activating ? '활성화 중...' : '구독 활성화'}
                 </button>
               </div>
             )}
