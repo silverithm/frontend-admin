@@ -17,6 +17,8 @@ export default function SubscriptionInfo() {
   const [loadingPaymentFailures, setLoadingPaymentFailures] = useState(false);
   const [showPaymentFailures, setShowPaymentFailures] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showActivateModal, setShowActivateModal] = useState(false);
 
   useEffect(() => {
     fetchSubscription();
@@ -81,14 +83,11 @@ export default function SubscriptionInfo() {
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm('정말로 구독을 취소하시겠습니까?')) {
-      return;
-    }
-
     try {
       setLoading(true);
       await subscriptionService.cancelSubscription();
       await fetchSubscription();
+      setShowCancelModal(false);
       showAlert({
         type: 'success',
         title: '구독 취소 완료',
@@ -111,6 +110,7 @@ export default function SubscriptionInfo() {
       setActivating(true);
       await subscriptionService.activateSubscription();
       await fetchSubscription();
+      setShowActivateModal(false);
       showAlert({
         type: 'success',
         title: '구독 활성화 완료',
@@ -270,7 +270,7 @@ export default function SubscriptionInfo() {
                   구독을 다시 활성화하면 정기 결제일마다 자동으로 결제가 재개됩니다.
                 </p>
                 <button
-                  onClick={handleActivateSubscription}
+                  onClick={() => setShowActivateModal(true)}
                   disabled={activating}
                   className={`mt-3 w-full px-4 py-2 rounded-lg transition-colors ${
                     activating
@@ -278,7 +278,7 @@ export default function SubscriptionInfo() {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {activating ? '활성화 중...' : '구독 활성화'}
+                  구독 활성화
                 </button>
               </div>
             )}
@@ -293,7 +293,7 @@ export default function SubscriptionInfo() {
                     <p className="text-sm text-gray-600">매월 자동 결제</p>
                   </div>
                   <button
-                    onClick={handleCancelSubscription}
+                    onClick={() => setShowCancelModal(true)}
                     className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-all duration-200"
                   >
                     구독 취소
@@ -448,6 +448,90 @@ export default function SubscriptionInfo() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* 구독 취소 확인 모달 */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">구독 취소</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              정말로 구독을 취소하시겠습니까?
+              <br />
+              구독을 취소하면 정기 결제가 중단되며, 종료일까지 서비스를 이용할 수 있습니다.
+            </p>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={loading}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                  loading
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {loading ? '처리 중...' : '구독 취소'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 구독 활성화 확인 모달 */}
+      {showActivateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">구독 활성화</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              구독을 다시 활성화하시겠습니까?
+              <br />
+              활성화하면 정기 결제일마다 자동으로 결제가 재개됩니다.
+            </p>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowActivateModal(false)}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleActivateSubscription}
+                disabled={activating}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                  activating
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {activating ? '활성화 중...' : '구독 활성화'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
       </div>

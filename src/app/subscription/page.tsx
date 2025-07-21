@@ -12,6 +12,7 @@ export default function SubscriptionPage() {
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     fetchSubscription();
@@ -36,14 +37,11 @@ export default function SubscriptionPage() {
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm('정말로 구독을 취소하시겠습니까?')) {
-      return;
-    }
-
     try {
       setLoading(true);
       await subscriptionService.cancelSubscription();
       await fetchSubscription();
+      setShowCancelModal(false);
       showAlert({
         type: 'success',
         title: '구독 취소 완료',
@@ -179,7 +177,7 @@ export default function SubscriptionPage() {
              subscription.status === SubscriptionStatus.ACTIVE && (
               <div className="mt-6">
                 <button
-                  onClick={handleCancelSubscription}
+                  onClick={() => setShowCancelModal(true)}
                   className="text-red-600 hover:text-red-700 text-sm"
                 >
                   구독 취소
@@ -235,6 +233,48 @@ export default function SubscriptionPage() {
             </ul>
           </div>
         </div>
+
+        {/* 구독 취소 확인 모달 */}
+        {showCancelModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">구독 취소</h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                정말로 구독을 취소하시겠습니까?
+                <br />
+                구독을 취소하면 정기 결제가 중단되며, 종료일까지 서비스를 이용할 수 있습니다.
+              </p>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleCancelSubscription}
+                  disabled={loading}
+                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                    loading
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  {loading ? '처리 중...' : '구독 취소'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       </div>
     </>
