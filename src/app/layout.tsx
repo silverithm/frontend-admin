@@ -26,8 +26,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: 'https://carev.kr/images/carev-logo-text.png',
-        width: 2048,
-        height: 1000,
+        width: 1200,
+        height: 630,
         alt: '케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램',
         type: 'image/png',
       }
@@ -188,8 +188,8 @@ export default function RootLayout({
         <meta property="og:url" content="https://carev.kr" />
         <meta property="og:site_name" content="케어브이" />
         <meta property="og:image" content="https://carev.kr/images/carev-logo-text.png" />
-        <meta property="og:image:width" content="2048" />
-        <meta property="og:image:height" content="1000" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="ko_KR" />
