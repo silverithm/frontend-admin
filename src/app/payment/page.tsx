@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState, useCallback} from 'react';
+import {useEffect, useState, useCallback, useRef} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {loadTossPayments} from '@tosspayments/payment-sdk';
 import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
@@ -23,7 +23,7 @@ export default function PaymentPage() {
     });
     const [agreementChecked, setAgreementChecked] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
-    const [processedAuthKeys, setProcessedAuthKeys] = useState<Set<string>>(new Set());
+    const processedAuthKeysRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         // localStorage에서 사용자 정보 가져오기
@@ -279,7 +279,7 @@ export default function PaymentPage() {
 
         if (authKey && customerKeyParam) {
             // 이미 처리된 authKey인지 확인 (중복 실행 방지)
-            if (processedAuthKeys.has(authKey)) {
+            if (processedAuthKeysRef.current.has(authKey)) {
                 console.log('이미 처리된 authKey:', authKey);
                 return;
             }
@@ -296,7 +296,7 @@ export default function PaymentPage() {
             }
 
             // 처리된 authKey로 표시 (중복 실행 방지)
-            setProcessedAuthKeys(prev => new Set(prev).add(authKey));
+            processedAuthKeysRef.current.add(authKey);
 
             // 보안: 즉시 URL에서 민감한 정보 제거
             const url = new URL(window.location.href);
@@ -306,7 +306,7 @@ export default function PaymentPage() {
             
             handleBillingSuccess(authKey);
         }
-    }, [searchParams, handleBillingSuccess, showAlert, processedAuthKeys, setProcessedAuthKeys]);
+    }, [searchParams, handleBillingSuccess, showAlert]);
 
     const handlePayment = async () => {
         if (!customerKey) {
