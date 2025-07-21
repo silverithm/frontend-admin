@@ -6,6 +6,7 @@ import {loadTossPayments} from '@tosspayments/payment-sdk';
 import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
 import {subscriptionService} from '@/services/subscription';
 import {useAlert} from '@/components/Alert';
+import confetti from 'canvas-confetti';
 
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
@@ -22,6 +23,7 @@ export default function PaymentPage() {
     });
     const [agreementChecked, setAgreementChecked] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
+    const [processedAuthKeys, setProcessedAuthKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         // localStorage에서 사용자 정보 가져오기
@@ -53,11 +55,22 @@ export default function PaymentPage() {
         try {
             setLoading(true);
 
+            // 사용자 정보 유효성 검사
+            if (!userInfo.email || !userInfo.name || !customerKey) {
+                showAlert({
+                    type: 'error',
+                    title: '사용자 정보 오류',
+                    message: '사용자 정보가 불완전합니다. 다시 로그인해주세요.'
+                });
+                router.push('/login');
+                return;
+            }
+
             // 보안: authKey를 변수에서 즉시 제거 (메모리에서 빠른 해제)
             const subscriptionData: SubscriptionRequestDTO = {
                 planName: SubscriptionType.BASIC,
                 billingType: SubscriptionBillingType.MONTHLY,
-                amount: 9900,
+                amount: 100,
                 customerKey: customerKey,
                 authKey: authKey,
                 orderName: 'Basic 플랜 월간 구독',
@@ -71,12 +84,53 @@ export default function PaymentPage() {
 
             await subscriptionService.createOrUpdateSubscription(subscriptionData);
 
+            // 폭죽 애니메이션 실행
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            const colors = ['#FFD700', '#FF69B4', '#00CED1', '#FFA500', '#98FB98'];
+
+            (function frame() {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: colors
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: colors
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+
+            // 추가 폭죽 효과
+            setTimeout(() => {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: colors
+                });
+            }, 500);
+
             showAlert({
               type: 'success',
-              title: '결제 완료',
-              message: '결제가 완료되었습니다! Basic 플랜을 이용하실 수 있습니다.'
+              title: '🎉 결제 완료! 🎉',
+              message: '축하합니다! 결제가 성공적으로 완료되었습니다.\nBasic 플랜을 이용하실 수 있습니다.'
             });
-            router.push('/admin');
+            
+            // 3초 후 리다이렉트
+            setTimeout(() => {
+                router.push('/admin');
+            }, 3000);
         } catch (error: any) {
             // 에러 메시지 파싱
             let errorMessage = '구독 활성화에 실패했습니다. 고객센터에 문의해주세요.';
@@ -224,6 +278,12 @@ export default function PaymentPage() {
         const customerKeyParam = searchParams.get('customerKey');
 
         if (authKey && customerKeyParam) {
+            // 이미 처리된 authKey인지 확인 (중복 실행 방지)
+            if (processedAuthKeys.has(authKey)) {
+                console.log('이미 처리된 authKey:', authKey);
+                return;
+            }
+
             // 보안 검증: authKey 형식 확인 (TossPayments authKey는 특정 패턴을 가짐)
             if (!authKey.match(/^[A-Za-z0-9_-]+$/)) {
                 console.error('유효하지 않은 authKey 형식');
@@ -235,6 +295,9 @@ export default function PaymentPage() {
                 return;
             }
 
+            // 처리된 authKey로 표시 (중복 실행 방지)
+            setProcessedAuthKeys(prev => new Set(prev).add(authKey));
+
             // 보안: 즉시 URL에서 민감한 정보 제거
             const url = new URL(window.location.href);
             url.searchParams.delete('authKey');
@@ -243,7 +306,7 @@ export default function PaymentPage() {
             
             handleBillingSuccess(authKey);
         }
-    }, [searchParams, handleBillingSuccess, showAlert]);
+    }, [searchParams, handleBillingSuccess, showAlert, processedAuthKeys, setProcessedAuthKeys]);
 
     const handlePayment = async () => {
         if (!customerKey) {
