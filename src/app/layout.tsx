@@ -6,8 +6,8 @@ import SubscriptionGuard from '@/components/SubscriptionGuard'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스',
-  description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요.',
+  title: '케어브이',
+  description: '근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요.',
   keywords: '주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터',
   authors: [{ name: '케어브이' }],
   creator: '케어브이',
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL('https://carev.kr'),
   openGraph: {
-    title: '케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스',
-    description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요.',
+    title: '케어브이',
+    description: '근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요.',
     url: 'https://carev.kr',
     siteName: '케어브이',
     images: [
@@ -37,8 +37,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: '케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스',
-    description: '주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요.',
+    title: '케어브이',
+    description: '근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요.',
     images: ['https://carev.kr/images/carev-logo-text.png'],
     creator: '@carev_kr',
   },
@@ -175,16 +175,16 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         {/* 서버사이드 메타 태그 - 크롤러를 위한 정적 태그들 */}
-        <title>케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스</title>
-        <meta name="description" content="주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요." />
+        <title>케어브이</title>
+        <meta name="description" content="근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요." />
         <meta name="keywords" content="주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터" />
         <meta name="author" content="케어브이" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         
         {/* Open Graph 메타 태그 */}
-        <meta property="og:title" content="케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스" />
-        <meta property="og:description" content="주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요." />
+        <meta property="og:title" content="케어브이" />
+        <meta property="og:description" content="근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요." />
         <meta property="og:url" content="https://carev.kr" />
         <meta property="og:site_name" content="케어브이" />
         <meta property="og:image" content="https://carev.kr/opengraph-image" />
@@ -196,8 +196,8 @@ export default function RootLayout({
         
         {/* Twitter Card 메타 태그 */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="케어브이 - 주간보호센터, 장기요양기관 근무표 작성 서비스" />
-        <meta name="twitter:description" content="주간보호센터, 장기요양기관, 요양원 근무표 작성 서비스. 효율적인 휴무관리와 인력관리로 업무 부담을 줄여보세요." />
+        <meta name="twitter:title" content="케어브이" />
+        <meta name="twitter:description" content="근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요." />
         <meta name="twitter:image" content="https://carev.kr/opengraph-image" />
         <meta name="twitter:creator" content="@carev_kr" />
         
