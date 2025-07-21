@@ -192,7 +192,7 @@ export const subscriptionService = {
   },
 
   isCanceled(subscription: SubscriptionResponseDTO): boolean {
-    return subscription.status === SubscriptionStatus.CANCELED;
+    return subscription.status === SubscriptionStatus.CANCELLED;
   },
 
   isFreeTrialExpired(subscription: SubscriptionResponseDTO): boolean {
