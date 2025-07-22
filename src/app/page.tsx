@@ -260,7 +260,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* 가입 및 승인 절차 안내 섹션 */}
+            {/* 사용 방법 섹션 */}
             <section id="process" className="py-20 bg-slate-800/50 backdrop-blur-sm">
                 <div className="container mx-auto px-4">
                     <motion.h2
@@ -270,7 +270,7 @@ export default function LandingPage() {
                         transition={{duration: 0.6}}
                         className="text-4xl md:text-5xl font-bold text-center mb-16 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent"
                     >
-                        케어브이 가입 및 승인 절차 안내
+                        케어브이 사용 방법
                     </motion.h2>
 
                     <div className="max-w-5xl mx-auto">
@@ -388,6 +388,42 @@ export default function LandingPage() {
                         >
                             <p className="text-blue-100/80 text-lg">
                                 ✨ 간단한 4단계로 케어브이 서비스 이용을 시작하세요!
+                            </p>
+                        </motion.div>
+                    </div>
+
+                    {/* 가입 절차 서브섹션 */}
+                    <div className="mt-20">
+                        <motion.h3
+                            initial={{opacity: 0, y: 20}}
+                            whileInView={{opacity: 1, y: 0}}
+                            viewport={{once: true}}
+                            transition={{duration: 0.6}}
+                            className="text-3xl md:text-4xl font-bold text-center mb-12 text-white"
+                        >
+                            가입 절차
+                        </motion.h3>
+
+                        {/* 유튜브 영상 */}
+                        <motion.div
+                            initial={{opacity: 0, scale: 0.9}}
+                            whileInView={{opacity: 1, scale: 1}}
+                            viewport={{once: true}}
+                            transition={{duration: 0.7}}
+                            className="max-w-4xl mx-auto"
+                        >
+                            <div className="relative aspect-video bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-blue-400/20">
+                                <iframe
+                                    className="absolute inset-0 w-full h-full"
+                                    src="https://www.youtube.com/embed/x2cJedS6vaU"
+                                    title="케어브이 가입 및 승인 절차 안내"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                            <p className="text-center text-blue-100/80 mt-4 text-lg">
+                                📹 케어브이 가입 및 승인 절차를 영상으로 확인해보세요
                             </p>
                         </motion.div>
                     </div>
