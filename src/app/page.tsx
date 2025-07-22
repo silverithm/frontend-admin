@@ -392,18 +392,8 @@ export default function LandingPage() {
                         </motion.div>
                     </div>
 
-                    {/* 가입 절차 서브섹션 */}
-                    <div className="mt-20">
-                        <motion.h3
-                            initial={{opacity: 0, y: 20}}
-                            whileInView={{opacity: 1, y: 0}}
-                            viewport={{once: true}}
-                            transition={{duration: 0.6}}
-                            className="text-3xl md:text-4xl font-bold text-center mb-12 text-white"
-                        >
-                            가입 절차
-                        </motion.h3>
-
+                    {/* 사용 영상 서브섹션 */}
+                    <div className="mt-10">
                         {/* 유튜브 영상 */}
                         <motion.div
                             initial={{opacity: 0, scale: 0.9}}
@@ -423,7 +413,7 @@ export default function LandingPage() {
                                 ></iframe>
                             </div>
                             <p className="text-center text-blue-100/80 mt-4 text-lg">
-                                📹 케어브이 가입 및 승인 절차를 영상으로 확인해보세요
+                                📹 케어브이 사용방법을 영상으로 확인해보세요
                             </p>
                         </motion.div>
                     </div>
