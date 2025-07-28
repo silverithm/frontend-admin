@@ -607,7 +607,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     setIsCapturing(true);
     
     try {
-      // 캡처 전에 oklch 색상을 rgb로 변환
+      // DOM 복제 및 스타일 인라인화
       const originalElement = calendarRef.current;
       const clonedElement = originalElement.cloneNode(true) as HTMLElement;
       
@@ -615,25 +615,56 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       clonedElement.style.position = 'absolute';
       clonedElement.style.left = '-9999px';
       clonedElement.style.top = '0';
+      clonedElement.style.width = originalElement.offsetWidth + 'px';
       document.body.appendChild(clonedElement);
       
-      // oklch 색상을 포함한 요소들의 스타일 수정
-      const allElements = clonedElement.querySelectorAll('*');
-      allElements.forEach((el) => {
-        const element = el as HTMLElement;
-        const computedStyle = window.getComputedStyle(element);
+      // 모든 요소의 계산된 스타일을 인라인으로 적용
+      const processElement = (original: Element, cloned: Element) => {
+        if (original instanceof HTMLElement && cloned instanceof HTMLElement) {
+          const computedStyle = window.getComputedStyle(original);
+          
+          // 중요한 스타일 속성들을 인라인으로 복사
+          const importantProps = [
+            'color', 'backgroundColor', 'borderColor', 'borderWidth', 'borderStyle',
+            'padding', 'margin', 'fontSize', 'fontWeight', 'fontFamily',
+            'width', 'height', 'display', 'position', 'top', 'left', 'right', 'bottom',
+            'textAlign', 'lineHeight', 'boxShadow', 'borderRadius'
+          ];
+          
+          importantProps.forEach(prop => {
+            const value = computedStyle.getPropertyValue(prop);
+            if (value && !value.includes('oklch')) {
+              cloned.style.setProperty(prop, value);
+            }
+          });
+          
+          // oklch 색상을 명시적으로 변환
+          const bgColor = computedStyle.backgroundColor;
+          const textColor = computedStyle.color;
+          const borderColor = computedStyle.borderColor;
+          
+          if (bgColor && !bgColor.includes('oklch') && bgColor !== 'rgba(0, 0, 0, 0)') {
+            cloned.style.backgroundColor = bgColor;
+          }
+          if (textColor && !textColor.includes('oklch')) {
+            cloned.style.color = textColor;
+          }
+          if (borderColor && !borderColor.includes('oklch')) {
+            cloned.style.borderColor = borderColor;
+          }
+        }
         
-        // 배경색과 텍스트 색상을 계산된 값으로 대체
-        if (computedStyle.backgroundColor && computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-          element.style.backgroundColor = computedStyle.backgroundColor;
+        // 자식 요소들도 재귀적으로 처리
+        const originalChildren = original.children;
+        const clonedChildren = cloned.children;
+        for (let i = 0; i < originalChildren.length; i++) {
+          if (originalChildren[i] && clonedChildren[i]) {
+            processElement(originalChildren[i], clonedChildren[i]);
+          }
         }
-        if (computedStyle.color) {
-          element.style.color = computedStyle.color;
-        }
-        if (computedStyle.borderColor) {
-          element.style.borderColor = computedStyle.borderColor;
-        }
-      });
+      };
+      
+      processElement(originalElement, clonedElement);
       
       // 캡처할 영역 지정
       const canvas = await html2canvas(clonedElement, {
@@ -642,6 +673,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         backgroundColor: '#ffffff',
         windowWidth: clonedElement.scrollWidth,
         windowHeight: clonedElement.scrollHeight,
+        ignoreElements: (element) => {
+          // oklch 색상을 포함한 요소 무시
+          const style = window.getComputedStyle(element);
+          return style.backgroundColor.includes('oklch') || 
+                 style.color.includes('oklch') || 
+                 style.borderColor.includes('oklch');
+        }
       } as any);
       
       // 클론된 요소 제거
