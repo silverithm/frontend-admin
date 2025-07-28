@@ -607,83 +607,64 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     setIsCapturing(true);
     
     try {
-      // DOM 복제 및 스타일 인라인화
+      // 원본 요소에 임시 클래스 추가하여 oklch 색상 비활성화
       const originalElement = calendarRef.current;
-      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
+      originalElement.classList.add('capture-mode');
       
-      // 클론된 요소를 화면 밖에 임시로 추가
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-9999px';
-      clonedElement.style.top = '0';
-      clonedElement.style.width = originalElement.offsetWidth + 'px';
-      document.body.appendChild(clonedElement);
-      
-      // 모든 요소의 계산된 스타일을 인라인으로 적용
-      const processElement = (original: Element, cloned: Element) => {
-        if (original instanceof HTMLElement && cloned instanceof HTMLElement) {
-          const computedStyle = window.getComputedStyle(original);
-          
-          // 중요한 스타일 속성들을 인라인으로 복사
-          const importantProps = [
-            'color', 'backgroundColor', 'borderColor', 'borderWidth', 'borderStyle',
-            'padding', 'margin', 'fontSize', 'fontWeight', 'fontFamily',
-            'width', 'height', 'display', 'position', 'top', 'left', 'right', 'bottom',
-            'textAlign', 'lineHeight', 'boxShadow', 'borderRadius'
-          ];
-          
-          importantProps.forEach(prop => {
-            const value = computedStyle.getPropertyValue(prop);
-            if (value && !value.includes('oklch')) {
-              cloned.style.setProperty(prop, value);
-            }
-          });
-          
-          // oklch 색상을 명시적으로 변환
-          const bgColor = computedStyle.backgroundColor;
-          const textColor = computedStyle.color;
-          const borderColor = computedStyle.borderColor;
-          
-          if (bgColor && !bgColor.includes('oklch') && bgColor !== 'rgba(0, 0, 0, 0)') {
-            cloned.style.backgroundColor = bgColor;
-          }
-          if (textColor && !textColor.includes('oklch')) {
-            cloned.style.color = textColor;
-          }
-          if (borderColor && !borderColor.includes('oklch')) {
-            cloned.style.borderColor = borderColor;
-          }
+      // 임시 스타일 추가
+      const styleElement = document.createElement('style');
+      styleElement.textContent = `
+        .capture-mode * {
+          transition: none !important;
         }
-        
-        // 자식 요소들도 재귀적으로 처리
-        const originalChildren = original.children;
-        const clonedChildren = cloned.children;
-        for (let i = 0; i < originalChildren.length; i++) {
-          if (originalChildren[i] && clonedChildren[i]) {
-            processElement(originalChildren[i], clonedChildren[i]);
-          }
-        }
-      };
+        .capture-mode .bg-green-100 { background-color: #d1fae5 !important; }
+        .capture-mode .bg-red-100 { background-color: #fee2e2 !important; }
+        .capture-mode .bg-blue-50 { background-color: #eff6ff !important; }
+        .capture-mode .bg-blue-100 { background-color: #dbeafe !important; }
+        .capture-mode .bg-purple-50 { background-color: #f5f3ff !important; }
+        .capture-mode .bg-purple-100 { background-color: #ede9fe !important; }
+        .capture-mode .bg-yellow-100 { background-color: #fef3c7 !important; }
+        .capture-mode .bg-gray-50 { background-color: #f9fafb !important; }
+        .capture-mode .bg-green-500 { background-color: #10b981 !important; }
+        .capture-mode .bg-red-500 { background-color: #ef4444 !important; }
+        .capture-mode .bg-blue-500 { background-color: #3b82f6 !important; }
+        .capture-mode .bg-blue-600 { background-color: #2563eb !important; }
+        .capture-mode .text-green-600 { color: #059669 !important; }
+        .capture-mode .text-red-600 { color: #dc2626 !important; }
+        .capture-mode .text-blue-600 { color: #2563eb !important; }
+        .capture-mode .text-blue-700 { color: #1d4ed8 !important; }
+        .capture-mode .text-yellow-600 { color: #d97706 !important; }
+        .capture-mode .text-gray-800 { color: #1f2937 !important; }
+        .capture-mode .text-black { color: #000000 !important; }
+        .capture-mode .text-white { color: #ffffff !important; }
+        .capture-mode .text-red-500 { color: #ef4444 !important; }
+        .capture-mode .text-blue-500 { color: #3b82f6 !important; }
+      `;
+      document.head.appendChild(styleElement);
       
-      processElement(originalElement, clonedElement);
+      // 잠시 대기하여 스타일이 적용되도록 함
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // 캡처할 영역 지정
-      const canvas = await html2canvas(clonedElement, {
+      const canvas = await html2canvas(originalElement, {
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: clonedElement.scrollWidth,
-        windowHeight: clonedElement.scrollHeight,
-        ignoreElements: (element: Element) => {
-          // oklch 색상을 포함한 요소 무시
-          const style = window.getComputedStyle(element);
-          return style.backgroundColor.includes('oklch') || 
-                 style.color.includes('oklch') || 
-                 style.borderColor.includes('oklch');
+        scale: 2,
+        windowWidth: originalElement.scrollWidth,
+        windowHeight: originalElement.scrollHeight,
+        onclone: (clonedDoc) => {
+          // 클론된 문서에서도 capture-mode 클래스 유지
+          const clonedEl = clonedDoc.querySelector('.capture-mode');
+          if (clonedEl) {
+            clonedEl.classList.add('capture-mode');
+          }
         }
       } as any);
       
-      // 클론된 요소 제거
-      document.body.removeChild(clonedElement);
+      // 임시 클래스 및 스타일 제거
+      originalElement.classList.remove('capture-mode');
+      document.head.removeChild(styleElement);
       
       // 이미지를 다운로드
       const link = document.createElement('a');
