@@ -47,7 +47,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
-  const captureAreaRef = useRef<HTMLDivElement>(null);
   
   const MAX_RETRY_COUNT = 3;
   const MAX_RETRY_DELAY = 1000;
@@ -603,13 +602,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   // 캘린더 캡처 기능
   const handleCapture = async () => {
-    if (!captureAreaRef.current || !isExpanded) return;
+    if (!calendarRef.current || !isExpanded) return;
     
     setIsCapturing(true);
     
     try {
-      // 캡처할 요소 (캘린더 부분만)
-      const captureElement = captureAreaRef.current;
+      // 현재 보이는 달력 전체를 캡처 (인터랙티브 달력)
+      const captureElement = calendarRef.current;
       
       // html-to-image를 사용하여 캡처
       const dataUrl = await htmlToImage.toPng(captureElement, {
@@ -623,7 +622,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         },
         filter: (node: HTMLElement) => {
           // 버튼과 불필요한 요소 제외
-          if (node.tagName === 'BUTTON' && node.textContent?.includes('캡처')) {
+          if (node.tagName === 'BUTTON') {
             return false;
           }
           return true;
@@ -796,118 +795,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </div>
         </div>
 
-        {/* 캡처 전용 영역 (펼쳐진 상태에서만 표시) */}
-        {isExpanded && (
-          <div ref={captureAreaRef} className="bg-white p-4 rounded-lg mb-4 border-2 border-dashed border-gray-300">
-            {/* 캘린더 헤더 */}
-            <div className="text-center mb-4 pb-2 border-b">
-              <h2 className="text-xl font-bold text-gray-800">
-                {format(currentDate, 'yyyy년 MM월', { locale: ko })} 근무표
-              </h2>
-            </div>
-            
-            {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 border-b border-gray-200 mb-2">
-              {WEEKDAYS.map((day, index) => (
-                <div 
-                  key={day} 
-                  className={`py-2 text-center font-medium text-sm ${
-                    index === 0 ? 'text-red-500' : 
-                    index === 6 ? 'text-indigo-500' : 'text-gray-600'
-                  }`}
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* 캘린더 그리드 */}
-            <div className="grid grid-cols-7 gap-2">
-              {calendarDates.map((day, index) => {
-                const isCurrentDay = isToday(day);
-                const isCurrentMonth = isSameMonth(day, currentDate);
-                const isSunday = getDay(day) === 0;
-                const isSaturday = getDay(day) === 6;
-                
-                const dateKey = format(day, 'yyyy-MM-dd');
-                const dayData = calendarData[dateKey];
-                const vacations = getDayVacations(day);
-                const vacationersCount = vacations.length;
-                const maxPeople = dayData?.maxPeople ?? 3;
-                
-                return (
-                  <div
-                    key={index}
-                    className={`p-3 min-h-[120px] rounded-lg border relative ${
-                      !isCurrentMonth ? 'opacity-40' : ''
-                    } ${
-                      vacationersCount >= maxPeople && roleFilter !== 'all'
-                        ? 'bg-red-50 border-red-200'
-                        : 'bg-white border-gray-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className={`text-sm font-semibold ${
-                        isSunday ? 'text-red-500' : 
-                        isSaturday ? 'text-blue-500' : 
-                        'text-black'}
-                      `}>
-                        {format(day, 'd')}
-                        {isCurrentDay && (
-                          <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
-                        )}
-                      </div>
-                      
-                      {isCurrentMonth && roleFilter !== 'all' && (
-                        <span className={`
-                          text-xs font-medium px-1.5 py-0.5 rounded-full
-                          ${
-                            vacationersCount >= maxPeople
-                              ? 'bg-red-100 text-red-600' 
-                              : 'bg-green-100 text-green-600'
-                          }
-                        `}>
-                          {vacationersCount}/{maxPeople}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {isCurrentMonth && (
-                      <div className="space-y-1">
-                        {vacations && vacations.length > 0 ? (
-                          <>
-                            {vacations.map((vacation, idx) => (
-                              <div key={idx} className="flex items-center text-xs">
-                                <span className={`flex-shrink-0 whitespace-nowrap text-xs mr-1 px-1 py-0.5 rounded-full
-                                  ${vacation.status === 'approved' 
-                                    ? 'bg-green-100 text-green-600' 
-                                    : vacation.status === 'rejected'
-                                    ? 'bg-red-100 text-red-600'
-                                    : 'bg-yellow-100 text-yellow-600'}`}>
-                                  {getStatusText(vacation.status)}
-                                </span>
-                                <span className="flex-1 leading-tight text-gray-800">
-                                  {vacation.userName || '이름 없음'}
-                                  {isValidDuration(vacation.duration) && (
-                                    <span className={`ml-1 w-3 h-3 rounded-full ${getDurationColorClass(vacation.duration)} text-white text-[8px] font-bold inline-flex items-center justify-center`}>
-                                      {getDurationShortText(vacation.duration)}
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                            ))}
-                          </>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 기존 인터랙티브 캘린더 */}
+        {/* 인터랙티브 캘린더 */}
         <div className="grid grid-cols-7 border-b border-gray-200">
           {WEEKDAYS.map((day, index) => (
             <div 
