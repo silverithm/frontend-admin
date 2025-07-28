@@ -7,7 +7,7 @@ import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } 
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera } from 'react-icons/fi';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 
@@ -607,70 +607,27 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     setIsCapturing(true);
     
     try {
-      // 원본 요소에 임시 클래스 추가하여 oklch 색상 비활성화
-      const originalElement = calendarRef.current;
-      originalElement.classList.add('capture-mode');
-      
-      // 임시 스타일 추가
-      const styleElement = document.createElement('style');
-      styleElement.textContent = `
-        .capture-mode * {
-          transition: none !important;
+      // dom-to-image-more를 사용하여 캡처
+      const dataUrl = await domtoimage.toPng(calendarRef.current, {
+        quality: 0.95,
+        bgcolor: '#ffffff',
+        width: calendarRef.current.offsetWidth * 2,
+        height: calendarRef.current.offsetHeight * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+        },
+        filter: (node: Node) => {
+          // 특정 노드 필터링 (필요시)
+          return true;
         }
-        .capture-mode .bg-green-100 { background-color: #d1fae5 !important; }
-        .capture-mode .bg-red-100 { background-color: #fee2e2 !important; }
-        .capture-mode .bg-blue-50 { background-color: #eff6ff !important; }
-        .capture-mode .bg-blue-100 { background-color: #dbeafe !important; }
-        .capture-mode .bg-purple-50 { background-color: #f5f3ff !important; }
-        .capture-mode .bg-purple-100 { background-color: #ede9fe !important; }
-        .capture-mode .bg-yellow-100 { background-color: #fef3c7 !important; }
-        .capture-mode .bg-gray-50 { background-color: #f9fafb !important; }
-        .capture-mode .bg-green-500 { background-color: #10b981 !important; }
-        .capture-mode .bg-red-500 { background-color: #ef4444 !important; }
-        .capture-mode .bg-blue-500 { background-color: #3b82f6 !important; }
-        .capture-mode .bg-blue-600 { background-color: #2563eb !important; }
-        .capture-mode .text-green-600 { color: #059669 !important; }
-        .capture-mode .text-red-600 { color: #dc2626 !important; }
-        .capture-mode .text-blue-600 { color: #2563eb !important; }
-        .capture-mode .text-blue-700 { color: #1d4ed8 !important; }
-        .capture-mode .text-yellow-600 { color: #d97706 !important; }
-        .capture-mode .text-gray-800 { color: #1f2937 !important; }
-        .capture-mode .text-black { color: #000000 !important; }
-        .capture-mode .text-white { color: #ffffff !important; }
-        .capture-mode .text-red-500 { color: #ef4444 !important; }
-        .capture-mode .text-blue-500 { color: #3b82f6 !important; }
-      `;
-      document.head.appendChild(styleElement);
-      
-      // 잠시 대기하여 스타일이 적용되도록 함
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // 캡처할 영역 지정
-      const canvas = await html2canvas(originalElement, {
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        scale: 2,
-        windowWidth: originalElement.scrollWidth,
-        windowHeight: originalElement.scrollHeight,
-        onclone: (clonedDoc: Document) => {
-          // 클론된 문서에서도 capture-mode 클래스 유지
-          const clonedEl = clonedDoc.querySelector('.capture-mode');
-          if (clonedEl) {
-            clonedEl.classList.add('capture-mode');
-          }
-        }
-      } as any);
-      
-      // 임시 클래스 및 스타일 제거
-      originalElement.classList.remove('capture-mode');
-      document.head.removeChild(styleElement);
+      });
       
       // 이미지를 다운로드
       const link = document.createElement('a');
       const yearMonth = format(currentDate, 'yyyy년_MM월');
       link.download = `근무표_${yearMonth}.png`;
-      link.href = canvas.toDataURL();
+      link.href = dataUrl;
       link.click();
       
       // 성공 메시지 표시
