@@ -934,6 +934,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             }
           }}
         >
+          {calendarDates.map((day, index) => {
+            const isCurrentDay = isToday(day);
+            const isSelected = selectedDate && isSameDay(day, selectedDate);
+            const isCurrentMonth = isSameMonth(day, currentDate);
             const isSunday = getDay(day) === 0;
             const isSaturday = getDay(day) === 6;
             const isPast = isBefore(day, startOfDay(new Date()));
