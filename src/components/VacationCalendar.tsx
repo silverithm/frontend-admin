@@ -1,12 +1,13 @@
 'use client';
-import React, { useState, useEffect, useMemo, useCallback, SetStateAction } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, SetStateAction, useRef } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, addDays, getDay, startOfWeek, endOfWeek, isBefore, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
-import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera } from 'react-icons/fi';
+import html2canvas from 'html2canvas';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 
@@ -44,6 +45,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
   
   const MAX_RETRY_COUNT = 3;
   const MAX_RETRY_DELAY = 1000;
@@ -597,6 +600,51 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
   };
 
+  // 캘린더 캡처 기능
+  const handleCapture = async () => {
+    if (!calendarRef.current || !isExpanded) return;
+    
+    setIsCapturing(true);
+    
+    try {
+      // 캡처할 영역 지정
+      const canvas = await html2canvas(calendarRef.current, {
+        scale: 2, // 고해상도
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: calendarRef.current.scrollWidth,
+        windowHeight: calendarRef.current.scrollHeight,
+      });
+      
+      // 이미지를 다운로드
+      const link = document.createElement('a');
+      const yearMonth = format(currentDate, 'yyyy년_MM월');
+      link.download = `근무표_${yearMonth}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+      
+      // 성공 메시지 표시
+      const successMessage = document.createElement('div');
+      successMessage.textContent = '캡처가 완료되었습니다!';
+      successMessage.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+      document.body.appendChild(successMessage);
+      
+      setTimeout(() => {
+        successMessage.style.opacity = '0';
+        setTimeout(() => {
+          document.body.removeChild(successMessage);
+        }, 300);
+      }, 2000);
+    } catch (error) {
+      console.error('캡처 실패:', error);
+      // 실패 메시지
+      alert('캡처에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
   return (
     <div className="w-full bg-white rounded-xl shadow-lg overflow-hidden">
       {showMonthError && (
@@ -605,7 +653,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           <p>요청한 월({format(currentDate, 'yyyy년 MM월')})의 데이터를 가져오지 못했습니다. 새로고침 버튼을 눌러 다시 시도해주세요.</p>
         </div>
       )}
-      <div className="p-3 sm:p-6 md:p-8 flex flex-col">
+      <div ref={calendarRef} className="p-3 sm:p-6 md:p-8 flex flex-col">
         <div className="flex justify-between items-center mb-3 sm:mb-6 md:mb-8">
           <div className="flex items-center space-x-1 sm:space-x-4">
             <div className="bg-blue-100 p-1 sm:p-2 rounded-full text-blue-600">
@@ -694,6 +742,34 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <span className="hidden sm:inline">{isExpanded ? "접기" : "펼치기"}</span>
               <span className="sm:hidden">{isExpanded ? "접기" : "펼치기"}</span>
             </button>
+            {isExpanded && (
+              <button
+                onClick={handleCapture}
+                disabled={isCapturing || isLoading}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium flex items-center gap-1 ${
+                  isCapturing
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-orange-50 hover:bg-orange-100 text-orange-600 hover:scale-105'
+                }`}
+                aria-label="캘린더 캡처"
+                title="펼쳐진 캘린더를 이미지로 저장합니다"
+              >
+                {isCapturing ? (
+                  <>
+                    <svg className="animate-spin h-3 w-3 sm:h-4 sm:w-4 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="hidden sm:inline">캡처 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiCamera size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">캡처</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
