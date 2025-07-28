@@ -7,7 +7,7 @@ import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } 
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera } from 'react-icons/fi';
-import domtoimage from 'dom-to-image-more';
+import * as htmlToImage from 'html-to-image';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 
@@ -47,6 +47,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const captureAreaRef = useRef<HTMLDivElement>(null);
   
   const MAX_RETRY_COUNT = 3;
   const MAX_RETRY_DELAY = 1000;
@@ -602,63 +603,32 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   // 캘린더 캡처 기능
   const handleCapture = async () => {
-    if (!calendarRef.current || !isExpanded) return;
+    if (!captureAreaRef.current || !isExpanded) return;
     
     setIsCapturing(true);
     
     try {
-      // 캡처 전 스타일 준비
-      const originalElement = calendarRef.current;
+      // 캡처할 요소 (캘린더 부분만)
+      const captureElement = captureAreaRef.current;
       
-      // 모든 텍스트가 표시되도록 일시적으로 스타일 조정
-      const tempStyle = document.createElement('style');
-      tempStyle.textContent = `
-        .capture-preparing * {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-          -webkit-font-smoothing: antialiased !important;
-        }
-        .capture-preparing .truncate {
-          overflow: visible !important;
-          text-overflow: clip !important;
-          white-space: normal !important;
-        }
-      `;
-      document.head.appendChild(tempStyle);
-      originalElement.classList.add('capture-preparing');
-      
-      // 렌더링 대기
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // dom-to-image-more를 사용하여 캡처
-      const scale = 2;
-      const dataUrl = await domtoimage.toPng(originalElement, {
-        quality: 1,
-        bgcolor: '#ffffff',
-        width: originalElement.offsetWidth * scale,
-        height: originalElement.offsetHeight * scale,
+      // html-to-image를 사용하여 캡처
+      const dataUrl = await htmlToImage.toPng(captureElement, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+        canvasWidth: captureElement.offsetWidth * 2,
+        canvasHeight: captureElement.offsetHeight * 2,
         style: {
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: originalElement.offsetWidth + 'px',
-          height: originalElement.offsetHeight + 'px'
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '14px',
         },
-        filter: (node: Node) => {
-          // 버튼이나 불필요한 요소 제외
-          if (node instanceof Element) {
-            const classList = node.classList;
-            if (classList && (classList.contains('FiCamera') || 
-                            classList.contains('animate-spin') ||
-                            node.tagName === 'BUTTON')) {
-              return false;
-            }
+        filter: (node: HTMLElement) => {
+          // 버튼과 불필요한 요소 제외
+          if (node.tagName === 'BUTTON' && node.textContent?.includes('캡처')) {
+            return false;
           }
           return true;
         }
       });
-      
-      // 임시 스타일 제거
-      originalElement.classList.remove('capture-preparing');
-      document.head.removeChild(tempStyle);
       
       // 이미지를 다운로드
       const link = document.createElement('a');
@@ -826,6 +796,118 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </div>
         </div>
 
+        {/* 캡처 전용 영역 (펼쳐진 상태에서만 표시) */}
+        {isExpanded && (
+          <div ref={captureAreaRef} className="bg-white p-4 rounded-lg mb-4 border-2 border-dashed border-gray-300">
+            {/* 캘린더 헤더 */}
+            <div className="text-center mb-4 pb-2 border-b">
+              <h2 className="text-xl font-bold text-gray-800">
+                {format(currentDate, 'yyyy년 MM월', { locale: ko })} 근무표
+              </h2>
+            </div>
+            
+            {/* 요일 헤더 */}
+            <div className="grid grid-cols-7 border-b border-gray-200 mb-2">
+              {WEEKDAYS.map((day, index) => (
+                <div 
+                  key={day} 
+                  className={`py-2 text-center font-medium text-sm ${
+                    index === 0 ? 'text-red-500' : 
+                    index === 6 ? 'text-indigo-500' : 'text-gray-600'
+                  }`}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* 캘린더 그리드 */}
+            <div className="grid grid-cols-7 gap-2">
+              {calendarDates.map((day, index) => {
+                const isCurrentDay = isToday(day);
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const isSunday = getDay(day) === 0;
+                const isSaturday = getDay(day) === 6;
+                
+                const dateKey = format(day, 'yyyy-MM-dd');
+                const dayData = calendarData[dateKey];
+                const vacations = getDayVacations(day);
+                const vacationersCount = vacations.length;
+                const maxPeople = dayData?.maxPeople ?? 3;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`p-3 min-h-[120px] rounded-lg border relative ${
+                      !isCurrentMonth ? 'opacity-40' : ''
+                    } ${
+                      vacationersCount >= maxPeople && roleFilter !== 'all'
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className={`text-sm font-semibold ${
+                        isSunday ? 'text-red-500' : 
+                        isSaturday ? 'text-blue-500' : 
+                        'text-black'}
+                      `}>
+                        {format(day, 'd')}
+                        {isCurrentDay && (
+                          <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+                        )}
+                      </div>
+                      
+                      {isCurrentMonth && roleFilter !== 'all' && (
+                        <span className={`
+                          text-xs font-medium px-1.5 py-0.5 rounded-full
+                          ${
+                            vacationersCount >= maxPeople
+                              ? 'bg-red-100 text-red-600' 
+                              : 'bg-green-100 text-green-600'
+                          }
+                        `}>
+                          {vacationersCount}/{maxPeople}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {isCurrentMonth && (
+                      <div className="space-y-1">
+                        {vacations && vacations.length > 0 ? (
+                          <>
+                            {vacations.map((vacation, idx) => (
+                              <div key={idx} className="flex items-center text-xs">
+                                <span className={`flex-shrink-0 whitespace-nowrap text-xs mr-1 px-1 py-0.5 rounded-full
+                                  ${vacation.status === 'approved' 
+                                    ? 'bg-green-100 text-green-600' 
+                                    : vacation.status === 'rejected'
+                                    ? 'bg-red-100 text-red-600'
+                                    : 'bg-yellow-100 text-yellow-600'}`}>
+                                  {getStatusText(vacation.status)}
+                                </span>
+                                <span className="flex-1 leading-tight text-gray-800">
+                                  {vacation.userName || '이름 없음'}
+                                  {isValidDuration(vacation.duration) && (
+                                    <span className={`ml-1 w-3 h-3 rounded-full ${getDurationColorClass(vacation.duration)} text-white text-[8px] font-bold inline-flex items-center justify-center`}>
+                                      {getDurationShortText(vacation.duration)}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          </>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 기존 인터랙티브 캘린더 */}
         <div className="grid grid-cols-7 border-b border-gray-200">
           {WEEKDAYS.map((day, index) => (
             <div 
@@ -852,10 +934,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             }
           }}
         >
-          {calendarDates.map((day, index) => {
-            const isCurrentDay = isToday(day);
-            const isSelected = selectedDate && isSameDay(day, selectedDate);
-            const isCurrentMonth = isSameMonth(day, currentDate);
             const isSunday = getDay(day) === 0;
             const isSaturday = getDay(day) === 6;
             const isPast = isBefore(day, startOfDay(new Date()));
