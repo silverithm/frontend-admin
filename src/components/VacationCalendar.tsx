@@ -673,7 +673,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         backgroundColor: '#ffffff',
         windowWidth: clonedElement.scrollWidth,
         windowHeight: clonedElement.scrollHeight,
-        ignoreElements: (element) => {
+        ignoreElements: (element: Element) => {
           // oklch 색상을 포함한 요소 무시
           const style = window.getComputedStyle(element);
           return style.backgroundColor.includes('oklch') || 
