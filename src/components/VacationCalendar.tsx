@@ -706,8 +706,18 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       }, 2000);
     } catch (error) {
       console.error('캡처 실패:', error);
-      // 실패 메시지
-      alert('캡처에 실패했습니다. 다시 시도해주세요.');
+      // 실패 메시지 표시
+      const errorMessage = document.createElement('div');
+      errorMessage.textContent = '캡처에 실패했습니다. 다시 시도해주세요.';
+      errorMessage.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+      document.body.appendChild(errorMessage);
+      
+      setTimeout(() => {
+        errorMessage.style.opacity = '0';
+        setTimeout(() => {
+          document.body.removeChild(errorMessage);
+        }, 300);
+      }, 3000);
     } finally {
       setIsCapturing(false);
     }
