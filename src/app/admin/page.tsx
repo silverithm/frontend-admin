@@ -65,7 +65,7 @@ export default function AdminPage() {
     );
     const [nameFilter, setNameFilter] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<
-        "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name"
+        "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name" | "role"
     >("latest");
 
     const [isClient, setIsClient] = useState(false);
@@ -166,6 +166,20 @@ export default function AdminPage() {
                 sorted.sort((a, b) =>
                     (a.userName || "").localeCompare(b.userName || "")
                 );
+                break;
+            case "role":
+                sorted.sort((a, b) => {
+                    // 요양보호사를 먼저, 그 다음 사무직
+                    const roleOrder = { caregiver: 0, office: 1 };
+                    const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 2;
+                    const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 2;
+                    
+                    if (aOrder !== bOrder) {
+                        return aOrder - bOrder;
+                    }
+                    // 같은 직무 내에서는 이름순
+                    return (a.userName || "").localeCompare(b.userName || "");
+                });
                 break;
         }
         return sorted;
@@ -607,6 +621,7 @@ export default function AdminPage() {
             | "vacation-date-asc"
             | "vacation-date-desc"
             | "name"
+            | "role"
     ) => setSortOrder(order);
 
     const resetFilter = async () => {
@@ -1230,6 +1245,16 @@ export default function AdminPage() {
                                                         }`}
                                                     >
                                                         이름순
+                                                    </button>
+                                                    <button
+                                                        onClick={() => toggleSortOrder("role")}
+                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                            sortOrder === "role"
+                                                                ? "bg-purple-600 text-white"
+                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                        }`}
+                                                    >
+                                                        직무순
                                                     </button>
                                                 </div>
                                             </div>
