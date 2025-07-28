@@ -1120,6 +1120,7 @@ export default function AdminPage() {
                                         nameFilter={nameFilter}
                                         onShowLimitPanel={handleShowLimitPanel}
                                         onNameFilterChange={setNameFilter}
+                                        sortOrder={sortOrder}
                                     />
                                 </div>
 

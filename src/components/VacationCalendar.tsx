@@ -20,6 +20,7 @@ interface VacationCalendarProps extends CalendarProps {
   nameFilter?: string | null;
   onShowLimitPanel?: () => void;
   onNameFilterChange?: (name: string | null) => void;
+  sortOrder?: 'latest' | 'oldest' | 'vacation-date-asc' | 'vacation-date-desc' | 'name' | 'role';
 }
 
 const VacationCalendar: React.FC<VacationCalendarProps> = ({
@@ -33,6 +34,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   nameFilter = null,
   onShowLimitPanel,
   onNameFilterChange,
+  sortOrder = 'latest',
 }) => {
   const [calendarData, setCalendarData] = useState<VacationData>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -433,7 +435,38 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       vacations = vacations.filter(vacation => vacation.userName === nameFilter);
     }
     
-
+    // 정렬 적용
+    switch (sortOrder) {
+      case 'latest':
+        vacations.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+        break;
+      case 'oldest':
+        vacations.sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+        break;
+      case 'vacation-date-asc':
+        vacations.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        break;
+      case 'vacation-date-desc':
+        vacations.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        break;
+      case 'name':
+        vacations.sort((a, b) => (a.userName || '').localeCompare(b.userName || ''));
+        break;
+      case 'role':
+        vacations.sort((a, b) => {
+          // 요양보호사를 먼저, 그 다음 사무직
+          const roleOrder = { caregiver: 0, office: 1 };
+          const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 2;
+          const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 2;
+          
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+          // 같은 직무 내에서는 이름순
+          return (a.userName || '').localeCompare(b.userName || '');
+        });
+        break;
+    }
     
     return vacations;
   };
