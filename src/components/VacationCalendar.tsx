@@ -607,21 +607,58 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     setIsCapturing(true);
     
     try {
+      // 캡처 전 스타일 준비
+      const originalElement = calendarRef.current;
+      
+      // 모든 텍스트가 표시되도록 일시적으로 스타일 조정
+      const tempStyle = document.createElement('style');
+      tempStyle.textContent = `
+        .capture-preparing * {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+          -webkit-font-smoothing: antialiased !important;
+        }
+        .capture-preparing .truncate {
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: normal !important;
+        }
+      `;
+      document.head.appendChild(tempStyle);
+      originalElement.classList.add('capture-preparing');
+      
+      // 렌더링 대기
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // dom-to-image-more를 사용하여 캡처
-      const dataUrl = await domtoimage.toPng(calendarRef.current, {
-        quality: 0.95,
+      const scale = 2;
+      const dataUrl = await domtoimage.toPng(originalElement, {
+        quality: 1,
         bgcolor: '#ffffff',
-        width: calendarRef.current.offsetWidth * 2,
-        height: calendarRef.current.offsetHeight * 2,
+        width: originalElement.offsetWidth * scale,
+        height: originalElement.offsetHeight * scale,
         style: {
-          transform: 'scale(2)',
+          transform: `scale(${scale})`,
           transformOrigin: 'top left',
+          width: originalElement.offsetWidth + 'px',
+          height: originalElement.offsetHeight + 'px'
         },
         filter: (node: Node) => {
-          // 특정 노드 필터링 (필요시)
+          // 버튼이나 불필요한 요소 제외
+          if (node instanceof Element) {
+            const classList = node.classList;
+            if (classList && (classList.contains('FiCamera') || 
+                            classList.contains('animate-spin') ||
+                            node.tagName === 'BUTTON')) {
+              return false;
+            }
+          }
           return true;
         }
       });
+      
+      // 임시 스타일 제거
+      originalElement.classList.remove('capture-preparing');
+      document.head.removeChild(tempStyle);
       
       // 이미지를 다운로드
       const link = document.createElement('a');
