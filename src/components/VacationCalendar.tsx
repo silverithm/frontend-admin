@@ -607,14 +607,45 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     setIsCapturing(true);
     
     try {
+      // 캡처 전에 oklch 색상을 rgb로 변환
+      const originalElement = calendarRef.current;
+      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
+      
+      // 클론된 요소를 화면 밖에 임시로 추가
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-9999px';
+      clonedElement.style.top = '0';
+      document.body.appendChild(clonedElement);
+      
+      // oklch 색상을 포함한 요소들의 스타일 수정
+      const allElements = clonedElement.querySelectorAll('*');
+      allElements.forEach((el) => {
+        const element = el as HTMLElement;
+        const computedStyle = window.getComputedStyle(element);
+        
+        // 배경색과 텍스트 색상을 계산된 값으로 대체
+        if (computedStyle.backgroundColor && computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+          element.style.backgroundColor = computedStyle.backgroundColor;
+        }
+        if (computedStyle.color) {
+          element.style.color = computedStyle.color;
+        }
+        if (computedStyle.borderColor) {
+          element.style.borderColor = computedStyle.borderColor;
+        }
+      });
+      
       // 캡처할 영역 지정
-      const canvas = await html2canvas(calendarRef.current, {
+      const canvas = await html2canvas(clonedElement, {
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: calendarRef.current.scrollWidth,
-        windowHeight: calendarRef.current.scrollHeight,
+        windowWidth: clonedElement.scrollWidth,
+        windowHeight: clonedElement.scrollHeight,
       } as any);
+      
+      // 클론된 요소 제거
+      document.body.removeChild(clonedElement);
       
       // 이미지를 다운로드
       const link = document.createElement('a');
