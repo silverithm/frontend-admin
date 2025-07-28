@@ -609,13 +609,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     try {
       // 캡처할 영역 지정
       const canvas = await html2canvas(calendarRef.current, {
-        scale: 2, // 고해상도
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         windowWidth: calendarRef.current.scrollWidth,
         windowHeight: calendarRef.current.scrollHeight,
-      });
+      } as any);
       
       // 이미지를 다운로드
       const link = document.createElement('a');
