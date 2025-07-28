@@ -653,7 +653,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         scale: 2,
         windowWidth: originalElement.scrollWidth,
         windowHeight: originalElement.scrollHeight,
-        onclone: (clonedDoc) => {
+        onclone: (clonedDoc: Document) => {
           // 클론된 문서에서도 capture-mode 클래스 유지
           const clonedEl = clonedDoc.querySelector('.capture-mode');
           if (clonedEl) {
