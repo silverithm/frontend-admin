@@ -406,7 +406,7 @@ export default function OrganizationProfilePage() {
               </div>
             </div>
             <div className="text-center md:text-right">
-              <p className="text-blue-200/70">&copy; {new Date().getFullYear()} 케어베케이션. 모든 권리 보유.</p>
+              <p className="text-blue-200/70">&copy; {new Date().getFullYear()} 케어브이. 모든 권리 보유.</p>
             </div>
           </div>
         </div>

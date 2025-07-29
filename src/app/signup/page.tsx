@@ -193,12 +193,12 @@ export default function SignupPage() {
   return (
     <>
       <AlertContainer />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+        className="bg-white rounded-xl shadow-xl border border-gray-200 p-8 w-full max-w-md"
       >
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -210,7 +210,8 @@ export default function SignupPage() {
               className="transition-transform duration-300 hover:scale-105"
             />
           </div>
-          <p className="text-gray-600 mt-2">관리자 회원가입</p>
+          <h1 className="text-2xl font-bold text-gray-800 mt-4">관리자 회원가입</h1>
+          <p className="text-gray-600 mt-2">케어브이 서비스를 시작해보세요</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -224,8 +225,8 @@ export default function SignupPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="이메일"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
+              placeholder="example@email.com"
               required
             />
           </div>
@@ -240,8 +241,8 @@ export default function SignupPage() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="비밀번호"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
+              placeholder="8자 이상의 비밀번호"
               required
             />
           </div>
@@ -256,7 +257,7 @@ export default function SignupPage() {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
               placeholder="비밀번호를 다시 입력하세요"
               required
             />
@@ -272,8 +273,8 @@ export default function SignupPage() {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="이름"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
+              placeholder="홍길동"
               required
             />
           </div>
@@ -288,8 +289,8 @@ export default function SignupPage() {
               name="organizationName"
               value={formData.organizationName}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="회사명"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
+              placeholder="예: **주간보호"
               required
             />
           </div>
@@ -305,7 +306,7 @@ export default function SignupPage() {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
                 placeholder="클릭하여 주소 검색"
                 readOnly
                 required
