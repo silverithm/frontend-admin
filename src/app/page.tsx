@@ -102,9 +102,9 @@ export default function LandingPage() {
                                       d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
                         </div>
-                        <h2 className="text-3xl font-bold text-white mb-4">앱으로 휴가 신청</h2>
+                        <h2 className="text-3xl font-bold text-white mb-4">관리자 및 직원 전용 앱</h2>
                         <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
-                            개인 휴가 신청 및 일정 확인은<br/>모바일 앱에서 더욱 편리하게 이용하세요.
+                            휴무 신청 및 관리를<br/>모바일 앱에서 더욱 편리하게 이용하세요.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                             <a
@@ -155,7 +155,7 @@ export default function LandingPage() {
                         </div>
                         <h2 className="text-3xl font-bold text-white mb-4">관리자 페이지</h2>
                         <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
-                            직원 휴무 일정 승인 및 전체 현황 관리는<br/> 관리자 페이지에서 진행해 주세요.
+                            케어브이는<br/> 관리자를 위한 웹사이트 기능도 제공합니다. 조금 더 넓은 화면에서 직원들의 휴무를 관리할 수 있습니다.
                         </p>
                         <div className="flex flex-col gap-3">
                             <button
@@ -280,7 +280,7 @@ export default function LandingPage() {
                                     step: "1",
                                     role: "[관리자]",
                                     title: "웹사이트 가입",
-                                    description: "근무표 관리자가 먼저 웹사이트에서 회사 정보를 등록하며 가입을 완료합니다.",
+                                    description: "근무표 관리자가 먼저 앱 또는 웹사이트에서 회사 정보를 등록하며 가입을 완료합니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">
@@ -294,7 +294,7 @@ export default function LandingPage() {
                                     step: "2",
                                     role: "[직원]",
                                     title: "앱 가입 요청",
-                                    description: "직원은 앱에서 가입 시, 등록된 소속 회사를 선택하고 가입을 요청합니다.",
+                                    description: "직원은 앱에서 본인이 소속된 회사로 회원가입을 요청합니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">
@@ -308,7 +308,7 @@ export default function LandingPage() {
                                     step: "3",
                                     role: "[관리자]",
                                     title: "가입 승인",
-                                    description: "관리자는 웹사이트에서(회원 관리) 직원의 가입 요청을 확인하고 승인합니다.",
+                                    description: "관리자는 앱 또는 웹사이트에서(회원 관리) 직원의 가입 요청을 확인하고 승인합니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">
