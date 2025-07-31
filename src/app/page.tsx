@@ -155,7 +155,7 @@ export default function LandingPage() {
                         </div>
                         <h2 className="text-3xl font-bold text-white mb-4">관리자 페이지</h2>
                         <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
-                            케어브이는<br/> 관리자를 위한 웹사이트 기능도 제공합니다. 조금 더 넓은 화면에서 직원들의 휴무를 관리할 수 있습니다.
+                            관리자를 위한 웹사이트 기능도 제공합니다. 기능은 앱과 동일하며 조금 더 넓은 화면에서 직원들의 휴무를 관리할 수 있습니다.
                         </p>
                         <div className="flex flex-col gap-3">
                             <button
@@ -402,7 +402,8 @@ export default function LandingPage() {
                             transition={{duration: 0.7}}
                             className="max-w-4xl mx-auto"
                         >
-                            <div className="relative aspect-video bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-blue-400/20">
+                            <div
+                                className="relative aspect-video bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-blue-400/20">
                                 <iframe
                                     className="absolute inset-0 w-full h-full"
                                     src="https://www.youtube.com/embed/x2cJedS6vaU"
