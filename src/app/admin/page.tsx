@@ -109,7 +109,7 @@ export default function AdminPage() {
 
         if (localStorage.getItem("authToken")) {
             fetchMonthData();
-            fetchAllRequests();
+            // fetchAllRequests(); // 제거: getVacationCalendar 데이터 사용
         }
     }, [currentDate, isClient]);
 
@@ -194,7 +194,7 @@ export default function AdminPage() {
 
     const fetchInitialData = async () => {
         try {
-            await Promise.all([fetchMonthData(), fetchAllRequests()]);
+            await fetchMonthData(); // fetchAllRequests 제거
         } catch (error) {
             console.error("초기 데이터 로드 실패:", error);
             showNotification(
@@ -284,6 +284,21 @@ export default function AdminPage() {
                 else days[date].status = "over";
             });
             setVacationDays(days);
+
+            // 캘린더 데이터에서 모든 휴가 요청 추출하여 allRequests에 저장
+            const allVacations: VacationRequest[] = [];
+            Object.values(dates).forEach((dateData: any) => {
+                if (dateData && dateData.vacations && Array.isArray(dateData.vacations)) {
+                    allVacations.push(...dateData.vacations);
+                }
+            });
+            
+            setAllRequests(allVacations);
+            const pendingOnly = allVacations.filter(
+                (req: VacationRequest) => req.status === "pending"
+            );
+            setPendingRequests(pendingOnly);
+            setIsLoadingRequests(false);
 
         } catch (error) {
             console.error("월별 휴무 데이터 로드 중 오류 발생:", error);
