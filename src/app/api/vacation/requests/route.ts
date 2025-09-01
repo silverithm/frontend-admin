@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
     }
     
     // 클라이언트에서 전달받은 JWT 토큰 가져오기
-    const authToken = request.headers.get('authorization');
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
     
     // 백엔드 API URL (companyId 포함)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -42,8 +43,8 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     };
     
-    if (authToken) {
-      backendHeaders['Authorization'] = authToken;
+    if (token) {
+      backendHeaders['Authorization'] = `Bearer ${token}`;
     }
     
 
