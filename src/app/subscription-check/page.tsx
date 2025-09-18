@@ -157,7 +157,7 @@ export default function SubscriptionCheckPage() {
 
               <div className="mt-8 pt-6 border-t border-red-400/20">
                 <p className="text-sm text-red-200/60">
-                  문의: support@carev.kr | 고객센터: 1234-5678
+                  문의: ggprgrkjh@naver.com | 고객센터: 1234-5678
                 </p>
               </div>
             </div>

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: '케어브이 - 주간보호센터, 장기요양기관 근무표',
   description: '근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요.',
-  keywords: '주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터',
+  keywords: '주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 사회복지사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터, 재가노인복지센터, 노인복지관, 치매안심센터, 실버케어, 노인돌봄, 장기요양보험, 요양보호사자격증, 사회복지시설, 노인복지시설, 재가급여, 시설급여, 복지용구, 간호조무사, 물리치료사, 작업치료사',
   authors: [{ name: '케어브이' }],
   creator: '케어브이',
   publisher: '케어브이',
@@ -171,13 +171,101 @@ export default function RootLayout({
     ]
   }
 
+  const medicalBusinessJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'MedicalBusiness',
+    '@id': 'https://carev.kr/#medicalbusiness',
+    name: '케어브이',
+    description: '주간보호센터, 장기요양기관, 요양원, 재가노인복지센터를 위한 스마트 근무표 및 휴무관리 솔루션',
+    url: 'https://carev.kr',
+    telephone: '010-4549-2094',
+    email: 'ggprgrkjh@naver.com',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '신림동 1547-10',
+      addressLocality: '관악구',
+      addressRegion: '서울특별시',
+      postalCode: '08706',
+      addressCountry: 'KR'
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 37.4813,
+      longitude: 126.9298
+    },
+    medicalSpecialty: ['노인요양', '장기요양', '주간보호', '재가요양'],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: '케어브이 서비스',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: '요양기관 근무표 관리',
+            description: '요양보호사, 사회복지사, 간호조무사 등 전 직원의 효율적인 근무 스케줄 관리'
+          }
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: '휴무 및 휴가 관리',
+            description: '직원 휴가 신청, 승인, 관리를 위한 통합 시스템'
+          }
+        }
+      ]
+    },
+    priceRange: '₩9,900/월',
+    openingHours: 'Mo-Fr 09:00-18:00',
+    paymentAccepted: '신용카드, 계좌이체',
+    currenciesAccepted: 'KRW',
+    areaServed: {
+      '@type': 'Country',
+      name: '대한민국'
+    },
+    availableLanguage: ['Korean'],
+    keywords: '요양보호사, 사회복지사, 간호조무사, 물리치료사, 작업치료사, 장기요양기관, 주간보호센터, 재가노인복지센터, 노인복지관, 치매안심센터'
+  }
+
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: '케어브이는 어떤 요양시설에서 사용할 수 있나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '주간보호센터, 장기요양기관, 요양원, 요양병원, 재가노인복지센터, 노인복지관, 치매안심센터 등 모든 노인복지시설에서 사용 가능합니다.'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: '요양보호사와 사회복지사 모두 사용할 수 있나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '네, 요양보호사, 사회복지사, 간호조무사, 물리치료사, 작업치료사 등 모든 직원이 사용할 수 있습니다.'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: '장기요양보험 시설에서도 사용 가능한가요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '네, 장기요양보험 지정 시설급여 및 재가급여 기관 모두에서 사용 가능합니다.'
+        }
+      }
+    ]
+  }
+
   return (
     <html lang="ko">
       <head>
         {/* 서버사이드 메타 태그 - 크롤러를 위한 정적 태그들 */}
         <title>케어브이 - 주간보호센터, 장기요양기관 근무표</title>
         <meta name="description" content="근무표 작성, 이제 5분이면 끝! 복잡한 일정 관리를 간단하게 해결하세요." />
-        <meta name="keywords" content="주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터" />
+        <meta name="keywords" content="주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 사회복지사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터, 재가노인복지센터, 노인복지관, 치매안심센터, 실버케어, 노인돌봄, 장기요양보험, 요양보호사자격증, 사회복지시설, 노인복지시설, 재가급여, 시설급여, 복지용구, 간호조무사, 물리치료사, 작업치료사" />
         <meta name="author" content="케어브이" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -247,6 +335,14 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(medicalBusinessJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       </head>
       <body className={inter.className}>

@@ -70,8 +70,8 @@ export default function LandingPage() {
                         transition={{duration: 0.8, delay: 0.1, ease: "easeOut"}}
                         className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent leading-tight"
                     >
-                        케어브이로 시작하는<br/>
-                        <span className="text-4xl md:text-6xl">효율적인 근무 관리</span>
+                        장기요양기관을 위한<br/>
+                        <span className="text-4xl md:text-6xl">스마트 근무 관리 솔루션</span>
                     </motion.h1>
 
                     <motion.p
@@ -80,8 +80,8 @@ export default function LandingPage() {
                         transition={{duration: 0.8, delay: 0.2, ease: "easeOut"}}
                         className="text-xl md:text-2xl text-blue-100/90 mb-12 max-w-3xl mx-auto leading-relaxed"
                     >
-                        요양보호사와 사무직 직원들의 휴무 관리를 혁신적으로 개선합니다.<br/>
-                        복잡한 일정 관리를 단순하게, 승인 프로세스를 빠르게.
+                        요양보호사, 사회복지사, 간호조무사 등 장기요양기관 전 직원의 휴무 관리를 혁신적으로 개선합니다.<br/>
+                        주간보호센터, 요양원, 재가노인복지센터의 복잡한 일정 관리를 단순하게.
                     </motion.p>
                 </div>
 
@@ -104,7 +104,7 @@ export default function LandingPage() {
                         </div>
                         <h2 className="text-3xl font-bold text-white mb-4">관리자 및 직원 전용 앱</h2>
                         <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
-                            휴무 신청 및 관리를<br/>모바일 앱에서 더욱 편리하게 이용하세요.
+                            요양보호사, 사회복지사, 간호조무사 등<br/>모든 직원이 휴무 신청을 편리하게 이용하세요.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                             <a
@@ -155,7 +155,7 @@ export default function LandingPage() {
                         </div>
                         <h2 className="text-3xl font-bold text-white mb-4">관리자 페이지</h2>
                         <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
-                            관리자를 위한 웹사이트 기능도 제공합니다. 기능은 앱과 동일하며 조금 더 넓은 화면에서 직원들의 휴무를 관리할 수 있습니다.
+                            장기요양기관 관리자를 위한 웹 기능을 제공합니다.<br/>요양보호사, 사회복지사 등 전 직원의 근무표와 휴무를 효율적으로 관리하세요.
                         </p>
                         <div className="flex flex-col gap-3">
                             <button
@@ -190,8 +190,8 @@ export default function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>,
-                                    title: "한눈에 보는 일정",
-                                    description: "캘린더 기반의 직관적인 인터페이스로 팀 전체의 휴무 현황을 쉽게 파악하고 관리합니다."
+                                    title: "장기요양기관 맞춤 일정 관리",
+                                    description: "요양보호사, 사회복지사, 간호조무사, 물리치료사 등 전 직원의 휴무 현황을 캘린더로 한눈에 파악하고 관리합니다."
                                 },
                                 {
                                     icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-400"
@@ -199,8 +199,8 @@ export default function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 8h.01M12 12h.01M9 12h.01M12 9h.01M9 9h.01M15 9h.01M15 12h.01M15 15h.01M12 15h.01M9 15h.01"/>
                                     </svg>,
-                                    title: "간편한 휴무 승인",
-                                    description: "직원들의 휴무 요청을 실시간으로 확인하고, 몇 번의 클릭만으로 승인 또는 반려 처리가 가능합니다."
+                                    title: "시설급여·재가급여 통합 관리",
+                                    description: "주간보호센터, 요양원, 재가노인복지센터 등 모든 장기요양기관의 휴무 요청을 실시간으로 확인하고 승인 처리합니다."
                                 },
                                 {
                                     icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-400"
@@ -208,8 +208,8 @@ export default function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                                     </svg>,
-                                    title: "데이터 기반 관리",
-                                    description: "직원별, 기간별 휴무 사용 현황을 데이터로 확인하여 인력 운영 계획 수립에 활용할 수 있습니다."
+                                    title: "장기요양 인력 기준 충족",
+                                    description: "요양보호사, 사회복지사 배치 기준 충족 여부를 실시간으로 확인하여 장기요양기관 평가에 완벽 대비합니다."
                                 }
                             ].map((feature, index) => (
                                 <motion.div
@@ -233,8 +233,98 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* 디자인 이미지 섹션 */}
+            {/* 콘텐츠 허브 섹션 */}
             <section className="py-20 bg-slate-900/50 backdrop-blur-sm">
+                <div className="container mx-auto px-4">
+                    <motion.div
+                        initial={{opacity: 0, y: 20}}
+                        whileInView={{opacity: 1, y: 0}}
+                        transition={{duration: 0.6}}
+                        viewport={{once: true}}
+                        className="text-center mb-12"
+                    >
+                        <h2 className="text-4xl font-bold mb-4">케어브이 더 알아보기</h2>
+                        <p className="text-xl text-blue-100/80">최신 소식과 유용한 정보를 확인하세요</p>
+                    </motion.div>
+
+                    <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                        {/* 블로그 카드 */}
+                        <motion.a
+                            href="/blog"
+                            initial={{opacity: 0, y: 30}}
+                            whileInView={{opacity: 1, y: 0}}
+                            transition={{duration: 0.5, delay: 0.1}}
+                            viewport={{once: true}}
+                            className="group bg-gradient-to-br from-blue-600/20 to-indigo-600/20 backdrop-blur-lg rounded-2xl p-8 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300"
+                        >
+                            <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-colors">
+                                <svg className="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-blue-300 transition-colors">블로그</h3>
+                            <p className="text-blue-100/70 mb-4">케어브이의 새로운 기능과 업데이트, 근무표 관리 노하우를 확인하세요.</p>
+                            <span className="text-blue-400 group-hover:text-blue-300 font-medium inline-flex items-center">
+                                자세히 보기
+                                <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </motion.a>
+
+                        {/* FAQ 카드 */}
+                        <motion.a
+                            href="/faq"
+                            initial={{opacity: 0, y: 30}}
+                            whileInView={{opacity: 1, y: 0}}
+                            transition={{duration: 0.5, delay: 0.2}}
+                            viewport={{once: true}}
+                            className="group bg-gradient-to-br from-indigo-600/20 to-purple-600/20 backdrop-blur-lg rounded-2xl p-8 border border-indigo-400/20 hover:border-indigo-400/40 transition-all duration-300"
+                        >
+                            <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-indigo-500/30 transition-colors">
+                                <svg className="w-8 h-8 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-indigo-300 transition-colors">자주 묻는 질문</h3>
+                            <p className="text-indigo-100/70 mb-4">케어브이 사용에 대한 궁금증을 빠르게 해결하세요.</p>
+                            <span className="text-indigo-400 group-hover:text-indigo-300 font-medium inline-flex items-center">
+                                자세히 보기
+                                <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </motion.a>
+
+                        {/* 가이드 카드 */}
+                        <motion.a
+                            href="/guide"
+                            initial={{opacity: 0, y: 30}}
+                            whileInView={{opacity: 1, y: 0}}
+                            transition={{duration: 0.5, delay: 0.3}}
+                            viewport={{once: true}}
+                            className="group bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur-lg rounded-2xl p-8 border border-purple-400/20 hover:border-purple-400/40 transition-all duration-300"
+                        >
+                            <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-colors">
+                                <svg className="w-8 h-8 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-purple-300 transition-colors">사용 가이드</h3>
+                            <p className="text-purple-100/70 mb-4">케어브이의 모든 기능을 단계별로 쉽게 배워보세요.</p>
+                            <span className="text-purple-400 group-hover:text-purple-300 font-medium inline-flex items-center">
+                                자세히 보기
+                                <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </motion.a>
+                    </div>
+                </div>
+            </section>
+
+            {/* 디자인 이미지 섹션 */}
+            <section className="py-20 bg-slate-800/50 backdrop-blur-sm">
                 <div className="container mx-auto px-8 lg:px-16">
                     {/* 이미지 그리드 */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -280,7 +370,7 @@ export default function LandingPage() {
                                     step: "1",
                                     role: "[관리자]",
                                     title: "웹사이트 가입",
-                                    description: "근무표 관리자가 먼저 앱 또는 웹사이트에서 회사 정보를 등록하며 가입을 완료합니다.",
+                                    description: "장기요양기관 시설장 또는 사무장이 먼저 기관 정보를 등록하며 가입을 완료합니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">
@@ -294,7 +384,7 @@ export default function LandingPage() {
                                     step: "2",
                                     role: "[직원]",
                                     title: "앱 가입 요청",
-                                    description: "직원은 앱에서 본인이 소속된 회사로 회원가입을 요청합니다.",
+                                    description: "요양보호사, 사회복지사 등 직원이 앱에서 소속 기관으로 회원가입을 요청합니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">
@@ -308,7 +398,7 @@ export default function LandingPage() {
                                     step: "3",
                                     role: "[관리자]",
                                     title: "가입 승인",
-                                    description: "관리자는 앱 또는 웹사이트에서(회원 관리) 직원의 가입 요청을 확인하고 승인합니다.",
+                                    description: "관리자는 요양보호사, 사회복지사 등 직원의 가입 요청을 확인하고 승인합니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">
@@ -322,7 +412,7 @@ export default function LandingPage() {
                                     step: "4",
                                     role: "[직원]",
                                     title: "앱 로그인",
-                                    description: "관리자의 승인이 완료되면, 직원은 앱에 정상적으로 로그인할 수 있습니다.",
+                                    description: "승인 완료 후 요양보호사, 사회복지사 등 모든 직원이 앱에 로그인할 수 있습니다.",
                                     icon: (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none"
                                              viewBox="0 0 24 24" stroke="currentColor">

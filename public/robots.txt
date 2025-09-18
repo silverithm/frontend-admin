@@ -1,8 +1,22 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
+Allow: /guide
+Allow: /faq
+Allow: /blog
 Disallow: /admin/
 Disallow: /api/
+Disallow: /payment/
+Disallow: /subscription-check/
+
+# Crawl-delay
+Crawl-delay: 1
 
 # Sitemap
 Sitemap: https://carev.kr/sitemap.xml
+
+# Additional crawling guidance for care-related content
+# Priority pages for long-term care facilities
+# /guide - Care facility operation guide
+# /faq - Frequently asked questions about care services
+# /blog - Industry news and insights for care professionals
