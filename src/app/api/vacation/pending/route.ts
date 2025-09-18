@@ -19,19 +19,25 @@ export async function OPTIONS() {
 
 export async function GET() {
   try {
+    // Check if Firebase is properly initialized
+    if (!db || Object.keys(db).length === 0) {
+      console.warn('Firebase is not properly initialized');
+      return NextResponse.json({ requests: [] }, { status: 200, headers });
+    }
+
     // Firestore에서 모든 휴가 요청 가져오기
     const vacationsCollection = collection(db, 'vacations');
-    
+
     // 날짜 기준으로 정렬된 쿼리 (최신순)
     const querySnapshot = await getDocs(
       query(vacationsCollection, orderBy('createdAt', 'desc'))
     );
-    
+
     const requests = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    
+
     return NextResponse.json({ requests }, { status: 200, headers });
   } catch (error) {
     console.error('휴가 요청 불러오기 오류:', error);

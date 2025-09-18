@@ -74,7 +74,7 @@ export default function GuidePage() {
                                     <div>
                                         <h3 className="text-xl font-bold mb-4 text-blue-300">1. 회원가입 및 기관 등록</h3>
                                         <ol className="space-y-3 text-blue-100/80 ml-4">
-                                            <li>• carev.kr에 접속하여 "무료로 시작하기" 클릭</li>
+                                            <li>• carev.kr에 접속하여 &ldquo;무료로 시작하기&rdquo; 클릭</li>
                                             <li>• 이메일과 비밀번호로 관리자 계정 생성</li>
                                             <li>• 기관 정보 입력 (기관명, 주소, 연락처)</li>
                                             <li>• 서비스 유형 선택 (요양원, 주간보호센터, 재가센터 등)</li>
@@ -116,7 +116,7 @@ export default function GuidePage() {
                                 <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/20 backdrop-blur-lg rounded-2xl p-6 border border-blue-400/20">
                                     <h3 className="text-xl font-bold mb-4 text-blue-300">직원 초대하기</h3>
                                     <ol className="space-y-2 text-blue-100/80">
-                                        <li>1. 직원 관리 → "직원 초대" 클릭</li>
+                                        <li>1. 직원 관리 → &ldquo;직원 초대&rdquo; 클릭</li>
                                         <li>2. 이메일 주소 입력 또는 초대 링크 생성</li>
                                         <li>3. 부서, 직급, 입사일 설정</li>
                                         <li>4. 권한 설정 (일반/팀장/관리자)</li>
@@ -271,7 +271,7 @@ export default function GuidePage() {
                                 <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/20 backdrop-blur-lg rounded-2xl p-6 border border-blue-400/20">
                                     <h3 className="text-xl font-bold mb-4 text-blue-300">앱 다운로드</h3>
                                     <ol className="space-y-3 text-blue-100/80">
-                                        <li>1. 앱스토어/플레이스토어에서 "케어브이" 검색</li>
+                                        <li>1. 앱스토어/플레이스토어에서 &ldquo;케어브이&rdquo; 검색</li>
                                         <li>2. 케어브이 앱 다운로드 및 설치</li>
                                         <li>3. 관리자가 보낸 초대 링크 클릭</li>
                                         <li>4. 이메일과 비밀번호 설정</li>
@@ -287,7 +287,7 @@ export default function GuidePage() {
                                 <div className="bg-gradient-to-br from-green-600/20 to-teal-600/20 backdrop-blur-lg rounded-2xl p-6 border border-green-400/20">
                                     <h3 className="text-xl font-bold mb-4 text-green-300">첫 로그인</h3>
                                     <ol className="space-y-3 text-green-100/80">
-                                        <li>1. 앱 실행 후 "로그인" 선택</li>
+                                        <li>1. 앱 실행 후 &ldquo;로그인&rdquo; 선택</li>
                                         <li>2. 등록한 이메일과 비밀번호 입력</li>
                                         <li>3. 푸시 알림 허용 (중요!)</li>
                                         <li>4. 생체 인증 설정 (선택사항)</li>
@@ -361,7 +361,7 @@ export default function GuidePage() {
                                         <h3 className="text-xl font-bold mb-4 text-indigo-300">신청 방법</h3>
                                         <ol className="space-y-3 text-indigo-100/80">
                                             <li>
-                                                <strong>Step 1:</strong> 하단 메뉴 "휴무 신청" 탭
+                                                <strong>Step 1:</strong> 하단 메뉴 &ldquo;휴무 신청&rdquo; 탭
                                             </li>
                                             <li>
                                                 <strong>Step 2:</strong> 휴무 유형 선택
@@ -379,7 +379,7 @@ export default function GuidePage() {
                                                 <strong>Step 4:</strong> 사유 입력 (간단히)
                                             </li>
                                             <li>
-                                                <strong>Step 5:</strong> "신청하기" 버튼 클릭
+                                                <strong>Step 5:</strong> &ldquo;신청하기&rdquo; 버튼 클릭
                                             </li>
                                         </ol>
                                     </div>
@@ -426,7 +426,7 @@ export default function GuidePage() {
                                         <h3 className="text-xl font-bold mb-4 text-blue-300">교대 요청하기</h3>
                                         <ol className="space-y-2 text-blue-100/80">
                                             <li>1. 근무표에서 교대할 날짜 선택</li>
-                                            <li>2. "교대 요청" 버튼 클릭</li>
+                                            <li>2. &ldquo;교대 요청&rdquo; 버튼 클릭</li>
                                             <li>3. 교대 가능한 동료 목록 확인</li>
                                             <li>4. 동료 선택 후 요청 메시지 작성</li>
                                             <li>5. 동료 수락 → 관리자 승인 대기</li>
