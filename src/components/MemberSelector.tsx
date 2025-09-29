@@ -54,8 +54,17 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
       }
 
       const data = await response.json();
-      setMembers(Array.isArray(data) ? data : []);
-      setFilteredMembers(Array.isArray(data) ? data : []);
+      console.log('API 응답 데이터:', data); // 디버깅용
+
+      // 백엔드 응답이 {members: [...]} 구조인 경우 처리
+      const membersArray = data?.members || data || [];
+      const validMembers = Array.isArray(membersArray) ? membersArray : [];
+
+      console.log('처리된 멤버 목록:', validMembers); // 디버깅용
+      console.log('멤버 수:', validMembers.length); // 디버깅용
+
+      setMembers(validMembers);
+      setFilteredMembers(validMembers);
     } catch (err) {
       console.error('직원 목록 조회 오류:', err);
       setError(err instanceof Error ? err.message : '직원 목록을 불러오는데 실패했습니다.');
@@ -68,6 +77,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
 
   const filterMembers = () => {
     let filtered = [...members];
+    console.log('필터링 전 멤버 수:', filtered.length); // 디버깅용
 
     // 검색어 필터
     if (searchTerm) {
@@ -75,16 +85,23 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
         member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('검색어 필터 후:', filtered.length); // 디버깅용
     }
 
     // 역할 필터
     if (roleFilter !== 'all') {
       filtered = filtered.filter(member => member.role === roleFilter);
+      console.log('역할 필터 후:', filtered.length); // 디버깅용
     }
 
-    // active 상태인 멤버만 표시
-    filtered = filtered.filter(member => member.status === 'active');
+    // active 상태인 멤버만 표시 (status가 없거나 'active'인 경우 모두 표시)
+    filtered = filtered.filter(member => {
+      const isActive = !member.status || member.status === 'active';
+      console.log(`멤버 ${member.name}의 status:`, member.status, '통과:', isActive); // 디버깅용
+      return isActive;
+    });
 
+    console.log('최종 필터링된 멤버 수:', filtered.length); // 디버깅용
     setFilteredMembers(filtered);
   };
 
