@@ -79,9 +79,9 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
       return false;
     }
 
-    // 필수 휴무이거나 연차 사용 시 사유 필수
-    if ((vacationKind === 'mandatory' || useAnnualLeave) && !reason.trim()) {
-      setError('휴무 사유를 입력해주세요.');
+    // 필수 휴무일 때만 사유 필수
+    if (vacationKind === 'mandatory' && !reason.trim()) {
+      setError('필수 휴무는 사유를 입력해주세요.');
       return false;
     }
 
@@ -282,7 +282,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </div>
                     </div>
 
-                    {/* 연차 사용 여부 - 가장 위로 이동 */}
+                    {/* 연차 사용 여부 */}
                     <div className="bg-white p-5 rounded-2xl border border-gray-200">
                       <label className="flex items-center justify-between cursor-pointer">
                         <span className="text-sm font-semibold text-gray-900">연차 사용 여부</span>
@@ -373,7 +373,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                     <div className="bg-white p-5 rounded-2xl border border-gray-200">
                       <label className="block text-sm font-semibold text-gray-900 mb-3">
                         휴무 사유
-                        {(vacationKind === 'mandatory' || useAnnualLeave) && (
+                        {vacationKind === 'mandatory' && (
                           <span className="text-red-500 ml-1">*</span>
                         )}
                       </label>
@@ -381,7 +381,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         placeholder={
-                          vacationKind === 'mandatory' || useAnnualLeave
+                          vacationKind === 'mandatory'
                             ? '휴무 사유를 입력해주세요 (필수)'
                             : '휴무 사유를 입력해주세요 (선택)'
                         }
