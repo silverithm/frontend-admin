@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const authHeader = request.headers.get('Authorization');
 
+    // companyId를 body에서 분리
     const { companyId, ...requestBody } = body;
 
     if (!companyId) {
@@ -23,6 +24,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Backend API 호출:', {
+      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vacation/admin/submit-for-member?companyId=${numericCompanyId}`,
+      body: requestBody
+    });
+
+    // companyId는 Query Parameter로, 나머지는 Body로 전송
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vacation/admin/submit-for-member?companyId=${numericCompanyId}`,
       {
@@ -31,7 +38,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           ...(authHeader && { 'Authorization': authHeader }),
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody), // companyId가 제거된 requestBody만 전송
       }
     );
 
