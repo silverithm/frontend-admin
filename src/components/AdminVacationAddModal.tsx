@@ -105,15 +105,20 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
       }
 
       const requestBody = {
-        memberId: selectedMember!.id,
+        memberId: parseInt(selectedMember!.id, 10), // Long 타입으로 변환
         date: vacationDate,
-        reason: reason.trim() || undefined,
+        reason: reason.trim() || null,
         duration: useAnnualLeave ? duration : 'UNUSED',
         type: vacationKind,
         useAnnualLeave,
-        vacationType: !useAnnualLeave ? vacationType : undefined,
+        vacationType: !useAnnualLeave ? vacationType : null,
         reasonRequired: vacationKind === 'mandatory',
       };
+
+      console.log('휴무 신청 요청 데이터:', {
+        ...requestBody,
+        companyId,
+      });
 
       const response = await fetch('/api/vacation/admin/submit-for-member', {
         method: 'POST',

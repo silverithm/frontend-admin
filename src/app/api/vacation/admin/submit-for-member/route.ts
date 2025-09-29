@@ -14,8 +14,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // companyId를 숫자로 변환
+    const numericCompanyId = parseInt(companyId, 10);
+    if (isNaN(numericCompanyId)) {
+      return NextResponse.json(
+        { error: '유효하지 않은 회사 ID입니다.' },
+        { status: 400 }
+      );
+    }
+
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vacation/admin/submit-for-member?companyId=${companyId}`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vacation/admin/submit-for-member?companyId=${numericCompanyId}`,
       {
         method: 'POST',
         headers: {
