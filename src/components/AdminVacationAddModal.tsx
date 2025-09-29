@@ -282,10 +282,10 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </div>
                     </div>
 
-                    {/* 연차 사용 여부 */}
+                    {/* 연차 사용 여부 - 가장 위로 이동 */}
                     <div className="bg-white p-5 rounded-2xl border border-gray-200">
                       <label className="flex items-center justify-between cursor-pointer">
-                        <span className="text-sm font-semibold text-gray-900">연차 사용</span>
+                        <span className="text-sm font-semibold text-gray-900">연차 사용 여부</span>
                         <div className="relative">
                           <input
                             type="checkbox"
@@ -304,7 +304,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </label>
                     </div>
 
-                    {/* 연차 사용 시 */}
+                    {/* 연차 유형 - 연차 사용 시만 표시 */}
                     {useAnnualLeave && (
                       <div className="bg-white p-5 rounded-2xl border border-gray-200">
                         <label className="block text-sm font-semibold text-gray-900 mb-3">
@@ -349,7 +349,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </div>
                     )}
 
-                    {/* 연차 미사용 시 */}
+                    {/* 휴무 유형 - 연차 미사용 시만 표시 */}
                     {!useAnnualLeave && (
                       <div className="bg-white p-5 rounded-2xl border border-gray-200">
                         <label className="block text-sm font-semibold text-gray-900 mb-3">
