@@ -19,6 +19,8 @@ import {
     saveVacationLimits,
     getAllVacationRequests,
     getVacationForDate,
+    bulkApproveVacations,
+    bulkRejectVacations,
 } from "@/lib/apiService";
 import {motion, AnimatePresence} from "framer-motion";
 import VacationCalendar from "@/components/VacationCalendar";
@@ -67,6 +69,10 @@ export default function AdminPage() {
     const [sortOrder, setSortOrder] = useState<
         "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name" | "role"
     >("latest");
+
+    // 다중 선택 관련 상태
+    const [selectedVacationIds, setSelectedVacationIds] = useState<Set<string>>(new Set());
+    const [isSelectMode, setIsSelectMode] = useState(false);
 
     const [isClient, setIsClient] = useState(false);
 
@@ -595,6 +601,98 @@ export default function AdminPage() {
             if ((error as Error).message.includes("인증")) router.push("/login");
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    // 일괄 승인 처리
+    const handleBulkApprove = async () => {
+        if (selectedVacationIds.size === 0) {
+            showNotification("선택된 휴무 요청이 없습니다.", "info");
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const vacationIds = Array.from(selectedVacationIds);
+            const response = await bulkApproveVacations(vacationIds);
+
+            showNotification(
+                `${vacationIds.length}개의 휴무 요청이 승인되었습니다.`,
+                "success"
+            );
+
+            // 선택 초기화 및 데이터 새로고침
+            setSelectedVacationIds(new Set());
+            setIsSelectMode(false);
+            await fetchMonthData();
+        } catch (error) {
+            console.error("일괄 승인 실패:", error);
+            showNotification(
+                `일괄 승인 중 오류가 발생했습니다: ${(error as Error).message}`,
+                "error"
+            );
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // 일괄 거절 처리
+    const handleBulkReject = async () => {
+        if (selectedVacationIds.size === 0) {
+            showNotification("선택된 휴무 요청이 없습니다.", "info");
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const vacationIds = Array.from(selectedVacationIds);
+            const response = await bulkRejectVacations(vacationIds);
+
+            showNotification(
+                `${vacationIds.length}개의 휴무 요청이 거절되었습니다.`,
+                "success"
+            );
+
+            // 선택 초기화 및 데이터 새로고침
+            setSelectedVacationIds(new Set());
+            setIsSelectMode(false);
+            await fetchMonthData();
+        } catch (error) {
+            console.error("일괄 거절 실패:", error);
+            showNotification(
+                `일괄 거절 중 오류가 발생했습니다: ${(error as Error).message}`,
+                "error"
+            );
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // 체크박스 토글 처리
+    const handleToggleSelection = (vacationId: string) => {
+        setSelectedVacationIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(vacationId)) {
+                newSet.delete(vacationId);
+            } else {
+                newSet.add(vacationId);
+            }
+            return newSet;
+        });
+    };
+
+    // 전체 선택/해제
+    const handleSelectAll = () => {
+        const pendingIds = filteredRequests
+            .filter(req => req.status === 'pending')
+            .map(req => req.id);
+
+        if (selectedVacationIds.size === pendingIds.length) {
+            // 모두 선택되어 있으면 전체 해제
+            setSelectedVacationIds(new Set());
+        } else {
+            // 전체 선택
+            setSelectedVacationIds(new Set(pendingIds));
         }
     };
 
@@ -1323,13 +1421,31 @@ export default function AdminPage() {
                                     <div
                                         className="flex-grow bg-white p-3 rounded-lg shadow-sm border border-gray-200 overflow-auto">
                                         <div className="mb-3">
-                                            <h3 className="text-sm font-medium text-gray-800">
-                                                {selectedDate
-                                                    ? `${format(selectedDate, "yyyy년 MM월 dd일", {
-                                                        locale: ko,
-                                                    })} 휴무 목록`
-                                                    : "전체 휴무 목록"}
-                                            </h3>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-sm font-medium text-gray-800">
+                                                    {selectedDate
+                                                        ? `${format(selectedDate, "yyyy년 MM월 dd일", {
+                                                            locale: ko,
+                                                        })} 휴무 목록`
+                                                        : "전체 휴무 목록"}
+                                                </h3>
+                                                {/* 선택 모드 토글 버튼 */}
+                                                {filteredRequests.some(req => req.status === 'pending') && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsSelectMode(!isSelectMode);
+                                                            setSelectedVacationIds(new Set());
+                                                        }}
+                                                        className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                                            isSelectMode
+                                                                ? 'bg-blue-50 text-blue-600 border-blue-300'
+                                                                : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
+                                                        }`}
+                                                    >
+                                                        {isSelectMode ? '선택 취소' : '다중 선택'}
+                                                    </button>
+                                                )}
+                                            </div>
                                             {selectedDate && (
                                                 <button
                                                     onClick={() => setSelectedDate(null)}
@@ -1339,6 +1455,51 @@ export default function AdminPage() {
                                                 </button>
                                             )}
                                         </div>
+
+                                        {/* 일괄 작업 버튼 영역 */}
+                                        {isSelectMode && (
+                                            <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={handleSelectAll}
+                                                            className="px-2 py-1 text-xs bg-white border border-blue-300 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                                                        >
+                                                            {selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length
+                                                                ? '전체 해제'
+                                                                : '전체 선택'}
+                                                        </button>
+                                                        <span className="text-xs text-blue-700 font-medium">
+                                                            {selectedVacationIds.size}개 선택됨
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={handleBulkApprove}
+                                                            disabled={selectedVacationIds.size === 0 || isProcessing}
+                                                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                                                                selectedVacationIds.size === 0 || isProcessing
+                                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                    : 'bg-green-600 text-white hover:bg-green-700'
+                                                            }`}
+                                                        >
+                                                            {isProcessing ? '처리 중...' : '일괄 승인'}
+                                                        </button>
+                                                        <button
+                                                            onClick={handleBulkReject}
+                                                            disabled={selectedVacationIds.size === 0 || isProcessing}
+                                                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                                                                selectedVacationIds.size === 0 || isProcessing
+                                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                    : 'bg-red-600 text-white hover:bg-red-700'
+                                                            }`}
+                                                        >
+                                                            {isProcessing ? '처리 중...' : '일괄 거절'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {isLoadingRequests ? (
                                             <div className="flex justify-center items-center h-32">
@@ -1357,7 +1518,17 @@ export default function AdminPage() {
                                                         className="p-2 bg-gray-50 rounded border border-gray-200 hover:shadow-sm transition-shadow"
                                                     >
                                                         <div className="flex justify-between items-start mb-1">
-                                                            <div>
+                                                            <div className="flex items-start gap-2">
+                                                                {/* 체크박스 추가 */}
+                                                                {isSelectMode && request.status === 'pending' && (
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedVacationIds.has(request.id)}
+                                                                        onChange={() => handleToggleSelection(request.id)}
+                                                                        className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                    />
+                                                                )}
+                                                                <div>
                                                                 <div
                                                                     className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
                                                                         nameFilter === request.userName
@@ -1398,6 +1569,7 @@ export default function AdminPage() {
                                                                 <div className="text-[10px] text-gray-500">
                                                                     {formatVacationDate(request.date)}
                                                                 </div>
+                                                            </div>
                                                             </div>
                                                             <span
                                                                 className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${

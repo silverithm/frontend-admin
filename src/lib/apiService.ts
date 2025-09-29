@@ -329,6 +329,22 @@ export async function deleteVacation(id: string, deleteData: { isAdmin: boolean;
     });
 }
 
+// 휴가 일괄 승인
+export async function bulkApproveVacations(vacationIds: string[]) {
+    return fetchWithAuth(`/api/vacation/bulk-approve`, {
+        method: 'PUT',
+        body: JSON.stringify({ vacationIds }),
+    });
+}
+
+// 휴가 일괄 거부
+export async function bulkRejectVacations(vacationIds: string[]) {
+    return fetchWithAuth(`/api/vacation/bulk-reject`, {
+        method: 'PUT',
+        body: JSON.stringify({ vacationIds }),
+    });
+}
+
 // 모든 휴가 요청 조회 (companyId 추가)
 export async function getAllVacationRequests() {
     const companyId = getCompanyId();
