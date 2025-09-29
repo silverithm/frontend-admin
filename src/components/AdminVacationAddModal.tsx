@@ -115,10 +115,12 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
         reasonRequired: vacationKind === 'mandatory',
       };
 
-      console.log('휴무 신청 요청 데이터:', {
+      const finalRequestBody = {
         ...requestBody,
-        companyId,
-      });
+        companyId: parseInt(companyId, 10), // companyId도 숫자로 변환
+      };
+
+      console.log('휴무 신청 요청 데이터:', finalRequestBody);
 
       const response = await fetch('/api/vacation/admin/submit-for-member', {
         method: 'POST',
@@ -126,10 +128,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
-        body: JSON.stringify({
-          ...requestBody,
-          companyId,
-        }),
+        body: JSON.stringify(finalRequestBody),
       });
 
       if (!response.ok) {
