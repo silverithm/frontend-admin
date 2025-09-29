@@ -345,6 +345,24 @@ export async function bulkRejectVacations(vacationIds: string[]) {
     });
 }
 
+// 관리자가 직원 대신 휴무 신청
+export async function adminCreateVacationForMember(data: {
+    memberId: string;
+    date: string;
+    reason?: string;
+    duration: string;
+    type: 'regular' | 'mandatory';
+    useAnnualLeave: boolean;
+    vacationType?: string;
+    reasonRequired: boolean;
+    companyId: string;
+}) {
+    return fetchWithAuth(`/api/vacation/admin/submit-for-member`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
 // 모든 휴가 요청 조회 (companyId 추가)
 export async function getAllVacationRequests() {
     const companyId = getCompanyId();

@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
-import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera } from 'react-icons/fi';
+import AdminVacationAddModal from './AdminVacationAddModal';
+import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera, FiUserPlus } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
@@ -48,6 +49,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showAdminVacationModal, setShowAdminVacationModal] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   
   const MAX_RETRY_COUNT = 3;
@@ -772,16 +774,29 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <FiRefreshCw size={12} className={`${isLoading ? 'animate-spin' : ''}`} />
             </button>
             {isAdmin && onShowLimitPanel && (
-              <button
-                onClick={onShowLimitPanel}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
-                  'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:scale-105'
-                }`}
-                aria-label="휴무 제한 설정"
-              >
-                <span className="hidden sm:inline">휴무 제한 설정</span>
-                <span className="sm:hidden">제한 설정</span>
-              </button>
+              <>
+                <button
+                  onClick={onShowLimitPanel}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
+                    'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:scale-105'
+                  }`}
+                  aria-label="휴무 제한 설정"
+                >
+                  <span className="hidden sm:inline">휴무 제한 설정</span>
+                  <span className="sm:hidden">제한 설정</span>
+                </button>
+                <button
+                  onClick={() => setShowAdminVacationModal(true)}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium flex items-center gap-1 ${
+                    'bg-green-50 hover:bg-green-100 text-green-600 hover:scale-105'
+                  }`}
+                  aria-label="직원 휴무 추가"
+                >
+                  <FiUserPlus size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">직원 휴무 추가</span>
+                  <span className="sm:hidden">추가</span>
+                </button>
+              </>
             )}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
@@ -1178,6 +1193,17 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 관리자 직원 휴무 추가 모달 */}
+      <AdminVacationAddModal
+        isOpen={showAdminVacationModal}
+        onClose={() => setShowAdminVacationModal(false)}
+        onSuccess={() => {
+          setShowAdminVacationModal(false);
+          handleRefresh();
+        }}
+        selectedDate={selectedDate}
+      />
     </div>
   );
 };

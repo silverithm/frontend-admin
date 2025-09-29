@@ -1470,7 +1470,7 @@ export default function AdminPage() {
                                                                 : '전체 선택'}
                                                         </button>
                                                         <span className="text-xs text-blue-700 font-medium">
-                                                            {selectedVacationIds.size}개 선택됨
+                                                            {selectedVacationIds.size}개
                                                         </span>
                                                     </div>
                                                     <div className="flex gap-2">
@@ -1483,7 +1483,7 @@ export default function AdminPage() {
                                                                     : 'bg-green-600 text-white hover:bg-green-700'
                                                             }`}
                                                         >
-                                                            {isProcessing ? '처리 중...' : '일괄 승인'}
+                                                            {isProcessing ? '처리 중...' : '승인'}
                                                         </button>
                                                         <button
                                                             onClick={handleBulkReject}
@@ -1494,7 +1494,7 @@ export default function AdminPage() {
                                                                     : 'bg-red-600 text-white hover:bg-red-700'
                                                             }`}
                                                         >
-                                                            {isProcessing ? '처리 중...' : '일괄 거절'}
+                                                            {isProcessing ? '처리 중...' : '거절'}
                                                         </button>
                                                     </div>
                                                 </div>
