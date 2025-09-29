@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/companies/${companyId}/vacation/admin/submit-for-member`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/vacation/admin/submit-for-member?companyId=${companyId}`,
       {
         method: 'POST',
         headers: {
