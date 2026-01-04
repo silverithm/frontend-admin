@@ -28,11 +28,12 @@ import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
 import SubscriptionStatus from "@/components/SubscriptionStatus";
+import DispatchManagement from "@/components/DispatchManagement";
 import Image from "next/image";
 
 export default function AdminPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"vacation" | "users">("vacation");
+    const [activeTab, setActiveTab] = useState<"vacation" | "users" | "dispatch">("vacation");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -1115,6 +1116,35 @@ export default function AdminPage() {
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
+                            <button
+                                onClick={() => setActiveTab("dispatch")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeTab === "dispatch"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                    />
+                  </svg>
+                  배차 관리
+                </span>
+                                {activeTab === "dispatch" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
                         </nav>
                     </div>
                 </div>
@@ -1678,7 +1708,7 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </motion.div>
-                    ) : (
+                    ) : activeTab === "users" ? (
                         <motion.div
                             key="users"
                             initial={{opacity: 0, y: 20}}
@@ -1688,6 +1718,18 @@ export default function AdminPage() {
                         >
                             <UserManagement
                                 organizationName={companyName || undefined}
+                                onNotification={showNotification}
+                            />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="dispatch"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <DispatchManagement
                                 onNotification={showNotification}
                             />
                         </motion.div>

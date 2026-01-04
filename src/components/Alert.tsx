@@ -74,7 +74,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -50, scale: 0.95 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full mx-4 p-4 rounded-lg border backdrop-blur-sm shadow-lg ${styles.bg}`}
+          className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] max-w-md w-full mx-4 p-4 rounded-lg border backdrop-blur-sm shadow-lg ${styles.bg}`}
         >
           <div className="flex items-start">
             <div className={`flex-shrink-0 ${styles.icon} mr-3`}>
