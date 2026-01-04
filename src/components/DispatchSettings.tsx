@@ -148,9 +148,9 @@ export default function DispatchSettings({
 
   // 노선 삭제
   const handleDeleteRoute = (routeId: string) => {
-    const route = settings.routes.find(r => r.id === routeId);
+    const route = settings.routes.find(r => String(r.id) === String(routeId));
     if (route && confirm(`"${route.name} (${route.type})" 노선을 삭제하시겠습니까?`)) {
-      deleteRoute(routeId);
+      deleteRoute(String(route.id));
       if (selectedRouteId === routeId) {
         setSelectedRouteId(null);
       }
@@ -179,7 +179,7 @@ export default function DispatchSettings({
 
   // 직원 선택 핸들러 (새 노선용) - driverId와 driverName 함께 설정
   const handleSelectMemberForNewRoute = (index: number, memberId: string) => {
-    const member = members.find(m => m.id === memberId);
+    const member = members.find(m => String(m.id) === memberId);
     const updated = [...newRouteDrivers];
     updated[index] = {
       ...updated[index],
@@ -204,7 +204,7 @@ export default function DispatchSettings({
     const route = settings.routes.find(r => r.id === routeId);
     if (!route) return;
 
-    const member = members.find(m => m.id === memberId);
+    const member = members.find(m => String(m.id) === memberId);
     const updatedDrivers = [...(route.routeDrivers || [])];
     updatedDrivers[index] = {
       ...updatedDrivers[index],
@@ -255,9 +255,9 @@ export default function DispatchSettings({
 
   // 어르신 삭제
   const handleDeleteSenior = (seniorId: string) => {
-    const senior = settings.seniors.find(s => s.id === seniorId);
+    const senior = settings.seniors.find(s => String(s.id) === String(seniorId));
     if (senior && confirm(`"${senior.name}" 어르신을 삭제하시겠습니까?`)) {
-      deleteSenior(seniorId);
+      deleteSenior(String(senior.id));
       onNotification("어르신이 삭제되었습니다.", "success");
     }
   };
@@ -539,7 +539,7 @@ export default function DispatchSettings({
                             </option>
                           ))}
                           {/* 기존에 저장된 운전자가 목록에 없는 경우 표시 */}
-                          {driver.driverId && !members.find(m => m.id === driver.driverId) && (
+                          {driver.driverId && !members.find(m => String(m.id) === driver.driverId) && (
                             <option value={driver.driverId}>
                               {driver.driverName} (기존 데이터)
                             </option>

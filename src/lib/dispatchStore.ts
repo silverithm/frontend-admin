@@ -81,10 +81,10 @@ export const useDispatchStore = create<DispatchStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            routes: state.settings.routes.filter((r) => r.id !== id),
+            routes: state.settings.routes.filter((r) => String(r.id) !== String(id)),
             // 노선 삭제 시 해당 노선의 어르신들도 노선 배정 해제
             seniors: state.settings.seniors.map((s) =>
-              s.routeId === id ? { ...s, routeId: '' } : s
+              String(s.routeId) === String(id) ? { ...s, routeId: '' } : s
             ),
           },
         })),
@@ -112,10 +112,10 @@ export const useDispatchStore = create<DispatchStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            seniors: state.settings.seniors.filter((s) => s.id !== id),
+            seniors: state.settings.seniors.filter((s) => String(s.id) !== String(id)),
           },
           // 어르신 결석 정보도 삭제
-          seniorAbsences: state.seniorAbsences.filter((a) => a.seniorId !== id),
+          seniorAbsences: state.seniorAbsences.filter((a) => String(a.seniorId) !== String(id)),
         })),
 
       updateSeniorOrder: (routeId, seniorIds) =>
