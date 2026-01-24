@@ -50,29 +50,23 @@ export default function ApprovalDetail({
     onReject(approval.id, rejectReason);
   };
 
+  // S3 URL에서 상대 경로 추출 (carev/ 이후 부분)
+  const extractRelativePath = (url: string): string => {
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      // https://bucket.s3.region.amazonaws.com/carev/attachments/file.pdf -> attachments/file.pdf
+      const match = url.match(/\/carev\/(.+)$/);
+      if (match) return match[1];
+    }
+    return url;
+  };
+
   // 첨부파일 다운로드
   const handleDownloadAttachment = async (fileUrl: string, fileName: string) => {
     try {
-      // fileUrl이 전체 S3 URL인 경우 직접 다운로드
-      if (fileUrl.startsWith('https://') || fileUrl.startsWith('http://')) {
-        const response = await fetch(fileUrl);
-        if (!response.ok) {
-          throw new Error('파일 다운로드 실패');
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        return;
-      }
+      // S3 URL인 경우 상대 경로로 변환
+      const relativePath = extractRelativePath(fileUrl);
 
-      // 상대 경로인 경우 백엔드 API 사용
-      const downloadUrl = `/api/v1/files/download?path=${encodeURIComponent(fileUrl)}&fileName=${encodeURIComponent(fileName)}`;
+      const downloadUrl = `/api/v1/files/download?path=${encodeURIComponent(relativePath)}&fileName=${encodeURIComponent(fileName)}`;
       const token = localStorage.getItem('authToken');
 
       const response = await fetch(downloadUrl, {
