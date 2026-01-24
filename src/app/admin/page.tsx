@@ -24,16 +24,20 @@ import {
 } from "@/lib/apiService";
 import {motion, AnimatePresence} from "framer-motion";
 import VacationCalendar from "@/components/VacationCalendar";
+import ScheduleCalendar from "@/components/ScheduleCalendar";
 import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
 import SubscriptionStatus from "@/components/SubscriptionStatus";
 import DispatchManagement from "@/components/DispatchManagement";
+import ApprovalManagement from "@/components/ApprovalManagement";
+import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
+import NoticeManagement from "@/components/NoticeManagement";
 import Image from "next/image";
 
 export default function AdminPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"vacation" | "users" | "dispatch">("vacation");
+    const [activeTab, setActiveTab] = useState<"vacation" | "schedule" | "users" | "dispatch" | "approval" | "templates" | "notice">("vacation");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -1088,6 +1092,41 @@ export default function AdminPage() {
                                 )}
                             </button>
                             <button
+                                onClick={() => setActiveTab("schedule")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeTab === "schedule"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 8v4l2 2"
+                    />
+                  </svg>
+                  일정 관리
+                </span>
+                                {activeTab === "schedule" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
+                            <button
                                 onClick={() => setActiveTab("users")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
                                     activeTab === "users"
@@ -1141,6 +1180,93 @@ export default function AdminPage() {
                   배차 관리
                 </span>
                                 {activeTab === "dispatch" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("approval")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeTab === "approval"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  전자결재
+                </span>
+                                {activeTab === "approval" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("templates")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeTab === "templates"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                    />
+                  </svg>
+                  양식 관리
+                </span>
+                                {activeTab === "templates" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("notice")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeTab === "notice"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                    />
+                  </svg>
+                  공지사항
+                </span>
+                                {activeTab === "notice" && (
                                     <div
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
@@ -1708,6 +1834,16 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </motion.div>
+                    ) : activeTab === "schedule" ? (
+                        <motion.div
+                            key="schedule"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.3}}
+                        >
+                            <ScheduleCalendar isAdmin={true} />
+                        </motion.div>
                     ) : activeTab === "users" ? (
                         <motion.div
                             key="users"
@@ -1721,7 +1857,7 @@ export default function AdminPage() {
                                 onNotification={showNotification}
                             />
                         </motion.div>
-                    ) : (
+                    ) : activeTab === "dispatch" ? (
                         <motion.div
                             key="dispatch"
                             initial={{opacity: 0, y: 20}}
@@ -1733,7 +1869,37 @@ export default function AdminPage() {
                                 onNotification={showNotification}
                             />
                         </motion.div>
-                    )}
+                    ) : activeTab === "approval" ? (
+                        <motion.div
+                            key="approval"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <ApprovalManagement />
+                        </motion.div>
+                    ) : activeTab === "templates" ? (
+                        <motion.div
+                            key="templates"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <ApprovalTemplateManager />
+                        </motion.div>
+                    ) : activeTab === "notice" ? (
+                        <motion.div
+                            key="notice"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <NoticeManagement />
+                        </motion.div>
+                    ) : null}
                 </AnimatePresence>
             </main>
 

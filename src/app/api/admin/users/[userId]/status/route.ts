@@ -24,7 +24,7 @@ export async function PUT(
     }
 
     // 백엔드 API 호출 - 사용자 상태 변경
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
     const apiUrl = `${backendUrl}/api/v1/members/${userId}`;
 
 

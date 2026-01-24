@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signin, findPassword } from '@/lib/apiService';
+import { signin, memberSignin, findPassword } from '@/lib/apiService';
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from '@/components/Alert';
+import { LoginType } from '@/types/auth';
 import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
+  const [loginType, setLoginType] = useState<LoginType>('admin');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,17 +24,21 @@ export default function LoginPage() {
   const [findPasswordEmail, setFindPasswordEmail] = useState('');
   const [findPasswordLoading, setFindPasswordLoading] = useState(false);
   const [findPasswordMessage, setFindPasswordMessage] = useState('');
-  const [findPasswordError, setFindPasswordError] = useState('');  
+  const [findPasswordError, setFindPasswordError] = useState('');
 
   useEffect(() => {
     // 컴포넌트 마운트 시 저장된 이메일 불러오기
     try {
       const savedEmail = localStorage.getItem('rememberedEmail');
       const isRemembered = localStorage.getItem('rememberEmail') === 'true';
-      
+      const savedLoginType = localStorage.getItem('lastLoginType') as LoginType;
+
       if (savedEmail && isRemembered) {
         setFormData(prev => ({ ...prev, email: savedEmail }));
         setRememberEmail(true);
+      }
+      if (savedLoginType) {
+        setLoginType(savedLoginType);
       }
     } catch (error) {
       console.error('localStorage 접근 오류:', error);
@@ -50,7 +56,7 @@ export default function LoginPage() {
   const handleRememberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setRememberEmail(checked);
-    
+
     // 체크 해제 시 즉시 localStorage에서 삭제
     if (!checked) {
       try {
@@ -66,7 +72,7 @@ export default function LoginPage() {
     try {
       // 구독 정보 확인
       const subscription = await subscriptionService.getMySubscription();
-      
+
       // 활성 구독이 있으면 관리자 페이지로
       if (subscriptionService.isActive(subscription)) {
         router.push('/admin');
@@ -75,10 +81,10 @@ export default function LoginPage() {
         router.push('/admin');
       }
     } catch (error: any) {
-      
+
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
-      if (error.status === 404 && 
-          (error.message === 'No subscription found' || 
+      if (error.status === 404 &&
+          (error.message === 'No subscription found' ||
            error.data?.error === 'No subscription found')) {
         router.push('/subscription-check');
       } else if (error.status >= 500) {
@@ -103,29 +109,53 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Spring Boot 백엔드로 로그인 요청
-      const result = await signin(formData.email, formData.password);
-      
+      // 로그인 타입 저장
+      localStorage.setItem('lastLoginType', loginType);
 
-      
-      // 아이디 기억하기 처리
-      try {
-        if (rememberEmail) {
-          localStorage.setItem('rememberedEmail', formData.email);
-          localStorage.setItem('rememberEmail', 'true');
-        } else {
-          localStorage.removeItem('rememberedEmail');
-          localStorage.removeItem('rememberEmail');
+      if (loginType === 'admin') {
+        // 관리자 로그인 - Spring Boot 백엔드로 로그인 요청
+        const result = await signin(formData.email, formData.password);
+        localStorage.setItem('userRole', 'ROLE_ADMIN');
+        localStorage.setItem('loginType', 'admin');
+
+        // 아이디 기억하기 처리
+        try {
+          if (rememberEmail) {
+            localStorage.setItem('rememberedEmail', formData.email);
+            localStorage.setItem('rememberEmail', 'true');
+          } else {
+            localStorage.removeItem('rememberedEmail');
+            localStorage.removeItem('rememberEmail');
+          }
+        } catch (error) {
+          console.error('localStorage 저장 오류:', error);
         }
-      } catch (error) {
-        console.error('localStorage 저장 오류:', error);
+
+        // 로그인 성공 후 구독 상태 확인
+        await checkSubscriptionAndRedirect();
+      } else {
+        // 직원 로그인
+        const result = await memberSignin(formData.email, formData.password);
+
+        // 아이디 기억하기 처리
+        try {
+          if (rememberEmail) {
+            localStorage.setItem('rememberedEmail', formData.email);
+            localStorage.setItem('rememberEmail', 'true');
+          } else {
+            localStorage.removeItem('rememberedEmail');
+            localStorage.removeItem('rememberEmail');
+          }
+        } catch (error) {
+          console.error('localStorage 저장 오류:', error);
+        }
+
+        // 직원은 직원 페이지로 이동
+        router.push('/employee');
       }
-      
-      // 로그인 성공 후 구독 상태 확인
-      await checkSubscriptionAndRedirect();
     } catch (error) {
       console.error('로그인 오류:', error);
-      
+
       // 더 자세한 오류 메시지 표시
       if (error instanceof Error) {
         if (error.message.includes('400')) {
@@ -166,7 +196,7 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-6 w-full max-w-md border border-blue-400/20"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="flex justify-center mb-4 pr-7">
             <Image
               src="/images/logo-text.png"
@@ -176,6 +206,49 @@ export default function LoginPage() {
               className="transition-transform duration-300 hover:scale-105"
             />
           </div>
+        </div>
+
+        {/* 로그인 타입 토글 */}
+        <div className="mb-6">
+          <div className="flex bg-white/5 rounded-lg p-1 border border-blue-300/20">
+            <button
+              type="button"
+              onClick={() => setLoginType('admin')}
+              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                loginType === 'admin'
+                  ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
+                  : 'text-blue-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>관리자</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginType('employee')}
+              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                loginType === 'employee'
+                  ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg'
+                  : 'text-blue-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>직원</span>
+              </div>
+            </button>
+          </div>
+          <p className="text-center text-blue-200/50 text-xs mt-2">
+            {loginType === 'admin'
+              ? '센터 관리자 계정으로 로그인합니다'
+              : '직원 계정으로 로그인합니다'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -245,7 +318,11 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex justify-center shadow-xl"
+            className={`w-full font-semibold py-3 px-4 rounded-lg transition duration-300 flex justify-center shadow-xl ${
+              loginType === 'admin'
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white'
+                : 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white'
+            }`}
           >
             {isLoading ? (
               <svg
@@ -269,7 +346,7 @@ export default function LoginPage() {
                 ></path>
               </svg>
             ) : (
-              '로그인'
+              loginType === 'admin' ? '관리자 로그인' : '직원 로그인'
             )}
           </button>
         </form>
@@ -408,4 +485,4 @@ export default function LoginPage() {
       </div>
     </>
   );
-} 
+}

@@ -37,7 +37,7 @@ export interface VacationRequest {
   userName: string;
   date: string; // yyyy-MM-dd 형식
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'canceled';
+  status: 'pending' | 'approved' | 'rejected' | 'canceled' | 'unused';
   type: 'regular' | 'mandatory' | 'sick' | 'other';
   role: 'caregiver' | 'office' | 'all';  // 요양보호사, 사무실, 전체
   duration: VacationDuration; // 휴가 기간 (연차/반차)

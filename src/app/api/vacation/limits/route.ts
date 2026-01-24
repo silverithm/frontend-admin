@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const authToken = request.headers.get('authorization');
     
     // 백엔드 API URL (companyId 포함)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
     const apiUrl = `${backendUrl}/api/vacation/limits?start=${start}&end=${end}&companyId=${companyId}`;
     
     // 백엔드로 요청 헤더 구성
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     const authToken = request.headers.get('authorization');
     
     // 백엔드 API URL (companyId 포함)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
     const apiUrl = `${backendUrl}/api/vacation/limits?companyId=${companyId}`;
     
     // 백엔드로 요청 헤더 구성

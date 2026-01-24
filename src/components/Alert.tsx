@@ -31,7 +31,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
     switch (type) {
       case 'success':
         return {
-          bg: 'bg-green-500/10 border-green-400/30',
+          bg: 'bg-green-50 border-green-300',
           icon: 'text-green-600',
           title: 'text-green-900',
           message: 'text-green-800',
@@ -39,7 +39,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
         };
       case 'error':
         return {
-          bg: 'bg-red-500/10 border-red-400/30',
+          bg: 'bg-red-50 border-red-300',
           icon: 'text-red-600',
           title: 'text-red-900',
           message: 'text-red-800',
@@ -47,7 +47,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-500/10 border-yellow-400/30',
+          bg: 'bg-yellow-50 border-yellow-300',
           icon: 'text-yellow-600',
           title: 'text-yellow-900',
           message: 'text-yellow-800',
@@ -55,7 +55,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
         };
       case 'info':
         return {
-          bg: 'bg-blue-500/10 border-blue-400/30',
+          bg: 'bg-blue-50 border-blue-300',
           icon: 'text-blue-600',
           title: 'text-blue-900',
           message: 'text-blue-800',
@@ -74,7 +74,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -50, scale: 0.95 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] max-w-md w-full mx-4 p-4 rounded-lg border backdrop-blur-sm shadow-lg ${styles.bg}`}
+          className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] max-w-md w-full mx-4 p-4 rounded-lg border shadow-xl ${styles.bg}`}
         >
           <div className="flex items-start">
             <div className={`flex-shrink-0 ${styles.icon} mr-3`}>

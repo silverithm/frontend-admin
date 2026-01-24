@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
 
     // 백엔드 API URL
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
     const apiUrl = `${backendUrl}/api/vacation/bulk-approve`;
 
     // 백엔드로 요청 헤더 구성

@@ -37,7 +37,22 @@ export interface SigninResponseDTO {
 // 사용자 역할 (백엔드와 일치하도록 수정)
 export enum UserRole {
   ROLE_ADMIN = 'ROLE_ADMIN',
-  ROLE_CLIENT = 'ROLE_CLIENT'
+  ROLE_CLIENT = 'ROLE_CLIENT',
+  ROLE_EMPLOYEE = 'ROLE_EMPLOYEE'  // 직원 역할 추가
+}
+
+// 로그인 타입
+export type LoginType = 'admin' | 'employee';
+
+// 직원 로그인 응답 DTO
+export interface MemberSigninResponseDTO {
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  companyId: number;
+  companyName: string;
+  role: string;
+  tokenInfo: TokenInfo;
 }
 
 // 사용자 데이터 DTO (백엔드 UserDataDTO와 일치)

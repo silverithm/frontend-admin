@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// 백엔드 API URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
+
+// 기본 CORS 및 캐시 방지 헤더 설정
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+};
+
+// OPTIONS 요청에 대한 핸들러
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers });
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // URL에서 companyId 추출
+    const searchParams = request.nextUrl.searchParams;
+    const companyId = searchParams.get('companyId');
+
+    // 요청 바디 파싱
+    const requestBody = await request.json();
+
+    // JWT 토큰 추출
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    // 백엔드 요청 헤더 구성
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    // JWT 토큰이 있으면 Authorization 헤더 추가
+    if (token) {
+      backendHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    // 백엔드 URL 구성
+    let backendUrl = `${BACKEND_URL}/api/vacation/submit`;
+    if (companyId) {
+      backendUrl += `?companyId=${companyId}`;
+    }
+
+    // 백엔드로 요청 전달
+    const backendResponse = await fetch(backendUrl, {
+      method: 'POST',
+      headers: backendHeaders,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!backendResponse.ok) {
+      console.error(`[Frontend API] 백엔드 응답 오류: ${backendResponse.status} ${backendResponse.statusText}`);
+      const errorData = await backendResponse.json().catch(() => ({}));
+      return NextResponse.json({
+        error: errorData.error || `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
+    }
+
+    const data = await backendResponse.json();
+
+    return NextResponse.json(data, { headers });
+
+  } catch (error) {
+    console.error('[Frontend API] 휴가 신청 오류:', error);
+    return NextResponse.json({
+      error: '휴가 신청 처리 중 오류가 발생했습니다.'
+    }, { status: 500, headers });
+  }
+}

@@ -3,6 +3,7 @@
 import {VacationRequest, VacationLimit} from '@/types/vacation';
 import {
     SigninResponseDTO,
+    MemberSigninResponseDTO,
     TokenInfo,
     UserDataDTO,
     FindPasswordResponse,
@@ -345,6 +346,35 @@ export async function bulkRejectVacations(vacationIds: string[]) {
     });
 }
 
+// 직원이 직접 휴무 신청
+export async function requestVacation(data: {
+    date: string;
+    duration: string;
+    reason?: string;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') || 'employee' : 'employee';
+
+    return fetchWithAuth(`/api/vacation/submit?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+            userName,
+            userId,
+            role,
+            date: data.date,
+            duration: data.duration,
+            reason: data.reason || '',
+            type: '휴가',
+        }),
+    });
+}
+
 // 관리자가 직원 대신 휴무 신청
 export async function adminCreateVacationForMember(data: {
     memberId: string;
@@ -496,6 +526,55 @@ export async function signin(email: string, password: string): Promise<SigninRes
         return data;
     } catch (error) {
         console.error('signin 함수 오류:', error);
+        throw error;
+    }
+}
+
+// 직원 로그인 (Member Sign In)
+export async function memberSignin(email: string, password: string): Promise<MemberSigninResponseDTO> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/members/signin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+            },
+            body: JSON.stringify({ username: email, password }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            console.error('직원 로그인 오류 응답:', errorData);
+            throw new Error(errorData?.error || `로그인 실패: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // 로그인 성공 시 JWT 토큰과 사용자 정보 저장
+        if (data && data.tokenInfo) {
+            // JWT 토큰 저장
+            localStorage.setItem('authToken', data.tokenInfo.accessToken);
+            localStorage.setItem('refreshToken', data.tokenInfo.refreshToken);
+            localStorage.setItem('tokenExpirationTime', data.tokenInfo.accessTokenExpirationTime?.toString() || '');
+
+            // 직원 정보 저장 (백엔드 응답 구조에 맞게 수정)
+            localStorage.setItem('userName', data.name || '');
+            localStorage.setItem('userEmail', data.email || email);
+            localStorage.setItem('userId', data.memberId?.toString() || '');
+            // company 객체에서 id와 name 추출
+            localStorage.setItem('companyId', data.company?.id?.toString() || '');
+            localStorage.setItem('companyName', data.company?.name || '');
+            localStorage.setItem('userRole', 'ROLE_EMPLOYEE');
+            localStorage.setItem('loginType', 'employee');
+        } else {
+            console.error('직원 로그인 응답에 토큰 정보가 없습니다:', data);
+            throw new Error('로그인 응답에 토큰 정보가 없습니다.');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('memberSignin 함수 오류:', error);
         throw error;
     }
 }
@@ -907,5 +986,433 @@ export async function updateOrganizationProfile(profileData: {
     return fetchWithAuth('/api/v1/organization/profile', {
         method: 'PUT',
         body: JSON.stringify(profileData),
+    });
+}
+
+// ================== 공지사항 API ==================
+
+// 공지사항 목록 조회 (관리자)
+export async function getNotices(filter?: {
+    status?: string;
+    priority?: string;
+    searchQuery?: string;
+    startDate?: string;
+    endDate?: string;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    let url = `/api/v1/notices?companyId=${companyId}`;
+    if (filter?.status && filter.status !== 'ALL') url += `&status=${filter.status}`;
+    if (filter?.priority && filter.priority !== 'ALL') url += `&priority=${filter.priority}`;
+    if (filter?.searchQuery) url += `&searchQuery=${encodeURIComponent(filter.searchQuery)}`;
+    if (filter?.startDate) url += `&startDate=${filter.startDate}`;
+    if (filter?.endDate) url += `&endDate=${filter.endDate}`;
+
+    return fetchWithAuth(url);
+}
+
+// 공지사항 목록 조회 (직원 - 게시된 것만)
+export async function getPublishedNotices() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/notices/published?companyId=${companyId}`);
+}
+
+// 공지사항 상세 조회
+export async function getNoticeById(id: string) {
+    return fetchWithAuth(`/api/v1/notices/${id}`);
+}
+
+// 공지사항 등록 (관리자)
+export async function createNotice(data: {
+    title: string;
+    content: string;
+    priority: string;
+    isPinned: boolean;
+    sendPushNotification: boolean;
+    attachments?: {
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        fileType: 'IMAGE' | 'FILE';
+        mimeType: string;
+    }[];
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/notices?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 공지사항 수정 (관리자)
+export async function updateNotice(id: string, data: {
+    title?: string;
+    content?: string;
+    priority?: string;
+    isPinned?: boolean;
+    status?: string;
+    attachments?: {
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        fileType: 'IMAGE' | 'FILE';
+        mimeType: string;
+    }[];
+}) {
+    return fetchWithAuth(`/api/v1/notices/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 공지사항 삭제 (관리자)
+export async function deleteNotice(id: string) {
+    return fetchWithAuth(`/api/v1/notices/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// 공지사항 조회수 증가
+export async function incrementNoticeViewCount(id: string) {
+    return fetchWithAuth(`/api/v1/notices/${id}/view`, {
+        method: 'POST',
+    });
+}
+
+// 공지사항 상세 조회 (댓글, 읽은 사람 포함)
+export async function getNoticeDetail(id: string) {
+    return fetchWithAuth(`/api/v1/notices/${id}`);
+}
+
+// 공지사항 댓글 목록 조회
+export async function getNoticeComments(noticeId: string) {
+    return fetchWithAuth(`/api/v1/notices/${noticeId}/comments`);
+}
+
+// 공지사항 댓글 등록
+export async function createNoticeComment(noticeId: string, content: string) {
+    return fetchWithAuth(`/api/v1/notices/${noticeId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+    });
+}
+
+// 공지사항 댓글 삭제
+export async function deleteNoticeComment(noticeId: string, commentId: string) {
+    return fetchWithAuth(`/api/v1/notices/${noticeId}/comments/${commentId}`, {
+        method: 'DELETE',
+    });
+}
+
+// 공지사항 읽은 사람 목록 조회
+export async function getNoticeReaders(noticeId: string) {
+    return fetchWithAuth(`/api/v1/notices/${noticeId}/readers`);
+}
+
+// ================== 전자결재 양식 API ==================
+
+// 양식 목록 조회 (관리자)
+export async function getApprovalTemplates() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/approval-templates?companyId=${companyId}`);
+}
+
+// 활성화된 양식 목록 조회 (직원용)
+export async function getActiveApprovalTemplates() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/approval-templates/active?companyId=${companyId}`);
+}
+
+// 양식 상세 조회
+export async function getApprovalTemplateById(id: string) {
+    return fetchWithAuth(`/api/v1/approval-templates/${id}`);
+}
+
+// 양식 등록 (관리자)
+export async function createApprovalTemplate(data: {
+    name: string;
+    description: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/approval-templates?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 양식 수정 (관리자)
+export async function updateApprovalTemplate(id: string, data: {
+    name: string;
+    description: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+}) {
+    return fetchWithAuth(`/api/v1/approval-templates/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 양식 활성화/비활성화 토글 (관리자)
+export async function toggleApprovalTemplateActive(id: string) {
+    return fetchWithAuth(`/api/v1/approval-templates/${id}?toggleActive=true`, {
+        method: 'PUT',
+    });
+}
+
+// 양식 삭제 (관리자)
+export async function deleteApprovalTemplate(id: string) {
+    return fetchWithAuth(`/api/v1/approval-templates/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// ================== 전자결재 요청 API ==================
+
+// 결재 요청 목록 조회 (관리자)
+export async function getApprovalRequests(filter?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    searchQuery?: string;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    let url = `/api/v1/approvals?companyId=${companyId}`;
+    if (filter?.status && filter.status !== 'ALL') url += `&status=${filter.status}`;
+    if (filter?.startDate) url += `&startDate=${filter.startDate}`;
+    if (filter?.endDate) url += `&endDate=${filter.endDate}`;
+    if (filter?.searchQuery) url += `&searchQuery=${encodeURIComponent(filter.searchQuery)}`;
+
+    return fetchWithAuth(url);
+}
+
+// 내 결재 요청 조회 (직원용)
+export async function getMyApprovalRequests(requesterId: string) {
+    return fetchWithAuth(`/api/v1/approvals?requesterId=${requesterId}`);
+}
+
+// 결재 요청 상세 조회
+export async function getApprovalRequestById(id: string) {
+    return fetchWithAuth(`/api/v1/approvals/${id}`);
+}
+
+// 결재 요청 생성 (직원)
+export async function createApprovalRequest(data: {
+    templateId: number;
+    title: string;
+    attachmentUrl?: string;
+    attachmentFileName?: string;
+    attachmentFileSize?: number;
+}) {
+    const companyId = getCompanyId();
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/approvals?companyId=${companyId}&requesterId=${userId}&requesterName=${encodeURIComponent(userName)}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 결재 승인 (관리자)
+export async function approveApprovalRequest(id: string) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+
+    return fetchWithAuth(`/api/v1/approvals/${id}?action=approve&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
+        method: 'PUT',
+    });
+}
+
+// 결재 반려 (관리자)
+export async function rejectApprovalRequest(id: string, reason: string) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+
+    return fetchWithAuth(`/api/v1/approvals/${id}?action=reject&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason }),
+    });
+}
+
+// 일괄 승인 (관리자)
+export async function bulkApproveApprovalRequests(ids: string[]) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+
+    return fetchWithAuth(`/api/v1/approvals?action=bulk-approve&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ids: ids.map(id => parseInt(id)) }),
+    });
+}
+
+// 일괄 반려 (관리자)
+export async function bulkRejectApprovalRequests(ids: string[], reason: string) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+
+    return fetchWithAuth(`/api/v1/approvals?action=bulk-reject&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ids: ids.map(id => parseInt(id)), reason }),
+    });
+}
+
+// 결재 요청 취소 (직원)
+export async function cancelApprovalRequest(id: string) {
+    return fetchWithAuth(`/api/v1/approvals/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// ================== 일정 API ==================
+
+// 일정 목록 조회
+export async function getSchedules(startDate: string, endDate: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`);
+}
+
+// 일정 상세 조회
+export async function getScheduleById(id: string) {
+    return fetchWithAuth(`/api/v1/schedules/${id}`);
+}
+
+// 일정 등록
+export async function createSchedule(data: {
+    title: string;
+    content?: string;
+    category: string;
+    labelId?: string;
+    location?: string;
+    startDate: string;
+    startTime?: string;
+    endDate: string;
+    endTime?: string;
+    isAllDay: boolean;
+    sendNotification: boolean;
+    participantIds?: string[];
+    attachments?: {
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        mimeType: string;
+    }[];
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/schedules?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 일정 수정
+export async function updateSchedule(id: string, data: {
+    title?: string;
+    content?: string;
+    category?: string;
+    labelId?: string;
+    location?: string;
+    startDate?: string;
+    startTime?: string;
+    endDate?: string;
+    endTime?: string;
+    isAllDay?: boolean;
+    sendNotification?: boolean;
+    participantIds?: string[];
+    attachments?: {
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        mimeType: string;
+    }[];
+}) {
+    return fetchWithAuth(`/api/v1/schedules/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 일정 삭제
+export async function deleteSchedule(id: string) {
+    return fetchWithAuth(`/api/v1/schedules/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// ================== 일정 라벨 API ==================
+
+// 라벨 목록 조회
+export async function getScheduleLabels() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-labels?companyId=${companyId}`);
+}
+
+// 라벨 생성
+export async function createScheduleLabel(data: { name: string; color: string }) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/schedule-labels?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 라벨 수정
+export async function updateScheduleLabel(id: string, data: { name?: string; color?: string }) {
+    return fetchWithAuth(`/api/v1/schedule-labels/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 라벨 삭제
+export async function deleteScheduleLabel(id: string) {
+    return fetchWithAuth(`/api/v1/schedule-labels/${id}`, {
+        method: 'DELETE',
     });
 } 

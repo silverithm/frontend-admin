@@ -18,13 +18,15 @@ export default function LandingPage() {
         '/images/design 6.png'
     ];
 
-    const handleGoToLogin = (e?: React.MouseEvent) => {
+    const handleGoToLogin = (e?: React.MouseEvent, loginType: 'admin' | 'employee' = 'admin') => {
         if (e) {
             e.preventDefault();
             e.stopPropagation();
         }
 
         try {
+            // 로그인 타입을 localStorage에 저장하여 로그인 페이지에서 사용
+            localStorage.setItem('lastLoginType', loginType);
             router.push('/login');
         } catch (error) {
             window.location.href = '/login';
@@ -157,12 +159,18 @@ export default function LandingPage() {
                         <p className="text-blue-100/80 mb-8 text-center leading-relaxed">
                             장기요양기관 관리자를 위한 웹 기능을 제공합니다.<br/>요양보호사, 사회복지사 등 전 직원의 근무표와 휴무를 효율적으로 관리하세요.
                         </p>
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3 w-full">
                             <button
-                                onClick={handleGoToLogin}
+                                onClick={(e) => handleGoToLogin(e, 'admin')}
                                 className="px-10 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold hover:from-blue-600 hover:to-indigo-600 hover:scale-105 transition-all duration-300 shadow-xl"
                             >
                                 관리자 로그인
+                            </button>
+                            <button
+                                onClick={(e) => handleGoToLogin(e, 'employee')}
+                                className="px-10 py-4 rounded-xl bg-white/10 backdrop-blur-sm text-white font-semibold hover:bg-white/20 hover:scale-105 transition-all duration-300 shadow-xl border border-blue-400/30"
+                            >
+                                직원 로그인
                             </button>
                         </div>
                     </motion.div>
@@ -705,13 +713,19 @@ export default function LandingPage() {
                         whileInView={{opacity: 1, scale: 1}}
                         viewport={{once: true}}
                         transition={{duration: 0.7, delay: 0.2}}
-                        className="flex flex-col items-center gap-4"
+                        className="flex flex-col sm:flex-row items-center justify-center gap-4"
                     >
                         <button
-                            onClick={handleGoToLogin}
+                            onClick={(e) => handleGoToLogin(e, 'admin')}
                             className="px-12 py-4 rounded-xl bg-gradient-to-r from-white to-blue-50 text-blue-700 font-bold text-lg hover:from-blue-50 hover:to-white hover:scale-105 transition-all duration-300 shadow-2xl"
                         >
                             관리자 로그인
+                        </button>
+                        <button
+                            onClick={(e) => handleGoToLogin(e, 'employee')}
+                            className="px-12 py-4 rounded-xl bg-white/10 backdrop-blur-sm text-white font-bold text-lg hover:bg-white/20 hover:scale-105 transition-all duration-300 shadow-2xl border border-white/30"
+                        >
+                            직원 로그인
                         </button>
                     </motion.div>
                 </div>

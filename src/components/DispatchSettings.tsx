@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDispatchStore, generateId } from "@/lib/dispatchStore";
 import { getMemberUsers } from "@/lib/apiService";
+import { useConfirm } from "./ConfirmDialog";
 import type { Route, RouteDriver, Senior, RouteType } from "@/types/dispatch";
 
 // 직원 정보 타입
@@ -34,6 +35,7 @@ export default function DispatchSettings({
     updateSenior,
     deleteSenior,
   } = useDispatchStore();
+  const { confirm, ConfirmContainer } = useConfirm();
 
   // 직원 목록 상태
   const [members, setMembers] = useState<Member[]>([]);
@@ -147,15 +149,24 @@ export default function DispatchSettings({
   };
 
   // 노선 삭제
-  const handleDeleteRoute = (routeId: string) => {
+  const handleDeleteRoute = async (routeId: string) => {
     const route = settings.routes.find(r => String(r.id) === String(routeId));
-    if (route && confirm(`"${route.name} (${route.type})" 노선을 삭제하시겠습니까?`)) {
-      deleteRoute(String(route.id));
-      if (selectedRouteId === routeId) {
-        setSelectedRouteId(null);
-      }
-      onNotification("노선이 삭제되었습니다.", "success");
+    if (!route) return;
+
+    const confirmed = await confirm({
+      title: '노선 삭제',
+      message: `"${route.name} (${route.type})" 노선을 삭제하시겠습니까?`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    deleteRoute(String(route.id));
+    if (selectedRouteId === routeId) {
+      setSelectedRouteId(null);
     }
+    onNotification("노선이 삭제되었습니다.", "success");
   };
 
   // 운전자 추가 (새 노선용)
@@ -254,12 +265,21 @@ export default function DispatchSettings({
   };
 
   // 어르신 삭제
-  const handleDeleteSenior = (seniorId: string) => {
+  const handleDeleteSenior = async (seniorId: string) => {
     const senior = settings.seniors.find(s => String(s.id) === String(seniorId));
-    if (senior && confirm(`"${senior.name}" 어르신을 삭제하시겠습니까?`)) {
-      deleteSenior(String(senior.id));
-      onNotification("어르신이 삭제되었습니다.", "success");
-    }
+    if (!senior) return;
+
+    const confirmed = await confirm({
+      title: '어르신 삭제',
+      message: `"${senior.name}" 어르신을 삭제하시겠습니까?`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    deleteSenior(String(senior.id));
+    onNotification("어르신이 삭제되었습니다.", "success");
   };
 
   // 어르신 순서 변경
@@ -281,6 +301,8 @@ export default function DispatchSettings({
   if (!isOpen) return null;
 
   return (
+    <>
+    <ConfirmContainer />
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -676,5 +698,6 @@ export default function DispatchSettings({
         </div>
       </motion.div>
     </motion.div>
+    </>
   );
 }
