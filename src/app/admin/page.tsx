@@ -33,11 +33,21 @@ import DispatchManagement from "@/components/DispatchManagement";
 import ApprovalManagement from "@/components/ApprovalManagement";
 import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
 import NoticeManagement from "@/components/NoticeManagement";
+import { VacationApproval } from "@/components/VacationApproval";
+import { ChatManagement } from "@/components/ChatManagement";
+import NoticeRollingBanner from "@/components/NoticeRollingBanner";
+import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
 import Image from "next/image";
+
+type MainTab = "notice" | "chat" | "schedule" | "approval" | "work" | "info";
+type ApprovalSubTab = "management" | "templates";
+type InfoSubTab = "users" | "dispatch" | "approval-sign" | "vacation-approval";
 
 export default function AdminPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"vacation" | "schedule" | "users" | "dispatch" | "approval" | "templates" | "notice">("vacation");
+    const [activeMainTab, setActiveMainTab] = useState<MainTab>("work");
+    const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("management");
+    const [infoSubTab, setInfoSubTab] = useState<InfoSubTab>("users");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -981,7 +991,7 @@ export default function AdminPage() {
                                     )}
                                 </div>
                             </div>
-                            {activeTab === "vacation" && (
+                            {activeMainTab === "work" && (
                                 <div
                                     className="hidden sm:block ml-6 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-yellow-400/30 shadow-lg">
                   <span className="text-yellow-100 text-sm font-semibold flex items-center">
@@ -1059,13 +1069,13 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    {/* 탭 네비게이션 */}
+                    {/* 메인 탭 네비게이션 */}
                     <div className="mt-8 border-b border-white/10">
                         <nav className="flex space-x-8">
                             <button
-                                onClick={() => setActiveTab("vacation")}
+                                onClick={() => setActiveMainTab("notice")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "vacation"
+                                    activeMainTab === "notice"
                                         ? "text-white border-b-2 border-blue-400 shadow-lg"
                                         : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                                 }`}
@@ -1081,20 +1091,49 @@ export default function AdminPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                     />
                   </svg>
-                  휴무 관리
+                  공지사항
                 </span>
-                                {activeTab === "vacation" && (
+                                {activeMainTab === "notice" && (
                                     <div
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
                             <button
-                                onClick={() => setActiveTab("schedule")}
+                                onClick={() => setActiveMainTab("chat")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "schedule"
+                                    activeMainTab === "chat"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  채팅
+                </span>
+                                {activeMainTab === "chat" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveMainTab("schedule")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeMainTab === "schedule"
                                         ? "text-white border-b-2 border-blue-400 shadow-lg"
                                         : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                                 }`}
@@ -1119,75 +1158,17 @@ export default function AdminPage() {
                         d="M12 8v4l2 2"
                     />
                   </svg>
-                  일정 관리
+                  월간일정
                 </span>
-                                {activeTab === "schedule" && (
+                                {activeMainTab === "schedule" && (
                                     <div
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
                             <button
-                                onClick={() => setActiveTab("users")}
+                                onClick={() => setActiveMainTab("approval")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "users"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                    />
-                  </svg>
-                  회원 관리
-                </span>
-                                {activeTab === "users" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("dispatch")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "dispatch"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
-                  배차 관리
-                </span>
-                                {activeTab === "dispatch" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("approval")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "approval"
+                                    activeMainTab === "approval"
                                         ? "text-white border-b-2 border-blue-400 shadow-lg"
                                         : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                                 }`}
@@ -1208,15 +1189,15 @@ export default function AdminPage() {
                   </svg>
                   전자결재
                 </span>
-                                {activeTab === "approval" && (
+                                {activeMainTab === "approval" && (
                                     <div
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
                             <button
-                                onClick={() => setActiveTab("templates")}
+                                onClick={() => setActiveMainTab("work")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "templates"
+                                    activeMainTab === "work"
                                         ? "text-white border-b-2 border-blue-400 shadow-lg"
                                         : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                                 }`}
@@ -1232,20 +1213,20 @@ export default function AdminPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth="2"
-                        d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  양식 관리
+                  근무조정
                 </span>
-                                {activeTab === "templates" && (
+                                {activeMainTab === "work" && (
                                     <div
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
                             <button
-                                onClick={() => setActiveTab("notice")}
+                                onClick={() => setActiveMainTab("info")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeTab === "notice"
+                                    activeMainTab === "info"
                                         ? "text-white border-b-2 border-blue-400 shadow-lg"
                                         : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
                                 }`}
@@ -1261,20 +1242,101 @@ export default function AdminPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth="2"
-                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
                     />
                   </svg>
-                  공지사항
+                  정보관리
                 </span>
-                                {activeTab === "notice" && (
+                                {activeMainTab === "info" && (
                                     <div
                                         className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
                                 )}
                             </button>
                         </nav>
                     </div>
+
+                    {/* 서브탭 바 */}
+                    {activeMainTab === "approval" && (
+                        <div className="mt-2">
+                            <nav className="flex space-x-4">
+                                <button
+                                    onClick={() => setApprovalSubTab("management")}
+                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
+                                        approvalSubTab === "management"
+                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
+                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
+                                    }`}
+                                >
+                                    결재 관리
+                                </button>
+                                <button
+                                    onClick={() => setApprovalSubTab("templates")}
+                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
+                                        approvalSubTab === "templates"
+                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
+                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
+                                    }`}
+                                >
+                                    양식 관리
+                                </button>
+                            </nav>
+                        </div>
+                    )}
+                    {activeMainTab === "info" && (
+                        <div className="mt-2">
+                            <nav className="flex space-x-4">
+                                <button
+                                    onClick={() => setInfoSubTab("users")}
+                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
+                                        infoSubTab === "users"
+                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
+                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
+                                    }`}
+                                >
+                                    회원관리
+                                </button>
+                                <button
+                                    onClick={() => setInfoSubTab("dispatch")}
+                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
+                                        infoSubTab === "dispatch"
+                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
+                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
+                                    }`}
+                                >
+                                    배치관리
+                                </button>
+                                <button
+                                    onClick={() => setInfoSubTab("approval-sign")}
+                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
+                                        infoSubTab === "approval-sign"
+                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
+                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
+                                    }`}
+                                >
+                                    결재 승인
+                                </button>
+                                <button
+                                    onClick={() => setInfoSubTab("vacation-approval")}
+                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
+                                        infoSubTab === "vacation-approval"
+                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
+                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
+                                    }`}
+                                >
+                                    휴무 승인
+                                </button>
+                            </nav>
+                        </div>
+                    )}
                 </div>
             </header>
+
+            {/* 공지사항 롤링 배너 */}
+            <NoticeRollingBanner
+              onNoticeClick={() => setActiveMainTab('notice')}
+              autoScrollInterval={5000}
+              maxNotices={5}
+            />
 
             {/* 메인 콘텐츠 */}
             <main className="flex-grow max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1368,15 +1430,59 @@ export default function AdminPage() {
 
                 {/* 탭별 컨텐츠 */}
                 <AnimatePresence mode="wait">
-                    {activeTab === "vacation" ? (
+                    {activeMainTab === "notice" ? (
                         <motion.div
-                            key="vacation"
+                            key="notice"
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            {/* 휴무 캘린더와 컨트롤 패널 */}
+                            <NoticeManagement />
+                        </motion.div>
+                    ) : activeMainTab === "chat" ? (
+                        <motion.div
+                            key="chat"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <ChatManagement onNotification={showNotification} />
+                        </motion.div>
+                    ) : activeMainTab === "schedule" ? (
+                        <motion.div
+                            key="schedule"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.3}}
+                        >
+                            <ScheduleCalendar isAdmin={true} />
+                        </motion.div>
+                    ) : activeMainTab === "approval" ? (
+                        <motion.div
+                            key={`approval-${approvalSubTab}`}
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            {approvalSubTab === "management" ? (
+                                <ApprovalManagement />
+                            ) : (
+                                <ApprovalTemplateManager />
+                            )}
+                        </motion.div>
+                    ) : activeMainTab === "work" ? (
+                        <motion.div
+                            key="work"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="flex flex-col xl:flex-row gap-6">
                                 {/* 캘린더 영역 */}
                                 <div className="xl:w-4/5 bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit">
@@ -1393,177 +1499,97 @@ export default function AdminPage() {
                                     />
                                 </div>
 
-                                {/* 필터 및 휴무 목록 */}
+                                {/* 필터 및 휴무 목록 사이드바 */}
                                 <div className="xl:w-1/5 flex flex-col gap-4">
                                     {/* 필터 패널 */}
                                     <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                        <h3 className="text-sm font-medium text-gray-800 mb-3">
-                                            필터
-                                        </h3>
-
+                                        <h3 className="text-sm font-medium text-gray-800 mb-3">필터</h3>
                                         <div className="space-y-3">
                                             {/* 상태 필터 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                    상태
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">상태</label>
                                                 <div className="grid grid-cols-2 gap-1">
-                                                    <button
-                                                        onClick={() => toggleStatusFilter("all")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            statusFilter === "all"
-                                                                ? "bg-blue-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        전체
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleStatusFilter("pending")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            statusFilter === "pending"
-                                                                ? "bg-yellow-500 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        대기
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleStatusFilter("approved")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            statusFilter === "approved"
-                                                                ? "bg-green-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        승인
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleStatusFilter("rejected")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            statusFilter === "rejected"
-                                                                ? "bg-red-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        거부
-                                                    </button>
+                                                    {(["all", "pending", "approved", "rejected"] as const).map((status) => (
+                                                        <button
+                                                            key={status}
+                                                            onClick={() => setStatusFilter(status)}
+                                                            className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                                statusFilter === status
+                                                                    ? status === "all" ? "bg-blue-600 text-white"
+                                                                        : status === "pending" ? "bg-yellow-500 text-white"
+                                                                            : status === "approved" ? "bg-green-600 text-white"
+                                                                                : "bg-red-600 text-white"
+                                                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                            }`}
+                                                        >
+                                                            {status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
 
                                             {/* 직원 유형 필터 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                    직원
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">직원</label>
                                                 <div className="grid grid-cols-1 gap-1">
-                                                    <button
-                                                        onClick={() => toggleRoleFilter("all")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            roleFilter === "all"
-                                                                ? "bg-indigo-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        전체
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleRoleFilter("caregiver")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            roleFilter === "caregiver"
-                                                                ? "bg-blue-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        요양보호사
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleRoleFilter("office")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            roleFilter === "office"
-                                                                ? "bg-green-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        사무직
-                                                    </button>
+                                                    {(["all", "caregiver", "office"] as const).map((role) => (
+                                                        <button
+                                                            key={role}
+                                                            onClick={() => setRoleFilter(role)}
+                                                            className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                                roleFilter === role
+                                                                    ? role === "all" ? "bg-indigo-600 text-white"
+                                                                        : role === "caregiver" ? "bg-blue-600 text-white"
+                                                                            : "bg-green-600 text-white"
+                                                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                            }`}
+                                                        >
+                                                            {role === "all" ? "전체" : role === "caregiver" ? "요양보호사" : "사무직"}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
 
                                             {/* 정렬 옵션 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                    정렬
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">정렬</label>
                                                 <div className="grid grid-cols-1 gap-1">
-                                                    <button
-                                                        onClick={() => toggleSortOrder("latest")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            sortOrder === "latest"
-                                                                ? "bg-purple-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        최신순
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleSortOrder("name")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            sortOrder === "name"
-                                                                ? "bg-purple-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        이름순
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleSortOrder("role")}
-                                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                                            sortOrder === "role"
-                                                                ? "bg-purple-600 text-white"
-                                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                                        }`}
-                                                    >
-                                                        직무순
-                                                    </button>
+                                                    {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => (
+                                                        <button
+                                                            key={order}
+                                                            onClick={() => setSortOrder(order)}
+                                                            className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                                sortOrder === order
+                                                                    ? "bg-purple-600 text-white"
+                                                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                            }`}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
 
                                             {/* 이름 필터 표시 */}
                                             {nameFilter && (
                                                 <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        선택된 직원
-                                                    </label>
-                                                    <div
-                                                        className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                            <span className="text-[10px] font-medium text-blue-800">
-                              {nameFilter}
-                            </span>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">선택된 직원</label>
+                                                    <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                                                        <span className="text-[10px] font-medium text-blue-800">{nameFilter}</span>
                                                         <button
                                                             onClick={() => setNameFilter(null)}
                                                             className="text-blue-600 hover:text-blue-800 ml-1"
                                                             title="필터 해제"
                                                         >
-                                                            <svg
-                                                                className="w-3 h-3"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth="2"
-                                                                    d="M6 18L18 6M6 6l12 12"
-                                                                />
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
                                                         </button>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* 필터 초기화 버튼 */}
+                                            {/* 필터 초기화 */}
                                             <button
                                                 onClick={resetFilter}
                                                 className="w-full mt-2 px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -1574,18 +1600,14 @@ export default function AdminPage() {
                                     </div>
 
                                     {/* 휴무 목록 */}
-                                    <div
-                                        className="flex-grow bg-white p-3 rounded-lg shadow-sm border border-gray-200 overflow-auto">
+                                    <div className="flex-grow bg-white p-3 rounded-lg shadow-sm border border-gray-200 overflow-auto">
                                         <div className="mb-3">
                                             <div className="flex items-center justify-between">
                                                 <h3 className="text-sm font-medium text-gray-800">
                                                     {selectedDate
-                                                        ? `${format(selectedDate, "yyyy년 MM월 dd일", {
-                                                            locale: ko,
-                                                        })} 휴무 목록`
+                                                        ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
                                                         : "전체 휴무 목록"}
                                                 </h3>
-                                                {/* 선택 모드 토글 버튼 */}
                                                 {filteredRequests.some(req => req.status === 'pending') && (
                                                     <button
                                                         onClick={() => {
@@ -1612,7 +1634,7 @@ export default function AdminPage() {
                                             )}
                                         </div>
 
-                                        {/* 일괄 작업 버튼 영역 */}
+                                        {/* 일괄 작업 버튼 */}
                                         {isSelectMode && (
                                             <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
                                                 <div className="flex items-center justify-between mb-2">
@@ -1625,9 +1647,7 @@ export default function AdminPage() {
                                                                 ? '전체 해제'
                                                                 : '전체 선택'}
                                                         </button>
-                                                        <span className="text-xs text-blue-700 font-medium">
-                                                            {selectedVacationIds.size}개
-                                                        </span>
+                                                        <span className="text-xs text-blue-700 font-medium">{selectedVacationIds.size}개</span>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <button
@@ -1659,8 +1679,7 @@ export default function AdminPage() {
 
                                         {isLoadingRequests ? (
                                             <div className="flex justify-center items-center h-32">
-                                                <div
-                                                    className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                                             </div>
                                         ) : filteredRequests.length === 0 ? (
                                             <div className="text-center py-6 text-gray-500 text-xs">
@@ -1675,7 +1694,6 @@ export default function AdminPage() {
                                                     >
                                                         <div className="flex justify-between items-start mb-1">
                                                             <div className="flex items-start gap-2">
-                                                                {/* 체크박스 추가 */}
                                                                 {isSelectMode && request.status === 'pending' && (
                                                                     <input
                                                                         type="checkbox"
@@ -1685,47 +1703,31 @@ export default function AdminPage() {
                                                                     />
                                                                 )}
                                                                 <div>
-                                                                <div
-                                                                    className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
-                                                                        nameFilter === request.userName
-                                                                            ? "text-blue-600 font-bold"
-                                                                            : "text-gray-900 hover:text-blue-600"
-                                                                    }`}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        const newFilter =
+                                                                    <div
+                                                                        className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
                                                                             nameFilter === request.userName
-                                                                                ? null
-                                                                                : request.userName;
-                                                                        setNameFilter(newFilter);
-                                                                    }}
-                                                                    title={`${request.userName} ${
-                                                                        nameFilter === request.userName
-                                                                            ? "필터 해제"
-                                                                            : "필터링"
-                                                                    }`}
-                                                                >
-                                                                    {request.userName}
-                                                                    {nameFilter === request.userName && (
-                                                                        <span className="ml-1 inline-flex items-center">
-                                      <svg
-                                          className="w-3 h-3 text-blue-600"
-                                          fill="currentColor"
-                                          viewBox="0 0 20 20"
-                                      >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        />
-                                      </svg>
-                                    </span>
-                                                                    )}
+                                                                                ? "text-blue-600 font-bold"
+                                                                                : "text-gray-900 hover:text-blue-600"
+                                                                        }`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setNameFilter(nameFilter === request.userName ? null : request.userName);
+                                                                        }}
+                                                                        title={`${request.userName} ${nameFilter === request.userName ? "필터 해제" : "필터링"}`}
+                                                                    >
+                                                                        {request.userName}
+                                                                        {nameFilter === request.userName && (
+                                                                            <span className="ml-1 inline-flex items-center">
+                                                                                <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-gray-500">
+                                                                        {formatVacationDate(request.date)}
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-[10px] text-gray-500">
-                                                                    {formatVacationDate(request.date)}
-                                                                </div>
-                                                            </div>
                                                             </div>
                                                             <span
                                                                 className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
@@ -1736,96 +1738,62 @@ export default function AdminPage() {
                                                                             : "bg-red-100 text-red-800"
                                                                 }`}
                                                             >
-                                {getStatusText(request.status)}
-                              </span>
+                                                                {getStatusText(request.status)}
+                                                            </span>
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-1">
-                                <span
-                                    className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                        request.role === "caregiver"
-                                            ? "bg-blue-50 text-blue-700"
-                                            : "bg-green-50 text-green-700"
-                                    }`}
-                                >
-                                  {getRoleText(request.role)}
-                                </span>
+                                                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
+                                                                    request.role === "caregiver" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
+                                                                }`}>
+                                                                    {getRoleText(request.role)}
+                                                                </span>
                                                                 {isValidDuration(request.duration) && (
-                                                                    <span
-                                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
-                                    <span>
-                                      {getDurationText(request.duration)}
-                                    </span>
-                                  </span>
+                                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
+                                                                        <span>{getDurationText(request.duration)}</span>
+                                                                    </span>
                                                                 )}
-                                                                <span
-                                                                    className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                                                        request.type === "mandatory"
-                                                                            ? "bg-orange-50 text-orange-700"
-                                                                            : "bg-gray-50 text-gray-700"
-                                                                    }`}
-                                                                >
-                                  {getVacationTypeText(request.type)}
-                                </span>
-                                                                <span className="text-[9px] text-gray-500">
-                                  {formatDate(request.createdAt)}
-                                </span>
+                                                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
+                                                                    request.type === "mandatory" ? "bg-orange-50 text-orange-700" : "bg-gray-50 text-gray-700"
+                                                                }`}>
+                                                                    {getVacationTypeText(request.type)}
+                                                                </span>
+                                                                <span className="text-[9px] text-gray-500">{formatDate(request.createdAt)}</span>
                                                             </div>
                                                             {request.status === "pending" && (
                                                                 <div className="flex gap-1">
                                                                     <button
-                                                                        onClick={() =>
-                                                                            handleApproveVacation(request.id)
-                                                                        }
+                                                                        onClick={() => handleApproveVacation(request.id)}
                                                                         className="px-1.5 py-0.5 text-[10px] text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
                                                                     >
                                                                         승인
                                                                     </button>
                                                                     <button
-                                                                        onClick={() =>
-                                                                            handleRejectVacation(request.id)
-                                                                        }
+                                                                        onClick={() => handleRejectVacation(request.id)}
                                                                         className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
                                                                     >
                                                                         거절
                                                                     </button>
                                                                     <button
-                                                                        onClick={() =>
-                                                                            handleDeleteVacation(request.id)
-                                                                        }
+                                                                        onClick={() => handleDeleteVacation(request.id)}
                                                                         className="p-0.5 text-gray-600 hover:bg-gray-100 rounded"
                                                                         title="삭제"
                                                                     >
-                                                                        <svg
-                                                                            className="w-3 h-3"
-                                                                            fill="none"
-                                                                            stroke="currentColor"
-                                                                            viewBox="0 0 24 24"
-                                                                        >
-                                                                            <path
-                                                                                strokeLinecap="round"
-                                                                                strokeLinejoin="round"
-                                                                                strokeWidth="2"
-                                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                                            />
+                                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                                         </svg>
                                                                     </button>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        {/* 사유 표시 */}
-                                                        {request.reason &&
-                                                            request.reason !== "(사유 미입력)" && (
-                                                                <div
-                                                                    className="mt-1 p-1.5 bg-white rounded border border-gray-200">
-                                                                    <div className="text-[9px] text-gray-600">
-                                    <span className="font-medium text-gray-700">
-                                      사유:
-                                    </span>{" "}
-                                                                        {request.reason}
-                                                                    </div>
+                                                        {request.reason && request.reason !== "(사유 미입력)" && (
+                                                            <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
+                                                                <div className="text-[9px] text-gray-600">
+                                                                    <span className="font-medium text-gray-700">사유:</span>{" "}
+                                                                    {request.reason}
                                                                 </div>
-                                                            )}
+                                                            </div>
+                                                        )}
                                                     </li>
                                                 ))}
                                             </ul>
@@ -1834,77 +1802,38 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </motion.div>
-                    ) : activeTab === "schedule" ? (
+                    ) : activeMainTab === "info" ? (
                         <motion.div
-                            key="schedule"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.3}}
-                        >
-                            <ScheduleCalendar isAdmin={true} />
-                        </motion.div>
-                    ) : activeTab === "users" ? (
-                        <motion.div
-                            key="users"
+                            key={`info-${infoSubTab}`}
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            <UserManagement
-                                organizationName={companyName || undefined}
-                                onNotification={showNotification}
-                            />
-                        </motion.div>
-                    ) : activeTab === "dispatch" ? (
-                        <motion.div
-                            key="dispatch"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
-                        >
-                            <DispatchManagement
-                                onNotification={showNotification}
-                            />
-                        </motion.div>
-                    ) : activeTab === "approval" ? (
-                        <motion.div
-                            key="approval"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
-                        >
-                            <ApprovalManagement />
-                        </motion.div>
-                    ) : activeTab === "templates" ? (
-                        <motion.div
-                            key="templates"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
-                        >
-                            <ApprovalTemplateManager />
-                        </motion.div>
-                    ) : activeTab === "notice" ? (
-                        <motion.div
-                            key="notice"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
-                        >
-                            <NoticeManagement />
+                            {infoSubTab === "users" ? (
+                                <UserManagement
+                                    organizationName={companyName || undefined}
+                                    onNotification={showNotification}
+                                />
+                            ) : infoSubTab === "dispatch" ? (
+                                <DispatchManagement
+                                    onNotification={showNotification}
+                                />
+                            ) : infoSubTab === "approval-sign" ? (
+                                <ApprovalManagement />
+                            ) : infoSubTab === "vacation-approval" ? (
+                                <VacationApproval
+                                    onNotification={showNotification}
+                                />
+                            ) : null}
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
+
             </main>
 
-            {/* 모달 컴포넌트들 - 휴무 관리 탭에서만 표시 */}
-            {activeTab === "vacation" && (
+            {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}
+            {activeMainTab === "work" && (
                 <AnimatePresence>
                     {showDetails && selectedDate && (
                         <motion.div
@@ -2077,6 +2006,9 @@ export default function AdminPage() {
                     </div>
                 </div>
             </footer>
+
+            {/* 플로팅 채팅 위젯 */}
+            <FloatingChat />
 
             {/* 로딩 오버레이 */}
             {isProcessing && (
