@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
@@ -42,6 +42,26 @@ interface WebSocketMessage {
 }
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
+
+function getDateKey(dateStr: string): string {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDateSeparator(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "오늘";
+    if (diffDays === 1) return "어제";
+    if (date.getFullYear() === now.getFullYear()) {
+        return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    }
+    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
 
 export function ChatManagement({ onNotification }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -487,86 +507,106 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                     메시지가 없습니다
                                 </div>
                             ) : (
-                                messages.map((message) => {
+                                messages.map((message, index) => {
                                     const isMyMessage = message.senderId === userId;
                                     const isSystemMessage = message.type === "SYSTEM";
+                                    const showDateSeparator =
+                                        index === 0 ||
+                                        getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
+
+                                    const dateSeparator = showDateSeparator ? (
+                                        <div className="flex items-center gap-3 my-3">
+                                            <div className="flex-1 h-px bg-gray-200" />
+                                            <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                                                {formatDateSeparator(message.createdAt)}
+                                            </span>
+                                            <div className="flex-1 h-px bg-gray-200" />
+                                        </div>
+                                    ) : null;
 
                                     if (isSystemMessage) {
                                         return (
-                                            <div key={message.id} className="flex justify-center">
-                                                <p className="text-xs text-gray-400 italic">{message.content}</p>
-                                            </div>
+                                            <Fragment key={message.id}>
+                                                {dateSeparator}
+                                                <div className="flex justify-center">
+                                                    <p className="text-xs text-gray-400 italic">{message.content}</p>
+                                                </div>
+                                            </Fragment>
                                         );
                                     }
 
                                     if (message.isDeleted) {
                                         return (
-                                            <div
-                                                key={message.id}
-                                                className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
-                                            >
-                                                <p className="text-xs text-gray-400 italic px-3 py-2">
-                                                    삭제된 메시지입니다
-                                                </p>
-                                            </div>
+                                            <Fragment key={message.id}>
+                                                {dateSeparator}
+                                                <div
+                                                    className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
+                                                >
+                                                    <p className="text-xs text-gray-400 italic px-3 py-2">
+                                                        삭제된 메시지입니다
+                                                    </p>
+                                                </div>
+                                            </Fragment>
                                         );
                                     }
 
                                     return (
-                                        <div
-                                            key={message.id}
-                                            className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
-                                        >
-                                            <div className={`max-w-[70%] ${isMyMessage ? "items-end" : "items-start"} flex flex-col`}>
-                                                {!isMyMessage && (
-                                                    <p className="text-xs text-gray-600 mb-1">{message.senderName}</p>
-                                                )}
-                                                <div className="flex items-end gap-2">
-                                                    {isMyMessage && (
-                                                        <span className="text-xs text-gray-400">
-                                                            {formatMessageTime(message.createdAt)}
-                                                        </span>
+                                        <Fragment key={message.id}>
+                                            {dateSeparator}
+                                            <div
+                                                className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
+                                            >
+                                                <div className={`max-w-[70%] ${isMyMessage ? "items-end" : "items-start"} flex flex-col`}>
+                                                    {!isMyMessage && (
+                                                        <p className="text-xs text-gray-600 mb-1">{message.senderName}</p>
                                                     )}
-                                                    <div
-                                                        className={`px-3 py-2 rounded-lg ${
-                                                            isMyMessage
-                                                                ? "bg-blue-600 text-white"
-                                                                : "bg-gray-100 text-gray-900"
-                                                        }`}
-                                                    >
-                                                        {message.type === "IMAGE" && message.fileUrl ? (
-                                                            <img
-                                                                src={message.fileUrl}
-                                                                alt={message.fileName || "이미지"}
-                                                                className="max-w-full max-h-60 rounded cursor-pointer"
-                                                                style={{ display: "block" }}
-                                                                onClick={() => window.open(message.fileUrl, "_blank")}
-                                                            />
-                                                        ) : message.type === "FILE" && message.fileUrl ? (
-                                                            <a
-                                                                href={message.fileUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className={`text-sm underline flex items-center gap-1 ${
-                                                                    isMyMessage ? "text-white" : "text-blue-600"
-                                                                }`}
-                                                            >
-                                                                📎 {message.fileName || message.content}
-                                                            </a>
-                                                        ) : (
-                                                            <p className="text-sm whitespace-pre-wrap break-words">
-                                                                {message.content}
-                                                            </p>
+                                                    <div className="flex items-end gap-2">
+                                                        {isMyMessage && (
+                                                            <span className="text-xs text-gray-400">
+                                                                {formatMessageTime(message.createdAt)}
+                                                            </span>
+                                                        )}
+                                                        <div
+                                                            className={`px-3 py-2 rounded-lg ${
+                                                                isMyMessage
+                                                                    ? "bg-blue-600 text-white"
+                                                                    : "bg-gray-100 text-gray-900"
+                                                            }`}
+                                                        >
+                                                            {message.type === "IMAGE" && message.fileUrl ? (
+                                                                <img
+                                                                    src={message.fileUrl}
+                                                                    alt={message.fileName || "이미지"}
+                                                                    className="max-w-full max-h-60 rounded cursor-pointer"
+                                                                    style={{ display: "block" }}
+                                                                    onClick={() => window.open(message.fileUrl, "_blank")}
+                                                                />
+                                                            ) : message.type === "FILE" && message.fileUrl ? (
+                                                                <a
+                                                                    href={message.fileUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`text-sm underline flex items-center gap-1 ${
+                                                                        isMyMessage ? "text-white" : "text-blue-600"
+                                                                    }`}
+                                                                >
+                                                                    📎 {message.fileName || message.content}
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-sm whitespace-pre-wrap break-words">
+                                                                    {message.content}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        {!isMyMessage && (
+                                                            <span className="text-xs text-gray-400">
+                                                                {formatMessageTime(message.createdAt)}
+                                                            </span>
                                                         )}
                                                     </div>
-                                                    {!isMyMessage && (
-                                                        <span className="text-xs text-gray-400">
-                                                            {formatMessageTime(message.createdAt)}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
-                                        </div>
+                                        </Fragment>
                                     );
                                 })
                             )}
