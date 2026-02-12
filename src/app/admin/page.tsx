@@ -1760,31 +1760,33 @@ export default function AdminPage() {
                                                                 </span>
                                                                 <span className="text-[9px] text-gray-500">{formatDate(request.createdAt)}</span>
                                                             </div>
-                                                            {request.status === "pending" && (
-                                                                <div className="flex gap-1">
-                                                                    <button
-                                                                        onClick={() => handleApproveVacation(request.id)}
-                                                                        className="px-1.5 py-0.5 text-[10px] text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
-                                                                    >
-                                                                        승인
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleRejectVacation(request.id)}
-                                                                        className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
-                                                                    >
-                                                                        거절
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDeleteVacation(request.id)}
-                                                                        className="p-0.5 text-gray-600 hover:bg-gray-100 rounded"
-                                                                        title="삭제"
-                                                                    >
-                                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                        </svg>
-                                                                    </button>
-                                                                </div>
-                                                            )}
+                                                            <div className="flex gap-1">
+                                                                {request.status === "pending" && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleApproveVacation(request.id)}
+                                                                            className="px-1.5 py-0.5 text-[10px] text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
+                                                                        >
+                                                                            승인
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleRejectVacation(request.id)}
+                                                                            className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
+                                                                        >
+                                                                            거절
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleDeleteVacation(request.id)}
+                                                                    className="p-0.5 text-gray-600 hover:bg-gray-100 rounded"
+                                                                    title="삭제"
+                                                                >
+                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                         {request.reason && request.reason !== "(사유 미입력)" && (
                                                             <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
