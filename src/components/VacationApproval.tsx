@@ -36,6 +36,8 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentDate] = useState(new Date());
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedDeleteVacation, setSelectedDeleteVacation] = useState<VacationRequest | null>(null);
 
     // Fetch vacation data on mount
     useEffect(() => {
@@ -237,15 +239,32 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
         }
     };
 
-    const handleDeleteVacation = async (vacationId: string) => {
+    const handleDeleteVacation = (vacation: VacationRequest) => {
+        setSelectedDeleteVacation(vacation);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedDeleteVacation) return;
+
+        setIsProcessing(true);
         try {
-            await apiDeleteVacation(vacationId, { isAdmin: true });
+            await apiDeleteVacation(selectedDeleteVacation.id, { isAdmin: true });
             onNotification("휴무가 삭제되었습니다.", "success");
+            setShowDeleteConfirm(false);
+            setSelectedDeleteVacation(null);
             await fetchMonthData();
         } catch (error) {
             console.error("휴무 삭제 중 오류 발생:", error);
             onNotification("휴무 삭제 중 오류가 발생했습니다.", "error");
+        } finally {
+            setIsProcessing(false);
         }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteConfirm(false);
+        setSelectedDeleteVacation(null);
     };
 
     const handleBulkApprove = async () => {
@@ -648,7 +667,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                     </>
                                                 )}
                                                 <button
-                                                    onClick={() => handleDeleteVacation(request.id)}
+                                                    onClick={() => handleDeleteVacation(request)}
                                                     className="p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
                                                     title="삭제"
                                                 >
@@ -761,6 +780,52 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                     </div>
                 </div>
             </div>
+
+            {/* 삭제 확인 모달 */}
+            {showDeleteConfirm && selectedDeleteVacation && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                        <div className="flex items-start mb-4">
+                            <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <h3 className="text-lg font-medium text-gray-900">휴무 삭제 확인</h3>
+                                <p className="mt-2 text-sm text-gray-600">
+                                    <span className="font-semibold text-gray-800">{selectedDeleteVacation.userName}</span>님의 <span className="font-semibold text-gray-800">{selectedDeleteVacation.date}</span> 휴무를 정말 삭제하시겠습니까?
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">이 작업은 되돌릴 수 없습니다.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={cancelDelete}
+                                disabled={isProcessing}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={isProcessing}
+                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        삭제 중...
+                                    </>
+                                ) : (
+                                    '삭제하기'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

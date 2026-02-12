@@ -89,6 +89,10 @@ export default function AdminPage() {
     const [selectedVacationIds, setSelectedVacationIds] = useState<Set<string>>(new Set());
     const [isSelectMode, setIsSelectMode] = useState(false);
 
+    // 삭제 확인 모달 관련 상태
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedDeleteVacation, setSelectedDeleteVacation] = useState<VacationRequest | null>(null);
+
     const [isClient, setIsClient] = useState(false);
 
     // 클라이언트 사이드에서만 실행되도록 하는 useEffect
@@ -711,17 +715,34 @@ export default function AdminPage() {
         }
     };
 
-    const handleDeleteVacation = async (vacationId: string) => {
+    const handleDeleteVacation = (vacation: VacationRequest) => {
+        setSelectedDeleteVacation(vacation);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedDeleteVacation) return;
+
+        setIsProcessing(true);
         try {
-            await apiDeleteVacation(vacationId, {isAdmin: true});
+            await apiDeleteVacation(selectedDeleteVacation.id, {isAdmin: true});
             showNotification("휴무가 삭제되었습니다.", "success");
+            setShowDeleteConfirm(false);
+            setSelectedDeleteVacation(null);
             await handleVacationUpdated();
             if (showDetails) handleCloseDetails();
         } catch (error) {
             console.error("휴무 삭제 중 오류 발생:", error);
             showNotification("휴무 삭제 중 오류가 발생했습니다.", "error");
             if ((error as Error).message.includes("인증")) router.push("/login");
+        } finally {
+            setIsProcessing(false);
         }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteConfirm(false);
+        setSelectedDeleteVacation(null);
     };
 
     const showNotification = (
@@ -1778,7 +1799,7 @@ export default function AdminPage() {
                                                                     </>
                                                                 )}
                                                                 <button
-                                                                    onClick={() => handleDeleteVacation(request.id)}
+                                                                    onClick={() => handleDeleteVacation(request)}
                                                                     className="p-0.5 text-gray-600 hover:bg-gray-100 rounded"
                                                                     title="삭제"
                                                                 >
@@ -1900,6 +1921,64 @@ export default function AdminPage() {
                                     vacationLimits={vacationLimits}
                                     vacationDays={vacationDays}
                                 />
+                            </motion.div>
+                        </motion.div>
+                    )}
+
+                    {/* 삭제 확인 모달 */}
+                    {showDeleteConfirm && selectedDeleteVacation && (
+                        <motion.div
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+                            onClick={cancelDelete}
+                        >
+                            <motion.div
+                                initial={{scale: 0.95}}
+                                animate={{scale: 1}}
+                                exit={{scale: 0.95}}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"
+                            >
+                                <div className="flex items-start mb-4">
+                                    <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                                        <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-4">
+                                        <h3 className="text-lg font-medium text-gray-900">휴무 삭제 확인</h3>
+                                        <p className="mt-2 text-sm text-gray-600">
+                                            <span className="font-semibold text-gray-800">{selectedDeleteVacation.userName}</span>님의 <span className="font-semibold text-gray-800">{selectedDeleteVacation.date}</span> 휴무를 정말 삭제하시겠습니까?
+                                        </p>
+                                        <p className="mt-1 text-xs text-gray-500">이 작업은 되돌릴 수 없습니다.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={cancelDelete}
+                                        disabled={isProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        disabled={isProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                삭제 중...
+                                            </>
+                                        ) : (
+                                            '삭제하기'
+                                        )}
+                                    </button>
+                                </div>
                             </motion.div>
                         </motion.div>
                     )}
