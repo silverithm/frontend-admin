@@ -783,7 +783,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
 
             {/* 삭제 확인 모달 */}
             {showDeleteConfirm && selectedDeleteVacation && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
                         <div className="flex items-start mb-4">
                             <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
