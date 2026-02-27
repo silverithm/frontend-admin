@@ -214,15 +214,6 @@ export default function AdminDashboard({ onTabChange }: AdminDashboardProps) {
     },
   ];
 
-  const quickLinks = [
-    { label: '공지사항', icon: '📋', tab: 'notice', desc: '공지 관리' },
-    { label: '채팅', icon: '💬', tab: 'chat', desc: '메시지 확인' },
-    { label: '월간일정', icon: '📅', tab: 'schedule', desc: '일정 관리' },
-    { label: '전자결재', icon: '📝', tab: 'approval', desc: '결재 처리' },
-    { label: '근무조정', icon: '🗓', tab: 'work', desc: '휴무 관리' },
-    { label: '정보관리', icon: '👥', tab: 'info', desc: '직원 관리' },
-  ];
-
   const avatarColors = [
     'bg-orange-500',
     'bg-blue-500',
@@ -301,7 +292,7 @@ export default function AdminDashboard({ onTabChange }: AdminDashboardProps) {
         className="grid grid-cols-1 lg:grid-cols-2 gap-3"
       >
         {/* Left: 오늘의 일정 (Timeline) */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-64">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -369,7 +360,7 @@ export default function AdminDashboard({ onTabChange }: AdminDashboardProps) {
         </div>
 
         {/* Right: 오늘 휴무자 */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-64">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
           <div className="px-4 pt-4 pb-2 flex items-center gap-2.5">
             <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,29 +416,6 @@ export default function AdminDashboard({ onTabChange }: AdminDashboardProps) {
                 )}
               </div>
             )}
-          </div>
-        </div>
-      </motion.div>
-
-      {/* 4. Quick Navigation */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-        className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden"
-      >
-        <div className="px-4 py-3">
-          <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-            {quickLinks.map((link) => (
-              <button
-                key={link.tab}
-                onClick={() => onTabChange(link.tab)}
-                className="flex items-center gap-2 p-2.5 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all group text-left"
-              >
-                <span className="text-lg flex-shrink-0">{link.icon}</span>
-                <p className="text-xs font-semibold text-gray-800 group-hover:text-blue-700">{link.label}</p>
-              </button>
-            ))}
           </div>
         </div>
       </motion.div>
