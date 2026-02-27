@@ -37,15 +37,16 @@ import { VacationApproval } from "@/components/VacationApproval";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
 import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
+import AdminDashboard from "@/components/AdminDashboard";
 import Image from "next/image";
 
-type MainTab = "notice" | "chat" | "schedule" | "approval" | "work" | "info";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "info";
 type ApprovalSubTab = "management" | "templates";
 type InfoSubTab = "users" | "dispatch" | "approval-sign" | "vacation-approval";
 
 export default function AdminPage() {
     const router = useRouter();
-    const [activeMainTab, setActiveMainTab] = useState<MainTab>("work");
+    const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("management");
     const [infoSubTab, setInfoSubTab] = useState<InfoSubTab>("users");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -1094,6 +1095,35 @@ export default function AdminPage() {
                     <div className="mt-8 border-b border-white/10">
                         <nav className="flex space-x-8">
                             <button
+                                onClick={() => setActiveMainTab("dashboard")}
+                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
+                                    activeMainTab === "dashboard"
+                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
+                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
+                                }`}
+                            >
+                <span className="flex items-center">
+                  <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                  >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                    />
+                  </svg>
+                  대시보드
+                </span>
+                                {activeMainTab === "dashboard" && (
+                                    <div
+                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                                )}
+                            </button>
+                            <button
                                 onClick={() => setActiveMainTab("notice")}
                                 className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
                                     activeMainTab === "notice"
@@ -1360,7 +1390,7 @@ export default function AdminPage() {
             />
 
             {/* 메인 콘텐츠 */}
-            <main className="flex-grow max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="flex-grow max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-8">
                 {/* 알림 메시지 */}
                 <AnimatePresence>
                     {notification.show && (
@@ -1451,7 +1481,17 @@ export default function AdminPage() {
 
                 {/* 탭별 컨텐츠 */}
                 <AnimatePresence mode="wait">
-                    {activeMainTab === "notice" ? (
+                    {activeMainTab === "dashboard" ? (
+                        <motion.div
+                            key="dashboard"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: 0.2}}
+                        >
+                            <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} />
+                        </motion.div>
+                    ) : activeMainTab === "notice" ? (
                         <motion.div
                             key="notice"
                             initial={{opacity: 0, y: 20}}

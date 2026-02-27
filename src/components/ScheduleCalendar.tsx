@@ -36,7 +36,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
   const [labels, setLabels] = useState<ScheduleLabel[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -326,228 +326,239 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
   return (
     <>
       <AlertContainer />
-      <div className="space-y-6">
+      <div className="flex flex-col xl:flex-row gap-6">
         {/* 캘린더 카드 */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* 캘린더 헤더 */}
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {format(currentDate, 'yyyy년 M월', { locale: ko })}
-                </h2>
-                <button
-                  onClick={goToToday}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  오늘
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => openCreateModal()}
-                  className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>일정 추가</span>
-                </button>
-                <div className="flex items-center border border-gray-200 rounded-lg">
-                  <button
-                    onClick={goToPrevMonth}
-                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-l-lg transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={goToNextMonth}
-                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-r-lg transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 요일 헤더 */}
-          <div className="grid grid-cols-7 border-b border-gray-100">
-            {WEEKDAYS.map((day, index) => (
-              <div
-                key={day}
-                className={`py-3 text-center text-sm font-semibold ${
-                  index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600'
-                }`}
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* 캘린더 그리드 */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            </div>
-          ) : (
-            <div className="grid grid-cols-7">
-              {calendarDays.map((date, index) => {
-                if (!date) {
-                  return <div key={`empty-${index}`} className="aspect-square border-b border-r border-gray-50" />;
-                }
-
-                const daySchedules = getSchedulesForDate(date);
-                const isSelected = selectedDate && isSameDay(date, selectedDate);
-                const dayOfWeek = date.getDay();
-
-                return (
-                  <button
-                    key={format(date, 'yyyy-MM-dd')}
-                    onClick={() => handleDateClick(date)}
-                    className={`aspect-square p-2 border-b border-r border-gray-50 transition-all duration-200 hover:bg-blue-50 relative ${
-                      !isSameMonth(date, currentDate) ? 'opacity-30' : ''
-                    } ${isSelected ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' : ''} ${
-                      isToday(date) ? 'bg-blue-50' : ''
-                    }`}
-                  >
-                    <div className="h-full flex flex-col">
-                      <span
-                        className={`text-sm font-medium ${
-                          isToday(date)
-                            ? 'bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto'
-                            : dayOfWeek === 0
-                            ? 'text-red-500'
-                            : dayOfWeek === 6
-                            ? 'text-blue-500'
-                            : 'text-gray-900'
-                        }`}
-                      >
-                        {format(date, 'd')}
-                      </span>
-                      {daySchedules.length > 0 && (
-                        <div className="flex-1 mt-1 space-y-0.5 overflow-hidden">
-                          {daySchedules.slice(0, 3).map((schedule) => (
-                            <div
-                              key={schedule.id}
-                              onClick={(e) => handleScheduleClick(e, schedule)}
-                              className="text-[10px] px-1.5 py-0.5 rounded truncate bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
-                              style={{
-                                borderLeft: schedule.label?.color ? `3px solid ${schedule.label.color}` : undefined,
-                              }}
-                              title={schedule.title}
-                            >
-                              {schedule.title}
-                            </div>
-                          ))}
-                          {daySchedules.length > 3 && (
-                            <div className="text-[10px] text-gray-500 font-medium">
-                              +{daySchedules.length - 3}개
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 선택된 날짜 상세 */}
-        {selectedDate && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
-          >
+        <div className={`${selectedDate ? 'xl:w-3/4' : 'w-full'} transition-all duration-300`}>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            {/* 캘린더 헤더 */}
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
-                  </h3>
-                  <p className="text-gray-500 text-sm mt-1">
-                    {getSchedulesForDate(selectedDate).length}개 일정
-                  </p>
+                <div className="flex items-center space-x-4">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {format(currentDate, 'yyyy년 M월', { locale: ko })}
+                  </h2>
+                  <button
+                    onClick={goToToday}
+                    className="px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    오늘
+                  </button>
                 </div>
-                <button
-                  onClick={() => openCreateModal(selectedDate)}
-                  className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>이 날 일정 추가</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => openCreateModal()}
+                    className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>일정 추가</span>
+                  </button>
+                  <div className="flex items-center border border-gray-200 rounded-lg">
+                    <button
+                      onClick={goToPrevMonth}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-l-lg transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={goToNextMonth}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-r-lg transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="p-6">
-              {getSchedulesForDate(selectedDate).length > 0 ? (
-                <div className="space-y-3">
-                  {getSchedulesForDate(selectedDate).map((schedule) => (
+            {/* 요일 헤더 */}
+            <div className="grid grid-cols-7 border-b border-gray-100">
+              {WEEKDAYS.map((day, index) => (
+                <div
+                  key={day}
+                  className={`py-3 text-center text-sm font-semibold ${
+                    index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600'
+                  }`}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* 캘린더 그리드 */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              </div>
+            ) : (
+              <div className="grid grid-cols-7">
+                {calendarDays.map((date, index) => {
+                  if (!date) {
+                    return <div key={`empty-${index}`} className="aspect-square border-b border-r border-gray-50" />;
+                  }
+
+                  const daySchedules = getSchedulesForDate(date);
+                  const isSelected = selectedDate && isSameDay(date, selectedDate);
+                  const dayOfWeek = date.getDay();
+
+                  return (
                     <button
-                      key={schedule.id}
-                      onClick={() => handleScheduleClick({} as React.MouseEvent, schedule)}
-                      className="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-200 transition-all text-left"
+                      key={format(date, 'yyyy-MM-dd')}
+                      onClick={() => handleDateClick(date)}
+                      className={`aspect-square p-2 border-b border-r border-gray-50 transition-all duration-200 hover:bg-blue-50 relative ${
+                        !isSameMonth(date, currentDate) ? 'opacity-30' : ''
+                      } ${isSelected ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' : ''} ${
+                        isToday(date) ? 'bg-blue-50' : ''
+                      }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
+                      <div className="h-full flex flex-col">
+                        <span
+                          className={`text-sm font-medium ${
+                            isToday(date)
+                              ? 'bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto'
+                              : dayOfWeek === 0
+                              ? 'text-red-500'
+                              : dayOfWeek === 6
+                              ? 'text-blue-500'
+                              : 'text-gray-900'
+                          }`}
+                        >
+                          {format(date, 'd')}
+                        </span>
+                        {daySchedules.length > 0 && (
+                          <div className="flex-1 mt-1 space-y-0.5 overflow-hidden">
+                            {daySchedules.slice(0, 3).map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                onClick={(e) => handleScheduleClick(e, schedule)}
+                                className="text-[10px] px-1.5 py-0.5 rounded truncate bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
+                                style={{
+                                  borderLeft: schedule.label?.color ? `3px solid ${schedule.label.color}` : undefined,
+                                }}
+                                title={schedule.title}
+                              >
+                                {schedule.title}
+                              </div>
+                            ))}
+                            {daySchedules.length > 3 && (
+                              <div className="text-[10px] text-gray-500 font-medium">
+                                +{daySchedules.length - 3}개
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 선택된 날짜 상세 (우측 패널) */}
+        <AnimatePresence>
+          {selectedDate && (
+            <motion.div
+              className="xl:w-1/4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden sticky top-6 min-h-[calc(100vh-200px)] flex flex-col">
+                {/* 헤더 */}
+                <div className="p-5 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
+                      </h3>
+                      <p className="text-gray-500 text-sm mt-1">
+                        {getSchedulesForDate(selectedDate).length}개 일정
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedDate(null)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 일정 추가 버튼 */}
+                <div className="px-5 pt-4">
+                  <button
+                    onClick={() => openCreateModal(selectedDate)}
+                    className="w-full flex items-center justify-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>일정 추가</span>
+                  </button>
+                </div>
+
+                {/* 일정 목록 (스크롤 가능) */}
+                <div className="p-5 flex-1 overflow-y-auto">
+                  {getSchedulesForDate(selectedDate).length > 0 ? (
+                    <div className="space-y-2.5">
+                      {getSchedulesForDate(selectedDate).map((schedule) => (
+                        <button
+                          key={schedule.id}
+                          onClick={() => handleScheduleClick({} as React.MouseEvent, schedule)}
+                          className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-200 transition-all text-left"
+                        >
+                          <div className="flex items-start space-x-2">
                             {schedule.label && (
                               <div
-                                className="w-3 h-3 rounded-full"
+                                className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
                                 style={{ backgroundColor: schedule.label.color }}
                               />
                             )}
-                            <span className="font-semibold text-gray-900">{schedule.title}</span>
-                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                              {getCategoryText(schedule.category)}
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold text-sm text-gray-900 block truncate">{schedule.title}</span>
+                              <div className="flex items-center space-x-1.5 mt-1">
+                                <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                                  {getCategoryText(schedule.category)}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {schedule.isAllDay ? '종일' : `${schedule.startTime || ''} - ${schedule.endTime || ''}`}
+                                </span>
+                              </div>
+                              {schedule.location && (
+                                <span className="text-xs text-gray-400 mt-0.5 block truncate">{schedule.location}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600 flex items-center space-x-2">
-                            {!schedule.isAllDay && schedule.startTime && (
-                              <span>
-                                {schedule.startTime} - {schedule.endTime}
-                              </span>
-                            )}
-                            {schedule.isAllDay && <span>종일</span>}
-                            {schedule.location && (
-                              <>
-                                <span>·</span>
-                                <span>{schedule.location}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </button>
-                  ))}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-gray-500 text-sm font-medium">일정이 없습니다</p>
+                      <p className="text-gray-400 text-xs mt-1">일정 추가 버튼으로 새 일정을 등록하세요</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-gray-500 font-medium">이 날에 등록된 일정이 없습니다</p>
-                  <p className="text-gray-400 text-sm mt-1">일정 추가 버튼을 눌러 일정을 추가하세요</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 일정 생성/수정 모달 */}
