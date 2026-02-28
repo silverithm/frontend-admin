@@ -41,6 +41,13 @@ interface WebSocketMessage {
     isTyping?: boolean;
 }
 
+interface ChatParticipant {
+    userId: string;
+    userName: string;
+    role?: string;
+    joinedAt?: string;
+}
+
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
 function getDateKey(dateStr: string): string {
@@ -75,6 +82,9 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     const [newRoomName, setNewRoomName] = useState("");
     const [newRoomDescription, setNewRoomDescription] = useState("");
     const [isConnected, setIsConnected] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [participants, setParticipants] = useState<ChatParticipant[]>([]);
+    const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const stompClientRef = useRef<Client | null>(null);
@@ -373,6 +383,31 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         }
     };
 
+    const fetchParticipants = useCallback(async (roomId: number) => {
+        if (!authToken) return;
+        setIsLoadingParticipants(true);
+        try {
+            const response = await fetch(`/api/v1/chat/rooms/${roomId}/participants`, {
+                headers: { "Authorization": `Bearer ${authToken}` },
+            });
+            if (!response.ok) throw new Error("Failed to fetch participants");
+            const data = await response.json();
+            const list = Array.isArray(data) ? data : (data.participants || data.content || data.data || []);
+            setParticipants(list);
+        } catch (error) {
+            console.error("Error fetching participants:", error);
+        } finally {
+            setIsLoadingParticipants(false);
+        }
+    }, [authToken]);
+
+    const toggleDrawer = () => {
+        if (!showDrawer && selectedRoom) {
+            fetchParticipants(selectedRoom);
+        }
+        setShowDrawer(!showDrawer);
+    };
+
     const formatTimestamp = (timestamp: string) => {
         const date = new Date(timestamp);
         const now = new Date();
@@ -450,7 +485,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                         rooms.map((room) => (
                             <button
                                 key={room.id}
-                                onClick={() => setSelectedRoom(room.id)}
+                                onClick={() => { setSelectedRoom(room.id); setShowDrawer(false); }}
                                 className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
                                     selectedRoom === room.id ? "bg-blue-50" : ""
                                 }`}
@@ -483,17 +518,28 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
             </div>
 
             {/* Right Panel - Messages */}
-            <div className="w-2/3 flex flex-col">
+            <div className="w-2/3 flex flex-col relative">
                 {selectedRoom ? (
                     <>
                         {/* Header */}
-                        <div className="p-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold text-gray-900">
-                                {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
-                            </h2>
-                            <p className="text-xs text-gray-500">
-                                참여자 {rooms.find(r => r.id === selectedRoom)?.participantCount || 0}명
-                            </p>
+                        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
+                                </h2>
+                                <p className="text-xs text-gray-500">
+                                    참여자 {rooms.find(r => r.id === selectedRoom)?.participantCount || 0}명
+                                </p>
+                            </div>
+                            <button
+                                onClick={toggleDrawer}
+                                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                aria-label="채팅방 정보"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
                         </div>
 
                         {/* Messages */}
@@ -634,6 +680,108 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Info Drawer */}
+                        {showDrawer && (
+                            <div className="absolute inset-0 bg-white z-20 flex flex-col">
+                                {/* Drawer Header */}
+                                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">채팅방 정보</h3>
+                                    <button
+                                        onClick={() => setShowDrawer(false)}
+                                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                        aria-label="닫기"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto">
+                                    {/* 참여자 */}
+                                    <div className="p-4 border-b border-gray-100">
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                                            참여자 ({participants.length}명)
+                                        </h4>
+                                        {isLoadingParticipants ? (
+                                            <div className="flex justify-center py-4">
+                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                            </div>
+                                        ) : participants.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {participants.map((p, i) => (
+                                                    <div key={p.userId || i} className="flex items-center gap-3 py-2">
+                                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <span className="text-sm font-medium text-blue-600">
+                                                                {p.userName?.charAt(0) || "?"}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-sm text-gray-900">{p.userName}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-400 text-center py-4">참여자 정보를 불러올 수 없습니다</p>
+                                        )}
+                                    </div>
+
+                                    {/* 사진 */}
+                                    <div className="p-4 border-b border-gray-100">
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                                            사진 ({messages.filter(m => m.type === "IMAGE" && m.fileUrl).length})
+                                        </h4>
+                                        {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
+                                                    <img
+                                                        key={m.id}
+                                                        src={m.fileUrl!}
+                                                        alt={m.fileName || "사진"}
+                                                        className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                        onClick={() => window.open(m.fileUrl, "_blank")}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-400 text-center py-4">공유된 사진이 없습니다</p>
+                                        )}
+                                    </div>
+
+                                    {/* 파일 */}
+                                    <div className="p-4">
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                                            파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
+                                        </h4>
+                                        {messages.filter(m => m.type === "FILE" && m.fileUrl).length > 0 ? (
+                                            <div className="space-y-2">
+                                                {messages.filter(m => m.type === "FILE" && m.fileUrl).map(m => (
+                                                    <a
+                                                        key={m.id}
+                                                        href={m.fileUrl!}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-sm text-gray-900 truncate">{m.fileName || m.content}</p>
+                                                            <p className="text-xs text-gray-400">{formatMessageTime(m.createdAt)}</p>
+                                                        </div>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-400 text-center py-4">공유된 파일이 없습니다</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
