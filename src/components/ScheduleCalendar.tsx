@@ -635,30 +635,6 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     </select>
                   </div>
 
-                  {/* 라벨 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">라벨</label>
-                    <div className="flex space-x-2">
-                      <select
-                        value={formData.labelId}
-                        onChange={(e) => setFormData(prev => ({ ...prev, labelId: e.target.value }))}
-                        className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">라벨 없음</option>
-                        {labels.map((label) => (
-                          <option key={label.id} value={label.id}>
-                            {label.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => setShowLabelModal(true)}
-                        className="px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
-                      >
-                        새 라벨
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 {/* 장소 */}
