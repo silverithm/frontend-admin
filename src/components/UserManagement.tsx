@@ -21,9 +21,10 @@ interface User {
 interface UserManagementProps {
   organizationName?: string;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
+  isAdmin?: boolean;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, isAdmin = true }) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'members'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [members, setMembers] = useState<User[]>([]);
@@ -346,24 +347,26 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             </div>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleApproveUser(user.id)}
-                            disabled={isProcessing}
-                            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <FiUserCheck className="mr-1.5" size={16} />
-                            승인
-                          </button>
-                          <button
-                            onClick={() => handleRejectUser(user.id)}
-                            disabled={isProcessing}
-                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <FiUserX className="mr-1.5" size={16} />
-                            거절
-                          </button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleApproveUser(user.id)}
+                              disabled={isProcessing}
+                              className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <FiUserCheck className="mr-1.5" size={16} />
+                              승인
+                            </button>
+                            <button
+                              onClick={() => handleRejectUser(user.id)}
+                              disabled={isProcessing}
+                              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <FiUserX className="mr-1.5" size={16} />
+                              거절
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -436,30 +439,32 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             </div>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleToggleUserStatus(user.id, user.status)}
-                            disabled={isProcessing || user.role === 'admin'}
-                            className={`px-3 py-2 text-sm font-medium border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                              user.status === 'active'
-                                ? 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
-                                : 'text-green-700 bg-green-50 border-green-300 hover:bg-green-100 focus:ring-green-500'
-                            }`}
-                          >
-                            {user.status === 'active' ? '비활성화' : '활성화'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowDeleteModal(true);
-                            }}
-                            disabled={isProcessing || user.role === 'admin'}
-                            className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <FiTrash2 className="mr-1" size={14} />
-                            삭제
-                          </button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleToggleUserStatus(user.id, user.status)}
+                              disabled={isProcessing || user.role === 'admin'}
+                              className={`px-3 py-2 text-sm font-medium border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                user.status === 'active'
+                                  ? 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
+                                  : 'text-green-700 bg-green-50 border-green-300 hover:bg-green-100 focus:ring-green-500'
+                              }`}
+                            >
+                              {user.status === 'active' ? '비활성화' : '활성화'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowDeleteModal(true);
+                              }}
+                              disabled={isProcessing || user.role === 'admin'}
+                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <FiTrash2 className="mr-1" size={14} />
+                              삭제
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ))}

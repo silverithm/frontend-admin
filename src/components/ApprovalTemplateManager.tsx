@@ -10,7 +10,7 @@ import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import { FiPlus, FiDownload, FiEdit2, FiTrash2, FiUploadCloud, FiFileText, FiX } from 'react-icons/fi';
 
-export default function ApprovalTemplateManager() {
+export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: boolean }) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([]);
@@ -242,13 +242,15 @@ export default function ApprovalTemplateManager() {
             <h2 className="text-2xl font-bold text-gray-900">양식 관리</h2>
             <p className="text-gray-500 text-sm mt-1">전자결재 양식 파일을 관리합니다</p>
           </div>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
-          >
-            <FiPlus className="w-5 h-5" />
-            <span>새 양식 등록</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+            >
+              <FiPlus className="w-5 h-5" />
+              <span>새 양식 등록</span>
+            </button>
+          )}
         </div>
 
         {/* 템플릿 목록 */}
@@ -267,7 +269,7 @@ export default function ApprovalTemplateManager() {
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">파일</th>
                     <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">상태</th>
                     <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">수정일</th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">액션</th>
+                    {isAdmin && <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">액션</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -295,40 +297,52 @@ export default function ApprovalTemplateManager() {
                         </button>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleToggleActive(template.id)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        {isAdmin ? (
+                          <button
+                            onClick={() => handleToggleActive(template.id)}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              template.isActive
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                          >
+                            {template.isActive ? '활성화' : '비활성화'}
+                          </button>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             template.isActive
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                          }`}
-                        >
-                          {template.isActive ? '활성화' : '비활성화'}
-                        </button>
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {template.isActive ? '활성화' : '비활성화'}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="text-gray-500 text-sm">
                           {format(new Date(template.updatedAt), 'MM.dd HH:mm', { locale: ko })}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center space-x-2">
-                          <button
-                            onClick={() => openEditModal(template)}
-                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="편집"
-                          >
-                            <FiEdit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(template.id, template.name)}
-                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="삭제"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center space-x-2">
+                            <button
+                              onClick={() => openEditModal(template)}
+                              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="편집"
+                            >
+                              <FiEdit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(template.id, template.name)}
+                              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="삭제"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </motion.tr>
                   ))}
                 </tbody>

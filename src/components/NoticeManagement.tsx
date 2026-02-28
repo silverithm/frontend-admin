@@ -44,7 +44,11 @@ interface NoticeStats {
   published: number;
 }
 
-export default function NoticeManagement() {
+interface NoticeManagementProps {
+  isAdmin?: boolean;
+}
+
+export default function NoticeManagement({ isAdmin = true }: NoticeManagementProps) {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
@@ -315,12 +319,14 @@ export default function NoticeManagement() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </button>
-                  <button onClick={() => router.push('/admin/notice/new')} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    새 공지 작성
-                  </button>
+                  {isAdmin && (
+                    <button onClick={() => router.push('/admin/notice/new')} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      새 공지 작성
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -416,12 +422,14 @@ export default function NoticeManagement() {
                   </svg>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">공지사항이 없습니다</h3>
                   <p className="text-gray-500 mb-4">새 공지사항을 작성해보세요.</p>
-                  <button onClick={() => router.push('/admin/notice/new')} className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    새 공지 작성
-                  </button>
+                  {isAdmin && (
+                    <button onClick={() => router.push('/admin/notice/new')} className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      새 공지 작성
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -450,12 +458,16 @@ export default function NoticeManagement() {
                     </>
                   ) : (
                     <>
-                      <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2 text-sm font-medium text-red-600 border-2 border-gray-400 rounded-lg hover:bg-red-50 hover:border-red-400 bg-white">
-                        삭제
-                      </button>
-                      <button onClick={() => setIsEditing(true)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                        수정
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2 text-sm font-medium text-red-600 border-2 border-gray-400 rounded-lg hover:bg-red-50 hover:border-red-400 bg-white">
+                          삭제
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button onClick={() => setIsEditing(true)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                          수정
+                        </button>
+                      )}
                     </>
                   )}
                 </div>

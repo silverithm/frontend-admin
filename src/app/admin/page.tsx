@@ -95,6 +95,9 @@ export default function AdminPage() {
     const [selectedDeleteVacation, setSelectedDeleteVacation] = useState<VacationRequest | null>(null);
 
     const [isClient, setIsClient] = useState(false);
+    const [loginType, setLoginType] = useState<string>('admin');
+
+    const isAdmin = loginType === 'admin';
 
     // 클라이언트 사이드에서만 실행되도록 하는 useEffect
     useEffect(() => {
@@ -122,6 +125,9 @@ export default function AdminPage() {
         if (userNameData) {
             setUserName(userNameData);
         }
+
+        const storedLoginType = localStorage.getItem('loginType');
+        if (storedLoginType) setLoginType(storedLoginType);
 
         if (!token) {
             router.push("/login");
@@ -1310,6 +1316,7 @@ export default function AdminPage() {
                     {activeMainTab === "approval" && (
                         <div className="mt-2">
                             <nav className="flex space-x-4">
+                                {isAdmin && (
                                 <button
                                     onClick={() => setApprovalSubTab("management")}
                                     className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
@@ -1320,6 +1327,7 @@ export default function AdminPage() {
                                 >
                                     결재 관리
                                 </button>
+                                )}
                                 <button
                                     onClick={() => setApprovalSubTab("templates")}
                                     className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
@@ -1346,6 +1354,7 @@ export default function AdminPage() {
                                 >
                                     회원관리
                                 </button>
+                                {isAdmin && (
                                 <button
                                     onClick={() => setInfoSubTab("dispatch")}
                                     className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
@@ -1356,6 +1365,8 @@ export default function AdminPage() {
                                 >
                                     배치관리
                                 </button>
+                                )}
+                                {isAdmin && (
                                 <button
                                     onClick={() => setInfoSubTab("approval-sign")}
                                     className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
@@ -1366,6 +1377,8 @@ export default function AdminPage() {
                                 >
                                     결재 승인
                                 </button>
+                                )}
+                                {isAdmin && (
                                 <button
                                     onClick={() => setInfoSubTab("vacation-approval")}
                                     className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
@@ -1376,6 +1389,7 @@ export default function AdminPage() {
                                 >
                                     휴무 승인
                                 </button>
+                                )}
                             </nav>
                         </div>
                     )}
@@ -1489,7 +1503,7 @@ export default function AdminPage() {
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} />
+                            <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={isAdmin} />
                         </motion.div>
                     ) : activeMainTab === "notice" ? (
                         <motion.div
@@ -1499,7 +1513,7 @@ export default function AdminPage() {
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            <NoticeManagement />
+                            <NoticeManagement isAdmin={isAdmin} />
                         </motion.div>
                     ) : activeMainTab === "chat" ? (
                         <motion.div
@@ -1519,7 +1533,7 @@ export default function AdminPage() {
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.3}}
                         >
-                            <ScheduleCalendar isAdmin={true} />
+                            <ScheduleCalendar isAdmin={isAdmin} />
                         </motion.div>
                     ) : activeMainTab === "approval" ? (
                         <motion.div
@@ -1529,10 +1543,10 @@ export default function AdminPage() {
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            {approvalSubTab === "management" ? (
+                            {isAdmin && approvalSubTab === "management" ? (
                                 <ApprovalManagement />
                             ) : (
-                                <ApprovalTemplateManager />
+                                <ApprovalTemplateManager isAdmin={isAdmin} />
                             )}
                         </motion.div>
                     ) : activeMainTab === "work" ? (
@@ -1551,7 +1565,7 @@ export default function AdminPage() {
                                         currentDate={currentDate}
                                         setCurrentDate={setCurrentDate}
                                         onDateSelect={handleDateSelect}
-                                        isAdmin={true}
+                                        isAdmin={isAdmin}
                                         roleFilter={roleFilter}
                                         nameFilter={nameFilter}
                                         onShowLimitPanel={handleShowLimitPanel}
@@ -1669,7 +1683,7 @@ export default function AdminPage() {
                                                         ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
                                                         : "전체 휴무 목록"}
                                                 </h3>
-                                                {filteredRequests.some(req => req.status === 'pending') && (
+                                                {isAdmin && filteredRequests.some(req => req.status === 'pending') && (
                                                     <button
                                                         onClick={() => {
                                                             setIsSelectMode(!isSelectMode);
@@ -1696,7 +1710,7 @@ export default function AdminPage() {
                                         </div>
 
                                         {/* 일괄 작업 버튼 */}
-                                        {isSelectMode && (
+                                        {isAdmin && isSelectMode && (
                                             <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
@@ -1821,6 +1835,7 @@ export default function AdminPage() {
                                                                 </span>
                                                                 <span className="text-[9px] text-gray-500">{formatDate(request.createdAt)}</span>
                                                             </div>
+                                                            {isAdmin && (
                                                             <div className="flex gap-1">
                                                                 {request.status === "pending" && (
                                                                     <>
@@ -1848,6 +1863,7 @@ export default function AdminPage() {
                                                                     </svg>
                                                                 </button>
                                                             </div>
+                                                            )}
                                                         </div>
                                                         {request.reason && request.reason !== "(사유 미입력)" && (
                                                             <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
@@ -1877,14 +1893,15 @@ export default function AdminPage() {
                                 <UserManagement
                                     organizationName={companyName || undefined}
                                     onNotification={showNotification}
+                                    isAdmin={isAdmin}
                                 />
-                            ) : infoSubTab === "dispatch" ? (
+                            ) : isAdmin && infoSubTab === "dispatch" ? (
                                 <DispatchManagement
                                     onNotification={showNotification}
                                 />
-                            ) : infoSubTab === "approval-sign" ? (
+                            ) : isAdmin && infoSubTab === "approval-sign" ? (
                                 <ApprovalManagement />
-                            ) : infoSubTab === "vacation-approval" ? (
+                            ) : isAdmin && infoSubTab === "vacation-approval" ? (
                                 <VacationApproval
                                     onNotification={showNotification}
                                 />
@@ -1934,7 +1951,7 @@ export default function AdminPage() {
                                         else return Math.max(officeLimit, caregiverLimit); // 전체일 때는 더 큰 값
                                     })()}
                                     roleFilter={roleFilter}
-                                    isAdmin={true}
+                                    isAdmin={isAdmin}
                                 />
                             </motion.div>
                         </motion.div>

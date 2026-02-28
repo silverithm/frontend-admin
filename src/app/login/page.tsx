@@ -150,8 +150,9 @@ export default function LoginPage() {
           console.error('localStorage 저장 오류:', error);
         }
 
-        // 직원은 직원 페이지로 이동
-        router.push('/employee');
+        // 직원도 관리자 페이지로 이동 (권한에 따라 UI가 다르게 표시됨)
+        localStorage.setItem('loginType', 'employee');
+        router.push('/admin');
       }
     } catch (error) {
       console.error('로그인 오류:', error);

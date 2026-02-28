@@ -15,6 +15,7 @@ import {
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
+  isAdmin?: boolean;
 }
 
 interface VacationItem {
@@ -54,7 +55,7 @@ interface VacationCalendarItem {
   duration?: string;
 }
 
-export default function AdminDashboard({ onTabChange }: AdminDashboardProps) {
+export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [members, setMembers] = useState<unknown[]>([]);
   const [vacationRequests, setVacationRequests] = useState<VacationItem[]>([]);
@@ -244,8 +245,8 @@ export default function AdminDashboard({ onTabChange }: AdminDashboardProps) {
       </motion.div>
 
       {/* 2. Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" style={{ gridAutoRows: '5.5rem' }}>
-        {statCards.map((card, idx) => (
+      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`} style={{ gridAutoRows: '5.5rem' }}>
+        {statCards.filter((card) => isAdmin || card.label === '총 직원').map((card, idx) => (
           <motion.button
             key={card.label}
             initial={{ opacity: 0, y: 20 }}
