@@ -164,7 +164,7 @@ export default function ApprovalTemplateManager() {
   const handleDelete = async (id: string | number, name: string) => {
     const confirmed = await confirm({
       title: '양식 삭제',
-      message: `"${name}" 양식을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
+      message: `"${name}" 양식을 삭제하시겠습니까?\n관련된 결재 요청도 모두 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.`,
       confirmText: '삭제',
       cancelText: '취소',
       type: 'danger',

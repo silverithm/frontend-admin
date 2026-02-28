@@ -766,6 +766,11 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-700">{member.name}</span>
+                        {member.role && (
+                          <span className="text-xs text-gray-400 ml-1">
+                            {member.role === 'admin' ? '관리자' : member.role === 'caregiver' ? '요양보호사' : member.role === 'office' ? '사무직' : member.role}
+                          </span>
+                        )}
                       </label>
                     ))}
                     {members.length === 0 && (
