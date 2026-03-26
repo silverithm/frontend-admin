@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -73,18 +73,24 @@ interface VacationCalendarItem {
   userName?: string;
   memberName?: string;
   name?: string;
+  status?: string;
   vacationType?: string;
   duration?: string;
 }
 
+interface MemberItem {
+  status?: string;
+}
+
 export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [members, setMembers] = useState<unknown[]>([]);
+  const [members, setMembers] = useState<MemberItem[]>([]);
   const [vacationRequests, setVacationRequests] = useState<VacationItem[]>([]);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalItem[]>([]);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<unknown[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [vacationCalendar, setVacationCalendar] = useState<VacationCalendarItem[]>([]);
+  const [todayVacationCount, setTodayVacationCount] = useState(0);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [monthlySchedules, setMonthlySchedules] = useState<ScheduleItem[]>([]);
   const [currentTime, setCurrentTime] = useState(format(new Date(), 'HH:mm:ss'));
@@ -143,7 +149,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       });
 
       if (results[0].status === 'fulfilled') {
-        setMembers(extractArray(results[0].value, 'members', 'content', 'data'));
+        setMembers(extractArray(results[0].value, 'members', 'content', 'data') as MemberItem[]);
       }
 
       if (results[1].status === 'fulfilled') {
@@ -169,14 +175,40 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         const d = results[5].value as Record<string, unknown>;
         // getVacationCalendar returns { dates: { "2026-02-27": { people: [...], count: N } } }
         if (d && d.dates && typeof d.dates === 'object') {
-          const datesObj = d.dates as Record<string, { people?: VacationCalendarItem[]; vacations?: VacationCalendarItem[] }>;
+          const datesObj = d.dates as Record<
+            string,
+            {
+              people?: VacationCalendarItem[];
+              vacations?: VacationCalendarItem[];
+              count?: number;
+              totalVacationers?: number;
+            }
+          >;
           const todayData = datesObj[todayStr];
           if (todayData) {
-            const people = todayData.people || todayData.vacations || [];
-            setVacationCalendar(people as VacationCalendarItem[]);
+            const rawPeople = todayData.people || todayData.vacations || [];
+            const visiblePeople = rawPeople.filter((person) => person.status !== 'rejected');
+            const visibleCount = rawPeople.length > 0
+              ? visiblePeople.length
+              : typeof todayData.totalVacationers === 'number'
+                ? todayData.totalVacationers
+                : typeof todayData.count === 'number'
+                  ? todayData.count
+                  : visiblePeople.length;
+
+            setVacationCalendar(visiblePeople as VacationCalendarItem[]);
+            setTodayVacationCount(visibleCount);
+          } else {
+            setVacationCalendar([]);
+            setTodayVacationCount(0);
           }
         } else if (Array.isArray(d)) {
-          setVacationCalendar(d as VacationCalendarItem[]);
+          const visiblePeople = (d as VacationCalendarItem[]).filter((person) => person.status !== 'rejected');
+          setVacationCalendar(visiblePeople);
+          setTodayVacationCount(visiblePeople.length);
+        } else {
+          setVacationCalendar([]);
+          setTodayVacationCount(0);
         }
       }
 
@@ -228,6 +260,15 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const pendingVacationCount = vacationRequests.filter(
     (v) => v.status === 'pending' || v.status === 'PENDING'
   ).length;
+  const hasMemberStatus = members.some((member) => typeof member.status === 'string' && member.status.length > 0);
+  const activeMembersCount = members.filter((member) => {
+    if (!member.status) return true;
+    const normalizedStatus = member.status.toLowerCase();
+    return normalizedStatus === 'active' || normalizedStatus === 'approved';
+  }).length;
+  const visibleMembersCount = hasMemberStatus ? activeMembersCount : members.length;
+  const employeeAttendanceBase = employeeAttendance.total || visibleMembersCount;
+  const elderAttendanceBase = elderAttendance.total || elderCount;
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const selectedSchedules = monthlySchedules.filter((s) => {
@@ -239,9 +280,60 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     return start === selectedDateStr;
   });
 
+  const monthlyScheduleDateSet = useMemo(() => {
+    const dateSet = new Set<string>();
+
+    monthlySchedules.forEach((schedule) => {
+      const start = schedule.startDate?.substring(0, 10);
+      const end = schedule.endDate?.substring(0, 10);
+
+      if (!start) return;
+
+      if (!end || end < start) {
+        dateSet.add(start);
+        return;
+      }
+
+      const cursor = new Date(`${start}T00:00:00`);
+      const endDate = new Date(`${end}T00:00:00`);
+
+      while (cursor <= endDate) {
+        dateSet.add(format(cursor, 'yyyy-MM-dd'));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    });
+
+    return dateSet;
+  }, [monthlySchedules]);
+
+  const monthlyCalendarDays = useMemo(() => {
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+    const monthEnd = endOfMonth(today);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+    const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+    return {
+      weeksCount: Math.ceil(days.length / 7),
+      days: days.map((day) => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+
+        return {
+          date: day,
+          dayStr,
+          inMonth: isSameMonth(day, today),
+          todayFlag: isToday(day),
+          dayOfWeek: day.getDay(),
+          hasSchedule: monthlyScheduleDateSet.has(dayStr),
+        };
+      }),
+    };
+  }, [monthlyScheduleDateSet]);
+
   if (isLoading) {
     return (
-      <div className="flex flex-col flex-1 gap-5 pb-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 pb-4">
         <div className="h-14" />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[...Array(6)].map((_, i) => (
@@ -261,7 +353,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const statCards = [
     {
       label: '총 직원',
-      value: members.length,
+      value: visibleMembersCount,
       subtitle: '명',
       iconBg: 'bg-teal-50',
       iconColor: 'text-teal-500',
@@ -277,17 +369,17 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       iconColor: 'text-emerald-500',
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
       tab: 'members',
-      change: members.length > 0 ? `${Math.round((employeeAttendance.present / members.length) * 100)}%` : null,
+      change: employeeAttendanceBase > 0 ? `${Math.round((employeeAttendance.present / employeeAttendanceBase) * 100)}%` : null,
     },
     {
-      label: '휴무',
-      value: employeeAttendance.absent + employeeAttendance.vacation,
+      label: '오늘 휴무',
+      value: todayVacationCount,
       subtitle: '명',
       iconBg: 'bg-amber-50',
       iconColor: 'text-amber-500',
       icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z',
       tab: 'work',
-      change: null as string | null,
+      change: employeeAttendanceBase > 0 ? `${Math.round((todayVacationCount / employeeAttendanceBase) * 100)}%` : null,
     },
     {
       label: '총 어르신',
@@ -307,7 +399,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       iconColor: 'text-violet-500',
       icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
       tab: 'members',
-      change: elderCount > 0 ? `${Math.round((elderAttendance.present / elderCount) * 100)}%` : null,
+      change: elderAttendanceBase > 0 ? `${Math.round((elderAttendance.present / elderAttendanceBase) * 100)}%` : null,
     },
     {
       label: '결석',
@@ -322,7 +414,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   ];
 
   return (
-    <div className="flex flex-col flex-1 gap-5 pb-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 pb-4">
       {/* 1. Header Bar */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -380,10 +472,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1"
+        className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2 lg:auto-rows-fr"
       >
         {/* Top-Left: 공지사항 */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex h-full flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -404,9 +496,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </button>
           </div>
 
-          <div className="px-4 pb-4 overflow-y-auto flex-1">
+          <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
             {notices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className="flex h-full flex-col items-center justify-center gap-3">
                 <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
                   <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
@@ -444,7 +536,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
 
         {/* Top-Right: 전자결재 */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex h-full flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -465,9 +557,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </button>
           </div>
 
-          <div className="px-4 pb-4 overflow-y-auto flex-1">
+          <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
             {approvalRequests.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className="flex h-full flex-col items-center justify-center gap-3">
                 <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
                   <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -505,7 +597,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
 
         {/* Bottom-Left: 월간일정 */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex h-full flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -526,60 +618,46 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </button>
           </div>
 
-          <div className="px-4 pb-3">
-            <div className="grid grid-cols-7 gap-0.5">
+          <div className="px-4 pb-3 flex-1 min-h-0">
+            <div
+              className="grid h-full grid-cols-7 gap-0.5"
+              style={{ gridTemplateRows: `auto repeat(${monthlyCalendarDays.weeksCount}, minmax(0, 1fr))` }}
+            >
               {['일','월','화','수','목','금','토'].map((d) => (
-                <div key={d} className={`text-center text-[11px] font-medium py-1 ${d === '일' ? 'text-red-400' : d === '토' ? 'text-blue-400' : 'text-gray-400'}`}>{d}</div>
+                <div key={d} className={`flex h-6 items-center justify-center text-center text-[11px] font-medium ${d === '일' ? 'text-red-400' : d === '토' ? 'text-blue-400' : 'text-gray-400'}`}>{d}</div>
               ))}
-              {(() => {
-                const now = new Date();
-                const mStart = startOfMonth(now);
-                const mEnd = endOfMonth(now);
-                const calStart = startOfWeek(mStart, { weekStartsOn: 0 });
-                const calEnd = endOfWeek(mEnd, { weekStartsOn: 0 });
-                const days = eachDayOfInterval({ start: calStart, end: calEnd });
-                return days.map((day) => {
-                  const inMonth = isSameMonth(day, now);
-                  const todayFlag = isToday(day);
-                  const dayStr = format(day, 'yyyy-MM-dd');
-                  const dayOfWeek = day.getDay();
-                  const hasSchedule = monthlySchedules.some((s) => {
-                    const start = s.startDate?.substring(0, 10);
-                    const end = s.endDate?.substring(0, 10);
-                    if (start && end) {
-                      return dayStr >= start && dayStr <= end;
-                    }
-                    return start === dayStr;
-                  });
-                  const isSelected = inMonth && selectedDateStr === dayStr && !todayFlag;
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      onClick={() => inMonth && setSelectedDate(day)}
-                      className={`text-center py-1.5 text-xs rounded-lg relative cursor-pointer transition-colors ${
-                        !inMonth ? 'text-gray-300' :
-                        todayFlag && selectedDateStr === dayStr ? 'bg-emerald-500 text-white font-bold ring-2 ring-emerald-300' :
-                        todayFlag ? 'bg-emerald-500 text-white font-bold' :
-                        isSelected ? 'bg-teal-500 text-white font-bold' :
-                        dayOfWeek === 0 ? 'text-red-500 hover:bg-red-50' :
-                        dayOfWeek === 6 ? 'text-blue-500 hover:bg-blue-50' :
-                        'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {format(day, 'd')}
-                      {hasSchedule && inMonth && !todayFlag && !isSelected && (
-                        <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-400 rounded-full" />
-                      )}
-                    </div>
-                  );
-                });
-              })()}
+              {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, hasSchedule }) => {
+                const isSelected = inMonth && selectedDateStr === dayStr && !todayFlag;
+
+                return (
+                  <button
+                    key={date.toISOString()}
+                    type="button"
+                    onClick={() => inMonth && setSelectedDate(date)}
+                    className={`relative flex h-full min-h-[2.75rem] items-center justify-center rounded-lg text-xs transition-colors ${
+                      !inMonth ? 'cursor-default text-gray-300' :
+                      todayFlag && selectedDateStr === dayStr ? 'bg-emerald-500 text-white font-bold ring-2 ring-emerald-300' :
+                      todayFlag ? 'bg-emerald-500 text-white font-bold' :
+                      isSelected ? 'bg-teal-500 text-white font-bold' :
+                      dayOfWeek === 0 ? 'text-red-500 hover:bg-red-50' :
+                      dayOfWeek === 6 ? 'text-blue-500 hover:bg-blue-50' :
+                      'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    disabled={!inMonth}
+                  >
+                    {format(date, 'd')}
+                    {hasSchedule && inMonth && !todayFlag && !isSelected && (
+                      <div className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-emerald-400" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Bottom-Right: 오늘의 일정 */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex h-full flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -602,9 +680,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </button>
           </div>
 
-          <div className="px-4 pb-4 overflow-y-auto flex-1">
+          <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
             {selectedSchedules.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <div className="flex h-full flex-col items-center justify-center gap-3">
                 <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
                   <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
