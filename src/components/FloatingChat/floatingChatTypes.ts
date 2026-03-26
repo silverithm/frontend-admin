@@ -8,11 +8,19 @@ export interface ChatRoom {
     participantCount: number;
 }
 
+export interface ReactionSummary {
+    emoji: string;
+    count: number;
+    userNames: string[];
+    myReaction: boolean;
+}
+
 export interface ChatMessage {
     id: number;
     chatRoomId: number;
     senderId: string;
     senderName: string;
+    senderPosition?: string;
     type: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
     content: string;
     fileUrl?: string;
@@ -20,6 +28,12 @@ export interface ChatMessage {
     createdAt: string;
     isDeleted: boolean;
     readCount: number;
+    reactions?: ReactionSummary[];
+    // 답글 관련
+    replyToId?: number;
+    replyToSenderName?: string;
+    replyToContent?: string;
+    replyToType?: string;
 }
 
 export interface WebSocketMessage {

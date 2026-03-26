@@ -567,6 +567,7 @@ export async function memberSignin(email: string, password: string): Promise<Mem
             localStorage.setItem('companyName', data.company?.name || '');
             localStorage.setItem('userRole', 'ROLE_EMPLOYEE');
             localStorage.setItem('loginType', 'employee');
+            localStorage.setItem('userPosition', data.position || '');
         } else {
             console.error('직원 로그인 응답에 토큰 정보가 없습니다:', data);
             throw new Error('로그인 응답에 토큰 정보가 없습니다.');
@@ -844,6 +845,54 @@ export async function updateMember(id: string, updateData: {
 export async function deleteMember(id: string) {
     return fetchWithAuth(`/admin/users/${id}`, {
         method: 'DELETE',
+    });
+}
+
+// ================== 직책 관리 API ==================
+
+// 직책 목록 조회
+export async function getPositions() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/positions?companyId=${companyId}`);
+}
+
+// 직책 생성
+export async function createPosition(data: { name: string; description?: string; sortOrder?: number }) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/positions?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 직책 수정
+export async function updatePosition(id: number, data: { name?: string; description?: string; sortOrder?: number }) {
+    return fetchWithAuth(`/api/v1/positions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 직책 삭제
+export async function deletePosition(id: number) {
+    return fetchWithAuth(`/api/v1/positions/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// 회원에게 직책 배정
+export async function assignPositionToMember(memberId: string, positionId: number | null) {
+    const url = positionId !== null
+        ? `/api/v1/positions/assign?memberId=${memberId}&positionId=${positionId}`
+        : `/api/v1/positions/assign?memberId=${memberId}`;
+    return fetchWithAuth(url, {
+        method: 'PUT',
     });
 }
 
@@ -1149,9 +1198,11 @@ export async function getApprovalTemplateById(id: string) {
 export async function createApprovalTemplate(data: {
     name: string;
     description: string;
-    fileUrl: string;
-    fileName: string;
-    fileSize: number;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    formSchema?: string;
+    templateType?: string;
 }) {
     const companyId = getCompanyId();
     if (!companyId) {
@@ -1165,11 +1216,13 @@ export async function createApprovalTemplate(data: {
 
 // 양식 수정 (관리자)
 export async function updateApprovalTemplate(id: string, data: {
-    name: string;
-    description: string;
-    fileUrl: string;
-    fileName: string;
-    fileSize: number;
+    name?: string;
+    description?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    formSchema?: string;
+    templateType?: string;
 }) {
     return fetchWithAuth(`/api/v1/approval-templates/${id}`, {
         method: 'PUT',
@@ -1228,6 +1281,7 @@ export async function getApprovalRequestById(id: string) {
 export async function createApprovalRequest(data: {
     templateId: number;
     title: string;
+    formData?: Record<string, any>;
     attachmentUrl?: string;
     attachmentFileName?: string;
     attachmentFileSize?: number;
@@ -1415,4 +1469,173 @@ export async function deleteScheduleLabel(id: string) {
     return fetchWithAuth(`/api/v1/schedule-labels/${id}`, {
         method: 'DELETE',
     });
-} 
+}
+
+// ================== 어르신 관리 API ==================
+
+// 어르신 목록 조회
+export async function getCompanyElders() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/elders/company?companyId=${companyId}`);
+}
+
+// 어르신 수 조회 (대시보드용)
+export async function getCompanyElderCount() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/elders/company/count?companyId=${companyId}`);
+}
+
+// 어르신 추가
+export async function addCompanyElder(data: {
+    name: string;
+    homeAddress?: string;
+    requiredFrontSeat?: boolean;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/elders/company?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+            name: data.name,
+            homeAddress: data.homeAddress || '',
+            requiredFrontSeat: data.requiredFrontSeat || false,
+        }),
+    });
+}
+
+// 어르신 수정
+export async function updateCompanyElder(id: string | number, data: {
+    name: string;
+    homeAddress?: string;
+    requiredFrontSeat?: boolean;
+}) {
+    return fetchWithAuth(`/v1/elders/company/elder/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            name: data.name,
+            homeAddress: data.homeAddress || '',
+            requiredFrontSeat: data.requiredFrontSeat || false,
+        }),
+    });
+}
+
+// 어르신 삭제
+export async function deleteCompanyElder(id: string | number) {
+    return fetchWithAuth(`/v1/elders/company/elder/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// ================== 출석 관리 API ==================
+
+// 직원 출석 요약 (대시보드용)
+export async function getEmployeeAttendanceSummary(date?: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const d = date || new Date().toISOString().split('T')[0];
+    return fetchWithAuth(`/v1/attendance/employee/summary?companyId=${companyId}&date=${d}`);
+}
+
+// 어르신 출석 요약 (대시보드용)
+export async function getElderAttendanceSummary(date?: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const d = date || new Date().toISOString().split('T')[0];
+    return fetchWithAuth(`/v1/attendance/elder/summary?companyId=${companyId}&date=${d}`);
+}
+
+// 직원 출석 상세 목록
+export async function getEmployeeAttendanceList(date?: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const d = date || new Date().toISOString().split('T')[0];
+    return fetchWithAuth(`/v1/attendance/employee?companyId=${companyId}&date=${d}`);
+}
+
+// 어르신 출석 상세 목록
+export async function getElderAttendanceList(date?: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const d = date || new Date().toISOString().split('T')[0];
+    return fetchWithAuth(`/v1/attendance/elder?companyId=${companyId}&date=${d}`);
+}
+
+// 직원 출석 체크
+export async function checkEmployeeAttendance(data: {
+    memberId: number;
+    status: string;
+    note?: string;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/attendance/employee?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 어르신 출석 체크
+export async function checkElderAttendance(data: {
+    elderlyId: number;
+    status: string;
+    note?: string;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/attendance/elder?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 직원 일괄 출석 체크
+export async function bulkCheckEmployeeAttendance(data: Array<{
+    memberId: number;
+    status: string;
+    note?: string;
+}>) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/attendance/employee/bulk?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 어르신 일괄 출석 체크
+export async function bulkCheckElderAttendance(data: Array<{
+    elderlyId: number;
+    status: string;
+    note?: string;
+}>) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/v1/attendance/elder/bulk?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}

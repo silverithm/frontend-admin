@@ -8,11 +8,19 @@ interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
 }
 
+interface ReactionSummary {
+    emoji: string;
+    count: number;
+    userNames: string[];
+    myReaction: boolean;
+}
+
 interface ChatMessage {
     id: number;
     chatRoomId: number;
     senderId: string;
     senderName: string;
+    senderPosition?: string;
     type: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
     content: string;
     fileUrl?: string;
@@ -20,6 +28,11 @@ interface ChatMessage {
     createdAt: string;
     isDeleted: boolean;
     readCount: number;
+    reactions?: ReactionSummary[];
+    replyToId?: number;
+    replyToSenderName?: string;
+    replyToContent?: string;
+    replyToType?: string;
 }
 
 interface ChatRoom {
@@ -85,10 +98,15 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeletingRoom, setIsDeletingRoom] = useState(false);
+    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+    const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+    const longPressTimerRef2 = useRef<NodeJS.Timeout | null>(null);
 
     const companyId = typeof window !== "undefined" ? localStorage.getItem("companyId") : null;
     const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
@@ -282,12 +300,43 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         };
     }, [selectedRoom, isConnected, fetchMessages, markAsRead]);
 
+    const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
+
+    const handleToggleReaction = async (messageId: number, emoji: string) => {
+        if (!authToken || !userId) return;
+        setContextMenuMessageId(null);
+
+        // 낙관적 업데이트
+        setMessages(prev => prev.map(msg => {
+            if (msg.id !== messageId) return msg;
+            const reactions = [...(msg.reactions || [])];
+            const existing = reactions.find(r => r.emoji === emoji);
+            if (existing?.myReaction) {
+                if (existing.count <= 1) return { ...msg, reactions: reactions.filter(r => r.emoji !== emoji) };
+                return { ...msg, reactions: reactions.map(r => r.emoji === emoji ? { ...r, count: r.count - 1, myReaction: false } : r) };
+            } else if (existing) {
+                return { ...msg, reactions: reactions.map(r => r.emoji === emoji ? { ...r, count: r.count + 1, myReaction: true } : r) };
+            }
+            return { ...msg, reactions: [...reactions, { emoji, count: 1, userNames: [userName || ""], myReaction: true }] };
+        }));
+
+        try {
+            await fetch(`/api/v1/chat/rooms/${selectedRoom}/messages/${messageId}/reactions`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ userId, userName, emoji }),
+            });
+        } catch (error) {
+            console.error("Error toggling reaction:", error);
+        }
+    };
+
     const sendMessage = async () => {
         if (!messageInput.trim() || !selectedRoom || !userId || !userName) return;
 
+        const replyToId = replyTo?.id || null;
         const client = stompClientRef.current;
 
-        // WebSocket으로 전송 (연결 시)
         if (client && isConnected) {
             setIsSendingMessage(true);
             try {
@@ -298,18 +347,18 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                         senderName: userName,
                         type: "TEXT",
                         content: messageInput.trim(),
+                        replyToId,
                     }),
                 });
                 setMessageInput("");
+                setReplyTo(null);
             } catch (error) {
                 console.error("Error sending message via WebSocket:", error);
-                // WebSocket 실패 시 REST 폴백
                 await sendMessageREST();
             } finally {
                 setIsSendingMessage(false);
             }
         } else {
-            // WebSocket 미연결 시 REST 폴백
             await sendMessageREST();
         }
     };
@@ -317,6 +366,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     const sendMessageREST = async () => {
         if (!messageInput.trim() || !selectedRoom || !userId || !userName || !authToken) return;
 
+        const replyToId = replyTo?.id || null;
         setIsSendingMessage(true);
         try {
             const response = await fetch(`/api/v1/chat/rooms/${selectedRoom}/messages`, {
@@ -330,6 +380,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                     senderName: userName,
                     type: "TEXT",
                     content: messageInput.trim(),
+                    replyToId,
                 }),
             });
 
@@ -341,6 +392,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                 return [...prev, newMessage];
             });
             setMessageInput("");
+            setReplyTo(null);
             setTimeout(scrollToBottom, 100);
             fetchRooms();
         } catch (error) {
@@ -401,6 +453,35 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         }
     }, [authToken]);
 
+    const deleteRoom = async () => {
+        if (!selectedRoom || !authToken) return;
+
+        setIsDeletingRoom(true);
+        try {
+            const response = await fetch(`/api/v1/chat/rooms/${selectedRoom}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${authToken}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) throw new Error("Failed to delete room");
+
+            onNotification("채팅방이 삭제되었습니다", "success");
+            setShowDeleteConfirm(false);
+            setShowDrawer(false);
+            setSelectedRoom(null);
+            setMessages([]);
+            fetchRooms();
+        } catch (error) {
+            console.error("Error deleting room:", error);
+            onNotification("채팅방 삭제에 실패했습니다", "error");
+        } finally {
+            setIsDeletingRoom(false);
+        }
+    };
+
     const toggleDrawer = () => {
         if (!showDrawer && selectedRoom) {
             fetchParticipants(selectedRoom);
@@ -453,7 +534,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     }
 
     return (
-        <div className="flex h-[calc(100vh-200px)] bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="flex h-[calc(100vh-180px)] bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Left Panel - Room List */}
             <div className="w-1/3 border-r border-gray-200 flex flex-col">
                 {/* Header */}
@@ -465,7 +546,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                     </div>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors"
                     >
                         새 채팅방
                     </button>
@@ -475,7 +556,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                 <div className="flex-1 overflow-y-auto">
                     {isLoadingRooms ? (
                         <div className="flex items-center justify-center h-32">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
                         </div>
                     ) : rooms.length === 0 ? (
                         <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
@@ -487,13 +568,13 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                 key={room.id}
                                 onClick={() => { setSelectedRoom(room.id); setShowDrawer(false); }}
                                 className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                                    selectedRoom === room.id ? "bg-blue-50" : ""
+                                    selectedRoom === room.id ? "bg-teal-50" : ""
                                 }`}
                             >
                                 <div className="flex items-start justify-between mb-1">
                                     <h3 className="font-semibold text-gray-900 text-sm">{room.name}</h3>
                                     {room.unreadCount > 0 && (
-                                        <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                                        <span className="bg-teal-600 text-white text-xs px-2 py-0.5 rounded-full">
                                             {room.unreadCount}
                                         </span>
                                     )}
@@ -542,11 +623,16 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                             </button>
                         </div>
 
+                        {/* Overlay for context menus */}
+                        {contextMenuMessageId !== null && (
+                            <div className="fixed inset-0 z-30" onClick={() => setContextMenuMessageId(null)} />
+                        )}
+
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
                             {isLoadingMessages ? (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
                                 </div>
                             ) : messages.length === 0 ? (
                                 <div className="flex items-center justify-center h-full text-gray-500 text-sm">
@@ -600,11 +686,16 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                         <Fragment key={message.id}>
                                             {dateSeparator}
                                             <div
-                                                className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
+                                                className={`flex ${isMyMessage ? "justify-end" : "justify-start"} relative`}
                                             >
                                                 <div className={`max-w-[70%] ${isMyMessage ? "items-end" : "items-start"} flex flex-col`}>
                                                     {!isMyMessage && (
-                                                        <p className="text-xs text-gray-600 mb-1">{message.senderName}</p>
+                                                        <p className="text-xs text-gray-600 mb-1">
+                                                            {message.senderName}
+                                                            {message.senderPosition && (
+                                                                <span className="text-gray-400 ml-1">({message.senderPosition})</span>
+                                                            )}
+                                                        </p>
                                                     )}
                                                     <div className="flex items-end gap-2">
                                                         {isMyMessage && (
@@ -613,12 +704,36 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                                             </span>
                                                         )}
                                                         <div
-                                                            className={`px-3 py-2 rounded-lg ${
+                                                            className={`px-3 py-2 rounded-lg relative ${
                                                                 isMyMessage
-                                                                    ? "bg-blue-600 text-white"
+                                                                    ? "bg-teal-600 text-white"
                                                                     : "bg-gray-100 text-gray-900"
                                                             }`}
+                                                            onTouchStart={() => {
+                                                                longPressTimerRef2.current = setTimeout(() => setContextMenuMessageId(message.id), 500);
+                                                            }}
+                                                            onTouchEnd={() => {
+                                                                if (longPressTimerRef2.current) { clearTimeout(longPressTimerRef2.current); longPressTimerRef2.current = null; }
+                                                            }}
+                                                            onTouchCancel={() => {
+                                                                if (longPressTimerRef2.current) { clearTimeout(longPressTimerRef2.current); longPressTimerRef2.current = null; }
+                                                            }}
+                                                            onContextMenu={(e) => { e.preventDefault(); setContextMenuMessageId(message.id); }}
                                                         >
+                                                            {/* 답글 원본 미리보기 */}
+                                                            {message.replyToId && (
+                                                                <div className={`text-xs px-2 py-1 mb-1.5 rounded border-l-2 ${
+                                                                    isMyMessage
+                                                                        ? "bg-blue-500/30 border-blue-300 text-blue-100"
+                                                                        : "bg-gray-200 border-gray-400 text-gray-600"
+                                                                }`}>
+                                                                    <p className="font-semibold truncate">{message.replyToSenderName}</p>
+                                                                    <p className="truncate opacity-80">
+                                                                        {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+
                                                             {message.type === "IMAGE" && message.fileUrl ? (
                                                                 <img
                                                                     src={message.fileUrl}
@@ -633,7 +748,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className={`text-sm underline flex items-center gap-1 ${
-                                                                        isMyMessage ? "text-white" : "text-blue-600"
+                                                                        isMyMessage ? "text-white" : "text-teal-600"
                                                                     }`}
                                                                 >
                                                                     📎 {message.fileName || message.content}
@@ -650,6 +765,55 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                                             </span>
                                                         )}
                                                     </div>
+
+                                                    {/* 리액션 표시 */}
+                                                    {message.reactions && message.reactions.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {message.reactions.map((reaction) => (
+                                                                <button
+                                                                    key={reaction.emoji}
+                                                                    onClick={() => handleToggleReaction(message.id, reaction.emoji)}
+                                                                    className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                                                                        reaction.myReaction
+                                                                            ? "bg-blue-50 border-blue-300 text-blue-700"
+                                                                            : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                                                    }`}
+                                                                    title={reaction.userNames?.join(", ")}
+                                                                >
+                                                                    <span>{reaction.emoji}</span>
+                                                                    <span className="font-medium">{reaction.count}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* 롱프레스 메뉴 */}
+                                                    {contextMenuMessageId === message.id && (
+                                                        <div className={`absolute z-40 ${isMyMessage ? "right-0" : "left-0"} bottom-full mb-1`}>
+                                                            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                                                                <div className="flex gap-0.5 px-2 py-1.5 border-b border-gray-100">
+                                                                    {QUICK_EMOJIS.map((emoji) => (
+                                                                        <button
+                                                                            key={emoji}
+                                                                            onClick={() => handleToggleReaction(message.id, emoji)}
+                                                                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-lg"
+                                                                        >
+                                                                            {emoji}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => { setReplyTo(message); setContextMenuMessageId(null); }}
+                                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                                                    </svg>
+                                                                    답장
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </Fragment>
@@ -659,6 +823,27 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                             <div ref={messagesEndRef} />
                         </div>
 
+                        {/* 답글 미리보기 바 */}
+                        {replyTo && (
+                            <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 flex items-center gap-2">
+                                <div className="flex-1 min-w-0 border-l-2 border-blue-500 pl-2">
+                                    <p className="text-xs font-semibold text-teal-600 truncate">{replyTo.senderName}</p>
+                                    <p className="text-xs text-gray-500 truncate">
+                                        {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setReplyTo(null)}
+                                    className="p-1 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                                    aria-label="답장 취소"
+                                >
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        )}
+
                         {/* Input Area */}
                         <div className="p-4 border-t border-gray-200">
                             <div className="flex gap-2">
@@ -667,14 +852,14 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                     value={messageInput}
                                     onChange={(e) => setMessageInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="메시지를 입력하세요..."
+                                    placeholder={replyTo ? `${replyTo.senderName}에게 답장...` : "메시지를 입력하세요..."}
                                     disabled={isSendingMessage}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
                                 <button
                                     onClick={sendMessage}
                                     disabled={!messageInput.trim() || isSendingMessage}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                    className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                                 >
                                     {isSendingMessage ? "전송 중..." : "전송"}
                                 </button>
@@ -706,14 +891,14 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                         </h4>
                                         {isLoadingParticipants ? (
                                             <div className="flex justify-center py-4">
-                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500"></div>
                                             </div>
                                         ) : participants.length > 0 ? (
                                             <div className="space-y-2">
                                                 {participants.map((p, i) => (
                                                     <div key={p.userId || i} className="flex items-center gap-3 py-2">
-                                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                            <span className="text-sm font-medium text-blue-600">
+                                                        <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <span className="text-sm font-medium text-teal-600">
                                                                 {p.userName?.charAt(0) || "?"}
                                                             </span>
                                                         </div>
@@ -749,7 +934,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                     </div>
 
                                     {/* 파일 */}
-                                    <div className="p-4">
+                                    <div className="p-4 border-b border-gray-100">
                                         <h4 className="text-sm font-semibold text-gray-700 mb-3">
                                             파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
                                         </h4>
@@ -779,6 +964,16 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                             <p className="text-sm text-gray-400 text-center py-4">공유된 파일이 없습니다</p>
                                         )}
                                     </div>
+
+                                    {/* 채팅방 삭제 */}
+                                    <div className="p-4">
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            className="w-full px-4 py-2.5 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
+                                        >
+                                            채팅방 삭제
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -805,7 +1000,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                     value={newRoomName}
                                     onChange={(e) => setNewRoomName(e.target.value)}
                                     placeholder="채팅방 이름을 입력하세요"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
                             </div>
                             <div>
@@ -817,7 +1012,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                     onChange={(e) => setNewRoomDescription(e.target.value)}
                                     placeholder="채팅방 설명을 입력하세요"
                                     rows={3}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -835,9 +1030,39 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                             <button
                                 onClick={createRoom}
                                 disabled={!newRoomName.trim()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                             >
                                 생성
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Room Confirm Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">채팅방 삭제</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            <strong>{rooms.find(r => r.id === selectedRoom)?.name}</strong> 채팅방을 삭제하시겠습니까?
+                            <br />
+                            <span className="text-red-500">삭제된 채팅방과 메시지는 복구할 수 없습니다.</span>
+                        </p>
+                        <div className="flex gap-2 justify-end">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={isDeletingRoom}
+                                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={deleteRoom}
+                                disabled={isDeletingRoom}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isDeletingRoom ? "삭제 중..." : "삭제"}
                             </button>
                         </div>
                     </div>

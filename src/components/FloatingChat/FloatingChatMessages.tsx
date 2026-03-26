@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useRef, useEffect, useState, useCallback } from "react";
-import { ChatMessage } from "./floatingChatTypes";
+import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 
 interface ChatParticipant {
     userId: string;
@@ -9,6 +9,8 @@ interface ChatParticipant {
     role?: string;
     joinedAt?: string;
 }
+
+const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 
 function getDateKey(dateStr: string): string {
     const d = new Date(dateStr);
@@ -41,7 +43,9 @@ interface FloatingChatMessagesProps {
     messageInput: string;
     onMessageInputChange: (value: string) => void;
     onBack: () => void;
-    onSendMessage: () => void;
+    onSendMessage: (replyToId?: number) => void;
+    onToggleReaction?: (messageId: number, emoji: string) => void;
+    onMessagesUpdate?: (messages: ChatMessage[]) => void;
 }
 
 function formatMessageTime(timestamp: string) {
@@ -65,11 +69,23 @@ export function FloatingChatMessages({
     onMessageInputChange,
     onBack,
     onSendMessage,
+    onToggleReaction,
+    onMessagesUpdate,
 }: FloatingChatMessagesProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+
+    // 리액션 관련
+    const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<number | null>(null);
+
+    // 답글 관련
+    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+
+    // 꾹 누르기(롱프레스) 관련
+    const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const [longPressMenuMessageId, setLongPressMenuMessageId] = useState<number | null>(null);
 
     const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
@@ -106,16 +122,152 @@ export function FloatingChatMessages({
         scrollToBottom();
     }, [messages]);
 
-    // 방이 바뀌면 드로어 닫기
     useEffect(() => {
         setShowDrawer(false);
+        setReplyTo(null);
+        setLongPressMenuMessageId(null);
+        setActiveEmojiPickerMessageId(null);
     }, [roomId]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            onSendMessage();
+            handleSendMessage();
         }
+    };
+
+    const handleSendMessage = () => {
+        onSendMessage(replyTo?.id);
+        setReplyTo(null);
+    };
+
+    // 리액션 토글 (로컬 + API)
+    const handleToggleReaction = async (messageId: number, emoji: string) => {
+        if (!authToken || !userId) return;
+        const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
+
+        setActiveEmojiPickerMessageId(null);
+        setLongPressMenuMessageId(null);
+
+        // 낙관적 업데이트
+        if (onMessagesUpdate) {
+            const updated = messages.map(msg => {
+                if (msg.id !== messageId) return msg;
+                const reactions = [...(msg.reactions || [])];
+                const existing = reactions.find(r => r.emoji === emoji);
+                if (existing?.myReaction) {
+                    if (existing.count <= 1) {
+                        return { ...msg, reactions: reactions.filter(r => r.emoji !== emoji) };
+                    }
+                    return {
+                        ...msg,
+                        reactions: reactions.map(r =>
+                            r.emoji === emoji ? { ...r, count: r.count - 1, myReaction: false } : r
+                        ),
+                    };
+                } else if (existing) {
+                    return {
+                        ...msg,
+                        reactions: reactions.map(r =>
+                            r.emoji === emoji ? { ...r, count: r.count + 1, myReaction: true } : r
+                        ),
+                    };
+                } else {
+                    return {
+                        ...msg,
+                        reactions: [...reactions, { emoji, count: 1, userNames: [userName || ""], myReaction: true }],
+                    };
+                }
+            });
+            onMessagesUpdate(updated);
+        }
+
+        // API 호출
+        try {
+            await fetch(`/api/v1/chat/rooms/${roomId}/messages/${messageId}/reactions`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId, userName, emoji }),
+            });
+        } catch (error) {
+            console.error("[FloatingChat] Error toggling reaction:", error);
+        }
+
+        if (onToggleReaction) {
+            onToggleReaction(messageId, emoji);
+        }
+    };
+
+    // 롱프레스 핸들러
+    const handleTouchStart = (messageId: number) => {
+        longPressTimerRef.current = setTimeout(() => {
+            setLongPressMenuMessageId(messageId);
+        }, 500);
+    };
+
+    const handleTouchEnd = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    const handleReply = (message: ChatMessage) => {
+        setReplyTo(message);
+        setLongPressMenuMessageId(null);
+    };
+
+    // 메뉴 외부 클릭 시 닫기
+    const handleBackdropClick = () => {
+        setLongPressMenuMessageId(null);
+        setActiveEmojiPickerMessageId(null);
+    };
+
+    // 리액션 렌더링
+    const renderReactions = (message: ChatMessage) => {
+        if (!message.reactions || message.reactions.length === 0) return null;
+        return (
+            <div className="flex flex-wrap gap-1 mt-1">
+                {message.reactions.map((reaction) => (
+                    <button
+                        key={reaction.emoji}
+                        onClick={() => handleToggleReaction(message.id, reaction.emoji)}
+                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border transition-colors ${
+                            reaction.myReaction
+                                ? "bg-blue-50 border-teal-300 text-blue-700"
+                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                        }`}
+                        title={reaction.userNames?.join(", ")}
+                    >
+                        <span>{reaction.emoji}</span>
+                        <span className="font-medium">{reaction.count}</span>
+                    </button>
+                ))}
+            </div>
+        );
+    };
+
+    // 답글 미리보기 (메시지 버블 안)
+    const renderReplyPreview = (message: ChatMessage) => {
+        if (!message.replyToId) return null;
+        const isMyMessage = message.senderId === userId;
+        return (
+            <div
+                className={`text-[11px] px-2 py-1 mb-1 rounded border-l-2 ${
+                    isMyMessage
+                        ? "bg-teal-500/30 border-teal-300 text-teal-100"
+                        : "bg-gray-200 border-gray-400 text-gray-600"
+                }`}
+            >
+                <p className="font-semibold truncate">{message.replyToSenderName}</p>
+                <p className="truncate opacity-80">
+                    {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                </p>
+            </div>
+        );
     };
 
     return (
@@ -146,11 +298,16 @@ export function FloatingChatMessages({
                 </button>
             </div>
 
+            {/* Overlay for menus */}
+            {(longPressMenuMessageId !== null || activeEmojiPickerMessageId !== null) && (
+                <div className="fixed inset-0 z-30" onClick={handleBackdropClick} />
+            )}
+
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
                 {isLoadingMessages ? (
                     <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
                     </div>
                 ) : messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -204,11 +361,16 @@ export function FloatingChatMessages({
                             <Fragment key={message.id}>
                                 {dateSeparator}
                                 <div
-                                    className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
+                                    className={`flex ${isMyMessage ? "justify-end" : "justify-start"} relative`}
                                 >
                                     <div className={`max-w-[75%] ${isMyMessage ? "items-end" : "items-start"} flex flex-col`}>
                                         {!isMyMessage && (
-                                            <p className="text-[11px] text-gray-500 mb-0.5 ml-1">{message.senderName}</p>
+                                            <p className="text-[11px] text-gray-500 mb-0.5 ml-1">
+                                                {message.senderName}
+                                                {message.senderPosition && (
+                                                    <span className="text-gray-400 ml-1">({message.senderPosition})</span>
+                                                )}
+                                            </p>
                                         )}
                                         <div className="flex items-end gap-1">
                                             {isMyMessage && (
@@ -217,12 +379,22 @@ export function FloatingChatMessages({
                                                 </span>
                                             )}
                                             <div
-                                                className={`px-3 py-1.5 rounded-xl text-sm ${
+                                                className={`relative px-3 py-1.5 rounded-xl text-sm ${
                                                     isMyMessage
-                                                        ? "bg-blue-600 text-white rounded-br-sm"
+                                                        ? "bg-teal-600 text-white rounded-br-sm"
                                                         : "bg-gray-100 text-gray-900 rounded-bl-sm"
                                                 }`}
+                                                onTouchStart={() => handleTouchStart(message.id)}
+                                                onTouchEnd={handleTouchEnd}
+                                                onTouchCancel={handleTouchEnd}
+                                                onContextMenu={(e) => {
+                                                    e.preventDefault();
+                                                    setLongPressMenuMessageId(message.id);
+                                                }}
                                             >
+                                                {/* 답글 원본 미리보기 */}
+                                                {renderReplyPreview(message)}
+
                                                 {message.type === "IMAGE" && message.fileUrl ? (
                                                     <img
                                                         src={message.fileUrl}
@@ -237,7 +409,7 @@ export function FloatingChatMessages({
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className={`text-xs underline flex items-center gap-1 ${
-                                                            isMyMessage ? "text-white" : "text-blue-600"
+                                                            isMyMessage ? "text-white" : "text-teal-600"
                                                         }`}
                                                     >
                                                         <span>📎</span> {message.fileName || message.content}
@@ -254,6 +426,43 @@ export function FloatingChatMessages({
                                                 </span>
                                             )}
                                         </div>
+
+                                        {/* 리액션 표시 */}
+                                        {renderReactions(message)}
+
+                                        {/* 롱프레스 메뉴 (답글 + 이모지) */}
+                                        {longPressMenuMessageId === message.id && (
+                                            <div
+                                                className={`absolute z-40 ${
+                                                    isMyMessage ? "right-0" : "left-0"
+                                                } bottom-full mb-1`}
+                                            >
+                                                <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                                                    {/* 이모지 바 */}
+                                                    <div className="flex gap-0.5 px-2 py-1.5 border-b border-gray-100">
+                                                        {QUICK_EMOJIS.map((emoji) => (
+                                                            <button
+                                                                key={emoji}
+                                                                onClick={() => handleToggleReaction(message.id, emoji)}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-lg"
+                                                            >
+                                                                {emoji}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {/* 답글 버튼 */}
+                                                    <button
+                                                        onClick={() => handleReply(message)}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                                        </svg>
+                                                        답장
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </Fragment>
@@ -263,6 +472,27 @@ export function FloatingChatMessages({
                 <div ref={messagesEndRef} />
             </div>
 
+            {/* 답글 미리보기 바 */}
+            {replyTo && (
+                <div className="px-3 py-2 border-t border-gray-100 bg-gray-50 flex items-center gap-2">
+                    <div className="flex-1 min-w-0 border-l-2 border-teal-500 pl-2">
+                        <p className="text-[11px] font-semibold text-teal-600 truncate">{replyTo.senderName}</p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                            {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setReplyTo(null)}
+                        className="p-1 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                        aria-label="답장 취소"
+                    >
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+
             {/* Input Area */}
             <div className="px-3 py-2 border-t border-gray-200 flex-shrink-0">
                 <div className="flex gap-2 items-end">
@@ -271,14 +501,14 @@ export function FloatingChatMessages({
                         value={messageInput}
                         onChange={(e) => onMessageInputChange(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="메시지를 입력하세요..."
+                        placeholder={replyTo ? `${replyTo.senderName}에게 답장...` : "메시지를 입력하세요..."}
                         disabled={isSendingMessage}
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50"
                     />
                     <button
-                        onClick={onSendMessage}
+                        onClick={handleSendMessage}
                         disabled={!messageInput.trim() || isSendingMessage}
-                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                        className="p-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                         aria-label="전송"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,14 +543,14 @@ export function FloatingChatMessages({
                             </h4>
                             {isLoadingParticipants ? (
                                 <div className="flex justify-center py-3">
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-teal-500"></div>
                                 </div>
                             ) : participants.length > 0 ? (
                                 <div className="space-y-1">
                                     {participants.map((p, i) => (
                                         <div key={p.userId || i} className="flex items-center gap-2 py-1.5">
                                             <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-xs font-medium text-blue-600">
+                                                <span className="text-xs font-medium text-teal-600">
                                                     {p.userName?.charAt(0) || "?"}
                                                 </span>
                                             </div>

@@ -28,27 +28,28 @@ import ScheduleCalendar from "@/components/ScheduleCalendar";
 import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
+import PositionManagement from "@/components/PositionManagement";
 import SubscriptionStatus from "@/components/SubscriptionStatus";
-import DispatchManagement from "@/components/DispatchManagement";
 import ApprovalManagement from "@/components/ApprovalManagement";
 import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
 import NoticeManagement from "@/components/NoticeManagement";
-import { VacationApproval } from "@/components/VacationApproval";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
 import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
 import AdminDashboard from "@/components/AdminDashboard";
 import Image from "next/image";
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "info";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members";
 type ApprovalSubTab = "management" | "templates";
-type InfoSubTab = "users" | "dispatch" | "approval-sign" | "vacation-approval";
+type ScheduleMode = "schedule" | "dispatch";
+type MembersSubTab = "management" | "positions";
 
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("management");
-    const [infoSubTab, setInfoSubTab] = useState<InfoSubTab>("users");
+    const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
+    const [membersSubTab, setMembersSubTab] = useState<MembersSubTab>("management");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -937,41 +938,27 @@ export default function AdminPage() {
     // 클라이언트 사이드가 아직 준비되지 않았을 때만 로딩 화면 표시
     if (!isClient) {
         return (
-            <div
-                className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-white">
                 <div className="flex flex-col items-center space-y-6">
                     <Image
-                        src="/images/logo.png"
+                        src="/images/carev-favicon.png"
                         alt="케어브이 로고"
-                        width={160}
-                        height={53}
-                        className="mb-4"
+                        width={48}
+                        height={48}
+                        className="mb-2 rounded-xl"
                     />
                     <div className="flex items-center space-x-3">
                         <svg
-                            className="animate-spin h-8 w-8 text-blue-400"
+                            className="animate-spin h-5 w-5 text-teal-500"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
                         >
-                            <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                            ></circle>
-                            <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
-                        <p className="text-lg text-blue-100 font-medium">
-                            {!isClient
-                                ? "페이지를 준비하는 중..."
-                                : "데이터를 불러오는 중..."}
+                        <p className="text-sm text-gray-500 font-medium">
+                            {!isClient ? "준비 중..." : "불러오는 중..."}
                         </p>
                     </div>
                 </div>
@@ -980,515 +967,170 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-50">
-            {/* 헤더 영역 */}
-            <header
-                className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-b border-blue-800/30 backdrop-blur-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-4">
-                                <div className="relative">
-                                    <Image
-                                        src="/images/logo-text.png"
-                                        alt="케어브이 로고"
-                                        width={140}
-                                        height={47}
-                                        className="transition-transform duration-300 hover:scale-105"
-                                    />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
-                                        관리자 페이지
-                                    </h1>
-                                    {companyName && (
-                                        <p className="text-blue-200/90 text-sm font-medium mt-0.5 flex items-center">
-                                            <svg
-                                                className="w-3 h-3 mr-1.5 text-blue-300"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            {companyName}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                            {activeMainTab === "work" && (
-                                <div
-                                    className="hidden sm:block ml-6 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-yellow-400/30 shadow-lg">
-                  <span className="text-yellow-100 text-sm font-semibold flex items-center">
-                    <div className="relative mr-3">
-                      <svg
-                          className="w-4 h-4 text-yellow-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                      >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                        {pendingRequests.length > 0 && (
-                            <div
-                                className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        )}
+        <div className="flex min-h-screen bg-gray-50">
+            {/* 사이드바 (데스크탑) */}
+            <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 fixed inset-y-0 left-0 z-30">
+                {/* 로고 */}
+                <div className="flex items-center gap-3 px-6 h-16 border-b border-gray-100 flex-shrink-0">
+                    <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} className="rounded-lg" />
+                    <div>
+                        <h1 className="text-sm font-bold text-gray-900 leading-tight">케어브이</h1>
+                        {companyName && <p className="text-[11px] text-gray-400 leading-tight truncate max-w-[140px]">{companyName}</p>}
                     </div>
-                    대기 중인 요청:{" "}
-                      <span className="ml-1 text-yellow-300 font-bold">
-                      {pendingRequests.length}건
-                    </span>
-                  </span>
+                </div>
+
+                {/* 네비게이션 */}
+                <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                    <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">메뉴</p>
+                    {([
+                        { key: "dashboard", label: "대시보드", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
+                        { key: "notice", label: "공지사항", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
+                        { key: "chat", label: "채팅", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
+                        { key: "schedule", label: "월간일정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+                        { key: "approval", label: "전자결재", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+                        { key: "work", label: "근무조정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
+                        { key: "members", label: "회원관리", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" },
+                    ] as { key: string; label: string; icon: string; badge?: number }[]).map((tab) => (
+                        <div key={tab.key}>
+                            <button
+                                onClick={() => setActiveMainTab(tab.key as MainTab)}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                                    activeMainTab === tab.key
+                                        ? "bg-teal-50 text-teal-700 shadow-sm"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                }`}
+                            >
+                                <svg className={`w-[18px] h-[18px] flex-shrink-0 ${activeMainTab === tab.key ? 'text-teal-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={tab.icon} />
+                                </svg>
+                                {tab.label}
+                                {tab.badge && (
+                                    <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-red-500 text-white rounded-full">{tab.badge}</span>
+                                )}
+                            </button>
+                            {/* 전자결재 서브탭 */}
+                            {tab.key === "approval" && activeMainTab === "approval" && (
+                                <div className="pl-9 mt-1 space-y-0.5">
+                                    {isAdmin && (
+                                    <button onClick={() => setApprovalSubTab("management")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "management" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        결재 관리
+                                    </button>
+                                    )}
+                                    <button onClick={() => setApprovalSubTab("templates")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "templates" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        양식 관리
+                                    </button>
+                                </div>
+                            )}
+                            {/* 회원관리 서브탭 */}
+                            {tab.key === "members" && activeMainTab === "members" && isAdmin && (
+                                <div className="pl-9 mt-1 space-y-0.5">
+                                    <button onClick={() => setMembersSubTab("management")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${membersSubTab === "management" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        회원 관리
+                                    </button>
+                                    <button onClick={() => setMembersSubTab("positions")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${membersSubTab === "positions" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        직책 관리
+                                    </button>
+                                </div>
+                            )}
+                            {/* 월간일정 서브탭 */}
+                            {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
+                                <div className="pl-9 mt-1 space-y-0.5">
+                                    <button onClick={() => setScheduleMode("schedule")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${scheduleMode === "schedule" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        일정
+                                    </button>
+                                    <button onClick={() => setScheduleMode("dispatch")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${scheduleMode === "dispatch" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        배차관리
+                                    </button>
                                 </div>
                             )}
                         </div>
-                        <div className="flex items-center space-x-3">
-                            <SubscriptionStatus />
-                            <button
-                                onClick={() => router.push("/admin/organization-profile")}
-                                className="group px-4 py-2.5 text-sm font-medium text-blue-700 bg-white/95 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-white hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2 text-blue-600 group-hover:text-blue-700 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  기관 프로필
-                </span>
-                            </button>
-                            <button
-                                onClick={handleLogout}
-                                className="group px-4 py-2.5 text-sm font-medium text-slate-700 bg-white/90 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2 group-hover:text-red-600 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                  </svg>
-                  로그아웃
-                </span>
-                            </button>
-                        </div>
-                    </div>
+                    ))}
+                </nav>
 
-                    {/* 메인 탭 네비게이션 */}
-                    <div className="mt-8 border-b border-white/10">
-                        <nav className="flex space-x-8">
-                            <button
-                                onClick={() => setActiveMainTab("dashboard")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "dashboard"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                    />
-                  </svg>
-                  대시보드
-                </span>
-                                {activeMainTab === "dashboard" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveMainTab("notice")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "notice"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                  </svg>
-                  공지사항
-                </span>
-                                {activeMainTab === "notice" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveMainTab("chat")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "chat"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                  채팅
-                </span>
-                                {activeMainTab === "chat" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveMainTab("schedule")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "schedule"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 8v4l2 2"
-                    />
-                  </svg>
-                  월간일정
-                </span>
-                                {activeMainTab === "schedule" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveMainTab("approval")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "approval"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  전자결재
-                </span>
-                                {activeMainTab === "approval" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveMainTab("work")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "work"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  근무조정
-                </span>
-                                {activeMainTab === "work" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveMainTab("info")}
-                                className={`relative py-4 px-2 font-semibold text-sm transition-all duration-300 ${
-                                    activeMainTab === "info"
-                                        ? "text-white border-b-2 border-blue-400 shadow-lg"
-                                        : "text-blue-200/80 hover:text-white hover:border-b-2 hover:border-white/30"
-                                }`}
-                            >
-                <span className="flex items-center">
-                  <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                    />
-                  </svg>
-                  정보관리
-                </span>
-                                {activeMainTab === "info" && (
-                                    <div
-                                        className="absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-                                )}
-                            </button>
-                        </nav>
-                    </div>
-
-                    {/* 서브탭 바 */}
-                    {activeMainTab === "approval" && (
-                        <div className="mt-2">
-                            <nav className="flex space-x-4">
-                                {isAdmin && (
-                                <button
-                                    onClick={() => setApprovalSubTab("management")}
-                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
-                                        approvalSubTab === "management"
-                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
-                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
-                                    }`}
-                                >
-                                    결재 관리
-                                </button>
-                                )}
-                                <button
-                                    onClick={() => setApprovalSubTab("templates")}
-                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
-                                        approvalSubTab === "templates"
-                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
-                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
-                                    }`}
-                                >
-                                    양식 관리
-                                </button>
-                            </nav>
-                        </div>
-                    )}
-                    {activeMainTab === "info" && (
-                        <div className="mt-2">
-                            <nav className="flex space-x-4">
-                                <button
-                                    onClick={() => setInfoSubTab("users")}
-                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
-                                        infoSubTab === "users"
-                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
-                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
-                                    }`}
-                                >
-                                    회원관리
-                                </button>
-                                {isAdmin && (
-                                <button
-                                    onClick={() => setInfoSubTab("dispatch")}
-                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
-                                        infoSubTab === "dispatch"
-                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
-                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
-                                    }`}
-                                >
-                                    배치관리
-                                </button>
-                                )}
-                                {isAdmin && (
-                                <button
-                                    onClick={() => setInfoSubTab("approval-sign")}
-                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
-                                        infoSubTab === "approval-sign"
-                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
-                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
-                                    }`}
-                                >
-                                    결재 승인
-                                </button>
-                                )}
-                                {isAdmin && (
-                                <button
-                                    onClick={() => setInfoSubTab("vacation-approval")}
-                                    className={`py-2 px-3 text-xs font-medium rounded-t transition-all duration-200 ${
-                                        infoSubTab === "vacation-approval"
-                                            ? "bg-white/20 text-white border-b-2 border-blue-300"
-                                            : "text-blue-200/60 hover:text-blue-100 hover:bg-white/10"
-                                    }`}
-                                >
-                                    휴무 승인
-                                </button>
-                                )}
-                            </nav>
-                        </div>
-                    )}
+                {/* 사이드바 하단 */}
+                <div className="border-t border-gray-100 px-3 py-3 space-y-1 flex-shrink-0">
+                    <SubscriptionStatus />
+                    <button onClick={() => router.push("/admin/organization-profile")} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 rounded-lg hover:bg-gray-50 hover:text-gray-700 transition-colors">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        기관 프로필
+                    </button>
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        로그아웃
+                    </button>
                 </div>
+            </aside>
+
+            {/* 모바일 헤더 (lg 미만) */}
+            <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between px-4 h-13">
+                    <div className="flex items-center gap-2">
+                        <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} className="rounded-lg" />
+                        <div>
+                            <span className="text-sm font-bold text-gray-900">케어브이</span>
+                            {companyName && <p className="text-[10px] text-gray-400 leading-tight truncate max-w-[120px]">{companyName}</p>}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <SubscriptionStatus />
+                        <button onClick={handleLogout} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        </button>
+                    </div>
+                </div>
+                <nav className="flex overflow-x-auto scrollbar-hide px-2 -mb-px">
+                    {([
+                        { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
+                        { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" }, { key: "members", label: "회원" },
+                    ] as const).map((tab) => (
+                        <button key={tab.key} onClick={() => setActiveMainTab(tab.key as MainTab)} className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${activeMainTab === tab.key ? "text-teal-600 border-teal-500" : "text-gray-500 border-transparent"}`}>
+                            {tab.label}
+                        </button>
+                    ))}
+                </nav>
             </header>
 
+            {/* 메인 콘텐츠 영역 */}
+            <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
             {/* 공지사항 롤링 배너 */}
+            <div className="mt-[88px] lg:mt-0">
             <NoticeRollingBanner
               onNoticeClick={() => setActiveMainTab('notice')}
               autoScrollInterval={5000}
               maxNotices={5}
             />
+            </div>
 
             {/* 메인 콘텐츠 */}
-            <main className="flex-grow max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-8">
+            <main className="flex-grow w-full px-3 sm:px-4 lg:px-5 py-4">
                 {/* 알림 메시지 */}
                 <AnimatePresence>
                     {notification.show && (
                         <motion.div
-                            initial={{opacity: 0, y: -20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            className={`mb-6 p-4 rounded-md ${
+                            initial={{opacity: 0, y: -12, scale: 0.95}}
+                            animate={{opacity: 1, y: 0, scale: 1}}
+                            exit={{opacity: 0, y: -12, scale: 0.95}}
+                            className={`mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${
                                 notification.type === "success"
-                                    ? "bg-green-50 text-green-800 border border-green-200"
+                                    ? "bg-green-50 text-green-700 border border-green-200"
                                     : notification.type === "error"
-                                        ? "bg-red-50 text-red-800 border border-red-200"
-                                        : "bg-blue-50 text-blue-800 border border-blue-200"
+                                        ? "bg-red-50 text-red-700 border border-red-200"
+                                        : "bg-blue-50 text-blue-700 border border-blue-200"
                             }`}
                         >
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    {notification.type === "success" && (
-                                        <svg
-                                            className="h-5 w-5 text-green-400"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    )}
-                                    {notification.type === "error" && (
-                                        <svg
-                                            className="h-5 w-5 text-red-400"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    )}
-                                    {(!notification.type || notification.type === "info") && (
-                                        <svg
-                                            className="h-5 w-5 text-blue-400"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    )}
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm font-medium">{notification.message}</p>
-                                </div>
-                                <div className="ml-auto pl-3">
-                                    <div className="-mx-1.5 -my-1.5">
-                                        <button
-                                            onClick={() =>
-                                                setNotification({...notification, show: false})
-                                            }
-                                            className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-50"
-                                        >
-                                            <span className="sr-only">닫기</span>
-                                            <svg
-                                                className="h-5 w-5"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <span className="text-base">
+                                {notification.type === "success" ? "✓" : notification.type === "error" ? "✕" : "ℹ"}
+                            </span>
+                            <p className="text-xs font-medium flex-1">{notification.message}</p>
+                            <button
+                                onClick={() => setNotification({...notification, show: false})}
+                                className="text-current opacity-40 hover:opacity-70 transition-opacity p-0.5"
+                                aria-label="닫기"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -1527,13 +1169,13 @@ export default function AdminPage() {
                         </motion.div>
                     ) : activeMainTab === "schedule" ? (
                         <motion.div
-                            key="schedule"
+                            key={`schedule-${scheduleMode}`}
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.3}}
                         >
-                            <ScheduleCalendar isAdmin={isAdmin} />
+                            <ScheduleCalendar isAdmin={isAdmin} mode={scheduleMode} onNotification={showNotification} />
                         </motion.div>
                     ) : activeMainTab === "approval" ? (
                         <motion.div
@@ -1881,31 +1523,27 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </motion.div>
-                    ) : activeMainTab === "info" ? (
+                    ) : activeMainTab === "members" ? (
                         <motion.div
-                            key={`info-${infoSubTab}`}
+                            key={`members-${membersSubTab}`}
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
                         >
-                            {infoSubTab === "users" ? (
+                            {membersSubTab === "positions" ? (
+                                <PositionManagement
+                                    organizationName={companyName || undefined}
+                                    onNotification={showNotification}
+                                    isAdmin={isAdmin}
+                                />
+                            ) : (
                                 <UserManagement
                                     organizationName={companyName || undefined}
                                     onNotification={showNotification}
                                     isAdmin={isAdmin}
                                 />
-                            ) : isAdmin && infoSubTab === "dispatch" ? (
-                                <DispatchManagement
-                                    onNotification={showNotification}
-                                />
-                            ) : isAdmin && infoSubTab === "approval-sign" ? (
-                                <ApprovalManagement />
-                            ) : isAdmin && infoSubTab === "vacation-approval" ? (
-                                <VacationApproval
-                                    onNotification={showNotification}
-                                />
-                            ) : null}
+                            )}
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
@@ -2043,107 +1681,43 @@ export default function AdminPage() {
             )}
 
             {/* 푸터 */}
-            <footer
-                className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 shadow-2xl border-t border-blue-800/30 backdrop-blur-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
-                        {/* 브랜드 섹션 */}
-                        <div className="text-left flex flex-col h-full">
-                            <div className="flex justify-start mb-4">
-                                <Image
-                                    src="/images/logo-text.png"
-                                    alt="케어브이 로고"
-                                    width={140}
-                                    height={47}
-                                    className="transition-transform duration-300 hover:scale-105"
-                                />
-                            </div>
+            <footer className="border-t border-gray-200 bg-gray-50">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 text-xs text-gray-400">
+                            <span>&copy; 2025 케어브이 (silverithm) 대표: 김준형</span>
+                            <span className="hidden sm:inline text-gray-300">|</span>
+                            <span>사업자등록번호: 107-21-26475</span>
+                            <span className="hidden sm:inline text-gray-300">|</span>
+                            <span>서울특별시 신림동 1547-10</span>
                         </div>
-
-                        {/* 회사 정보 섹션 */}
-                        <div className="text-left flex flex-col h-full">
-                            <h3 className="text-blue-100 font-semibold text-lg mb-3">
-                                회사 정보
-                            </h3>
-                            <div className="space-y-2 text-sm text-blue-200/70 flex-grow">
-                                <div className="flex flex-col sm:flex-row sm:justify-between">
-                                    <p>
-                                        <span className="text-blue-300">회사명:</span> silverithm
-                                    </p>
-                                    <p>
-                                        <span className="text-blue-300">대표자:</span> 김준형
-                                    </p>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between">
-                                    <p>
-                                        <span className="text-blue-300">사업자등록번호:</span>{" "}
-                                        107-21-26475
-                                    </p>
-                                    <p>
-                                        <span className="text-blue-300">주소:</span> 서울특별시
-                                        신림동 1547-10
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 연락처 섹션 */}
-                        <div className="text-left flex flex-col h-full">
-                            <h3 className="text-blue-100 font-semibold text-lg mb-3">
-                                연락처
-                            </h3>
-                            <div className="space-y-2 text-sm text-blue-200/70 flex-grow">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                                    <span className="text-blue-300">이메일:</span>
-                                    <a
-                                        href="mailto:ggprgrkjh@naver.com"
-                                        className="hover:text-white transition-colors"
-                                    >
-                                        ggprgrkjh@naver.com
-                                    </a>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                                    <span className="text-blue-300">전화번호:</span>
-                                    <a
-                                        href="tel:010-4549-2094"
-                                        className="hover:text-white transition-colors"
-                                    >
-                                        010-4549-2094
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 저작권 및 링크 정보 */}
-                    <div className="border-t border-blue-400/20 pt-6">
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <p className="text-blue-200/60 text-sm">
-                                &copy; 2025 케어브이. 모든 권리 보유.
-                            </p>
-                            <div className="flex items-center space-x-4 text-sm">
-                                <a
-                                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-300/80 hover:text-white transition-colors"
-                                >
-                                    개인정보처리방침
-                                </a>
-                                <span className="text-blue-400/50">|</span>
-                                <a
-                                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-300/80 hover:text-white transition-colors"
-                                >
-                                    이용약관
-                                </a>
-                            </div>
+                        <div className="flex items-center gap-3 text-xs">
+                            <a
+                                href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                개인정보처리방침
+                            </a>
+                            <span className="text-gray-300">|</span>
+                            <a
+                                href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                이용약관
+                            </a>
+                            <span className="text-gray-300">|</span>
+                            <a href="mailto:ggprgrkjh@naver.com" className="text-gray-400 hover:text-gray-600 transition-colors">
+                                ggprgrkjh@naver.com
+                            </a>
                         </div>
                     </div>
                 </div>
             </footer>
+            </div>{/* end lg:ml-56 wrapper */}
 
             {/* 플로팅 채팅 위젯 */}
             <FloatingChat />
@@ -2151,30 +1725,13 @@ export default function AdminPage() {
             {/* 로딩 오버레이 */}
             {isProcessing && (
                 <div className="fixed inset-0 z-50 bg-white/40">
-                    {/* 로딩 스피너 */}
                     <div className="relative flex items-center justify-center h-full">
-                            <svg
-                                className="animate-spin h-8 w-8 text-blue-600"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                strokeWidth="4"
-                            ></circle>
-                            <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
+                        <svg className="animate-spin h-6 w-6 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
+                    </div>
                 </div>
-            </div>
             )}
         </div>
     );

@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiMail, FiCalendar, FiShield, FiAlertCircle } from 'react-icons/fi';
-import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, type PendingUser } from '@/lib/apiService';
+import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiMail, FiCalendar, FiShield, FiAlertCircle, FiHeart, FiPlus, FiEdit2 } from 'react-icons/fi';
+import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, type PendingUser } from '@/lib/apiService';
+import type { ElderlyInfo } from '@/types/elderly';
 
 interface User {
   id: string;
@@ -16,6 +17,8 @@ interface User {
   approvedAt?: number;
   lastLoginAt?: number;
   organizationId?: string;
+  position?: string;
+  positionId?: number;
 }
 
 interface UserManagementProps {
@@ -25,7 +28,7 @@ interface UserManagementProps {
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, isAdmin = true }) => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'members'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'seniors'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [members, setMembers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,8 +39,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // 어르신 관리 상태
+  const [seniors, setSeniors] = useState<ElderlyInfo[]>([]);
+  const [seniorSearchTerm, setSeniorSearchTerm] = useState('');
+  const [showSeniorModal, setShowSeniorModal] = useState(false);
+  const [editingSenior, setEditingSenior] = useState<ElderlyInfo | null>(null);
+  const [seniorForm, setSeniorForm] = useState({ name: '', homeAddress: '', requiredFrontSeat: false });
+  const [showDeleteSeniorModal, setShowDeleteSeniorModal] = useState(false);
+  const [selectedSenior, setSelectedSenior] = useState<ElderlyInfo | null>(null);
+
   useEffect(() => {
     fetchUsers();
+    fetchSeniors();
   }, []);
 
   const fetchUsers = async () => {
@@ -123,6 +136,100 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     }
   };
 
+  const fetchSeniors = async () => {
+    try {
+      const data: any = await getCompanyElders();
+      const eldersArray = data?.elders || [];
+      setSeniors(eldersArray);
+    } catch (error) {
+      console.error('어르신 목록 로드 오류:', error);
+      setSeniors([]);
+    }
+  };
+
+  const handleAddSenior = async () => {
+    if (!seniorForm.name.trim()) {
+      onNotification('이름을 입력해주세요.', 'error');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await addCompanyElder({
+        name: seniorForm.name.trim(),
+        homeAddress: seniorForm.homeAddress.trim() || undefined,
+        requiredFrontSeat: seniorForm.requiredFrontSeat,
+      });
+      await fetchSeniors();
+      setShowSeniorModal(false);
+      setSeniorForm({ name: '', homeAddress: '', requiredFrontSeat: false });
+      onNotification('어르신이 등록되었습니다.', 'success');
+    } catch (error) {
+      console.error('어르신 등록 오류:', error);
+      onNotification('어르신 등록에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdateSenior = async () => {
+    if (!editingSenior || !seniorForm.name.trim()) return;
+    setIsProcessing(true);
+    try {
+      await updateCompanyElder(editingSenior.id, {
+        name: seniorForm.name.trim(),
+        homeAddress: seniorForm.homeAddress.trim() || undefined,
+        requiredFrontSeat: seniorForm.requiredFrontSeat,
+      });
+      await fetchSeniors();
+      setShowSeniorModal(false);
+      setEditingSenior(null);
+      setSeniorForm({ name: '', homeAddress: '', requiredFrontSeat: false });
+      onNotification('어르신 정보가 수정되었습니다.', 'success');
+    } catch (error) {
+      console.error('어르신 수정 오류:', error);
+      onNotification('어르신 수정에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteSenior = async () => {
+    if (!selectedSenior) return;
+    setIsProcessing(true);
+    try {
+      await deleteCompanyElder(selectedSenior.id);
+      await fetchSeniors();
+      setShowDeleteSeniorModal(false);
+      setSelectedSenior(null);
+      onNotification('어르신이 삭제되었습니다.', 'success');
+    } catch (error) {
+      console.error('어르신 삭제 오류:', error);
+      onNotification('어르신 삭제에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const openEditSeniorModal = (senior: ElderlyInfo) => {
+    setEditingSenior(senior);
+    setSeniorForm({
+      name: senior.name,
+      homeAddress: senior.homeAddressName || '',
+      requiredFrontSeat: senior.requiredFrontSeat,
+    });
+    setShowSeniorModal(true);
+  };
+
+  const openAddSeniorModal = () => {
+    setEditingSenior(null);
+    setSeniorForm({ name: '', homeAddress: '', requiredFrontSeat: false });
+    setShowSeniorModal(true);
+  };
+
+  const filteredSeniors = seniors.filter(s =>
+    s.name.toLowerCase().includes(seniorSearchTerm.toLowerCase())
+  );
+
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     setIsProcessing(true);
@@ -188,34 +295,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mr-3"></div>
+        <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin mr-3"></div>
         <p className="text-gray-600">사용자 목록을 불러오는 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div>
       {/* 헤더 */}
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <FiUsers className="text-blue-600 mr-3" size={24} />
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">회원 관리</h2>
-              <p className="text-gray-600 text-sm mt-1">
-                {organizationName ? `${organizationName} 회원 관리` : '회원 가입 승인 및 회원 관리'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={fetchUsers}
-            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 rounded-full transition-colors"
-            disabled={isProcessing}
-          >
-            <FiRefreshCw className={isProcessing ? 'animate-spin' : ''} size={20} />
-          </button>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">회원 관리</h2>
+          {organizationName && (
+            <p className="text-gray-400 text-sm mt-0.5">{organizationName}</p>
+          )}
         </div>
+        <button
+          onClick={fetchUsers}
+          className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+          disabled={isProcessing}
+        >
+          <FiRefreshCw className={isProcessing ? 'animate-spin' : ''} size={18} />
+        </button>
       </div>
 
       {/* 탭 네비게이션 */}
@@ -225,7 +327,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             onClick={() => setActiveTab('pending')}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'pending'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
+                ? 'border-teal-500 text-teal-600 bg-teal-50'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -236,12 +338,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             onClick={() => setActiveTab('members')}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'members'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
+                ? 'border-teal-500 text-teal-600 bg-teal-50'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             <FiUsers className="inline mr-2" size={16} />
             기존 회원 ({members.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('seniors')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'seniors'
+                ? 'border-pink-500 text-pink-600 bg-pink-50'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <FiHeart className="inline mr-2" size={16} />
+            어르신 관리 ({seniors.length})
           </button>
         </nav>
       </div>
@@ -250,40 +363,66 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       <div className="p-4 bg-gray-50 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* 검색 */}
-          <div className="flex-1 relative">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="이름 또는 이메일로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* 필터 (기존 회원 탭에서만 표시) */}
-          {activeTab === 'members' && (
+          {activeTab === 'seniors' ? (
             <>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">모든 역할</option>
-                <option value="caregiver">요양보호사</option>
-                <option value="office">사무직</option>
-                <option value="admin">관리자</option>
-              </select>
+              <div className="flex-1 relative">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="어르신 이름으로 검색..."
+                  value={seniorSearchTerm}
+                  onChange={(e) => setSeniorSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                />
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={openAddSeniorModal}
+                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 flex items-center whitespace-nowrap"
+                >
+                  <FiPlus className="mr-1.5" size={16} />
+                  어르신 추가
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex-1 relative">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="이름 또는 이메일로 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">모든 상태</option>
-                <option value="active">활성화</option>
-                <option value="inactive">비활성화</option>
-              </select>
+              {/* 필터 (기존 회원 탭에서만 표시) */}
+              {activeTab === 'members' && (
+                <>
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  >
+                    <option value="all">모든 역할</option>
+                    <option value="caregiver">요양보호사</option>
+                    <option value="office">사무직</option>
+                    <option value="admin">관리자</option>
+                  </select>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  >
+                    <option value="all">모든 상태</option>
+                    <option value="active">활성화</option>
+                    <option value="inactive">비활성화</option>
+                  </select>
+                </>
+              )}
             </>
           )}
         </div>
@@ -292,7 +431,93 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       {/* 컨텐츠 영역 */}
       <div className="p-6">
         <AnimatePresence mode="wait">
-          {activeTab === 'pending' ? (
+          {activeTab === 'seniors' ? (
+            <motion.div
+              key="seniors"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {filteredSeniors.length === 0 ? (
+                <div className="text-center py-12">
+                  <FiHeart className="mx-auto text-gray-400 mb-4" size={48} />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">등록된 어르신이 없습니다</h3>
+                  <p className="text-gray-500 mb-4">어르신을 추가하여 관리를 시작하세요.</p>
+                  {isAdmin && (
+                    <button
+                      onClick={openAddSeniorModal}
+                      className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
+                    >
+                      <FiPlus className="inline mr-1.5" size={16} />
+                      어르신 추가
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredSeniors.map((senior) => (
+                    <motion.div
+                      key={senior.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
+                              <FiHeart className="text-pink-600" size={24} />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-lg font-medium text-gray-900">{senior.name}</h3>
+                              {senior.requiredFrontSeat && (
+                                <span className="px-2 py-1 text-xs font-medium rounded-full border bg-orange-100 text-orange-800 border-orange-200">
+                                  앞좌석 필요
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {senior.homeAddressName ? (
+                                <span>주소: {senior.homeAddressName}</span>
+                              ) : (
+                                <span className="text-gray-400">주소 미등록</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => openEditSeniorModal(senior)}
+                              disabled={isProcessing}
+                              className="px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-300 rounded-md hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <FiEdit2 className="mr-1" size={14} />
+                              수정
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedSenior(senior);
+                                setShowDeleteSeniorModal(true);
+                              }}
+                              disabled={isProcessing}
+                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <FiTrash2 className="mr-1" size={14} />
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ) : activeTab === 'pending' ? (
             <motion.div
               key="pending"
               initial={{ opacity: 0, y: 20 }}
@@ -413,11 +638,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               </span>
                               <span className={`px-2 py-1 text-xs font-medium rounded-full border ${
                                 user.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                                user.role === 'caregiver' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                user.role === 'caregiver' ? 'bg-teal-100 text-teal-800 border-teal-200' :
                                 'bg-green-100 text-green-800 border-green-200'
                               }`}>
                                 {getRoleLabel(user.role)}
                               </span>
+                              {user.position && (
+                                <span className="px-2 py-1 text-xs font-medium rounded-full border bg-orange-100 text-orange-800 border-orange-200">
+                                  {user.position}
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-gray-600 space-y-1">
                               <div className="flex items-center">
@@ -535,8 +765,161 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           </motion.div>
         )}
       </AnimatePresence>
+      {/* 어르신 추가/수정 모달 */}
+      <AnimatePresence>
+        {showSeniorModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowSeniorModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                {editingSenior ? '어르신 정보 수정' : '어르신 추가'}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    이름 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={seniorForm.name}
+                    onChange={(e) => setSeniorForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="어르신 이름"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    주소 <span className="text-gray-400">(선택)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={seniorForm.homeAddress}
+                    onChange={(e) => setSeniorForm(prev => ({ ...prev, homeAddress: e.target.value }))}
+                    placeholder="주소 입력 (선택사항)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="requiredFrontSeat"
+                    checked={seniorForm.requiredFrontSeat}
+                    onChange={(e) => setSeniorForm(prev => ({ ...prev, requiredFrontSeat: e.target.checked }))}
+                    className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="requiredFrontSeat" className="ml-2 block text-sm text-gray-700">
+                    앞좌석 필요
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowSeniorModal(false);
+                    setEditingSenior(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                  disabled={isProcessing}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={editingSenior ? handleUpdateSenior : handleAddSenior}
+                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 flex items-center"
+                  disabled={isProcessing || !seniorForm.name.trim()}
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      처리중...
+                    </>
+                  ) : (
+                    editingSenior ? '수정하기' : '추가하기'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 어르신 삭제 확인 모달 */}
+      <AnimatePresence>
+        {showDeleteSeniorModal && selectedSenior && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDeleteSeniorModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start mb-4">
+                <div className="bg-red-100 p-2 rounded-full mr-3">
+                  <FiAlertCircle size={20} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">어르신 삭제 확인</h3>
+                  <p className="text-gray-600 text-sm">
+                    <strong>{selectedSenior.name}</strong>님을 삭제하시겠습니까?<br />
+                    이 작업은 되돌릴 수 없습니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDeleteSeniorModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                  disabled={isProcessing}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDeleteSenior}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 flex items-center"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      처리중...
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 className="mr-1.5" size={16} />
+                      삭제하기
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-export default UserManagement; 
+export default UserManagement;
