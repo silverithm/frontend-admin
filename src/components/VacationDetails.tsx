@@ -5,9 +5,21 @@ import { ko } from 'date-fns/locale';
 import { VacationDetailsProps, VacationRequest, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import VacationForm from './VacationForm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiUser, FiBriefcase, FiUserPlus, FiTrash2, FiLock } from 'react-icons/fi';
+import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiBriefcase, FiTrash2, FiLock } from 'react-icons/fi';
+import {
+  ALL_ROLE_FILTER,
+  getRoleBadgeClasses,
+  getRoleDisplayName,
+  getVacationRequestRole,
+  type RoleLookup,
+} from '@/lib/roleUtils';
 
-const VacationDetails: React.FC<VacationDetailsProps> = ({
+type VacationDetailsComponentProps = VacationDetailsProps & {
+  roleOptions?: string[];
+  memberRoleLookup?: RoleLookup;
+};
+
+const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
   date,
   vacations = [],
   onClose,
@@ -15,8 +27,10 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
   isLoading = false,
   maxPeople = 5,
   onVacationUpdated,
-  roleFilter,
+  roleFilter = ALL_ROLE_FILTER,
   isAdmin = false,
+  roleOptions = [],
+  memberRoleLookup,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [sortedVacations, setSortedVacations] = useState<VacationRequest[]>([]);
@@ -175,27 +189,13 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
     }
   };
 
-  // 역할 한글 변환
-  const getRoleText = (role?: string) => {
-    switch (role) {
-      case 'caregiver':
-        return '요양보호사';
-      case 'office':
-        return '사무직';
-      case 'admin':
-        return '관리자';
-      default:
-        return role || '직원';
-    }
-  };
-
   // 유효한(승인됨 또는 대기중) 휴무 수 계산
   const validVacationCount = vacations.filter(v => v.status !== 'rejected').length;
   const remainingSlots = maxPeople - validVacationCount;
   const isFull = remainingSlots <= 0;
 
   // roleFilter가 'all'인지 확인
-  const shouldShowVacationLimit = roleFilter !== 'all';
+  const shouldShowVacationLimit = roleFilter !== ALL_ROLE_FILTER;
 
   return (
     <>
@@ -218,6 +218,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
             isSubmitting={isSubmitting}
             setIsSubmitting={setIsSubmitting}
             roleFilter={roleFilter}
+            roleOptions={roleOptions}
           />
         ) : (
           <>
@@ -268,8 +269,12 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
               {sortedVacations.length > 0 ? (
                 <div className="max-h-48 sm:max-h-64 overflow-y-auto mb-4 sm:mb-5 pr-1 sm:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                   <ul className="space-y-3 sm:space-y-4">
-                    {sortedVacations.map((vacation) => (
-                      <motion.li 
+                    {sortedVacations.map((vacation) => {
+                      const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
+                      const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
+
+                      return (
+                      <motion.li
                         key={vacation.id}
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -320,19 +325,9 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                           </div>
                           
                           {/* 직원 유형 뱃지 */}
-                          <div className={`inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border ${
-                            vacation.role === 'caregiver' 
-                              ? 'bg-blue-50 text-blue-700 border-blue-100' 
-                              : vacation.role === 'office' 
-                                ? 'bg-green-50 text-green-700 border-green-100' 
-                                : 'bg-purple-50 text-purple-700 border-purple-100'
-                          }`}>
-                            {vacation.role === 'caregiver' ? (
-                              <FiUser className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            ) : (
-                              <FiBriefcase className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            )}
-                            <span>{getRoleText(vacation.role)}</span>
+                          <div className={`inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border ${roleBadgeClasses}`}>
+                            <FiBriefcase className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span>{getRoleDisplayName(resolvedRole)}</span>
                           </div>
                           
                           {vacation.reason && (
@@ -342,7 +337,8 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                           )}
                         </div>
                       </motion.li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 </div>
               ) : (

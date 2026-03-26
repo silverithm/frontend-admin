@@ -39,7 +39,7 @@ export interface VacationRequest {
   reason?: string;
   status: 'pending' | 'approved' | 'rejected' | 'canceled' | 'unused';
   type: 'regular' | 'mandatory' | 'sick' | 'other';
-  role: 'caregiver' | 'office' | 'all';  // 요양보호사, 사무실, 전체
+  role: string;
   duration: VacationDuration; // 휴가 기간 (연차/반차)
   createdAt: string;
   updatedAt: string;
@@ -50,7 +50,7 @@ export interface VacationLimit {
   id?: string;
   date: string; // yyyy-MM-dd 형식
   maxPeople: number;
-  role: 'caregiver' | 'office'; // 카테고리별 제한 추가
+  role: string; // 역할별 제한 추가
   createdAt?: string;
 }
 
@@ -80,7 +80,7 @@ export interface VacationDetailsProps {
   onClose: () => void;
   onVacationUpdated: () => Promise<void>;
   maxPeople?: number;
-  roleFilter?: 'all' | 'caregiver' | 'office';
+  roleFilter?: string;
   isAdmin?: boolean;
 }
 
@@ -90,7 +90,8 @@ export interface VacationFormProps {
   onCancel: () => void;
   isSubmitting: boolean;
   setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
-  roleFilter?: 'all' | 'caregiver' | 'office';
+  roleFilter?: string;
+  roleOptions?: string[];
 }
 
 export interface AdminPanelProps {

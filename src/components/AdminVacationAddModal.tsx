@@ -6,14 +6,7 @@ import { ko } from 'date-fns/locale';
 import MemberSelector from './MemberSelector';
 import { FiX, FiCalendar, FiClock, FiAlertCircle, FiCheck } from 'react-icons/fi';
 import { VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  role: 'caregiver' | 'office' | 'admin';
-  status: string;
-}
+import type { Member } from './MemberSelector';
 
 interface AdminVacationAddModalProps {
   isOpen: boolean;

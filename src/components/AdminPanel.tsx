@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { VacationLimit, DayInfo } from "@/types/vacation";
+import type { Position } from "@/types/position";
 import {
   format,
   addDays,
@@ -10,7 +11,12 @@ import {
   subMonths,
 } from "date-fns";
 import { ko } from "date-fns/locale";
-import { saveVacationLimits } from "@/lib/apiService";
+import { getPositions, saveVacationLimits } from "@/lib/apiService";
+import {
+  ALL_ROLE_FILTER,
+  buildRoleNames,
+  getRoleDisplayName,
+} from "@/lib/roleUtils";
 
 interface AdminPanelProps {
   currentDate: Date;
@@ -27,9 +33,8 @@ const AdminPanel = ({
 }: AdminPanelProps) => {
   const [panelDate, setPanelDate] = useState(currentDate);
   const [limits, setLimits] = useState<VacationLimit[]>([]);
-  const [activeFilter, setActiveFilter] = useState<
-    "all" | "caregiver" | "office"
-  >("all");
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [activeFilter, setActiveFilter] = useState<string>(ALL_ROLE_FILTER);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -37,15 +42,28 @@ const AdminPanel = ({
     null
   );
 
+  const availableRoles = useMemo(
+    () => buildRoleNames({ positions, limits }),
+    [positions, limits]
+  );
+
   useEffect(() => {
     setPanelDate(currentDate); // 모달 열릴 때 부모 값으로 초기화
   }, [currentDate]);
 
   useEffect(() => {
-    fetchMonthLimits();
+    fetchPanelData();
   }, [panelDate]);
 
-  const fetchMonthLimits = async () => {
+  useEffect(() => {
+    if (activeFilter === ALL_ROLE_FILTER) return;
+
+    if (!availableRoles.includes(activeFilter)) {
+      setActiveFilter(availableRoles[0] || ALL_ROLE_FILTER);
+    }
+  }, [activeFilter, availableRoles]);
+
+  const fetchPanelData = async () => {
     try {
       const monthStart = startOfMonth(panelDate);
       const monthEnd = endOfMonth(panelDate);
@@ -65,72 +83,54 @@ const AdminPanel = ({
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const response = await fetch(
-        `/api/vacation/limits?start=${format(
-          monthStart,
-          "yyyy-MM-dd"
-        )}&end=${format(monthEnd, "yyyy-MM-dd")}&companyId=${companyId}`,
-        {
-          headers,
-        }
-      );
+      const [response, positionsData] = await Promise.all([
+        fetch(
+          `/api/vacation/limits?start=${format(
+            monthStart,
+            "yyyy-MM-dd"
+          )}&end=${format(monthEnd, "yyyy-MM-dd")}&companyId=${companyId}`,
+          {
+            headers,
+          }
+        ),
+        getPositions().catch(() => ({ positions: [] })),
+      ]);
 
       if (!response.ok) {
         throw new Error("휴무 제한 정보를 가져오는데 실패했습니다.");
       }
 
       const data = await response.json();
-
-      // API 응답 확인 로그 추가
-      // 날짜별로 데이터 정리
-      const existingLimits = data.limits || [];
+      const existingLimits = Array.isArray(data.limits) ? data.limits : [];
+      const positionList = Array.isArray(positionsData?.positions)
+        ? (positionsData.positions as Position[])
+        : [];
+      const roleNames = buildRoleNames({ positions: positionList, limits: existingLimits });
       const allLimits: VacationLimit[] = [];
+
+      setPositions(positionList);
 
       let currentDay = monthStart;
       while (currentDay <= monthEnd) {
         const dateStr = format(currentDay, "yyyy-MM-dd");
-        // 요양보호사
-        const caregiverLimit =
-          existingLimits.find(
+        roleNames.forEach((roleName) => {
+          const matchedLimit = existingLimits.find(
             (limit: VacationLimit) =>
-              limit.date === dateStr &&
-              limit.role === "caregiver" &&
-              limit.id === `${dateStr}_caregiver`
-          ) ||
-          existingLimits.find(
-            (limit: VacationLimit) =>
-              limit.date === dateStr && limit.role === "caregiver"
+              limit.date === dateStr && limit.role === roleName
           );
-        allLimits.push({
-          id: caregiverLimit?.id,
-          date: dateStr,
-          maxPeople:
-            caregiverLimit?.maxPeople !== undefined
-              ? caregiverLimit.maxPeople
-              : 3,
-          createdAt: caregiverLimit?.createdAt,
-          role: "caregiver",
+
+          allLimits.push({
+            id: matchedLimit?.id,
+            date: dateStr,
+            maxPeople:
+              matchedLimit?.maxPeople !== undefined
+                ? matchedLimit.maxPeople
+                : 3,
+            createdAt: matchedLimit?.createdAt,
+            role: roleName,
+          });
         });
-        // 사무실
-        const officeLimit =
-          existingLimits.find(
-            (limit: VacationLimit) =>
-              limit.date === dateStr &&
-              limit.role === "office" &&
-              limit.id === `${dateStr}_office`
-          ) ||
-          existingLimits.find(
-            (limit: VacationLimit) =>
-              limit.date === dateStr && limit.role === "office"
-          );
-        allLimits.push({
-          id: officeLimit?.id,
-          date: dateStr,
-          maxPeople:
-            officeLimit?.maxPeople !== undefined ? officeLimit.maxPeople : 3,
-          createdAt: officeLimit?.createdAt,
-          role: "office",
-        });
+
         currentDay = addDays(currentDay, 1);
       }
       setLimits(allLimits);
@@ -142,7 +142,7 @@ const AdminPanel = ({
 
   const handleUpdateLimit = (
     date: string,
-    role: "caregiver" | "office",
+    role: string,
     value: number
   ) => {
     const idx = limits.findIndex((l) => l.date === date && l.role === role);
@@ -165,10 +165,7 @@ const AdminPanel = ({
         throw new Error("회사 ID를 찾을 수 없습니다. 다시 로그인해주세요.");
       }
 
-      // 저장할 데이터에서 role이 'all'인 것은 제외
-      const saveLimits = limits.filter(
-        (l) => l.role === "caregiver" || l.role === "office"
-      );
+      const saveLimits = limits.filter((limit) => limit.role.trim().length > 0);
 
       const response = await saveVacationLimits(saveLimits);
 
@@ -313,48 +310,47 @@ const AdminPanel = ({
       )}
 
       <div className="flex justify-center mb-6">
-        <div className="inline-flex bg-gray-100 p-1 rounded-lg shadow-sm">
+        <div className="inline-flex flex-wrap justify-center gap-1 bg-gray-100 p-1 rounded-lg shadow-sm">
           <button
-            onClick={() => setActiveFilter("all")}
+            onClick={() => setActiveFilter(ALL_ROLE_FILTER)}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
               ${
-                activeFilter === "all"
+                activeFilter === ALL_ROLE_FILTER
                   ? "bg-teal-500 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-200"
               }`}
           >
             전체
           </button>
-          <button
-            onClick={() => setActiveFilter("caregiver")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
+          {availableRoles.map((role) => (
+            <button
+              key={role}
+              onClick={() => setActiveFilter(role)}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
               ${
-                activeFilter === "caregiver"
+                activeFilter === role
                   ? "bg-teal-500 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-200"
               }`}
-          >
-            요양보호사
-          </button>
-          <button
-            onClick={() => setActiveFilter("office")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
-              ${
-                activeFilter === "office"
-                  ? "bg-teal-500 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-200"
-              }`}
-          >
-            사무직
-          </button>
+            >
+              {getRoleDisplayName(role)}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="overflow-y-auto max-h-[60vh] mb-6">
-        {activeFilter === "all" ? (
+        {availableRoles.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
-            카테고리를 선택하면 해당 카테고리별 휴가 제한을 설정할 수 있습니다.
-            <br />각 날짜별로 요양보호사/사무실 인원을 따로 입력할 수 있습니다.
+            설정할 역할이 없습니다.
+            <br />
+            회원관리의 역할관리에서 역할을 먼저 등록해주세요.
+          </div>
+        ) : activeFilter === ALL_ROLE_FILTER ? (
+          <div className="text-center text-gray-500 py-8">
+            역할을 선택하면 해당 역할별 휴가 제한을 설정할 수 있습니다.
+            <br />
+            회원관리의 역할관리에서 등록한 역할이 여기서 함께 표시됩니다.
           </div>
         ) : (
           <table className="w-full border-collapse border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -362,9 +358,7 @@ const AdminPanel = ({
               <tr>
                 <th className="p-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase">날짜</th>
                 <th className="p-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase">
-                  {activeFilter === "caregiver"
-                    ? "요양보호사 최대 인원"
-                    : "사무실 최대 인원"}
+                  {getRoleDisplayName(activeFilter)} 최대 인원
                 </th>
               </tr>
             </thead>
@@ -392,11 +386,7 @@ const AdminPanel = ({
                         type="number"
                         min="0"
                         value={limit.maxPeople}
-                        placeholder={
-                          activeFilter === "caregiver"
-                            ? "요양보호사 인원"
-                            : "사무실 인원"
-                        }
+                        placeholder={`${getRoleDisplayName(activeFilter)} 인원`}
                         onChange={(e) =>
                           handleUpdateLimit(
                             limit.date,
@@ -426,7 +416,7 @@ const AdminPanel = ({
         <button
           onClick={saveChanges}
           className="px-5 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 disabled:bg-gray-300 transition-colors disabled:cursor-not-allowed flex items-center"
-          disabled={isSaving || isSubmitting}
+          disabled={isSaving || isSubmitting || availableRoles.length === 0}
         >
           {isSaving || isSubmitting ? (
             <>

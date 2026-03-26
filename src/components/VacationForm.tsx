@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { VacationFormProps, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
-import { FiUser, FiBriefcase, FiUsers, FiCalendar, FiClock, FiLock } from 'react-icons/fi';
+import { FiBriefcase, FiCalendar, FiClock } from 'react-icons/fi';
 import { useAlert } from './Alert';
+import {
+  ALL_ROLE_FILTER,
+  getRoleBadgeClasses,
+  getRoleDisplayName,
+  getStoredUserRole,
+} from '@/lib/roleUtils';
 
 const VacationForm: React.FC<VacationFormProps> = ({ 
   initialDate, 
@@ -12,32 +18,76 @@ const VacationForm: React.FC<VacationFormProps> = ({
   onCancel,
   isSubmitting,
   setIsSubmitting,
-  roleFilter
+  roleFilter = ALL_ROLE_FILTER,
+  roleOptions = [],
 }) => {
   const { showAlert, AlertContainer } = useAlert();
   const [userName, setUserName] = useState('');
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
   const [type, setType] = useState<'regular' | 'mandatory'>('regular');
-  const [role, setRole] = useState<'caregiver' | 'office' | 'all'>(roleFilter && roleFilter !== 'all' ? roleFilter : 'caregiver');
+  const [role, setRole] = useState('');
   const [duration, setDuration] = useState<VacationDuration>('FULL_DAY');
   const [errors, setErrors] = useState({
     userName: '',
     reason: '',
-    password: ''
+    password: '',
+    role: '',
   });
 
-  useEffect(() => {
-    if (roleFilter && roleFilter !== 'all') {
-      setRole(roleFilter);
+  const selectableRoles = useMemo(() => {
+    const resolvedRoles: string[] = [];
+    const seen = new Set<string>();
+
+    const addRole = (value?: string | null) => {
+      const trimmedValue = value?.trim();
+      if (!trimmedValue || trimmedValue === ALL_ROLE_FILTER || seen.has(trimmedValue)) {
+        return;
+      }
+
+      seen.add(trimmedValue);
+      resolvedRoles.push(trimmedValue);
+    };
+
+    if (roleFilter !== ALL_ROLE_FILTER) {
+      addRole(roleFilter);
     }
-  }, [roleFilter]);
+
+    roleOptions.forEach((roleOption) => {
+      addRole(roleOption);
+    });
+
+    addRole(getStoredUserRole());
+
+    if (resolvedRoles.length === 0) {
+      addRole('caregiver');
+      addRole('office');
+    }
+
+    return resolvedRoles;
+  }, [roleFilter, roleOptions]);
+
+  useEffect(() => {
+    if (roleFilter !== ALL_ROLE_FILTER) {
+      setRole(roleFilter);
+      return;
+    }
+
+    setRole((currentRole) => {
+      if (currentRole && selectableRoles.includes(currentRole)) {
+        return currentRole;
+      }
+
+      return selectableRoles[0] || '';
+    });
+  }, [roleFilter, selectableRoles]);
 
   const validate = (): boolean => {
     const newErrors = {
       userName: '',
       reason: '',
-      password: ''
+      password: '',
+      role: '',
     };
     let isValid = true;
 
@@ -53,6 +103,11 @@ const VacationForm: React.FC<VacationFormProps> = ({
     
     if (!password.trim()) {
       newErrors.password = '비밀번호를 입력해주세요';
+      isValid = false;
+    }
+
+    if (!role.trim()) {
+      newErrors.role = '역할을 선택해주세요';
       isValid = false;
     }
 
@@ -285,59 +340,56 @@ const VacationForm: React.FC<VacationFormProps> = ({
         
         <div>
           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-            직원 유형 *
+            직원 역할 *
           </label>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <label className={`flex flex-col items-center p-2 sm:p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${role === 'caregiver' ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <input
-                type="radio"
-                name="roleType"
-                value="caregiver"
-                checked={role === 'caregiver'}
-                onChange={() => setRole('caregiver')}
-                className="hidden"
-                disabled={isSubmitting || (roleFilter && roleFilter !== 'all' && roleFilter !== 'caregiver')}
-              />
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${role === 'caregiver' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                <FiUser size={20} className="sm:w-5 sm:h-5" />
-              </div>
-              <span className="text-gray-700 font-medium text-xs sm:text-sm text-center">요양보호사</span>
-            </label>
-            
-            <label className={`flex flex-col items-center p-2 sm:p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${role === 'office' ? 'bg-green-50 border-green-200 ring-1 ring-green-300' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <input
-                type="radio"
-                name="roleType"
-                value="office"
-                checked={role === 'office'}
-                onChange={() => setRole('office')}
-                className="hidden"
-                disabled={isSubmitting || (roleFilter && roleFilter !== 'all' && roleFilter !== 'office')}
-              />
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${role === 'office' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                <FiBriefcase size={20} className="sm:w-5 sm:h-5" />
-              </div>
-              <span className="text-gray-700 font-medium text-xs sm:text-sm text-center">사무실</span>
-            </label>
-            
-            <label className={`flex flex-col items-center p-2 sm:p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${role === 'all' ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-300' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <input
-                type="radio"
-                name="roleType"
-                value="all"
-                checked={role === 'all'}
-                onChange={() => setRole('all')}
-                className="hidden"
-                disabled={isSubmitting || (roleFilter && roleFilter !== 'all')}
-              />
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${role === 'all' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
-                <FiUsers size={20} className="sm:w-5 sm:h-5" />
-              </div>
-              <span className="text-gray-700 font-medium text-xs sm:text-sm text-center">전체</span>
-            </label>
+          {selectableRoles.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+              {selectableRoles.map((roleOption) => {
+                const isSelected = role === roleOption;
+                const badgeClasses = getRoleBadgeClasses(roleOption);
+                const isLockedRole =
+                  roleFilter !== ALL_ROLE_FILTER && roleFilter !== roleOption;
+
+                return (
+                  <label
+                    key={roleOption}
+                    className={`flex flex-col items-center p-2 sm:p-3 border rounded-lg cursor-pointer transition-colors ${
+                      isSelected
+                        ? `${badgeClasses} ring-1 ring-current`
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                    } ${isSubmitting || isLockedRole ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="roleType"
+                      value={roleOption}
+                      checked={isSelected}
+                      onChange={() => setRole(roleOption)}
+                      className="hidden"
+                      disabled={isSubmitting || isLockedRole}
+                    />
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${
+                      isSelected ? 'bg-white/70 text-current' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      <FiBriefcase size={20} className="sm:w-5 sm:h-5" />
+                    </div>
+                    <span className="font-medium text-xs sm:text-sm text-center">
+                      {getRoleDisplayName(roleOption)}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs sm:text-sm text-amber-700">
+              사용할 역할이 없습니다. 회원관리의 역할관리에서 역할을 먼저 등록해주세요.
+            </div>
+          )}
+          {errors.role && (
+            <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.role}</p>
+          )}
           </div>
-        </div>
-        
+
         <div className="flex justify-end space-x-2 sm:space-x-3 pt-4 sm:pt-5 border-t mt-4 sm:mt-6">
           <button
             type="button"

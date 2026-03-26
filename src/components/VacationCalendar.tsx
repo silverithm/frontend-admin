@@ -11,17 +11,25 @@ import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCir
 import * as htmlToImage from 'html-to-image';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
+import {
+  ALL_ROLE_FILTER,
+  compareRoleNames,
+  getRoleDisplayName,
+  getVacationRequestRole,
+  type RoleLookup,
+} from '@/lib/roleUtils';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 interface VacationCalendarProps extends CalendarProps {
   currentDate: Date;
   setCurrentDate: (date: Date | SetStateAction<Date>) => void;
-  roleFilter?: 'all' | 'caregiver' | 'office';
+  roleFilter?: string;
   nameFilter?: string | null;
   onShowLimitPanel?: () => void;
   onNameFilterChange?: (name: string | null) => void;
   sortOrder?: 'latest' | 'oldest' | 'vacation-date-asc' | 'vacation-date-desc' | 'name' | 'role';
+  memberRoleLookup?: RoleLookup;
 }
 
 const VacationCalendar: React.FC<VacationCalendarProps> = ({
@@ -31,11 +39,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   maxPeopleAllowed = 5,
   currentDate,
   setCurrentDate,
-  roleFilter = 'all',
+  roleFilter = ALL_ROLE_FILTER,
   nameFilter = null,
   onShowLimitPanel,
   onNameFilterChange,
   sortOrder = 'latest',
+  memberRoleLookup,
 }) => {
   const [calendarData, setCalendarData] = useState<VacationData>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -76,17 +85,18 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       if (dateData && dateData.vacations && dateData.vacations.length > 0) {
         // 필터에 맞는 휴가만 로깅
         const filteredVacations = dateData.vacations.filter(v => {
-          return roleFilter === 'all' || v.role === roleFilter || v.role === 'all';
+          const resolvedRole = getVacationRequestRole(v, memberRoleLookup);
+          return roleFilter === ALL_ROLE_FILTER || resolvedRole === roleFilter;
         });
         
         if (filteredVacations.length > 0) {
           const vacationersInfo = filteredVacations.map(v => 
-            `${v.userName}(${v.role}, ${v.status})`
+            `${v.userName}(${getVacationRequestRole(v, memberRoleLookup) || v.role}, ${v.status})`
           ).join(', ');
         }
       }
     });
-  }, [calendarData, roleFilter]);
+  }, [calendarData, memberRoleLookup, roleFilter]);
   
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const currentRequestIdRef = React.useRef<string | null>(null);
@@ -223,7 +233,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
 
       // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
-      const data = await getVacationForDate(formattedDate, roleFilter === 'all' ? 'caregiver' : roleFilter, nameFilter || undefined);
+      const data = await getVacationForDate(formattedDate, roleFilter === ALL_ROLE_FILTER ? ALL_ROLE_FILTER : roleFilter, nameFilter || undefined);
       
 
       if (data) {
@@ -352,7 +362,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
 
     // 전체 필터일 때는 무색, 단 오늘 날짜는 파란색
-    if (roleFilter === 'all') {
+    if (roleFilter === ALL_ROLE_FILTER) {
       if (isToday(date)) {
         return {
           bg: 'bg-teal-50',
@@ -428,8 +438,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     
     vacations = vacations.filter(vacation => vacation.status !== 'rejected');
     
-    if (roleFilter !== 'all') {
-      vacations = vacations.filter(vacation => vacation.role === roleFilter);
+    if (roleFilter !== ALL_ROLE_FILTER) {
+      vacations = vacations.filter((vacation) => {
+        const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
+        return resolvedRole === roleFilter;
+      });
     }
     
     // 이름 필터링 추가
@@ -456,15 +469,14 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         break;
       case 'role':
         vacations.sort((a, b) => {
-          // 요양보호사를 먼저, 그 다음 사무직
-          const roleOrder = { caregiver: 0, office: 1 };
-          const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 2;
-          const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 2;
-          
-          if (aOrder !== bOrder) {
-            return aOrder - bOrder;
+          const aRole = getVacationRequestRole(a, memberRoleLookup);
+          const bRole = getVacationRequestRole(b, memberRoleLookup);
+          const roleComparison = compareRoleNames(aRole, bRole);
+
+          if (roleComparison !== 0) {
+            return roleComparison;
           }
-          // 같은 직무 내에서는 이름순
+
           return (a.userName || '').localeCompare(b.userName || '');
         });
         break;
@@ -624,14 +636,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 역할 한글 변환
   const getRoleText = (role?: string) => {
     switch (role) {
-      case 'caregiver':
-        return '요양보호사';
-      case 'office':
-        return '사무직';
-      case 'admin':
-        return '관리자';
       default:
-        return role || '직원';
+        return getRoleDisplayName(role);
     }
   };
 
@@ -908,7 +914,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                     )}
                   </div>
                   
-                  {isCurrentMonth && roleFilter !== 'all' && vacationersCount > 0 && (
+                  {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
                     <span className={`
                       text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded-full inline-flex items-center
                       ${
@@ -996,7 +1002,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   </div>
                 )}
                 
-                {isCurrentMonth && roleFilter !== 'all' && vacationersCount > 0 && (
+                {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
                   <div className="absolute bottom-0.5 sm:bottom-1.5 right-0.5 sm:right-1.5">
                     {vacationersCount >= maxPeople ? (
                       <div className="bg-red-500 text-white rounded-full w-2.5 h-2.5 sm:w-4 sm:h-4 flex items-center justify-center">

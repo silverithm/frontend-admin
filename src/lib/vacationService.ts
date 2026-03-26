@@ -147,7 +147,7 @@ export async function getVacationLimitsForMonthRange(startDate: string, endDate:
 }
 
 // 특정 날짜와 역할의 휴가 제한 정보 가져오기
-export async function getVacationLimitForDate(date: Date, role: 'caregiver' | 'office') {
+export async function getVacationLimitForDate(date: Date, role: string) {
   try {
     const formattedDate = format(date, 'yyyy-MM-dd');
     
@@ -182,7 +182,7 @@ export async function getVacationLimitForDate(date: Date, role: 'caregiver' | 'o
 }
 
 // 휴가 제한 설정
-export async function setVacationLimit(date: Date, maxPeople: number, role: 'caregiver' | 'office') {
+export async function setVacationLimit(date: Date, maxPeople: number, role: string) {
   try {
     const formattedDate = format(date, 'yyyy-MM-dd');
     
@@ -248,4 +248,3 @@ export async function getVacationLimits(startDate: Date, endDate: Date) {
     throw error;
   }
 }
-
