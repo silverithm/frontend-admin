@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import {
   getAllMembers,
   getAllVacationRequests,
   getApprovalRequests,
+  getNotices,
   getPendingJoinRequests,
   getSchedules,
   getVacationCalendar,
@@ -30,9 +31,24 @@ interface VacationItem {
   startDate?: string;
 }
 
+interface NoticeItem {
+  id: string;
+  title: string;
+  content?: string;
+  priority?: string;
+  status?: string;
+  createdAt?: string;
+  authorName?: string;
+  viewCount?: number;
+}
+
 interface ApprovalItem {
   id: string;
   status?: string;
+  title?: string;
+  templateName?: string;
+  requesterName?: string;
+  createdAt?: string;
 }
 
 interface ScheduleItem {
@@ -44,6 +60,9 @@ interface ScheduleItem {
   startTime?: string;
   endTime?: string;
   isAllDay?: boolean;
+  description?: string;
+  location?: string;
+  participants?: string[];
 }
 
 interface VacationCalendarItem {
@@ -63,7 +82,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [pendingJoinRequests, setPendingJoinRequests] = useState<unknown[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [vacationCalendar, setVacationCalendar] = useState<VacationCalendarItem[]>([]);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [monthlySchedules, setMonthlySchedules] = useState<ScheduleItem[]>([]);
   const [currentTime, setCurrentTime] = useState(format(new Date(), 'HH:mm:ss'));
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -76,6 +99,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     const loadData = async () => {
       setIsLoading(true);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const monthStartStr = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+      const monthEndStr = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
       const results = await Promise.allSettled([
         getAllMembers(),
@@ -84,6 +109,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         getPendingJoinRequests(),
         getSchedules(todayStr, todayStr),
         getVacationCalendar(todayStr, todayStr),
+        getNotices(),
+        getSchedules(monthStartStr, monthEndStr),
       ]);
 
       // Helper to safely extract array from API response
@@ -144,6 +171,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         }
       }
 
+      if (results[6].status === 'fulfilled') {
+        const arr = extractArray(results[6].value, 'notices', 'content', 'data');
+        setNotices(arr as NoticeItem[]);
+      }
+
+      if (results[7].status === 'fulfilled') {
+        const arr = extractArray(results[7].value, 'schedules', 'content', 'data');
+        setMonthlySchedules(arr as ScheduleItem[]);
+      }
+
       setIsLoading(false);
     };
 
@@ -153,6 +190,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const pendingVacationCount = vacationRequests.filter(
     (v) => v.status === 'pending' || v.status === 'PENDING'
   ).length;
+
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const selectedSchedules = monthlySchedules.filter((s) => {
+    const start = s.startDate?.substring(0, 10);
+    const end = s.endDate?.substring(0, 10);
+    if (start && end) {
+      return selectedDateStr >= start && selectedDateStr <= end;
+    }
+    return start === selectedDateStr;
+  });
 
   if (isLoading) {
     return (
@@ -285,25 +332,223 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         ))}
       </div>
 
-      {/* 3. Two-column: 오늘의 일정 + 오늘 휴무자 */}
+      {/* 3. Four-panel grid: 공지사항, 전자결재, 월간일정, 오늘의 일정 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-3"
       >
-        {/* Left: 오늘의 일정 (Timeline) */}
+        {/* Top-Left: 공지사항 */}
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">공지사항</h2>
+                <p className="text-xs text-gray-400">{notices.length}개</p>
+              </div>
+            </div>
+            <button
+              onClick={() => onTabChange('notice')}
+              className="text-xs text-amber-600 hover:text-amber-700 font-semibold transition-colors"
+            >
+              전체보기 →
+            </button>
+          </div>
+
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
+            {notices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-400">공지사항이 없습니다</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {notices.slice(0, 5).map((notice) => (
+                  <div
+                    key={notice.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => onTabChange('notice')}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {notice.priority === 'HIGH' && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded font-semibold flex-shrink-0">중요</span>
+                        )}
+                        <p className="text-sm text-gray-800 font-medium truncate">{notice.title}</p>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {notice.authorName && `${notice.authorName} · `}
+                        {notice.createdAt ? format(new Date(notice.createdAt), 'M.d') : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top-Right: 전자결재 */}
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">전자결재</h2>
+                <p className="text-xs text-gray-400">대기 {approvalRequests.length}건</p>
+              </div>
+            </div>
+            <button
+              onClick={() => onTabChange('approval')}
+              className="text-xs text-violet-600 hover:text-violet-700 font-semibold transition-colors"
+            >
+              전체보기 →
+            </button>
+          </div>
+
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
+            {approvalRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-400">대기 중인 결재가 없습니다</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {approvalRequests.slice(0, 5).map((approval) => (
+                  <div
+                    key={approval.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => onTabChange('approval')}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-800 font-medium truncate">
+                        {approval.title || approval.templateName || '결재 요청'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {approval.requesterName && `${approval.requesterName} · `}
+                        {approval.createdAt ? format(new Date(approval.createdAt), 'M.d') : ''}
+                      </p>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-600 rounded-full font-semibold flex-shrink-0">
+                      대기
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom-Left: 월간일정 */}
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">월간일정</h2>
+                <p className="text-xs text-gray-400">{format(new Date(), 'yyyy년 M월', { locale: ko })}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => onTabChange('schedule')}
+              className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+            >
+              전체보기 →
+            </button>
+          </div>
+
+          <div className="px-4 pb-3">
+            <div className="grid grid-cols-7 gap-0.5">
+              {['일','월','화','수','목','금','토'].map((d) => (
+                <div key={d} className={`text-center text-[11px] font-medium py-1 ${d === '일' ? 'text-red-400' : d === '토' ? 'text-blue-400' : 'text-gray-400'}`}>{d}</div>
+              ))}
+              {(() => {
+                const now = new Date();
+                const mStart = startOfMonth(now);
+                const mEnd = endOfMonth(now);
+                const calStart = startOfWeek(mStart, { weekStartsOn: 0 });
+                const calEnd = endOfWeek(mEnd, { weekStartsOn: 0 });
+                const days = eachDayOfInterval({ start: calStart, end: calEnd });
+                return days.map((day) => {
+                  const inMonth = isSameMonth(day, now);
+                  const todayFlag = isToday(day);
+                  const dayStr = format(day, 'yyyy-MM-dd');
+                  const dayOfWeek = day.getDay();
+                  const hasSchedule = monthlySchedules.some((s) => {
+                    const start = s.startDate?.substring(0, 10);
+                    const end = s.endDate?.substring(0, 10);
+                    if (start && end) {
+                      return dayStr >= start && dayStr <= end;
+                    }
+                    return start === dayStr;
+                  });
+                  const isSelected = inMonth && selectedDateStr === dayStr && !todayFlag;
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      onClick={() => inMonth && setSelectedDate(day)}
+                      className={`text-center py-1.5 text-xs rounded-lg relative cursor-pointer transition-colors ${
+                        !inMonth ? 'text-gray-200' :
+                        todayFlag && selectedDateStr === dayStr ? 'bg-emerald-500 text-white font-bold ring-2 ring-emerald-300' :
+                        todayFlag ? 'bg-emerald-500 text-white font-bold' :
+                        isSelected ? 'bg-blue-500 text-white font-bold' :
+                        dayOfWeek === 0 ? 'text-red-500 hover:bg-red-50' :
+                        dayOfWeek === 6 ? 'text-blue-500 hover:bg-blue-50' :
+                        'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {format(day, 'd')}
+                      {hasSchedule && inMonth && !todayFlag && !isSelected && (
+                        <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-400 rounded-full" />
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom-Right: 오늘의 일정 */}
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-sm font-bold text-gray-900">오늘의 일정</h2>
-                <p className="text-xs text-gray-400">{schedules.length}개</p>
+                <h2 className="text-sm font-bold text-gray-900">
+                  {isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 일정', { locale: ko })}
+                </h2>
+                <p className="text-xs text-gray-400">{selectedSchedules.length}개</p>
               </div>
             </div>
             <button
@@ -315,31 +560,34 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           </div>
 
           <div className="px-4 pb-4 overflow-y-auto flex-1">
-            {schedules.length === 0 ? (
+            {selectedSchedules.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3">
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
                   <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-400">오늘 일정이 없습니다</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    {isToday(selectedDate) ? '오늘 일정이 없습니다' : `${format(selectedDate, 'M월 d일')} 일정이 없습니다`}
+                  </p>
                   <p className="text-xs text-gray-300 mt-0.5">월간일정에서 일정을 추가해보세요</p>
                 </div>
               </div>
             ) : (
               <div className="space-y-0">
-                {schedules.slice(0, 6).map((schedule, idx) => (
-                  <div key={schedule.id} className="flex gap-3 group">
-                    {/* Timeline line + dot */}
+                {selectedSchedules.slice(0, 5).map((schedule, idx) => (
+                  <div
+                    key={schedule.id}
+                    className="flex gap-3 group cursor-pointer hover:bg-blue-50 rounded-lg transition-colors"
+                    onClick={() => setSelectedSchedule(schedule)}
+                  >
                     <div className="flex flex-col items-center flex-shrink-0">
                       <div className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-50 flex-shrink-0 mt-1.5" />
-                      {idx < Math.min(schedules.length, 6) - 1 && (
+                      {idx < Math.min(selectedSchedules.length, 5) - 1 && (
                         <div className="w-0.5 flex-1 bg-gray-100 my-1" />
                       )}
                     </div>
-
-                    {/* Content */}
                     <div className="pb-4 flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-blue-600 tabular-nums">
@@ -359,67 +607,148 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             )}
           </div>
         </div>
+      </motion.div>
 
-        {/* Right: 오늘 휴무자 */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
-          <div className="px-4 pt-4 pb-2 flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m14.95-6.95l-.7.7M6.41 17.59l-.7.7m12.02 0l-.7-.7M6.41 6.41l-.7-.7M12 7a5 5 0 100 10A5 5 0 0012 7z" />
-              </svg>
+      {/* 일정 상세 모달 */}
+      {selectedSchedule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedSchedule(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {selectedSchedule.category && (
+                    <span className="text-xs px-2 py-0.5 bg-white/20 text-white rounded-full font-medium">
+                      {selectedSchedule.category}
+                    </span>
+                  )}
+                  {selectedSchedule.isAllDay && (
+                    <span className="text-xs px-2 py-0.5 bg-white/20 text-white rounded-full font-medium">
+                      종일
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedSchedule(null)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <h3 className="text-white text-lg font-bold mt-2">{selectedSchedule.title}</h3>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">오늘 휴무자</h2>
-              <p className="text-xs text-gray-400">{vacationCalendar.length}명</p>
-            </div>
-          </div>
 
-          <div className="px-4 pb-4 overflow-y-auto flex-1">
-            {vacationCalendar.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            {/* 내용 */}
+            <div className="px-6 py-4 space-y-4">
+              {/* 날짜 */}
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-400">오늘 휴무자가 없습니다</p>
-                  <p className="text-xs text-gray-300 mt-0.5">전원 근무 중입니다</p>
+                <div>
+                  <p className="text-xs text-gray-400 font-medium">날짜</p>
+                  <p className="text-sm text-gray-800 font-medium">
+                    {selectedSchedule.startDate ? format(new Date(selectedSchedule.startDate), 'yyyy년 M월 d일 (EEEE)', { locale: ko }) : '-'}
+                    {selectedSchedule.endDate && selectedSchedule.startDate !== selectedSchedule.endDate && (
+                      <> ~ {format(new Date(selectedSchedule.endDate), 'M월 d일 (EEEE)', { locale: ko })}</>
+                    )}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {vacationCalendar.slice(0, 3).map((item) => {
-                  const name = item.userName || item.memberName || item.name || '?';
-                  const colorIdx = name.charCodeAt(0) % avatarColors.length;
-                  const typeText = [item.vacationType, item.duration].filter(Boolean).join(' · ') || '휴무';
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <div className={`w-9 h-9 rounded-full ${avatarColors[colorIdx]} flex items-center justify-center flex-shrink-0`}>
-                        <span className="text-xs font-bold text-white">{name.charAt(0)}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800">{name}</p>
-                        <p className="text-xs text-gray-400">{typeText}</p>
-                      </div>
-                      <div className="px-2 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-semibold rounded-full flex-shrink-0">
-                        휴무
-                      </div>
+              {/* 시간 */}
+              {!selectedSchedule.isAllDay && (selectedSchedule.startTime || selectedSchedule.endTime) && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">시간</p>
+                    <p className="text-sm text-gray-800 font-medium">
+                      {selectedSchedule.startTime || ''}
+                      {selectedSchedule.endTime && ` ~ ${selectedSchedule.endTime}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 장소 */}
+              {selectedSchedule.location && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">장소</p>
+                    <p className="text-sm text-gray-800 font-medium">{selectedSchedule.location}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 설명 */}
+              {selectedSchedule.description && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">설명</p>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedSchedule.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 참석자 */}
+              {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">참석자</p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {selectedSchedule.participants.map((p, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full font-medium">{p}</span>
+                      ))}
                     </div>
-                  );
-                })}
-                {vacationCalendar.length > 3 && (
-                  <p className="text-xs text-gray-400 text-center pt-1">외 {vacationCalendar.length - 3}명</p>
-                )}
-              </div>
-            )}
-          </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 하단 */}
+            <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => setSelectedSchedule(null)}
+                className="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+      )}
     </div>
   );
 }
