@@ -1,6 +1,7 @@
 // apiService.ts - Spring Boot 백엔드 API 호출을 위한 서비스
 
 import {VacationRequest, VacationLimit} from '@/types/vacation';
+import { ALL_ROLE_FILTER, getStoredUserRole } from '@/lib/roleUtils';
 import {
     SigninResponseDTO,
     MemberSigninResponseDTO,
@@ -261,7 +262,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
 // ================== 휴가 관련 API ==================
 
 // 휴가 캘린더 데이터 조회 (companyId 추가)
-export async function getVacationCalendar(startDate: string, endDate: string, roleFilter = 'all', nameFilter?: string) {
+export async function getVacationCalendar(startDate: string, endDate: string, roleFilter = ALL_ROLE_FILTER, nameFilter?: string) {
     const companyId = getCompanyId();
     if (!companyId) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
@@ -275,7 +276,7 @@ export async function getVacationCalendar(startDate: string, endDate: string, ro
 }
 
 // 특정 날짜 휴가 데이터 조회 (companyId 추가)
-export async function getVacationForDate(date: string, role = 'caregiver', nameFilter?: string) {
+export async function getVacationForDate(date: string, role = ALL_ROLE_FILTER, nameFilter?: string) {
     const companyId = getCompanyId();
     if (!companyId) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
@@ -360,7 +361,8 @@ export async function requestVacation(data: {
 
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
-    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') || 'employee' : 'employee';
+    const role = getStoredUserRole()
+        || (typeof window !== 'undefined' ? localStorage.getItem('userRole') || 'employee' : 'employee');
 
     return fetchWithAuth(`/api/vacation/submit?companyId=${companyId}`, {
         method: 'POST',
@@ -864,7 +866,7 @@ export async function getPositions() {
 }
 
 // 직책 생성
-export async function createPosition(data: { name: string; description?: string; sortOrder?: number }) {
+export async function createPosition(data: { name: string; description?: string; memberRole?: 'caregiver' | 'office' | null; sortOrder?: number }) {
     const companyId = getCompanyId();
     if (!companyId) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
@@ -876,7 +878,7 @@ export async function createPosition(data: { name: string; description?: string;
 }
 
 // 직책 수정
-export async function updatePosition(id: number, data: { name?: string; description?: string; sortOrder?: number }) {
+export async function updatePosition(id: number, data: { name?: string; description?: string; memberRole?: 'caregiver' | 'office' | null; sortOrder?: number }) {
     return fetchWithAuth(`/api/v1/positions/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -932,7 +934,7 @@ export async function updateVacationStatus(id: string, status: 'pending' | 'appr
     throw new Error('지원하지 않는 상태입니다.');
 }
 
-export async function setVacationLimit(date: Date, maxPeople: number, role: 'caregiver' | 'office') {
+export async function setVacationLimit(date: Date, maxPeople: number, role: string) {
     const dateString = date.toISOString().split('T')[0];
     return saveVacationLimits([{
         date: dateString,

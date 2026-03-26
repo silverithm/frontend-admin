@@ -7,12 +7,20 @@ import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter
 import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, type PendingUser } from '@/lib/apiService';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
+import PositionManagement from '@/components/PositionManagement';
+import {
+  ALL_ROLE_FILTER,
+  buildRoleNames,
+  getMemberRoleName,
+  getRoleBadgeClasses,
+  getRoleDisplayName,
+} from '@/lib/roleUtils';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  role: 'caregiver' | 'office' | 'admin';
+  role: string;
   status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
   requestedAt?: number;
   approvedAt?: number;
@@ -29,12 +37,12 @@ interface UserManagementProps {
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, isAdmin = true }) => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'seniors'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'roles' | 'seniors'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [members, setMembers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'caregiver' | 'office' | 'admin'>('all');
+  const [roleFilter, setRoleFilter] = useState<string>(ALL_ROLE_FILTER);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -79,7 +87,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role as 'caregiver' | 'office' | 'admin',
+        role: user.role,
         status: 'pending' as const,
         requestedAt: user.requestedAt ? new Date(user.requestedAt).getTime() : undefined,
       }));
@@ -244,11 +252,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     s.name.toLowerCase().includes(seniorSearchTerm.toLowerCase())
   );
 
+  const availableRoles = buildRoleNames({
+    positions,
+    members,
+    includeAdmin: true,
+  });
+
   // ==================== 직책 관리 핸들러 ====================
 
   const handleCreatePosition = async () => {
     if (!positionForm.name.trim()) {
-      onNotification('직책명을 입력해주세요.', 'error');
+      onNotification('역할명을 입력해주세요.', 'error');
       return;
     }
     setIsProcessing(true);
@@ -257,9 +271,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       await fetchUsers();
       setShowPositionModal(false);
       setPositionForm({ name: '', description: '' });
-      onNotification('직책이 등록되었습니다.', 'success');
+      onNotification('역할이 등록되었습니다.', 'success');
     } catch (error) {
-      onNotification('직책 등록에 실패했습니다.', 'error');
+      onNotification('역할 등록에 실패했습니다.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -274,9 +288,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       setShowPositionModal(false);
       setEditingPosition(null);
       setPositionForm({ name: '', description: '' });
-      onNotification('직책이 수정되었습니다.', 'success');
+      onNotification('역할이 수정되었습니다.', 'success');
     } catch (error) {
-      onNotification('직책 수정에 실패했습니다.', 'error');
+      onNotification('역할 수정에 실패했습니다.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -290,9 +304,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       await fetchUsers();
       setShowDeletePositionModal(false);
       setSelectedPosition(null);
-      onNotification('직책이 삭제되었습니다.', 'success');
+      onNotification('역할이 삭제되었습니다.', 'success');
     } catch (error) {
-      onNotification('직책 삭제에 실패했습니다.', 'error');
+      onNotification('역할 삭제에 실패했습니다.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -303,9 +317,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       await assignPositionToMember(memberId, positionId);
       await fetchUsers();
-      onNotification('직책이 변경되었습니다.', 'success');
+      onNotification('역할이 변경되었습니다.', 'success');
     } catch (error) {
-      onNotification('직책 변경에 실패했습니다.', 'error');
+      onNotification('역할 변경에 실패했습니다.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -330,7 +344,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const filteredMembers = members.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesRole = roleFilter === ALL_ROLE_FILTER || getMemberRoleName(user) === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     
     return matchesSearch && matchesRole && matchesStatus;
@@ -343,12 +357,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   });
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'caregiver': return '요양보호사';
-      case 'office': return '사무직';
-      case 'admin': return '관리자';
-      default: return role;
-    }
+    return getRoleDisplayName(role);
   };
 
   const getStatusLabel = (status: string) => {
@@ -427,6 +436,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             <FiUsers className="inline mr-2" size={16} />
             기존 회원 ({members.length})
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('roles')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'roles'
+                  ? 'border-teal-500 text-teal-700 bg-teal-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <FiBriefcase className="inline mr-2" size={16} />
+              역할 관리
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('seniors')}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -442,6 +464,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       </div>
 
       {/* 검색 및 필터 */}
+      {activeTab !== 'roles' && (
       <div className="p-4 bg-gray-50 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* 검색 */}
@@ -488,10 +511,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     onChange={(e) => setRoleFilter(e.target.value as any)}
                     className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                   >
-                    <option value="all">모든 역할</option>
-                    <option value="caregiver">요양보호사</option>
-                    <option value="office">사무직</option>
-                    <option value="admin">관리자</option>
+                    <option value={ALL_ROLE_FILTER}>모든 역할</option>
+                    {availableRoles.map((roleName) => (
+                      <option key={roleName} value={roleName}>
+                        {getRoleDisplayName(roleName)}
+                      </option>
+                    ))}
                   </select>
 
                   <select
@@ -504,25 +529,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     <option value="inactive">비활성화</option>
                   </select>
 
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        setEditingPosition(null);
-                        setPositionForm({ name: '', description: '' });
-                        setShowPositionModal(true);
-                      }}
-                      className="px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-300 rounded-md hover:bg-teal-100 flex items-center whitespace-nowrap"
-                    >
-                      <FiBriefcase className="mr-1" size={14} />
-                      직책 관리
-                    </button>
-                  )}
                 </>
               )}
             </>
           )}
         </div>
       </div>
+      )}
 
       {/* 컨텐츠 영역 */}
       <div className="p-6">
@@ -612,6 +625,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   ))}
                 </div>
               )}
+            </motion.div>
+          ) : activeTab === 'roles' ? (
+            <motion.div
+              key="roles"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PositionManagement
+                organizationName={organizationName}
+                onNotification={onNotification}
+                isAdmin={isAdmin}
+              />
             </motion.div>
           ) : activeTab === 'pending' ? (
             <motion.div
@@ -710,7 +737,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredMembers.map((user) => (
+                  {filteredMembers.map((user) => {
+                    const resolvedRole = getMemberRoleName(user);
+                    const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
+
+                    return (
                     <motion.div
                       key={user.id}
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -732,12 +763,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(user.status)}`}>
                                 {getStatusLabel(user.status)}
                               </span>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full border ${
-                                user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                user.role === 'caregiver' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                'bg-green-50 text-green-700 border-green-200'
-                              }`}>
-                                {getRoleLabel(user.role)}
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full border ${roleBadgeClasses}`}>
+                                {getRoleLabel(resolvedRole)}
                               </span>
                               {isAdmin ? (
                                 <select
@@ -753,7 +780,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                       : 'bg-gray-100 text-gray-500 border-gray-200'
                                   }`}
                                 >
-                                  <option value="">직책 미배정</option>
+                                  <option value="">역할 미배정</option>
                                   {positions.map(pos => (
                                     <option key={pos.id} value={pos.id.toString()}>{pos.name}</option>
                                   ))}
@@ -812,7 +839,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         )}
                       </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </motion.div>
@@ -902,7 +930,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
               <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <FiBriefcase size={20} />
-                  직책 관리
+                  역할 관리
                 </h3>
               </div>
 
@@ -910,13 +938,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 {/* 직책 추가 폼 */}
                 <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
                   <label className="block text-sm font-bold text-gray-900">
-                    {editingPosition ? '직책 수정' : '새 직책 추가'}
+                    {editingPosition ? '역할 수정' : '새 역할 추가'}
                   </label>
                   <input
                     type="text"
                     value={positionForm.name}
                     onChange={(e) => setPositionForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="직책명 (예: 요양보호사, 간호사)"
+                    placeholder="역할명 (예: 팀장, 사회복지사)"
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                   <input
@@ -951,7 +979,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 {/* 직책 목록 */}
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {positions.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-4">등록된 직책이 없습니다.</p>
+                    <p className="text-sm text-gray-400 text-center py-4">등록된 역할이 없습니다.</p>
                   ) : (
                     positions.map((pos) => (
                       <div
@@ -1021,7 +1049,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white">직책 삭제</h3>
+                <h3 className="text-lg font-bold text-white">역할 삭제</h3>
               </div>
               <div className="p-6">
                 <div className="flex items-start">
@@ -1029,7 +1057,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     <FiAlertCircle size={20} className="text-red-600" />
                   </div>
                   <p className="text-gray-700 text-sm pt-1">
-                    <strong>{selectedPosition.name}</strong> 직책을 삭제하시겠습니까?
+                    <strong>{selectedPosition.name}</strong> 역할을 삭제하시겠습니까?
                   </p>
                 </div>
               </div>

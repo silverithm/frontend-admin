@@ -21,6 +21,8 @@ import {
     getVacationForDate,
     bulkApproveVacations,
     bulkRejectVacations,
+    getMemberUsers,
+    getPositions,
 } from "@/lib/apiService";
 import {motion, AnimatePresence} from "framer-motion";
 import VacationCalendar from "@/components/VacationCalendar";
@@ -28,7 +30,6 @@ import ScheduleCalendar from "@/components/ScheduleCalendar";
 import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
-// PositionManagement는 UserManagement에 통합됨
 import SubscriptionStatus from "@/components/SubscriptionStatus";
 import ApprovalManagement from "@/components/ApprovalManagement";
 import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
@@ -38,6 +39,18 @@ import NoticeRollingBanner from "@/components/NoticeRollingBanner";
 import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
 import AdminDashboard from "@/components/AdminDashboard";
 import Image from "next/image";
+import type { Position } from "@/types/position";
+import {
+    ALL_ROLE_FILTER,
+    buildMemberRoleLookup,
+    buildRoleNames,
+    compareRoleNames,
+    getMaxRoleLimitForDate,
+    getRoleBadgeClasses,
+    getRoleDisplayName,
+    getVacationRequestRole,
+    type MemberRoleSource,
+} from "@/lib/roleUtils";
 
 type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members";
 type ApprovalSubTab = "management" | "templates";
@@ -76,13 +89,13 @@ export default function AdminPage() {
         "all" | "pending" | "approved" | "rejected"
     >("all");
     const [allRequests, setAllRequests] = useState<VacationRequest[]>([]);
-    const [roleFilter, setRoleFilter] = useState<"all" | "caregiver" | "office">(
-        "all"
-    );
+    const [roleFilter, setRoleFilter] = useState<string>(ALL_ROLE_FILTER);
     const [nameFilter, setNameFilter] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<
         "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name" | "role"
     >("latest");
+    const [members, setMembers] = useState<MemberRoleSource[]>([]);
+    const [positions, setPositions] = useState<Position[]>([]);
 
     // 다중 선택 관련 상태
     const [selectedVacationIds, setSelectedVacationIds] = useState<Set<string>>(new Set());
@@ -95,6 +108,22 @@ export default function AdminPage() {
     const [isClient, setIsClient] = useState(false);
     const [loginType, setLoginType] = useState<string>('admin');
     const isAdmin = loginType === 'admin';
+
+    const memberRoleLookup = useMemo(
+        () => buildMemberRoleLookup(members),
+        [members]
+    );
+
+    const availableRoles = useMemo(
+        () =>
+            buildRoleNames({
+                positions,
+                members,
+                requests: allRequests,
+                limits: vacationLimits,
+            }),
+        [allRequests, members, positions, vacationLimits]
+    );
 
     // 클라이언트 사이드에서만 실행되도록 하는 useEffect
     useEffect(() => {
@@ -160,8 +189,11 @@ export default function AdminPage() {
         if (statusFilter !== "all") {
             filtered = filtered.filter((request) => request.status === statusFilter);
         }
-        if (roleFilter !== "all") {
-            filtered = filtered.filter((request) => request.role === roleFilter);
+        if (roleFilter !== ALL_ROLE_FILTER) {
+            filtered = filtered.filter(
+                (request) =>
+                    getVacationRequestRole(request, memberRoleLookup) === roleFilter
+            );
         }
         if (nameFilter) {
             filtered = filtered.filter((request) => request.userName === nameFilter);
@@ -198,15 +230,15 @@ export default function AdminPage() {
                 break;
             case "role":
                 sorted.sort((a, b) => {
-                    // 요양보호사를 먼저, 그 다음 사무직
-                    const roleOrder = { caregiver: 0, office: 1 };
-                    const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 2;
-                    const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 2;
-                    
-                    if (aOrder !== bOrder) {
-                        return aOrder - bOrder;
+                    const roleComparison = compareRoleNames(
+                        getVacationRequestRole(a, memberRoleLookup),
+                        getVacationRequestRole(b, memberRoleLookup)
+                    );
+
+                    if (roleComparison !== 0) {
+                        return roleComparison;
                     }
-                    // 같은 직무 내에서는 이름순
+
                     return (a.userName || "").localeCompare(b.userName || "");
                 });
                 break;
@@ -217,6 +249,7 @@ export default function AdminPage() {
         statusFilter,
         roleFilter,
         nameFilter,
+        memberRoleLookup,
         sortOrder,
         selectedDate,
     ]);
@@ -260,19 +293,27 @@ export default function AdminPage() {
             const endDateStr = format(endDate, "yyyy-MM-dd");
 
             // apiService 함수들 사용 (토큰 갱신 로직 포함)
-            const calendarData = await getVacationCalendar(
-                startDateStr,
-                endDateStr,
-                roleFilter
-            );
-            const limitsData = await getVacationLimits(startDateStr, endDateStr);
+            const [calendarData, limitsData, membersData, positionsData] = await Promise.all([
+                getVacationCalendar(startDateStr, endDateStr, ALL_ROLE_FILTER),
+                getVacationLimits(startDateStr, endDateStr),
+                getMemberUsers().catch(() => ({ members: [] })),
+                getPositions().catch(() => ({ positions: [] })),
+            ]);
 
             const limitsMap: Record<string, VacationLimit> = {};
             const limits = Array.isArray(limitsData.limits) ? limitsData.limits : [];
+            const membersList = Array.isArray(membersData?.members)
+                ? (membersData.members as MemberRoleSource[])
+                : [];
+            const positionsList = Array.isArray(positionsData?.positions)
+                ? (positionsData.positions as Position[])
+                : [];
             limits.forEach((limit: VacationLimit) => {
                 limitsMap[`${limit.date}_${limit.role}`] = limit;
             });
             setVacationLimits(limitsMap);
+            setMembers(membersList);
+            setPositions(positionsList);
 
             const days: Record<string, DayInfo> = {};
             const dates = calendarData.dates || {};
@@ -293,18 +334,27 @@ export default function AdminPage() {
                 }
             });
 
-            Object.keys(days).forEach((date) => {
-                const keyBase = date;
-                const officeLimit = limitsMap[`${keyBase}_office`]?.maxPeople ?? 3;
-                const caregiverLimit =
-                    limitsMap[`${keyBase}_caregiver`]?.maxPeople ?? 3;
-
-                let currentLimit = 3;
-                if (roleFilter === "office") currentLimit = officeLimit;
-                else if (roleFilter === "caregiver") currentLimit = caregiverLimit;
-                else {
-                    currentLimit = caregiverLimit;
+            const allVacations: VacationRequest[] = [];
+            Object.values(dates).forEach((dateData: any) => {
+                if (dateData && dateData.vacations && Array.isArray(dateData.vacations)) {
+                    allVacations.push(...dateData.vacations);
                 }
+            });
+
+            const availableRoleNames = buildRoleNames({
+                positions: positionsList,
+                members: membersList,
+                requests: allVacations,
+                limits,
+            });
+
+            Object.keys(days).forEach((date) => {
+                const currentLimit = getMaxRoleLimitForDate(
+                    limitsMap,
+                    date,
+                    roleFilter,
+                    availableRoleNames
+                );
 
                 const currentCount = days[date].count;
                 days[date].limit = currentLimit;
@@ -313,14 +363,6 @@ export default function AdminPage() {
                 else days[date].status = "over";
             });
             setVacationDays(days);
-
-            // 캘린더 데이터에서 모든 휴가 요청 추출하여 allRequests에 저장
-            const allVacations: VacationRequest[] = [];
-            Object.values(dates).forEach((dateData: any) => {
-                if (dateData && dateData.vacations && Array.isArray(dateData.vacations)) {
-                    allVacations.push(...dateData.vacations);
-                }
-            });
             
             setAllRequests(allVacations);
             const pendingOnly = allVacations.filter(
@@ -401,8 +443,8 @@ export default function AdminPage() {
             const formattedDate = format(date, "yyyy-MM-dd");
 
 
-            // roleFilter 처리 수정: 'all'일 때 그대로 전달
-            const requestRole = roleFilter === "all" ? "all" : roleFilter;
+            const requestRole =
+                roleFilter === ALL_ROLE_FILTER ? ALL_ROLE_FILTER : roleFilter;
 
 
             // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
@@ -472,7 +514,7 @@ export default function AdminPage() {
     const handleLimitSet = async (
         date: Date,
         maxPeople: number,
-        role: "caregiver" | "office"
+        role: string
     ) => {
         try {
             const formattedDate = format(date, "yyyy-MM-dd");
@@ -763,7 +805,7 @@ export default function AdminPage() {
     const toggleStatusFilter = (
         status: "all" | "pending" | "approved" | "rejected"
     ) => setStatusFilter(status);
-    const toggleRoleFilter = (role: "all" | "caregiver" | "office") =>
+    const toggleRoleFilter = (role: string) =>
         setRoleFilter(role);
     const toggleNameFilter = (name: string) =>
         setNameFilter(name === "전체" || name === "" ? null : name);
@@ -779,7 +821,7 @@ export default function AdminPage() {
 
     const resetFilter = async () => {
         setStatusFilter("all");
-        setRoleFilter("all");
+        setRoleFilter(ALL_ROLE_FILTER);
         setNameFilter(null);
         setSortOrder("latest");
         await fetchAllRequests();
@@ -919,16 +961,7 @@ export default function AdminPage() {
 
     // 역할 한글 변환
     const getRoleText = (role?: string) => {
-        switch (role) {
-            case "caregiver":
-                return "요양보호사";
-            case "office":
-                return "사무직";
-            case "admin":
-                return "관리자";
-            default:
-                return role || "직원";
-        }
+        return getRoleDisplayName(role);
     };
 
     // 클라이언트 사이드가 아직 준비되지 않았을 때만 로딩 화면 표시
@@ -1017,7 +1050,6 @@ export default function AdminPage() {
                                     </button>
                                 </div>
                             )}
-                            {/* 회원관리 - 직책관리가 UserManagement에 통합됨 */}
                             {/* 월간일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
                                 <div className="pl-9 mt-1 space-y-0.5">
@@ -1205,6 +1237,7 @@ export default function AdminPage() {
                                         onShowLimitPanel={handleShowLimitPanel}
                                         onNameFilterChange={setNameFilter}
                                         sortOrder={sortOrder}
+                                        memberRoleLookup={memberRoleLookup}
                                     />
                                 </div>
 
@@ -1237,23 +1270,21 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 직원 유형 필터 */}
+                                            {/* 역할 필터 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">직원</label>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">역할</label>
                                                 <div className="grid grid-cols-1 gap-1">
-                                                    {(["all", "caregiver", "office"] as const).map((role) => (
+                                                    {[ALL_ROLE_FILTER, ...availableRoles].map((role) => (
                                                         <button
                                                             key={role}
                                                             onClick={() => setRoleFilter(role)}
                                                             className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
                                                                 roleFilter === role
-                                                                    ? role === "all" ? "bg-teal-500 text-white"
-                                                                        : role === "caregiver" ? "bg-blue-500 text-white"
-                                                                            : "bg-green-500 text-white"
+                                                                    ? "bg-teal-500 text-white"
                                                                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                                             }`}
                                                         >
-                                                            {role === "all" ? "전체" : role === "caregiver" ? "요양보호사" : "사무직"}
+                                                            {role === ALL_ROLE_FILTER ? "전체" : getRoleDisplayName(role)}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -1396,7 +1427,14 @@ export default function AdminPage() {
                                             </div>
                                         ) : (
                                             <ul className="space-y-2 max-h-[100vh] overflow-y-auto pr-1">
-                                                {filteredRequests.map((request) => (
+                                                {filteredRequests.map((request) => {
+                                                    const resolvedRole = getVacationRequestRole(
+                                                        request,
+                                                        memberRoleLookup
+                                                    );
+                                                    const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
+
+                                                    return (
                                                     <li
                                                         key={request.id}
                                                         className="p-2 bg-gray-50 rounded border border-gray-200 hover:shadow-sm transition-shadow"
@@ -1452,10 +1490,8 @@ export default function AdminPage() {
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-1">
-                                                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                                                    request.role === "caregiver" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
-                                                                }`}>
-                                                                    {getRoleText(request.role)}
+                                                                <span className={`px-1.5 py-0.5 text-[9px] rounded border ${roleBadgeClasses}`}>
+                                                                    {getRoleText(resolvedRole)}
                                                                 </span>
                                                                 {isValidDuration(request.duration) && (
                                                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
@@ -1508,7 +1544,8 @@ export default function AdminPage() {
                                                             </div>
                                                         )}
                                                     </li>
-                                                ))}
+                                                    );
+                                                })}
                                             </ul>
                                         )}
                                     </div>
@@ -1561,20 +1598,16 @@ export default function AdminPage() {
                                     }}
                                     onVacationUpdated={handleVacationUpdated}
                                     isLoading={isLoading}
-                                    maxPeople={(() => {
-                                        const dateKey = format(selectedDate, "yyyy-MM-dd");
-                                        const keyBase = dateKey;
-                                        const officeLimit =
-                                            vacationLimits[`${keyBase}_office`]?.maxPeople ?? 3;
-                                        const caregiverLimit =
-                                            vacationLimits[`${keyBase}_caregiver`]?.maxPeople ?? 3;
-
-                                        if (roleFilter === "office") return officeLimit;
-                                        else if (roleFilter === "caregiver") return caregiverLimit;
-                                        else return Math.max(officeLimit, caregiverLimit); // 전체일 때는 더 큰 값
-                                    })()}
+                                    maxPeople={getMaxRoleLimitForDate(
+                                        vacationLimits,
+                                        format(selectedDate, "yyyy-MM-dd"),
+                                        roleFilter,
+                                        availableRoles
+                                    )}
                                     roleFilter={roleFilter}
                                     isAdmin={isAdmin}
+                                    roleOptions={availableRoles}
+                                    memberRoleLookup={memberRoleLookup}
                                 />
                             </motion.div>
                         </motion.div>

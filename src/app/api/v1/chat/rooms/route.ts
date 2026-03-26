@@ -15,6 +15,44 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers });
 }
 
+async function parseBackendBody(response: Response) {
+  if (response.status === 204) {
+    return null;
+  }
+
+  const raw = await response.text();
+  if (!raw) {
+    return null;
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      console.error('[Chat API] JSON 파싱 오류:', error);
+    }
+  }
+
+  return raw;
+}
+
+function extractErrorMessage(payload: unknown, status: number) {
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload.trim();
+  }
+
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as Record<string, unknown>;
+    const message = candidate.error ?? candidate.message;
+    if (typeof message === 'string' && message.trim()) {
+      return message.trim();
+    }
+  }
+
+  return `백엔드 서버 오류: ${status}`;
+}
+
 // 채팅방 목록 조회
 export async function GET(request: NextRequest) {
   try {
@@ -92,15 +130,21 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
+    const responseBody = await parseBackendBody(backendResponse);
+
     if (!backendResponse.ok) {
-      console.error(`[Chat API] POST 백엔드 응답 오류: ${backendResponse.status}`);
+      console.error(`[Chat API] POST 백엔드 응답 오류: ${backendResponse.status}`, responseBody);
       return NextResponse.json({
-        error: `백엔드 서버 오류: ${backendResponse.status}`
+        error: extractErrorMessage(responseBody, backendResponse.status),
+        details: responseBody,
       }, { status: backendResponse.status, headers });
     }
 
-    const data = await backendResponse.json();
-    return NextResponse.json(data, { headers });
+    if (responseBody === null) {
+      return NextResponse.json({ success: true }, { status: backendResponse.status, headers });
+    }
+
+    return NextResponse.json(responseBody, { status: backendResponse.status, headers });
 
   } catch (error) {
     console.error('[Chat API] POST 오류:', error);

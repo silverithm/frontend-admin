@@ -269,6 +269,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const visibleMembersCount = hasMemberStatus ? activeMembersCount : members.length;
   const employeeAttendanceBase = employeeAttendance.total || visibleMembersCount;
   const elderAttendanceBase = elderAttendance.total || elderCount;
+  const todayWorkingCount = Math.max(visibleMembersCount - todayVacationCount, 0);
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const selectedSchedules = monthlySchedules.filter((s) => {
@@ -363,13 +364,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     },
     {
       label: '출근',
-      value: employeeAttendance.present,
+      value: todayWorkingCount,
       subtitle: '명',
       iconBg: 'bg-emerald-50',
       iconColor: 'text-emerald-500',
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
       tab: 'members',
-      change: employeeAttendanceBase > 0 ? `${Math.round((employeeAttendance.present / employeeAttendanceBase) * 100)}%` : null,
+      change: employeeAttendanceBase > 0 ? `${Math.round((todayWorkingCount / employeeAttendanceBase) * 100)}%` : null,
     },
     {
       label: '오늘 휴무',

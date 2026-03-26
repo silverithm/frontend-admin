@@ -422,7 +422,20 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                 }),
             });
 
-            if (!response.ok) throw new Error("Failed to create room");
+            if (!response.ok) {
+                let errorMessage = "채팅방 생성에 실패했습니다";
+
+                try {
+                    const errorData = await response.json();
+                    if (typeof errorData?.error === "string" && errorData.error.trim()) {
+                        errorMessage = errorData.error.trim();
+                    }
+                } catch (parseError) {
+                    console.error("Error parsing create room failure response:", parseError);
+                }
+
+                throw new Error(errorMessage);
+            }
 
             onNotification("채팅방이 생성되었습니다", "success");
             setShowCreateModal(false);
@@ -431,7 +444,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
             fetchRooms();
         } catch (error) {
             console.error("Error creating room:", error);
-            onNotification("채팅방 생성에 실패했습니다", "error");
+            onNotification(error instanceof Error ? error.message : "채팅방 생성에 실패했습니다", "error");
         }
     };
 

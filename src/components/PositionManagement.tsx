@@ -34,6 +34,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState('');
     const [formDescription, setFormDescription] = useState('');
+    const [formMemberRole, setFormMemberRole] = useState<'caregiver' | 'office' | ''>('');
 
     // 삭제 확인
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -72,20 +73,26 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
     const handleCreatePosition = async () => {
         if (!formName.trim()) {
-            onNotification('직책명을 입력해주세요.', 'error');
+            onNotification('역할명을 입력해주세요.', 'error');
+            return;
+        }
+        if (!formMemberRole) {
+            onNotification('기본 역할을 선택해주세요.', 'error');
             return;
         }
         setIsProcessing(true);
         try {
-            await createPosition({ name: formName.trim(), description: formDescription.trim() || undefined });
+            await createPosition({
+                name: formName.trim(),
+                description: formDescription.trim() || undefined,
+                memberRole: formMemberRole,
+            });
             await fetchData();
-            setFormName('');
-            setFormDescription('');
-            setShowAddForm(false);
-            onNotification('직책이 등록되었습니다.', 'success');
+            resetForm();
+            onNotification('역할이 등록되었습니다.', 'success');
         } catch (error) {
-            console.error('직책 생성 오류:', error);
-            onNotification(error instanceof Error ? error.message : '직책 등록에 실패했습니다.', 'error');
+            console.error('역할 생성 오류:', error);
+            onNotification(error instanceof Error ? error.message : '역할 등록에 실패했습니다.', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -95,15 +102,17 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         if (!editingId || !formName.trim()) return;
         setIsProcessing(true);
         try {
-            await updatePosition(editingId, { name: formName.trim(), description: formDescription.trim() || undefined });
+            await updatePosition(editingId, {
+                name: formName.trim(),
+                description: formDescription.trim() || undefined,
+                memberRole: formMemberRole || null,
+            });
             await fetchData();
-            setEditingId(null);
-            setFormName('');
-            setFormDescription('');
-            onNotification('직책이 수정되었습니다.', 'success');
+            resetForm();
+            onNotification('역할이 수정되었습니다.', 'success');
         } catch (error) {
-            console.error('직책 수정 오류:', error);
-            onNotification(error instanceof Error ? error.message : '직책 수정에 실패했습니다.', 'error');
+            console.error('역할 수정 오류:', error);
+            onNotification(error instanceof Error ? error.message : '역할 수정에 실패했습니다.', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -117,10 +126,10 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             await fetchData();
             setShowDeleteModal(false);
             setSelectedPosition(null);
-            onNotification('직책이 삭제되었습니다.', 'success');
+            onNotification('역할이 삭제되었습니다.', 'success');
         } catch (error) {
-            console.error('직책 삭제 오류:', error);
-            onNotification(error instanceof Error ? error.message : '직책 삭제에 실패했습니다.', 'error');
+            console.error('역할 삭제 오류:', error);
+            onNotification(error instanceof Error ? error.message : '역할 삭제에 실패했습니다.', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -131,10 +140,10 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         try {
             await assignPositionToMember(memberId, positionId);
             await fetchData();
-            onNotification('직책이 배정되었습니다.', 'success');
+            onNotification('역할이 배정되었습니다.', 'success');
         } catch (error) {
-            console.error('직책 배정 오류:', error);
-            onNotification(error instanceof Error ? error.message : '직책 배정에 실패했습니다.', 'error');
+            console.error('역할 배정 오류:', error);
+            onNotification(error instanceof Error ? error.message : '역할 배정에 실패했습니다.', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -144,13 +153,20 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         setEditingId(pos.id);
         setFormName(pos.name);
         setFormDescription(pos.description || '');
+        setFormMemberRole(pos.memberRole || '');
         setShowAddForm(false);
     };
 
     const cancelEdit = () => {
+        resetForm();
+    };
+
+    const resetForm = () => {
         setEditingId(null);
+        setShowAddForm(false);
         setFormName('');
         setFormDescription('');
+        setFormMemberRole('');
     };
 
     const getRoleLabel = (role: string) => {
@@ -159,6 +175,25 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             case 'caregiver': return '요양보호사';
             case 'office': return '사무직';
             default: return role;
+        }
+    };
+
+    const getMemberRoleLabel = (role?: string | null) => {
+        switch (role) {
+            case 'caregiver': return '요양보호사';
+            case 'office': return '사무직';
+            default: return '미분류';
+        }
+    };
+
+    const getMemberRoleBadgeClass = (role?: string | null) => {
+        switch (role) {
+            case 'caregiver':
+                return 'text-blue-700 bg-blue-50';
+            case 'office':
+                return 'text-emerald-700 bg-emerald-50';
+            default:
+                return 'text-amber-700 bg-amber-50';
         }
     };
 
@@ -190,7 +225,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <FiBriefcase className="text-teal-500" size={20} />
-                    <h2 className="text-lg font-bold text-gray-900">직책 관리</h2>
+                    <h2 className="text-lg font-bold text-gray-900">역할 관리</h2>
                     {organizationName && (
                         <span className="text-sm text-gray-500">({organizationName})</span>
                     )}
@@ -215,7 +250,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                     }`}
                 >
                     <FiBriefcase className="inline mr-1" size={14} />
-                    직책 목록 ({positions.length})
+                    역할 목록 ({positions.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('assign')}
@@ -226,7 +261,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                     }`}
                 >
                     <FiUsers className="inline mr-1" size={14} />
-                    직책 배정 ({members.filter(m => !m.position).length}명 미배정)
+                    역할 배정 ({members.filter(m => !m.position).length}명 미배정)
                 </button>
             </div>
 
@@ -243,23 +278,23 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         {/* 추가 버튼 */}
                         {isAdmin && !showAddForm && !editingId && (
                             <button
-                                onClick={() => { setShowAddForm(true); setFormName(''); setFormDescription(''); }}
+                                onClick={() => { resetForm(); setShowAddForm(true); }}
                                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors"
                             >
                                 <FiPlus size={16} />
-                                새 직책 추가
+                                새 역할 추가
                             </button>
                         )}
 
                         {/* 추가 폼 */}
                         {showAddForm && (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3">
-                                <h3 className="text-sm font-bold text-gray-900">새 직책 추가</h3>
+                                <h3 className="text-sm font-bold text-gray-900">새 역할 추가</h3>
                                 <input
                                     type="text"
                                     value={formName}
                                     onChange={(e) => setFormName(e.target.value)}
-                                    placeholder="직책명 (예: 요양보호사, 간호사)"
+                                    placeholder="역할명 (예: 팀장, 사회복지사)"
                                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     autoFocus
                                 />
@@ -270,16 +305,26 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                     placeholder="설명 (선택사항)"
                                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
+                                <select
+                                    value={formMemberRole}
+                                    onChange={(e) => setFormMemberRole(e.target.value as 'caregiver' | 'office' | '')}
+                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                >
+                                    <option value="">기본 역할 선택</option>
+                                    <option value="caregiver">요양보호사</option>
+                                    <option value="office">사무직</option>
+                                </select>
+                                <p className="text-xs text-gray-400">가입 화면에는 기본 역할이 지정된 역할만 표시됩니다.</p>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleCreatePosition}
-                                        disabled={isProcessing || !formName.trim()}
+                                        disabled={isProcessing || !formName.trim() || !formMemberRole}
                                         className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50 transition-colors"
                                     >
                                         {isProcessing ? '등록 중...' : '등록'}
                                     </button>
                                     <button
-                                        onClick={() => { setShowAddForm(false); setFormName(''); setFormDescription(''); }}
+                                        onClick={resetForm}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                                     >
                                         취소
@@ -288,12 +333,12 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                             </div>
                         )}
 
-                        {/* 직책 목록 */}
+                        {/* 역할 목록 */}
                         {positions.length === 0 ? (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
                                 <FiBriefcase className="mx-auto text-gray-400" size={40} />
-                                <p className="mt-2 text-sm text-gray-500">등록된 직책이 없습니다.</p>
-                                <p className="text-xs text-gray-400">새 직책을 추가해주세요.</p>
+                                <p className="mt-2 text-sm text-gray-500">등록된 역할이 없습니다.</p>
+                                <p className="text-xs text-gray-400">새 역할을 추가해주세요.</p>
                             </div>
                         ) : (
                             <div className="space-y-2">
@@ -318,6 +363,15 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                     placeholder="설명 (선택사항)"
                                                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                                 />
+                                                <select
+                                                    value={formMemberRole}
+                                                    onChange={(e) => setFormMemberRole(e.target.value as 'caregiver' | 'office' | '')}
+                                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                                >
+                                                    <option value="">미분류</option>
+                                                    <option value="caregiver">요양보호사</option>
+                                                    <option value="office">사무직</option>
+                                                </select>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={handleUpdatePosition}
@@ -344,9 +398,15 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                         <span className="px-2 py-0.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-full">
                                                             {getMemberCountForPosition(pos.name)}명
                                                         </span>
+                                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getMemberRoleBadgeClass(pos.memberRole)}`}>
+                                                            {getMemberRoleLabel(pos.memberRole)}
+                                                        </span>
                                                     </div>
                                                     {pos.description && (
                                                         <p className="text-xs text-gray-400 mt-0.5">{pos.description}</p>
+                                                    )}
+                                                    {!pos.memberRole && (
+                                                        <p className="text-[11px] text-amber-600 mt-1">기본 역할이 없어 가입 화면에 노출되지 않습니다.</p>
                                                     )}
                                                 </div>
                                                 {isAdmin && (
@@ -400,7 +460,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                 onChange={(e) => setPositionFilter(e.target.value)}
                                 className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                             >
-                                <option value="all">전체 직책</option>
+                                <option value="all">전체 역할</option>
                                 <option value="unassigned">미배정</option>
                                 {positions.map(pos => (
                                     <option key={pos.id} value={pos.name}>{pos.name}</option>
@@ -479,15 +539,15 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                                     <FiTrash2 className="text-red-600" size={20} />
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900">직책 삭제</h3>
+                                <h3 className="text-lg font-bold text-gray-900">역할 삭제</h3>
                             </div>
                             <p className="text-sm text-gray-500 mb-1">
-                                <span className="font-medium text-red-600">{selectedPosition.name}</span> 직책을 삭제하시겠습니까?
+                                <span className="font-medium text-red-600">{selectedPosition.name}</span> 역할을 삭제하시겠습니까?
                             </p>
                             {getMemberCountForPosition(selectedPosition.name) > 0 && (
                                 <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded-lg mt-2">
-                                    현재 {getMemberCountForPosition(selectedPosition.name)}명의 회원이 이 직책을 사용 중입니다.
-                                    삭제 시 해당 회원들의 직책이 미배정으로 변경됩니다.
+                                    현재 {getMemberCountForPosition(selectedPosition.name)}명의 회원이 이 역할을 사용 중입니다.
+                                    삭제 시 해당 회원들의 역할이 미배정으로 변경됩니다.
                                 </p>
                             )}
                             <div className="flex gap-2 mt-4">
