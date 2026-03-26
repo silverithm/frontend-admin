@@ -34,8 +34,6 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState('');
     const [formDescription, setFormDescription] = useState('');
-    const [formMemberRole, setFormMemberRole] = useState<'caregiver' | 'office' | ''>('');
-
     // 삭제 확인
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
@@ -76,16 +74,11 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             onNotification('역할명을 입력해주세요.', 'error');
             return;
         }
-        if (!formMemberRole) {
-            onNotification('기본 역할을 선택해주세요.', 'error');
-            return;
-        }
         setIsProcessing(true);
         try {
             await createPosition({
                 name: formName.trim(),
                 description: formDescription.trim() || undefined,
-                memberRole: formMemberRole,
             });
             await fetchData();
             resetForm();
@@ -105,7 +98,6 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             await updatePosition(editingId, {
                 name: formName.trim(),
                 description: formDescription.trim() || undefined,
-                memberRole: formMemberRole || null,
             });
             await fetchData();
             resetForm();
@@ -153,7 +145,6 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         setEditingId(pos.id);
         setFormName(pos.name);
         setFormDescription(pos.description || '');
-        setFormMemberRole(pos.memberRole || '');
         setShowAddForm(false);
     };
 
@@ -166,7 +157,6 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         setShowAddForm(false);
         setFormName('');
         setFormDescription('');
-        setFormMemberRole('');
     };
 
     const getRoleLabel = (role: string) => {
@@ -175,25 +165,6 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             case 'caregiver': return '요양보호사';
             case 'office': return '사무직';
             default: return role;
-        }
-    };
-
-    const getMemberRoleLabel = (role?: string | null) => {
-        switch (role) {
-            case 'caregiver': return '요양보호사';
-            case 'office': return '사무직';
-            default: return '미분류';
-        }
-    };
-
-    const getMemberRoleBadgeClass = (role?: string | null) => {
-        switch (role) {
-            case 'caregiver':
-                return 'text-blue-700 bg-blue-50';
-            case 'office':
-                return 'text-emerald-700 bg-emerald-50';
-            default:
-                return 'text-amber-700 bg-amber-50';
         }
     };
 
@@ -305,20 +276,10 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                     placeholder="설명 (선택사항)"
                                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
-                                <select
-                                    value={formMemberRole}
-                                    onChange={(e) => setFormMemberRole(e.target.value as 'caregiver' | 'office' | '')}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                >
-                                    <option value="">기본 역할 선택</option>
-                                    <option value="caregiver">요양보호사</option>
-                                    <option value="office">사무직</option>
-                                </select>
-                                <p className="text-xs text-gray-400">가입 화면에는 기본 역할이 지정된 역할만 표시됩니다.</p>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleCreatePosition}
-                                        disabled={isProcessing || !formName.trim() || !formMemberRole}
+                                        disabled={isProcessing || !formName.trim()}
                                         className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50 transition-colors"
                                     >
                                         {isProcessing ? '등록 중...' : '등록'}
@@ -363,15 +324,6 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                     placeholder="설명 (선택사항)"
                                                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                                 />
-                                                <select
-                                                    value={formMemberRole}
-                                                    onChange={(e) => setFormMemberRole(e.target.value as 'caregiver' | 'office' | '')}
-                                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                                >
-                                                    <option value="">미분류</option>
-                                                    <option value="caregiver">요양보호사</option>
-                                                    <option value="office">사무직</option>
-                                                </select>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={handleUpdatePosition}
@@ -398,15 +350,9 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                         <span className="px-2 py-0.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-full">
                                                             {getMemberCountForPosition(pos.name)}명
                                                         </span>
-                                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getMemberRoleBadgeClass(pos.memberRole)}`}>
-                                                            {getMemberRoleLabel(pos.memberRole)}
-                                                        </span>
                                                     </div>
                                                     {pos.description && (
                                                         <p className="text-xs text-gray-400 mt-0.5">{pos.description}</p>
-                                                    )}
-                                                    {!pos.memberRole && (
-                                                        <p className="text-[11px] text-amber-600 mt-1">기본 역할이 없어 가입 화면에 노출되지 않습니다.</p>
                                                     )}
                                                 </div>
                                                 {isAdmin && (
