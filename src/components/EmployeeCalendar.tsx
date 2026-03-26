@@ -148,11 +148,11 @@ export default function EmployeeCalendar() {
     const lowerStatus = status?.toLowerCase();
     switch (lowerStatus) {
       case 'approved':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-700';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-700';
       case 'rejected':
-        return 'bg-red-100 text-red-800 line-through';
+        return 'bg-red-100 text-red-700 line-through';
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -237,12 +237,12 @@ export default function EmployeeCalendar() {
   const getDurationColorClass = (duration?: string) => {
     switch (duration) {
       case 'FULL_DAY':
-        return 'bg-blue-500'; // 연차는 파란색
+        return 'bg-teal-500'; // 연차는 teal
       case 'HALF_DAY_AM':
       case 'HALF_DAY_PM':
         return 'bg-green-500'; // 반차는 초록색
       default:
-        return 'bg-blue-500';
+        return 'bg-teal-500';
     }
   };
 
@@ -269,9 +269,9 @@ export default function EmployeeCalendar() {
       <AlertContainer />
       <div className="space-y-6">
         {/* 캘린더 카드 */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* 캘린더 헤더 */}
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-5 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -279,7 +279,7 @@ export default function EmployeeCalendar() {
                 </h2>
                 <button
                   onClick={goToToday}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition-colors"
                 >
                   오늘
                 </button>
@@ -289,15 +289,15 @@ export default function EmployeeCalendar() {
                   onClick={() => setIsExpanded(!isExpanded)}
                   className={`flex items-center justify-center px-4 py-2 rounded-lg transition-all font-medium shadow-sm ${
                     isExpanded
-                      ? 'bg-purple-600 text-white hover:bg-purple-700'
-                      : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                      ? 'bg-teal-600 text-white hover:bg-teal-700'
+                      : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
                   }`}
                 >
                   {isExpanded ? '접기' : '펼치기'}
                 </button>
                 <button
                   onClick={() => openRequestModal()}
-                  className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                  className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm font-medium"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -327,7 +327,7 @@ export default function EmployeeCalendar() {
           </div>
 
           {/* 요일 헤더 */}
-          <div className="grid grid-cols-7 border-b border-gray-100">
+          <div className="grid grid-cols-7 border-b border-gray-200">
             {WEEKDAYS.map((day, index) => (
               <div
                 key={day}
@@ -343,16 +343,13 @@ export default function EmployeeCalendar() {
           {/* 캘린더 그리드 */}
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <div className="h-10 w-10 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin" />
             </div>
           ) : (
             <div className="grid grid-cols-7">
               {calendarDays.map((date, index) => {
                 if (!date) {
-                  return <div key={`empty-${index}`} className={`${isExpanded ? 'min-h-[100px]' : 'aspect-square'} border-b border-r border-gray-50`} />;
+                  return <div key={`empty-${index}`} className={`${isExpanded ? 'min-h-[100px]' : 'aspect-square'} border-b border-r border-gray-100`} />;
                 }
 
                 // 휴가 데이터 가져오기
@@ -368,17 +365,17 @@ export default function EmployeeCalendar() {
                   <button
                     key={format(date, 'yyyy-MM-dd')}
                     onClick={() => handleDateClick(date)}
-                    className={`${isExpanded ? 'min-h-[100px]' : 'aspect-square'} p-1 border-b border-r border-gray-50 transition-all duration-200 hover:bg-blue-50 relative ${
+                    className={`${isExpanded ? 'min-h-[100px]' : 'aspect-square'} p-1 border-b border-r border-gray-100 transition-all duration-200 hover:bg-teal-50 relative ${
                       !isSameMonth(date, currentDate) ? 'opacity-30' : ''
-                    } ${isSelected ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' : ''} ${
-                      isToday(date) ? 'bg-blue-50' : ''
+                    } ${isSelected ? 'bg-teal-50 ring-2 ring-teal-400 ring-inset' : ''} ${
+                      isToday(date) ? 'bg-teal-50' : ''
                     }`}
                   >
                     <div className="h-full flex flex-col">
                       <span
                         className={`text-sm font-medium ${
                           isToday(date)
-                            ? 'bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto'
+                            ? 'bg-teal-500 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto'
                             : dayOfWeek === 0
                             ? 'text-red-500'
                             : dayOfWeek === 6
@@ -405,7 +402,7 @@ export default function EmployeeCalendar() {
                               {/* 이름 + 배지 (관리자와 동일) */}
                               <span className={`flex-1 leading-tight flex items-center gap-1 ${
                                 vacation.userName === userName
-                                  ? 'text-blue-600 font-semibold'
+                                  ? 'text-teal-600 font-semibold'
                                   : 'text-gray-800'
                               }`}>
                                 <span className="truncate">{vacation.userName}</span>
@@ -442,9 +439,9 @@ export default function EmployeeCalendar() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
           >
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-5 border-b border-gray-200">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
                   {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
@@ -455,7 +452,7 @@ export default function EmployeeCalendar() {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-5">
               {/* 휴가 목록 표시 */}
               {(() => {
                 const filteredVacations = dayVacations;
@@ -468,14 +465,14 @@ export default function EmployeeCalendar() {
                         key={vacation.id || index}
                         className={`p-4 rounded-xl border ${
                           isMyVacation
-                            ? 'bg-blue-50 border-blue-200'
+                            ? 'bg-teal-50 border-teal-200'
                             : 'bg-gray-50 border-gray-200'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                              isMyVacation ? 'bg-blue-600' : 'bg-gray-400'
+                              isMyVacation ? 'bg-teal-500' : 'bg-gray-400'
                             }`}>
                               {vacation.userName?.charAt(0) || '?'}
                             </div>
@@ -489,7 +486,7 @@ export default function EmployeeCalendar() {
                                 )}
                                 <span className="font-semibold text-gray-900">
                                   {vacation.userName}
-                                  {isMyVacation && <span className="text-blue-600 text-sm ml-1">(나)</span>}
+                                  {isMyVacation && <span className="text-teal-600 text-sm ml-1">(나)</span>}
                                 </span>
                                 {isValidDuration(vacation.duration) && (
                                   <span className={`w-5 h-5 rounded-full ${getDurationColorClass(vacation.duration)} text-white text-[10px] font-bold flex items-center justify-center`}>
@@ -542,7 +539,7 @@ export default function EmployeeCalendar() {
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm">
             {/* 휴가 유형 */}
             <div className="flex items-center">
-              <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center mr-1.5">연</span>
+              <span className="w-4 h-4 rounded-full bg-teal-500 text-white text-[8px] font-bold flex items-center justify-center mr-1.5">연</span>
               <span className="text-gray-600">연차</span>
             </div>
             <div className="flex items-center">
@@ -556,7 +553,7 @@ export default function EmployeeCalendar() {
             <div className="border-l border-gray-200 h-4 mx-2"></div>
             {/* 상태 */}
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded bg-blue-500"></div>
+              <div className="w-4 h-4 rounded bg-teal-500"></div>
               <span className="text-gray-700 font-medium">내 휴무</span>
             </div>
             <div className="flex items-center space-x-2">
@@ -589,10 +586,10 @@ export default function EmployeeCalendar() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 overflow-hidden"
+              className="bg-white rounded-xl shadow-lg w-full max-w-md border border-gray-200 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-5 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">휴무 신청</h2>
@@ -609,7 +606,7 @@ export default function EmployeeCalendar() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-5 space-y-4">
                 {/* 날짜 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -619,7 +616,7 @@ export default function EmployeeCalendar() {
                     type="date"
                     value={requestForm.date}
                     onChange={(e) => setRequestForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -631,7 +628,7 @@ export default function EmployeeCalendar() {
                   <select
                     value={requestForm.duration}
                     onChange={(e) => setRequestForm(prev => ({ ...prev, duration: e.target.value as VacationDuration }))}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   >
                     {VACATION_DURATION_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -651,22 +648,22 @@ export default function EmployeeCalendar() {
                     onChange={(e) => setRequestForm(prev => ({ ...prev, reason: e.target.value }))}
                     placeholder="휴무 사유를 입력해주세요"
                     rows={3}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                   />
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
+              <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
                 <button
                   onClick={() => setShowRequestModal(false)}
-                  className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSubmitRequest}
                   disabled={isSubmitting || !requestForm.date}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">

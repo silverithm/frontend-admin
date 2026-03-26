@@ -1,0 +1,187 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774530589678,
+  "projectRoot": "/Users/gimjunhyeong/Develop/silverithm/frontend-admin",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "15.5.12",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "19.0.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.0.0",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "next dev --turbopack",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 7,
+      "lastAccessed": 1774530589659,
+      "keyFiles": [
+        "file.svg",
+        "globe.svg",
+        "next.svg",
+        "robots.txt",
+        "sitemap.xml"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1774530589659,
+      "keyFiles": []
+    },
+    "test-results": {
+      "path": "test-results",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774530589662,
+      "keyFiles": []
+    },
+    "src/app": {
+      "path": "src/app",
+      "purpose": "Application code",
+      "fileCount": 5,
+      "lastAccessed": 1774530589663,
+      "keyFiles": [
+        "globals.css",
+        "layout.tsx",
+        "opengraph-image.tsx"
+      ]
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 34,
+      "lastAccessed": 1774530589665,
+      "keyFiles": [
+        "AdminDashboard.tsx",
+        "AdminPanel.tsx",
+        "AdminVacationAddModal.tsx"
+      ]
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 5,
+      "lastAccessed": 1774530589666,
+      "keyFiles": [
+        "apiService.ts",
+        "dispatchAlgorithm.ts",
+        "dispatchStore.ts"
+      ]
+    },
+    "src/services": {
+      "path": "src/services",
+      "purpose": "Business logic services",
+      "fileCount": 1,
+      "lastAccessed": 1774530589666,
+      "keyFiles": [
+        "subscription.ts"
+      ]
+    },
+    "src/types": {
+      "path": "src/types",
+      "purpose": "Type definitions",
+      "fileCount": 10,
+      "lastAccessed": 1774530589667,
+      "keyFiles": [
+        "approval.ts",
+        "approvalTemplate.ts",
+        "auth.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/components/AdminDashboard.tsx",
+      "accessCount": 15,
+      "lastAccessed": 1774531447877,
+      "type": "file"
+    },
+    {
+      "path": "src/components/SubscriptionGuard.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1774531349180,
+      "type": "file"
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774531306659,
+      "type": "file"
+    },
+    {
+      "path": "src/app/employee/layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774531310008,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1774531321552,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

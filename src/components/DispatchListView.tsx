@@ -79,35 +79,35 @@ export default function DispatchListView({
   return (
     <div className="space-y-6">
       {/* 필터 패널 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* 기간 선택 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">시작일</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">시작일</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">종료일</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">종료일</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
             />
           </div>
 
           {/* 노선 필터 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">노선</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">노선</label>
             <select
               value={routeFilter}
               onChange={(e) => setRouteFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
             >
               <option value="all">전체 노선</option>
               {settings.routes.map((route) => (
@@ -118,11 +118,11 @@ export default function DispatchListView({
 
           {/* 상태 필터 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">상태</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">상태</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
             >
               <option value="all">전체 상태</option>
               <option value="정상">정상 운행</option>
@@ -152,30 +152,30 @@ export default function DispatchListView({
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
           <div className="text-sm text-gray-500">운행일</div>
         </div>
-        <div className="bg-green-50 rounded-lg shadow-sm border border-green-200 p-4 text-center">
+        <div className="bg-green-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-green-700">{stats.normal}</div>
           <div className="text-sm text-green-600">정상 운행</div>
         </div>
-        <div className="bg-yellow-50 rounded-lg shadow-sm border border-yellow-200 p-4 text-center">
+        <div className="bg-yellow-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-yellow-700">{stats.substitute}</div>
           <div className="text-sm text-yellow-600">대체 운행</div>
         </div>
-        <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-4 text-center">
+        <div className="bg-red-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-red-700">{stats.noService}</div>
           <div className="text-sm text-red-600">운행 없음</div>
         </div>
-        <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+        <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-gray-600">{stats.holiday}</div>
           <div className="text-sm text-gray-500">휴일</div>
         </div>
       </div>
 
       {/* 배차 테이블 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -226,12 +226,12 @@ export default function DispatchListView({
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             rd.status === "정상"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-50 text-green-700"
                               : rd.status === "대체"
-                              ? "bg-yellow-100 text-yellow-800"
+                              ? "bg-yellow-50 text-yellow-700"
                               : rd.status === "휴일"
-                              ? "bg-gray-100 text-gray-800"
-                              : "bg-red-100 text-red-800"
+                              ? "bg-gray-50 text-gray-600"
+                              : "bg-red-50 text-red-700"
                           }`}
                         >
                           {rd.status}

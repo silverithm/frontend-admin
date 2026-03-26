@@ -130,11 +130,11 @@ export default function SubscriptionInfo() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-8 bg-gray-100 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-100 rounded w-1/2 mb-2"></div>
+          <div className="h-4 bg-gray-100 rounded w-1/3"></div>
         </div>
       </div>
     );
@@ -142,8 +142,8 @@ export default function SubscriptionInfo() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8">
-        <div className="text-red-500">{error}</div>
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="text-red-700">{error}</div>
       </div>
     );
   }
@@ -154,12 +154,12 @@ export default function SubscriptionInfo() {
   return (
     <>
       <AlertContainer />
-      <div className="space-y-6">
+      <div className="space-y-4">
       {/* 현재 구독 정보 카드 */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center mr-3">
+            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
           </div>
@@ -168,35 +168,35 @@ export default function SubscriptionInfo() {
         
         {subscription ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                <p className="text-sm font-medium text-blue-700 mb-1">현재 플랜</p>
-                <p className="text-xl font-bold text-blue-900">
-                  {subscription.planName === SubscriptionType.FREE ? '무료 체험' : 
-                   subscription.planName === SubscriptionType.BASIC ? 'Basic 플랜' : 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+                <p className="text-sm font-medium text-teal-700 mb-1">현재 플랜</p>
+                <p className="text-xl font-bold text-teal-900">
+                  {subscription.planName === SubscriptionType.FREE ? '무료 체험' :
+                   subscription.planName === SubscriptionType.BASIC ? 'Basic 플랜' :
                    subscription.planName}
                 </p>
               </div>
-              
+
               <div className={`rounded-xl p-4 border ${
-                subscription.status === SubscriptionStatus.ACTIVE ? 
-                  'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 
-                subscription.status === SubscriptionStatus.EXPIRED ? 
-                  'bg-gradient-to-r from-red-50 to-rose-50 border-red-200' : 
+                subscription.status === SubscriptionStatus.ACTIVE ?
+                  'bg-teal-50 border-teal-200' :
+                subscription.status === SubscriptionStatus.EXPIRED ?
+                  'bg-red-50 border-red-200' :
                 subscription.status === SubscriptionStatus.CANCELLED ?
-                  'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
-                  'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'
+                  'bg-amber-50 border-amber-200' :
+                  'bg-gray-50 border-gray-200'
               }`}>
                 <p className={`text-sm font-medium mb-1 ${
-                  subscription.status === SubscriptionStatus.ACTIVE ? 'text-green-700' : 
-                  subscription.status === SubscriptionStatus.EXPIRED ? 'text-red-700' : 
-                  subscription.status === SubscriptionStatus.CANCELLED ? 'text-orange-700' :
-                  'text-gray-700'
+                  subscription.status === SubscriptionStatus.ACTIVE ? 'text-teal-700' :
+                  subscription.status === SubscriptionStatus.EXPIRED ? 'text-red-700' :
+                  subscription.status === SubscriptionStatus.CANCELLED ? 'text-amber-700' :
+                  'text-gray-500'
                 }`}>상태</p>
                 <p className={`text-xl font-bold ${
-                  subscription.status === SubscriptionStatus.ACTIVE ? 'text-green-900' : 
-                  subscription.status === SubscriptionStatus.EXPIRED ? 'text-red-900' : 
-                  subscription.status === SubscriptionStatus.CANCELLED ? 'text-orange-900' :
+                  subscription.status === SubscriptionStatus.ACTIVE ? 'text-teal-900' :
+                  subscription.status === SubscriptionStatus.EXPIRED ? 'text-red-900' :
+                  subscription.status === SubscriptionStatus.CANCELLED ? 'text-amber-900' :
                   'text-gray-900'
                 }`}>
                   {subscription.status === SubscriptionStatus.ACTIVE ? '활성' :
@@ -205,16 +205,16 @@ export default function SubscriptionInfo() {
                    '비활성'}
                 </p>
               </div>
-              
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-200">
-                <p className="text-sm font-medium text-gray-700 mb-1">시작일</p>
+
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-500 mb-1">시작일</p>
                 <p className="text-xl font-bold text-gray-900">
                   {new Date(subscription.startDate).toLocaleDateString('ko-KR')}
                 </p>
               </div>
-              
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-200">
-                <p className="text-sm font-medium text-gray-700 mb-1">종료일</p>
+
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-500 mb-1">종료일</p>
                 <p className="text-xl font-bold text-gray-900">
                   {new Date(subscription.endDate).toLocaleDateString('ko-KR')}
                 </p>
@@ -222,18 +222,18 @@ export default function SubscriptionInfo() {
             </div>
 
             {/* 무료 체험 중인 경우 */}
-            {subscription.planName === SubscriptionType.FREE && 
+            {subscription.planName === SubscriptionType.FREE &&
              subscription.status === SubscriptionStatus.ACTIVE && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-blue-800 font-medium">
+              <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <p className="text-amber-800 font-medium">
                   무료 체험 기간이 <span className="font-bold">{daysRemaining}일</span> 남았습니다.
                 </p>
-                <p className="text-sm text-blue-600 mt-1">
+                <p className="text-sm text-amber-700 mt-1">
                   무료 체험이 종료되면 서비스 이용이 제한됩니다.
                 </p>
                 <button
                   onClick={handlePayment}
-                  className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                  className="mt-4 w-full bg-teal-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-teal-600 transition-colors"
                 >
                   지금 Basic 플랜 시작하기 (₩9,900/월)
                 </button>
@@ -242,10 +242,10 @@ export default function SubscriptionInfo() {
 
             {/* 결제가 필요한 경우 */}
             {needsPayment && (
-              <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
-                <p className="text-red-800 font-medium">
-                  {subscription.planName === SubscriptionType.FREE ? 
-                    '무료 체험이 종료되었습니다.' : 
+              <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
+                <p className="text-red-700 font-medium">
+                  {subscription.planName === SubscriptionType.FREE ?
+                    '무료 체험이 종료되었습니다.' :
                     '구독이 만료되었습니다.'}
                 </p>
                 <p className="text-sm text-red-600 mt-1">
@@ -253,7 +253,7 @@ export default function SubscriptionInfo() {
                 </p>
                 <button
                   onClick={handlePayment}
-                  className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                  className="mt-4 w-full bg-teal-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-teal-600 transition-colors"
                 >
                   Basic 플랜 시작하기 (₩9,900/월)
                 </button>
@@ -262,20 +262,20 @@ export default function SubscriptionInfo() {
 
             {/* 취소된 구독에 대한 안내 문구 */}
             {subscriptionService.isCanceled(subscription) && (
-              <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-sm text-orange-800 mb-2">
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-sm text-amber-800 mb-2">
                   구독이 취소되었지만 <strong>{new Date(subscription.endDate).toLocaleDateString('ko-KR')}</strong>까지 서비스를 계속 이용하실 수 있습니다.
                 </p>
-                <p className="text-sm text-orange-700">
+                <p className="text-sm text-amber-700">
                   구독을 다시 활성화하면 정기 결제일마다 자동으로 결제가 재개됩니다.
                 </p>
                 <button
                   onClick={() => setShowActivateModal(true)}
                   disabled={activating}
-                  className={`mt-3 w-full px-4 py-2 rounded-lg transition-colors ${
+                  className={`mt-3 w-full px-4 py-2 rounded-lg font-medium transition-colors ${
                     activating
-                      ? 'bg-gray-400 text-white cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-teal-500 text-white hover:bg-teal-600'
                   }`}
                 >
                   구독 활성화
@@ -284,17 +284,17 @@ export default function SubscriptionInfo() {
             )}
 
             {/* 유료 구독 중인 경우 */}
-            {subscription.planName === SubscriptionType.BASIC && 
+            {subscription.planName === SubscriptionType.BASIC &&
              subscription.status === SubscriptionStatus.ACTIVE && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-lg font-semibold text-gray-900">₩{subscription.amount.toLocaleString()}/월</p>
-                    <p className="text-sm text-gray-600">매월 자동 결제</p>
+                    <p className="text-sm text-gray-500">매월 자동 결제</p>
                   </div>
                   <button
                     onClick={() => setShowCancelModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-all duration-200"
+                    className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
                   >
                     구독 취소
                   </button>
@@ -307,10 +307,10 @@ export default function SubscriptionInfo() {
           </div>
         ) : (
           <div>
-            <p className="text-gray-600 mb-4">구독 정보가 없습니다.</p>
+            <p className="text-gray-500 mb-4">구독 정보가 없습니다.</p>
             <button
               onClick={handlePayment}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              className="w-full bg-teal-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-teal-600 transition-colors"
             >
               Basic 플랜 시작하기 (₩9,900/월)
             </button>
@@ -320,10 +320,10 @@ export default function SubscriptionInfo() {
 
       {/* Basic 플랜 정보 - 무료 체험 중이 아닐 때만 표시 */}
       {(!subscription || subscription.planName !== SubscriptionType.FREE) && (
-        <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <div className="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center mr-2">
-              <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <div className="w-6 h-6 bg-teal-50 rounded-lg flex items-center justify-center mr-2">
+              <svg className="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             </div>
@@ -331,25 +331,25 @@ export default function SubscriptionInfo() {
           </h3>
           <ul className="space-y-3 text-gray-700">
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               <span className="font-medium">모든 휴가 관리 기능 이용</span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               <span className="font-medium">무제한 직원 등록</span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               <span className="font-medium">실시간 알림 기능</span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               <span className="font-medium">우선 고객 지원</span>
@@ -360,7 +360,7 @@ export default function SubscriptionInfo() {
 
       {/* 결제 실패 정보 섹션 */}
       {paymentFailures.length > 0 && (
-        <div className="bg-red-50 rounded-xl border border-red-200 p-6">
+        <div className="bg-red-50 rounded-xl border border-red-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-red-900 flex items-center">
               <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center mr-2">
@@ -372,7 +372,7 @@ export default function SubscriptionInfo() {
             </h3>
             <button
               onClick={() => setShowPaymentFailures(!showPaymentFailures)}
-              className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+              className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-lg hover:bg-red-200 transition-colors flex items-center"
             >
               {showPaymentFailures ? (
                 <>
@@ -412,7 +412,7 @@ export default function SubscriptionInfo() {
                       </p>
                       <button
                         onClick={handlePayment}
-                        className="mt-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
+                        className="mt-1 px-3 py-1 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-xs font-medium"
                       >
                         재결제
                       </button>
@@ -423,22 +423,22 @@ export default function SubscriptionInfo() {
               </div>
               
               <div className="mt-4 space-y-3">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <p className="text-sm text-red-800">
-                    💡 결제 실패가 반복될 경우 카드 정보를 확인하거나 다른 결제 방법을 이용해 주세요.
+                <div className="p-3 bg-white rounded-lg border border-red-200">
+                  <p className="text-sm text-red-700">
+                    결제 실패가 반복될 경우 카드 정보를 확인하거나 다른 결제 방법을 이용해 주세요.
                   </p>
                 </div>
-                
+
                 {paymentFailures.length >= 3 && (
-                  <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <div className="flex items-start">
-                      <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-5 h-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                       <div>
-                        <p className="text-sm font-medium text-yellow-800 mb-1">⚠️ 중요 안내</p>
-                        <p className="text-sm text-yellow-700">
-                          결제 실패가 <span className="font-semibold">3회 이상</span> 발생하면 정기 결제가 자동으로 비활성화됩니다. 
+                        <p className="text-sm font-medium text-amber-800 mb-1">중요 안내</p>
+                        <p className="text-sm text-amber-700">
+                          결제 실패가 <span className="font-semibold">3회 이상</span> 발생하면 정기 결제가 자동으로 비활성화됩니다.
                           서비스 중단을 방지하려면 결제 방법을 확인하고 즉시 재결제해 주세요.
                         </p>
                       </div>
@@ -453,36 +453,36 @@ export default function SubscriptionInfo() {
 
       {/* 구독 취소 확인 모달 */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 border border-gray-200">
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+              <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mr-3">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">구독 취소</h3>
             </div>
-            
-            <p className="text-gray-600 mb-6">
+
+            <p className="text-gray-500 mb-6">
               정말로 구독을 취소하시겠습니까?
               <br />
               구독을 취소하면 정기 결제가 중단되며, 종료일까지 서비스를 이용할 수 있습니다.
             </p>
-            
-            <div className="flex space-x-3">
+
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelModal(false)}
-                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors font-medium"
               >
                 취소
               </button>
               <button
                 onClick={handleCancelSubscription}
                 disabled={loading}
-                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   loading
-                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-red-600 text-white hover:bg-red-700'
                 }`}
               >
@@ -495,37 +495,37 @@ export default function SubscriptionInfo() {
 
       {/* 구독 활성화 확인 모달 */}
       {showActivateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 border border-gray-200">
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">구독 활성화</h3>
             </div>
-            
-            <p className="text-gray-600 mb-6">
+
+            <p className="text-gray-500 mb-6">
               구독을 다시 활성화하시겠습니까?
               <br />
               활성화하면 정기 결제일마다 자동으로 결제가 재개됩니다.
             </p>
-            
-            <div className="flex space-x-3">
+
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowActivateModal(false)}
-                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors font-medium"
               >
                 취소
               </button>
               <button
                 onClick={handleActivateSubscription}
                 disabled={activating}
-                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   activating
-                    ? 'bg-gray-400 text-white cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-teal-500 text-white hover:bg-teal-600'
                 }`}
               >
                 {activating ? '활성화 중...' : '구독 활성화'}

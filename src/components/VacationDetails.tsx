@@ -203,11 +203,11 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md"
+        className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md"
       >
         {isLoading ? (
           <div className="p-4 sm:p-8 flex flex-col items-center justify-center h-48 sm:h-64">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3 sm:mb-4"></div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mb-3 sm:mb-4"></div>
             <p className="text-gray-600 font-medium text-sm sm:text-base">로딩 중...</p>
           </div>
         ) : showForm ? (
@@ -221,25 +221,25 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
           />
         ) : (
           <>
-            <div className="p-5 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="p-5 sm:p-6 bg-gradient-to-r from-teal-500 to-teal-600">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
-                  <span className="bg-blue-500 text-white p-1.5 sm:p-2 rounded-md mr-2 sm:mr-3 flex items-center justify-center">
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
+                  <span className="bg-white/20 text-white p-1.5 sm:p-2 rounded-md mr-2 sm:mr-3 flex items-center justify-center">
                     <FiCalendar size={18} className="sm:w-5 sm:h-5" />
                   </span>
                   휴무 상세 정보
                 </h2>
-                <button 
+                <button
                   onClick={onClose}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                   aria-label="닫기"
                 >
                   <FiX size={20} className="sm:w-6 sm:h-6" />
                 </button>
               </div>
               
-              <div className="mt-4 sm:mt-5 flex items-center justify-center p-3 sm:p-4 bg-white rounded-lg shadow-sm border border-blue-100">
-                <h3 className="text-blue-800 font-medium text-base sm:text-lg">
+              <div className="mt-4 sm:mt-5 flex items-center justify-center p-3 sm:p-4 bg-white/15 rounded-lg border border-white/20">
+                <h3 className="text-white font-medium text-base sm:text-lg">
                   {date && format(date, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })}
                 </h3>
               </div>
@@ -286,11 +286,11 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                           </div>
                           <div className="flex items-center gap-2 sm:gap-3">
                             <span className={`text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-full font-medium flex items-center ${
-                              vacation.status === 'approved' 
-                                ? 'bg-green-100 text-green-600 border border-green-200' 
-                                : vacation.status === 'pending' 
-                                  ? 'bg-yellow-100 text-yellow-600 border border-yellow-200'
-                                  : 'bg-red-100 text-red-600 border border-red-200'
+                              vacation.status === 'approved'
+                                ? 'bg-green-100 text-green-700 border border-green-200'
+                                : vacation.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                  : 'bg-red-100 text-red-700 border border-red-200'
                             }`}>
                               {getStatusText(vacation.status)}
                             </span>
@@ -308,7 +308,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                         <div className="flex flex-wrap gap-2 mt-2">
                           {/* 휴가 기간 뱃지 - 유효한 duration일 때만 표시 */}
                           {isValidDuration(vacation.duration) && (
-                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700">
+                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-teal-200 bg-teal-50 text-teal-700">
                             <span>{getDurationText(vacation.duration)}</span>
                           </div>
                           )}
@@ -325,7 +325,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                               ? 'bg-blue-50 text-blue-700 border-blue-100' 
                               : vacation.role === 'office' 
                                 ? 'bg-green-50 text-green-700 border-green-100' 
-                                : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                : 'bg-purple-50 text-purple-700 border-purple-100'
                           }`}>
                             {vacation.role === 'caregiver' ? (
                               <FiUser className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -355,7 +355,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
               {!isAdmin && !isFull && (
                 <button
                   onClick={handleApplyClick}
-                  className="w-full py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center justify-center"
+                  className="w-full py-2.5 sm:py-3 bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center justify-center"
                 >
                   <FiSend className="mr-2" size={18} />
                   휴무 신청하기
@@ -380,12 +380,12 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start mb-4">
-                <div className="bg-red-100 p-2 rounded-full mr-3">
-                  <FiLock size={20} className="text-red-600" />
+                <div className="bg-red-100 p-2.5 rounded-full mr-3">
+                  <FiLock size={20} className="text-red-700" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">휴무 삭제 확인</h3>
@@ -402,7 +402,7 @@ const VacationDetails: React.FC<VacationDetailsProps> = ({
                   id="deletePassword"
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="비밀번호를 입력하세요"
                   autoComplete="current-password"
                 />

@@ -98,6 +98,7 @@ const handleLogout = () => {
     localStorage.removeItem('companyId');
     localStorage.removeItem('companyName');
     localStorage.removeItem('companyAddressName');
+    localStorage.removeItem('companyCode');
     localStorage.removeItem('customerKey');
     localStorage.removeItem('organizationName');
 
@@ -514,6 +515,7 @@ export async function signin(email: string, password: string): Promise<SigninRes
             localStorage.setItem('userId', data.userId?.toString() || '');
             localStorage.setItem('companyName', data.companyName || '');
             localStorage.setItem('companyAddressName', data.companyAddressName || '');
+            localStorage.setItem('companyCode', data.companyCode || '');
             localStorage.setItem('customerKey', data.customerKey || '');
 
             // companyId 저장 (필수값)
@@ -683,6 +685,7 @@ export async function deleteAdminUser(): Promise<string> {
         localStorage.removeItem('userName');
         localStorage.removeItem('companyName');
         localStorage.removeItem('companyAddressName');
+        localStorage.removeItem('companyCode');
 
         return 'success';
     } catch (error) {
@@ -719,6 +722,7 @@ export async function logout() {
         localStorage.removeItem('companyId');
         localStorage.removeItem('companyName');
         localStorage.removeItem('companyAddressName');
+        localStorage.removeItem('companyCode');
         localStorage.removeItem('customerKey');
         localStorage.removeItem('organizationName'); // 이전 버전 호환성
     }

@@ -67,9 +67,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
-    <div className="calendar-container bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="calendar-container bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* 캘린더 헤더 */}
-      <div className="calendar-header bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 flex justify-between items-center">
+      <div className="calendar-header bg-gradient-to-r from-teal-500 to-teal-600 text-white p-6 flex justify-between items-center">
         <button 
           onClick={prevMonth}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition-all text-white"
@@ -96,9 +96,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 bg-gray-50">
         {weekDays.map((day, index) => (
-          <div 
-            key={index} 
-            className={`p-3 text-center font-medium ${index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-700'}`}
+          <div
+            key={index}
+            className={`p-3 text-center text-xs font-semibold ${index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-500'}`}
           >
             {day}
           </div>
@@ -115,9 +115,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                 {row.map((dayInfo, colIndex) => {
                   if (!dayInfo) {
                     return (
-                      <div 
-                        key={`blank-${rowIndex}-${colIndex}`} 
-                        className="p-1 border-b border-r border-gray-200 bg-gray-50 min-h-[90px] md:min-h-[100px]"
+                      <div
+                        key={`blank-${rowIndex}-${colIndex}`}
+                        className="p-1 border-b border-r border-gray-200 bg-gray-50/50 min-h-[90px] md:min-h-[100px]"
                       ></div>
                     );
                   }
@@ -125,66 +125,62 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                   const isToday = isSameDay(dayInfo.date, new Date());
                   const isSelected = selectedDate && isSameDay(dayInfo.date, selectedDate);
                   const isCurrentMonth = isSameMonth(dayInfo.date, currentMonth);
-                  const isWeekend = getDay(dayInfo.date) === 0 || getDay(dayInfo.date) === 6;
-                  
+                  const isSunday = getDay(dayInfo.date) === 0;
+                  const isSaturday = getDay(dayInfo.date) === 6;
+
                   return (
-                    <div 
+                    <div
                       key={`day-${rowIndex}-${colIndex}`}
                       onClick={() => onSelectDate(dayInfo.date)}
                       className={`
-                        relative p-1 border-b border-r border-gray-200 cursor-pointer 
-                        transition-all duration-200 group
-                        ${isSelected ? 'bg-blue-50' : ''}
-                        ${!isCurrentMonth ? 'text-gray-300 bg-gray-50' : ''}
-                        ${isToday ? 'bg-yellow-50' : ''}
-                        ${isWeekend && isCurrentMonth ? 'bg-gray-50' : ''}
-                        hover:bg-blue-50
+                        relative p-1 border-b border-r border-gray-200 cursor-pointer
+                        transition-all duration-200 group min-h-[90px] md:min-h-[100px]
+                        ${isSelected ? 'bg-teal-50' : ''}
+                        ${!isCurrentMonth ? 'text-gray-300 bg-gray-50/50' : ''}
+                        ${isToday && !isSelected ? 'bg-teal-50/40' : ''}
+                        hover:bg-teal-50
                       `}
                     >
                       <div className="flex flex-col h-full">
                         <div className="flex justify-between items-start p-1">
-                          <span 
+                          <span
                             className={`
-                              flex items-center justify-center text-sm
-                              ${isToday ? 'bg-blue-600 text-white w-6 h-6 rounded-full' : ''}
-                              ${getDay(dayInfo.date) === 0 && isCurrentMonth ? 'text-red-500' : ''}
-                              ${getDay(dayInfo.date) === 6 && isCurrentMonth ? 'text-blue-500' : ''}
+                              flex items-center justify-center text-sm font-medium
+                              ${isToday ? 'bg-teal-500 text-white w-7 h-7 rounded-full shadow-sm' : ''}
+                              ${!isToday && isSunday && isCurrentMonth ? 'text-red-500' : ''}
+                              ${!isToday && isSaturday && isCurrentMonth ? 'text-blue-500' : ''}
+                              ${!isToday && !isSunday && !isSaturday && isCurrentMonth ? 'text-gray-900' : ''}
                             `}
                           >
                             {format(dayInfo.date, 'd')}
                           </span>
                           {dayInfo.vacationCount > 0 && (
-                            <div 
-                              className={`
-                                bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5
-                                shadow-sm
-                              `}
-                            >
+                            <div className="bg-red-500 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-sm">
                               {dayInfo.vacationCount}
                             </div>
                           )}
                         </div>
-                        
+
                         {/* 휴가 표시 */}
                         {dayInfo.vacationCount > 0 && isCurrentMonth && (
                           <div className="mt-1 px-1">
                             {dayInfo.vacations.slice(0, 2).map((vacation: VacationRequest, idx: number) => (
-                              <div key={idx} className="text-xs my-0.5 bg-red-100 text-red-800 p-1 rounded truncate">
+                              <div key={idx} className="text-xs my-0.5 bg-red-50 text-red-700 p-1 rounded truncate font-medium">
                                 {vacation.userName}
                               </div>
                             ))}
                             {dayInfo.vacationCount > 2 && (
-                              <div className="text-xs text-gray-500 mt-1">
+                              <div className="text-xs text-gray-400 mt-1 font-medium">
                                 +{dayInfo.vacationCount - 2}명
                               </div>
                             )}
                           </div>
                         )}
                       </div>
-                      
+
                       {/* 선택 효과 */}
                       {isSelected && (
-                        <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none"></div>
+                        <div className="absolute inset-0 border-2 border-teal-500 rounded-sm pointer-events-none"></div>
                       )}
                     </div>
                   );
@@ -196,12 +192,12 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       </div>
       
       {/* 하단 정보 */}
-      <div className="p-3 bg-gray-50 border-t border-gray-200 flex justify-between text-xs text-gray-500">
-        <div>
-          <span className="inline-block w-3 h-3 rounded-full bg-blue-600 mr-1"></span> 오늘
+      <div className="p-3 bg-gray-50 border-t border-gray-200 flex justify-center gap-6 text-xs text-gray-500">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-full bg-teal-500"></span> 오늘
         </div>
-        <div>
-          <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span> 휴가신청
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span> 휴가신청
         </div>
       </div>
     </div>

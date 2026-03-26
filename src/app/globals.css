@@ -12,24 +12,35 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* 관리자 대시보드는 라이트 모드 고정 */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 모바일 최적화를 위한 추가 스타일 */
+/* 부드러운 스크롤 */
 html {
+  scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* 텍스트 선택 색상 - 브랜드 컬러 */
+::selection {
+  background-color: rgba(20, 184, 134, 0.15);
+  color: inherit;
+}
+
+/* 포커스 링 스타일 통일 */
+*:focus-visible {
+  outline: 2px solid #14b886;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* 최소 글꼴 크기 보장 */
@@ -37,6 +48,15 @@ html {
   * {
     font-size-adjust: 0.5;
   }
+}
+
+/* 탭 네비게이션 스크롤바 숨김 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* 스켈레톤 로딩 애니메이션 */

@@ -1,0 +1,7 @@
+{
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"/Users/gimjunhyeong/Develop/silverithm/frontend-admin/src/app/page.tsx\"}",
+  "error": "File content (16738 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
+  "timestamp": "2026-03-26T13:21:46.970Z",
+  "retry_count": 1
+}

@@ -227,7 +227,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                     {/* 선택된 직원 정보 */}
                     <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-2xl">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
                           {selectedMember?.name?.charAt(0)}
                         </div>
                         <div>
@@ -240,14 +240,14 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                     {/* 날짜 선택 */}
                     <div className="bg-white p-5 rounded-2xl border border-gray-200">
                       <label className="block text-sm font-semibold text-gray-900 mb-3">
-                        <FiCalendar className="inline-block w-4 h-4 mr-2 text-blue-600" />
+                        <FiCalendar className="inline-block w-4 h-4 mr-2 text-teal-600" />
                         휴무 날짜
                       </label>
                       <input
                         type="date"
                         value={vacationDate}
                         onChange={(e) => setVacationDate(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all"
                       />
                     </div>
 
@@ -259,7 +259,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       <div className="grid grid-cols-2 gap-3">
                         <label className={`flex items-center justify-center px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${
                           vacationKind === 'regular'
-                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                            ? 'border-teal-500 bg-teal-50 text-teal-600'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}>
                           <input
@@ -300,7 +300,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                             className="sr-only"
                           />
                           <div className={`w-14 h-8 rounded-full transition-colors ${
-                            useAnnualLeave ? 'bg-blue-500' : 'bg-gray-300'
+                            useAnnualLeave ? 'bg-teal-500' : 'bg-gray-300'
                           }`}>
                             <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
                               useAnnualLeave ? 'translate-x-6' : 'translate-x-0'
@@ -314,7 +314,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                     {useAnnualLeave && (
                       <div className="bg-white p-5 rounded-2xl border border-gray-200">
                         <label className="block text-sm font-semibold text-gray-900 mb-3">
-                          <FiClock className="inline-block w-4 h-4 mr-2 text-blue-600" />
+                          <FiClock className="inline-block w-4 h-4 mr-2 text-teal-600" />
                           연차 유형
                         </label>
                         <div className="space-y-3">
@@ -323,7 +323,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                               key={option.value}
                               className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
                                 duration === option.value
-                                  ? 'border-blue-500 bg-blue-50'
+                                  ? 'border-teal-500 bg-teal-50'
                                   : 'border-gray-200 hover:border-gray-300'
                               }`}
                             >
@@ -337,14 +337,14 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className={`font-medium ${
-                                    duration === option.value ? 'text-blue-600' : 'text-gray-900'
+                                    duration === option.value ? 'text-teal-600' : 'text-gray-900'
                                   }`}>
                                     {option.displayName}
                                   </p>
                                   <p className="text-sm text-gray-500 mt-1">{option.description}</p>
                                 </div>
                                 {duration === option.value && (
-                                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                  <div className="w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center">
                                     <FiCheck className="w-4 h-4 text-white" />
                                   </div>
                                 )}
@@ -364,7 +364,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                         <select
                           value={vacationType}
                           onChange={(e) => setVacationType(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all appearance-none cursor-pointer"
                         >
                           {vacationTypes.map((type) => (
                             <option key={type.value} value={type.value}>
@@ -392,7 +392,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                             : '휴무 사유를 입력해주세요 (선택)'
                         }
                         rows={3}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all resize-none"
                       />
                     </div>
 
@@ -432,7 +432,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       disabled={!selectedMember}
                       className={`px-6 py-2.5 font-medium text-white rounded-xl transition-all ${
                         selectedMember
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-sm hover:shadow-md'
+                          ? 'bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-sm hover:shadow-md'
                           : 'bg-gray-300 cursor-not-allowed'
                       }`}
                     >
@@ -445,7 +445,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       className={`px-8 py-2.5 font-medium text-white rounded-xl transition-all flex items-center gap-2 ${
                         isSubmitting
                           ? 'bg-gray-300 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-sm hover:shadow-md'
+                          : 'bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-sm hover:shadow-md'
                       }`}
                     >
                       {isSubmitting ? (

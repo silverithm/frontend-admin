@@ -6,8 +6,10 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
+import { FormSchema } from '@/types/formSchema';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
+import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import { FiPlus, FiDownload, FiEdit2, FiTrash2, FiUploadCloud, FiFileText, FiX } from 'react-icons/fi';
 
 export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: boolean }) {
@@ -24,6 +26,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     description: '',
     file: null as File | null,
   });
+  const [templateType, setTemplateType] = useState<'file' | 'form' | 'hybrid'>('file');
+  const [formSchema, setFormSchema] = useState<FormSchema | undefined>(undefined);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,7 +97,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       showAlert({ type: 'error', title: '입력 오류', message: '양식명을 입력해주세요.' });
       return;
     }
-    if (!uploadForm.file && !editingTemplate) {
+    // 파일 필수 체크: file/hybrid 타입이고 신규 등록이면서 파일 없을 때
+    if (templateType !== 'form' && !uploadForm.file && !editingTemplate) {
       showAlert({ type: 'error', title: '입력 오류', message: '파일을 선택해주세요.' });
       return;
     }
@@ -119,9 +124,11 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
         await updateApprovalTemplate(String(editingTemplate.id), {
           name: uploadForm.name,
           description: uploadForm.description,
-          fileUrl: fileUrl,
-          fileName: fileName,
-          fileSize: fileSize,
+          fileUrl: templateType !== 'form' ? fileUrl : undefined,
+          fileName: templateType !== 'form' ? fileName : undefined,
+          fileSize: templateType !== 'form' ? fileSize : undefined,
+          templateType,
+          formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
         });
         showAlert({ type: 'success', title: '수정 완료', message: '양식이 수정되었습니다.' });
       } else {
@@ -129,9 +136,11 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
         await createApprovalTemplate({
           name: uploadForm.name,
           description: uploadForm.description,
-          fileUrl: fileUrl,
-          fileName: fileName,
-          fileSize: fileSize,
+          fileUrl: templateType !== 'form' ? fileUrl : undefined,
+          fileName: templateType !== 'form' ? fileName : undefined,
+          fileSize: templateType !== 'form' ? fileSize : undefined,
+          templateType,
+          formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
         });
         showAlert({ type: 'success', title: '등록 완료', message: '양식이 등록되었습니다.' });
       }
@@ -139,6 +148,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       setShowUploadModal(false);
       setEditingTemplate(null);
       setUploadForm({ name: '', description: '', file: null });
+      setTemplateType('file');
+      setFormSchema(undefined);
       loadTemplates();
     } catch (error) {
       console.error('양식 저장 실패:', error);
@@ -193,6 +204,11 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       description: template.description,
       file: null,
     });
+    setTemplateType(template.templateType || 'file');
+    const schema = template.formSchema
+      ? (typeof template.formSchema === 'string' ? JSON.parse(template.formSchema) : template.formSchema)
+      : undefined;
+    setFormSchema(schema);
     setShowUploadModal(true);
   };
 
@@ -201,6 +217,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     setShowUploadModal(false);
     setEditingTemplate(null);
     setUploadForm({ name: '', description: '', file: null });
+    setTemplateType('file');
+    setFormSchema(undefined);
   };
 
   // 파일 다운로드
@@ -245,7 +263,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           {isAdmin && (
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+              className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm"
             >
               <FiPlus className="w-5 h-5" />
               <span>새 양식 등록</span>
@@ -257,7 +275,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-200 border-t-teal-500"></div>
             </div>
           ) : templates.length > 0 ? (
             <div className="overflow-x-auto">
@@ -266,6 +284,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                   <tr>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">양식명</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">설명</th>
+                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">유형</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">파일</th>
                     <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">상태</th>
                     <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">수정일</th>
@@ -286,10 +305,19 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       <td className="px-6 py-4">
                         <span className="text-gray-600 text-sm">{template.description}</span>
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        {(template.templateType === 'form') ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-700">온라인 폼</span>
+                        ) : (template.templateType === 'hybrid') ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-600">혼합</span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">파일</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => handleDownload(template)}
-                          className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors"
+                          className="flex items-center space-x-2 text-teal-600 hover:text-teal-700 transition-colors"
                         >
                           <FiDownload className="w-4 h-4" />
                           <span className="text-sm">{template.fileName}</span>
@@ -328,7 +356,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                           <div className="flex items-center justify-center space-x-2">
                             <button
                               onClick={() => openEditModal(template)}
-                              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-2 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
                               title="편집"
                             >
                               <FiEdit2 className="w-4 h-4" />
@@ -349,10 +377,10 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
               </table>
             </div>
           ) : (
-            <div className="text-center py-20 text-gray-500">
-              <FiFileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg mb-2">등록된 양식이 없습니다</p>
-              <p className="text-sm">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</p>
+            <div className="text-center py-20">
+              <FiFileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg mb-2 text-gray-400">등록된 양식이 없습니다</p>
+              <p className="text-sm text-gray-400">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</p>
             </div>
           )}
         </div>
@@ -373,29 +401,69 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-200"
+              className={`bg-white rounded-2xl shadow-xl w-full border border-gray-200 ${templateType === 'file' ? 'max-w-md' : 'max-w-4xl'}`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
+              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-teal-500 to-teal-600 rounded-t-2xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-xl font-bold text-white">
                       {editingTemplate ? '양식 편집' : '새 양식 등록'}
                     </h2>
-                    <p className="text-gray-600 text-sm mt-1">
-                      {editingTemplate ? '양식 정보를 수정하고 새 파일을 업로드하세요' : '양식 파일을 업로드하여 등록하세요'}
+                    <p className="text-teal-100 text-sm mt-1">
+                      {editingTemplate ? '양식 정보를 수정하세요' : '양식 유형을 선택하고 등록하세요'}
                     </p>
                   </div>
                   <button
                     onClick={closeModal}
-                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 text-teal-100 hover:text-white hover:bg-teal-400/30 rounded-lg transition-colors"
                   >
                     <FiX className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                {/* 양식 유형 선택 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">양식 유형</label>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setTemplateType('file')}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        templateType === 'file'
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
+                      }`}
+                    >
+                      파일
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTemplateType('form')}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        templateType === 'form'
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
+                      }`}
+                    >
+                      온라인 폼
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTemplateType('hybrid')}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        templateType === 'hybrid'
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
+                      }`}
+                    >
+                      혼합
+                    </button>
+                  </div>
+                </div>
+
                 {/* 양식명 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -406,7 +474,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                     value={uploadForm.name}
                     onChange={(e) => setUploadForm(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="양식명을 입력하세요"
-                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -420,61 +488,77 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                     value={uploadForm.description}
                     onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="양식 설명을 입력하세요"
-                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
+
+                {/* 온라인 폼 빌더 */}
+                {(templateType === 'form' || templateType === 'hybrid') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      온라인 폼 구성
+                    </label>
+                    <FormSchemaBuilder
+                      initialSchema={formSchema}
+                      onSchemaChange={(schema) => setFormSchema(schema)}
+                    />
+                  </div>
+                )}
 
                 {/* 파일 업로드 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    양식 파일 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    onChange={handleFileSelect}
-                    accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
-                    className="hidden"
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
-                  >
-                    {uploadForm.file ? (
-                      <div className="flex items-center justify-center space-x-3">
-                        <FiFileText className="w-8 h-8 text-blue-500" />
-                        <div className="text-left">
-                          <p className="text-gray-900 font-medium">{uploadForm.file.name}</p>
-                          <p className="text-gray-500 text-sm">{formatFileSize(uploadForm.file.size)}</p>
+                {templateType !== 'form' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      양식 파일 {templateType === 'file' && <span className="text-red-500">*</span>}
+                      {templateType === 'hybrid' && <span className="text-gray-400 text-xs ml-1">(선택)</span>}
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
+                      className="hidden"
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full p-6 border-2 border-dashed border-gray-200 rounded-lg text-center cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-all"
+                    >
+                      {uploadForm.file ? (
+                        <div className="flex items-center justify-center space-x-3">
+                          <FiFileText className="w-8 h-8 text-teal-500" />
+                          <div className="text-left">
+                            <p className="text-gray-900 font-medium">{uploadForm.file.name}</p>
+                            <p className="text-gray-500 text-sm">{formatFileSize(uploadForm.file.size)}</p>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <FiUploadCloud className="w-10 h-10 mx-auto text-gray-500 mb-2" />
-                        <p className="text-gray-700">클릭하여 파일 선택</p>
-                        <p className="text-gray-500 text-sm mt-1">지원 형식: .hwp, .docx, .pdf, .xlsx</p>
-                      </>
+                      ) : (
+                        <>
+                          <FiUploadCloud className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+                          <p className="text-gray-500">클릭하여 파일 선택</p>
+                          <p className="text-gray-500 text-sm mt-1">지원 형식: .hwp, .docx, .pdf, .xlsx</p>
+                        </>
+                      )}
+                    </div>
+                    {editingTemplate && !uploadForm.file && editingTemplate.fileName && (
+                      <p className="text-gray-500 text-sm mt-2">
+                        현재 파일: {editingTemplate.fileName}
+                      </p>
                     )}
                   </div>
-                  {editingTemplate && !uploadForm.file && (
-                    <p className="text-gray-500 text-sm mt-2">
-                      현재 파일: {editingTemplate.fileName}
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
 
-              <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl flex justify-end space-x-3">
+              <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex justify-end space-x-3">
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleUpload}
-                  disabled={isUploading || !uploadForm.name.trim() || (!uploadForm.file && !editingTemplate)}
-                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isUploading || !uploadForm.name.trim() || (templateType !== 'form' && !uploadForm.file && !editingTemplate)}
+                  className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? (
                     <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">

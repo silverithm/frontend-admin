@@ -73,26 +73,26 @@ export default function DispatchCalendar({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <button
             onClick={goToPreviousMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-teal-50 transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-500 hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h2 className="text-xl font-bold text-gray-800">
+          <h2 className="text-xl font-bold text-gray-900">
             {format(currentDate, "yyyy년 M월", { locale: ko })}
           </h2>
           <button
             onClick={goToNextMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-teal-50 transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-500 hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -101,7 +101,7 @@ export default function DispatchCalendar({
         <div className="flex items-center space-x-3">
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-teal-600 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors"
           >
             오늘
           </button>
@@ -131,7 +131,7 @@ export default function DispatchCalendar({
       {/* 로딩 상태 */}
       {isLoading && (
         <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 rounded-lg">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-200 border-t-teal-500"></div>
         </div>
       )}
 
@@ -170,24 +170,28 @@ export default function DispatchCalendar({
                 relative min-h-[100px] p-2 rounded-lg border transition-all
                 ${isCurrentMonth ? statusColors.bg : "bg-gray-100"}
                 ${isCurrentMonth ? statusColors.border : "border-gray-200"}
-                ${isToday ? "ring-2 ring-blue-500 ring-offset-1" : ""}
+                ${isToday ? "ring-2 ring-teal-400 ring-offset-1" : ""}
                 ${isCurrentMonth ? "hover:shadow-md cursor-pointer" : "opacity-50 cursor-default"}
               `}
               disabled={!isCurrentMonth}
             >
               {/* 날짜 숫자 */}
-              <div
-                className={`text-sm font-semibold mb-1 ${
-                  !isCurrentMonth
-                    ? "text-gray-400"
-                    : isSunday
-                    ? "text-red-500"
-                    : isSaturday
-                    ? "text-blue-500"
-                    : "text-gray-800"
-                }`}
-              >
-                {format(day, "d")}
+              <div className="flex items-start">
+                <span
+                  className={`inline-flex items-center justify-center text-sm font-semibold mb-1 ${
+                    isToday
+                      ? "w-7 h-7 rounded-full bg-teal-500 text-white"
+                      : !isCurrentMonth
+                      ? "text-gray-400"
+                      : isSunday
+                      ? "text-red-500"
+                      : isSaturday
+                      ? "text-blue-500"
+                      : "text-gray-900"
+                  }`}
+                >
+                  {format(day, "d")}
+                </span>
               </div>
 
               {/* 휴일 표시 */}

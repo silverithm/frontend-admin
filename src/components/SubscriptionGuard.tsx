@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { SubscriptionResponseDTO } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from './Alert';
+import { Agentation } from 'agentation';
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
@@ -84,8 +85,11 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   // 로딩 중
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">로딩 중...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm text-gray-500 font-medium">로딩 중...</span>
+        </div>
       </div>
     );
   }
@@ -93,41 +97,41 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   // 무료 체험 종료 모달
   if (showBlockModal) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl border border-gray-200 max-w-md w-full p-6 relative">
           {/* 좌측 상단 뒤로가기 버튼 */}
           <button
             onClick={() => {
               localStorage.clear();
               window.location.href = 'https://carev.kr';
             }}
-            className="absolute left-6 top-6 text-gray-500 hover:text-gray-700 flex items-center"
+            className="absolute left-6 top-6 text-gray-500 hover:text-gray-900 flex items-center text-sm font-medium transition-colors"
           >
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             뒤로가기
           </button>
 
-          <div className="text-center pt-8">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <div className="text-center pt-10">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-50 border border-red-200 mb-4">
               <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            
+
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {subscription?.planName === 'FREE' ? '무료 체험이 종료되었습니다' : '구독이 만료되었습니다'}
             </h2>
-            
-            <p className="text-gray-600 mb-6">
+
+            <p className="text-gray-500 mb-6">
               서비스를 계속 이용하시려면 Basic 플랜을 구독해주세요.
             </p>
 
-            <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <p className="text-lg font-semibold text-blue-900">Basic 플랜</p>
-              <p className="text-2xl font-bold text-blue-900 mt-1">₩9,900<span className="text-sm font-normal">/월</span></p>
-              <p className="text-sm text-blue-700 mt-1">모든 기능을 이용하실 수 있습니다</p>
+            <div className="bg-teal-50 rounded-xl p-4 mb-6 border border-teal-200">
+              <p className="text-lg font-semibold text-teal-900">Basic 플랜</p>
+              <p className="text-2xl font-bold text-teal-900 mt-1">₩9,900<span className="text-sm font-normal text-teal-700">/월</span></p>
+              <p className="text-sm text-teal-700 mt-1">모든 기능을 이용하실 수 있습니다</p>
             </div>
 
             <div className="space-y-3">
@@ -136,7 +140,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                   setShowBlockModal(false);
                   router.push('/payment');
                 }}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                className="w-full bg-teal-500 text-white py-3 px-4 rounded-lg hover:bg-teal-600 transition-colors font-medium"
               >
                 결제하기
               </button>
@@ -146,7 +150,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                   localStorage.clear();
                   window.location.href = 'https://carev.kr';
                 }}
-                className="w-full text-gray-500 hover:text-gray-700 text-sm"
+                className="w-full text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
               >
                 로그아웃
               </button>
@@ -161,6 +165,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     <>
       <AlertContainer />
       {children}
+      {process.env.NODE_ENV === 'development' && <Agentation />}
     </>
   );
 }

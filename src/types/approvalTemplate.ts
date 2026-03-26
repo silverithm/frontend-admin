@@ -1,3 +1,5 @@
+import { FormSchema } from '@/types/formSchema';
+
 // 양식 템플릿 (한글 파일 기반)
 export interface ApprovalTemplate {
   id: string;
@@ -9,15 +11,19 @@ export interface ApprovalTemplate {
   isActive: boolean;         // 활성화 여부
   createdAt: string;
   updatedAt: string;
+  formSchema?: FormSchema;
+  templateType: 'file' | 'form' | 'hybrid';
 }
 
 // 양식 생성 요청
 export interface CreateTemplateRequest {
   name: string;
   description: string;
-  fileUrl: string;
-  fileName: string;
-  fileSize: number;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  formSchema?: string; // JSON 문자열
+  templateType?: string;
 }
 
 // 양식 수정 요청
@@ -28,4 +34,6 @@ export interface UpdateTemplateRequest {
   fileName?: string;
   fileSize?: number;
   isActive?: boolean;
+  formSchema?: string; // JSON 문자열
+  templateType?: string;
 }

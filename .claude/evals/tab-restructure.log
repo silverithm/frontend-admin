@@ -1,0 +1,34 @@
+EVAL REPORT: tab-restructure
+============================
+Date: 2026-03-26
+
+Capability Evals:
+  1.  [TYPE_SAFETY]           PASS (pass@1) - tsc --noEmit exit 0
+  2.  [TAB_RENAME]            PASS (pass@1) - "회원관리" found at line 989
+  3.  [TAB_STATE]             PASS (pass@1) - MainTab = "...members" at line 41, "info" absent
+  4.  [SCHEDULE_MODE]         PASS (pass@1) - ScheduleMode type at line 43, state at line 49
+  5.  [DISPATCH_IN_CALENDAR]  PASS (pass@1) - mode prop at ScheduleCalendar:21
+  6.  [DISPATCH_CELL_RENDER]  PASS (pass@1) - normalCount/substituteCount/noServiceCount rendered in cells
+  7.  [DISPATCH_LEGEND]       PASS (pass@1) - Legend (정상/대체/운행없음/휴일) in header
+  8.  [DISPATCH_SETTINGS_BTN] PASS (pass@1) - "배차 설정" button at line 450
+  9.  [DISPATCH_DAY_DETAIL]   PASS (pass@1) - DispatchDayDetail modal at lines 1418-1425
+  10. [DISPATCH_SETTINGS_MODAL] PASS (pass@1) - DispatchSettings modal at lines 1431-1436
+  11. [REMOVED_SUBTABS]       PASS (pass@1) - No InfoSubTab/infoSubTab/결재승인/휴무승인 in admin/page.tsx
+  12. [REMOVED_IMPORTS]       PASS (pass@1) - No VacationApproval/DispatchManagement in admin/page.tsx
+  13. [DASHBOARD_TAB_REF]     PASS (pass@1) - tab:'members' at lines 271,280,298,307,316
+
+  Overall: 13/13 passed
+
+Regression Evals:
+  1. [BUILD]                PASS - tsc --noEmit exit 0
+  2. [SCHEDULE_MODE_DEFAULT] PASS - useState<ScheduleMode>("schedule") at line 49
+  3. [EXISTING_TABS]        PASS - dashboard/notice/chat/approval/work all present in MainTab
+  4. [APPROVAL_SUBTAB]      PASS - "결재 관리"/"양식 관리" present at lines 1013/1017
+
+  Overall: 4/4 passed
+
+Metrics:
+  Capability pass@1: 100% (13/13)
+  Regression pass^1:  100% (4/4)
+
+Status: ALL PASS

@@ -25,6 +25,7 @@ export interface Senior {
   name: string;
   routeId: string; // 배정된 노선 ID (등원/하원 별도)
   boardingOrder: number; // 탑승 순서 (1부터 시작)
+  elderlyId?: number; // 백엔드 Elderly 엔티티 ID (회원관리 연동)
 }
 
 // 어르신 결석 정보

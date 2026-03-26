@@ -28,7 +28,7 @@ import ScheduleCalendar from "@/components/ScheduleCalendar";
 import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
-import PositionManagement from "@/components/PositionManagement";
+// PositionManagement는 UserManagement에 통합됨
 import SubscriptionStatus from "@/components/SubscriptionStatus";
 import ApprovalManagement from "@/components/ApprovalManagement";
 import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
@@ -42,14 +42,11 @@ import Image from "next/image";
 type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members";
 type ApprovalSubTab = "management" | "templates";
 type ScheduleMode = "schedule" | "dispatch";
-type MembersSubTab = "management" | "positions";
-
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("management");
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
-    const [membersSubTab, setMembersSubTab] = useState<MembersSubTab>("management");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -97,7 +94,6 @@ export default function AdminPage() {
 
     const [isClient, setIsClient] = useState(false);
     const [loginType, setLoginType] = useState<string>('admin');
-
     const isAdmin = loginType === 'admin';
 
     // 클라이언트 사이드에서만 실행되도록 하는 useEffect
@@ -1021,17 +1017,7 @@ export default function AdminPage() {
                                     </button>
                                 </div>
                             )}
-                            {/* 회원관리 서브탭 */}
-                            {tab.key === "members" && activeMainTab === "members" && isAdmin && (
-                                <div className="pl-9 mt-1 space-y-0.5">
-                                    <button onClick={() => setMembersSubTab("management")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${membersSubTab === "management" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
-                                        회원 관리
-                                    </button>
-                                    <button onClick={() => setMembersSubTab("positions")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${membersSubTab === "positions" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
-                                        직책 관리
-                                    </button>
-                                </div>
-                            )}
+                            {/* 회원관리 - 직책관리가 UserManagement에 통합됨 */}
                             {/* 월간일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
                                 <div className="pl-9 mt-1 space-y-0.5">
@@ -1048,13 +1034,13 @@ export default function AdminPage() {
                 </nav>
 
                 {/* 사이드바 하단 */}
-                <div className="border-t border-gray-100 px-3 py-3 space-y-1 flex-shrink-0">
-                    <SubscriptionStatus />
-                    <button onClick={() => router.push("/admin/organization-profile")} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 rounded-lg hover:bg-gray-50 hover:text-gray-700 transition-colors">
+                <div className="border-t border-gray-100 py-3 space-y-1 flex-shrink-0">
+                    <div className="px-3"><SubscriptionStatus /></div>
+                    <button onClick={() => router.push("/admin/organization-profile")} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         기관 프로필
                     </button>
-                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         로그아웃
                     </button>
@@ -1102,7 +1088,7 @@ export default function AdminPage() {
             </div>
 
             {/* 메인 콘텐츠 */}
-            <main className="flex-grow w-full px-3 sm:px-4 lg:px-5 py-4">
+            <main className="flex-grow w-full px-3 sm:px-4 lg:px-5 py-4 flex flex-col">
                 {/* 알림 메시지 */}
                 <AnimatePresence>
                     {notification.show && (
@@ -1144,6 +1130,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
+                            className="flex-1 flex flex-col"
                         >
                             <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={isAdmin} />
                         </motion.div>
@@ -1154,6 +1141,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
+                            className="flex-1 flex flex-col"
                         >
                             <NoticeManagement isAdmin={isAdmin} />
                         </motion.div>
@@ -1164,6 +1152,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
+                            className="flex-1 flex flex-col"
                         >
                             <ChatManagement onNotification={showNotification} />
                         </motion.div>
@@ -1174,6 +1163,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.3}}
+                            className="flex-1 flex flex-col"
                         >
                             <ScheduleCalendar isAdmin={isAdmin} mode={scheduleMode} onNotification={showNotification} />
                         </motion.div>
@@ -1184,6 +1174,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
+                            className="flex-1 flex flex-col"
                         >
                             {isAdmin && approvalSubTab === "management" ? (
                                 <ApprovalManagement />
@@ -1198,6 +1189,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
+                            className="flex-1 flex flex-col"
                         >
                             {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="flex flex-col xl:flex-row gap-6">
@@ -1230,13 +1222,13 @@ export default function AdminPage() {
                                                         <button
                                                             key={status}
                                                             onClick={() => setStatusFilter(status)}
-                                                            className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
                                                                 statusFilter === status
-                                                                    ? status === "all" ? "bg-blue-600 text-white"
+                                                                    ? status === "all" ? "bg-teal-500 text-white"
                                                                         : status === "pending" ? "bg-yellow-500 text-white"
-                                                                            : status === "approved" ? "bg-green-600 text-white"
-                                                                                : "bg-red-600 text-white"
-                                                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                                            : status === "approved" ? "bg-green-500 text-white"
+                                                                                : "bg-red-500 text-white"
+                                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                                             }`}
                                                         >
                                                             {status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
@@ -1253,12 +1245,12 @@ export default function AdminPage() {
                                                         <button
                                                             key={role}
                                                             onClick={() => setRoleFilter(role)}
-                                                            className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
                                                                 roleFilter === role
-                                                                    ? role === "all" ? "bg-indigo-600 text-white"
-                                                                        : role === "caregiver" ? "bg-blue-600 text-white"
-                                                                            : "bg-green-600 text-white"
-                                                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                                    ? role === "all" ? "bg-teal-500 text-white"
+                                                                        : role === "caregiver" ? "bg-blue-500 text-white"
+                                                                            : "bg-green-500 text-white"
+                                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                                             }`}
                                                         >
                                                             {role === "all" ? "전체" : role === "caregiver" ? "요양보호사" : "사무직"}
@@ -1275,10 +1267,10 @@ export default function AdminPage() {
                                                         <button
                                                             key={order}
                                                             onClick={() => setSortOrder(order)}
-                                                            className={`px-2 py-1 text-[10px] font-medium rounded ${
+                                                            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
                                                                 sortOrder === order
-                                                                    ? "bg-purple-600 text-white"
-                                                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                                    ? "bg-teal-500 text-white"
+                                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                                             }`}
                                                         >
                                                             {label}
@@ -1291,11 +1283,11 @@ export default function AdminPage() {
                                             {nameFilter && (
                                                 <div>
                                                     <label className="block text-xs font-medium text-gray-700 mb-1">선택된 직원</label>
-                                                    <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                                                        <span className="text-[10px] font-medium text-blue-800">{nameFilter}</span>
+                                                    <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded px-2 py-1">
+                                                        <span className="text-[10px] font-medium text-teal-700">{nameFilter}</span>
                                                         <button
                                                             onClick={() => setNameFilter(null)}
-                                                            className="text-blue-600 hover:text-blue-800 ml-1"
+                                                            className="text-teal-500 hover:text-teal-700 ml-1"
                                                             title="필터 해제"
                                                         >
                                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1309,7 +1301,7 @@ export default function AdminPage() {
                                             {/* 필터 초기화 */}
                                             <button
                                                 onClick={resetFilter}
-                                                className="w-full mt-2 px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                className="w-full mt-2 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors"
                                             >
                                                 초기화
                                             </button>
@@ -1331,10 +1323,10 @@ export default function AdminPage() {
                                                             setIsSelectMode(!isSelectMode);
                                                             setSelectedVacationIds(new Set());
                                                         }}
-                                                        className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                                        className={`px-2 py-1 text-xs rounded-lg border transition-colors ${
                                                             isSelectMode
-                                                                ? 'bg-blue-50 text-blue-600 border-blue-300'
-                                                                : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
+                                                                ? 'bg-teal-50 text-teal-600 border-teal-300'
+                                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                                                         }`}
                                                     >
                                                         {isSelectMode ? '선택 취소' : '다중 선택'}
@@ -1344,7 +1336,7 @@ export default function AdminPage() {
                                             {selectedDate && (
                                                 <button
                                                     onClick={() => setSelectedDate(null)}
-                                                    className="mt-1 text-xs text-blue-600 hover:text-blue-800 underline"
+                                                    className="mt-1 text-xs text-teal-600 hover:text-teal-700 underline"
                                                 >
                                                     전체 목록 보기
                                                 </button>
@@ -1353,18 +1345,18 @@ export default function AdminPage() {
 
                                         {/* 일괄 작업 버튼 */}
                                         {isAdmin && isSelectMode && (
-                                            <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                            <div className="mb-3 p-2 bg-teal-50 rounded-lg border border-teal-200">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={handleSelectAll}
-                                                            className="px-2 py-1 text-xs bg-white border border-blue-300 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                                                            className="px-2 py-1 text-xs bg-white border border-teal-300 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
                                                         >
                                                             {selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length
                                                                 ? '전체 해제'
                                                                 : '전체 선택'}
                                                         </button>
-                                                        <span className="text-xs text-blue-700 font-medium">{selectedVacationIds.size}개</span>
+                                                        <span className="text-xs text-teal-700 font-medium">{selectedVacationIds.size}개</span>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <button
@@ -1396,7 +1388,7 @@ export default function AdminPage() {
 
                                         {isLoadingRequests ? (
                                             <div className="flex justify-center items-center h-32">
-                                                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                                <div className="w-8 h-8 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin"></div>
                                             </div>
                                         ) : filteredRequests.length === 0 ? (
                                             <div className="text-center py-6 text-gray-500 text-xs">
@@ -1416,15 +1408,15 @@ export default function AdminPage() {
                                                                         type="checkbox"
                                                                         checked={selectedVacationIds.has(request.id)}
                                                                         onChange={() => handleToggleSelection(request.id)}
-                                                                        className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                        className="mt-0.5 w-4 h-4 text-teal-500 border-gray-300 rounded focus:ring-teal-500"
                                                                     />
                                                                 )}
                                                                 <div>
                                                                     <div
                                                                         className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
                                                                             nameFilter === request.userName
-                                                                                ? "text-blue-600 font-bold"
-                                                                                : "text-gray-900 hover:text-blue-600"
+                                                                                ? "text-teal-600 font-bold"
+                                                                                : "text-gray-900 hover:text-teal-600"
                                                                         }`}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -1435,7 +1427,7 @@ export default function AdminPage() {
                                                                         {request.userName}
                                                                         {nameFilter === request.userName && (
                                                                             <span className="ml-1 inline-flex items-center">
-                                                                                <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <svg className="w-3 h-3 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
                                                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                                 </svg>
                                                                             </span>
@@ -1525,25 +1517,18 @@ export default function AdminPage() {
                         </motion.div>
                     ) : activeMainTab === "members" ? (
                         <motion.div
-                            key={`members-${membersSubTab}`}
+                            key="members"
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
+                            className="flex-1 flex flex-col"
                         >
-                            {membersSubTab === "positions" ? (
-                                <PositionManagement
-                                    organizationName={companyName || undefined}
-                                    onNotification={showNotification}
-                                    isAdmin={isAdmin}
-                                />
-                            ) : (
-                                <UserManagement
-                                    organizationName={companyName || undefined}
-                                    onNotification={showNotification}
-                                    isAdmin={isAdmin}
-                                />
-                            )}
+                            <UserManagement
+                                organizationName={companyName || undefined}
+                                onNotification={showNotification}
+                                isAdmin={isAdmin}
+                            />
                         </motion.div>
                     ) : null}
                 </AnimatePresence>

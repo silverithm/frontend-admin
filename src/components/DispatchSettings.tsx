@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDispatchStore, generateId } from "@/lib/dispatchStore";
-import { getMemberUsers } from "@/lib/apiService";
+import { getMemberUsers, getCompanyElders } from "@/lib/apiService";
+import type { ElderlyInfo } from "@/types/elderly";
 import { useConfirm } from "./ConfirmDialog";
 import type { Route, RouteDriver, Senior, RouteType } from "@/types/dispatch";
 
@@ -41,6 +42,10 @@ export default function DispatchSettings({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  // 등록된 어르신 목록 (백엔드에서 가져옴)
+  const [companySeniors, setCompanySeniors] = useState<ElderlyInfo[]>([]);
+  const [selectedSeniorId, setSelectedSeniorId] = useState<string>("");
+
   // 직원 목록 가져오기
   const fetchMembers = useCallback(async () => {
     try {
@@ -58,12 +63,26 @@ export default function DispatchSettings({
     }
   }, []);
 
-  // 모달이 열릴 때 직원 목록 fetch
+  // 어르신 목록 가져오기
+  const fetchCompanySeniors = useCallback(async () => {
+    try {
+      const response = await getCompanyElders();
+      if (response?.elders && Array.isArray(response.elders)) {
+        setCompanySeniors(response.elders);
+        console.log("어르신 목록 로드:", response.elders.length, "명");
+      }
+    } catch (err) {
+      console.error("어르신 목록 로드 실패:", err);
+    }
+  }, []);
+
+  // 모달이 열릴 때 직원 + 어르신 목록 fetch
   useEffect(() => {
     if (isOpen) {
       fetchMembers();
+      fetchCompanySeniors();
     }
-  }, [isOpen, fetchMembers]);
+  }, [isOpen, fetchMembers, fetchCompanySeniors]);
 
   // 선택된 노선
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
@@ -78,8 +97,7 @@ export default function DispatchSettings({
     { driverId: "", driverName: "", vehicleName: "", vehicleCapacity: 0 }
   ]);
 
-  // 어르신 추가 상태
-  const [newSeniorName, setNewSeniorName] = useState("");
+  // 어르신 추가 상태 (드롭다운 방식으로 변경됨)
 
   // 선택된 노선
   const selectedRoute = useMemo(() => {
@@ -243,26 +261,40 @@ export default function DispatchSettings({
     updateRoute(routeId, { routeDrivers: updatedDrivers });
   };
 
-  // 어르신 추가
+  // 어르신 추가 (드롭다운에서 선택)
   const handleAddSenior = () => {
-    if (!selectedRouteId || !newSeniorName.trim()) {
-      onNotification("어르신 이름을 입력해주세요.", "error");
+    if (!selectedRouteId || !selectedSeniorId) {
+      onNotification("어르신을 선택해주세요.", "error");
       return;
     }
+
+    const selected = companySeniors.find(s => String(s.id) === selectedSeniorId);
+    if (!selected) return;
 
     const maxOrder = Math.max(0, ...selectedRouteSeniors.map(s => s.boardingOrder));
 
     const newSenior: Senior = {
       id: generateId(),
-      name: newSeniorName.trim(),
+      name: selected.name,
       routeId: selectedRouteId,
       boardingOrder: maxOrder + 1,
+      elderlyId: selected.id,
     };
 
     addSenior(newSenior);
-    setNewSeniorName("");
+    setSelectedSeniorId("");
     onNotification(`${newSenior.name} 어르신이 추가되었습니다.`, "success");
   };
+
+  // 현재 노선에 이미 배정된 어르신 ID 목록 (중복 방지)
+  const assignedElderlyIds = useMemo(() => {
+    if (!selectedRouteId) return new Set<number>();
+    return new Set(
+      settings.seniors
+        .filter(s => s.routeId === selectedRouteId && s.elderlyId)
+        .map(s => s.elderlyId as number)
+    );
+  }, [selectedRouteId, settings.seniors]);
 
   // 어르신 삭제
   const handleDeleteSenior = async (seniorId: string) => {
@@ -318,7 +350,7 @@ export default function DispatchSettings({
         className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* 헤더 */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">배차 설정</h2>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,7 +369,7 @@ export default function DispatchSettings({
                   setIsAddingRoute(true);
                   setSelectedRouteId(null);
                 }}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+                className="w-full px-4 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -362,13 +394,13 @@ export default function DispatchSettings({
                       }}
                       className={`p-3 rounded-lg cursor-pointer transition-colors ${
                         selectedRouteId === route.id
-                          ? "bg-blue-100 border-2 border-blue-500"
-                          : "bg-white border border-gray-200 hover:bg-gray-100"
+                          ? "bg-teal-50 border-2 border-teal-500"
+                          : "bg-white border border-gray-200 hover:bg-gray-50"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-800">{route.name}</span>
+                          <span className="font-medium text-gray-900">{route.name}</span>
                           <span className={`px-2 py-0.5 text-xs rounded-full ${
                             route.type === "등원"
                               ? "bg-orange-100 text-orange-700"
@@ -414,7 +446,7 @@ export default function DispatchSettings({
                     value={newRouteName}
                     onChange={(e) => setNewRouteName(e.target.value)}
                     placeholder="예: 스타리아, 카니발"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 placeholder-gray-400"
                   />
                 </div>
 
@@ -455,14 +487,14 @@ export default function DispatchSettings({
                     {newRouteDrivers.map((driver, index) => (
                       <div key={index} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                         <span className={`px-2 py-1 text-xs rounded font-medium ${
-                          index === 0 ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-600"
+                          index === 0 ? "bg-teal-100 text-teal-700" : "bg-gray-200 text-gray-600"
                         }`}>
                           {index === 0 ? "주" : `부${index}`}
                         </span>
                         <select
                           value={driver.driverId || ""}
                           onChange={(e) => handleSelectMemberForNewRoute(index, e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
                         >
                           <option value="">직원 선택</option>
                           {members.map((member) => (
@@ -477,7 +509,7 @@ export default function DispatchSettings({
                           onChange={(e) => updateNewRouteDriver(index, "vehicleName", e.target.value)}
                           placeholder="차량명"
                           list={`vehicle-names-new-${index}`}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400"
+                          className="w-40 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400"
                         />
                         <datalist id={`vehicle-names-new-${index}`}>
                           {knownVehicleNames.map(name => (
@@ -498,7 +530,7 @@ export default function DispatchSettings({
                     ))}
                     <button
                       onClick={addNewRouteDriver}
-                      className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                      className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-teal-400 hover:text-teal-500 transition-colors"
                     >
                       + 부운전자 추가
                     </button>
@@ -515,7 +547,7 @@ export default function DispatchSettings({
                   </button>
                   <button
                     onClick={handleAddRoute}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    className="px-6 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
                   >
                     노선 추가
                   </button>
@@ -545,14 +577,14 @@ export default function DispatchSettings({
                     {(selectedRoute.routeDrivers || []).map((driver, index) => (
                       <div key={index} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
                         <span className={`px-2 py-1 text-xs rounded font-medium ${
-                          index === 0 ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-600"
+                          index === 0 ? "bg-teal-100 text-teal-700" : "bg-gray-200 text-gray-600"
                         }`}>
                           {index === 0 ? "주" : `부${index}`}
                         </span>
                         <select
                           value={driver.driverId || ""}
                           onChange={(e) => handleSelectMemberForRoute(selectedRoute.id, index, e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
                         >
                           <option value="">직원 선택</option>
                           {members.map((member) => (
@@ -573,7 +605,7 @@ export default function DispatchSettings({
                           onChange={(e) => handleUpdateRouteDriver(selectedRoute.id, index, "vehicleName", e.target.value)}
                           placeholder="차량명"
                           list={`vehicle-names-${index}`}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400"
+                          className="w-40 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400"
                         />
                         <datalist id={`vehicle-names-${index}`}>
                           {knownVehicleNames.map(name => (
@@ -594,7 +626,7 @@ export default function DispatchSettings({
                     ))}
                     <button
                       onClick={() => handleAddRouteDriver(selectedRoute.id)}
-                      className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                      className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-teal-400 hover:text-teal-500 transition-colors"
                     >
                       + 부운전자 추가
                     </button>
@@ -607,28 +639,35 @@ export default function DispatchSettings({
                     탑승 어르신 ({selectedRouteSeniors.length}명)
                   </label>
 
-                  {/* 어르신 추가 */}
+                  {/* 어르신 추가 (드롭다운) */}
                   <div className="flex space-x-2 mb-3">
-                    <input
-                      type="text"
-                      value={newSeniorName}
-                      onChange={(e) => setNewSeniorName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                          e.preventDefault();
-                          handleAddSenior();
-                        }
-                      }}
-                      placeholder="어르신 이름 입력"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400"
-                    />
+                    <select
+                      value={selectedSeniorId}
+                      onChange={(e) => setSelectedSeniorId(e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-900 bg-white"
+                    >
+                      <option value="">어르신 선택</option>
+                      {companySeniors
+                        .filter(s => !assignedElderlyIds.has(s.id))
+                        .map(senior => (
+                          <option key={senior.id} value={String(senior.id)}>
+                            {senior.name}{senior.requiredFrontSeat ? ' (앞좌석)' : ''}
+                          </option>
+                        ))}
+                    </select>
                     <button
                       onClick={handleAddSenior}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                      disabled={!selectedSeniorId}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       추가
                     </button>
                   </div>
+                  {companySeniors.length === 0 && (
+                    <p className="text-xs text-gray-500 mb-2">
+                      회원관리 &gt; 어르신 관리에서 먼저 어르신을 등록해주세요.
+                    </p>
+                  )}
 
                   {/* 어르신 목록 */}
                   {selectedRouteSeniors.length === 0 ? (

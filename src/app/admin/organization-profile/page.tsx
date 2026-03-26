@@ -12,6 +12,7 @@ interface OrganizationProfileData {
   address: string;
   contactEmail: string;
   contactPhone: string;
+  companyCode?: string;
   // 기타 필요한 회사 정보 필드들
   companyAddressName?: string;
   adminName?: string;
@@ -52,6 +53,7 @@ export default function OrganizationProfilePage() {
       // localStorage에서 회사 정보 가져오기
       const companyName = localStorage.getItem('companyName') || '';
       const companyAddressName = localStorage.getItem('companyAddressName') || '';
+      const companyCode = localStorage.getItem('companyCode') || '';
       const userName = localStorage.getItem('userName') || '';
       
       const profileData: OrganizationProfileData = {
@@ -59,6 +61,7 @@ export default function OrganizationProfilePage() {
         address: companyAddressName,
         contactEmail: '', // 현재 API에서 제공되지 않음
         contactPhone: '', // 현재 API에서 제공되지 않음
+        companyCode,
         companyAddressName,
         adminName: userName
       };
@@ -105,6 +108,18 @@ export default function OrganizationProfilePage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopyCompanyCode = async () => {
+    if (!profile?.companyCode) return;
+
+    try {
+      await navigator.clipboard.writeText(profile.companyCode);
+      setSuccessMessage('회사 코드가 복사되었습니다.');
+      setError('');
+    } catch (err) {
+      setError('회사 코드 복사에 실패했습니다.');
     }
   };
 
@@ -309,6 +324,32 @@ export default function OrganizationProfilePage() {
                     </div>
                   </div>
                 </div>
+
+                {profile.companyCode && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-amber-700">직원 회원가입용 회사 코드</p>
+                        <p className="mt-2 text-3xl font-bold tracking-[0.3em] text-amber-950">
+                          {profile.companyCode}
+                        </p>
+                        <p className="mt-3 text-sm text-amber-900/80">
+                          직원은 앱 회원가입 화면에서 이 코드를 입력하면 기존 회사 선택과 같은 방식으로 가입 요청을 보낼 수 있습니다.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyCompanyCode}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16h8M8 12h8m-8-4h8m3 12H5a2 2 0 01-2-2V6a2 2 0 012-2h8.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
+                        </svg>
+                        코드 복사
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* 구독 정보 섹션 */}
                 <div className="mt-12 pt-8 border-t border-gray-200">

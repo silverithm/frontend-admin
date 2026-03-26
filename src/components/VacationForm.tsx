@@ -134,7 +134,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
         </h2>
         <p className="text-sm sm:text-base text-gray-600">
           {initialDate && (
-            <span className="text-indigo-600 font-medium">
+            <span className="text-teal-600 font-medium">
               {format(initialDate, 'yyyy년 MM월 dd일', { locale: ko })}
             </span>
           )} 휴무를 신청합니다
@@ -151,8 +151,8 @@ const VacationForm: React.FC<VacationFormProps> = ({
             id="userName"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base text-gray-800 font-medium ${
-              errors.userName ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm sm:text-base text-gray-900 font-medium ${
+              errors.userName ? 'border-red-500' : 'border-gray-200'
             }`}
             placeholder="이름을 입력하세요"
             autoFocus
@@ -172,7 +172,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
               <label 
                 key={option.value}
                 className={`flex items-center p-3 sm:p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                  duration === option.value ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-300' : ''
+                  duration === option.value ? 'bg-teal-50 border-teal-200 ring-1 ring-teal-300' : ''
                 } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <input
@@ -185,7 +185,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   disabled={isSubmitting}
                 />
                 <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 mr-3 ${
-                  duration === option.value ? 'bg-purple-600 border-purple-600' : 'border-gray-300'
+                  duration === option.value ? 'bg-teal-500 border-teal-500' : 'border-gray-300'
                 }`}>
                   {duration === option.value && (
                     <div className="w-full h-full rounded-full bg-white scale-50"></div>
@@ -213,8 +213,8 @@ const VacationForm: React.FC<VacationFormProps> = ({
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base text-gray-800 font-medium ${
-              errors.password ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm sm:text-base text-gray-900 font-medium ${
+              errors.password ? 'border-red-500' : 'border-gray-200'
             }`}
             placeholder="비밀번호를 입력하세요"
             disabled={isSubmitting}
@@ -233,8 +233,8 @@ const VacationForm: React.FC<VacationFormProps> = ({
             id="reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base text-gray-800 font-medium ${
-              errors.reason ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm sm:text-base text-gray-900 font-medium ${
+              errors.reason ? 'border-red-500' : 'border-gray-200'
             }`}
             rows={4}
             placeholder={type === 'mandatory' ? '휴무 사유를 입력하세요' : '휴무 사유를 입력하세요 (선택 사항)'}
@@ -250,17 +250,17 @@ const VacationForm: React.FC<VacationFormProps> = ({
             휴무 유형 *
           </label>
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
-            <label className={`flex items-center p-3 sm:p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${type === 'regular' ? 'bg-indigo-50 border-indigo-200' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <label className={`flex items-center p-3 sm:p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${type === 'regular' ? 'bg-teal-50 border-teal-200' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
               <input
                 type="radio"
                 name="vacationType"
                 value="regular"
                 checked={type === 'regular'}
                 onChange={() => setType('regular')}
-                className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 hidden"
+                className="h-5 w-5 text-teal-500 focus:ring-teal-500 border-gray-300 hidden"
                 disabled={isSubmitting}
               />
-              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full mr-2 sm:mr-3 flex items-center justify-center ${type === 'regular' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full mr-2 sm:mr-3 flex items-center justify-center ${type === 'regular' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
                 <FiCalendar size={16} />
               </div>
               <span className="text-gray-700 font-medium text-xs sm:text-sm">일반 휴무</span>
@@ -320,7 +320,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
               <span className="text-gray-700 font-medium text-xs sm:text-sm text-center">사무실</span>
             </label>
             
-            <label className={`flex flex-col items-center p-2 sm:p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${role === 'all' ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-300' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <label className={`flex flex-col items-center p-2 sm:p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${role === 'all' ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-300' : ''} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
               <input
                 type="radio"
                 name="roleType"
@@ -330,7 +330,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
                 className="hidden"
                 disabled={isSubmitting || (roleFilter && roleFilter !== 'all')}
               />
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${role === 'all' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${role === 'all' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
                 <FiUsers size={20} className="sm:w-5 sm:h-5" />
               </div>
               <span className="text-gray-700 font-medium text-xs sm:text-sm text-center">전체</span>
@@ -342,14 +342,14 @@ const VacationForm: React.FC<VacationFormProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            className="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             disabled={isSubmitting}
           >
             취소
           </button>
           <button
             type="submit"
-            className={`px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-md hover:from-indigo-700 hover:to-blue-700 transition-colors shadow-md ${
+            className={`px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors shadow-md ${
               isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
             }`}
             disabled={isSubmitting}

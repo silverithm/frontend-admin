@@ -1,0 +1,44 @@
+EVAL REPORT: position-management (직책관리)
+=============================================
+Date: 2026-03-26
+
+## Backend Capability Evals
+
+| # | Eval | Result | Method |
+|---|------|--------|--------|
+| 1 | Position Entity 컴파일 | PASS | grep "class Position" → 1 match |
+| 2 | Position CRUD 엔드포인트 (5개) | PASS | grep @Mapping → 5 matches |
+| 3 | Flyway 마이그레이션 SQL 유효 | PASS | grep CREATE/ALTER → 5 statements |
+| 4 | ChatMessage.senderPosition 존재 | PASS | grep → 1 match |
+| 5 | Member.positionEntity 관계 존재 | PASS | grep → 1 match |
+| 6 | MemberDTO.positionId 존재 | PASS | grep → 2 matches |
+
+## Frontend Capability Evals
+
+| # | Eval | Result | Method |
+|---|------|--------|--------|
+| 7 | TypeScript 컴파일 에러 없음 | PASS | tsc --noEmit exit 0 |
+| 8 | PositionManagement 컴포넌트 | PASS | glob → 1 file |
+| 9 | API 프록시 라우트 (3개) | PASS | glob → 3 files |
+| 10 | apiService position 함수 (5개) | PASS | grep → 5 matches |
+| 11 | admin page membersSubTab | PASS | grep → 5 matches |
+| 12 | 채팅 타입 senderPosition | PASS | grep → 1 match |
+| 13 | 채팅 렌더링 직책 표시 | PASS | grep → 2 matches |
+| 14 | UserManagement position 배지 | PASS | grep → 3 matches |
+| 15 | 로그인 시 userPosition 저장 | PASS | grep → 1 match |
+
+## Regression Evals
+
+| # | Eval | Result | Method |
+|---|------|--------|--------|
+| 16 | 백엔드 컴파일 정상 | PASS | gradlew compileJava BUILD SUCCESSFUL |
+| 17 | 프론트엔드 tsc 통과 | PASS | tsc --noEmit exit 0 |
+| 18 | 기존 탭 구조 유지 | PASS | MainTab "members" → 3 matches |
+
+## Summary
+
+Capability Evals: 15/15 PASS (pass@1: 100%)
+Regression Evals: 3/3 PASS (pass^1: 100%)
+Total: 18/18 PASS
+
+Status: SHIP IT

@@ -83,7 +83,7 @@ export default function SeniorAbsenceManagement() {
             <select
               value={selectedRouteId || ""}
               onChange={(e) => handleSelectRoute(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="">노선을 선택하세요</option>
               {settings.routes.map((route) => {
@@ -126,23 +126,23 @@ export default function SeniorAbsenceManagement() {
                       onClick={() => setSelectedSenior(senior)}
                       className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
                         isSelected
-                          ? "bg-blue-100 border-2 border-blue-500"
+                          ? "bg-teal-100 border-2 border-teal-500"
                           : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
                       }`}
                     >
                       <div className="flex items-center space-x-3">
                         <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium ${
-                          isSelected ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-600"
+                          isSelected ? "bg-teal-500 text-white" : "bg-gray-300 text-gray-600"
                         }`}>
                           {index + 1}
                         </span>
-                        <span className={`font-medium ${isSelected ? "text-blue-700" : "text-gray-800"}`}>
+                        <span className={`font-medium ${isSelected ? "text-teal-700" : "text-gray-800"}`}>
                           {senior.name}
                         </span>
                       </div>
                       {absenceCount > 0 && (
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          isSelected ? "bg-blue-200 text-blue-700" : "bg-red-100 text-red-600"
+                          isSelected ? "bg-teal-200 text-teal-700" : "bg-red-100 text-red-600"
                         }`}>
                           {absenceCount}일
                         </span>
@@ -241,14 +241,14 @@ export default function SeniorAbsenceManagement() {
                             ? "bg-red-500 text-white shadow-md hover:bg-red-600"
                             : isSunday
                             ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                            : "bg-white hover:bg-blue-50 hover:border-blue-300 border border-gray-200"
+                            : "bg-white hover:bg-teal-50 hover:border-teal-300 border border-gray-200"
                         } ${
-                          isSunday ? "text-red-300" : isSaturday ? "text-blue-600" : "text-gray-700"
+                          isSunday ? "text-red-300" : isSaturday ? "text-teal-600" : "text-gray-700"
                         } ${isAbsent ? "!text-white" : ""}`}
                       >
                         {format(date, "d")}
                         {isToday && !isAbsent && (
-                          <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full" />
+                          <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-teal-500 rounded-full" />
                         )}
                       </button>
                     );

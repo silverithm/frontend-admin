@@ -12,6 +12,9 @@ import {
   getPendingJoinRequests,
   getSchedules,
   getVacationCalendar,
+  getCompanyElderCount,
+  getEmployeeAttendanceSummary,
+  getElderAttendanceSummary,
 } from '@/lib/apiService';
 
 interface AdminDashboardProps {
@@ -87,6 +90,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [currentTime, setCurrentTime] = useState(format(new Date(), 'HH:mm:ss'));
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
+  const [elderCount, setElderCount] = useState(0);
+  const [employeeAttendance, setEmployeeAttendance] = useState({ total: 0, present: 0, absent: 0, vacation: 0 });
+  const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -111,6 +117,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         getVacationCalendar(todayStr, todayStr),
         getNotices(),
         getSchedules(monthStartStr, monthEndStr),
+        getCompanyElderCount(),
+        getEmployeeAttendanceSummary(todayStr),
+        getElderAttendanceSummary(todayStr),
       ]);
 
       // Helper to safely extract array from API response
@@ -181,6 +190,35 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         setMonthlySchedules(arr as ScheduleItem[]);
       }
 
+      if (results[8].status === 'fulfilled') {
+        const d = results[8].value as Record<string, unknown>;
+        const count = typeof d?.count === 'number' ? d.count : 0;
+        setElderCount(count);
+      }
+
+      if (results[9].status === 'fulfilled') {
+        const d = results[9].value as Record<string, number>;
+        if (d && typeof d.total === 'number') {
+          setEmployeeAttendance({
+            total: d.total || 0,
+            present: d.present || 0,
+            absent: d.absent || 0,
+            vacation: d.vacation || 0,
+          });
+        }
+      }
+
+      if (results[10].status === 'fulfilled') {
+        const d = results[10].value as Record<string, number>;
+        if (d && typeof d.total === 'number') {
+          setElderAttendance({
+            total: d.total || 0,
+            present: d.present || 0,
+            absent: d.absent || 0,
+          });
+        }
+      }
+
       setIsLoading(false);
     };
 
@@ -203,22 +241,19 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6">
-        {/* Header skeleton */}
-        <div className="bg-slate-200 animate-pulse rounded-2xl h-20" />
-        {/* Stat cards skeleton */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-gray-200 animate-pulse rounded-2xl h-28" />
+      <div className="flex flex-col flex-1 gap-5 pb-4">
+        <div className="h-14" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white border border-gray-100 animate-pulse rounded-xl h-24" />
           ))}
         </div>
-        {/* Content skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-gray-200 animate-pulse rounded-2xl h-64" />
-          <div className="bg-gray-200 animate-pulse rounded-2xl h-64" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1">
+          <div className="bg-white border border-gray-100 animate-pulse rounded-xl min-h-[340px]" />
+          <div className="bg-white border border-gray-100 animate-pulse rounded-xl min-h-[340px]" />
+          <div className="bg-white border border-gray-100 animate-pulse rounded-xl min-h-[340px]" />
+          <div className="bg-white border border-gray-100 animate-pulse rounded-xl min-h-[340px]" />
         </div>
-        {/* Quick nav skeleton */}
-        <div className="bg-gray-200 animate-pulse rounded-2xl h-28" />
       </div>
     );
   }
@@ -228,105 +263,113 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       label: '총 직원',
       value: members.length,
       subtitle: '명',
-      gradient: 'from-blue-500 to-blue-600',
-      hoverGradient: 'hover:from-blue-600 hover:to-blue-700',
-      tab: 'info',
-      showBadge: false,
+      iconBg: 'bg-teal-50',
+      iconColor: 'text-teal-500',
+      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+      tab: 'members',
+      change: null as string | null,
     },
     {
-      label: '대기 휴무',
-      value: pendingVacationCount,
-      subtitle: '건',
-      gradient: 'from-amber-500 to-orange-500',
-      hoverGradient: 'hover:from-amber-600 hover:to-orange-600',
+      label: '출근',
+      value: employeeAttendance.present,
+      subtitle: '명',
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-500',
+      icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+      tab: 'members',
+      change: members.length > 0 ? `${Math.round((employeeAttendance.present / members.length) * 100)}%` : null,
+    },
+    {
+      label: '휴무',
+      value: employeeAttendance.absent + employeeAttendance.vacation,
+      subtitle: '명',
+      iconBg: 'bg-amber-50',
+      iconColor: 'text-amber-500',
+      icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z',
       tab: 'work',
-      showBadge: pendingVacationCount > 0,
+      change: null as string | null,
     },
     {
-      label: '대기 결재',
-      value: approvalRequests.length,
-      subtitle: '건',
-      gradient: 'from-violet-500 to-purple-600',
-      hoverGradient: 'hover:from-violet-600 hover:to-purple-700',
-      tab: 'approval',
-      showBadge: approvalRequests.length > 0,
+      label: '총 어르신',
+      value: elderCount,
+      subtitle: '명',
+      iconBg: 'bg-rose-50',
+      iconColor: 'text-rose-500',
+      icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+      tab: 'members',
+      change: null as string | null,
     },
     {
-      label: '가입 대기',
-      value: pendingJoinRequests.length,
-      subtitle: '건',
-      gradient: 'from-emerald-500 to-teal-600',
-      hoverGradient: 'hover:from-emerald-600 hover:to-teal-700',
-      tab: 'info',
-      showBadge: pendingJoinRequests.length > 0,
+      label: '등원',
+      value: elderAttendance.present,
+      subtitle: '명',
+      iconBg: 'bg-violet-50',
+      iconColor: 'text-violet-500',
+      icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+      tab: 'members',
+      change: elderCount > 0 ? `${Math.round((elderAttendance.present / elderCount) * 100)}%` : null,
     },
-  ];
-
-  const avatarColors = [
-    'bg-orange-500',
-    'bg-blue-500',
-    'bg-emerald-500',
-    'bg-violet-500',
-    'bg-rose-500',
+    {
+      label: '결석',
+      value: elderAttendance.absent,
+      subtitle: '명',
+      iconBg: 'bg-gray-50',
+      iconColor: 'text-gray-400',
+      icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636',
+      tab: 'members',
+      change: null as string | null,
+    },
   ];
 
   return (
-    <div className="space-y-3 px-6 pb-4 pt-1">
+    <div className="flex flex-col flex-1 gap-5 pb-4">
       {/* 1. Header Bar */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0 }}
-        className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl px-6 py-4 flex items-center justify-between"
+        transition={{ duration: 0.25 }}
+        className="flex items-center justify-between"
       >
         <div>
-          <p className="text-slate-400 text-xs font-medium tracking-wider uppercase">Dashboard</p>
-          <h1 className="text-white text-lg font-bold mt-0.5">
-            {format(new Date(), 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
+          <h1 className="text-gray-900 text-xl font-bold">
+            {(() => { const h = new Date().getHours(); return h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요'; })()}
           </h1>
+          <p className="text-gray-400 text-sm mt-0.5">
+            {format(new Date(), 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
+          </p>
         </div>
-        <div className="text-right">
-          <p className="text-slate-400 text-xs font-medium">현재 시각</p>
-          <p className="text-white text-lg font-bold font-mono tabular-nums">{currentTime}</p>
+        <div className="text-right hidden sm:block">
+          <p className="text-3xl font-bold text-gray-900 font-mono tabular-nums tracking-tight">{currentTime}</p>
         </div>
       </motion.div>
 
-      {/* 2. Stat Cards */}
-      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`} style={{ gridAutoRows: '5.5rem' }}>
+      {/* 2. Stat Cards - White background */}
+      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-1'}`}>
         {statCards.filter((card) => isAdmin || card.label === '총 직원').map((card, idx) => (
           <motion.button
             key={card.label}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.05 + idx * 0.05 }}
+            transition={{ duration: 0.25, delay: 0.03 + idx * 0.03 }}
             onClick={() => onTabChange(card.tab)}
-            className={`relative bg-gradient-to-br ${card.gradient} ${card.hoverGradient} rounded-2xl p-4 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group overflow-hidden text-left h-full`}
+            className="bg-white border border-gray-200 rounded-2xl p-4 text-left hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
           >
-            {/* Decorative circles */}
-            <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-            <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full" />
-
-            <div className="relative">
-              <div className="flex items-center gap-2 flex-nowrap">
-                <p className="text-white/80 text-xs font-medium whitespace-nowrap">{card.label}</p>
-                {card.showBadge && (
-                  <span className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-1.5 py-px flex-shrink-0 whitespace-nowrap">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                    <span className="text-[10px] font-semibold">처리 필요</span>
-                  </span>
-                )}
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 ${card.iconBg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200`}>
+                <svg className={`w-5 h-5 ${card.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={card.icon} />
+                </svg>
               </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-3xl font-extrabold">{card.value}</span>
-                <span className="text-white/70 text-sm font-medium">{card.subtitle}</span>
-              </div>
+              {card.change && (
+                <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{card.change}</span>
+              )}
             </div>
-
-            {/* Arrow on hover */}
-            <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</span>
+                <span className="text-gray-400 text-xs font-medium">{card.subtitle}</span>
+              </div>
+              <span className="text-[11px] font-medium text-gray-400 mt-0.5 block">{card.label}</span>
             </div>
           </motion.button>
         ))}
@@ -337,10 +380,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-3"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1"
       >
         {/* Top-Left: 공지사항 */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -363,14 +406,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
           <div className="px-4 pb-4 overflow-y-auto flex-1">
             {notices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-400">공지사항이 없습니다</p>
+                  <p className="text-xs font-medium text-gray-400">공지사항이 없습니다</p>
                 </div>
               </div>
             ) : (
@@ -401,7 +444,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
 
         {/* Top-Right: 전자결재 */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -424,14 +467,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
           <div className="px-4 pb-4 overflow-y-auto flex-1">
             {approvalRequests.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-400">대기 중인 결재가 없습니다</p>
+                  <p className="text-xs font-medium text-gray-400">대기 중인 결재가 없습니다</p>
                 </div>
               </div>
             ) : (
@@ -462,7 +505,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
 
         {/* Bottom-Left: 월간일정 */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -514,10 +557,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       key={day.toISOString()}
                       onClick={() => inMonth && setSelectedDate(day)}
                       className={`text-center py-1.5 text-xs rounded-lg relative cursor-pointer transition-colors ${
-                        !inMonth ? 'text-gray-200' :
+                        !inMonth ? 'text-gray-300' :
                         todayFlag && selectedDateStr === dayStr ? 'bg-emerald-500 text-white font-bold ring-2 ring-emerald-300' :
                         todayFlag ? 'bg-emerald-500 text-white font-bold' :
-                        isSelected ? 'bg-blue-500 text-white font-bold' :
+                        isSelected ? 'bg-teal-500 text-white font-bold' :
                         dayOfWeek === 0 ? 'text-red-500 hover:bg-red-50' :
                         dayOfWeek === 6 ? 'text-blue-500 hover:bg-blue-50' :
                         'text-gray-700 hover:bg-gray-100'
@@ -536,11 +579,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
 
         {/* Bottom-Right: 오늘의 일정 */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden h-80">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[340px] flex flex-col">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -553,7 +596,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
             <button
               onClick={() => onTabChange('schedule')}
-              className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+              className="text-xs text-teal-600 hover:text-teal-700 font-semibold transition-colors"
             >
               전체보기 →
             </button>
@@ -561,14 +604,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
           <div className="px-4 pb-4 overflow-y-auto flex-1">
             {selectedSchedules.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-400">
+                  <p className="text-xs font-medium text-gray-400">
                     {isToday(selectedDate) ? '오늘 일정이 없습니다' : `${format(selectedDate, 'M월 d일')} 일정이 없습니다`}
                   </p>
                   <p className="text-xs text-gray-300 mt-0.5">월간일정에서 일정을 추가해보세요</p>
@@ -579,18 +622,18 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {selectedSchedules.slice(0, 5).map((schedule, idx) => (
                   <div
                     key={schedule.id}
-                    className="flex gap-3 group cursor-pointer hover:bg-blue-50 rounded-lg transition-colors"
+                    className="flex gap-3 group cursor-pointer hover:bg-teal-50 rounded-lg transition-colors"
                     onClick={() => setSelectedSchedule(schedule)}
                   >
                     <div className="flex flex-col items-center flex-shrink-0">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-50 flex-shrink-0 mt-1.5" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500 ring-4 ring-teal-50 flex-shrink-0 mt-1.5" />
                       {idx < Math.min(selectedSchedules.length, 5) - 1 && (
                         <div className="w-0.5 flex-1 bg-gray-100 my-1" />
                       )}
                     </div>
                     <div className="pb-4 flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-blue-600 tabular-nums">
+                        <span className="text-xs font-semibold text-teal-600 tabular-nums">
                           {schedule.isAllDay ? '종일' : (schedule.startTime || '')}
                         </span>
                         {schedule.category && (
@@ -622,7 +665,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+            <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {selectedSchedule.category && (
@@ -652,8 +695,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div className="px-6 py-4 space-y-4">
               {/* 날짜 */}
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>

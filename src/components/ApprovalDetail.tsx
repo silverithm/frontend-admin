@@ -5,13 +5,16 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
+import { FormSchema } from '@/types/formSchema';
 import { FiX, FiPaperclip, FiCheck, FiXCircle, FiAlertCircle, FiDownload } from 'react-icons/fi';
+import FormDataViewer from './approval/FormDataViewer';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => void;
   onClose: () => void;
+  templateSchema?: FormSchema;
 }
 
 export default function ApprovalDetail({
@@ -19,6 +22,7 @@ export default function ApprovalDetail({
   onApprove,
   onReject,
   onClose,
+  templateSchema,
 }: ApprovalDetailProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -26,13 +30,13 @@ export default function ApprovalDetail({
   const getStatusStyle = (status: ApprovalStatus) => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-700 border-green-200';
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
       case 'REJECTED':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-700 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
@@ -103,22 +107,22 @@ export default function ApprovalDetail({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 max-h-[90vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-gray-200 max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl flex-shrink-0">
+        <div className="p-6 border-b border-teal-600 bg-gradient-to-r from-teal-500 to-teal-600 rounded-t-2xl flex-shrink-0">
           <div className="flex items-start justify-between">
             <div>
               <span className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold border ${getStatusStyle(approval.status)}`}>
                 {getStatusText(approval.status)}
               </span>
-              <h2 className="text-xl font-bold text-gray-900 mt-3">{approval.title}</h2>
-              <p className="text-gray-600 text-sm mt-1">{approval.templateName}</p>
+              <h2 className="text-xl font-bold text-white mt-3">{approval.title}</h2>
+              <p className="text-teal-100 text-sm mt-1">{approval.templateName}</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-teal-100 hover:text-white hover:bg-teal-400/30 rounded-lg transition-colors"
             >
               <FiX className="w-5 h-5" />
             </button>
@@ -161,14 +165,10 @@ export default function ApprovalDetail({
               <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-4">
                 기안 내용
               </h4>
-              <div className="space-y-3">
-                {Object.entries(approval.formData).map(([key, value]) => (
-                  <div key={key} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <span className="text-gray-500 text-sm">{key}</span>
-                    <p className="text-gray-900 mt-1 whitespace-pre-wrap">{value as string}</p>
-                  </div>
-                ))}
-              </div>
+              <FormDataViewer
+                formData={approval.formData}
+                schema={templateSchema}
+              />
             </div>
           )}
 
@@ -180,9 +180,9 @@ export default function ApprovalDetail({
               </h4>
               <button
                 onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
-                className="w-full flex items-center space-x-3 bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors text-left"
+                className="w-full flex items-center space-x-3 bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-teal-50 hover:border-teal-200 transition-colors text-left"
               >
-                <FiDownload className="w-5 h-5 text-blue-500" />
+                <FiDownload className="w-5 h-5 text-teal-500" />
                 <span className="text-gray-900 flex-1 font-medium">{approval.attachmentFileName || '첨부파일'}</span>
                 <span className="text-gray-500 text-sm">
                   {((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB
@@ -221,7 +221,7 @@ export default function ApprovalDetail({
               <div className="flex justify-end space-x-3 mt-4">
                 <button
                   onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
-                  className="px-4 py-2 text-gray-600 font-semibold hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   취소
                 </button>
@@ -238,7 +238,7 @@ export default function ApprovalDetail({
         </div>
 
         {/* 버튼 */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl flex-shrink-0">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex-shrink-0">
           {approval.status === 'PENDING' && !showRejectForm ? (
             <div className="flex justify-end space-x-3">
               <button
@@ -252,7 +252,7 @@ export default function ApprovalDetail({
               </button>
               <button
                 onClick={() => onApprove(approval.id)}
-                className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-sm"
+                className="px-6 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-sm"
               >
                 <span className="flex items-center space-x-1">
                   <FiCheck className="w-4 h-4" />
@@ -265,7 +265,7 @@ export default function ApprovalDetail({
               <div className="flex justify-end">
                 <button
                   onClick={onClose}
-                  className="px-5 py-2 bg-blue-500 text-white font-semibold hover:bg-blue-600 rounded-lg transition-colors shadow-sm"
+                  className="px-5 py-2 bg-teal-500 text-white font-semibold hover:bg-teal-600 rounded-lg transition-colors shadow-sm"
                 >
                   닫기
                 </button>

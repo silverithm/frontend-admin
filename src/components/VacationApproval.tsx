@@ -497,7 +497,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                             {selectedDate && (
                                 <button
                                     onClick={() => setSelectedDate(null)}
-                                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                    className="text-xs text-teal-600 hover:text-teal-800 underline"
                                 >
                                     전체 보기
                                 </button>
@@ -510,7 +510,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                     }}
                                     className={`px-2 py-1 text-xs rounded border transition-colors ${
                                         isSelectMode
-                                            ? 'bg-blue-50 text-blue-600 border-blue-300'
+                                            ? 'bg-teal-50 text-teal-600 border-teal-300'
                                             : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
                                     }`}
                                 >
@@ -523,18 +523,18 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
 
                 {/* 일괄 작업 바 */}
                 {isSelectMode && (
-                    <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="mb-3 p-2 bg-teal-50 rounded-lg border border-teal-200">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={handleSelectAll}
-                                    className="px-2 py-1 text-xs bg-white border border-blue-300 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                                    className="px-2 py-1 text-xs bg-white border border-teal-300 text-teal-600 rounded hover:bg-teal-50 transition-colors"
                                 >
                                     {selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length
                                         ? '전체 해제'
                                         : '전체 선택'}
                                 </button>
-                                <span className="text-xs text-blue-700 font-medium">{selectedVacationIds.size}개</span>
+                                <span className="text-xs text-teal-700 font-medium">{selectedVacationIds.size}개</span>
                             </div>
                             <div className="flex gap-2">
                                 <button
@@ -566,7 +566,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
 
                 {isLoadingRequests ? (
                     <div className="flex justify-center items-center h-32">
-                        <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                        <div className="w-8 h-8 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
                     </div>
                 ) : filteredRequests.length === 0 ? (
                     <div className="text-center py-6 text-gray-500 text-xs">
@@ -597,7 +597,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                         type="checkbox"
                                                         checked={selectedVacationIds.has(request.id)}
                                                         onChange={() => handleToggleSelection(request.id)}
-                                                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        className="w-3.5 h-3.5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                                                     />
                                                 )}
                                             </td>
@@ -606,8 +606,8 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                             <span
                                                 className={`font-medium cursor-pointer transition-colors ${
                                                     nameFilter === request.userName
-                                                        ? "text-blue-600 font-bold"
-                                                        : "text-gray-900 hover:text-blue-600"
+                                                        ? "text-teal-600 font-bold"
+                                                        : "text-gray-900 hover:text-teal-600"
                                                 }`}
                                                 onClick={() => setNameFilter(nameFilter === request.userName ? null : request.userName)}
                                                 title={`${request.userName} 필터`}
@@ -632,7 +632,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                         </td>
                                         <td className="py-1.5 px-2">
                                             {isValidDuration(request.duration) && (
-                                                <span className="px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
+                                                <span className="px-1.5 py-0.5 text-[9px] rounded bg-teal-50 text-teal-700">
                                                     {getDurationText(request.duration)}
                                                 </span>
                                             )}
@@ -640,10 +640,10 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                         <td className="py-1.5 px-2 text-center">
                                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
                                                 request.status === "approved"
-                                                    ? "bg-green-100 text-green-800"
+                                                    ? "bg-green-100 text-green-700"
                                                     : request.status === "pending"
-                                                        ? "bg-yellow-100 text-yellow-800"
-                                                        : "bg-red-100 text-red-800"
+                                                        ? "bg-yellow-100 text-yellow-700"
+                                                        : "bg-red-100 text-red-700"
                                             }`}>
                                                 {getStatusText(request.status)}
                                             </span>
@@ -700,7 +700,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                         onClick={() => toggleStatusFilter(status)}
                                         className={`px-2 py-1 text-[10px] font-medium rounded ${
                                             statusFilter === status
-                                                ? status === "all" ? "bg-blue-600 text-white"
+                                                ? status === "all" ? "bg-teal-600 text-white"
                                                     : status === "pending" ? "bg-yellow-500 text-white"
                                                         : status === "approved" ? "bg-green-600 text-white"
                                                             : "bg-red-600 text-white"
@@ -723,7 +723,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                         onClick={() => toggleRoleFilter(role)}
                                         className={`px-2 py-1 text-[10px] font-medium rounded ${
                                             roleFilter === role
-                                                ? role === "all" ? "bg-indigo-600 text-white"
+                                                ? role === "all" ? "bg-teal-600 text-white"
                                                     : role === "caregiver" ? "bg-blue-600 text-white"
                                                         : "bg-green-600 text-white"
                                                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
@@ -759,9 +759,9 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                         {nameFilter && (
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">선택된 직원</label>
-                                <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                                    <span className="text-[10px] font-medium text-blue-800">{nameFilter}</span>
-                                    <button onClick={() => setNameFilter(null)} className="text-blue-600 hover:text-blue-800 ml-1" title="필터 해제">
+                                <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded px-2 py-1">
+                                    <span className="text-[10px] font-medium text-teal-800">{nameFilter}</span>
+                                    <button onClick={() => setNameFilter(null)} className="text-teal-600 hover:text-teal-800 ml-1" title="필터 해제">
                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
@@ -773,7 +773,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                         {/* 초기화 */}
                         <button
                             onClick={resetFilter}
-                            className="w-full px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500"
                         >
                             초기화
                         </button>

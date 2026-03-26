@@ -26,28 +26,28 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
         return {
           bg: "bg-green-50",
           border: "border-green-200",
-          badge: "bg-green-100 text-green-800",
+          badge: "bg-green-50 text-green-700",
           icon: "text-green-500",
         };
       case "대체":
         return {
           bg: "bg-yellow-50",
           border: "border-yellow-200",
-          badge: "bg-yellow-100 text-yellow-800",
+          badge: "bg-yellow-50 text-yellow-700",
           icon: "text-yellow-500",
         };
       case "운행없음":
         return {
           bg: "bg-red-50",
           border: "border-red-200",
-          badge: "bg-red-100 text-red-800",
+          badge: "bg-red-50 text-red-700",
           icon: "text-red-500",
         };
       case "휴일":
         return {
           bg: "bg-gray-50",
           border: "border-gray-200",
-          badge: "bg-gray-100 text-gray-800",
+          badge: "bg-gray-50 text-gray-600",
           icon: "text-gray-500",
         };
     }
@@ -69,7 +69,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
         className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden"
       >
         {/* 헤더 */}
-        <div className={`${holidayInfo.isHoliday ? "bg-gradient-to-r from-gray-500 to-gray-600" : "bg-gradient-to-r from-blue-600 to-indigo-600"} text-white px-6 py-4`}>
+        <div className={`${holidayInfo.isHoliday ? "bg-gradient-to-r from-gray-500 to-gray-600" : "bg-gradient-to-r from-teal-500 to-teal-600"} text-white px-6 py-4`}>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">
@@ -80,7 +80,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                   {holidayInfo.holidayName} - 휴무
                 </p>
               ) : (
-                <p className="text-blue-100 text-sm mt-1">
+                <p className="text-teal-100 text-sm mt-1">
                   총 {dispatch.routeDispatches.length}개 노선 배차표
                 </p>
               )}
@@ -103,7 +103,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
               <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
-              <p className="text-lg font-medium text-gray-700">{holidayInfo.holidayName}</p>
+              <p className="text-lg font-medium text-gray-900">{holidayInfo.holidayName}</p>
               <p className="text-sm text-gray-500 mt-1">오늘은 휴무일입니다</p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                 return (
                   <div
                     key={routeDispatch.routeId}
-                    className={`${style.bg} ${style.border} border rounded-lg p-4`}
+                    className={`${style.bg} ${style.border} border rounded-xl p-4`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center">
@@ -172,7 +172,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                           )}
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-800">{routeDispatch.routeName} 노선</h3>
+                          <h3 className="font-bold text-gray-900">{routeDispatch.routeName} 노선</h3>
                           <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${style.badge}`}>
                             {routeDispatch.status}
                             {routeDispatch.driverRole && routeDispatch.status === "대체" && (
@@ -200,7 +200,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                             </svg>
                             <span className="text-sm font-medium text-gray-600">운전자</span>
                           </div>
-                          <p className="text-gray-800 font-semibold">
+                          <p className="text-gray-900 font-semibold">
                             {routeDispatch.driver?.driverName || "-"}
                           </p>
                           {routeDispatch.status === "대체" && routeDispatch.originalMainDriver && (
@@ -219,7 +219,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                             </svg>
                             <span className="text-sm font-medium text-gray-600">차량</span>
                           </div>
-                          <p className="text-gray-800 font-semibold">
+                          <p className="text-gray-900 font-semibold">
                             {routeDispatch.driver?.vehicleName || "-"}
                             {routeDispatch.driver?.vehicleCapacity && (
                               <span className="text-sm text-gray-500 ml-1">
@@ -277,7 +277,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-900 transition-colors"
+            className="px-6 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
           >
             닫기
           </button>

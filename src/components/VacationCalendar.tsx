@@ -355,7 +355,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     if (roleFilter === 'all') {
       if (isToday(date)) {
         return {
-          bg: 'bg-blue-50',
+          bg: 'bg-teal-50',
           text: 'text-blue-700',
           border: 'border-blue-400',
           today: true
@@ -377,7 +377,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
     if (isToday(date)) {
       return {
-        bg: 'bg-blue-50',
+        bg: 'bg-teal-50',
         text: 'text-blue-700',
         border: 'border-blue-400',
         today: true
@@ -703,72 +703,65 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   return (
-    <div className="w-full bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {showMonthError && (
-        <div className="p-3 m-3 bg-red-100 text-red-700 rounded-lg text-sm">
-          <p className="font-medium">데이터 로드 오류</p>
+        <div className="p-3 m-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm">
+          <p className="font-medium text-red-700">데이터 로드 오류</p>
           <p>요청한 월({format(currentDate, 'yyyy년 MM월')})의 데이터를 가져오지 못했습니다. 새로고침 버튼을 눌러 다시 시도해주세요.</p>
         </div>
       )}
-      <div ref={calendarRef} className="p-3 sm:p-6 md:p-8 flex flex-col">
-        <div className="flex justify-between items-center mb-3 sm:mb-6 md:mb-8">
-          <div className="flex items-center space-x-1 sm:space-x-4">
-            <div className="bg-blue-100 p-1 sm:p-2 rounded-full text-blue-600">
+      <div ref={calendarRef} className="p-4 sm:p-5 md:p-6 flex flex-col">
+        <div className="flex justify-between items-center mb-4 sm:mb-5">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="bg-teal-50 p-1.5 sm:p-2 rounded-lg text-teal-500">
               <FiCalendar size={14} className="sm:w-5 sm:h-5" />
             </div>
             <div>
-              <div className="text-base sm:text-2xl font-bold text-gray-800 flex items-center">
+              <div className="text-base sm:text-xl font-bold text-gray-900 flex items-center">
                 {format(currentDate, 'yyyy년 MM월', { locale: ko })}
                 <button
                   onClick={handleOpenMonthPicker}
-                  className="ml-2 sm:ml-3 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all duration-200 flex items-center space-x-1"
+                  className="ml-2 sm:ml-3 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 border border-gray-200 rounded-lg transition-colors duration-200 flex items-center space-x-1"
                 >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span className="hidden sm:inline">월 선택</span>
                   <span className="sm:hidden">선택</span>
                 </button>
               </div>
-              <p className="text-[10px] sm:text-sm text-gray-500">
+              <p className="text-[10px] sm:text-sm text-gray-500 mt-0.5">
                 휴무 일정 캘린더
               </p>
             </div>
           </div>
 
-          <div className="flex space-x-0.5 sm:space-x-2">
-            <button 
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <button
               onClick={prevMonth}
-              className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-               'hover:bg-gray-100 text-gray-600'
-              }`}
+              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600"
               aria-label="이전 달"
             >
               <FiChevronLeft size={14} className="sm:w-5 sm:h-5" />
             </button>
-            <button 
+            <button
               onClick={resetToCurrentMonth}
-              className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-               'bg-blue-50 hover:bg-blue-100 text-blue-600'
-              }`}
+              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 bg-teal-50 hover:bg-teal-100 text-teal-500"
               aria-label="이번 달로 돌아가기"
             >
               <FiCalendar size={12} className="sm:w-[18px] sm:h-[18px]" />
             </button>
-            <button 
+            <button
               onClick={nextMonth}
-              className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                  'hover:bg-gray-100 text-gray-600'
-              }`}
+              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600"
               aria-label="다음 달"
             >
               <FiChevronRight size={14} className="sm:w-5 sm:h-5" />
             </button>
+            <div className="w-px h-5 bg-gray-200 mx-0.5 sm:mx-1"></div>
             <button
               onClick={handleRefresh}
-              className={`p-1 sm:p-2 rounded-lg transition-all duration-300 ${
-                'bg-green-50 hover:bg-green-100 text-green-600'
-              }`}
+              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 bg-teal-50 hover:bg-teal-100 text-teal-500"
               aria-label="데이터 새로고침"
             >
               <FiRefreshCw size={12} className={`${isLoading ? 'animate-spin' : ''}`} />
@@ -777,9 +770,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <>
                 <button
                   onClick={onShowLimitPanel}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
-                    'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:scale-105'
-                  }`}
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium bg-teal-50 hover:bg-teal-100 text-teal-600 border border-gray-200"
                   aria-label="휴무 제한 설정"
                 >
                   <span className="hidden sm:inline">휴무 제한 설정</span>
@@ -787,9 +778,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 </button>
                 <button
                   onClick={() => setShowAdminVacationModal(true)}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium flex items-center gap-1 ${
-                    'bg-green-50 hover:bg-green-100 text-green-600 hover:scale-105'
-                  }`}
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium flex items-center gap-1 bg-teal-500 hover:bg-teal-600 text-white"
                   aria-label="직원 휴무 추가"
                 >
                   <FiUserPlus size={14} className="sm:w-4 sm:h-4" />
@@ -800,12 +789,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             )}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium border border-gray-200 ${
                 isLoading
-                  ? 'bg-purple-50 text-purple-300 cursor-not-allowed'
+                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
                   : isExpanded
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'bg-purple-50 hover:bg-purple-100 text-purple-600 hover:scale-105'
+                  ? 'bg-teal-50 text-teal-600 border-teal-200'
+                  : 'bg-white hover:bg-gray-50 text-gray-600'
               }`}
               aria-label={isExpanded ? "접기" : "펼치기"}
             >
@@ -816,17 +805,17 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <button
                 onClick={handleCapture}
                 disabled={isCapturing || isLoading}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-300 text-xs sm:text-sm font-medium flex items-center gap-1 ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium flex items-center gap-1 border border-gray-200 ${
                   isCapturing
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-orange-50 hover:bg-orange-100 text-orange-600 hover:scale-105'
+                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                    : 'bg-white hover:bg-gray-50 text-gray-600'
                 }`}
                 aria-label="캘린더 캡처"
                 title="펼쳐진 캘린더를 이미지로 저장합니다"
               >
                 {isCapturing ? (
                   <>
-                    <svg className="animate-spin h-3 w-3 sm:h-4 sm:w-4 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-3 w-3 sm:h-4 sm:w-4 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -844,13 +833,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </div>
 
         {/* 인터랙티브 캘린더 */}
-        <div className="grid grid-cols-7 border-b border-gray-200">
+        <div className="grid grid-cols-7 border-b border-gray-200 mb-1">
           {WEEKDAYS.map((day, index) => (
-            <div 
-              key={day} 
-              className={`py-0.5 sm:py-2 text-center font-medium text-[8px] sm:text-sm ${
-                index === 0 ? 'text-red-500' : 
-                index === 6 ? 'text-indigo-500' : 'text-gray-600'
+            <div
+              key={day}
+              className={`py-1.5 sm:py-2.5 text-center font-medium text-[11px] sm:text-xs ${
+                index === 0 ? 'text-red-400' :
+                index === 6 ? 'text-blue-400' : 'text-gray-400'
               }`}
             >
               {day}
@@ -858,8 +847,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           ))}
         </div>
 
-        <motion.div 
-          className="grid grid-cols-7 gap-x-1 gap-y-3 sm:gap-x-4 sm:gap-y-5 md:gap-x-5 md:gap-y-6"
+        <motion.div
+          className="grid grid-cols-7 gap-x-0.5 gap-y-1 sm:gap-x-1 sm:gap-y-2 md:gap-x-2 md:gap-y-2"
           initial="hidden"
           animate="visible"
           variants={{
@@ -890,36 +879,42 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 key={index}
                 variants={fadeInVariants}
                 onClick={() => handleDateClick(day)}
-                className={`p-1 sm:p-3 ${
-                  isExpanded 
+                className={`p-1 sm:p-2.5 ${
+                  isExpanded
                     ? 'min-h-[80px] sm:min-h-[200px] md:min-h-[240px]'
                     : 'min-h-[60px] sm:min-h-[120px] md:min-h-[140px]'
-                } rounded-lg sm:rounded-xl relative cursor-pointer transition-all ${
-                  !isCurrentMonth ? 'opacity-40' : ''
-                } ${isSelected ? 'ring-2 ring-blue-500 scale-[1.02] shadow-md z-10' : ''}
-                ${dayColor.bg}
-                ${isPast ? 'cursor-not-allowed opacity-60' : ''}
-                hover:shadow-sm ${isExpanded ? '' : 'overflow-hidden'}`}
+                } rounded-lg relative cursor-pointer transition-colors duration-200 border border-transparent ${
+                  !isCurrentMonth ? 'opacity-30' : ''
+                } ${isSelected ? 'ring-2 ring-teal-500 bg-teal-50/50 border-teal-200 shadow-sm z-10' : 'hover:bg-gray-100'}
+                ${!isSelected ? dayColor.bg : ''}
+                ${isPast && isCurrentMonth ? 'opacity-70' : ''}
+                ${isExpanded ? '' : 'overflow-hidden'}`}
               >
                 <div className={`flex justify-between items-start mb-1`}>
-                  <div className={`text-xs sm:text-sm md:text-base font-semibold ${
-                    isSunday ? 'text-red-500' : 
-                    isSaturday ? 'text-blue-500' : 
-                    'text-black'}
-                  `}>
-                    {format(day, 'd')}
-                    {isCurrentDay && (
-                      <span className="ml-0.5 sm:ml-1 inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500"></span>
+                  <div className="flex items-center gap-0.5">
+                    {isCurrentDay ? (
+                      <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-teal-500 text-white text-xs sm:text-sm font-bold">
+                        {format(day, 'd')}
+                      </span>
+                    ) : (
+                      <span className={`text-xs sm:text-sm md:text-base font-semibold ${
+                        !isCurrentMonth ? 'text-gray-300' :
+                        isSunday ? 'text-red-500' :
+                        isSaturday ? 'text-blue-500' :
+                        'text-gray-900'
+                      }`}>
+                        {format(day, 'd')}
+                      </span>
                     )}
                   </div>
                   
-                  {isCurrentMonth && roleFilter !== 'all' && (
+                  {isCurrentMonth && roleFilter !== 'all' && vacationersCount > 0 && (
                     <span className={`
-                      text-[8px] sm:text-xs md:text-sm font-medium px-1 sm:px-1.5 py-0.5 rounded-full inline-flex items-center
+                      text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded-full inline-flex items-center
                       ${
                         vacationersCount >= maxPeople
-                          ? 'bg-red-100 text-red-600' 
-                          : 'bg-green-100 text-green-600'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-teal-50 text-teal-600'
                       }
                     `}>
                       {vacationersCount}/{maxPeople}
@@ -947,20 +942,20 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           .slice(0, isExpanded ? vacations.length : 4)
                           .map((vacation, idx) => (
                         <div key={idx} className="flex items-center text-[8px] sm:text-xs md:text-sm">
-                          <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full
-                            ${vacation.status === 'approved' 
-                              ? 'bg-green-100 text-green-600' 
+                          <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full font-medium
+                            ${vacation.status === 'approved'
+                              ? 'bg-teal-50 text-teal-600'
                               : vacation.status === 'rejected'
-                              ? 'bg-red-100 text-red-600'
-                              : 'bg-yellow-100 text-yellow-600'}`}>
+                              ? 'bg-red-50 text-red-500'
+                              : 'bg-yellow-50 text-yellow-600'}`}>
                             {getStatusText(vacation.status)}
                           </span>
                           <span className={`flex-1 leading-tight flex items-center gap-1 ${
                             vacation.status === 'rejected'
-                              ? 'text-red-600 line-through'
+                              ? 'text-red-400 line-through'
                               : nameFilter === vacation.userName
-                                ? 'text-blue-600 font-semibold cursor-pointer hover:text-blue-800'
-                                : 'text-gray-800 cursor-pointer hover:text-blue-600'
+                                ? 'text-teal-600 font-semibold cursor-pointer hover:text-teal-700'
+                                : 'text-gray-700 cursor-pointer hover:text-teal-600'
                           }`}
                           title={vacation.userName || '이름 없음'}
                           onClick={(e) => {
@@ -982,7 +977,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                             )}
                             {nameFilter === vacation.userName && (
                               <span className="inline-flex items-center flex-shrink-0">
-                                <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-3 h-3 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               </span>
@@ -992,7 +987,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         </div>
                         ))}
                         {!isExpanded && vacations.length > 4 && (
-                          <div className="text-[8px] sm:text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
+                          <div className="text-[8px] sm:text-xs md:text-sm text-gray-400 mt-0.5 font-medium">
                             +{vacations.length - 4}명 더
                           </div>
                         )}
@@ -1001,14 +996,14 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   </div>
                 )}
                 
-                {isCurrentMonth && roleFilter !== 'all' && (
-                  <div className="absolute bottom-0 sm:bottom-1 right-0 sm:right-1.5">
+                {isCurrentMonth && roleFilter !== 'all' && vacationersCount > 0 && (
+                  <div className="absolute bottom-0.5 sm:bottom-1.5 right-0.5 sm:right-1.5">
                     {vacationersCount >= maxPeople ? (
-                      <div className="text-[6px] sm:text-xs bg-red-500 text-white rounded-full w-2 h-2 sm:w-4 sm:h-4 flex items-center justify-center">
+                      <div className="bg-red-500 text-white rounded-full w-2.5 h-2.5 sm:w-4 sm:h-4 flex items-center justify-center">
                         <FiAlertCircle size={6} className="sm:w-[10px] sm:h-[10px]" />
                       </div>
                     ) : (
-                      <div className="text-[6px] sm:text-xs bg-green-500 text-white rounded-full w-2 h-2 sm:w-4 sm:h-4 flex items-center justify-center">
+                      <div className="bg-teal-500 text-white rounded-full w-2.5 h-2.5 sm:w-4 sm:h-4 flex items-center justify-center">
                         <FiCheck size={6} className="sm:w-[10px] sm:h-[10px]" />
                       </div>
                     )}
@@ -1016,7 +1011,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 )}
                 
                 {isSelected && (
-                  <div className="absolute inset-0 border-1 sm:border-2 border-blue-500 rounded-lg sm:rounded-xl pointer-events-none"></div>
+                  <div className="absolute inset-0 border-2 border-teal-500 rounded-lg pointer-events-none"></div>
                 )}
               </motion.div>
             );
@@ -1024,51 +1019,51 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </motion.div>
       </div>
 
-      <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-t border-gray-100">
-        <p className="text-xs sm:text-sm md:text-base text-gray-500 mb-2 sm:mb-3 font-medium">상태 표시</p>
-        <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6 items-center">
+      <div className="px-4 sm:px-5 md:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50/50">
+        <p className="text-[11px] sm:text-xs text-gray-400 mb-2 sm:mb-3 font-medium uppercase tracking-wide">상태 표시</p>
+        <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-5 items-center">
           {/* 인원 상태 */}
           <div className="flex items-center">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full mr-1 sm:mr-1.5"></div>
-            <span className="text-xs sm:text-sm text-gray-600">여유</span>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-teal-500 rounded-full mr-1 sm:mr-1.5"></div>
+            <span className="text-[11px] sm:text-xs text-gray-500">여유</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full mr-1 sm:mr-1.5"></div>
-            <span className="text-xs sm:text-sm text-gray-600">마감</span>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full mr-1 sm:mr-1.5"></div>
+            <span className="text-[11px] sm:text-xs text-gray-500">마감</span>
           </div>
-          
+
           {/* 구분선 */}
-          <div className="w-px h-4 bg-gray-300"></div>
-          
+          <div className="w-px h-3 bg-gray-200"></div>
+
           {/* 승인 상태 */}
           <div className="flex items-center">
-            <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-600 rounded-full mr-1 sm:mr-1.5">승인</span>
-            <span className="text-xs sm:text-sm text-gray-600">승인됨</span>
+            <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded-full mr-1 sm:mr-1.5 font-medium">승인</span>
+            <span className="text-[11px] sm:text-xs text-gray-500">승인됨</span>
           </div>
           <div className="flex items-center">
-            <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-600 rounded-full mr-1 sm:mr-1.5">대기</span>
-            <span className="text-xs sm:text-sm text-gray-600">대기중</span>
+            <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full mr-1 sm:mr-1.5 font-medium">대기</span>
+            <span className="text-[11px] sm:text-xs text-gray-500">대기중</span>
           </div>
           <div className="flex items-center">
-            <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full mr-1 sm:mr-1.5">거절</span>
-            <span className="text-xs sm:text-sm text-gray-600">거부됨</span>
+            <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded-full mr-1 sm:mr-1.5 font-medium">거절</span>
+            <span className="text-[11px] sm:text-xs text-gray-500">거부됨</span>
           </div>
-          
+
           {/* 구분선 */}
-          <div className="w-px h-4 bg-gray-300"></div>
-          
+          <div className="w-px h-3 bg-gray-200"></div>
+
           {/* 휴가 유형 */}
           <div className="flex items-center">
-            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-blue-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">연</span>
-            <span className="text-xs sm:text-sm text-gray-600">연차</span>
+            <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-blue-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">연</span>
+            <span className="text-[11px] sm:text-xs text-gray-500">연차</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-green-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">반</span>
-            <span className="text-xs sm:text-sm text-gray-600">반차</span>
+            <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-green-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">반</span>
+            <span className="text-[11px] sm:text-xs text-gray-500">반차</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">필</span>
-            <span className="text-xs sm:text-sm text-gray-600">필수 휴무</span>
+            <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-red-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">필</span>
+            <span className="text-[11px] sm:text-xs text-gray-500">필수 휴무</span>
           </div>
         </div>
       </div>
@@ -1130,9 +1125,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                   onClick={() => handleYearSelect(year)}
                                   className={`p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                                     year === selectedYear
-                                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                                      ? 'bg-teal-600 text-white shadow-lg ring-2 ring-teal-300'
                                       : year === currentYear
-                                        ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
+                                        ? 'bg-teal-50 text-teal-600 border border-teal-200 hover:bg-teal-100'
                                         : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
                                   }`}
                                 >
@@ -1152,9 +1147,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                   onClick={() => handleMonthClick(index)}
                                   className={`p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                                     index === selectedMonth
-                                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-300'
+                                      ? 'bg-teal-600 text-white shadow-lg ring-2 ring-teal-300'
                                       : index === currentMonth && selectedYear === currentYear
-                                        ? 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
+                                        ? 'bg-teal-50 text-teal-600 border border-teal-200 hover:bg-teal-100'
                                         : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
                                   }`}
                                 >
@@ -1183,7 +1178,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   </button>
                   <button
                     onClick={handleApplyDateSelection}
-                    className="flex-1 p-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 shadow-sm"
+                    className="flex-1 p-3 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors duration-200 shadow-sm"
                   >
                     {selectedYear}년 {selectedMonth + 1}월 선택
                   </button>

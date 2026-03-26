@@ -9,6 +9,7 @@ import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
+import FormRenderer from './approval/FormRenderer';
 
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -30,6 +31,7 @@ export default function EmployeeApproval() {
     title: '',
     file: null as File | null,
   });
+  const [formData, setFormData] = useState<Record<string, any> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,13 +85,13 @@ export default function EmployeeApproval() {
   const getStatusStyle = (status: ApprovalStatus) => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-700';
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-700';
       case 'REJECTED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-700';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -231,7 +233,7 @@ export default function EmployeeApproval() {
     };
   };
 
-  // 결재 신청 제출
+  // 결재 신청 제출 (file 타입 또는 hybrid의 파일 파트)
   const handleSubmitApproval = async () => {
     if (!approvalForm.templateId) {
       showAlert({ type: 'error', title: '입력 오류', message: '양식을 선택해주세요.' });
@@ -241,25 +243,35 @@ export default function EmployeeApproval() {
       showAlert({ type: 'error', title: '입력 오류', message: '제목을 입력해주세요.' });
       return;
     }
-    if (!approvalForm.file) {
+
+    const templateType = selectedTemplateInfo?.templateType ?? 'file';
+    const needsFile = templateType === 'file' || templateType === 'hybrid';
+
+    if (needsFile && !approvalForm.file) {
       showAlert({ type: 'error', title: '입력 오류', message: '작성한 양식 파일을 첨부해주세요.' });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // 파일을 서버에 업로드
-      const uploadResult = await uploadFileToServer(approvalForm.file);
-      if (!uploadResult) {
-        throw new Error('파일 업로드 실패');
+      let uploadResult: { filePath: string; fileName: string; fileSize: number } | null = null;
+
+      if (needsFile && approvalForm.file) {
+        uploadResult = await uploadFileToServer(approvalForm.file);
+        if (!uploadResult) {
+          throw new Error('파일 업로드 실패');
+        }
       }
 
       await createApprovalRequest({
         templateId: Number(approvalForm.templateId),
         title: approvalForm.title,
-        attachmentUrl: uploadResult.filePath,
-        attachmentFileName: uploadResult.fileName,
-        attachmentFileSize: uploadResult.fileSize,
+        ...(formData ? { formData } : {}),
+        ...(uploadResult ? {
+          attachmentUrl: uploadResult.filePath,
+          attachmentFileName: uploadResult.fileName,
+          attachmentFileSize: uploadResult.fileSize,
+        } : {}),
       });
 
       showAlert({
@@ -270,6 +282,70 @@ export default function EmployeeApproval() {
 
       setShowNewApproval(false);
       setApprovalForm({ templateId: '', title: '', file: null });
+      setFormData(null);
+      loadApprovals();
+      setActiveTab('my-approvals');
+    } catch (error) {
+      console.error('결재 요청 제출 실패:', error);
+      showAlert({
+        type: 'error',
+        title: '제출 실패',
+        message: '결재 요청 제출에 실패했습니다.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // form/hybrid 타입: FormRenderer의 onSubmit 콜백
+  const handleFormRendererSubmit = async (data: Record<string, any>) => {
+    if (!approvalForm.templateId) {
+      showAlert({ type: 'error', title: '입력 오류', message: '양식을 선택해주세요.' });
+      return;
+    }
+    if (!approvalForm.title.trim()) {
+      showAlert({ type: 'error', title: '입력 오류', message: '제목을 입력해주세요.' });
+      return;
+    }
+
+    const templateType = selectedTemplateInfo?.templateType ?? 'file';
+
+    if (templateType === 'hybrid' && !approvalForm.file) {
+      showAlert({ type: 'error', title: '입력 오류', message: '혼합 양식은 파일 첨부도 필요합니다.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let uploadResult: { filePath: string; fileName: string; fileSize: number } | null = null;
+
+      if (templateType === 'hybrid' && approvalForm.file) {
+        uploadResult = await uploadFileToServer(approvalForm.file);
+        if (!uploadResult) {
+          throw new Error('파일 업로드 실패');
+        }
+      }
+
+      await createApprovalRequest({
+        templateId: Number(approvalForm.templateId),
+        title: approvalForm.title,
+        formData: data,
+        ...(uploadResult ? {
+          attachmentUrl: uploadResult.filePath,
+          attachmentFileName: uploadResult.fileName,
+          attachmentFileSize: uploadResult.fileSize,
+        } : {}),
+      });
+
+      showAlert({
+        type: 'success',
+        title: '제출 완료',
+        message: '결재 요청이 성공적으로 제출되었습니다.',
+      });
+
+      setShowNewApproval(false);
+      setApprovalForm({ templateId: '', title: '', file: null });
+      setFormData(null);
       loadApprovals();
       setActiveTab('my-approvals');
     } catch (error) {
@@ -318,6 +394,7 @@ export default function EmployeeApproval() {
   const closeNewApprovalModal = () => {
     setShowNewApproval(false);
     setApprovalForm({ templateId: '', title: '', file: null });
+    setFormData(null);
   };
 
   const selectedTemplateInfo = templates.find(t => String(t.id) === approvalForm.templateId);
@@ -335,7 +412,7 @@ export default function EmployeeApproval() {
           </div>
           <button
             onClick={() => setShowNewApproval(true)}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+            className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm font-medium"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -351,13 +428,13 @@ export default function EmployeeApproval() {
               onClick={() => setActiveTab('my-approvals')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
                 activeTab === 'my-approvals'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               <span>내 결재 내역</span>
               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                activeTab === 'my-approvals' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                activeTab === 'my-approvals' ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-600'
               }`}>
                 {approvals.length}
               </span>
@@ -366,7 +443,7 @@ export default function EmployeeApproval() {
               onClick={() => setActiveTab('templates')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'templates'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -377,7 +454,7 @@ export default function EmployeeApproval() {
 
         {/* 양식 다운로드 탭 */}
         {activeTab === 'templates' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {templates.length > 0 ? (
               <div className="divide-y divide-gray-100">
                 {templates.map((template) => (
@@ -387,28 +464,43 @@ export default function EmployeeApproval() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-start space-x-4">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-gray-900 font-semibold">{template.name}</h4>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-gray-900 font-semibold">{template.name}</h4>
+                            {(template.templateType === 'file' || !template.templateType) && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">파일 양식</span>
+                            )}
+                            {template.templateType === 'form' && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">온라인 양식</span>
+                            )}
+                            {template.templateType === 'hybrid' && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">혼합 양식</span>
+                            )}
+                          </div>
                           <p className="text-gray-500 text-sm mt-1">{template.description}</p>
-                          <p className="text-gray-400 text-xs mt-2">
-                            {template.fileName} ({formatFileSize(template.fileSize)})
-                          </p>
+                          {(template.templateType === 'file' || template.templateType === 'hybrid' || !template.templateType) && template.fileName && (
+                            <p className="text-gray-400 text-xs mt-2">
+                              {template.fileName} ({formatFileSize(template.fileSize)})
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleDownloadTemplate(template)}
-                        className="flex items-center space-x-1.5 px-4 py-2 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors font-medium"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        <span>다운로드</span>
-                      </button>
+                      {(template.templateType === 'file' || template.templateType === 'hybrid' || !template.templateType) && template.fileUrl && (
+                        <button
+                          onClick={() => handleDownloadTemplate(template)}
+                          className="flex items-center space-x-1.5 px-4 py-2 text-teal-600 hover:bg-teal-50 border border-teal-200 rounded-lg transition-colors font-medium"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          <span>다운로드</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -441,13 +533,13 @@ export default function EmployeeApproval() {
                   onClick={() => setApprovalFilter(filter.key as ApprovalFilterType)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     approvalFilter === filter.key
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-teal-500 text-white'
                       : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                   }`}
                 >
                   {filter.label}
                   <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
-                    approvalFilter === filter.key ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                    approvalFilter === filter.key ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'
                   }`}>
                     {filter.count}
                   </span>
@@ -456,10 +548,10 @@ export default function EmployeeApproval() {
             </div>
 
             {/* 결재 목록 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {isLoading ? (
                 <div className="flex items-center justify-center py-20">
-                  <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-10 w-10 text-teal-500" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -520,14 +612,24 @@ export default function EmployeeApproval() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 overflow-hidden"
+              className={`bg-white rounded-xl shadow-lg w-full border border-gray-200 overflow-hidden ${
+                selectedTemplateInfo?.templateType === 'form' || selectedTemplateInfo?.templateType === 'hybrid'
+                  ? 'max-w-2xl'
+                  : 'max-w-md'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">새 기안 작성</h2>
-                    <p className="text-gray-500 text-sm mt-1">양식을 선택하고 작성한 파일을 첨부하세요</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {selectedTemplateInfo?.templateType === 'form'
+                        ? '온라인 양식을 작성하세요'
+                        : selectedTemplateInfo?.templateType === 'hybrid'
+                        ? '온라인 양식 작성 후 파일도 첨부하세요'
+                        : '양식을 선택하고 작성한 파일을 첨부하세요'}
+                    </p>
                   </div>
                   <button
                     onClick={closeNewApprovalModal}
@@ -540,7 +642,7 @@ export default function EmployeeApproval() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 {/* 양식 선택 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -548,8 +650,11 @@ export default function EmployeeApproval() {
                   </label>
                   <select
                     value={approvalForm.templateId}
-                    onChange={(e) => setApprovalForm(prev => ({ ...prev, templateId: e.target.value }))}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => {
+                      setApprovalForm(prev => ({ ...prev, templateId: e.target.value, file: null }));
+                      setFormData(null);
+                    }}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   >
                     <option value="">양식을 선택하세요</option>
                     {templates.map((template) => (
@@ -573,71 +678,163 @@ export default function EmployeeApproval() {
                     value={approvalForm.title}
                     onChange={(e) => setApprovalForm(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="예: 2026년 1월 휴가 신청"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
-                {/* 파일 첨부 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    작성한 양식 첨부 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    onChange={handleFileSelect}
-                    accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
-                    className="hidden"
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-6 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
-                  >
-                    {approvalForm.file ? (
-                      <div className="flex items-center justify-center space-x-3">
-                        <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <div className="text-left">
-                          <p className="text-gray-900 font-medium">{approvalForm.file.name}</p>
-                          <p className="text-gray-500 text-sm">{formatFileSize(approvalForm.file.size)}</p>
+                {/* templateType에 따른 분기 */}
+                {(!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
+                  /* 파일 양식: 기존 파일 업로드 UI */
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      작성한 양식 첨부 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
+                      className="hidden"
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full p-6 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-all"
+                    >
+                      {approvalForm.file ? (
+                        <div className="flex items-center justify-center space-x-3">
+                          <svg className="w-8 h-8 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <div className="text-left">
+                            <p className="text-gray-900 font-medium">{approvalForm.file.name}</p>
+                            <p className="text-gray-500 text-sm">{formatFileSize(approvalForm.file.size)}</p>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <svg className="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <p className="text-gray-600">클릭하여 작성한 파일 첨부</p>
-                        <p className="text-gray-400 text-sm mt-1">.hwp, .docx, .pdf 등</p>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <svg className="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <p className="text-gray-600">클릭하여 작성한 파일 첨부</p>
+                          <p className="text-gray-400 text-sm mt-1">.hwp, .docx, .pdf 등</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {selectedTemplateInfo?.templateType === 'form' && selectedTemplateInfo.formSchema && (
+                  /* 온라인 양식: FormRenderer (자체 제출 버튼 포함) */
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-3">온라인 양식 작성</p>
+                    <FormRenderer
+                      schema={selectedTemplateInfo.formSchema}
+                      onSubmit={handleFormRendererSubmit}
+                      submitLabel={isSubmitting ? '제출 중...' : '제출'}
+                    />
+                  </div>
+                )}
+
+                {selectedTemplateInfo?.templateType === 'hybrid' && selectedTemplateInfo.formSchema && (
+                  /* 혼합 양식: FormRenderer + 파일 첨부 */
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-3">온라인 양식 작성</p>
+                      <FormRenderer
+                        schema={selectedTemplateInfo.formSchema}
+                        onSubmit={(data) => setFormData(data)}
+                        submitLabel="양식 확인"
+                      />
+                    </div>
+                    {formData && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        온라인 양식이 확인되었습니다.
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        추가 파일 첨부 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
+                        className="hidden"
+                      />
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full p-6 border-2 border-dashed border-gray-300 rounded-xl text-center cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-all"
+                      >
+                        {approvalForm.file ? (
+                          <div className="flex items-center justify-center space-x-3">
+                            <svg className="w-8 h-8 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <div className="text-left">
+                              <p className="text-gray-900 font-medium">{approvalForm.file.name}</p>
+                              <p className="text-gray-500 text-sm">{formatFileSize(approvalForm.file.size)}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <svg className="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <p className="text-gray-600">클릭하여 파일 첨부</p>
+                            <p className="text-gray-400 text-sm mt-1">.hwp, .docx, .pdf 등</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
-                <button
-                  onClick={closeNewApprovalModal}
-                  className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleSubmitApproval}
-                  disabled={isSubmitting || !approvalForm.templateId || !approvalForm.title.trim() || !approvalForm.file}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    '제출'
-                  )}
-                </button>
-              </div>
+              {/* 하단 버튼 — form 타입은 FormRenderer 내부 버튼이 처리, file/hybrid/미선택은 여기서 */}
+              {selectedTemplateInfo?.templateType !== 'form' && (
+                <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+                  <button
+                    onClick={closeNewApprovalModal}
+                    className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleSubmitApproval}
+                    disabled={
+                      isSubmitting ||
+                      !approvalForm.templateId ||
+                      !approvalForm.title.trim() ||
+                      ((!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && !approvalForm.file) ||
+                      (selectedTemplateInfo?.templateType === 'hybrid' && (!formData || !approvalForm.file))
+                    }
+                    className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      '제출'
+                    )}
+                  </button>
+                </div>
+              )}
+              {selectedTemplateInfo?.templateType === 'form' && (
+                <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                  <button
+                    onClick={closeNewApprovalModal}
+                    className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -657,10 +854,10 @@ export default function EmployeeApproval() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 overflow-hidden"
+              className="bg-white rounded-xl shadow-lg w-full max-w-lg border border-gray-200 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-gray-200">
                 <div className="flex items-start justify-between">
                   <div>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusStyle(selectedApproval.status)}`}>
@@ -705,9 +902,9 @@ export default function EmployeeApproval() {
                     <h4 className="text-sm font-medium text-gray-700 mb-3">첨부파일</h4>
                     <button
                       onClick={() => handleDownloadAttachment(selectedApproval.attachmentUrl!, selectedApproval.attachmentFileName || '첨부파일')}
-                      className="w-full flex items-center space-x-3 bg-gray-50 rounded-lg p-3 hover:bg-blue-50 transition-colors text-left"
+                      className="w-full flex items-center space-x-3 bg-gray-50 rounded-lg p-3 hover:bg-teal-50 transition-colors text-left"
                     >
-                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
                       <span className="text-gray-900 flex-1">{selectedApproval.attachmentFileName || '첨부파일'}</span>
@@ -732,7 +929,7 @@ export default function EmployeeApproval() {
                 )}
               </div>
 
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
+              <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
                 {selectedApproval.status === 'PENDING' && (
                   <button
                     onClick={() => handleCancelApproval(selectedApproval.id)}
@@ -743,7 +940,7 @@ export default function EmployeeApproval() {
                 )}
                 <button
                   onClick={() => setSelectedApproval(null)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
                 >
                   닫기
                 </button>

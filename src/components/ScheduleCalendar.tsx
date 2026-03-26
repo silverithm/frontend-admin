@@ -1,17 +1,25 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getScheduleLabels, createScheduleLabel, getAllMembers } from '@/lib/apiService';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getScheduleLabels, createScheduleLabel, getAllMembers, getAllVacationRequests } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleCategory, SCHEDULE_CATEGORIES, LABEL_COLORS } from '@/types/schedule';
 import { useAlert } from './Alert';
+import { useDispatchStore } from '@/lib/dispatchStore';
+import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
+import type { VacationRequest } from '@/types/vacation';
+import { getDailyDispatch, getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
+import DispatchDayDetail from './DispatchDayDetail';
+import DispatchSettings from './DispatchSettings';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 interface ScheduleCalendarProps {
   isAdmin?: boolean;
+  mode?: 'schedule' | 'dispatch';
+  onNotification?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 interface ScheduleFormData {
@@ -29,7 +37,7 @@ interface ScheduleFormData {
   participantIds: string[];
 }
 
-export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarProps) {
+export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', onNotification }: ScheduleCalendarProps) {
   const { showAlert, AlertContainer } = useAlert();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -43,6 +51,16 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
   const [showLabelModal, setShowLabelModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // 배차 모드 관련 상태
+  const { settings: dispatchSettings, seniorAbsences, isHydrated } = useDispatchStore();
+  const [dispatchMonthlySummary, setDispatchMonthlySummary] = useState<Map<string, DispatchDaySummary>>(new Map());
+  const [dispatchVacations, setDispatchVacations] = useState<VacationRequest[]>([]);
+  const [showDispatchDayDetail, setShowDispatchDayDetail] = useState(false);
+  const [showDispatchSettings, setShowDispatchSettings] = useState(false);
+  const [dispatchSelectedDate, setDispatchSelectedDate] = useState<Date | null>(null);
+
+  const isDispatchMode = mode === 'dispatch';
 
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
@@ -81,10 +99,64 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
 
   // 일정 데이터 로드
   useEffect(() => {
-    loadSchedules();
-    loadLabels();
-    loadMembers();
-  }, [currentDate]);
+    if (!isDispatchMode) {
+      loadSchedules();
+      loadLabels();
+      loadMembers();
+    }
+  }, [currentDate, isDispatchMode]);
+
+  // 배차 모드: 휴무 데이터 로드
+  const fetchDispatchVacations = useCallback(async () => {
+    try {
+      const response = await getAllVacationRequests();
+      if (response.requests && Array.isArray(response.requests)) {
+        setDispatchVacations(response.requests);
+      } else if (response.data) {
+        setDispatchVacations(response.data);
+      } else if (Array.isArray(response)) {
+        setDispatchVacations(response);
+      }
+    } catch (error) {
+      console.error('휴무 데이터 로드 실패:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDispatchMode) {
+      fetchDispatchVacations();
+      setIsLoading(false);
+    }
+  }, [isDispatchMode, fetchDispatchVacations]);
+
+  // 배차 모드: 월간 요약 계산
+  useEffect(() => {
+    if (isDispatchMode && isHydrated && dispatchSettings.routes.length > 0) {
+      const summary = getMonthlyDispatchSummary(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        dispatchSettings,
+        dispatchVacations,
+        seniorAbsences
+      );
+      setDispatchMonthlySummary(summary);
+    }
+  }, [isDispatchMode, currentDate, dispatchSettings, dispatchVacations, seniorAbsences, isHydrated]);
+
+  // 배차 모드: 선택된 날짜의 일일 배차 정보
+  const getSelectedDayDispatch = (): DailyDispatch | null => {
+    if (!dispatchSelectedDate) return null;
+    return getDailyDispatch(dispatchSelectedDate, dispatchSettings, dispatchVacations, seniorAbsences);
+  };
+
+  // 배차 날짜별 상태 색상
+  const getDispatchStatusColors = (summary: DispatchDaySummary | undefined) => {
+    if (!summary || summary.totalRoutes === 0) return { bg: '', border: '' };
+    if (summary.isHoliday) return { bg: 'bg-gray-100', border: '' };
+    if (summary.noServiceCount > 0) return { bg: 'bg-red-50', border: '' };
+    if (summary.substituteCount > 0) return { bg: 'bg-yellow-50', border: '' };
+    return { bg: 'bg-green-50', border: '' };
+  };
 
   const loadSchedules = async () => {
     setIsLoading(true);
@@ -328,36 +400,71 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
       <AlertContainer />
       <div className="flex flex-col xl:flex-row gap-6">
         {/* 캘린더 카드 */}
-        <div className={`${selectedDate ? 'xl:w-3/4' : 'w-full'} transition-all duration-300`}>
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className={`${!isDispatchMode && selectedDate ? 'xl:w-3/4' : 'w-full'} transition-all duration-300`}>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* 캘린더 헤더 */}
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
                     {format(currentDate, 'yyyy년 M월', { locale: ko })}
                   </h2>
                   <button
                     onClick={goToToday}
-                    className="px-3 py-1.5 text-sm font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                    className="px-3 py-1.5 text-sm font-medium bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition-colors"
                   >
                     오늘
                   </button>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => openCreateModal()}
-                    className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>일정 추가</span>
-                  </button>
+                  {isDispatchMode ? (
+                    <>
+                      {/* 배차 범례 */}
+                      <div className="flex items-center space-x-3 text-xs mr-2">
+                        <div className="flex items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500 mr-1" />
+                          <span className="text-gray-600">정상</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 mr-1" />
+                          <span className="text-gray-600">대체</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 mr-1" />
+                          <span className="text-gray-600">운행없음</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-gray-400 mr-1" />
+                          <span className="text-gray-600">휴일</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowDispatchSettings(true)}
+                        className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm font-medium"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>배차 설정</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => openCreateModal()}
+                      className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>일정 추가</span>
+                    </button>
+                  )}
                   <div className="flex items-center border border-gray-200 rounded-lg">
                     <button
                       onClick={goToPrevMonth}
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-l-lg transition-colors"
+                      className="p-2 text-teal-500 hover:text-teal-700 hover:bg-teal-50 rounded-l-lg transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -365,7 +472,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     </button>
                     <button
                       onClick={goToNextMonth}
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-r-lg transition-colors"
+                      className="p-2 text-teal-500 hover:text-teal-700 hover:bg-teal-50 rounded-r-lg transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -377,7 +484,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
             </div>
 
             {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 border-b border-gray-100">
+            <div className="grid grid-cols-7 border-b border-gray-200">
               {WEEKDAYS.map((day, index) => (
                 <div
                   key={day}
@@ -390,45 +497,130 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
               ))}
             </div>
 
+            {/* 배차 모드: 설정 비어있을 때 안내 */}
+            {isDispatchMode && isHydrated && dispatchSettings.routes.length === 0 && (
+              <div className="p-6 text-center border-b border-gray-200">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800 font-medium">배차 설정이 필요합니다</p>
+                  <p className="text-xs text-yellow-700 mt-1">노선, 직원 정보를 먼저 등록해주세요.</p>
+                  <button
+                    onClick={() => setShowDispatchSettings(true)}
+                    className="mt-3 px-4 py-1.5 bg-yellow-600 text-white text-sm rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+                  >
+                    설정하러 가기
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 캘린더 그리드 */}
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
-                <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+                <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin" />
               </div>
             ) : (
               <div className="grid grid-cols-7">
                 {calendarDays.map((date, index) => {
                   if (!date) {
-                    return <div key={`empty-${index}`} className="aspect-square border-b border-r border-gray-50" />;
+                    return <div key={`empty-${index}`} className="aspect-square border-b border-r border-gray-200" />;
                   }
 
+                  const dayOfWeek = date.getDay();
+                  const dateStr = format(date, 'yyyy-MM-dd');
+
+                  // 배차 모드
+                  if (isDispatchMode) {
+                    const summary = dispatchMonthlySummary.get(dateStr);
+                    const statusColors = getDispatchStatusColors(summary);
+                    const isCurrentMonth = isSameMonth(date, currentDate);
+
+                    return (
+                      <button
+                        key={dateStr}
+                        onClick={() => {
+                          if (isCurrentMonth) {
+                            setDispatchSelectedDate(date);
+                            setShowDispatchDayDetail(true);
+                          }
+                        }}
+                        className={`aspect-square p-2 border-b border-r border-gray-200 rounded-lg transition-all duration-200 relative ${
+                          !isCurrentMonth ? 'opacity-30' : 'hover:bg-gray-100 cursor-pointer'
+                        } ${isToday(date) ? 'ring-2 ring-teal-500 ring-inset' : ''} ${
+                          isCurrentMonth && statusColors.bg ? statusColors.bg : ''
+                        }`}
+                        disabled={!isCurrentMonth}
+                      >
+                        <div className="h-full flex flex-col">
+                          <span
+                            className={`text-sm font-semibold ${
+                              isToday(date)
+                                ? 'bg-teal-500 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto font-bold'
+                                : dayOfWeek === 0
+                                ? 'text-red-500'
+                                : dayOfWeek === 6
+                                ? 'text-blue-500'
+                                : 'text-gray-900'
+                            }`}
+                          >
+                            {format(date, 'd')}
+                          </span>
+                          {isCurrentMonth && summary?.isHoliday && (
+                            <div className="text-[10px] text-gray-500 font-medium mt-1">{summary.holidayName}</div>
+                          )}
+                          {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {summary.normalCount > 0 && (
+                                <div className="flex items-center text-[10px]">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1" />
+                                  <span className="text-green-700">{summary.normalCount} 정상</span>
+                                </div>
+                              )}
+                              {summary.substituteCount > 0 && (
+                                <div className="flex items-center text-[10px]">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1" />
+                                  <span className="text-yellow-700">{summary.substituteCount} 대체</span>
+                                </div>
+                              )}
+                              {summary.noServiceCount > 0 && (
+                                <div className="flex items-center text-[10px]">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />
+                                  <span className="text-red-700">{summary.noServiceCount} 미운행</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
+                            <div className="text-[10px] text-gray-400 italic mt-1">미설정</div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  }
+
+                  // 일정 모드
                   const daySchedules = getSchedulesForDate(date);
                   const isSelected = selectedDate && isSameDay(date, selectedDate);
-                  const dayOfWeek = date.getDay();
 
                   return (
                     <button
-                      key={format(date, 'yyyy-MM-dd')}
+                      key={dateStr}
                       onClick={() => handleDateClick(date)}
-                      className={`aspect-square p-2 border-b border-r border-gray-50 transition-all duration-200 hover:bg-blue-50 relative ${
+                      className={`aspect-square p-2 border-b border-r border-gray-200 rounded-lg transition-all duration-200 hover:bg-gray-100 cursor-pointer relative ${
                         !isSameMonth(date, currentDate) ? 'opacity-30' : ''
-                      } ${isSelected ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' : ''} ${
-                        isToday(date) ? 'bg-blue-50' : ''
+                      } ${isSelected ? 'bg-teal-50 ring-2 ring-teal-400 ring-inset' : ''} ${
+                        isToday(date) && !isSelected ? 'bg-teal-50' : ''
                       }`}
                     >
                       <div className="h-full flex flex-col">
                         <span
-                          className={`text-sm font-medium ${
+                          className={`text-sm ${
                             isToday(date)
-                              ? 'bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto'
+                              ? 'bg-teal-500 text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto font-bold'
                               : dayOfWeek === 0
-                              ? 'text-red-500'
+                              ? 'text-red-500 font-medium'
                               : dayOfWeek === 6
-                              ? 'text-blue-500'
-                              : 'text-gray-900'
+                              ? 'text-blue-500 font-medium'
+                              : 'text-gray-900 font-medium'
                           }`}
                         >
                           {format(date, 'd')}
@@ -439,9 +631,10 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                               <div
                                 key={schedule.id}
                                 onClick={(e) => handleScheduleClick(e, schedule)}
-                                className="text-[10px] px-1.5 py-0.5 rounded truncate bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
+                                className="text-[10px] px-1.5 py-0.5 rounded truncate text-white font-medium transition-colors"
                                 style={{
-                                  borderLeft: schedule.label?.color ? `3px solid ${schedule.label.color}` : undefined,
+                                  backgroundColor: schedule.label?.color || '#3B82F6',
+                                  opacity: 0.9,
                                 }}
                                 title={schedule.title}
                               >
@@ -464,9 +657,9 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
           </div>
         </div>
 
-        {/* 선택된 날짜 상세 (우측 패널) */}
+        {/* 선택된 날짜 상세 (우측 패널) - 일정 모드에서만 */}
         <AnimatePresence>
-          {selectedDate && (
+          {!isDispatchMode && selectedDate && (
             <motion.div
               className="xl:w-1/4"
               initial={{ opacity: 0, x: 20 }}
@@ -474,9 +667,9 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.25 }}
             >
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden sticky top-6 min-h-[calc(100vh-200px)] flex flex-col">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-6 min-h-[calc(100vh-200px)] flex flex-col">
                 {/* 헤더 */}
-                <div className="p-5 border-b border-gray-100">
+                <div className="p-5 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-gray-900">
@@ -501,7 +694,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                 <div className="px-5 pt-4">
                   <button
                     onClick={() => openCreateModal(selectedDate)}
-                    className="w-full flex items-center justify-center space-x-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    className="w-full flex items-center justify-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -518,19 +711,17 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                         <button
                           key={schedule.id}
                           onClick={() => handleScheduleClick({} as React.MouseEvent, schedule)}
-                          className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-200 transition-all text-left"
+                          className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-teal-50 hover:border-teal-200 transition-all text-left"
                         >
                           <div className="flex items-start space-x-2">
-                            {schedule.label && (
-                              <div
-                                className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
-                                style={{ backgroundColor: schedule.label.color }}
-                              />
-                            )}
+                            <div
+                              className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
+                              style={{ backgroundColor: schedule.label?.color || '#3B82F6' }}
+                            />
                             <div className="flex-1 min-w-0">
                               <span className="font-semibold text-sm text-gray-900 block truncate">{schedule.title}</span>
                               <div className="flex items-center space-x-1.5 mt-1">
-                                <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                                <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-full">
                                   {getCategoryText(schedule.category)}
                                 </span>
                                 <span className="text-xs text-gray-500">
@@ -550,7 +741,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                       <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <p className="text-gray-500 text-sm font-medium">일정이 없습니다</p>
+                      <p className="text-gray-400 text-sm font-medium">일정이 없습니다</p>
                       <p className="text-gray-400 text-xs mt-1">일정 추가 버튼으로 새 일정을 등록하세요</p>
                     </div>
                   )}
@@ -614,7 +805,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="일정 제목을 입력하세요"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -625,7 +816,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as ScheduleCategory }))}
-                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     >
                       {SCHEDULE_CATEGORIES.map((cat) => (
                         <option key={cat.value} value={cat.value}>
@@ -635,6 +826,45 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     </select>
                   </div>
 
+                  {/* 라벨 (색상) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">라벨</label>
+                    <div className="flex space-x-2">
+                      <select
+                        value={formData.labelId}
+                        onChange={(e) => setFormData(prev => ({ ...prev, labelId: e.target.value }))}
+                        className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      >
+                        <option value="">없음</option>
+                        {labels.map((label) => (
+                          <option key={label.id} value={label.id}>
+                            {label.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowLabelModal(true)}
+                        className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
+                        title="새 라벨 추가"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                    {formData.labelId && (
+                      <div className="flex items-center space-x-2 mt-1.5">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: labels.find(l => String(l.id) === String(formData.labelId))?.color }}
+                        />
+                        <span className="text-xs text-gray-500">
+                          {labels.find(l => String(l.id) === String(formData.labelId))?.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 장소 */}
@@ -645,7 +875,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     value={formData.location}
                     onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="장소를 입력하세요"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -658,7 +888,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                         type="checkbox"
                         checked={formData.isAllDay}
                         onChange={(e) => setFormData(prev => ({ ...prev, isAllDay: e.target.checked }))}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                       />
                       <span className="text-sm text-gray-700">종일</span>
                     </label>
@@ -670,7 +900,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                         type="date"
                         value={formData.startDate}
                         onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                       />
                     </div>
                     {!formData.isAllDay && (
@@ -680,7 +910,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                           type="time"
                           value={formData.startTime}
                           onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         />
                       </div>
                     )}
@@ -692,7 +922,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                         type="date"
                         value={formData.endDate}
                         onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                       />
                     </div>
                     {!formData.isAllDay && (
@@ -702,7 +932,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                           type="time"
                           value={formData.endTime}
                           onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         />
                       </div>
                     )}
@@ -716,7 +946,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                       type="checkbox"
                       checked={formData.sendNotification}
                       onChange={(e) => setFormData(prev => ({ ...prev, sendNotification: e.target.checked }))}
-                      className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                     />
                     <span className="text-sm font-medium text-gray-700">참석자에게 알림 전송</span>
                   </label>
@@ -739,7 +969,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                               setFormData(prev => ({ ...prev, participantIds: prev.participantIds.filter(id => id !== memberId) }));
                             }
                           }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                         />
                         <span className="text-sm text-gray-700">{member.name}</span>
                         {member.role && (
@@ -754,7 +984,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     )}
                   </div>
                   {formData.participantIds.length > 0 && (
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-teal-600 mt-1">
                       {formData.participantIds.length}명 선택됨
                     </p>
                   )}
@@ -802,7 +1032,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                     placeholder="일정 내용을 입력하세요"
                     rows={4}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                   />
                 </div>
               </div>
@@ -820,7 +1050,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                 <button
                   onClick={selectedSchedule ? handleSubmitUpdate : handleSubmitCreate}
                   disabled={isSubmitting || !formData.title}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -1023,7 +1253,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     </button>
                     <button
                       onClick={handleEditSchedule}
-                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                      className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
                     >
                       수정
                     </button>
@@ -1131,7 +1361,7 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                     value={labelForm.name}
                     onChange={(e) => setLabelForm(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="라벨 이름을 입력하세요"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -1170,13 +1400,37 @@ export default function ScheduleCalendar({ isAdmin = false }: ScheduleCalendarPr
                 <button
                   onClick={handleCreateLabel}
                   disabled={isSubmitting || !labelForm.name}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? '생성 중...' : '생성'}
                 </button>
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 배차 모드: 일일 배차 상세 모달 */}
+      <AnimatePresence>
+        {isDispatchMode && showDispatchDayDetail && dispatchSelectedDate && (
+          <DispatchDayDetail
+            dispatch={getSelectedDayDispatch()}
+            onClose={() => {
+              setShowDispatchDayDetail(false);
+              setDispatchSelectedDate(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 배차 모드: 설정 모달 */}
+      <AnimatePresence>
+        {isDispatchMode && showDispatchSettings && (
+          <DispatchSettings
+            isOpen={showDispatchSettings}
+            onClose={() => setShowDispatchSettings(false)}
+            onNotification={onNotification || (() => {})}
+          />
         )}
       </AnimatePresence>
     </>

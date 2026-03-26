@@ -98,23 +98,23 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
   if (!isHydrated) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-200 border-t-teal-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* 서브탭 네비게이션 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between">
-          <div className="flex space-x-4">
+          <div className="flex gap-2">
             <button
               onClick={() => setActiveSubTab("calendar")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                 activeSubTab === "calendar"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-teal-500 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               <span className="flex items-center">
@@ -127,10 +127,10 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
             </button>
             <button
               onClick={() => setActiveSubTab("list")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                 activeSubTab === "list"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-teal-500 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               <span className="flex items-center">
@@ -143,10 +143,10 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
             </button>
             <button
               onClick={() => setActiveSubTab("absence")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                 activeSubTab === "absence"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-teal-500 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               <span className="flex items-center">
@@ -161,7 +161,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
           <button
             onClick={() => setShowSettings(true)}
-            className="px-4 py-2 rounded-lg font-medium text-sm bg-gray-800 text-white hover:bg-gray-900 transition-all flex items-center"
+            className="px-4 py-2 rounded-lg font-medium text-sm bg-gray-800 text-white hover:bg-gray-900 transition-colors flex items-center"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
@@ -175,31 +175,31 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
         {/* 통계 요약 */}
         <div className="mt-4 grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-gray-800">{settings.routes.length}</div>
-            <div className="text-xs text-gray-500">노선</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-gray-900">{settings.routes.length}</div>
+            <div className="text-xs font-medium text-gray-500">노선</div>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-gray-800">{settings.seniors.length}</div>
-            <div className="text-xs text-gray-500">어르신</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-gray-900">{settings.seniors.length}</div>
+            <div className="text-xs font-medium text-gray-500">어르신</div>
           </div>
         </div>
       </div>
 
       {/* 설정이 비어있을 때 안내 메시지 */}
       {isSettingsEmpty && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-          <svg className="w-12 h-12 mx-auto text-yellow-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+          <svg className="w-12 h-12 mx-auto text-amber-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <h3 className="text-lg font-semibold text-yellow-800 mb-2">배차 설정이 필요합니다</h3>
-          <p className="text-yellow-700 mb-4">
+          <h3 className="text-lg font-bold text-amber-700 mb-2">배차 설정이 필요합니다</h3>
+          <p className="text-sm text-amber-700 mb-4">
             배차 시스템을 사용하려면 먼저 노선, 직원 정보를 등록해주세요.
           </p>
           <button
             onClick={() => setShowSettings(true)}
-            className="px-6 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+            className="px-6 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
           >
             설정하러 가기
           </button>

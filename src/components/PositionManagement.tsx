@@ -179,7 +179,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-200 border-t-teal-500"></div>
             </div>
         );
     }
@@ -189,15 +189,15 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
             {/* 헤더 */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <FiBriefcase className="text-teal-600" size={20} />
-                    <h2 className="text-lg font-semibold text-gray-800">직책 관리</h2>
+                    <FiBriefcase className="text-teal-500" size={20} />
+                    <h2 className="text-lg font-bold text-gray-900">직책 관리</h2>
                     {organizationName && (
                         <span className="text-sm text-gray-500">({organizationName})</span>
                     )}
                 </div>
                 <button
                     onClick={fetchData}
-                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     title="새로고침"
                 >
                     <FiRefreshCw size={16} />
@@ -238,13 +238,13 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.15 }}
-                        className="space-y-3"
+                        className="space-y-4"
                     >
                         {/* 추가 버튼 */}
                         {isAdmin && !showAddForm && !editingId && (
                             <button
                                 onClick={() => { setShowAddForm(true); setFormName(''); setFormDescription(''); }}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors"
                             >
                                 <FiPlus size={16} />
                                 새 직책 추가
@@ -253,14 +253,14 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
                         {/* 추가 폼 */}
                         {showAddForm && (
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
-                                <h3 className="text-sm font-semibold text-gray-700">새 직책 추가</h3>
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3">
+                                <h3 className="text-sm font-bold text-gray-900">새 직책 추가</h3>
                                 <input
                                     type="text"
                                     value={formName}
                                     onChange={(e) => setFormName(e.target.value)}
                                     placeholder="직책명 (예: 요양보호사, 간호사)"
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     autoFocus
                                 />
                                 <input
@@ -268,19 +268,19 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                     value={formDescription}
                                     onChange={(e) => setFormDescription(e.target.value)}
                                     placeholder="설명 (선택사항)"
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleCreatePosition}
                                         disabled={isProcessing || !formName.trim()}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                        className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50 transition-colors"
                                     >
                                         {isProcessing ? '등록 중...' : '등록'}
                                     </button>
                                     <button
                                         onClick={() => { setShowAddForm(false); setFormName(''); setFormDescription(''); }}
-                                        className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                                     >
                                         취소
                                     </button>
@@ -290,8 +290,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
                         {/* 직책 목록 */}
                         {positions.length === 0 ? (
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-                                <FiBriefcase className="mx-auto text-gray-300" size={40} />
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                                <FiBriefcase className="mx-auto text-gray-400" size={40} />
                                 <p className="mt-2 text-sm text-gray-500">등록된 직책이 없습니다.</p>
                                 <p className="text-xs text-gray-400">새 직책을 추가해주세요.</p>
                             </div>
@@ -300,7 +300,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                 {positions.map((pos) => (
                                     <div
                                         key={pos.id}
-                                        className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:border-gray-300 transition-colors"
+                                        className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:border-teal-200 transition-colors"
                                     >
                                         {editingId === pos.id ? (
                                             <div className="flex-1 space-y-2">
@@ -308,7 +308,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                     type="text"
                                                     value={formName}
                                                     onChange={(e) => setFormName(e.target.value)}
-                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                                     autoFocus
                                                 />
                                                 <input
@@ -316,7 +316,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                     value={formDescription}
                                                     onChange={(e) => setFormDescription(e.target.value)}
                                                     placeholder="설명 (선택사항)"
-                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                                 />
                                                 <div className="flex gap-2">
                                                     <button
@@ -340,20 +340,20 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                             <>
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium text-gray-800">{pos.name}</span>
+                                                        <span className="text-sm font-medium text-gray-900">{pos.name}</span>
                                                         <span className="px-2 py-0.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-full">
                                                             {getMemberCountForPosition(pos.name)}명
                                                         </span>
                                                     </div>
                                                     {pos.description && (
-                                                        <p className="text-xs text-gray-500 mt-0.5">{pos.description}</p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">{pos.description}</p>
                                                     )}
                                                 </div>
                                                 {isAdmin && (
                                                     <div className="flex gap-1">
                                                         <button
                                                             onClick={() => startEdit(pos)}
-                                                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                                             title="수정"
                                                         >
                                                             <FiEdit2 size={14} />
@@ -381,7 +381,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.15 }}
-                        className="space-y-3"
+                        className="space-y-4"
                     >
                         {/* 검색 및 필터 */}
                         <div className="flex gap-2 flex-wrap">
@@ -392,13 +392,13 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="이름 또는 이메일 검색..."
-                                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
                             </div>
                             <select
                                 value={positionFilter}
                                 onChange={(e) => setPositionFilter(e.target.value)}
-                                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                             >
                                 <option value="all">전체 직책</option>
                                 <option value="unassigned">미배정</option>
@@ -410,8 +410,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
                         {/* 회원 목록 */}
                         {filteredMembers.length === 0 ? (
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-                                <FiUsers className="mx-auto text-gray-300" size={40} />
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                                <FiUsers className="mx-auto text-gray-400" size={40} />
                                 <p className="mt-2 text-sm text-gray-500">표시할 회원이 없습니다.</p>
                             </div>
                         ) : (
@@ -419,16 +419,16 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                 {filteredMembers.map((member) => (
                                     <div
                                         key={member.id}
-                                        className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:border-gray-300 transition-colors"
+                                        className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:border-teal-200 transition-colors"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-medium text-gray-800 truncate">{member.name}</span>
-                                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
+                                                <span className="text-sm font-medium text-gray-900 truncate">{member.name}</span>
+                                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-gray-500 bg-gray-100 rounded">
                                                     {getRoleLabel(member.role)}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                                            <p className="text-xs text-gray-400 truncate">{member.email}</p>
                                         </div>
                                         <div className="ml-3">
                                             <select
@@ -440,8 +440,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                 disabled={isProcessing}
                                                 className={`px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                                                     member.position
-                                                        ? 'border-teal-300 text-teal-700 bg-teal-50'
-                                                        : 'border-gray-300 text-gray-500'
+                                                        ? 'border-teal-200 text-teal-700 bg-teal-50'
+                                                        : 'border-gray-200 text-gray-500'
                                                 }`}
                                             >
                                                 <option value="">미배정</option>
@@ -465,22 +465,27 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
                         onClick={() => setShowDeleteModal(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.95 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.95 }}
-                            className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl"
+                            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">직책 삭제</h3>
-                            <p className="text-sm text-gray-600 mb-1">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                    <FiTrash2 className="text-red-600" size={20} />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900">직책 삭제</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 mb-1">
                                 <span className="font-medium text-red-600">{selectedPosition.name}</span> 직책을 삭제하시겠습니까?
                             </p>
                             {getMemberCountForPosition(selectedPosition.name) > 0 && (
-                                <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded mt-2">
+                                <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded-lg mt-2">
                                     현재 {getMemberCountForPosition(selectedPosition.name)}명의 회원이 이 직책을 사용 중입니다.
                                     삭제 시 해당 회원들의 직책이 미배정으로 변경됩니다.
                                 </p>
@@ -489,13 +494,13 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                 <button
                                     onClick={handleDeletePosition}
                                     disabled={isProcessing}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
                                 >
                                     {isProcessing ? '삭제 중...' : '삭제'}
                                 </button>
                                 <button
                                     onClick={() => { setShowDeleteModal(false); setSelectedPosition(null); }}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                                 >
                                     취소
                                 </button>

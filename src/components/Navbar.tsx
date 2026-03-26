@@ -32,7 +32,7 @@ const Navbar: React.FC = () => {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-slate-900/95 backdrop-blur-lg shadow-lg border-b border-blue-800/30'
+          ? 'bg-slate-900/95 backdrop-blur-lg shadow-lg border-b border-teal-800/30'
           : 'bg-transparent'
       }`}
     >
@@ -57,7 +57,7 @@ const Navbar: React.FC = () => {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-blue-100 hover:text-white transition-colors duration-200 font-medium"
+                  className="text-teal-100 hover:text-white transition-colors duration-200 font-medium"
                 >
                   {link.label}
                 </a>
@@ -68,13 +68,13 @@ const Navbar: React.FC = () => {
             <div className="flex items-center space-x-4 ml-8">
               <button
                 onClick={() => router.push('/signup')}
-                className="px-4 py-2 text-blue-100 hover:text-white transition-colors duration-200 font-medium"
+                className="px-4 py-2 text-teal-100 hover:text-white transition-colors duration-200 font-medium"
               >
                 회원가입
               </button>
               <button
                 onClick={() => router.push('/login')}
-                className="px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                className="px-5 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
               >
                 로그인
               </button>
@@ -83,7 +83,7 @@ const Navbar: React.FC = () => {
 
           {/* 모바일 메뉴 버튼 */}
           <button
-            className="md:hidden text-blue-100 hover:text-white transition-colors"
+            className="md:hidden text-teal-100 hover:text-white transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
@@ -99,26 +99,26 @@ const Navbar: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-slate-900/95 backdrop-blur-lg border-b border-blue-800/30"
+            className="md:hidden bg-slate-900/95 backdrop-blur-lg border-b border-teal-800/30"
           >
             <div className="px-4 py-4 space-y-4">
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="block text-blue-100 hover:text-white transition-colors duration-200 font-medium py-2"
+                  className="block text-teal-100 hover:text-white transition-colors duration-200 font-medium py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="pt-4 space-y-3 border-t border-blue-800/30">
+              <div className="pt-4 space-y-3 border-t border-teal-800/30">
                 <button
                   onClick={() => {
                     router.push('/signup');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-blue-100 hover:text-white transition-colors duration-200 font-medium py-2"
+                  className="block w-full text-left text-teal-100 hover:text-white transition-colors duration-200 font-medium py-2"
                 >
                   회원가입
                 </button>
@@ -127,7 +127,7 @@ const Navbar: React.FC = () => {
                     router.push('/login');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-lg"
+                  className="block w-full px-5 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all duration-300 shadow-lg"
                 >
                   로그인
                 </button>

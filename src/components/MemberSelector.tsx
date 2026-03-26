@@ -54,14 +54,10 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
       }
 
       const data = await response.json();
-      console.log('API 응답 데이터:', data); // 디버깅용
 
       // 백엔드 응답이 {members: [...]} 구조인 경우 처리
       const membersArray = data?.members || data || [];
       const validMembers = Array.isArray(membersArray) ? membersArray : [];
-
-      console.log('처리된 멤버 목록:', validMembers); // 디버깅용
-      console.log('멤버 수:', validMembers.length); // 디버깅용
 
       setMembers(validMembers);
       setFilteredMembers(validMembers);
@@ -77,7 +73,6 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
 
   const filterMembers = () => {
     let filtered = [...members];
-    console.log('필터링 전 멤버 수:', filtered.length); // 디버깅용
 
     // 검색어 필터
     if (searchTerm) {
@@ -85,23 +80,18 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
         member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      console.log('검색어 필터 후:', filtered.length); // 디버깅용
     }
 
     // 역할 필터
     if (roleFilter !== 'all') {
       filtered = filtered.filter(member => member.role === roleFilter);
-      console.log('역할 필터 후:', filtered.length); // 디버깅용
     }
 
     // active 상태인 멤버만 표시 (status가 없거나 'active'인 경우 모두 표시)
     filtered = filtered.filter(member => {
-      const isActive = !member.status || member.status === 'active';
-      console.log(`멤버 ${member.name}의 status:`, member.status, '통과:', isActive); // 디버깅용
-      return isActive;
+      return !member.status || member.status === 'active';
     });
 
-    console.log('최종 필터링된 멤버 수:', filtered.length); // 디버깅용
     setFilteredMembers(filtered);
   };
 
@@ -134,18 +124,18 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-200 border-t-teal-500"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-600">
-        <p>{error}</p>
+      <div className="text-center py-8">
+        <p className="text-red-500 font-medium">{error}</p>
         <button
           onClick={fetchMembers}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium"
         >
           다시 시도
         </button>
@@ -164,7 +154,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
             placeholder="이름 또는 이메일로 검색..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-gray-900 placeholder-gray-400"
           />
         </div>
 
@@ -173,7 +163,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
             onClick={() => setRoleFilter('all')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               roleFilter === 'all'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-teal-500 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -183,7 +173,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
             onClick={() => setRoleFilter('caregiver')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               roleFilter === 'caregiver'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-teal-500 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -193,7 +183,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
             onClick={() => setRoleFilter('office')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               roleFilter === 'office'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-teal-500 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -205,8 +195,9 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
       {/* 직원 목록 */}
       <div className="max-h-96 overflow-y-auto space-y-2 pr-2">
         {filteredMembers.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            조건에 맞는 직원이 없습니다.
+          <div className="text-center py-8">
+            <FiUser className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+            <p className="text-gray-400">조건에 맞는 직원이 없습니다.</p>
           </div>
         ) : (
           filteredMembers.map((member) => (
@@ -215,16 +206,16 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
               onClick={() => onSelect(member)}
               className={`p-4 border rounded-lg cursor-pointer transition-all ${
                 selectedMember?.id === member.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'border-teal-500 bg-teal-50'
+                  : 'border-gray-200 hover:border-teal-200 hover:bg-gray-50'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className={`p-2 rounded-full ${
-                    member.role === 'caregiver' ? 'bg-blue-100 text-blue-600' :
-                    member.role === 'office' ? 'bg-green-100 text-green-600' :
-                    'bg-purple-100 text-purple-600'
+                    member.role === 'caregiver' ? 'bg-blue-50 text-blue-700' :
+                    member.role === 'office' ? 'bg-green-50 text-green-700' :
+                    'bg-purple-50 text-purple-700'
                   }`}>
                     {getRoleIcon(member.role)}
                   </div>
@@ -233,10 +224,10 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
                     <p className="text-sm text-gray-500">{member.email}</p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                  member.role === 'caregiver' ? 'bg-blue-100 text-blue-700' :
-                  member.role === 'office' ? 'bg-green-100 text-green-700' :
-                  'bg-purple-100 text-purple-700'
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                  member.role === 'caregiver' ? 'bg-blue-50 text-blue-700' :
+                  member.role === 'office' ? 'bg-green-50 text-green-700' :
+                  'bg-purple-50 text-purple-700'
                 }`}>
                   {getRoleText(member.role)}
                 </span>
@@ -247,8 +238,8 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({ onSelect, selectedMembe
       </div>
 
       {selectedMember && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+          <p className="text-sm text-teal-800">
             <span className="font-medium">선택된 직원:</span> {selectedMember.name} ({getRoleText(selectedMember.role)})
           </p>
         </div>

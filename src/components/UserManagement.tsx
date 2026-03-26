@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiMail, FiCalendar, FiShield, FiAlertCircle, FiHeart, FiPlus, FiEdit2 } from 'react-icons/fi';
-import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, type PendingUser } from '@/lib/apiService';
+import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiMail, FiCalendar, FiShield, FiAlertCircle, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiX } from 'react-icons/fi';
+import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, type PendingUser } from '@/lib/apiService';
 import type { ElderlyInfo } from '@/types/elderly';
+import type { Position } from '@/types/position';
 
 interface User {
   id: string;
@@ -48,6 +49,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [showDeleteSeniorModal, setShowDeleteSeniorModal] = useState(false);
   const [selectedSenior, setSelectedSenior] = useState<ElderlyInfo | null>(null);
 
+  // 직책 관리 상태
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [showPositionModal, setShowPositionModal] = useState(false);
+  const [editingPosition, setEditingPosition] = useState<Position | null>(null);
+  const [positionForm, setPositionForm] = useState({ name: '', description: '' });
+  const [showDeletePositionModal, setShowDeletePositionModal] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+
   useEffect(() => {
     fetchUsers();
     fetchSeniors();
@@ -57,11 +66,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     setIsLoading(true);
     try {
       // 가입 대기 중인 사용자 가져오기
-      const pendingData: any = await getPendingUsers();
+      const [pendingData, membersData, posData]: any[] = await Promise.all([
+        getPendingUsers(),
+        getMemberUsers(),
+        getPositions().catch(() => ({ positions: [] })),
+      ]);
 
       // 백엔드에서 {requests: [...]} 구조로 응답
       const pendingArray = pendingData?.requests || [];
-      
+
       const formattedPendingUsers = pendingArray.map((user: PendingUser) => ({
         id: user.id,
         email: user.email,
@@ -72,19 +85,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       }));
       setPendingUsers(formattedPendingUsers);
 
-      // 기존 회원 목록 가져오기
-      const membersData: any = await getMemberUsers();
-
       // 백엔드에서 {members: [...]} 구조로 응답
       const membersArray = membersData?.members || [];
-      
       setMembers(membersArray);
+
+      // 직책 목록
+      const posArray = posData?.positions || [];
+      setPositions(posArray);
     } catch (error) {
       console.error('사용자 목록 로드 오류:', error);
       onNotification('사용자 목록을 불러오는데 실패했습니다.', 'error');
       // 오류 발생 시 빈 배열로 초기화
       setPendingUsers([]);
       setMembers([]);
+      setPositions([]);
     } finally {
       setIsLoading(false);
     }
@@ -230,6 +244,73 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     s.name.toLowerCase().includes(seniorSearchTerm.toLowerCase())
   );
 
+  // ==================== 직책 관리 핸들러 ====================
+
+  const handleCreatePosition = async () => {
+    if (!positionForm.name.trim()) {
+      onNotification('직책명을 입력해주세요.', 'error');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await createPosition({ name: positionForm.name.trim(), description: positionForm.description.trim() || undefined });
+      await fetchUsers();
+      setShowPositionModal(false);
+      setPositionForm({ name: '', description: '' });
+      onNotification('직책이 등록되었습니다.', 'success');
+    } catch (error) {
+      onNotification('직책 등록에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdatePosition = async () => {
+    if (!editingPosition || !positionForm.name.trim()) return;
+    setIsProcessing(true);
+    try {
+      await updatePosition(editingPosition.id, { name: positionForm.name.trim(), description: positionForm.description.trim() || undefined });
+      await fetchUsers();
+      setShowPositionModal(false);
+      setEditingPosition(null);
+      setPositionForm({ name: '', description: '' });
+      onNotification('직책이 수정되었습니다.', 'success');
+    } catch (error) {
+      onNotification('직책 수정에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeletePositionConfirm = async () => {
+    if (!selectedPosition) return;
+    setIsProcessing(true);
+    try {
+      await deletePosition(selectedPosition.id);
+      await fetchUsers();
+      setShowDeletePositionModal(false);
+      setSelectedPosition(null);
+      onNotification('직책이 삭제되었습니다.', 'success');
+    } catch (error) {
+      onNotification('직책 삭제에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAssignPosition = async (memberId: string, positionId: number | null) => {
+    setIsProcessing(true);
+    try {
+      await assignPositionToMember(memberId, positionId);
+      await fetchUsers();
+      onNotification('직책이 변경되었습니다.', 'success');
+    } catch (error) {
+      onNotification('직책 변경에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     setIsProcessing(true);
@@ -321,13 +402,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       </div>
 
       {/* 탭 네비게이션 */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="border-b border-gray-200">
         <nav className="flex">
           <button
             onClick={() => setActiveTab('pending')}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'pending'
-                ? 'border-teal-500 text-teal-600 bg-teal-50'
+                ? 'border-teal-500 text-teal-700 bg-teal-50'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -338,7 +420,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             onClick={() => setActiveTab('members')}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'members'
-                ? 'border-teal-500 text-teal-600 bg-teal-50'
+                ? 'border-teal-500 text-teal-700 bg-teal-50'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -349,7 +431,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             onClick={() => setActiveTab('seniors')}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'seniors'
-                ? 'border-pink-500 text-pink-600 bg-pink-50'
+                ? 'border-teal-500 text-teal-700 bg-teal-50'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -372,13 +454,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   placeholder="어르신 이름으로 검색..."
                   value={seniorSearchTerm}
                   onChange={(e) => setSeniorSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
               {isAdmin && (
                 <button
                   onClick={openAddSeniorModal}
-                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 flex items-center whitespace-nowrap"
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 flex items-center whitespace-nowrap"
                 >
                   <FiPlus className="mr-1.5" size={16} />
                   어르신 추가
@@ -394,7 +476,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   placeholder="이름 또는 이메일로 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
 
@@ -404,7 +486,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                   >
                     <option value="all">모든 역할</option>
                     <option value="caregiver">요양보호사</option>
@@ -415,12 +497,26 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                   >
                     <option value="all">모든 상태</option>
                     <option value="active">활성화</option>
                     <option value="inactive">비활성화</option>
                   </select>
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setEditingPosition(null);
+                        setPositionForm({ name: '', description: '' });
+                        setShowPositionModal(true);
+                      }}
+                      className="px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-300 rounded-md hover:bg-teal-100 flex items-center whitespace-nowrap"
+                    >
+                      <FiBriefcase className="mr-1" size={14} />
+                      직책 관리
+                    </button>
+                  )}
                 </>
               )}
             </>
@@ -441,13 +537,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             >
               {filteredSeniors.length === 0 ? (
                 <div className="text-center py-12">
-                  <FiHeart className="mx-auto text-gray-400 mb-4" size={48} />
+                  <FiHeart className="mx-auto text-gray-300 mb-4" size={48} />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">등록된 어르신이 없습니다</h3>
-                  <p className="text-gray-500 mb-4">어르신을 추가하여 관리를 시작하세요.</p>
+                  <p className="text-gray-400 mb-4">어르신을 추가하여 관리를 시작하세요.</p>
                   {isAdmin && (
                     <button
                       onClick={openAddSeniorModal}
-                      className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
+                      className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
                     >
                       <FiPlus className="inline mr-1.5" size={16} />
                       어르신 추가
@@ -466,8 +562,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                       <div className="flex items-center justify-between">
                         <div className="flex items-start space-x-4">
                           <div className="flex-shrink-0">
-                            <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
-                              <FiHeart className="text-pink-600" size={24} />
+                            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                              <FiHeart className="text-teal-600" size={24} />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -493,7 +589,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             <button
                               onClick={() => openEditSeniorModal(senior)}
                               disabled={isProcessing}
-                              className="px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-300 rounded-md hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
                               <FiEdit2 className="mr-1" size={14} />
                               수정
@@ -504,7 +600,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                 setShowDeleteSeniorModal(true);
                               }}
                               disabled={isProcessing}
-                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
                               <FiTrash2 className="mr-1" size={14} />
                               삭제
@@ -527,9 +623,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             >
               {filteredPendingUsers.length === 0 ? (
                 <div className="text-center py-12">
-                  <FiUserPlus className="mx-auto text-gray-400 mb-4" size={48} />
+                  <FiUserPlus className="mx-auto text-gray-300 mb-4" size={48} />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">가입 신청이 없습니다</h3>
-                  <p className="text-gray-500">현재 승인 대기 중인 사용자가 없습니다.</p>
+                  <p className="text-gray-400">현재 승인 대기 중인 사용자가 없습니다.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -577,7 +673,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             <button
                               onClick={() => handleApproveUser(user.id)}
                               disabled={isProcessing}
-                              className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
                               <FiUserCheck className="mr-1.5" size={16} />
                               승인
@@ -585,7 +681,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             <button
                               onClick={() => handleRejectUser(user.id)}
                               disabled={isProcessing}
-                              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
                               <FiUserX className="mr-1.5" size={16} />
                               거절
@@ -608,9 +704,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             >
               {filteredMembers.length === 0 ? (
                 <div className="text-center py-12">
-                  <FiUsers className="mx-auto text-gray-400 mb-4" size={48} />
+                  <FiUsers className="mx-auto text-gray-300 mb-4" size={48} />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">회원이 없습니다</h3>
-                  <p className="text-gray-500">현재 등록된 회원이 없습니다.</p>
+                  <p className="text-gray-400">현재 등록된 회원이 없습니다.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -637,17 +733,36 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                 {getStatusLabel(user.status)}
                               </span>
                               <span className={`px-2 py-1 text-xs font-medium rounded-full border ${
-                                user.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                                user.role === 'caregiver' ? 'bg-teal-100 text-teal-800 border-teal-200' :
-                                'bg-green-100 text-green-800 border-green-200'
+                                user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                user.role === 'caregiver' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                'bg-green-50 text-green-700 border-green-200'
                               }`}>
                                 {getRoleLabel(user.role)}
                               </span>
-                              {user.position && (
+                              {isAdmin ? (
+                                <select
+                                  value={(user as any).positionId?.toString() || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    handleAssignPosition(user.id, val ? parseInt(val) : null);
+                                  }}
+                                  disabled={isProcessing}
+                                  className={`px-2 py-1 text-xs font-medium rounded-full border focus:outline-none focus:ring-1 focus:ring-teal-500 ${
+                                    (user as any).position
+                                      ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                      : 'bg-gray-100 text-gray-500 border-gray-200'
+                                  }`}
+                                >
+                                  <option value="">직책 미배정</option>
+                                  {positions.map(pos => (
+                                    <option key={pos.id} value={pos.id.toString()}>{pos.name}</option>
+                                  ))}
+                                </select>
+                              ) : (user as any).position ? (
                                 <span className="px-2 py-1 text-xs font-medium rounded-full border bg-orange-100 text-orange-800 border-orange-200">
-                                  {user.position}
+                                  {(user as any).position}
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                             <div className="text-sm text-gray-600 space-y-1">
                               <div className="flex items-center">
@@ -674,10 +789,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             <button
                               onClick={() => handleToggleUserStatus(user.id, user.status)}
                               disabled={isProcessing || user.role === 'admin'}
-                              className={`px-3 py-2 text-sm font-medium border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                              className={`px-3 py-2 text-sm font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                                 user.status === 'active'
-                                  ? 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
-                                  : 'text-green-700 bg-green-50 border-green-300 hover:bg-green-100 focus:ring-green-500'
+                                  ? 'text-gray-700 bg-gray-100 border-gray-200 hover:bg-gray-200 focus:ring-gray-500'
+                                  : 'text-teal-700 bg-teal-50 border-teal-200 hover:bg-teal-100 focus:ring-teal-500'
                               }`}
                             >
                               {user.status === 'active' ? '비활성화' : '활성화'}
@@ -688,7 +803,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                 setShowDeleteModal(true);
                               }}
                               disabled={isProcessing || user.role === 'admin'}
-                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
                               <FiTrash2 className="mr-1" size={14} />
                               삭제
@@ -704,6 +819,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           )}
         </AnimatePresence>
       </div>
+      </div>{/* end card wrapper */}
 
       {/* 삭제 확인 모달 */}
       <AnimatePresence>
@@ -712,45 +828,46 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowDeleteModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-start mb-4">
-                <div className="bg-red-100 p-2 rounded-full mr-3">
-                  <FiAlertCircle size={20} className="text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">회원 삭제 확인</h3>
-                  <p className="text-gray-600 text-sm">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+                <h3 className="text-lg font-bold text-white">회원 삭제 확인</h3>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start mb-4">
+                  <div className="bg-red-100 p-2 rounded-full mr-3">
+                    <FiAlertCircle size={20} className="text-red-600" />
+                  </div>
+                  <p className="text-gray-700 text-sm pt-1">
                     <strong>{selectedUser.name}</strong>님을 삭제하시겠습니까?<br />
                     이 작업은 되돌릴 수 없습니다.
                   </p>
                 </div>
               </div>
-              
-              <div className="flex justify-end gap-3">
+              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
                 <button
                   onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
                   disabled={isProcessing}
                 >
                   취소
                 </button>
                 <button
                   onClick={handleDeleteUser}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-lg hover:bg-red-600 flex items-center"
                   disabled={isProcessing}
                 >
                   {isProcessing ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-red-200 border-t-white rounded-full animate-spin mr-2"></div>
                       처리중...
                     </>
                   ) : (
@@ -765,6 +882,178 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           </motion.div>
         )}
       </AnimatePresence>
+      {/* 직책 관리 모달 */}
+      <AnimatePresence>
+        {showPositionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPositionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <FiBriefcase size={20} />
+                  직책 관리
+                </h3>
+              </div>
+
+              <div className="p-6">
+                {/* 직책 추가 폼 */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
+                  <label className="block text-sm font-bold text-gray-900">
+                    {editingPosition ? '직책 수정' : '새 직책 추가'}
+                  </label>
+                  <input
+                    type="text"
+                    value={positionForm.name}
+                    onChange={(e) => setPositionForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="직책명 (예: 요양보호사, 간호사)"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                  <input
+                    type="text"
+                    value={positionForm.description}
+                    onChange={(e) => setPositionForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="설명 (선택사항)"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={editingPosition ? handleUpdatePosition : handleCreatePosition}
+                      disabled={isProcessing || !positionForm.name.trim()}
+                      className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50"
+                    >
+                      {isProcessing ? '처리중...' : editingPosition ? '수정' : '추가'}
+                    </button>
+                    {editingPosition && (
+                      <button
+                        onClick={() => {
+                          setEditingPosition(null);
+                          setPositionForm({ name: '', description: '' });
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 직책 목록 */}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {positions.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-4">등록된 직책이 없습니다.</p>
+                  ) : (
+                    positions.map((pos) => (
+                      <div
+                        key={pos.id}
+                        className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">{pos.name}</span>
+                          {pos.description && (
+                            <p className="text-xs text-gray-400">{pos.description}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingPosition(pos);
+                              setPositionForm({ name: pos.name, description: pos.description || '' });
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                          >
+                            <FiEdit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedPosition(pos);
+                              setShowDeletePositionModal(true);
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end">
+                <button
+                  onClick={() => setShowPositionModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
+                >
+                  닫기
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 직책 삭제 확인 모달 */}
+      <AnimatePresence>
+        {showDeletePositionModal && selectedPosition && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+            onClick={() => setShowDeletePositionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+                <h3 className="text-lg font-bold text-white">직책 삭제</h3>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start">
+                  <div className="bg-red-100 p-2 rounded-full mr-3">
+                    <FiAlertCircle size={20} className="text-red-600" />
+                  </div>
+                  <p className="text-gray-700 text-sm pt-1">
+                    <strong>{selectedPosition.name}</strong> 직책을 삭제하시겠습니까?
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
+                <button
+                  onClick={() => setShowDeletePositionModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
+                  disabled={isProcessing}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDeletePositionConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 flex items-center"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? '삭제 중...' : '삭제'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 어르신 추가/수정 모달 */}
       <AnimatePresence>
         {showSeniorModal && (
@@ -772,21 +1061,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowSeniorModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {editingSenior ? '어르신 정보 수정' : '어르신 추가'}
-              </h3>
+              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
+                <h3 className="text-lg font-bold text-white">
+                  {editingSenior ? '어르신 정보 수정' : '어르신 추가'}
+                </h3>
+              </div>
 
-              <div className="space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     이름 <span className="text-red-500">*</span>
@@ -796,7 +1087,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     value={seniorForm.name}
                     onChange={(e) => setSeniorForm(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="어르신 이름"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -809,7 +1100,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     value={seniorForm.homeAddress}
                     onChange={(e) => setSeniorForm(prev => ({ ...prev, homeAddress: e.target.value }))}
                     placeholder="주소 입력 (선택사항)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
 
@@ -819,7 +1110,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     id="requiredFrontSeat"
                     checked={seniorForm.requiredFrontSeat}
                     onChange={(e) => setSeniorForm(prev => ({ ...prev, requiredFrontSeat: e.target.checked }))}
-                    className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-200 rounded"
                   />
                   <label htmlFor="requiredFrontSeat" className="ml-2 block text-sm text-gray-700">
                     앞좌석 필요
@@ -827,25 +1118,25 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
                 <button
                   onClick={() => {
                     setShowSeniorModal(false);
                     setEditingSenior(null);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
                   disabled={isProcessing}
                 >
                   취소
                 </button>
                 <button
                   onClick={editingSenior ? handleUpdateSenior : handleAddSenior}
-                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 flex items-center"
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 flex items-center"
                   disabled={isProcessing || !seniorForm.name.trim()}
                 >
                   {isProcessing ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-teal-200 border-t-white rounded-full animate-spin mr-2"></div>
                       처리중...
                     </>
                   ) : (
@@ -865,45 +1156,46 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowDeleteSeniorModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-start mb-4">
-                <div className="bg-red-100 p-2 rounded-full mr-3">
-                  <FiAlertCircle size={20} className="text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">어르신 삭제 확인</h3>
-                  <p className="text-gray-600 text-sm">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+                <h3 className="text-lg font-bold text-white">어르신 삭제 확인</h3>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start">
+                  <div className="bg-red-100 p-2 rounded-full mr-3">
+                    <FiAlertCircle size={20} className="text-red-600" />
+                  </div>
+                  <p className="text-gray-700 text-sm pt-1">
                     <strong>{selectedSenior.name}</strong>님을 삭제하시겠습니까?<br />
                     이 작업은 되돌릴 수 없습니다.
                   </p>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3">
+              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
                 <button
                   onClick={() => setShowDeleteSeniorModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
                   disabled={isProcessing}
                 >
                   취소
                 </button>
                 <button
                   onClick={handleDeleteSenior}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 flex items-center"
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-lg hover:bg-red-600 flex items-center"
                   disabled={isProcessing}
                 >
                   {isProcessing ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-red-200 border-t-white rounded-full animate-spin mr-2"></div>
                       처리중...
                     </>
                   ) : (

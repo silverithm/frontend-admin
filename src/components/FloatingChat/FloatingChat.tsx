@@ -225,7 +225,7 @@ export function FloatingChat() {
 
     // --- Send message ---
 
-    const sendMessage = async () => {
+    const sendMessage = async (replyToId?: number) => {
         if (!messageInput.trim() || !selectedRoomId || !userId || !userName) return;
 
         const client = stompClientRef.current;
@@ -240,21 +240,22 @@ export function FloatingChat() {
                         senderName: userName,
                         type: "TEXT",
                         content: messageInput.trim(),
+                        replyToId: replyToId || null,
                     }),
                 });
                 setMessageInput("");
             } catch (error) {
                 console.error("[FloatingChat] Error sending message via WebSocket:", error);
-                await sendMessageREST();
+                await sendMessageREST(replyToId);
             } finally {
                 setIsSendingMessage(false);
             }
         } else {
-            await sendMessageREST();
+            await sendMessageREST(replyToId);
         }
     };
 
-    const sendMessageREST = async () => {
+    const sendMessageREST = async (replyToId?: number) => {
         if (!messageInput.trim() || !selectedRoomId || !userId || !userName || !authToken) return;
 
         setIsSendingMessage(true);
@@ -270,6 +271,7 @@ export function FloatingChat() {
                     senderName: userName,
                     type: "TEXT",
                     content: messageInput.trim(),
+                    replyToId: replyToId || null,
                 }),
             });
 
@@ -313,7 +315,7 @@ export function FloatingChat() {
     const selectedRoom = rooms.find(r => r.id === selectedRoomId);
 
     return (
-        <div className="fixed bottom-6 right-6 z-[30]">
+        <div className="fixed bottom-6 right-6 z-40">
             {/* Panel */}
             <AnimatePresence>
                 {isOpen && (
@@ -322,7 +324,7 @@ export function FloatingChat() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute bottom-16 right-0 w-[380px] h-[550px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col"
+                        className="absolute bottom-16 right-0 w-[380px] h-[550px] bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col"
                     >
                         <AnimatePresence mode="wait" initial={false}>
                             {currentView === "rooms" ? (
@@ -362,6 +364,7 @@ export function FloatingChat() {
                                         onMessageInputChange={setMessageInput}
                                         onBack={handleBack}
                                         onSendMessage={sendMessage}
+                                        onMessagesUpdate={setMessages}
                                     />
                                 </motion.div>
                             )}
@@ -373,7 +376,7 @@ export function FloatingChat() {
             {/* FAB Button */}
             <button
                 onClick={handleToggle}
-                className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center relative"
+                className="w-14 h-14 bg-teal-500 hover:bg-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center relative"
                 aria-label={isOpen ? "채팅 닫기" : "채팅 열기"}
             >
                 <AnimatePresence mode="wait">

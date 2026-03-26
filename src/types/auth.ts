@@ -29,6 +29,7 @@ export interface SigninResponseDTO {
   companyName: string;
   companyAddress: Location;
   companyAddressName: string;
+  companyCode?: string;
   tokenInfo: TokenInfo;
   subscription: SubscriptionResponseDTO;
   customerKey: string;

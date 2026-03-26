@@ -197,12 +197,12 @@ const AdminPanel = ({
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl border-2 border-blue-500">
-      <div className="flex justify-between items-center mb-6 border-b pb-4 border-blue-200">
+    <div className="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-auto shadow-xl border border-gray-200">
+      <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setPanelDate((prev) => subMonths(prev, 1))}
-            className="px-3 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition-all duration-200 flex items-center justify-center"
+            className="px-3 py-2 rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-700 transition-all duration-200 flex items-center justify-center"
             disabled={isSaving || isSubmitting}
           >
             <svg
@@ -218,12 +218,12 @@ const AdminPanel = ({
               />
             </svg>
           </button>
-          <h2 className="text-2xl font-bold text-blue-700">
+          <h2 className="text-2xl font-bold text-gray-900">
             {format(panelDate, "yyyy년 MM월", { locale: ko })} 휴가 제한 설정
           </h2>
           <button
             onClick={() => setPanelDate((prev) => addMonths(prev, 1))}
-            className="px-3 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition-all duration-200 flex items-center justify-center"
+            className="px-3 py-2 rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-700 transition-all duration-200 flex items-center justify-center"
             disabled={isSaving || isSubmitting}
           >
             <svg
@@ -263,12 +263,12 @@ const AdminPanel = ({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md border border-red-300 shadow-sm">
+        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200 shadow-sm">
           {error}
         </div>
       )}
       {message && message.type === "success" && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md border border-green-300 shadow-sm flex items-center">
+        <div className="mb-4 p-3 bg-teal-50 text-teal-700 rounded-lg border border-teal-200 shadow-sm flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-5 w-5 mr-2"
@@ -287,9 +287,9 @@ const AdminPanel = ({
 
       {/* 로딩 인디케이터 */}
       {(isSaving || isSubmitting) && (
-        <div className="mb-4 p-3 bg-blue-50 text-blue-600 rounded-md border border-blue-200 shadow-sm flex items-center">
+        <div className="mb-4 p-3 bg-teal-50 text-teal-600 rounded-md border border-teal-200 shadow-sm flex items-center">
           <svg
-            className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
+            className="animate-spin -ml-1 mr-3 h-5 w-5 text-teal-600"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -319,7 +319,7 @@ const AdminPanel = ({
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
               ${
                 activeFilter === "all"
-                  ? "bg-purple-600 text-white shadow-sm ring-2 ring-purple-300"
+                  ? "bg-teal-500 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-200"
               }`}
           >
@@ -330,7 +330,7 @@ const AdminPanel = ({
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
               ${
                 activeFilter === "caregiver"
-                  ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-300"
+                  ? "bg-teal-500 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-200"
               }`}
           >
@@ -341,7 +341,7 @@ const AdminPanel = ({
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1
               ${
                 activeFilter === "office"
-                  ? "bg-green-600 text-white shadow-sm ring-2 ring-green-300"
+                  ? "bg-teal-500 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-200"
               }`}
           >
@@ -357,11 +357,11 @@ const AdminPanel = ({
             <br />각 날짜별로 요양보호사/사무실 인원을 따로 입력할 수 있습니다.
           </div>
         ) : (
-          <table className="w-full border-collapse border border-gray-300 shadow-sm">
-            <thead className="bg-blue-600 text-white sticky top-0">
+          <table className="w-full border-collapse border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            <thead className="bg-gray-50 sticky top-0">
               <tr>
-                <th className="p-3 border border-blue-700 text-left">날짜</th>
-                <th className="p-3 border border-blue-700 text-left">
+                <th className="p-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase">날짜</th>
+                <th className="p-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase">
                   {activeFilter === "caregiver"
                     ? "요양보호사 최대 인원"
                     : "사무실 최대 인원"}
@@ -376,18 +376,18 @@ const AdminPanel = ({
                     key={limit.date + limit.role}
                     className={
                       index % 2 === 0
-                        ? "bg-white hover:bg-blue-50"
-                        : "bg-blue-50 hover:bg-blue-100"
+                        ? "bg-white hover:bg-gray-50"
+                        : "bg-gray-50/50 hover:bg-gray-100"
                     }
                   >
-                    <td className="p-3 border border-gray-300">
-                      <span className="text-black font-medium">
+                    <td className="p-3 border-b border-gray-200">
+                      <span className="text-gray-900 font-medium">
                         {format(new Date(limit.date), "yyyy-MM-dd (EEE)", {
                           locale: ko,
                         })}
                       </span>
                     </td>
-                    <td className="p-3 border border-gray-300">
+                    <td className="p-3 border-b border-gray-200">
                       <input
                         type="number"
                         min="0"
@@ -404,7 +404,7 @@ const AdminPanel = ({
                             parseInt(e.target.value) || 0
                           )
                         }
-                        className="w-full p-2 border rounded text-black font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        className="w-full p-2 border border-gray-200 rounded-lg text-gray-900 font-medium focus:border-teal-500 focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all"
                         disabled={isSaving || isSubmitting}
                       />
                     </td>
@@ -418,14 +418,14 @@ const AdminPanel = ({
       <div className="mt-6 flex justify-end space-x-4">
         <button
           onClick={onClose}
-          className="px-5 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-5 py-2.5 border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSaving || isSubmitting}
         >
           취소
         </button>
         <button
           onClick={saveChanges}
-          className="px-5 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 transition-colors disabled:cursor-not-allowed flex items-center"
+          className="px-5 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 disabled:bg-gray-300 transition-colors disabled:cursor-not-allowed flex items-center"
           disabled={isSaving || isSubmitting}
         >
           {isSaving || isSubmitting ? (

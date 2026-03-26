@@ -162,7 +162,7 @@ export default function EmployeeNotice() {
     return (
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="flex justify-center items-center py-20">
-          <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-10 w-10 text-teal-500" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
@@ -184,7 +184,7 @@ export default function EmployeeNotice() {
         <div className="p-6 border-b border-gray-100">
           <button
             onClick={handleBackToList}
-            className="flex items-center text-blue-600 hover:text-blue-700 font-medium mb-4 transition-colors"
+            className="flex items-center text-teal-600 hover:text-teal-700 font-medium mb-4 transition-colors"
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -193,8 +193,8 @@ export default function EmployeeNotice() {
           </button>
           <div className="flex items-center gap-2 mb-3">
             {selectedNotice.isPinned && (
-              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
@@ -228,7 +228,7 @@ export default function EmployeeNotice() {
         <div className="px-6 pb-4">
           <button
             onClick={handleToggleReaders}
-            className="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors"
+            className="flex items-center text-sm text-gray-600 hover:text-teal-600 transition-colors"
           >
             <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -243,7 +243,7 @@ export default function EmployeeNotice() {
             <div className="mt-3 p-4 bg-gray-50 rounded-lg">
               {isLoadingReaders ? (
                 <div className="flex justify-center py-4">
-                  <svg className="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-5 w-5 text-teal-500" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -255,8 +255,8 @@ export default function EmployeeNotice() {
                       key={reader.id}
                       className="flex items-center px-3 py-1.5 bg-white rounded-full border border-gray-200 text-sm"
                     >
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2">
-                        <span className="text-xs font-medium text-blue-600">
+                      <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center mr-2">
+                        <span className="text-xs font-medium text-teal-600">
                           {reader.userName?.charAt(0) || '?'}
                         </span>
                       </div>
@@ -292,12 +292,12 @@ export default function EmployeeNotice() {
                 onChange={(e) => setNewComment(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !isSubmittingComment && handleSubmitComment()}
                 placeholder="댓글을 입력하세요..."
-                className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
+                className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:bg-white"
               />
               <button
                 onClick={handleSubmitComment}
                 disabled={isSubmittingComment || !newComment.trim()}
-                className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmittingComment ? (
                   <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -313,7 +313,7 @@ export default function EmployeeNotice() {
             {/* 댓글 목록 */}
             {isLoadingComments ? (
               <div className="flex justify-center py-8">
-                <svg className="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-6 w-6 text-teal-500" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -322,8 +322,8 @@ export default function EmployeeNotice() {
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
-                    <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium text-blue-600">
+                    <div className="w-9 h-9 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-medium text-teal-600">
                         {comment.authorName?.charAt(0) || '?'}
                       </span>
                     </div>
@@ -385,15 +385,15 @@ export default function EmployeeNotice() {
               transition={{ delay: index * 0.05 }}
               onClick={() => handleOpenNotice(notice)}
               className={`p-5 hover:bg-gray-50 cursor-pointer transition-all duration-200 group ${
-                notice.isPinned ? 'bg-blue-50/50' : ''
+                notice.isPinned ? 'bg-teal-50/50' : ''
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     {notice.isPinned && (
-                      <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="w-5 h-5 bg-teal-100 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       </div>
@@ -402,7 +402,7 @@ export default function EmployeeNotice() {
                       {getPriorityText(notice.priority)}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors truncate">
                     {notice.title}
                   </h3>
                   <p className="text-gray-500 text-sm line-clamp-1 mt-1">{notice.content}</p>
