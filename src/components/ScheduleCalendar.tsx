@@ -374,7 +374,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       });
 
       showAlert({ type: 'success', title: '생성 완료', message: '라벨이 생성되었습니다.' });
-      setShowLabelModal(false);
       setLabelForm({ name: '', color: LABEL_COLORS[0].value });
       loadLabels();
     } catch (error) {
