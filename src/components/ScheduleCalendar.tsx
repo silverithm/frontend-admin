@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getScheduleLabels, createScheduleLabel, getAllMembers, getAllVacationRequests } from '@/lib/apiService';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleCategory, SCHEDULE_CATEGORIES, LABEL_COLORS } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useDispatchStore } from '@/lib/dispatchStore';
@@ -81,6 +81,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
     name: '',
     color: LABEL_COLORS[0].value,
   });
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [editLabelForm, setEditLabelForm] = useState({ name: '', color: '' });
+  const [deletingLabelId, setDeletingLabelId] = useState<string | null>(null);
 
   const [fileInputRef] = useState(useRef<HTMLInputElement>(null));
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -377,6 +380,43 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
     } catch (error) {
       console.error('라벨 생성 실패:', error);
       showAlert({ type: 'error', title: '생성 실패', message: '라벨 생성에 실패했습니다.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateLabel = async () => {
+    if (!editingLabelId || !editLabelForm.name.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await updateScheduleLabel(editingLabelId, {
+        name: editLabelForm.name,
+        color: editLabelForm.color,
+      });
+      showAlert({ type: 'success', title: '수정 완료', message: '라벨이 수정되었습니다.' });
+      setEditingLabelId(null);
+      loadLabels();
+    } catch (error) {
+      console.error('라벨 수정 실패:', error);
+      showAlert({ type: 'error', title: '수정 실패', message: '라벨 수정에 실패했습니다.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteLabel = async (id: string) => {
+    setIsSubmitting(true);
+    try {
+      await deleteScheduleLabel(id);
+      showAlert({ type: 'success', title: '삭제 완료', message: '라벨이 삭제되었습니다.' });
+      setDeletingLabelId(null);
+      if (formData.labelId === id) {
+        setFormData(prev => ({ ...prev, labelId: '' }));
+      }
+      loadLabels();
+    } catch (error) {
+      console.error('라벨 삭제 실패:', error);
+      showAlert({ type: 'error', title: '삭제 실패', message: '라벨 삭제에 실패했습니다.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -846,10 +886,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         type="button"
                         onClick={() => setShowLabelModal(true)}
                         className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
-                        title="새 라벨 추가"
+                        title="라벨 설정"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       </button>
                     </div>
@@ -1316,7 +1357,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
         )}
       </AnimatePresence>
 
-      {/* 라벨 생성 모달 */}
+      {/* 라벨 설정 모달 */}
       <AnimatePresence>
         {showLabelModal && (
           <motion.div
@@ -1324,23 +1365,23 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
-            onClick={() => setShowLabelModal(false)}
+            onClick={() => { setShowLabelModal(false); setEditingLabelId(null); setDeletingLabelId(null); }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-200"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 max-h-[85vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">새 라벨</h2>
-                    <p className="text-gray-500 text-sm mt-1">라벨 정보를 입력하세요</p>
+                    <h2 className="text-xl font-bold text-gray-900">라벨 설정</h2>
+                    <p className="text-gray-500 text-sm mt-1">라벨을 추가, 수정, 삭제할 수 있습니다</p>
                   </div>
                   <button
-                    onClick={() => setShowLabelModal(false)}
+                    onClick={() => { setShowLabelModal(false); setEditingLabelId(null); setDeletingLabelId(null); }}
                     className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1350,59 +1391,179 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
-                {/* 라벨 이름 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    라벨 이름 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={labelForm.name}
-                    onChange={(e) => setLabelForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="라벨 이름을 입력하세요"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                {/* 기존 라벨 목록 */}
+                {labels.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">등록된 라벨</label>
+                    <div className="space-y-2">
+                      {labels.map((label) => (
+                        <div key={label.id}>
+                          {editingLabelId === label.id ? (
+                            /* 수정 모드 */
+                            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                              <input
+                                type="text"
+                                value={editLabelForm.name}
+                                onChange={(e) => setEditLabelForm(prev => ({ ...prev, name: e.target.value }))}
+                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                {LABEL_COLORS.map((color) => (
+                                  <button
+                                    key={color.value}
+                                    onClick={() => setEditLabelForm(prev => ({ ...prev, color: color.value }))}
+                                    className={`w-7 h-7 rounded-full border-2 transition-all ${
+                                      editLabelForm.color === color.value
+                                        ? 'border-gray-900 ring-2 ring-gray-300 scale-110'
+                                        : 'border-transparent hover:border-gray-400'
+                                    }`}
+                                    style={{ backgroundColor: color.value }}
+                                    title={color.label}
+                                  />
+                                ))}
+                              </div>
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={() => setEditingLabelId(null)}
+                                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                >
+                                  취소
+                                </button>
+                                <button
+                                  onClick={handleUpdateLabel}
+                                  disabled={isSubmitting || !editLabelForm.name.trim()}
+                                  className="px-3 py-1.5 text-xs bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+                                >
+                                  {isSubmitting ? '저장 중...' : '저장'}
+                                </button>
+                              </div>
+                            </div>
+                          ) : deletingLabelId === label.id ? (
+                            /* 삭제 확인 */
+                            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                              <p className="text-sm text-red-700 mb-2">
+                                &apos;{label.name}&apos; 라벨을 삭제하시겠습니까?
+                              </p>
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={() => setDeletingLabelId(null)}
+                                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-red-100 rounded-lg transition-colors"
+                                >
+                                  취소
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteLabel(label.id)}
+                                  disabled={isSubmitting}
+                                  className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                >
+                                  {isSubmitting ? '삭제 중...' : '삭제'}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* 기본 표시 */
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="w-4 h-4 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: label.color }}
+                                />
+                                <span className="text-sm font-medium text-gray-800">{label.name}</span>
+                              </div>
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => {
+                                    setEditingLabelId(label.id);
+                                    setEditLabelForm({ name: label.name, color: label.color });
+                                    setDeletingLabelId(null);
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                                  title="수정"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setDeletingLabelId(label.id);
+                                    setEditingLabelId(null);
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="삭제"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                {/* 색상 선택 */}
+                {labels.length === 0 && (
+                  <div className="text-center py-6">
+                    <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    <p className="text-sm text-gray-500">등록된 라벨이 없습니다</p>
+                  </div>
+                )}
+
+                {/* 구분선 */}
+                <div className="border-t border-gray-200" />
+
+                {/* 새 라벨 추가 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">색상</label>
-                  <div className="grid grid-cols-4 gap-3">
-                    {LABEL_COLORS.map((color) => (
-                      <button
-                        key={color.value}
-                        onClick={() => setLabelForm(prev => ({ ...prev, color: color.value }))}
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          labelForm.color === color.value
-                            ? 'border-gray-900 ring-2 ring-gray-200'
-                            : 'border-transparent hover:border-gray-300'
-                        }`}
-                      >
-                        <div
-                          className="w-full h-8 rounded"
+                  <label className="block text-sm font-medium text-gray-700 mb-3">새 라벨 추가</label>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={labelForm.name}
+                      onChange={(e) => setLabelForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="라벨 이름을 입력하세요"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {LABEL_COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          onClick={() => setLabelForm(prev => ({ ...prev, color: color.value }))}
+                          className={`w-7 h-7 rounded-full border-2 transition-all ${
+                            labelForm.color === color.value
+                              ? 'border-gray-900 ring-2 ring-gray-300 scale-110'
+                              : 'border-transparent hover:border-gray-400'
+                          }`}
                           style={{ backgroundColor: color.value }}
+                          title={color.label}
                         />
-                        <p className="text-xs text-gray-600 mt-1 text-center">{color.label}</p>
-                      </button>
-                    ))}
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleCreateLabel}
+                      disabled={isSubmitting || !labelForm.name}
+                      className="w-full px-4 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>{isSubmitting ? '추가 중...' : '라벨 추가'}</span>
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
                 <button
-                  onClick={() => setShowLabelModal(false)}
-                  className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => { setShowLabelModal(false); setEditingLabelId(null); setDeletingLabelId(null); }}
+                  className="px-5 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  취소
-                </button>
-                <button
-                  onClick={handleCreateLabel}
-                  disabled={isSubmitting || !labelForm.name}
-                  className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? '생성 중...' : '생성'}
+                  닫기
                 </button>
               </div>
             </motion.div>

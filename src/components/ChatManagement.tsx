@@ -588,24 +588,26 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                 }`}
                             >
                                 <div className="flex items-start justify-between mb-1">
-                                    <h3 className="font-semibold text-gray-900 text-sm">{room.name}</h3>
-                                    {room.unreadCount > 0 && (
-                                        <span className="bg-teal-500 text-white text-xs font-medium px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                                            {room.unreadCount}
-                                        </span>
-                                    )}
+                                    <h3 className="font-semibold text-gray-900 text-sm truncate flex-1 mr-2">{room.name}</h3>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {(room.lastMessageAt || room.lastMessage?.createdAt) && (
+                                            <span className="text-[11px] text-gray-400">
+                                                {formatTimestamp(room.lastMessageAt || room.lastMessage!.createdAt)}
+                                            </span>
+                                        )}
+                                        {room.unreadCount > 0 && (
+                                            <span className="bg-teal-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1.5 rounded-full">
+                                                {room.unreadCount > 99 ? "99+" : room.unreadCount}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-xs text-gray-500 truncate flex-1">
-                                        {room.lastMessage?.content || "메시지가 없습니다"}
-                                    </p>
-                                    {room.lastMessageAt && (
-                                        <span className="text-xs text-gray-400 ml-2">
-                                            {formatTimestamp(room.lastMessageAt)}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="text-xs text-gray-400 mt-1">
+                                <p className="text-xs text-gray-500 truncate">
+                                    {room.lastMessage
+                                        ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
+                                        : "메시지가 없습니다"}
+                                </p>
+                                <div className="text-[11px] text-gray-400 mt-0.5">
                                     참여자 {room.participantCount}명
                                 </div>
                             </button>

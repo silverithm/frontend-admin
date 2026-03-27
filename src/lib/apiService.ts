@@ -1464,7 +1464,11 @@ export async function createScheduleLabel(data: { name: string; color: string })
 
 // 라벨 수정
 export async function updateScheduleLabel(id: string, data: { name?: string; color?: string }) {
-    return fetchWithAuth(`/api/v1/schedule-labels/${id}`, {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-labels/${id}?companyId=${companyId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     });
@@ -1472,7 +1476,11 @@ export async function updateScheduleLabel(id: string, data: { name?: string; col
 
 // 라벨 삭제
 export async function deleteScheduleLabel(id: string) {
-    return fetchWithAuth(`/api/v1/schedule-labels/${id}`, {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-labels/${id}?companyId=${companyId}`, {
         method: 'DELETE',
     });
 }
