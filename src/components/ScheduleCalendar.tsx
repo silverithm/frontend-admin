@@ -13,6 +13,8 @@ import type { VacationRequest } from '@/types/vacation';
 import { getDailyDispatch, getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
 import DispatchDayDetail from './DispatchDayDetail';
 import DispatchSettings from './DispatchSettings';
+import DispatchListView from './DispatchListView';
+import SeniorAbsenceManagement from './SeniorAbsenceManagement';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -59,6 +61,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   const [showDispatchDayDetail, setShowDispatchDayDetail] = useState(false);
   const [showDispatchSettings, setShowDispatchSettings] = useState(false);
   const [dispatchSelectedDate, setDispatchSelectedDate] = useState<Date | null>(null);
+  const [dispatchSubTab, setDispatchSubTab] = useState<'calendar' | 'list' | 'absence'>('calendar');
 
   const isDispatchMode = mode === 'dispatch';
 
@@ -437,6 +440,73 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   return (
     <>
       <AlertContainer />
+      {/* 배차 모드: 서브탭 */}
+      {isDispatchMode && (
+        <div className="flex items-center space-x-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
+          <button
+            onClick={() => setDispatchSubTab('calendar')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              dispatchSubTab === 'calendar'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <span className="flex items-center space-x-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>달력</span>
+            </span>
+          </button>
+          <button
+            onClick={() => setDispatchSubTab('list')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              dispatchSubTab === 'list'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <span className="flex items-center space-x-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              <span>목록</span>
+            </span>
+          </button>
+          <button
+            onClick={() => setDispatchSubTab('absence')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              dispatchSubTab === 'absence'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <span className="flex items-center space-x-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>결석 관리</span>
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* 배차 모드: 목록 뷰 */}
+      {isDispatchMode && dispatchSubTab === 'list' && (
+        <DispatchListView
+          settings={dispatchSettings}
+          vacations={dispatchVacations}
+          seniorAbsences={seniorAbsences}
+        />
+      )}
+
+      {/* 배차 모드: 결석 관리 */}
+      {isDispatchMode && dispatchSubTab === 'absence' && (
+        <SeniorAbsenceManagement />
+      )}
+
+      {/* 달력 뷰 (일정 모드 항상 / 배차 모드는 달력 서브탭일 때만) */}
+      {(!isDispatchMode || dispatchSubTab === 'calendar') && (
       <div className="flex flex-col xl:flex-row gap-6">
         {/* 캘린더 카드 */}
         <div className={`${!isDispatchMode && selectedDate ? 'xl:w-3/4' : 'w-full'} transition-all duration-300`}>
@@ -790,6 +860,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
           )}
         </AnimatePresence>
       </div>
+      )}
 
       {/* 일정 생성/수정 모달 */}
       <AnimatePresence>
