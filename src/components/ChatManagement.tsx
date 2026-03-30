@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom } from '@/lib/apiService';
 
 interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
+    isAdmin?: boolean;
 }
 
 interface ReactionSummary {
@@ -83,7 +85,7 @@ function formatDateSeparator(dateStr: string): string {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
-export function ChatManagement({ onNotification }: ChatManagementProps) {
+export function ChatManagement({ onNotification, isAdmin = true }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -111,7 +113,6 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     const companyId = typeof window !== "undefined" ? localStorage.getItem("companyId") : null;
     const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
     const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
-    const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -119,17 +120,10 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
 
     // 읽음 처리 API 호출 (lastMsgId는 반드시 인자로 전달)
     const markAsRead = useCallback(async (roomId: number, lastMsgId: number) => {
-        if (!authToken || !userId || !userName) return;
+        if (!userId || !userName) return;
 
         try {
-            await fetch(`/api/v1/chat/rooms/${roomId}/read`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ userId, userName, lastMessageId: lastMsgId }),
-            });
+            await markChatAsRead(roomId, lastMsgId);
 
             // 로컬 unreadCount 즉시 0으로 갱신
             setRooms(prev => prev.map(room =>
@@ -138,23 +132,14 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         } catch (error) {
             console.error("Error marking messages as read:", error);
         }
-    }, [authToken, userId, userName]);
+    }, [userId, userName]);
 
     const fetchRooms = useCallback(async () => {
-        if (!companyId || !userId || !authToken) return;
+        if (!companyId || !userId) return;
 
         setIsLoadingRooms(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms?companyId=${companyId}&userId=${userId}`, {
-                headers: {
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch chat rooms");
-
-            const data = await response.json();
+            const data = await fetchChatRooms();
             const roomList = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
             setRooms(roomList);
         } catch (error) {
@@ -163,24 +148,13 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         } finally {
             setIsLoadingRooms(false);
         }
-    }, [companyId, userId, authToken, onNotification]);
+    }, [companyId, userId, onNotification]);
 
     // 메시지 로드 후 마지막 메시지 ID 반환
     const fetchMessages = useCallback(async (roomId: number): Promise<number | null> => {
-        if (!authToken) return null;
-
         setIsLoadingMessages(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${roomId}/messages?page=0&size=50`, {
-                headers: {
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch messages");
-
-            const data = await response.json();
+            const data = await fetchChatMessages(roomId, 0, 50);
             const msgList = Array.isArray(data) ? data : (data.messages || data.content || data.data || []);
             // 백엔드가 createdAt DESC(최신순)로 반환하므로 뒤집어서 오래된 메시지가 위로
             const sorted = [...msgList].reverse();
@@ -195,11 +169,11 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         } finally {
             setIsLoadingMessages(false);
         }
-    }, [authToken, onNotification]);
+    }, [onNotification]);
 
     // WebSocket 연결
     useEffect(() => {
-        if (!authToken || !userId) return;
+        if (!userId) return;
 
         const client = new Client({
             webSocketFactory: () => new SockJS(`${BACKEND_WS_URL}/ws/chat`),
@@ -230,7 +204,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
             client.deactivate();
             stompClientRef.current = null;
         };
-    }, [authToken, userId]);
+    }, [userId]);
 
     // 방 선택 시 메시지 로드 → 읽음 처리 (WebSocket 연결과 무관)
     useEffect(() => {
@@ -303,7 +277,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 
     const handleToggleReaction = async (messageId: number, emoji: string) => {
-        if (!authToken || !userId) return;
+        if (!userId || !selectedRoom) return;
         setContextMenuMessageId(null);
 
         // 낙관적 업데이트
@@ -321,11 +295,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         }));
 
         try {
-            await fetch(`/api/v1/chat/rooms/${selectedRoom}/messages/${messageId}/reactions`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ userId, userName, emoji }),
-            });
+            await toggleChatReaction(selectedRoom, messageId, emoji);
         } catch (error) {
             console.error("Error toggling reaction:", error);
         }
@@ -364,29 +334,19 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     };
 
     const sendMessageREST = async () => {
-        if (!messageInput.trim() || !selectedRoom || !userId || !userName || !authToken) return;
+        if (!messageInput.trim() || !selectedRoom || !userId || !userName) return;
 
         const replyToId = replyTo?.id || null;
         setIsSendingMessage(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${selectedRoom}/messages`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    senderId: userId,
-                    senderName: userName,
-                    type: "TEXT",
-                    content: messageInput.trim(),
-                    replyToId,
-                }),
+            const newMessage = await sendChatMessage(selectedRoom, {
+                senderId: userId,
+                senderName: userName,
+                type: "TEXT",
+                content: messageInput.trim(),
+                replyToId,
             });
 
-            if (!response.ok) throw new Error("Failed to send message");
-
-            const newMessage = await response.json();
             setMessages(prev => {
                 if (prev.some(m => m.id === newMessage.id)) return prev;
                 return [...prev, newMessage];
@@ -404,38 +364,16 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     };
 
     const createRoom = async () => {
-        if (!newRoomName.trim() || !companyId || !userId || !userName || !authToken) return;
+        if (!newRoomName.trim() || !companyId || !userId || !userName) return;
 
         try {
-            const response = await fetch(`/api/v1/chat/rooms?companyId=${companyId}`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name: newRoomName.trim(),
-                    description: newRoomDescription.trim() || undefined,
-                    creatorId: userId,
-                    creatorName: userName,
-                    participantIds: [userId],
-                }),
+            await createChatRoom({
+                name: newRoomName.trim(),
+                description: newRoomDescription.trim() || undefined,
+                creatorId: userId,
+                creatorName: userName,
+                participantIds: [userId],
             });
-
-            if (!response.ok) {
-                let errorMessage = "채팅방 생성에 실패했습니다";
-
-                try {
-                    const errorData = await response.json();
-                    if (typeof errorData?.error === "string" && errorData.error.trim()) {
-                        errorMessage = errorData.error.trim();
-                    }
-                } catch (parseError) {
-                    console.error("Error parsing create room failure response:", parseError);
-                }
-
-                throw new Error(errorMessage);
-            }
 
             onNotification("채팅방이 생성되었습니다", "success");
             setShowCreateModal(false);
@@ -449,14 +387,9 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
     };
 
     const fetchParticipants = useCallback(async (roomId: number) => {
-        if (!authToken) return;
         setIsLoadingParticipants(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${roomId}/participants`, {
-                headers: { "Authorization": `Bearer ${authToken}` },
-            });
-            if (!response.ok) throw new Error("Failed to fetch participants");
-            const data = await response.json();
+            const data = await fetchChatParticipants(roomId);
             const list = Array.isArray(data) ? data : (data.participants || data.content || data.data || []);
             setParticipants(list);
         } catch (error) {
@@ -464,22 +397,14 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         } finally {
             setIsLoadingParticipants(false);
         }
-    }, [authToken]);
+    }, []);
 
     const deleteRoom = async () => {
-        if (!selectedRoom || !authToken) return;
+        if (!selectedRoom) return;
 
         setIsDeletingRoom(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${selectedRoom}`, {
-                method: "DELETE",
-                headers: {
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) throw new Error("Failed to delete room");
+            await deleteChatRoom(selectedRoom);
 
             onNotification("채팅방이 삭제되었습니다", "success");
             setShowDeleteConfirm(false);
@@ -538,7 +463,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
         }
     };
 
-    if (!companyId || !userId || !userName || !authToken) {
+    if (!companyId || !userId || !userName) {
         return (
             <div className="flex items-center justify-center h-96">
                 <p className="text-gray-500">로그인 정보를 확인할 수 없습니다</p>
@@ -557,12 +482,14 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                         <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-gray-400"}`}
                               title={isConnected ? "실시간 연결됨" : "연결 중..."} />
                     </div>
+                    {isAdmin && (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="px-3 py-1.5 bg-teal-500 text-white text-sm rounded-lg hover:bg-teal-600 transition-colors"
                     >
                         새 채팅방
                     </button>
+                    )}
                 </div>
 
                 {/* Room List */}
@@ -986,7 +913,8 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                         )}
                                     </div>
 
-                                    {/* 채팅방 삭제 */}
+                                    {/* 채팅방 삭제 (관리자만) */}
+                                    {isAdmin && (
                                     <div className="p-4">
                                         <button
                                             onClick={() => setShowDeleteConfirm(true)}
@@ -995,6 +923,7 @@ export function ChatManagement({ onNotification }: ChatManagementProps) {
                                             채팅방 삭제
                                         </button>
                                     </div>
+                                    )}
                                 </div>
                             </div>
                         )}

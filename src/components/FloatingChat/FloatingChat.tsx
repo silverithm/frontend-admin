@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
 import { FloatingChatRoomList } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
@@ -38,20 +39,11 @@ export function FloatingChat() {
     // --- API calls ---
 
     const fetchRooms = useCallback(async () => {
-        if (!companyId || !userId || !authToken) return;
+        if (!companyId || !userId) return;
 
         setIsLoadingRooms(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms?companyId=${companyId}&userId=${userId}`, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch chat rooms");
-
-            const data = await response.json();
+            const data = await fetchChatRooms();
             const roomList = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
             setRooms(roomList);
         } catch (error) {
@@ -59,23 +51,12 @@ export function FloatingChat() {
         } finally {
             setIsLoadingRooms(false);
         }
-    }, [companyId, userId, authToken]);
+    }, [companyId, userId]);
 
     const fetchMessages = useCallback(async (roomId: number): Promise<number | null> => {
-        if (!authToken) return null;
-
         setIsLoadingMessages(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${roomId}/messages?page=0&size=50`, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch messages");
-
-            const data = await response.json();
+            const data = await fetchChatMessages(roomId, 0, 50);
             const msgList = Array.isArray(data) ? data : (data.messages || data.content || data.data || []);
             const sorted = [...msgList].reverse();
             setMessages(sorted);
@@ -86,20 +67,13 @@ export function FloatingChat() {
         } finally {
             setIsLoadingMessages(false);
         }
-    }, [authToken]);
+    }, []);
 
     const markAsRead = useCallback(async (roomId: number, lastMsgId: number) => {
-        if (!authToken || !userId || !userName) return;
+        if (!userId || !userName) return;
 
         try {
-            await fetch(`/api/v1/chat/rooms/${roomId}/read`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ userId, userName, lastMessageId: lastMsgId }),
-            });
+            await markChatAsRead(roomId, lastMsgId);
 
             setRooms(prev => prev.map(room =>
                 room.id === roomId ? { ...room, unreadCount: 0 } : room
@@ -107,7 +81,7 @@ export function FloatingChat() {
         } catch (error) {
             console.error("[FloatingChat] Error marking messages as read:", error);
         }
-    }, [authToken, userId, userName]);
+    }, [userId, userName]);
 
     // --- WebSocket ---
 
@@ -256,28 +230,18 @@ export function FloatingChat() {
     };
 
     const sendMessageREST = async (replyToId?: number) => {
-        if (!messageInput.trim() || !selectedRoomId || !userId || !userName || !authToken) return;
+        if (!messageInput.trim() || !selectedRoomId || !userId || !userName) return;
 
         setIsSendingMessage(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${selectedRoomId}/messages`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    senderId: userId,
-                    senderName: userName,
-                    type: "TEXT",
-                    content: messageInput.trim(),
-                    replyToId: replyToId || null,
-                }),
+            const newMessage = await sendChatMessage(selectedRoomId, {
+                senderId: userId,
+                senderName: userName,
+                type: "TEXT",
+                content: messageInput.trim(),
+                replyToId: replyToId || null,
             });
 
-            if (!response.ok) throw new Error("Failed to send message");
-
-            const newMessage = await response.json();
             setMessages(prev => {
                 if (prev.some(m => m.id === newMessage.id)) return prev;
                 return [...prev, newMessage];

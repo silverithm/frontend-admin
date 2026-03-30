@@ -2,6 +2,7 @@
 
 import { Fragment, useRef, useEffect, useState, useCallback } from "react";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
+import { fetchChatParticipants, toggleChatReaction } from '@/lib/apiService';
 
 interface ChatParticipant {
     userId: string;
@@ -87,17 +88,11 @@ export function FloatingChatMessages({
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [longPressMenuMessageId, setLongPressMenuMessageId] = useState<number | null>(null);
 
-    const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-
     const fetchParticipants = useCallback(async () => {
-        if (!authToken || !roomId) return;
+        if (!roomId) return;
         setIsLoadingParticipants(true);
         try {
-            const response = await fetch(`/api/v1/chat/rooms/${roomId}/participants`, {
-                headers: { Authorization: `Bearer ${authToken}` },
-            });
-            if (!response.ok) throw new Error("Failed to fetch participants");
-            const data = await response.json();
+            const data = await fetchChatParticipants(roomId);
             const list = Array.isArray(data) ? data : (data.participants || data.content || data.data || []);
             setParticipants(list);
         } catch (error) {
@@ -105,7 +100,7 @@ export function FloatingChatMessages({
         } finally {
             setIsLoadingParticipants(false);
         }
-    }, [authToken, roomId]);
+    }, [roomId]);
 
     const toggleDrawer = () => {
         if (!showDrawer) {
@@ -143,7 +138,7 @@ export function FloatingChatMessages({
 
     // 리액션 토글 (로컬 + API)
     const handleToggleReaction = async (messageId: number, emoji: string) => {
-        if (!authToken || !userId) return;
+        if (!userId) return;
         const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
 
         setActiveEmojiPickerMessageId(null);
@@ -184,14 +179,7 @@ export function FloatingChatMessages({
 
         // API 호출
         try {
-            await fetch(`/api/v1/chat/rooms/${roomId}/messages/${messageId}/reactions`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ userId, userName, emoji }),
-            });
+            await toggleChatReaction(roomId, messageId, emoji);
         } catch (error) {
             console.error("[FloatingChat] Error toggling reaction:", error);
         }

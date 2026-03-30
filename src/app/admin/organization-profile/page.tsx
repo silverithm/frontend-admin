@@ -22,6 +22,14 @@ export default function OrganizationProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<OrganizationProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 관리자만 접근 가능
+  useEffect(() => {
+    const loginType = localStorage.getItem('loginType');
+    if (loginType !== 'admin') {
+      router.replace('/employee');
+    }
+  }, [router]);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<OrganizationProfileData | null>(null);
   const [error, setError] = useState('');

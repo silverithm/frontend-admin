@@ -1684,3 +1684,66 @@ export async function bulkCheckElderAttendance(data: Array<{
         body: JSON.stringify(data),
     });
 }
+
+// ================== 채팅 API ==================
+
+// 채팅방 목록 조회
+export async function fetchChatRooms() {
+    const companyId = getCompanyId();
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    return fetchWithAuth(`/api/v1/chat/rooms?companyId=${companyId}&userId=${userId}`);
+}
+
+// 채팅 메시지 조회
+export async function fetchChatMessages(roomId: number, page = 0, size = 50) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages?page=${page}&size=${size}`);
+}
+
+// 채팅 읽음 처리
+export async function markChatAsRead(roomId: number, lastMessageId: number) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/read`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, userName, lastMessageId }),
+    });
+}
+
+// 채팅 메시지 전송
+export async function sendChatMessage(roomId: number, data: { senderId: string; senderName: string; type: string; content: string; replyToId?: number | null }) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 채팅 리액션 토글
+export async function toggleChatReaction(roomId: number, messageId: number, emoji: string) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/${messageId}/reactions`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, userName, emoji }),
+    });
+}
+
+// 채팅방 생성
+export async function createChatRoom(data: { name: string; description?: string; creatorId: string; creatorName: string; participantIds: string[] }) {
+    const companyId = getCompanyId();
+    return fetchWithAuth(`/api/v1/chat/rooms?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 채팅방 참가자 조회
+export async function fetchChatParticipants(roomId: number) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/participants`);
+}
+
+// 채팅방 삭제
+export async function deleteChatRoom(roomId: number) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}`, {
+        method: 'DELETE',
+    });
+}
