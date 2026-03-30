@@ -234,8 +234,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       }
 
       if (results[7].status === 'fulfilled') {
-        const arr = extractArray(results[7].value, 'schedules', 'content', 'data');
+        const raw = results[7].value;
+        console.log('[Dashboard] 월간일정 raw:', JSON.stringify(raw).substring(0, 500));
+        const arr = extractArray(raw, 'schedules', 'content', 'data');
+        console.log('[Dashboard] 월간일정 parsed:', arr.length, '건');
         setMonthlySchedules(arr as ScheduleItem[]);
+      } else {
+        console.error('[Dashboard] 월간일정 API 실패:', results[7]);
       }
 
       if (results[8].status === 'fulfilled') {
@@ -375,8 +380,33 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       iconBg: 'bg-teal-50',
       iconColor: 'text-teal-500',
       icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
-      tab: 'members',
+      tab: isAdmin ? 'members' : 'work',
       change: null as string | null,
+      adminOnly: false,
+    },
+    {
+      label: '오늘 일정',
+      value: schedules.length,
+      subtitle: '건',
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-500',
+      icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+      tab: 'schedule',
+      change: null as string | null,
+      employeeOnly: true,
+      adminOnly: false,
+    },
+    {
+      label: '공지사항',
+      value: notices.length,
+      subtitle: '건',
+      iconBg: 'bg-indigo-50',
+      iconColor: 'text-indigo-500',
+      icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
+      tab: 'notice',
+      change: null as string | null,
+      employeeOnly: true,
+      adminOnly: false,
     },
     {
       label: '출근',
@@ -387,6 +417,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
       tab: 'members',
       change: employeeAttendanceBase > 0 ? `${Math.round((todayWorkingCount / employeeAttendanceBase) * 100)}%` : null,
+      adminOnly: true,
     },
     {
       label: '오늘 휴무',
@@ -397,6 +428,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z',
       tab: 'work',
       change: employeeAttendanceBase > 0 ? `${Math.round((todayVacationCount / employeeAttendanceBase) * 100)}%` : null,
+      adminOnly: true,
     },
     {
       label: '총 어르신',
@@ -407,6 +439,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
       tab: 'members',
       change: null as string | null,
+      adminOnly: true,
     },
     {
       label: '등원',
@@ -417,6 +450,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
       tab: 'members',
       change: elderAttendanceBase > 0 ? `${Math.round((elderAttendance.present / elderAttendanceBase) * 100)}%` : null,
+      adminOnly: true,
     },
     {
       label: '결석',
@@ -427,8 +461,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636',
       tab: 'members',
       change: null as string | null,
+      adminOnly: true,
     },
   ];
+
+  const visibleStatCards = statCards.filter((card) => {
+    if (isAdmin) return !(card as { employeeOnly?: boolean }).employeeOnly;
+    return !card.adminOnly;
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5 pb-4">
@@ -453,8 +493,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       </motion.div>
 
       {/* 2. Stat Cards - White background */}
-      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-1'}`}>
-        {statCards.filter((card) => isAdmin || card.label === '총 직원').map((card, idx) => (
+      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-3'}`}>
+        {visibleStatCards.map((card, idx) => (
           <motion.button
             key={card.label}
             initial={{ opacity: 0, y: 12 }}
