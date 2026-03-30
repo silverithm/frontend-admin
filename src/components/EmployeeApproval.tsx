@@ -35,7 +35,12 @@ export default function EmployeeApproval() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const userId = getApprovalRequesterId();
+  const [userId, setUserId] = useState('');
+
+  // 클라이언트에서만 userId를 설정 (SSR 하이드레이션 불일치 방지)
+  useEffect(() => {
+    setUserId(getApprovalRequesterId());
+  }, []);
 
   // 데이터 로드
   useEffect(() => {
@@ -119,7 +124,7 @@ export default function EmployeeApproval() {
   const handleDownloadTemplate = async (template: ApprovalTemplate) => {
     try {
       const downloadUrl = `/api/v1/files/download?path=${encodeURIComponent(template.fileUrl)}&fileName=${encodeURIComponent(template.fileName)}`;
-      const token = localStorage.getItem('memberToken');
+      const token = localStorage.getItem('authToken');
 
       const response = await fetch(downloadUrl, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
@@ -170,7 +175,7 @@ export default function EmployeeApproval() {
       const relativePath = extractRelativePath(fileUrl);
 
       const downloadUrl = `/api/v1/files/download?path=${encodeURIComponent(relativePath)}&fileName=${encodeURIComponent(fileName)}`;
-      const token = localStorage.getItem('memberToken');
+      const token = localStorage.getItem('authToken');
 
       const response = await fetch(downloadUrl, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},

@@ -642,21 +642,13 @@ export async function findPassword(email: string): Promise<FindPasswordResponse>
     const params = new URLSearchParams();
     params.append('email', email);
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/find/password`, {
+    return fetchWithoutAuth('/api/v1/find/password', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'ngrok-skip-browser-warning': 'true',
         },
         body: params,
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || '비밀번호 찾기 요청에 실패했습니다.');
-    }
-
-    return response.json();
 }
 
 // 비밀번호 변경

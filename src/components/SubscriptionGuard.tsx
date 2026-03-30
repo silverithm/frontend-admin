@@ -102,7 +102,8 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
           {/* 좌측 상단 뒤로가기 버튼 */}
           <button
             onClick={() => {
-              localStorage.clear();
+              // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
+              ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
               window.location.href = 'https://carev.kr';
             }}
             className="absolute left-6 top-6 text-gray-500 hover:text-gray-900 flex items-center text-sm font-medium transition-colors"
@@ -147,7 +148,8 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
 
               <button
                 onClick={() => {
-                  localStorage.clear();
+                  // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
+              ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
                   window.location.href = 'https://carev.kr';
                 }}
                 className="w-full text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
