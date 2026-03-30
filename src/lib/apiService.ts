@@ -661,22 +661,10 @@ export async function findPassword(email: string): Promise<FindPasswordResponse>
 
 // 비밀번호 변경
 export async function changePassword(passwordData: PasswordChangeRequest): Promise<string> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/change/password`, {
+    return fetchWithAuth('/api/v1/change/password', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('accessToken')}`,
-            'ngrok-skip-browser-warning': 'true',
-        },
         body: JSON.stringify(passwordData),
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || '비밀번호 변경에 실패했습니다.');
-    }
-
-    return response.text();
 }
 
 // 호환성을 위한 register 함수 (기존 페이지용)
@@ -1310,7 +1298,7 @@ export async function getApprovalRequests(filter?: {
 
 // 내 결재 요청 조회 (직원용)
 export async function getMyApprovalRequests(requesterId: string) {
-    return fetchWithAuth(`/api/v1/approvals/my?requesterId=${requesterId}`);
+    return fetchWithAuth(`/api/v1/approvals?requesterId=${requesterId}`);
 }
 
 // 결재 요청 상세 조회

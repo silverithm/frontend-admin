@@ -16,7 +16,11 @@ function verifyToken(request: NextRequest): JWTPayload | null {
     }
 
     const token = authHeader.substring(7);
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('JWT_SECRET 환경변수가 설정되지 않았습니다.');
+      return null;
+    }
     const decoded = jwt.verify(token, secret) as JWTPayload;
     
     return decoded;

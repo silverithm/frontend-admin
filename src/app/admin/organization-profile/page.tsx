@@ -39,13 +39,8 @@ export default function OrganizationProfilePage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
     fetchProfile();
-  }, [router]);
+  }, []);
 
   const fetchProfile = async () => {
     setIsLoading(true);

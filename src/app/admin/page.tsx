@@ -156,12 +156,7 @@ export default function AdminPage() {
         const storedLoginType = localStorage.getItem('loginType');
         if (storedLoginType) setLoginType(storedLoginType);
 
-        if (!token) {
-            router.push("/login");
-        } else if (storedLoginType === 'employee') {
-            // 직원이 admin 페이지에 접근하면 employee 페이지로 리다이렉트
-            router.push("/employee");
-        } else {
+        if (token) {
             fetchInitialData();
         }
     }, [router, isClient]);
