@@ -13,6 +13,7 @@ import {
   getVacationRequestRole,
   type RoleLookup,
 } from '@/lib/roleUtils';
+import { deleteVacation as apiDeleteVacation } from '@/lib/apiService';
 
 type VacationDetailsComponentProps = VacationDetailsProps & {
   roleOptions?: string[];
@@ -95,29 +96,10 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
     setDeleteError('');
 
     try {
-      // JWT 토큰 가져오기
-      const token = localStorage.getItem('authToken');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      // JWT 토큰이 있으면 Authorization 헤더 추가
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`/api/vacation/delete/${selectedVacation.id}`, {
-        method: 'DELETE',
-        headers,
-        body: JSON.stringify({
-          password: deletePassword
-        })
+      await apiDeleteVacation(selectedVacation.id, {
+        isAdmin: true,
+        password: deletePassword,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '삭제 중 오류가 발생했습니다');
-      }
 
       // 성공적으로 삭제됨
       setShowDeleteModal(false);

@@ -11,6 +11,8 @@ import {
 } from "@/types/vacation";
 import {
     deleteVacation as apiDeleteVacation,
+    approveVacation,
+    rejectVacation,
     getVacationCalendar,
     getVacationLimits,
     getAllVacationRequests,
@@ -162,30 +164,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
     const handleApproveVacation = async (vacationId: string) => {
         setIsProcessing(true);
         try {
-            const token = localStorage.getItem("authToken");
-
-            if (!token) {
-                throw new Error("인증 토큰이 없습니다.");
-            }
-
-            const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            };
-
-            const response = await fetch(`/api/vacation/approve/${vacationId}`, {
-                method: "PUT",
-                headers,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.text();
-                console.error("승인 오류 응답:", errorData);
-                throw new Error(`휴무 승인 실패: ${response.status} - ${errorData}`);
-            }
-
-            const result = await response.json();
-
+            await approveVacation(vacationId);
             onNotification("휴무 요청이 승인되었습니다.", "success");
             await fetchMonthData();
         } catch (error) {
@@ -202,30 +181,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
     const handleRejectVacation = async (vacationId: string) => {
         setIsProcessing(true);
         try {
-            const token = localStorage.getItem("authToken");
-
-            if (!token) {
-                throw new Error("인증 토큰이 없습니다.");
-            }
-
-            const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            };
-
-            const response = await fetch(`/api/vacation/reject/${vacationId}`, {
-                method: "PUT",
-                headers,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.text();
-                console.error("거절 오류 응답:", errorData);
-                throw new Error(`휴무 거절 실패: ${response.status} - ${errorData}`);
-            }
-
-            const result = await response.json();
-
+            await rejectVacation(vacationId);
             onNotification("휴무 요청이 거절되었습니다.", "success");
             await fetchMonthData();
         } catch (error) {

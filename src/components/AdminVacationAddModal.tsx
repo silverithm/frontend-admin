@@ -6,6 +6,7 @@ import { ko } from 'date-fns/locale';
 import MemberSelector from './MemberSelector';
 import { FiX, FiCalendar, FiClock, FiAlertCircle, FiCheck } from 'react-icons/fi';
 import { VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import { adminCreateVacationForMember } from '@/lib/apiService';
 import type { Member } from './MemberSelector';
 
 interface AdminVacationAddModalProps {
@@ -113,23 +114,17 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
         companyId, // 별도로 로깅
       });
 
-      // companyId는 API route에서 처리하도록 body에 포함
-      const response = await fetch('/api/vacation/admin/submit-for-member', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          ...requestBody,
-          companyId, // API route에서 분리할 예정
-        }),
+      await adminCreateVacationForMember({
+        memberId: requestBody.memberId.toString(),
+        date: requestBody.date,
+        reason: requestBody.reason || undefined,
+        duration: requestBody.duration,
+        type: requestBody.type,
+        useAnnualLeave: requestBody.useAnnualLeave,
+        vacationType: requestBody.vacationType || undefined,
+        reasonRequired: requestBody.reasonRequired,
+        companyId,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '휴무 신청에 실패했습니다.');
-      }
 
       onSuccess();
       handleClose();
