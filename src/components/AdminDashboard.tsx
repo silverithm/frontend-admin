@@ -302,8 +302,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     return start === selectedDateStr;
   });
 
-  const monthlyScheduleDateSet = useMemo(() => {
-    const dateSet = new Set<string>();
+  const monthlyScheduleCountMap = useMemo(() => {
+    const countMap = new Map<string, number>();
 
     monthlySchedules.forEach((schedule) => {
       const start = schedule.startDate?.substring(0, 10);
@@ -312,7 +312,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       if (!start) return;
 
       if (!end || end < start) {
-        dateSet.add(start);
+        countMap.set(start, (countMap.get(start) || 0) + 1);
         return;
       }
 
@@ -320,12 +320,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       const endDate = new Date(`${end}T00:00:00`);
 
       while (cursor <= endDate) {
-        dateSet.add(format(cursor, 'yyyy-MM-dd'));
+        const key = format(cursor, 'yyyy-MM-dd');
+        countMap.set(key, (countMap.get(key) || 0) + 1);
         cursor.setDate(cursor.getDate() + 1);
       }
     });
 
-    return dateSet;
+    return countMap;
   }, [monthlySchedules]);
 
   const monthlyCalendarDays = useMemo(() => {
@@ -347,11 +348,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           inMonth: isSameMonth(day, today),
           todayFlag: isToday(day),
           dayOfWeek: day.getDay(),
-          hasSchedule: monthlyScheduleDateSet.has(dayStr),
+          scheduleCount: monthlyScheduleCountMap.get(dayStr) || 0,
         };
       }),
     };
-  }, [monthlyScheduleDateSet]);
+  }, [monthlyScheduleCountMap]);
 
   if (isLoading) {
     return (
@@ -683,8 +684,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               {['일','월','화','수','목','금','토'].map((d) => (
                 <div key={d} className={`flex h-6 items-center justify-center text-center text-[11px] font-medium ${d === '일' ? 'text-red-400' : d === '토' ? 'text-blue-400' : 'text-gray-400'}`}>{d}</div>
               ))}
-              {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, hasSchedule }) => {
+              {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount }) => {
                 const isSelected = inMonth && selectedDateStr === dayStr && !todayFlag;
+                const isHighlighted = todayFlag || isSelected;
+                const dotColor = isHighlighted ? 'bg-white' : 'bg-emerald-400';
+                const maxDots = 3;
 
                 return (
                   <button
@@ -703,10 +707,17 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     disabled={!inMonth}
                   >
                     {format(date, 'd')}
-                    {hasSchedule && inMonth && (
-                      <div className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                        todayFlag || isSelected ? 'bg-white' : 'bg-emerald-400'
-                      }`} />
+                    {scheduleCount > 0 && inMonth && (
+                      <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex items-center gap-px">
+                        {Array.from({ length: Math.min(scheduleCount, maxDots) }).map((_, i) => (
+                          <div key={i} className={`h-1 w-1 rounded-full ${dotColor}`} />
+                        ))}
+                        {scheduleCount > maxDots && (
+                          <span className={`text-[7px] font-bold leading-none ${isHighlighted ? 'text-white/80' : 'text-emerald-500'}`}>
+                            +{scheduleCount - maxDots}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </button>
                 );
