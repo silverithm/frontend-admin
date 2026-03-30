@@ -102,6 +102,9 @@ const handleLogout = () => {
     localStorage.removeItem('companyCode');
     localStorage.removeItem('customerKey');
     localStorage.removeItem('organizationName');
+    localStorage.removeItem('loginType');
+    localStorage.removeItem('lastLoginType');
+    localStorage.removeItem('userPosition');
 
     // 로그인 페이지로 리다이렉트
     if (typeof window !== 'undefined') {
@@ -179,9 +182,33 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
         // 401 Unauthorized - JWT 토큰 만료 또는 무효
         if (response.status === 401) {
 
+            // 이미 다른 요청이 토큰 갱신 중이면 큐에 대기
+            if (isRefreshing) {
+                return new Promise<any>((resolve, reject) => {
+                    failedQueue.push({
+                        resolve: (newToken: string) => {
+                            headers['Authorization'] = `Bearer ${newToken}`;
+                            fetch(fullUrl, { ...options, headers })
+                                .then(res => {
+                                    if (!res.ok) throw new Error(`API 오류: ${res.status}`);
+                                    return res.json();
+                                })
+                                .then(resolve)
+                                .catch(reject);
+                        },
+                        reject,
+                    });
+                });
+            }
+
+            isRefreshing = true;
+
             try {
                 // 토큰 갱신 시도
                 const newToken = await refreshAccessToken();
+                isRefreshing = false;
+                processQueue(null, newToken);
+
                 headers['Authorization'] = `Bearer ${newToken}`;
 
                 // 갱신된 토큰으로 요청 재시도
@@ -199,6 +226,8 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<an
                 return result;
 
             } catch (refreshError) {
+                isRefreshing = false;
+                processQueue(refreshError instanceof Error ? refreshError : new Error('토큰 갱신 실패'));
                 console.error('[API Auth] 토큰 갱신 실패:', refreshError);
                 handleLogout();
                 throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
@@ -699,17 +728,20 @@ export async function deleteAdminUser(): Promise<string> {
 // 로그아웃 (업데이트)
 export async function logout() {
     try {
-        // // 서버에 로그아웃 요청 (선택사항)
-        // const refreshToken = localStorage.getItem('refreshToken');
-        // if (refreshToken) {
-        //     await fetchWithoutAuth('/api/v1/logout', {
-        //         method: 'POST',
-        //         body: JSON.stringify({refreshToken}),
-        //     }).catch(() => {
-        //         // 로그아웃 API 실패해도 클라이언트 정리는 계속 진행
-        //         console.warn('서버 로그아웃 요청 실패 - 클라이언트 정리 계속 진행');
-        //     });
-        // }
+        // 서버에 로그아웃 요청 (토큰을 Redis 블랙리스트에 추가)
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            await fetch(`${API_BASE_URL}/api/v1/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            }).catch(() => {
+                // 로그아웃 API 실패해도 클라이언트 정리는 계속 진행
+                console.warn('서버 로그아웃 요청 실패 - 클라이언트 정리 계속 진행');
+            });
+        }
     } catch (error) {
         console.warn('로그아웃 API 호출 중 오류:', error);
     } finally {
@@ -726,7 +758,10 @@ export async function logout() {
         localStorage.removeItem('companyAddressName');
         localStorage.removeItem('companyCode');
         localStorage.removeItem('customerKey');
-        localStorage.removeItem('organizationName'); // 이전 버전 호환성
+        localStorage.removeItem('organizationName');
+        localStorage.removeItem('loginType');
+        localStorage.removeItem('lastLoginType');
+        localStorage.removeItem('userPosition');
     }
 }
 
