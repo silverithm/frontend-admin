@@ -276,7 +276,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     };
 
     loadData();
-  }, []);
+  }, [isAdmin]);
 
   const pendingVacationCount = vacationRequests.filter(
     (v) => v.status === 'pending' || v.status === 'PENDING'
@@ -703,8 +703,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     disabled={!inMonth}
                   >
                     {format(date, 'd')}
-                    {hasSchedule && inMonth && !todayFlag && !isSelected && (
-                      <div className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-emerald-400" />
+                    {hasSchedule && inMonth && (
+                      <div className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
+                        todayFlag || isSelected ? 'bg-white' : 'bg-emerald-400'
+                      }`} />
                     )}
                   </button>
                 );
