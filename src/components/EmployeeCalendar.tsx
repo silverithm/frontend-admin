@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getVacationCalendar, requestVacation } from '@/lib/apiService';
-import { DayInfo, VacationRequest, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import { getVacationCalendar, requestVacation, getVacationLimits } from '@/lib/apiService';
+import { DayInfo, VacationRequest, VacationLimit, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import { useAlert } from './Alert';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -25,6 +25,7 @@ export default function EmployeeCalendar() {
     duration: 'FULL_DAY' as VacationDuration,
     reason: '',
   });
+  const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
 
   const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') : null;
 
@@ -51,7 +52,10 @@ export default function EmployeeCalendar() {
     try {
       const startDate = format(startOfMonth(currentDate), 'yyyy-MM-dd');
       const endDate = format(endOfMonth(currentDate), 'yyyy-MM-dd');
-      const data = await getVacationCalendar(startDate, endDate);
+      const [data, limitsData] = await Promise.all([
+        getVacationCalendar(startDate, endDate),
+        getVacationLimits(startDate, endDate).catch(() => ({ limits: {} })),
+      ]);
 
       // API 응답 구조에 맞게 파싱
       const days: Record<string, DayInfo> = {};
@@ -71,6 +75,10 @@ export default function EmployeeCalendar() {
       });
 
       setVacationDays(days);
+
+      // 휴무 제한 데이터 파싱
+      const limits = limitsData.limits || limitsData || {};
+      setVacationLimits(limits);
     } catch (error) {
       console.error('휴가 데이터 로드 실패:', error);
     } finally {
@@ -264,6 +272,33 @@ export default function EmployeeCalendar() {
     }
   };
 
+  // 특정 날짜의 휴무 제한 정보 가져오기
+  const getLimitsForDate = (date: Date) => {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    const limits: VacationLimit[] = [];
+    Object.keys(vacationLimits).forEach((key) => {
+      const limit = vacationLimits[key];
+      if (limit && limit.date === dateKey) {
+        limits.push(limit);
+      }
+    });
+    // vacationLimits가 날짜키로 직접 저장된 경우
+    const directLimit = vacationLimits[dateKey];
+    if (directLimit && !limits.find(l => l.date === dateKey && l.role === directLimit.role)) {
+      if (typeof directLimit === 'object' && directLimit.date) {
+        limits.push(directLimit);
+      }
+    }
+    return limits;
+  };
+
+  // 날짜의 전체 최대 인원 가져오기
+  const getMaxPeopleForDate = (date: Date): number | null => {
+    const limits = getLimitsForDate(date);
+    if (limits.length === 0) return null;
+    return limits.reduce((sum, l) => sum + (l.maxPeople || 0), 0);
+  };
+
   return (
     <>
       <AlertContainer />
@@ -385,6 +420,20 @@ export default function EmployeeCalendar() {
                       >
                         {format(date, 'd')}
                       </span>
+                      {/* 휴무 제한 표시 */}
+                      {(() => {
+                        const maxPeople = getMaxPeopleForDate(date);
+                        if (maxPeople !== null && maxPeople > 0) {
+                          const currentCount = vacations.filter(v => v.status?.toLowerCase() === 'approved').length;
+                          const isFull = currentCount >= maxPeople;
+                          return (
+                            <div className={`text-[7px] sm:text-[9px] font-medium px-1 rounded ${isFull ? 'text-red-500' : 'text-gray-400'}`}>
+                              {currentCount}/{maxPeople}명
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       {hasVacation && (
                         <div className={`flex-1 mt-1 space-y-0.5 ${isExpanded ? '' : 'overflow-hidden'}`}>
                           {vacations.slice(0, isExpanded ? vacations.length : 3).map((vacation, i) => (
@@ -446,9 +495,26 @@ export default function EmployeeCalendar() {
                 <h3 className="text-xl font-bold text-gray-900">
                   {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                 </h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  {dayVacations.length}명 휴무
-                </p>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="text-gray-500 text-sm">
+                    {dayVacations.length}명 휴무
+                  </p>
+                  {(() => {
+                    const maxPeople = getMaxPeopleForDate(selectedDate);
+                    if (maxPeople !== null && maxPeople > 0) {
+                      const approvedCount = dayVacations.filter(v => v.status?.toLowerCase() === 'approved').length;
+                      const remaining = maxPeople - approvedCount;
+                      return (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          remaining <= 0 ? 'bg-red-100 text-red-600' : 'bg-teal-100 text-teal-600'
+                        }`}>
+                          제한 {approvedCount}/{maxPeople}명 {remaining <= 0 ? '(마감)' : `(${remaining}명 가능)`}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               </div>
             </div>
 
