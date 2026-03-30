@@ -221,8 +221,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   };
 
   // 일정 클릭 핸들러
-  const handleScheduleClick = (e: React.MouseEvent, schedule: Schedule) => {
-    e.stopPropagation();
+  const handleScheduleClick = (e: React.MouseEvent | null, schedule: Schedule) => {
+    e?.stopPropagation();
     setSelectedSchedule(schedule);
     setShowDetailModal(true);
   };
@@ -561,7 +561,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         <span>배차 설정</span>
                       </button>
                     </>
-                  ) : (
+                  ) : isAdmin ? (
                     <button
                       onClick={() => openCreateModal()}
                       className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm font-medium"
@@ -571,7 +571,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       </svg>
                       <span>일정 추가</span>
                     </button>
-                  )}
+                  ) : null}
                   <div className="flex items-center border border-gray-200 rounded-lg">
                     <button
                       onClick={goToPrevMonth}
@@ -796,7 +796,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   </div>
                 </div>
 
-                {/* 일정 추가 버튼 */}
+                {/* 일정 추가 버튼 (관리자만) */}
+                {isAdmin && (
                 <div className="px-5 pt-4">
                   <button
                     onClick={() => openCreateModal(selectedDate)}
@@ -808,6 +809,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                     <span>일정 추가</span>
                   </button>
                 </div>
+                )}
 
                 {/* 일정 목록 (스크롤 가능) */}
                 <div className="p-5 flex-1 overflow-y-auto">
@@ -819,7 +821,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-teal-50 hover:border-teal-200 transition-all text-left"
                         >
                           <button
-                            onClick={() => handleScheduleClick({} as React.MouseEvent, schedule)}
+                            onClick={() => handleScheduleClick(null, schedule)}
                             className="w-full text-left"
                           >
                             <div className="flex items-start space-x-2">
@@ -843,6 +845,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               </div>
                             </div>
                           </button>
+                          {isAdmin && (
                           <div className="flex justify-end space-x-1 mt-2 pt-2 border-t border-gray-200">
                             <button
                               onClick={() => handleEditSchedule(schedule)}
@@ -860,6 +863,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               삭제
                             </button>
                           </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1363,12 +1367,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
               </div>
 
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between">
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="px-4 py-2 text-red-600 font-medium hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  삭제
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-4 py-2 text-red-600 font-medium hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    삭제
+                  </button>
+                ) : <div />}
                 <div className="flex space-x-3">
                   <button
                     onClick={() => {
@@ -1379,12 +1385,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   >
                     닫기
                   </button>
-                  <button
-                    onClick={() => handleEditSchedule()}
-                    className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
-                  >
-                    수정
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleEditSchedule()}
+                      className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
+                    >
+                      수정
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
