@@ -65,7 +65,7 @@ interface ScheduleItem {
   isAllDay?: boolean;
   description?: string;
   location?: string;
-  participants?: string[];
+  participants?: { id: number; memberName: string; userName?: string; status?: string }[];
 }
 
 interface VacationCalendarItem {
@@ -114,19 +114,35 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       const monthStartStr = format(startOfMonth(new Date()), 'yyyy-MM-dd');
       const monthEndStr = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
-      const results = await Promise.allSettled([
-        getAllMembers(),
-        getAllVacationRequests(),
-        getApprovalRequests({ status: 'PENDING' }),
-        getPendingJoinRequests(),
-        getSchedules(todayStr, todayStr),
-        getVacationCalendar(todayStr, todayStr),
-        getNotices(),
-        getSchedules(monthStartStr, monthEndStr),
-        getCompanyElderCount(),
-        getEmployeeAttendanceSummary(todayStr),
-        getElderAttendanceSummary(todayStr),
-      ]);
+      // 직원은 기본 데이터만 로드, 관리자는 전체 데이터 로드
+      const apiCalls = isAdmin
+        ? [
+            getAllMembers(),
+            getAllVacationRequests(),
+            getApprovalRequests({ status: 'PENDING' }),
+            getPendingJoinRequests(),
+            getSchedules(todayStr, todayStr),
+            getVacationCalendar(todayStr, todayStr),
+            getNotices(),
+            getSchedules(monthStartStr, monthEndStr),
+            getCompanyElderCount(),
+            getEmployeeAttendanceSummary(todayStr),
+            getElderAttendanceSummary(todayStr),
+          ]
+        : [
+            getAllMembers(),
+            Promise.resolve({ requests: [] }),
+            Promise.resolve({ approvals: [] }),
+            Promise.resolve([]),
+            getSchedules(todayStr, todayStr),
+            Promise.resolve({ dates: {} }),
+            getNotices(),
+            getSchedules(monthStartStr, monthEndStr),
+            Promise.resolve({ count: 0 }),
+            Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0 }),
+            Promise.resolve({ total: 0, present: 0, absent: 0 }),
+          ];
+      const results = await Promise.allSettled(apiCalls);
 
       // Helper to safely extract array from API response
       const extractArray = (d: unknown, ...keys: string[]): unknown[] => {
@@ -851,7 +867,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <p className="text-xs text-gray-400 font-medium">참석자</p>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {selectedSchedule.participants.map((p, i) => (
-                        <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full font-medium">{p}</span>
+                        <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full font-medium">{p.memberName || p.userName || '참석자'}</span>
                       ))}
                     </div>
                   </div>
