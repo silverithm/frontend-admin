@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle } from 'react-icons/fi';
-import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById } from '@/lib/apiService';
+import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, cancelApprovalRequest } from '@/lib/apiService';
+import { useConfirm } from './ConfirmDialog';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
 import ApprovalDetail from './ApprovalDetail';
@@ -15,6 +16,7 @@ type TabType = 'all' | 'pending' | 'approved' | 'rejected';
 
 export default function ApprovalManagement() {
   const { showAlert, AlertContainer } = useAlert();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,8 +32,8 @@ export default function ApprovalManagement() {
   const [rejectReason, setRejectReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
-  const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+  const [userId] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '');
+  const [userName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '');
 
   const [stats, setStats] = useState({ all: 0, pending: 0, approved: 0, rejected: 0 });
 
@@ -176,6 +178,30 @@ export default function ApprovalManagement() {
     }
   };
 
+  const handleDelete = async (id: string | number) => {
+    const confirmed = await confirm({
+      title: '결재 삭제',
+      message: '이 결재 요청을 삭제하시겠습니까?\n삭제된 결재는 복구할 수 없습니다.',
+      confirmText: '삭제',
+      cancelText: '취소',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    setIsProcessing(true);
+    try {
+      await cancelApprovalRequest(String(id));
+      showAlert({ type: 'success', title: '삭제 완료', message: '결재 요청이 삭제되었습니다.' });
+      setSelectedApproval(null);
+      loadApprovals();
+    } catch (error) {
+      console.error('결재 삭제 실패:', error);
+      showAlert({ type: 'error', title: '삭제 실패', message: '결재 삭제에 실패했습니다.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusStyle = (status: ApprovalStatus) => {
     switch (status) {
       case 'APPROVED':
@@ -212,6 +238,7 @@ export default function ApprovalManagement() {
   return (
     <>
       <AlertContainer />
+      <ConfirmContainer />
       <div>
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-5">
@@ -432,6 +459,16 @@ export default function ApprovalManagement() {
                           </button>
                         </>
                       )}
+                      <button
+                        onClick={() => handleDelete(approval.id)}
+                        disabled={isProcessing}
+                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus:outline-none disabled:opacity-50 transition-colors"
+                        title="삭제"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -457,6 +494,7 @@ export default function ApprovalManagement() {
             approval={selectedApproval}
             onApprove={handleApprove}
             onReject={handleReject}
+            onDelete={handleDelete}
             onClose={() => { setSelectedApproval(null); setSelectedTemplateSchema(undefined); }}
             templateSchema={selectedTemplateSchema}
           />

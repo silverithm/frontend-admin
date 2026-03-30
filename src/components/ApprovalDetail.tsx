@@ -13,6 +13,7 @@ interface ApprovalDetailProps {
   approval: ApprovalRequest;
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
   templateSchema?: FormSchema;
 }
@@ -21,6 +22,7 @@ export default function ApprovalDetail({
   approval,
   onApprove,
   onReject,
+  onDelete,
   onClose,
   templateSchema,
 }: ApprovalDetailProps) {
@@ -262,7 +264,16 @@ export default function ApprovalDetail({
             </div>
           ) : (
             !showRejectForm && (
-              <div className="flex justify-end">
+              <div className="flex justify-between">
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(approval.id)}
+                    className="px-4 py-2 text-red-600 font-medium hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
+                  >
+                    삭제
+                  </button>
+                )}
+                <div className="flex-1" />
                 <button
                   onClick={onClose}
                   className="px-5 py-2 bg-teal-500 text-white font-semibold hover:bg-teal-600 rounded-lg transition-colors shadow-sm"
