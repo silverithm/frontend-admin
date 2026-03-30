@@ -1169,7 +1169,12 @@ export default function AdminPage() {
                             transition={{duration: 0.2}}
                             className="flex-1 flex flex-col"
                         >
-                            <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={isAdmin} />
+                            <AdminDashboard onTabChange={(tab) => {
+                                setActiveMainTab(tab as MainTab);
+                                if (tab === 'approval' && isAdmin) {
+                                    setApprovalSubTab('management');
+                                }
+                            }} isAdmin={isAdmin} />
                         </motion.div>
                     ) : activeMainTab === "notice" ? (
                         <motion.div
