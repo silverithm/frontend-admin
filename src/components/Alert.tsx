@@ -116,9 +116,19 @@ export function useAlert() {
   const showAlert = (config: AlertConfig) => {
     const id = Math.random().toString(36).substr(2, 9);
     const alert = { ...config, id, isVisible: true };
-    
-    setAlerts(prev => [...prev, alert]);
-    
+
+    // 기존 알림 모두 닫고 새 알림만 표시 (팝업 중첩 방지)
+    setAlerts(prev => {
+      prev.forEach(a => {
+        if (a.isVisible) {
+          setTimeout(() => {
+            setAlerts(p => p.filter(x => x.id !== a.id));
+          }, 300);
+        }
+      });
+      return [...prev.map(a => ({ ...a, isVisible: false })), alert];
+    });
+
     return id;
   };
 

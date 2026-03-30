@@ -1339,19 +1339,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                     <h4 className="text-sm font-medium text-gray-700 mb-2">참석자</h4>
                     <div className="space-y-2">
                       {selectedSchedule.participants.map((participant) => (
-                        <div key={participant.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                          <span className="text-gray-900">{participant.userName}</span>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              participant.status === 'ACCEPTED'
-                                ? 'bg-green-100 text-green-700'
-                                : participant.status === 'DECLINED'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}
-                          >
-                            {participant.status === 'ACCEPTED' ? '수락' : participant.status === 'DECLINED' ? '거절' : '대기중'}
-                          </span>
+                        <div key={participant.id} className="flex items-center p-2 rounded-lg bg-gray-50">
+                          <span className="text-sm text-gray-900">{(participant as any).memberName || participant.userName || '참석자'}</span>
                         </div>
                       ))}
                     </div>

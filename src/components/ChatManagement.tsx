@@ -110,9 +110,9 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
     const longPressTimerRef2 = useRef<NodeJS.Timeout | null>(null);
 
-    const companyId = typeof window !== "undefined" ? localStorage.getItem("companyId") : null;
-    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-    const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
+    const [companyId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("companyId") : null);
+    const [userId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userId") : null);
+    const [userName] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userName") : null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -206,7 +206,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         };
     }, [userId]);
 
-    // 방 선택 시 메시지 로드 → 읽음 처리 (WebSocket 연결과 무관)
+    // 방 선택 시 또는 WebSocket 재연결 시 메시지 로드 → 읽음 처리
     useEffect(() => {
         if (!selectedRoom) return;
         (async () => {
@@ -215,7 +215,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                 markAsRead(selectedRoom, lastMsgId);
             }
         })();
-    }, [selectedRoom, fetchMessages, markAsRead]);
+    }, [selectedRoom, isConnected, fetchMessages, markAsRead]);
 
     // 방 선택 시 WebSocket 구독 변경
     useEffect(() => {
@@ -267,12 +267,34 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             }
         );
 
+        // 읽음 이벤트 구독
+        const readSubscription = stompClientRef.current.subscribe(
+            `/topic/chat/${selectedRoom}/read`,
+            (stompMessage: IMessage) => {
+                try {
+                    const wsMessage = JSON.parse(stompMessage.body);
+                    if (wsMessage.type === "READ" && wsMessage.senderId !== userId) {
+                        // 다른 사용자가 읽었으므로 메시지 readCount 업데이트
+                        setMessages(prev => prev.map(msg => {
+                            if (msg.id <= (wsMessage.lastReadMessageId || 0)) {
+                                return { ...msg, readCount: msg.readCount + 1 };
+                            }
+                            return msg;
+                        }));
+                    }
+                } catch (e) {
+                    console.error("[Chat WebSocket] 읽음 이벤트 파싱 오류:", e);
+                }
+            }
+        );
+
         subscriptionRef.current = subscription;
 
         return () => {
             subscription.unsubscribe();
+            readSubscription.unsubscribe();
         };
-    }, [selectedRoom, isConnected, fetchMessages, markAsRead]);
+    }, [selectedRoom, isConnected, fetchMessages, markAsRead, userId]);
 
     const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 
@@ -339,13 +361,16 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         const replyToId = replyTo?.id || null;
         setIsSendingMessage(true);
         try {
-            const newMessage = await sendChatMessage(selectedRoom, {
+            const response = await sendChatMessage(selectedRoom, {
                 senderId: userId,
                 senderName: userName,
                 type: "TEXT",
                 content: messageInput.trim(),
                 replyToId,
             });
+
+            // 백엔드가 { success, message } wrapper로 반환하므로 unwrap
+            const newMessage = response.message || response;
 
             setMessages(prev => {
                 if (prev.some(m => m.id === newMessage.id)) return prev;
@@ -451,9 +476,15 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         return `${ampm} ${displayHours}:${minutes}`;
     };
 
-    // 초기 방 목록 로드 (한 번만)
+    // 초기 방 목록 로드 + 30초 주기 polling
     useEffect(() => {
         fetchRooms();
+
+        const pollingInterval = setInterval(() => {
+            fetchRooms();
+        }, 30000);
+
+        return () => clearInterval(pollingInterval);
     }, [fetchRooms]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {

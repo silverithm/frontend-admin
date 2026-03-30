@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getPublishedNotices, incrementNoticeViewCount, getNoticeDetail, getNoticeComments, createNoticeComment, deleteNoticeComment, getNoticeReaders } from '@/lib/apiService';
+import { getPublishedNotices, incrementNoticeViewCount, getNoticeDetail, getNoticeComments, createNoticeComment, deleteNoticeComment, getNoticeReaders, markNoticeAsRead } from '@/lib/apiService';
 import { Notice, NoticePriority, NoticeComment, NoticeReader } from '@/types/notice';
 
 export default function EmployeeNotice() {
@@ -47,12 +47,15 @@ export default function EmployeeNotice() {
 
   const handleOpenNotice = async (notice: Notice) => {
     try {
-      // 조회수 증가
-      await incrementNoticeViewCount(notice.id);
+      // 조회수 증가 + 읽음 기록 동시 호출
+      await Promise.all([
+        incrementNoticeViewCount(notice.id),
+        markNoticeAsRead(notice.id),
+      ]);
       // 상세 정보 로드 (attachments 포함)
       const response = await getNoticeDetail(notice.id);
       const detailData = response.notice || response;
-      setSelectedNotice({ ...detailData, viewCount: (detailData.viewCount || notice.viewCount) + 1 });
+      setSelectedNotice(detailData);
       loadComments(notice.id);
     } catch (error) {
       console.error('공지사항 상세 로드 실패:', error);
@@ -73,7 +76,8 @@ export default function EmployeeNotice() {
     setIsLoadingComments(true);
     try {
       const response = await getNoticeComments(noticeId);
-      setComments(response.comments || response || []);
+      const list = response.comments || (Array.isArray(response) ? response : []);
+      setComments(list);
     } catch (error) {
       console.error('댓글 로드 실패:', error);
       setComments([]);
@@ -86,7 +90,8 @@ export default function EmployeeNotice() {
     setIsLoadingReaders(true);
     try {
       const response = await getNoticeReaders(noticeId);
-      setReaders(response.readers || response || []);
+      const list = response.readers || (Array.isArray(response) ? response : []);
+      setReaders(list);
     } catch (error) {
       console.error('읽은 사람 목록 로드 실패:', error);
       setReaders([]);
@@ -290,7 +295,12 @@ export default function EmployeeNotice() {
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !isSubmittingComment && handleSubmitComment()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing && !isSubmittingComment) {
+                    e.preventDefault();
+                    handleSubmitComment();
+                  }
+                }}
                 placeholder="댓글을 입력하세요..."
                 className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:bg-white"
               />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { createNotice } from '@/lib/apiService';
@@ -10,6 +10,14 @@ import { useAlert } from '@/components/Alert';
 export default function NewNoticePage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
+
+  // 관리자만 접근 가능
+  useEffect(() => {
+    const loginType = localStorage.getItem('loginType');
+    if (loginType !== 'admin') {
+      router.replace('/employee');
+    }
+  }, [router]);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');

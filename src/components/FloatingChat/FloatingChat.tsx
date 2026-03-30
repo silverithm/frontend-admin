@@ -29,10 +29,10 @@ export function FloatingChat() {
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-    const companyId = typeof window !== "undefined" ? localStorage.getItem("companyId") : null;
-    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-    const userName = typeof window !== "undefined" ? localStorage.getItem("userName") : null;
-    const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const [companyId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("companyId") : null);
+    const [userId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userId") : null);
+    const [userName] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userName") : null);
+    const [authToken] = useState(() => typeof window !== "undefined" ? localStorage.getItem("authToken") : null);
 
     const totalUnread = rooms.reduce((sum, room) => sum + room.unreadCount, 0);
 
@@ -135,7 +135,7 @@ export function FloatingChat() {
         };
     }, [fetchRooms]);
 
-    // Room selection: fetch messages + mark as read
+    // Room selection or WebSocket reconnection: fetch messages + mark as read
     useEffect(() => {
         if (!selectedRoomId) return;
         (async () => {
@@ -144,7 +144,7 @@ export function FloatingChat() {
                 markAsRead(selectedRoomId, lastMsgId);
             }
         })();
-    }, [selectedRoomId, fetchMessages, markAsRead]);
+    }, [selectedRoomId, isConnected, fetchMessages, markAsRead]);
 
     // WebSocket subscription when room changes
     useEffect(() => {
@@ -190,12 +190,33 @@ export function FloatingChat() {
             }
         );
 
+        // 읽음 이벤트 구독
+        const readSubscription = stompClientRef.current.subscribe(
+            `/topic/chat/${selectedRoomId}/read`,
+            (stompMessage: IMessage) => {
+                try {
+                    const wsMessage = JSON.parse(stompMessage.body);
+                    if (wsMessage.type === "READ" && wsMessage.senderId !== userId) {
+                        setMessages(prev => prev.map(msg => {
+                            if (msg.id <= (wsMessage.lastReadMessageId || 0)) {
+                                return { ...msg, readCount: msg.readCount + 1 };
+                            }
+                            return msg;
+                        }));
+                    }
+                } catch (e) {
+                    console.error("[FloatingChat WebSocket] 읽음 이벤트 파싱 오류:", e);
+                }
+            }
+        );
+
         subscriptionRef.current = subscription;
 
         return () => {
             subscription.unsubscribe();
+            readSubscription.unsubscribe();
         };
-    }, [selectedRoomId, isConnected, markAsRead]);
+    }, [selectedRoomId, isConnected, markAsRead, userId]);
 
     // --- Send message ---
 
@@ -234,13 +255,16 @@ export function FloatingChat() {
 
         setIsSendingMessage(true);
         try {
-            const newMessage = await sendChatMessage(selectedRoomId, {
+            const response = await sendChatMessage(selectedRoomId, {
                 senderId: userId,
                 senderName: userName,
                 type: "TEXT",
                 content: messageInput.trim(),
                 replyToId: replyToId || null,
             });
+
+            // 백엔드가 { success, message } wrapper로 반환하므로 unwrap
+            const newMessage = response.message || response;
 
             setMessages(prev => {
                 if (prev.some(m => m.id === newMessage.id)) return prev;

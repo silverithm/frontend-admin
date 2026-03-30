@@ -1190,6 +1190,16 @@ export async function getNoticeReaders(noticeId: string) {
     return fetchWithAuth(`/api/v1/notices/${noticeId}/readers`);
 }
 
+// 공지사항 읽음 기록
+export async function markNoticeAsRead(noticeId: string) {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+    return fetchWithAuth(`/api/v1/notices/${noticeId}/readers`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, userName }),
+    });
+}
+
 // ================== 전자결재 양식 API ==================
 
 // 양식 목록 조회 (관리자)
@@ -1696,7 +1706,10 @@ export async function fetchChatRooms() {
 
 // 채팅 메시지 조회
 export async function fetchChatMessages(roomId: number, page = 0, size = 50) {
-    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages?page=${page}&size=${size}`);
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (userId) params.append('userId', userId);
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages?${params.toString()}`);
 }
 
 // 채팅 읽음 처리

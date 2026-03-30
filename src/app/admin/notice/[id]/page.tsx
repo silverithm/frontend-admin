@@ -25,6 +25,12 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const loginType = localStorage.getItem('loginType');
+    setIsAdmin(loginType === 'admin');
+  }, []);
 
   const [notice, setNotice] = useState<Notice | null>(null);
   const [comments, setComments] = useState<NoticeComment[]>([]);
@@ -123,7 +129,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
     try {
       await deleteNotice(id);
       showAlert({ type: 'success', title: '삭제 완료', message: '공지사항이 삭제되었습니다.' });
-      setTimeout(() => router.push('/admin?tab=notice'), 1000);
+      setTimeout(() => router.push(isAdmin ? '/admin?tab=notice' : '/employee?tab=notice'), 1000);
     } catch (error) {
       console.error('삭제 실패:', error);
       showAlert({ type: 'error', title: '삭제 실패', message: '공지사항 삭제에 실패했습니다.' });
@@ -234,7 +240,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => router.push('/admin?tab=notice')}
+                  onClick={() => router.push(isAdmin ? '/admin?tab=notice' : '/employee?tab=notice')}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,6 +249,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                 </button>
                 <h1 className="text-xl font-bold text-gray-900">공지사항 상세</h1>
               </div>
+              {isAdmin && (
               <div className="flex items-center space-x-2">
                 {isEditing ? (
                   <>
@@ -277,6 +284,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                   </>
                 )}
               </div>
+              )}
             </div>
           </div>
         </div>

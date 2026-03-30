@@ -25,6 +25,7 @@ export async function GET(
     const url = new URL(request.url);
     const page = url.searchParams.get('page');
     const size = url.searchParams.get('size');
+    const userId = url.searchParams.get('userId');
 
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -33,6 +34,7 @@ export async function GET(
     const queryParams = new URLSearchParams();
     if (page) queryParams.append('page', page);
     if (size) queryParams.append('size', size);
+    if (userId) queryParams.append('userId', userId);
     if (queryParams.toString()) backendUrl += `?${queryParams.toString()}`;
 
     const backendHeaders: Record<string, string> = {

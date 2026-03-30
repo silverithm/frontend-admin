@@ -27,7 +27,7 @@ export default function EmployeeCalendar() {
   });
   const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
 
-  const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') : null;
+  const [userName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('userName') : null);
 
   // 달력 날짜 계산
   const calendarDays = useMemo(() => {
