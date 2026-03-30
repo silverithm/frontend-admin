@@ -1275,7 +1275,7 @@ export async function getApprovalRequests(filter?: {
 
 // 내 결재 요청 조회 (직원용)
 export async function getMyApprovalRequests(requesterId: string) {
-    return fetchWithAuth(`/api/v1/approvals?requesterId=${requesterId}`);
+    return fetchWithAuth(`/api/v1/approvals/my?requesterId=${requesterId}`);
 }
 
 // 결재 요청 상세 조회
@@ -1283,7 +1283,15 @@ export async function getApprovalRequestById(id: string) {
     return fetchWithAuth(`/api/v1/approvals/${id}`);
 }
 
-// 결재 요청 생성 (직원)
+// 결재용 requesterId 반환 (admin은 prefix로 구분하여 memberId 충돌 방지)
+export function getApprovalRequesterId(): string {
+    if (typeof window === 'undefined') return '';
+    const userId = localStorage.getItem('userId') || '';
+    const loginType = localStorage.getItem('loginType') || '';
+    return loginType === 'admin' ? `admin_${userId}` : userId;
+}
+
+// 결재 요청 생성
 export async function createApprovalRequest(data: {
     templateId: number;
     title: string;
@@ -1293,14 +1301,14 @@ export async function createApprovalRequest(data: {
     attachmentFileSize?: number;
 }) {
     const companyId = getCompanyId();
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const requesterId = getApprovalRequesterId();
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
 
     if (!companyId) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
 
-    return fetchWithAuth(`/api/v1/approvals?companyId=${companyId}&requesterId=${userId}&requesterName=${encodeURIComponent(userName)}`, {
+    return fetchWithAuth(`/api/v1/approvals?companyId=${companyId}&requesterId=${requesterId}&requesterName=${encodeURIComponent(userName)}`, {
         method: 'POST',
         body: JSON.stringify(data),
     });
@@ -1425,7 +1433,11 @@ export async function updateSchedule(id: string, data: {
         mimeType: string;
     }[];
 }) {
-    return fetchWithAuth(`/api/v1/schedules/${id}`, {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${id}?companyId=${companyId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     });
@@ -1433,7 +1445,11 @@ export async function updateSchedule(id: string, data: {
 
 // 일정 삭제
 export async function deleteSchedule(id: string) {
-    return fetchWithAuth(`/api/v1/schedules/${id}`, {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${id}?companyId=${companyId}`, {
         method: 'DELETE',
     });
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest } from '@/lib/apiService';
+import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
@@ -35,7 +35,7 @@ export default function EmployeeApproval() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+  const userId = getApprovalRequesterId();
 
   // 데이터 로드
   useEffect(() => {

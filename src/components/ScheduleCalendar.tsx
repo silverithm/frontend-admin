@@ -284,22 +284,24 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   };
 
   // 일정 수정
-  const handleEditSchedule = () => {
-    if (!selectedSchedule) return;
+  const handleEditSchedule = (schedule?: Schedule) => {
+    const target = schedule || selectedSchedule;
+    if (!target) return;
 
+    setSelectedSchedule(target);
     setFormData({
-      title: selectedSchedule.title,
-      content: selectedSchedule.content || '',
-      category: selectedSchedule.category,
-      labelId: selectedSchedule.labelId || '',
-      location: selectedSchedule.location || '',
-      startDate: selectedSchedule.startDate.split('T')[0],
-      startTime: selectedSchedule.startTime || '09:00',
-      endDate: selectedSchedule.endDate.split('T')[0],
-      endTime: selectedSchedule.endTime || '10:00',
-      isAllDay: selectedSchedule.isAllDay,
-      sendNotification: selectedSchedule.sendNotification,
-      participantIds: selectedSchedule.participants?.map(p => p.userId) || [],
+      title: target.title,
+      content: target.content || '',
+      category: target.category,
+      labelId: target.labelId || '',
+      location: target.location || '',
+      startDate: target.startDate.split('T')[0],
+      startTime: target.startTime || '09:00',
+      endDate: target.endDate.split('T')[0],
+      endTime: target.endTime || '10:00',
+      isAllDay: target.isAllDay,
+      sendNotification: target.sendNotification,
+      participantIds: target.participants?.map(p => p.userId) || [],
     });
     setShowDetailModal(false);
     setShowCreateModal(true);
@@ -735,8 +737,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           {format(date, 'd')}
                         </span>
                         {daySchedules.length > 0 && (
-                          <div className="flex-1 mt-1 space-y-0.5 overflow-hidden">
-                            {daySchedules.slice(0, 3).map((schedule) => (
+                          <div className="flex-1 mt-1 space-y-0.5 overflow-y-auto">
+                            {daySchedules.map((schedule) => (
                               <div
                                 key={schedule.id}
                                 onClick={(e) => handleScheduleClick(e, schedule)}
@@ -750,11 +752,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                 {schedule.title}
                               </div>
                             ))}
-                            {daySchedules.length > 3 && (
-                              <div className="text-[10px] text-gray-500 font-medium">
-                                +{daySchedules.length - 3}개
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>
@@ -817,32 +814,53 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   {getSchedulesForDate(selectedDate).length > 0 ? (
                     <div className="space-y-2.5">
                       {getSchedulesForDate(selectedDate).map((schedule) => (
-                        <button
+                        <div
                           key={schedule.id}
-                          onClick={() => handleScheduleClick({} as React.MouseEvent, schedule)}
                           className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-teal-50 hover:border-teal-200 transition-all text-left"
                         >
-                          <div className="flex items-start space-x-2">
-                            <div
-                              className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
-                              style={{ backgroundColor: schedule.label?.color || '#3B82F6' }}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <span className="font-semibold text-sm text-gray-900 block truncate">{schedule.title}</span>
-                              <div className="flex items-center space-x-1.5 mt-1">
-                                <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-full">
-                                  {getCategoryText(schedule.category)}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {schedule.isAllDay ? '종일' : `${schedule.startTime || ''} - ${schedule.endTime || ''}`}
-                                </span>
+                          <button
+                            onClick={() => handleScheduleClick({} as React.MouseEvent, schedule)}
+                            className="w-full text-left"
+                          >
+                            <div className="flex items-start space-x-2">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
+                                style={{ backgroundColor: schedule.label?.color || '#3B82F6' }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="font-semibold text-sm text-gray-900 block truncate">{schedule.title}</span>
+                                <div className="flex items-center space-x-1.5 mt-1">
+                                  <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-full">
+                                    {getCategoryText(schedule.category)}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {schedule.isAllDay ? '종일' : `${schedule.startTime || ''} - ${schedule.endTime || ''}`}
+                                  </span>
+                                </div>
+                                {schedule.location && (
+                                  <span className="text-xs text-gray-400 mt-0.5 block truncate">{schedule.location}</span>
+                                )}
                               </div>
-                              {schedule.location && (
-                                <span className="text-xs text-gray-400 mt-0.5 block truncate">{schedule.location}</span>
-                              )}
                             </div>
+                          </button>
+                          <div className="flex justify-end space-x-1 mt-2 pt-2 border-t border-gray-200">
+                            <button
+                              onClick={() => handleEditSchedule(schedule)}
+                              className="px-2.5 py-1 text-xs font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                            >
+                              수정
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedSchedule(schedule);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              삭제
+                            </button>
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -1344,33 +1362,31 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 </div>
               </div>
 
-              {isAdmin && (
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between">
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 text-red-600 font-medium hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  삭제
+                </button>
+                <div className="flex space-x-3">
                   <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="px-4 py-2 text-red-600 font-medium hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      setSelectedSchedule(null);
+                    }}
+                    className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    삭제
+                    닫기
                   </button>
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => {
-                        setShowDetailModal(false);
-                        setSelectedSchedule(null);
-                      }}
-                      className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      닫기
-                    </button>
-                    <button
-                      onClick={handleEditSchedule}
-                      className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
-                    >
-                      수정
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleEditSchedule()}
+                    className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
+                  >
+                    수정
+                  </button>
                 </div>
-              )}
+              </div>
             </motion.div>
           </motion.div>
         )}

@@ -33,6 +33,7 @@ import UserManagement from "@/components/UserManagement";
 import SubscriptionStatus from "@/components/SubscriptionStatus";
 import ApprovalManagement from "@/components/ApprovalManagement";
 import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
+import EmployeeApproval from "@/components/EmployeeApproval";
 import NoticeManagement from "@/components/NoticeManagement";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
@@ -53,12 +54,12 @@ import {
 } from "@/lib/roleUtils";
 
 type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members";
-type ApprovalSubTab = "management" | "templates";
+type ApprovalSubTab = "management" | "templates" | "submit";
 type ScheduleMode = "schedule" | "dispatch";
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
-    const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("management");
+    const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("submit");
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -157,6 +158,9 @@ export default function AdminPage() {
 
         if (!token) {
             router.push("/login");
+        } else if (storedLoginType === 'employee') {
+            // 직원이 admin 페이지에 접근하면 employee 페이지로 리다이렉트
+            router.push("/employee");
         } else {
             fetchInitialData();
         }
@@ -1018,7 +1022,7 @@ export default function AdminPage() {
                         { key: "schedule", label: "월간일정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
                         { key: "approval", label: "전자결재", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
                         { key: "work", label: "근무조정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
-                        { key: "members", label: "회원관리", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" },
+                        ...(isAdmin ? [{ key: "members", label: "회원관리", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" }] : []),
                     ] as { key: string; label: string; icon: string; badge?: number }[]).map((tab) => (
                         <div key={tab.key}>
                             <button
@@ -1040,14 +1044,19 @@ export default function AdminPage() {
                             {/* 전자결재 서브탭 */}
                             {tab.key === "approval" && activeMainTab === "approval" && (
                                 <div className="pl-9 mt-1 space-y-0.5">
+                                    <button onClick={() => setApprovalSubTab("submit")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "submit" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                        결재 신청
+                                    </button>
                                     {isAdmin && (
                                     <button onClick={() => setApprovalSubTab("management")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "management" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
                                         결재 관리
                                     </button>
                                     )}
+                                    {isAdmin && (
                                     <button onClick={() => setApprovalSubTab("templates")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "templates" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
                                         양식 관리
                                     </button>
+                                    )}
                                 </div>
                             )}
                             {/* 월간일정 서브탭 */}
@@ -1099,8 +1108,9 @@ export default function AdminPage() {
                 <nav className="flex overflow-x-auto scrollbar-hide px-2 -mb-px">
                     {([
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
-                        { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" }, { key: "members", label: "회원" },
-                    ] as const).map((tab) => (
+                        { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
+                        ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
+                    ] as { key: string; label: string }[]).map((tab) => (
                         <button key={tab.key} onClick={() => setActiveMainTab(tab.key as MainTab)} className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${activeMainTab === tab.key ? "text-teal-600 border-teal-500" : "text-gray-500 border-transparent"}`}>
                             {tab.label}
                         </button>
@@ -1208,10 +1218,12 @@ export default function AdminPage() {
                             transition={{duration: 0.2}}
                             className="flex-1 flex flex-col"
                         >
-                            {isAdmin && approvalSubTab === "management" ? (
+                            {approvalSubTab === "management" && isAdmin ? (
                                 <ApprovalManagement />
-                            ) : (
+                            ) : approvalSubTab === "templates" && isAdmin ? (
                                 <ApprovalTemplateManager isAdmin={isAdmin} />
+                            ) : (
+                                <EmployeeApproval />
                             )}
                         </motion.div>
                     ) : activeMainTab === "work" ? (
