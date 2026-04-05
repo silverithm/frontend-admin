@@ -42,7 +42,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
         console.log("휴무 데이터 개수:", response.requests.length);
         console.log("휴무자 샘플:", response.requests.slice(0, 5).map((v: VacationRequest) => ({ userName: v.userName, date: v.date })));
         setVacations(response.requests);
-      } else if (response.data) {
+      } else if (Array.isArray(response.data)) {
         setVacations(response.data);
       } else if (Array.isArray(response)) {
         setVacations(response);

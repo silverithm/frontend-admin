@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiMail, FiCalendar, FiShield, FiAlertCircle, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiX } from 'react-icons/fi';
-import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, type PendingUser } from '@/lib/apiService';
+import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberPermissions, updateMemberPermissions, type PendingUser } from '@/lib/apiService';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
+import { ALL_PERMISSIONS, PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, type Permission } from '@/types/auth';
 import PositionManagement from '@/components/PositionManagement';
 import {
   ALL_ROLE_FILTER,
@@ -56,6 +57,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [seniorForm, setSeniorForm] = useState({ name: '', homeAddress: '', requiredFrontSeat: false });
   const [showDeleteSeniorModal, setShowDeleteSeniorModal] = useState(false);
   const [selectedSenior, setSelectedSenior] = useState<ElderlyInfo | null>(null);
+
+  // 권한 설정 상태
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [permissionUser, setPermissionUser] = useState<User | null>(null);
+  const [permissionLoading, setPermissionLoading] = useState(false);
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<Permission>>(new Set());
 
   // 직책 관리 상태
   const [positions, setPositions] = useState<Position[]>([]);
@@ -338,6 +345,53 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       onNotification(error instanceof Error ? error.message : '상태 변경 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // 권한 설정 모달 열기
+  const openPermissionModal = async (user: User) => {
+    setPermissionUser(user);
+    setPermissionLoading(true);
+    setShowPermissionModal(true);
+    try {
+      const data = await getMemberPermissions(user.id);
+      const perms = data.permissions || [];
+      setSelectedPermissions(new Set(perms as Permission[]));
+    } catch (error) {
+      console.error('권한 조회 오류:', error);
+      setSelectedPermissions(new Set());
+    } finally {
+      setPermissionLoading(false);
+    }
+  };
+
+  // 권한 토글
+  const togglePermission = (perm: Permission) => {
+    setSelectedPermissions(prev => {
+      const next = new Set(prev);
+      if (next.has(perm)) {
+        next.delete(perm);
+      } else {
+        next.add(perm);
+      }
+      return next;
+    });
+  };
+
+  // 권한 저장
+  const handleSavePermissions = async () => {
+    if (!permissionUser) return;
+    setPermissionLoading(true);
+    try {
+      await updateMemberPermissions(permissionUser.id, Array.from(selectedPermissions));
+      onNotification(`${permissionUser.name}님의 권한이 저장되었습니다.`, 'success');
+      setShowPermissionModal(false);
+      setPermissionUser(null);
+    } catch (error) {
+      console.error('권한 저장 오류:', error);
+      onNotification('권한 저장 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setPermissionLoading(false);
     }
   };
 
@@ -813,6 +867,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         </div>
                         {isAdmin && (
                           <div className="flex space-x-2">
+                            {user.role !== 'admin' && (
+                              <button
+                                onClick={() => openPermissionModal(user)}
+                                disabled={isProcessing}
+                                className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              >
+                                <FiShield className="mr-1" size={14} />
+                                권한
+                              </button>
+                            )}
                             <button
                               onClick={() => handleToggleUserStatus(user.id, user.status)}
                               disabled={isProcessing || user.role === 'admin'}
@@ -1230,6 +1294,118 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     <>
                       <FiTrash2 className="mr-1.5" size={16} />
                       삭제하기
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 권한 설정 모달 */}
+      <AnimatePresence>
+        {showPermissionModal && permissionUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => { setShowPermissionModal(false); setPermissionUser(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                <h3 className="text-lg font-bold text-white flex items-center">
+                  <FiShield className="mr-2" size={20} />
+                  권한 설정
+                </h3>
+                <p className="text-blue-100 text-sm mt-1">{permissionUser.name}님의 관리 권한</p>
+              </div>
+              <div className="p-6">
+                {permissionLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <span className="ml-3 text-gray-500 text-sm">권한 정보 로딩 중...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-sm text-gray-500">부여할 권한을 선택하세요</p>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setSelectedPermissions(new Set(ALL_PERMISSIONS))}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          전체 선택
+                        </button>
+                        <span className="text-gray-300">|</span>
+                        <button
+                          onClick={() => setSelectedPermissions(new Set())}
+                          className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                        >
+                          전체 해제
+                        </button>
+                      </div>
+                    </div>
+                    {ALL_PERMISSIONS.map((perm) => (
+                      <label
+                        key={perm}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
+                          selectedPermissions.has(perm)
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{PERMISSION_LABELS[perm]}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{PERMISSION_DESCRIPTIONS[perm]}</div>
+                        </div>
+                        <div className="ml-3 flex-shrink-0">
+                          <div
+                            className={`w-10 h-6 rounded-full transition-colors duration-200 relative ${
+                              selectedPermissions.has(perm) ? 'bg-blue-500' : 'bg-gray-300'
+                            }`}
+                            onClick={(e) => { e.preventDefault(); togglePermission(perm); }}
+                          >
+                            <div
+                              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                                selectedPermissions.has(perm) ? 'translate-x-4' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end space-x-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <button
+                  onClick={() => { setShowPermissionModal(false); setPermissionUser(null); }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSavePermissions}
+                  disabled={permissionLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                >
+                  {permissionLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-blue-200 border-t-white rounded-full animate-spin mr-2"></div>
+                      저장 중...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheck className="mr-1.5" size={16} />
+                      저장
                     </>
                   )}
                 </button>

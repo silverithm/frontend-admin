@@ -45,6 +45,54 @@ export enum UserRole {
 // 로그인 타입
 export type LoginType = 'admin' | 'employee';
 
+// 기능별 세부 권한
+export type Permission =
+  | 'NOTICE_MANAGE'       // 공지사항 관리
+  | 'SCHEDULE_MANAGE'     // 일정 관리
+  | 'SCHEDULE_DISPATCH'   // 배차 관리
+  | 'APPROVAL_MANAGE'     // 결재 관리 (승인/거절)
+  | 'APPROVAL_TEMPLATE'   // 결재 양식 관리
+  | 'WORK_MANAGE'         // 근무조정 관리
+  | 'MEMBER_VIEW'         // 회원 조회
+  | 'MEMBER_MANAGE'       // 회원 승인/거절/상태변경
+  | 'SENIOR_MANAGE';      // 어르신 관리
+
+export const PERMISSION_LABELS: Record<Permission, string> = {
+  NOTICE_MANAGE: '공지사항 관리',
+  SCHEDULE_MANAGE: '일정 관리',
+  SCHEDULE_DISPATCH: '배차 관리',
+  APPROVAL_MANAGE: '결재 관리',
+  APPROVAL_TEMPLATE: '결재 양식 관리',
+  WORK_MANAGE: '근무조정 관리',
+  MEMBER_VIEW: '회원 조회',
+  MEMBER_MANAGE: '회원 관리',
+  SENIOR_MANAGE: '어르신 관리',
+};
+
+export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
+  NOTICE_MANAGE: '공지사항 작성, 수정, 삭제',
+  SCHEDULE_MANAGE: '월간 일정 생성 및 관리',
+  SCHEDULE_DISPATCH: '차량 배차 설정 및 관리',
+  APPROVAL_MANAGE: '전자결재 승인, 거절 처리',
+  APPROVAL_TEMPLATE: '결재 양식 생성 및 관리',
+  WORK_MANAGE: '근무조정 요청 승인 및 관리',
+  MEMBER_VIEW: '회원 목록 조회',
+  MEMBER_MANAGE: '회원 승인, 거절, 상태 변경',
+  SENIOR_MANAGE: '어르신 정보 등록 및 관리',
+};
+
+export const ALL_PERMISSIONS: Permission[] = [
+  'NOTICE_MANAGE',
+  'SCHEDULE_MANAGE',
+  'SCHEDULE_DISPATCH',
+  'APPROVAL_MANAGE',
+  'APPROVAL_TEMPLATE',
+  'WORK_MANAGE',
+  'MEMBER_VIEW',
+  'MEMBER_MANAGE',
+  'SENIOR_MANAGE',
+];
+
 // 직원 로그인 응답 DTO
 export interface MemberSigninResponseDTO {
   memberId: number;
@@ -53,6 +101,7 @@ export interface MemberSigninResponseDTO {
   companyId: number;
   companyName: string;
   role: string;
+  permissions: Permission[];
   tokenInfo: TokenInfo;
 }
 

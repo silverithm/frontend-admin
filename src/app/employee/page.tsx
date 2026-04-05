@@ -13,16 +13,26 @@ import ScheduleCalendar from '@/components/ScheduleCalendar';
 import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
 import AdminDashboard from '@/components/AdminDashboard';
+import ApprovalManagement from '@/components/ApprovalManagement';
+import ApprovalTemplateManager from '@/components/ApprovalTemplateManager';
+import UserManagement from '@/components/UserManagement';
+import DispatchManagement from '@/components/DispatchManagement';
 import Image from 'next/image';
+import type { Permission } from '@/types/auth';
 
-type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work';
+type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members';
+type ApprovalSubTab = 'submit' | 'management' | 'templates';
+type ScheduleSubTab = 'schedule' | 'dispatch';
 
 export default function EmployeePage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('dashboard');
+  const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>('submit');
+  const [scheduleSubTab, setScheduleSubTab] = useState<ScheduleSubTab>('schedule');
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [notification, setNotification] = useState<{
     show: boolean;
@@ -40,7 +50,18 @@ export default function EmployeePage() {
     const company = localStorage.getItem('companyName') || '';
     setUserName(name);
     setCompanyName(company);
+    try {
+      const storedPerms = localStorage.getItem('permissions');
+      if (storedPerms) {
+        setPermissions(JSON.parse(storedPerms));
+      }
+    } catch {
+      setPermissions([]);
+    }
   }, [isClient]);
+
+  const hasPermission = (perm: Permission) => permissions.includes(perm);
+  const hasAnyPermission = (...perms: Permission[]) => perms.some(p => permissions.includes(p));
 
   const handleLogout = async () => {
     try {
@@ -79,6 +100,10 @@ export default function EmployeePage() {
     { key: 'schedule', label: '월간일정', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
     { key: 'approval', label: '전자결재', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     { key: 'work', label: '근무조정', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    // 권한이 있는 경우에만 회원관리 탭 표시
+    ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
+      { key: 'members', label: '회원관리', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+    ] : []),
   ];
 
   return (
@@ -232,7 +257,7 @@ export default function EmployeePage() {
                   transition={{ duration: 0.2 }}
                   className="flex-1 flex flex-col"
                 >
-                  <NoticeManagement isAdmin={false} />
+                  <NoticeManagement isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
               ) : activeMainTab === 'chat' ? (
                 <motion.div
@@ -243,7 +268,7 @@ export default function EmployeePage() {
                   transition={{ duration: 0.2 }}
                   className="flex-1 flex flex-col"
                 >
-                  <ChatManagement onNotification={showNotification} isAdmin={false} />
+                  <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
               ) : activeMainTab === 'schedule' ? (
                 <motion.div
@@ -254,7 +279,36 @@ export default function EmployeePage() {
                   transition={{ duration: 0.3 }}
                   className="flex-1 flex flex-col"
                 >
-                  <ScheduleCalendar isAdmin={false} mode="schedule" onNotification={showNotification} />
+                  {/* 배차관리 권한이 있으면 서브탭 표시 */}
+                  {hasPermission('SCHEDULE_DISPATCH') && (
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => setScheduleSubTab('schedule')}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          scheduleSubTab === 'schedule'
+                            ? 'bg-teal-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        일정
+                      </button>
+                      <button
+                        onClick={() => setScheduleSubTab('dispatch')}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          scheduleSubTab === 'dispatch'
+                            ? 'bg-teal-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        배차관리
+                      </button>
+                    </div>
+                  )}
+                  {scheduleSubTab === 'schedule' ? (
+                    <ScheduleCalendar isAdmin={hasPermission('SCHEDULE_MANAGE')} mode="schedule" onNotification={showNotification} />
+                  ) : (
+                    <DispatchManagement onNotification={showNotification} />
+                  )}
                 </motion.div>
               ) : activeMainTab === 'approval' ? (
                 <motion.div
@@ -265,7 +319,52 @@ export default function EmployeePage() {
                   transition={{ duration: 0.2 }}
                   className="flex-1 flex flex-col"
                 >
-                  <EmployeeApproval />
+                  {/* 결재 관리/양식 관리 권한이 있으면 서브탭 표시 */}
+                  {hasAnyPermission('APPROVAL_MANAGE', 'APPROVAL_TEMPLATE') && (
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => setApprovalSubTab('submit')}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          approvalSubTab === 'submit'
+                            ? 'bg-teal-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        결재 신청
+                      </button>
+                      {hasPermission('APPROVAL_MANAGE') && (
+                        <button
+                          onClick={() => setApprovalSubTab('management')}
+                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            approvalSubTab === 'management'
+                              ? 'bg-teal-500 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          결재 관리
+                        </button>
+                      )}
+                      {hasPermission('APPROVAL_TEMPLATE') && (
+                        <button
+                          onClick={() => setApprovalSubTab('templates')}
+                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            approvalSubTab === 'templates'
+                              ? 'bg-teal-500 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          양식 관리
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {approvalSubTab === 'submit' ? (
+                    <EmployeeApproval />
+                  ) : approvalSubTab === 'management' ? (
+                    <ApprovalManagement />
+                  ) : approvalSubTab === 'templates' ? (
+                    <ApprovalTemplateManager />
+                  ) : null}
                 </motion.div>
               ) : activeMainTab === 'work' ? (
                 <motion.div
@@ -277,6 +376,20 @@ export default function EmployeePage() {
                   className="flex-1 flex flex-col"
                 >
                   <EmployeeCalendar />
+                </motion.div>
+              ) : activeMainTab === 'members' ? (
+                <motion.div
+                  key="members"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 flex flex-col"
+                >
+                  <UserManagement
+                    onNotification={showNotification}
+                    isAdmin={hasPermission('MEMBER_MANAGE')}
+                  />
                 </motion.div>
               ) : null}
             </AnimatePresence>

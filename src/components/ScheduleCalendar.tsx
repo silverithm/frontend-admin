@@ -53,6 +53,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   const [showLabelModal, setShowLabelModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
 
   // 배차 모드 관련 상태
   const { settings: dispatchSettings, seniorAbsences, isHydrated } = useDispatchStore();
@@ -109,6 +110,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       loadSchedules();
       loadLabels();
       loadMembers();
+    }
+    if (typeof window !== 'undefined') {
+      setCurrentUserEmail(localStorage.getItem('userEmail') || '');
     }
   }, [currentDate, isDispatchMode]);
 
@@ -561,7 +565,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         <span>배차 설정</span>
                       </button>
                     </>
-                  ) : isAdmin ? (
+                  ) : (
                     <button
                       onClick={() => openCreateModal()}
                       className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm font-medium"
@@ -571,7 +575,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       </svg>
                       <span>일정 추가</span>
                     </button>
-                  ) : null}
+                  )}
                   <div className="flex items-center border border-gray-200 rounded-lg">
                     <button
                       onClick={goToPrevMonth}
@@ -796,8 +800,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   </div>
                 </div>
 
-                {/* 일정 추가 버튼 (관리자만) */}
-                {isAdmin && (
+                {/* 일정 추가 버튼 */}
                 <div className="px-5 pt-4">
                   <button
                     onClick={() => openCreateModal(selectedDate)}
@@ -809,7 +812,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                     <span>일정 추가</span>
                   </button>
                 </div>
-                )}
 
                 {/* 일정 목록 (스크롤 가능) */}
                 <div className="p-5 flex-1 overflow-y-auto">
@@ -845,7 +847,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               </div>
                             </div>
                           </button>
-                          {isAdmin && (
+                          {(isAdmin || schedule.authorId === currentUserEmail) && (
                           <div className="flex justify-end space-x-1 mt-2 pt-2 border-t border-gray-200">
                             <button
                               onClick={() => handleEditSchedule(schedule)}
@@ -1356,7 +1358,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
               </div>
 
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between">
-                {isAdmin ? (
+                {(isAdmin || selectedSchedule.authorId === currentUserEmail) ? (
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
                     className="px-4 py-2 text-red-600 font-medium hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
@@ -1374,7 +1376,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   >
                     닫기
                   </button>
-                  {isAdmin && (
+                  {(isAdmin || selectedSchedule.authorId === currentUserEmail) && (
                     <button
                       onClick={() => handleEditSchedule()}
                       className="px-6 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"

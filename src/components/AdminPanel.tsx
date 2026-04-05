@@ -167,15 +167,7 @@ const AdminPanel = ({
 
       const saveLimits = limits.filter((limit) => limit.role.trim().length > 0);
 
-      const response = await saveVacationLimits(saveLimits);
-
-      if (!response.success) {
-        const errorData = await response;
-        console.error("[AdminPanel] 저장 실패:", errorData);
-        throw new Error(errorData.error || "저장 중 오류가 발생했습니다");
-      }
-
-      const result = await response;
+      await saveVacationLimits(saveLimits);
 
       // 성공 후 최신 데이터 새로고침
       await onUpdateSuccess();

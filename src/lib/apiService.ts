@@ -601,6 +601,8 @@ export async function memberSignin(email: string, password: string): Promise<Mem
             localStorage.setItem('userRole', 'ROLE_EMPLOYEE');
             localStorage.setItem('loginType', 'employee');
             localStorage.setItem('userPosition', data.position || '');
+            // 권한 정보 저장
+            localStorage.setItem('permissions', JSON.stringify(data.permissions || []));
         } else {
             console.error('직원 로그인 응답에 토큰 정보가 없습니다:', data);
             throw new Error('로그인 응답에 토큰 정보가 없습니다.');
@@ -866,6 +868,21 @@ export async function updateMember(id: string, updateData: {
 export async function deleteMember(id: string) {
     return fetchWithAuth(`/admin/users/${id}`, {
         method: 'DELETE',
+    });
+}
+
+// ================== 멤버 권한 관리 API ==================
+
+// 멤버 권한 조회
+export async function getMemberPermissions(memberId: string) {
+    return fetchWithAuth(`/api/v1/members/${memberId}/permissions`);
+}
+
+// 멤버 권한 수정
+export async function updateMemberPermissions(memberId: string, permissions: string[]) {
+    return fetchWithAuth(`/api/v1/members/${memberId}/permissions`, {
+        method: 'PUT',
+        body: JSON.stringify({ permissions }),
     });
 }
 

@@ -50,6 +50,13 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
           badge: "bg-gray-50 text-gray-600",
           icon: "text-gray-500",
         };
+      default:
+        return {
+          bg: "bg-gray-50",
+          border: "border-gray-200",
+          badge: "bg-gray-50 text-gray-600",
+          icon: "text-gray-500",
+        };
     }
   };
 
