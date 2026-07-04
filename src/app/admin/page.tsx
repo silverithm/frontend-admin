@@ -52,6 +52,29 @@ import {
     getVacationRequestRole,
     type MemberRoleSource,
 } from "@/lib/roleUtils";
+import { Button } from "@astryxdesign/core/Button";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Text } from "@astryxdesign/core/Text";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Banner } from "@astryxdesign/core/Banner";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+
+// 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
+type BadgeVariant =
+    | "neutral" | "blue" | "cyan" | "green" | "orange" | "pink" | "purple" | "red" | "teal" | "yellow";
+const roleBadgeVariant = (classes: string): BadgeVariant => {
+    if (classes.includes("purple")) return "purple";
+    if (classes.includes("blue")) return "blue";
+    if (classes.includes("emerald") || classes.includes("green")) return "green";
+    if (classes.includes("red") || classes.includes("rose")) return "red";
+    if (classes.includes("amber") || classes.includes("yellow")) return "yellow";
+    if (classes.includes("orange")) return "orange";
+    if (classes.includes("pink") || classes.includes("fuchsia")) return "pink";
+    if (classes.includes("teal") || classes.includes("cyan")) return "teal";
+    return "neutral";
+};
 
 type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members";
 type ApprovalSubTab = "management" | "templates" | "submit";
@@ -966,89 +989,92 @@ export default function AdminPage() {
     // 클라이언트 사이드가 아직 준비되지 않았을 때만 로딩 화면 표시
     if (!isClient) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-                <div className="flex flex-col items-center space-y-6">
+            <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
                     <Image
                         src="/images/carev-favicon.png"
                         alt="케어브이 로고"
                         width={48}
                         height={48}
-                        className="mb-2 rounded-xl"
+                        style={{ marginBottom: 8, borderRadius: 12 }}
                     />
-                    <div className="flex items-center space-x-3">
-                        <svg
-                            className="animate-spin h-5 w-5 text-teal-500"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                        >
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        <p className="text-sm text-gray-500 font-medium">
-                            {!isClient ? "준비 중..." : "불러오는 중..."}
-                        </p>
-                    </div>
+                    <Spinner size="md" label={!isClient ? "준비 중..." : "불러오는 중..."} />
                 </div>
             </div>
         );
     }
 
+    const navItems = ([
+        { key: "dashboard", label: "대시보드", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
+        { key: "notice", label: "공지사항", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
+        { key: "chat", label: "채팅", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
+        { key: "schedule", label: "월간일정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+        { key: "approval", label: "전자결재", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+        { key: "work", label: "근무조정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
+        ...(isAdmin ? [{ key: "members", label: "회원관리", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" }] : []),
+    ] as { key: string; label: string; icon: string; badge?: number }[]);
+
+    const navIconStyle = (active: boolean): React.CSSProperties => ({
+        width: 18, height: 18, flexShrink: 0, color: active ? "#14b8a6" : "#9ca3af",
+    });
+    const subTabButtonStyle = (active: boolean): React.CSSProperties => ({
+        width: "100%", textAlign: "left", padding: "6px 12px", fontSize: 12, fontWeight: 500,
+        borderRadius: 6, transition: "colors 150ms ease", border: "none", cursor: "pointer",
+        background: active ? "#f0fdfa" : "transparent", color: active ? "#0f766e" : "#6b7280",
+    });
+
     return (
-        <div className="flex min-h-screen bg-gray-50">
+        <div style={{ display: "flex", minHeight: "100vh", background: "#f9fafb" }}>
             {/* 사이드바 (데스크탑) */}
-            <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 fixed inset-y-0 left-0 z-30">
+            <aside className="carev-admin-sidebar" style={{ flexDirection: "column", width: 224, background: "#ffffff", borderRight: "1px solid #e5e7eb", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 30 }}>
                 {/* 로고 */}
-                <div className="flex items-center gap-3 px-6 h-16 border-b border-gray-100 flex-shrink-0">
-                    <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} className="rounded-lg" />
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 24px", height: 64, borderBottom: "1px solid #f3f4f6", flexShrink: 0 }}>
+                    <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 8 }} />
                     <div>
-                        <h1 className="text-sm font-bold text-gray-900 leading-tight">케어브이</h1>
-                        {companyName && <p className="text-[11px] text-gray-400 leading-tight truncate max-w-[140px]">{companyName}</p>}
+                        <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
+                        {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
                     </div>
                 </div>
 
                 {/* 네비게이션 */}
-                <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-                    <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">메뉴</p>
-                    {([
-                        { key: "dashboard", label: "대시보드", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
-                        { key: "notice", label: "공지사항", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
-                        { key: "chat", label: "채팅", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
-                        { key: "schedule", label: "월간일정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-                        { key: "approval", label: "전자결재", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
-                        { key: "work", label: "근무조정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
-                        ...(isAdmin ? [{ key: "members", label: "회원관리", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" }] : []),
-                    ] as { key: string; label: string; icon: string; badge?: number }[]).map((tab) => (
+                <nav style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+                    <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
+                    {navItems.map((tab) => (
                         <div key={tab.key}>
                             <button
                                 onClick={() => setActiveMainTab(tab.key as MainTab)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                                    activeMainTab === tab.key
-                                        ? "bg-teal-50 text-teal-700 shadow-sm"
-                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                }`}
+                                style={{
+                                    width: "100%", display: "flex", alignItems: "center", gap: 12,
+                                    padding: "10px 12px", fontSize: 14, fontWeight: 500, borderRadius: 8,
+                                    transition: "colors 150ms ease", border: "none", cursor: "pointer",
+                                    background: activeMainTab === tab.key ? "#f0fdfa" : "transparent",
+                                    color: activeMainTab === tab.key ? "#0f766e" : "#4b5563",
+                                    boxShadow: activeMainTab === tab.key ? "0 1px 2px rgba(0,0,0,0.05)" : undefined,
+                                }}
                             >
-                                <svg className={`w-[18px] h-[18px] flex-shrink-0 ${activeMainTab === tab.key ? 'text-teal-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg style={navIconStyle(activeMainTab === tab.key)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={tab.icon} />
                                 </svg>
                                 {tab.label}
                                 {tab.badge && (
-                                    <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-red-500 text-white rounded-full">{tab.badge}</span>
+                                    <span style={{ marginLeft: "auto", display: "inline-flex" }}>
+                                        <Badge variant="error" label={tab.badge} />
+                                    </span>
                                 )}
                             </button>
                             {/* 전자결재 서브탭 */}
                             {tab.key === "approval" && activeMainTab === "approval" && (
-                                <div className="pl-9 mt-1 space-y-0.5">
-                                    <button onClick={() => setApprovalSubTab("submit")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "submit" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                <div style={{ paddingLeft: 36, marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                                    <button onClick={() => setApprovalSubTab("submit")} style={subTabButtonStyle(approvalSubTab === "submit")}>
                                         결재 신청
                                     </button>
                                     {isAdmin && (
-                                    <button onClick={() => setApprovalSubTab("management")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "management" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                    <button onClick={() => setApprovalSubTab("management")} style={subTabButtonStyle(approvalSubTab === "management")}>
                                         결재 관리
                                     </button>
                                     )}
                                     {isAdmin && (
-                                    <button onClick={() => setApprovalSubTab("templates")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${approvalSubTab === "templates" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                    <button onClick={() => setApprovalSubTab("templates")} style={subTabButtonStyle(approvalSubTab === "templates")}>
                                         양식 관리
                                     </button>
                                     )}
@@ -1056,11 +1082,11 @@ export default function AdminPage() {
                             )}
                             {/* 월간일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
-                                <div className="pl-9 mt-1 space-y-0.5">
-                                    <button onClick={() => setScheduleMode("schedule")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${scheduleMode === "schedule" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                <div style={{ paddingLeft: 36, marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                                    <button onClick={() => setScheduleMode("schedule")} style={subTabButtonStyle(scheduleMode === "schedule")}>
                                         일정
                                     </button>
-                                    <button onClick={() => setScheduleMode("dispatch")} className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${scheduleMode === "dispatch" ? "text-teal-700 bg-teal-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}>
+                                    <button onClick={() => setScheduleMode("dispatch")} style={subTabButtonStyle(scheduleMode === "dispatch")}>
                                         배차관리
                                     </button>
                                 </div>
@@ -1070,43 +1096,53 @@ export default function AdminPage() {
                 </nav>
 
                 {/* 사이드바 하단 */}
-                <div className="border-t border-gray-100 py-3 space-y-1 flex-shrink-0">
-                    <div className="px-3"><SubscriptionStatus /></div>
-                    <button onClick={() => router.push("/admin/organization-profile")} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                <div style={{ borderTop: "1px solid #f3f4f6", padding: "12px 0", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                    <div style={{ padding: "0 12px" }}><SubscriptionStatus /></div>
+                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: "#6b7280", background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                        <svg style={{ width: 16, height: 16, color: "#9ca3af" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         기관 프로필
                     </button>
-                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: "#6b7280", background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                        <svg style={{ width: 16, height: 16, color: "#9ca3af" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         로그아웃
                     </button>
                 </div>
             </aside>
 
             {/* 모바일 헤더 (lg 미만) */}
-            <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between px-4 h-13">
-                    <div className="flex items-center gap-2">
-                        <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} className="rounded-lg" />
+            <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: "#ffffff", borderBottom: "1px solid #e5e7eb", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 52 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 8 }} />
                         <div>
-                            <span className="text-sm font-bold text-gray-900">케어브이</span>
-                            {companyName && <p className="text-[10px] text-gray-400 leading-tight truncate max-w-[120px]">{companyName}</p>}
+                            <Text type="body" weight="bold" color="primary">케어브이</Text>
+                            {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <SubscriptionStatus />
-                        <button onClick={handleLogout} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 6, color: "#9ca3af", background: "transparent", border: "none", cursor: "pointer" }}>
+                            <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         </button>
                     </div>
                 </div>
-                <nav className="flex overflow-x-auto scrollbar-hide px-2 -mb-px">
+                <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 8px", marginBottom: -1 }}>
                     {([
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
-                        <button key={tab.key} onClick={() => setActiveMainTab(tab.key as MainTab)} className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${activeMainTab === tab.key ? "text-teal-600 border-teal-500" : "text-gray-500 border-transparent"}`}>
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveMainTab(tab.key as MainTab)}
+                            style={{
+                                padding: "8px 12px", fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
+                                borderBottom: "2px solid", transition: "colors 150ms ease",
+                                background: "transparent", cursor: "pointer",
+                                color: activeMainTab === tab.key ? "#0d9488" : "#6b7280",
+                                borderBottomColor: activeMainTab === tab.key ? "#14b8a6" : "transparent",
+                            }}
+                        >
                             {tab.label}
                         </button>
                     ))}
@@ -1114,9 +1150,9 @@ export default function AdminPage() {
             </header>
 
             {/* 메인 콘텐츠 영역 */}
-            <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
+            <div className="carev-admin-content" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
             {/* 공지사항 롤링 배너 */}
-            <div className="mt-[88px] lg:mt-0">
+            <div className="carev-admin-rolling">
             <NoticeRollingBanner
               onNoticeClick={() => setActiveMainTab('notice')}
               autoScrollInterval={5000}
@@ -1125,7 +1161,7 @@ export default function AdminPage() {
             </div>
 
             {/* 메인 콘텐츠 */}
-            <main className="flex-grow w-full px-3 sm:px-4 lg:px-5 py-4 flex flex-col">
+            <main style={{ flexGrow: 1, width: "100%", padding: "16px", display: "flex", flexDirection: "column" }}>
                 {/* 알림 메시지 */}
                 <AnimatePresence>
                     {notification.show && (
@@ -1133,27 +1169,14 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: -12, scale: 0.95}}
                             animate={{opacity: 1, y: 0, scale: 1}}
                             exit={{opacity: 0, y: -12, scale: 0.95}}
-                            className={`mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${
-                                notification.type === "success"
-                                    ? "bg-green-50 text-green-700 border border-green-200"
-                                    : notification.type === "error"
-                                        ? "bg-red-50 text-red-700 border border-red-200"
-                                        : "bg-blue-50 text-blue-700 border border-blue-200"
-                            }`}
+                            style={{ marginBottom: 16 }}
                         >
-                            <span className="text-base">
-                                {notification.type === "success" ? "✓" : notification.type === "error" ? "✕" : "ℹ"}
-                            </span>
-                            <p className="text-xs font-medium flex-1">{notification.message}</p>
-                            <button
-                                onClick={() => setNotification({...notification, show: false})}
-                                className="text-current opacity-40 hover:opacity-70 transition-opacity p-0.5"
-                                aria-label="닫기"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <Banner
+                                status={notification.type === "success" ? "success" : notification.type === "error" ? "error" : "info"}
+                                title={notification.message}
+                                isDismissable
+                                onDismiss={() => setNotification({...notification, show: false})}
+                            />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -1167,7 +1190,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <AdminDashboard onTabChange={(tab) => {
                                 setActiveMainTab(tab as MainTab);
@@ -1183,7 +1206,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <NoticeManagement isAdmin={isAdmin} />
                         </motion.div>
@@ -1194,7 +1217,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <ChatManagement onNotification={showNotification} />
                         </motion.div>
@@ -1205,7 +1228,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.3}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <ScheduleCalendar isAdmin={isAdmin} mode={scheduleMode} onNotification={showNotification} />
                         </motion.div>
@@ -1216,7 +1239,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             {approvalSubTab === "management" && isAdmin ? (
                                 <ApprovalManagement />
@@ -1233,12 +1256,12 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             {/* 근무관리 - 캘린더 + 사이드바 */}
-                            <div className="flex flex-col xl:flex-row gap-6">
+                            <div className="carev-admin-work-layout">
                                 {/* 캘린더 영역 */}
-                                <div className="xl:w-4/5 bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit">
+                                <div className="carev-admin-work-calendar" style={{ background: "#ffffff", padding: 24, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #e5e7eb", height: "fit-content" }}>
                                     <VacationCalendar
                                         currentDate={currentDate}
                                         setCurrentDate={setCurrentDate}
@@ -1254,86 +1277,97 @@ export default function AdminPage() {
                                 </div>
 
                                 {/* 필터 및 휴무 목록 사이드바 */}
-                                <div className="xl:w-1/5 flex flex-col gap-4">
+                                <div className="carev-admin-work-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                     {/* 필터 패널 */}
-                                    <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                        <h3 className="text-sm font-medium text-gray-800 mb-3">필터</h3>
-                                        <div className="space-y-3">
+                                    <div style={{ background: "#ffffff", padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #e5e7eb" }}>
+                                        <div style={{ marginBottom: 12 }}><Text type="body" weight="medium" color="primary">필터</Text></div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                             {/* 상태 필터 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">상태</label>
-                                                <div className="grid grid-cols-2 gap-1">
-                                                    {(["all", "pending", "approved", "rejected"] as const).map((status) => (
+                                                <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">상태</Text></div>
+                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                                                    {(["all", "pending", "approved", "rejected"] as const).map((status) => {
+                                                        const activeBg = status === "all" ? "#14b8a6" : status === "pending" ? "#eab308" : status === "approved" ? "#22c55e" : "#ef4444";
+                                                        const active = statusFilter === status;
+                                                        return (
                                                         <button
                                                             key={status}
                                                             onClick={() => setStatusFilter(status)}
-                                                            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                                                                statusFilter === status
-                                                                    ? status === "all" ? "bg-teal-500 text-white"
-                                                                        : status === "pending" ? "bg-yellow-500 text-white"
-                                                                            : status === "approved" ? "bg-green-500 text-white"
-                                                                                : "bg-red-500 text-white"
-                                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                                            }`}
+                                                            style={{
+                                                                padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
+                                                                border: "none", cursor: "pointer", transition: "colors 150ms ease",
+                                                                background: active ? activeBg : "#f3f4f6",
+                                                                color: active ? "#ffffff" : "#4b5563",
+                                                            }}
                                                         >
                                                             {status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
                                                         </button>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
 
                                             {/* 역할 필터 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">역할</label>
-                                                <div className="grid grid-cols-1 gap-1">
-                                                    {[ALL_ROLE_FILTER, ...availableRoles].map((role) => (
+                                                <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">역할</Text></div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                    {[ALL_ROLE_FILTER, ...availableRoles].map((role) => {
+                                                        const active = roleFilter === role;
+                                                        return (
                                                         <button
                                                             key={role}
                                                             onClick={() => setRoleFilter(role)}
-                                                            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                                                                roleFilter === role
-                                                                    ? "bg-teal-500 text-white"
-                                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                                            }`}
+                                                            style={{
+                                                                padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
+                                                                border: "none", cursor: "pointer", transition: "colors 150ms ease",
+                                                                background: active ? "#14b8a6" : "#f3f4f6",
+                                                                color: active ? "#ffffff" : "#4b5563",
+                                                            }}
                                                         >
                                                             {role === ALL_ROLE_FILTER ? "전체" : getRoleDisplayName(role)}
                                                         </button>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
 
                                             {/* 정렬 옵션 */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">정렬</label>
-                                                <div className="grid grid-cols-1 gap-1">
-                                                    {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => (
+                                                <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">정렬</Text></div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                    {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => {
+                                                        const active = sortOrder === order;
+                                                        return (
                                                         <button
                                                             key={order}
                                                             onClick={() => setSortOrder(order)}
-                                                            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-                                                                sortOrder === order
-                                                                    ? "bg-teal-500 text-white"
-                                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                                            }`}
+                                                            style={{
+                                                                padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
+                                                                border: "none", cursor: "pointer", transition: "colors 150ms ease",
+                                                                background: active ? "#14b8a6" : "#f3f4f6",
+                                                                color: active ? "#ffffff" : "#4b5563",
+                                                            }}
                                                         >
                                                             {label}
                                                         </button>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
 
                                             {/* 이름 필터 표시 */}
                                             {nameFilter && (
                                                 <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">선택된 직원</label>
-                                                    <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded px-2 py-1">
-                                                        <span className="text-[10px] font-medium text-teal-700">{nameFilter}</span>
+                                                    <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">선택된 직원</Text></div>
+                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: 4, padding: "4px 8px" }}>
+                                                        <Text type="supporting" weight="medium" color="accent">{nameFilter}</Text>
                                                         <button
                                                             onClick={() => setNameFilter(null)}
-                                                            className="text-teal-500 hover:text-teal-700 ml-1"
+                                                            aria-label="필터 해제"
                                                             title="필터 해제"
+                                                            style={{ color: "#14b8a6", marginLeft: 4, background: "transparent", border: "none", cursor: "pointer", display: "inline-flex" }}
                                                         >
-                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
                                                         </button>
@@ -1342,103 +1376,88 @@ export default function AdminPage() {
                                             )}
 
                                             {/* 필터 초기화 */}
-                                            <button
-                                                onClick={resetFilter}
-                                                className="w-full mt-2 px-2 py-1 text-[10px] font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors"
-                                            >
-                                                초기화
-                                            </button>
+                                            <div style={{ marginTop: 8 }}>
+                                                <Button label="초기화" variant="secondary" size="sm" onClick={resetFilter} />
+                                            </div>
                                         </div>
                                     </div>
 
                                     {/* 휴무 목록 */}
-                                    <div className="flex-grow bg-white p-3 rounded-lg shadow-sm border border-gray-200 overflow-auto">
-                                        <div className="mb-3">
-                                            <div className="flex items-center justify-between">
-                                                <h3 className="text-sm font-medium text-gray-800">
+                                    <div style={{ flexGrow: 1, background: "#ffffff", padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #e5e7eb", overflow: "auto" }}>
+                                        <div style={{ marginBottom: 12 }}>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <Text type="body" weight="medium" color="primary">
                                                     {selectedDate
                                                         ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
                                                         : "전체 휴무 목록"}
-                                                </h3>
+                                                </Text>
                                                 {isAdmin && filteredRequests.some(req => req.status === 'pending') && (
-                                                    <button
+                                                    <Button
+                                                        label={isSelectMode ? '선택 취소' : '다중 선택'}
+                                                        variant={isSelectMode ? 'primary' : 'secondary'}
+                                                        size="sm"
                                                         onClick={() => {
                                                             setIsSelectMode(!isSelectMode);
                                                             setSelectedVacationIds(new Set());
                                                         }}
-                                                        className={`px-2 py-1 text-xs rounded-lg border transition-colors ${
-                                                            isSelectMode
-                                                                ? 'bg-teal-50 text-teal-600 border-teal-300'
-                                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                                                        }`}
-                                                    >
-                                                        {isSelectMode ? '선택 취소' : '다중 선택'}
-                                                    </button>
+                                                    />
                                                 )}
                                             </div>
                                             {selectedDate && (
-                                                <button
-                                                    onClick={() => setSelectedDate(null)}
-                                                    className="mt-1 text-xs text-teal-600 hover:text-teal-700 underline"
-                                                >
-                                                    전체 목록 보기
-                                                </button>
+                                                <div style={{ marginTop: 4 }}>
+                                                    <Button
+                                                        label="전체 목록 보기"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setSelectedDate(null)}
+                                                    />
+                                                </div>
                                             )}
                                         </div>
 
                                         {/* 일괄 작업 버튼 */}
                                         {isAdmin && isSelectMode && (
-                                            <div className="mb-3 p-2 bg-teal-50 rounded-lg border border-teal-200">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button
+                                            <div style={{ marginBottom: 12, padding: 8, background: "#f0fdfa", borderRadius: 8, border: "1px solid #99f6e4" }}>
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                        <Button
+                                                            label={selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length ? '전체 해제' : '전체 선택'}
+                                                            variant="secondary"
+                                                            size="sm"
                                                             onClick={handleSelectAll}
-                                                            className="px-2 py-1 text-xs bg-white border border-teal-300 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
-                                                        >
-                                                            {selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length
-                                                                ? '전체 해제'
-                                                                : '전체 선택'}
-                                                        </button>
-                                                        <span className="text-xs text-teal-700 font-medium">{selectedVacationIds.size}개</span>
+                                                        />
+                                                        <Text type="supporting" weight="medium" color="accent">{selectedVacationIds.size}개</Text>
                                                     </div>
-                                                    <div className="flex gap-2">
-                                                        <button
+                                                    <div style={{ display: "flex", gap: 8 }}>
+                                                        <Button
+                                                            label="승인"
+                                                            variant="primary"
+                                                            size="sm"
+                                                            isLoading={isProcessing}
+                                                            isDisabled={selectedVacationIds.size === 0}
                                                             onClick={handleBulkApprove}
-                                                            disabled={selectedVacationIds.size === 0 || isProcessing}
-                                                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                                                selectedVacationIds.size === 0 || isProcessing
-                                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                                    : 'bg-green-600 text-white hover:bg-green-700'
-                                                            }`}
-                                                        >
-                                                            {isProcessing ? '처리 중...' : '승인'}
-                                                        </button>
-                                                        <button
+                                                        />
+                                                        <Button
+                                                            label="거절"
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            isLoading={isProcessing}
+                                                            isDisabled={selectedVacationIds.size === 0}
                                                             onClick={handleBulkReject}
-                                                            disabled={selectedVacationIds.size === 0 || isProcessing}
-                                                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                                                selectedVacationIds.size === 0 || isProcessing
-                                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                                    : 'bg-red-600 text-white hover:bg-red-700'
-                                                            }`}
-                                                        >
-                                                            {isProcessing ? '처리 중...' : '거절'}
-                                                        </button>
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
 
                                         {isLoadingRequests ? (
-                                            <div className="flex justify-center items-center h-32">
-                                                <div className="w-8 h-8 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin"></div>
+                                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 128 }}>
+                                                <Spinner size="md" />
                                             </div>
                                         ) : filteredRequests.length === 0 ? (
-                                            <div className="text-center py-6 text-gray-500 text-xs">
-                                                조건에 맞는 휴무 요청이 없습니다.
-                                            </div>
+                                            <EmptyState isCompact title="조건에 맞는 휴무 요청이 없습니다." />
                                         ) : (
-                                            <ul className="space-y-2 max-h-[100vh] overflow-y-auto pr-1">
+                                            <ul style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "100vh", overflowY: "auto", paddingRight: 4, listStyle: "none", margin: 0 }}>
                                                 {filteredRequests.map((request) => {
                                                     const resolvedRole = getVacationRequestRole(
                                                         request,
@@ -1449,25 +1468,32 @@ export default function AdminPage() {
                                                     return (
                                                     <li
                                                         key={request.id}
-                                                        className="p-2 bg-gray-50 rounded border border-gray-200 hover:shadow-sm transition-shadow"
+                                                        style={{ padding: 8, background: "#f9fafb", borderRadius: 4, border: "1px solid #e5e7eb", transition: "box-shadow 150ms ease" }}
                                                     >
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <div className="flex items-start gap-2">
+                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                                                            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                                                                 {isSelectMode && request.status === 'pending' && (
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={selectedVacationIds.has(request.id)}
-                                                                        onChange={() => handleToggleSelection(request.id)}
-                                                                        className="mt-0.5 w-4 h-4 text-teal-500 border-gray-300 rounded focus:ring-teal-500"
-                                                                    />
+                                                                    <div style={{ marginTop: 2 }}>
+                                                                        <CheckboxInput
+                                                                            label="선택"
+                                                                            isLabelHidden
+                                                                            size="sm"
+                                                                            value={selectedVacationIds.has(request.id)}
+                                                                            onChange={() => handleToggleSelection(request.id)}
+                                                                        />
+                                                                    </div>
                                                                 )}
                                                                 <div>
                                                                     <div
-                                                                        className={`font-medium text-xs truncate cursor-pointer transition-colors duration-200 ${
-                                                                            nameFilter === request.userName
-                                                                                ? "text-teal-600 font-bold"
-                                                                                : "text-gray-900 hover:text-teal-600"
-                                                                        }`}
+                                                                        style={{
+                                                                            fontWeight: nameFilter === request.userName ? 700 : 500,
+                                                                            fontSize: 12,
+                                                                            cursor: "pointer",
+                                                                            transition: "color 200ms ease",
+                                                                            color: nameFilter === request.userName ? "#0d9488" : "#111827",
+                                                                            display: "flex",
+                                                                            alignItems: "center",
+                                                                        }}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             setNameFilter(nameFilter === request.userName ? null : request.userName);
@@ -1476,83 +1502,74 @@ export default function AdminPage() {
                                                                     >
                                                                         {request.userName}
                                                                         {nameFilter === request.userName && (
-                                                                            <span className="ml-1 inline-flex items-center">
-                                                                                <svg className="w-3 h-3 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <span style={{ marginLeft: 4, display: "inline-flex", alignItems: "center" }}>
+                                                                                <svg style={{ width: 12, height: 12, color: "#0d9488" }} fill="currentColor" viewBox="0 0 20 20">
                                                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                                 </svg>
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div className="text-[10px] text-gray-500">
+                                                                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
                                                                         {formatVacationDate(request.date)}
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <span
-                                                                className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
-                                                                    request.status === "approved"
-                                                                        ? "bg-green-100 text-green-800"
-                                                                        : request.status === "pending"
-                                                                            ? "bg-yellow-100 text-yellow-800"
-                                                                            : "bg-red-100 text-red-800"
-                                                                }`}
-                                                            >
-                                                                {getStatusText(request.status)}
-                                                            </span>
+                                                            <Badge
+                                                                variant={request.status === "approved" ? "green" : request.status === "pending" ? "yellow" : "red"}
+                                                                label={getStatusText(request.status)}
+                                                            />
                                                         </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-1">
-                                                                <span className={`px-1.5 py-0.5 text-[9px] rounded border ${roleBadgeClasses}`}>
-                                                                    {getRoleText(resolvedRole)}
-                                                                </span>
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                                                                <Badge variant={roleBadgeVariant(roleBadgeClasses)} label={getRoleText(resolvedRole)} />
                                                                 {isValidDuration(request.duration) && (
-                                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] rounded bg-purple-50 text-purple-700">
-                                                                        <span>{getDurationText(request.duration)}</span>
-                                                                    </span>
+                                                                    <Badge variant="purple" label={getDurationText(request.duration)} />
                                                                 )}
-                                                                <span className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                                                    request.type === "mandatory" ? "bg-orange-50 text-orange-700" : "bg-gray-50 text-gray-700"
-                                                                }`}>
-                                                                    {getVacationTypeText(request.type)}
-                                                                </span>
-                                                                <span className="text-[9px] text-gray-500">{formatDate(request.createdAt)}</span>
+                                                                <Badge
+                                                                    variant={request.type === "mandatory" ? "orange" : "neutral"}
+                                                                    label={getVacationTypeText(request.type)}
+                                                                />
+                                                                <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>
                                                             {isAdmin && (
-                                                            <div className="flex gap-1">
+                                                            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                                                                 {request.status === "pending" && (
                                                                     <>
-                                                                        <button
+                                                                        <Button
+                                                                            label="승인"
+                                                                            variant="primary"
+                                                                            size="sm"
                                                                             onClick={() => handleApproveVacation(request.id)}
-                                                                            className="px-1.5 py-0.5 text-[10px] text-green-600 hover:bg-green-50 rounded border border-green-200 hover:border-green-300 transition-colors"
-                                                                        >
-                                                                            승인
-                                                                        </button>
-                                                                        <button
+                                                                        />
+                                                                        <Button
+                                                                            label="거절"
+                                                                            variant="destructive"
+                                                                            size="sm"
                                                                             onClick={() => handleRejectVacation(request.id)}
-                                                                            className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-300 transition-colors"
-                                                                        >
-                                                                            거절
-                                                                        </button>
+                                                                        />
                                                                     </>
                                                                 )}
-                                                                <button
+                                                                <IconButton
+                                                                    label="삭제"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    tooltip="삭제"
                                                                     onClick={() => handleDeleteVacation(request)}
-                                                                    className="p-0.5 text-gray-600 hover:bg-gray-100 rounded"
-                                                                    title="삭제"
-                                                                >
-                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                    </svg>
-                                                                </button>
+                                                                    icon={
+                                                                        <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                        </svg>
+                                                                    }
+                                                                />
                                                             </div>
                                                             )}
                                                         </div>
                                                         {request.reason && request.reason !== "(사유 미입력)" && (
-                                                            <div className="mt-1 p-1.5 bg-white rounded border border-gray-200">
-                                                                <div className="text-[9px] text-gray-600">
-                                                                    <span className="font-medium text-gray-700">사유:</span>{" "}
+                                                            <div style={{ marginTop: 4, padding: 6, background: "#ffffff", borderRadius: 4, border: "1px solid #e5e7eb" }}>
+                                                                <Text type="supporting" color="secondary">
+                                                                    <Text type="supporting" weight="medium" color="primary">사유:</Text>{" "}
                                                                     {request.reason}
-                                                                </div>
+                                                                </Text>
                                                             </div>
                                                         )}
                                                     </li>
@@ -1571,7 +1588,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: 0.2}}
-                            className="flex-1 flex flex-col"
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <UserManagement
                                 organizationName={companyName || undefined}
@@ -1592,7 +1609,7 @@ export default function AdminPage() {
                             initial={{opacity: 0}}
                             animate={{opacity: 1}}
                             exit={{opacity: 0}}
-                            className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black bg-opacity-50"
+                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.5)" }}
                             onClick={handleCloseDetails}
                         >
                             <motion.div
@@ -1600,7 +1617,7 @@ export default function AdminPage() {
                                 animate={{scale: 1}}
                                 exit={{scale: 0.95}}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-full max-w-md"
+                                style={{ width: "100%", maxWidth: 448 }}
                             >
                                 <VacationDetails
                                     date={selectedDate}
@@ -1630,7 +1647,7 @@ export default function AdminPage() {
                             initial={{opacity: 0}}
                             animate={{opacity: 1}}
                             exit={{opacity: 0}}
-                            className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black bg-opacity-50"
+                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.5)" }}
                             onClick={handleCloseLimitPanel}
                         >
                             <motion.div
@@ -1656,7 +1673,7 @@ export default function AdminPage() {
                             initial={{opacity: 0}}
                             animate={{opacity: 1}}
                             exit={{opacity: 0}}
-                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                            style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.5)" }}
                             onClick={cancelDelete}
                         >
                             <motion.div
@@ -1664,45 +1681,40 @@ export default function AdminPage() {
                                 animate={{scale: 1}}
                                 exit={{scale: 0.95}}
                                 onClick={(e) => e.stopPropagation()}
-                                className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"
+                                style={{ background: "#ffffff", borderRadius: 8, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 24, width: "100%", maxWidth: 384 }}
                             >
-                                <div className="flex items-start mb-4">
-                                    <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                                        <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 16 }}>
+                                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: "50%", background: "#fee2e2" }}>
+                                        <svg style={{ height: 24, width: 24, color: "#dc2626" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0" />
                                         </svg>
                                     </div>
-                                    <div className="ml-4">
-                                        <h3 className="text-lg font-medium text-gray-900">휴무 삭제 확인</h3>
-                                        <p className="mt-2 text-sm text-gray-600">
-                                            <span className="font-semibold text-gray-800">{selectedDeleteVacation.userName}</span>님의 <span className="font-semibold text-gray-800">{selectedDeleteVacation.date}</span> 휴무를 정말 삭제하시겠습니까?
-                                        </p>
-                                        <p className="mt-1 text-xs text-gray-500">이 작업은 되돌릴 수 없습니다.</p>
+                                    <div style={{ marginLeft: 16 }}>
+                                        <Text type="large" weight="medium" color="primary">휴무 삭제 확인</Text>
+                                        <div style={{ marginTop: 8 }}>
+                                            <Text type="body" color="secondary">
+                                                <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.userName}</Text>님의 <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.date}</Text> 휴무를 정말 삭제하시겠습니까?
+                                            </Text>
+                                        </div>
+                                        <div style={{ marginTop: 4 }}>
+                                            <Text type="supporting" color="secondary">이 작업은 되돌릴 수 없습니다.</Text>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end gap-3">
-                                    <button
+                                <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+                                    <Button
+                                        label="취소"
+                                        variant="secondary"
                                         onClick={cancelDelete}
-                                        disabled={isProcessing}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
-                                    >
-                                        취소
-                                    </button>
-                                    <button
+                                        isDisabled={isProcessing}
+                                    />
+                                    <Button
+                                        label={isProcessing ? '삭제 중...' : '삭제하기'}
+                                        variant="destructive"
                                         onClick={confirmDelete}
-                                        disabled={isProcessing}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                삭제 중...
-                                            </>
-                                        ) : (
-                                            '삭제하기'
-                                        )}
-                                    </button>
+                                        isLoading={isProcessing}
+                                    />
                                 </div>
                             </motion.div>
                         </motion.div>
@@ -1711,36 +1723,36 @@ export default function AdminPage() {
             )}
 
             {/* 푸터 */}
-            <footer className="border-t border-gray-200 bg-gray-50">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-                        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 text-xs text-gray-400">
+            <footer style={{ borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
+                <div style={{ maxWidth: 1600, margin: "0 auto", padding: "16px 24px" }}>
+                    <div className="carev-admin-footer-row">
+                        <div className="carev-admin-footer-meta" style={{ fontSize: 12, color: "#9ca3af" }}>
                             <span>&copy; 2025 케어브이 (silverithm) 대표: 김준형</span>
-                            <span className="hidden sm:inline text-gray-300">|</span>
+                            <span className="carev-admin-footer-sep" style={{ color: "#d1d5db" }}>|</span>
                             <span>사업자등록번호: 107-21-26475</span>
-                            <span className="hidden sm:inline text-gray-300">|</span>
+                            <span className="carev-admin-footer-sep" style={{ color: "#d1d5db" }}>|</span>
                             <span>서울특별시 신림동 1547-10</span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs">
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
                             <a
                                 href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                style={{ color: "#9ca3af", textDecoration: "none", transition: "color 150ms ease" }}
                             >
                                 개인정보처리방침
                             </a>
-                            <span className="text-gray-300">|</span>
+                            <span style={{ color: "#d1d5db" }}>|</span>
                             <a
                                 href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                style={{ color: "#9ca3af", textDecoration: "none", transition: "color 150ms ease" }}
                             >
                                 이용약관
                             </a>
-                            <span className="text-gray-300">|</span>
-                            <a href="mailto:ggprgrkjh@naver.com" className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span style={{ color: "#d1d5db" }}>|</span>
+                            <a href="mailto:ggprgrkjh@naver.com" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 150ms ease" }}>
                                 ggprgrkjh@naver.com
                             </a>
                         </div>
@@ -1754,12 +1766,9 @@ export default function AdminPage() {
 
             {/* 로딩 오버레이 */}
             {isProcessing && (
-                <div className="fixed inset-0 z-50 bg-white/40">
-                    <div className="relative flex items-center justify-center h-full">
-                        <svg className="animate-spin h-6 w-6 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
+                <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(255,255,255,0.4)" }}>
+                    <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                        <Spinner size="lg" />
                     </div>
                 </div>
             )}

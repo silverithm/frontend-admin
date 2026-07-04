@@ -70,6 +70,62 @@ html {
   background: #f9fafb !important;
 }
 
+/* admin/page 반응형 (Tailwind lg:/xl:/sm: 대체) */
+.carev-admin-sidebar { display: none; }
+.carev-admin-mobile-header { display: block; }
+.carev-admin-content { margin-left: 0; }
+.carev-admin-rolling { margin-top: 88px; }
+@media (min-width: 1024px) {
+  .carev-admin-sidebar { display: flex; }
+  .carev-admin-mobile-header { display: none; }
+  .carev-admin-content { margin-left: 224px; }
+  .carev-admin-rolling { margin-top: 0; }
+}
+.carev-admin-work-layout { display: flex; flex-direction: column; gap: 24px; }
+.carev-admin-work-calendar { width: 100%; }
+.carev-admin-work-side { width: 100%; }
+@media (min-width: 1280px) {
+  .carev-admin-work-layout { flex-direction: row; }
+  .carev-admin-work-calendar { width: 80%; }
+  .carev-admin-work-side { width: 20%; }
+}
+.carev-admin-footer-row { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.carev-admin-footer-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.carev-admin-footer-sep { display: none; }
+@media (min-width: 640px) {
+  .carev-admin-footer-row { flex-direction: row; justify-content: space-between; }
+  .carev-admin-footer-meta { flex-direction: row; gap: 12px; }
+  .carev-admin-footer-sep { display: inline; }
+}
+
+/* AdminDashboard 반응형 + hover (Tailwind 대체) */
+.carev-dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px)  { .carev-dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .carev-dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.carev-dash-stats-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.carev-dash-panels { grid-template-columns: 1fr; }
+@media (min-width: 1024px) {
+  .carev-dash-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+  .carev-dash-panel-full { grid-column: span 2; }
+}
+.carev-dash-clock { display: none; }
+@media (min-width: 640px) { .carev-dash-clock { display: block; } }
+.carev-dash-cal-dots  { display: flex; }
+.carev-dash-cal-chips { display: none; }
+@media (min-width: 640px) {
+  .carev-dash-cal-dots  { display: none; }
+  .carev-dash-cal-chips { display: flex; }
+}
+.carev-dash-viewall { transition: opacity 150ms ease; }
+.carev-dash-viewall:hover { opacity: 0.7; }
+.carev-dash-row { transition: background 150ms ease; cursor: pointer; }
+.carev-dash-row:hover { background: #f9fafb; }
+.carev-dash-cal-cell { transition: background 150ms ease, border-color 150ms ease; }
+.carev-dash-cal-cell-today:hover { background: #ecfdf5 !important; }
+.carev-dash-cal-cell-day:hover   { border-color: #e5e7eb !important; background: #f9fafb !important; }
+.carev-dash-timeline { transition: background 150ms ease; cursor: pointer; }
+.carev-dash-timeline:hover { background: #f0fdfa; }
+
 /* 탭 네비게이션 스크롤바 숨김 */
 .scrollbar-hide {
   -ms-overflow-style: none;
