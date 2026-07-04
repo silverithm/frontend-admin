@@ -322,7 +322,7 @@ html {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background-color: #e5e7eb;
+  background-color: var(--color-background-surface);
 }
 
 .skeleton::after {
@@ -336,9 +336,9 @@ html {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.4) 25%,
-    rgba(255, 255, 255, 0.6) 50%,
-    rgba(255, 255, 255, 0.4) 75%,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.06) 75%,
     rgba(255, 255, 255, 0) 100%
   );
   animation: shimmer 1.5s infinite;

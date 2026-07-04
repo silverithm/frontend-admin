@@ -84,14 +84,14 @@ export default function DispatchCalendar({
     }
 
     if (summary.noServiceCount > 0) {
-      return { bg: 'var(--color-background-red)', border: "#fecaca" };
+      return { bg: 'var(--color-background-red)', border: 'var(--color-border-red)' };
     }
 
     if (summary.substituteCount > 0) {
-      return { bg: 'var(--color-background-yellow)', border: "#fef08a" };
+      return { bg: 'var(--color-background-yellow)', border: 'var(--color-background-yellow)' };
     }
 
-    return { bg: 'var(--color-background-green)', border: "#bbf7d0" };
+    return { bg: 'var(--color-background-green)', border: 'var(--color-border-green)' };
   };
 
   return (
@@ -177,7 +177,7 @@ export default function DispatchCalendar({
             <Text type="label" weight="medium" color="inherit">
               <span
                 style={{
-                  color: index === 0 ? "#ef4444" : index === 6 ? "#3b82f6" : "#6b7280",
+                  color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                 }}
               >
                 {day}

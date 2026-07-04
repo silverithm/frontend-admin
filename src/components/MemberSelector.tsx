@@ -241,7 +241,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                     border: isSelected
                       ? "1px solid #14b8a6"
                       : "1px solid #e5e7eb",
-                    background: isSelected ? "#f0fdfa" : "#ffffff",
+                    background: isSelected ? 'var(--color-background-teal)' : "#ffffff",
                   }}
                 >
                   <HStack hAlign="between" vAlign="center" gap={3}>

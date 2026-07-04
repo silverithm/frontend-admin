@@ -362,15 +362,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 날짜 셀 배경/호버 색상 (인라인 style 값 반환)
   const getDayColor = (date: Date): { bg: string; hoverBg: string; today?: boolean; status?: string } => {
     if (!isSameMonth(date, currentDate)) {
-      return { bg: 'var(--color-background-muted)', hoverBg: '#f3f4f6' };
+      return { bg: 'var(--color-background-muted)', hoverBg: 'var(--color-background-muted)' };
     }
 
     // 전체 필터일 때는 무색, 단 오늘 날짜는 강조색
     if (roleFilter === ALL_ROLE_FILTER) {
       if (isToday(date)) {
-        return { bg: 'var(--color-background-teal)', hoverBg: '#f3f4f6', today: true };
+        return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
       }
-      return { bg: 'transparent', hoverBg: '#f3f4f6' };
+      return { bg: 'transparent', hoverBg: 'var(--color-background-muted)' };
     }
 
     const dateKey = format(date, 'yyyy-MM-dd');
@@ -380,13 +380,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const maxPeople = dayData?.maxPeople ?? 3;
 
     if (isToday(date)) {
-      return { bg: 'var(--color-background-teal)', hoverBg: '#f3f4f6', today: true };
+      return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
     }
 
     if (vacationersCount < maxPeople) {
       return { bg: 'var(--color-background-green)', hoverBg: '#bbf7d0', status: '여유' };
     } else {
-      return { bg: 'var(--color-background-red)', hoverBg: '#fecaca', status: '마감' };
+      return { bg: 'var(--color-background-red)', hoverBg: 'var(--color-background-red)', status: '마감' };
     }
   };
 
@@ -830,7 +830,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
-              style={{ padding: '10px 0', textAlign: 'center', color: index === 0 ? '#f87171' : index === 6 ? '#60a5fa' : '#9ca3af' }}
+              style={{ padding: '10px 0', textAlign: 'center', color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}
             >
               <Text type="label" weight="medium" color="inherit">{day}</Text>
             </div>
@@ -894,7 +894,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     ) : (
-                      <span style={{ color: !isCurrentMonth ? '#d1d5db' : isSunday ? '#ef4444' : isSaturday ? '#3b82f6' : '#111827' }}>
+                      <span style={{ color: !isCurrentMonth ? 'var(--color-text-primary)' : isSunday ? 'var(--color-text-red)' : isSaturday ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>
                         <Text type="label" weight="semibold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     )}
@@ -908,8 +908,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       fontWeight: 600,
                       padding: '2px 6px',
                       borderRadius: 9999,
-                      background: vacationersCount >= maxPeople ? '#ef4444' : '#f0fdfa',
-                      color: vacationersCount >= maxPeople ? '#fff' : '#0d9488',
+                      background: vacationersCount >= maxPeople ? 'var(--color-background-red)' : 'var(--color-background-teal)',
+                      color: vacationersCount >= maxPeople ? '#fff' : 'var(--color-text-teal)',
                     }}>
                       {vacationersCount}/{maxPeople}
                     </span>
@@ -948,7 +948,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                 ? '#f87171'
                                 : nameFilter === vacation.userName
                                   ? '#0d9488'
-                                  : '#374151',
+                                  : 'var(--color-text-primary)',
                               textDecoration: vacation.status === 'rejected' ? 'line-through' : undefined,
                             }}
                             title={vacation.userName || '이름 없음'}

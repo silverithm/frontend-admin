@@ -576,7 +576,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
-                  <div style={iconBox('#fef3c7')}>
+                  <div style={iconBox('var(--color-background-yellow)')}>
                     <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-yellow)' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                     </svg>
@@ -642,7 +642,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
-                  <div style={iconBox('#ede9fe')}>
+                  <div style={iconBox('var(--color-background-purple)')}>
                     <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-purple)' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -711,7 +711,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <div style={{ padding: '16px 16px 8px' }}>
                 <HStack hAlign="between" vAlign="center">
                   <HStack gap={2} vAlign="center">
-                    <div style={iconBox('#d1fae5')}>
+                    <div style={iconBox('var(--color-background-green)')}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-green)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
@@ -738,7 +738,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   style={{ display: 'grid', height: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, gridTemplateRows: `auto repeat(${monthlyCalendarDays.weeksCount}, minmax(0, 1fr))` }}
                 >
                   {['일','월','화','수','목','금','토'].map((d) => (
-                    <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 12, fontWeight: 500, color: d === '일' ? '#f87171' : d === '토' ? '#60a5fa' : '#9ca3af' }}>{d}</div>
+                    <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 12, fontWeight: 500, color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
                   {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const maxChips = 2;
@@ -757,7 +757,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           position: 'relative', display: 'flex', height: '100%', minHeight: 60,
                           flexDirection: 'column', alignItems: 'stretch', gap: 2, borderRadius: 8, padding: 4, textAlign: 'left',
                           background: !inMonth ? 'transparent' : todayFlag ? 'rgba(16, 185, 129, 0.06)' : 'transparent',
-                          border: `1px solid ${!inMonth ? 'transparent' : todayFlag ? '#a7f3d0' : 'transparent'}`,
+                          border: `1px solid ${!inMonth ? 'transparent' : todayFlag ? 'var(--color-border-green)' : 'transparent'}`,
                           cursor: !inMonth ? 'default' : 'pointer',
                         }}
                         disabled={!inMonth}
@@ -966,7 +966,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <VStack gap={4} align="stretch">
                 {/* 날짜 */}
                 <HStack gap={3} vAlign="start">
-                  <div style={{ ...iconBox('#f0fdfa'), marginTop: 2 }}>
+                  <div style={{ ...iconBox('var(--color-background-teal)'), marginTop: 2 }}>
                     <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-teal)' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -985,7 +985,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 시간 */}
                 {!selectedSchedule.isAllDay && (selectedSchedule.startTime || selectedSchedule.endTime) && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('#f5f3ff'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-purple)'), marginTop: 2 }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-purple)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -1003,7 +1003,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 장소 */}
                 {selectedSchedule.location && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('#ecfdf5'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-green)'), marginTop: 2 }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-green)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1019,7 +1019,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 설명 */}
                 {selectedSchedule.description && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('#fffbeb'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-yellow)'), marginTop: 2 }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-yellow)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
                       </svg>
@@ -1034,7 +1034,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 참석자 */}
                 {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('#fff1f2'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-red)'), marginTop: 2 }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-red)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>

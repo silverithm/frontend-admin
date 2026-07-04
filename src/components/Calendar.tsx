@@ -140,7 +140,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
             style={{
               padding: 12,
               textAlign: 'center',
-              color: index === 0 ? '#ef4444' : index === 6 ? '#3b82f6' : '#6b7280',
+              color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
             }}
           >
             <Text type="label" weight="semibold" color="inherit">{day}</Text>
@@ -220,9 +220,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                         borderRight: '1px solid var(--color-border)',
                         cursor: 'pointer',
                         transition: 'background 200ms',
-                        color: !isCurrentMonth ? '#d1d5db' : undefined,
+                        color: !isCurrentMonth ? 'var(--color-text-primary)' : undefined,
                         background: isSelected
-                          ? '#f0fdfa'
+                          ? 'var(--color-background-teal)'
                           : !isCurrentMonth
                           ? 'rgba(249, 250, 251, 0.5)'
                           : isToday

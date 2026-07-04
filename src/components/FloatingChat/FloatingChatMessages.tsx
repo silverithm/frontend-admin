@@ -23,10 +23,10 @@ const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 // 잔여 스타일용 색상 상수 (Astryx 컴포넌트로 표현 불가한 레이아웃/버블 색상)
 const C = {
     border: "var(--color-border)",       // gray-200
-    borderLight: "#f3f4f6",  // gray-100
-    bgGray50: "#f9fafb",     // gray-50
+    borderLight: 'var(--color-border)',  // gray-100
+    bgGray50: 'var(--color-background-muted)',     // gray-50
     bubbleMine: "#0d9488",   // teal-600
-    bubbleOther: "#f3f4f6",  // gray-100
+    bubbleOther: 'var(--color-background-muted)',  // gray-100
     accent: "#0d9488",       // teal-600
 };
 
@@ -251,8 +251,8 @@ export function FloatingChatMessages({
                             cursor: "pointer",
                             transition: "background-color 150ms ease",
                             border: reaction.myReaction ? "1px solid #5eead4" : `1px solid ${C.border}`,
-                            background: reaction.myReaction ? "#eff6ff" : C.bgGray50,
-                            color: reaction.myReaction ? "#1d4ed8" : "#4b5563",
+                            background: reaction.myReaction ? 'var(--color-background-blue)' : C.bgGray50,
+                            color: reaction.myReaction ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                         }}
                     >
                         <span>{reaction.emoji}</span>
@@ -275,7 +275,7 @@ export function FloatingChatMessages({
                     borderRadius: 4,
                     borderLeft: isMyMessage ? "2px solid #5eead4" : `2px solid #9ca3af`,
                     background: isMyMessage ? "rgba(20,184,166,0.3)" : "#e5e7eb",
-                    color: isMyMessage ? "#ccfbf1" : "#4b5563",
+                    color: isMyMessage ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                 }}
             >
                 <Text type="supporting" color="inherit" weight="semibold" maxLines={1}>
@@ -441,7 +441,7 @@ export function FloatingChatMessages({
                                                     whiteSpace: "pre-wrap",
                                                     wordBreak: "break-word",
                                                     background: isMyMessage ? C.bubbleMine : C.bubbleOther,
-                                                    color: isMyMessage ? "#ffffff" : "#111827",
+                                                    color: isMyMessage ? "#ffffff" : 'var(--color-text-primary)',
                                                 }}
                                                 onTouchStart={() => handleTouchStart(message.id)}
                                                 onTouchEnd={handleTouchEnd}

@@ -301,7 +301,7 @@ export default function SubscriptionCheckPage() {
           >
             <VStack gap={6}>
               <VStack gap={3}>
-                <div style={{ color: '#f8fafc' }}>
+                <div style={{ color: 'var(--color-background-muted)' }}>
                   <Text type="display-2" weight="bold" justify="center" color="inherit">
                     {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
                   </Text>

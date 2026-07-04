@@ -605,7 +605,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   style={{
                     padding: '12px 0',
                     textAlign: 'center',
-                    color: index === 0 ? '#ef4444' : index === 6 ? '#3b82f6' : '#4b5563',
+                    color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                   }}
                 >
                   <Text type="label" weight="semibold" color="inherit">{day}</Text>
@@ -781,7 +781,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         textAlign: 'left',
                         transition: 'all 200ms',
                         opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
-                        background: isSelected || isToday(date) ? '#f0fdfa' : undefined,
+                        background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
                         boxShadow: isSelected ? 'inset 0 0 0 2px #2dd4bf' : undefined,
                       }}
                     >
@@ -800,7 +800,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                   padding: '2px 6px',
                                   borderRadius: 4,
                                   color: '#fff',
-                                  backgroundColor: schedule.label?.color || '#3B82F6',
+                                  backgroundColor: schedule.label?.color || 'var(--color-background-blue)',
                                   opacity: 0.9,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -881,7 +881,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           >
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                               <div
-                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 6, flexShrink: 0, backgroundColor: schedule.label?.color || '#3B82F6' }}
+                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 6, flexShrink: 0, backgroundColor: schedule.label?.color || 'var(--color-background-blue)' }}
                               />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <Text type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>

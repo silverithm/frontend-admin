@@ -56,7 +56,7 @@ export function FloatingChatRoomList({
                         height: 8,
                         borderRadius: "50%",
                         boxShadow: "0 0 0 2px rgba(255,255,255,0.3)",
-                        background: isConnected ? "#4ade80" : "#d1d5db",
+                        background: isConnected ? 'var(--color-background-green)' : 'var(--color-background-muted)',
                     }}
                 />
             </div>

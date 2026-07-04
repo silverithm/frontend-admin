@@ -150,12 +150,12 @@ export default function EmployeePage() {
                     width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                     padding: '10px 12px', fontSize: 14, fontWeight: 500, borderRadius: 8,
                     transition: 'colors 150ms ease', border: 'none', cursor: 'pointer',
-                    background: activeMainTab === tab.key ? '#f0fdfa' : 'transparent',
-                    color: activeMainTab === tab.key ? '#0f766e' : '#4b5563',
+                    background: activeMainTab === tab.key ? 'var(--color-background-teal)' : 'transparent',
+                    color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                     boxShadow: activeMainTab === tab.key ? '0 1px 2px rgba(0,0,0,0.05)' : undefined,
                   }}
                 >
-                  <svg style={{ width: 18, height: 18, flexShrink: 0, color: activeMainTab === tab.key ? '#14b8a6' : '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg style={{ width: 18, height: 18, flexShrink: 0, color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={tab.icon} />
                   </svg>
                   {tab.label}
@@ -211,8 +211,8 @@ export default function EmployeePage() {
                   padding: '8px 12px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
                   borderBottom: '2px solid', transition: 'colors 150ms ease',
                   background: 'transparent', cursor: 'pointer',
-                  color: activeMainTab === tab.key ? '#0d9488' : '#6b7280',
-                  borderBottomColor: activeMainTab === tab.key ? '#14b8a6' : 'transparent',
+                  color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
+                  borderBottomColor: activeMainTab === tab.key ? 'var(--color-border-teal)' : 'transparent',
                 }}
               >
                 {tab.label}

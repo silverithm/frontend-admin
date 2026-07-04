@@ -17,7 +17,7 @@ const CalendarSkeleton: React.FC = () => {
             className="carev-calskel-weekday"
             style={{
               color:
-                index === 0 ? '#ef4444' : index === 6 ? '#6366f1' : '#4b5563',
+                index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-purple)' : 'var(--color-text-primary)',
             }}
           >
             {day}

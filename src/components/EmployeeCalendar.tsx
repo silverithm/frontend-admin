@@ -403,7 +403,7 @@ export default function EmployeeCalendar() {
                 style={{
                   padding: '12px 0',
                   textAlign: 'center',
-                  color: index === 0 ? '#ef4444' : index === 6 ? '#3b82f6' : '#4b5563',
+                  color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                 }}
               >
                 <Text type="label" weight="semibold" color="inherit">{day}</Text>
@@ -477,7 +477,7 @@ export default function EmployeeCalendar() {
                       textAlign: 'left',
                       transition: 'background 200ms',
                       opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
-                      background: isSelected || isToday(date) ? '#f0fdfa' : undefined,
+                      background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
                       boxShadow: isSelected ? 'inset 0 0 0 2px #2dd4bf' : undefined,
                     }}
                   >
@@ -492,7 +492,7 @@ export default function EmployeeCalendar() {
                           const currentCount = vacations.filter(v => v.status?.toLowerCase() === 'approved').length;
                           const isFull = currentCount >= maxPeople;
                           return (
-                            <div style={{ padding: '0 4px', color: isFull ? '#ef4444' : '#9ca3af' }}>
+                            <div style={{ padding: '0 4px', color: isFull ? 'var(--color-text-red)' : 'var(--color-text-primary)' }}>
                               <Text type="supporting" size="4xs" color="inherit">{currentCount}/{maxPeople}명</Text>
                             </div>
                           );
@@ -531,7 +531,7 @@ export default function EmployeeCalendar() {
                                   alignItems: 'center',
                                   gap: 4,
                                   minWidth: 0,
-                                  color: vacation.userName === userName ? '#0d9488' : '#1f2937',
+                                  color: vacation.userName === userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                 }}
                               >
                                 <span style={{ minWidth: 0, overflow: 'hidden' }}>
@@ -617,8 +617,8 @@ export default function EmployeeCalendar() {
                         style={{
                           padding: 16,
                           borderRadius: 12,
-                          background: isMyVacation ? '#f0fdfa' : '#f9fafb',
-                          border: `1px solid ${isMyVacation ? '#99f6e4' : '#e5e7eb'}`,
+                          background: isMyVacation ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
+                          border: `1px solid ${isMyVacation ? 'var(--color-border-teal)' : 'var(--color-border)'}`,
                         }}
                       >
                         <HStack hAlign="between" vAlign="center" gap={3}>
@@ -634,7 +634,7 @@ export default function EmployeeCalendar() {
                                 color: '#fff',
                                 fontWeight: 700,
                                 flexShrink: 0,
-                                background: isMyVacation ? '#14b8a6' : '#9ca3af',
+                                background: isMyVacation ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                               }}
                             >
                               {vacation.userName?.charAt(0) || '?'}

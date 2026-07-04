@@ -1015,12 +1015,12 @@ export default function AdminPage() {
     ] as { key: string; label: string; icon: string; badge?: number }[]);
 
     const navIconStyle = (active: boolean): React.CSSProperties => ({
-        width: 18, height: 18, flexShrink: 0, color: active ? "#14b8a6" : "#9ca3af",
+        width: 18, height: 18, flexShrink: 0, color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
     });
     const subTabButtonStyle = (active: boolean): React.CSSProperties => ({
         width: "100%", textAlign: "left", padding: "6px 12px", fontSize: 12, fontWeight: 500,
         borderRadius: 6, transition: "colors 150ms ease", border: "none", cursor: "pointer",
-        background: active ? "#f0fdfa" : "transparent", color: active ? "#0f766e" : "#6b7280",
+        background: active ? 'var(--color-background-teal)' : "transparent", color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
     });
 
     return (
@@ -1047,8 +1047,8 @@ export default function AdminPage() {
                                     width: "100%", display: "flex", alignItems: "center", gap: 12,
                                     padding: "10px 12px", fontSize: 14, fontWeight: 500, borderRadius: 8,
                                     transition: "colors 150ms ease", border: "none", cursor: "pointer",
-                                    background: activeMainTab === tab.key ? "#f0fdfa" : "transparent",
-                                    color: activeMainTab === tab.key ? "#0f766e" : "#4b5563",
+                                    background: activeMainTab === tab.key ? 'var(--color-background-teal)' : "transparent",
+                                    color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                     boxShadow: activeMainTab === tab.key ? "0 1px 2px rgba(0,0,0,0.05)" : undefined,
                                 }}
                             >
@@ -1139,8 +1139,8 @@ export default function AdminPage() {
                                 padding: "8px 12px", fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
                                 borderBottom: "2px solid", transition: "colors 150ms ease",
                                 background: "transparent", cursor: "pointer",
-                                color: activeMainTab === tab.key ? "#0d9488" : "#6b7280",
-                                borderBottomColor: activeMainTab === tab.key ? "#14b8a6" : "transparent",
+                                color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
+                                borderBottomColor: activeMainTab === tab.key ? 'var(--color-border-teal)' : "transparent",
                             }}
                         >
                             {tab.label}
@@ -1296,8 +1296,8 @@ export default function AdminPage() {
                                                             style={{
                                                                 padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
                                                                 border: "none", cursor: "pointer", transition: "colors 150ms ease",
-                                                                background: active ? activeBg : "#f3f4f6",
-                                                                color: active ? "#ffffff" : "#4b5563",
+                                                                background: active ? activeBg : 'var(--color-background-muted)',
+                                                                color: active ? "#ffffff" : 'var(--color-text-primary)',
                                                             }}
                                                         >
                                                             {status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
@@ -1320,8 +1320,8 @@ export default function AdminPage() {
                                                             style={{
                                                                 padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
                                                                 border: "none", cursor: "pointer", transition: "colors 150ms ease",
-                                                                background: active ? "#14b8a6" : "#f3f4f6",
-                                                                color: active ? "#ffffff" : "#4b5563",
+                                                                background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
+                                                                color: active ? "#ffffff" : 'var(--color-text-primary)',
                                                             }}
                                                         >
                                                             {role === ALL_ROLE_FILTER ? "전체" : getRoleDisplayName(role)}
@@ -1344,8 +1344,8 @@ export default function AdminPage() {
                                                             style={{
                                                                 padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
                                                                 border: "none", cursor: "pointer", transition: "colors 150ms ease",
-                                                                background: active ? "#14b8a6" : "#f3f4f6",
-                                                                color: active ? "#ffffff" : "#4b5563",
+                                                                background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
+                                                                color: active ? "#ffffff" : 'var(--color-text-primary)',
                                                             }}
                                                         >
                                                             {label}
@@ -1490,7 +1490,7 @@ export default function AdminPage() {
                                                                             fontSize: 12,
                                                                             cursor: "pointer",
                                                                             transition: "color 200ms ease",
-                                                                            color: nameFilter === request.userName ? "#0d9488" : "#111827",
+                                                                            color: nameFilter === request.userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                                                             display: "flex",
                                                                             alignItems: "center",
                                                                         }}

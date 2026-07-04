@@ -392,7 +392,7 @@ export default function EmployeeNotice() {
                 style={{
                   padding: 20,
                   cursor: 'pointer',
-                  background: notice.isPinned ? '#e6fcf5' : undefined,
+                  background: notice.isPinned ? 'var(--color-background-teal)' : undefined,
                 }}
               >
                 <HStack gap={3} vAlign="center">

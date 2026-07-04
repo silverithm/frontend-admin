@@ -139,7 +139,7 @@ export default function SeniorAbsenceManagement() {
                         cursor: "pointer",
                         textAlign: "left",
                         border: isSelected ? "2px solid #14b8a6" : "1px solid #e5e7eb",
-                        backgroundColor: isSelected ? "#ccfbf1" : undefined,
+                        backgroundColor: isSelected ? 'var(--color-background-teal)' : undefined,
                       }}
                     >
                       <HStack gap={0} hAlign="between" vAlign="center">
@@ -154,13 +154,13 @@ export default function SeniorAbsenceManagement() {
                               borderRadius: "9999px",
                               fontSize: 12,
                               fontWeight: 500,
-                              backgroundColor: isSelected ? "#14b8a6" : "#d1d5db",
-                              color: isSelected ? "#ffffff" : "#4b5563",
+                              backgroundColor: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
+                              color: isSelected ? "#ffffff" : 'var(--color-text-primary)',
                             }}
                           >
                             {index + 1}
                           </span>
-                          <span style={{ fontWeight: 500, color: isSelected ? "#0f766e" : "#1f2937" }}>
+                          <span style={{ fontWeight: 500, color: isSelected ? 'var(--color-text-teal)' : 'var(--color-text-primary)' }}>
                             {senior.name}
                           </span>
                         </HStack>
@@ -230,7 +230,7 @@ export default function SeniorAbsenceManagement() {
                         fontWeight: 500,
                         paddingTop: 8,
                         paddingBottom: 8,
-                        color: i === 0 ? "#ef4444" : i === 6 ? "#3b82f6" : "#4b5563",
+                        color: i === 0 ? 'var(--color-text-red)' : i === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                       }}
                     >
                       {day}
@@ -267,8 +267,8 @@ export default function SeniorAbsenceManagement() {
                           fontWeight: 500,
                           position: "relative",
                           cursor: isSunday ? "not-allowed" : "pointer",
-                          backgroundColor: isSunday && !isAbsent ? "#e5e7eb" : undefined,
-                          color: isAbsent ? undefined : isSunday ? "#fca5a5" : isSaturday ? "#0d9488" : "#374151",
+                          backgroundColor: isSunday && !isAbsent ? 'var(--color-background-muted)' : undefined,
+                          color: isAbsent ? undefined : isSunday ? 'var(--color-text-red)' : isSaturday ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                         }}
                       >
                         {format(date, "d")}
