@@ -126,6 +126,31 @@ html {
 .carev-dash-timeline { transition: background 150ms ease; cursor: pointer; }
 .carev-dash-timeline:hover { background: #f0fdfa; }
 
+/* employee/page 반응형 (Tailwind lg:/sm: 대체, carev-admin-*와 동일 값) */
+.carev-emp-sidebar { display: none; }
+.carev-emp-mobile-header { display: block; }
+.carev-emp-content { margin-left: 0; }
+.carev-emp-rolling { margin-top: 88px; }
+@media (min-width: 1024px) {
+  .carev-emp-sidebar { display: flex; }
+  .carev-emp-mobile-header { display: none; }
+  .carev-emp-content { margin-left: 224px; }
+  .carev-emp-rolling { margin-top: 0; }
+}
+.carev-emp-footer-row { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.carev-emp-footer-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.carev-emp-footer-sep { display: none; }
+@media (min-width: 640px) {
+  .carev-emp-footer-row { flex-direction: row; justify-content: space-between; }
+  .carev-emp-footer-meta { flex-direction: row; gap: 12px; }
+  .carev-emp-footer-sep { display: inline; }
+}
+
+/* EmployeeNotice / EmployeeCalendar hover (Tailwind hover: 대체) */
+.carev-empnotice-item { transition: background-color 200ms ease; }
+.carev-empnotice-item:hover { background-color: #f9fafb; }
+.carev-empcal-cell:hover { background-color: #f0fdfa; }
+
 /* 탭 네비게이션 스크롤바 숨김 */
 .scrollbar-hide {
   -ms-overflow-style: none;

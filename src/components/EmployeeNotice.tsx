@@ -4,6 +4,19 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { FiChevronLeft, FiEye, FiMessageSquare, FiUsers, FiBell, FiStar } from 'react-icons/fi';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Divider } from '@astryxdesign/core/Divider';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { getPublishedNotices, incrementNoticeViewCount, getNoticeDetail, getNoticeComments, createNoticeComment, deleteNoticeComment, getNoticeReaders, markNoticeAsRead } from '@/lib/apiService';
 import { Notice, NoticePriority, NoticeComment, NoticeReader } from '@/types/notice';
 
@@ -133,14 +146,14 @@ export default function EmployeeNotice() {
     setShowReaders(!showReaders);
   };
 
-  const getPriorityStyle = (priority: NoticePriority) => {
+  const getPriorityVariant = (priority: NoticePriority): 'red' | 'blue' | 'neutral' => {
     switch (priority) {
       case 'HIGH':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'red';
       case 'NORMAL':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
+        return 'blue';
       case 'LOW':
-        return 'bg-gray-100 text-gray-600 border-gray-200';
+        return 'neutral';
     }
   };
 
@@ -165,14 +178,11 @@ export default function EmployeeNotice() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="flex justify-center items-center py-20">
-          <svg className="animate-spin h-10 w-10 text-teal-500" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
+      <Card padding={0}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px 0' }}>
+          <Spinner size="lg" aria-label="불러오는 중" />
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -183,266 +193,241 @@ export default function EmployeeNotice() {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
       >
-        {/* 상세 헤더 */}
-        <div className="p-6 border-b border-gray-100">
-          <button
-            onClick={handleBackToList}
-            className="flex items-center text-teal-600 hover:text-teal-700 font-medium mb-4 transition-colors"
-          >
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-            </svg>
-            목록
-          </button>
-          <div className="flex items-center gap-2 mb-3">
-            {selectedNotice.isPinned && (
-              <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-            )}
-            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getPriorityStyle(selectedNotice.priority)}`}>
-              {getPriorityText(selectedNotice.priority)}
-            </span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">{selectedNotice.title}</h2>
-          <div className="flex items-center text-sm text-gray-500 mt-3 space-x-4">
-            <span className="font-medium">{selectedNotice.authorName}</span>
-            <span>{formatDate(selectedNotice.publishedAt || selectedNotice.createdAt, 'yyyy년 M월 d일 HH:mm')}</span>
-            <span className="flex items-center">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              {selectedNotice.viewCount}
-            </span>
-          </div>
-        </div>
-
-        {/* 상세 내용 */}
-        <div className="p-6">
-          <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-base min-h-[100px]">
-            {selectedNotice.content}
-          </div>
-        </div>
-
-        {/* 읽은 사람 섹션 */}
-        <div className="px-6 pb-4">
-          <button
-            onClick={handleToggleReaders}
-            className="flex items-center text-sm text-gray-600 hover:text-teal-600 transition-colors"
-          >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            읽은 사람 보기 {readers.length > 0 && `(${readers.length}명)`}
-            <svg className={`w-4 h-4 ml-1 transition-transform ${showReaders ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {showReaders && (
-            <div className="mt-3 p-4 bg-gray-50 rounded-lg">
-              {isLoadingReaders ? (
-                <div className="flex justify-center py-4">
-                  <svg className="animate-spin h-5 w-5 text-teal-500" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                </div>
-              ) : readers.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {readers.map((reader) => (
-                    <div
-                      key={reader.id}
-                      className="flex items-center px-3 py-1.5 bg-white rounded-full border border-gray-200 text-sm"
-                    >
-                      <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center mr-2">
-                        <span className="text-xs font-medium text-teal-600">
-                          {reader.userName?.charAt(0) || '?'}
-                        </span>
-                      </div>
-                      <span className="text-gray-700">{reader.userName}</span>
-                      <span className="text-gray-400 text-xs ml-2">
-                        {reader.readAt && formatDate(reader.readAt, 'MM.dd HH:mm')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-2">아직 읽은 사람이 없습니다</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 댓글 섹션 */}
-        <div className="border-t border-gray-100">
-          <div className="p-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              댓글 {comments.length > 0 && `(${comments.length})`}
-            </h4>
-
-            {/* 댓글 입력 */}
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.nativeEvent.isComposing && !isSubmittingComment) {
-                    e.preventDefault();
-                    handleSubmitComment();
-                  }
-                }}
-                placeholder="댓글을 입력하세요..."
-                className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:bg-white"
+        <Card padding={0}>
+          {/* 상세 헤더 */}
+          <div style={{ padding: 24 }}>
+            <VStack gap={3} align="start">
+              <Button
+                label="목록"
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon="chevronLeft" size="sm" />}
+                onClick={handleBackToList}
               />
-              <button
-                onClick={handleSubmitComment}
-                disabled={isSubmittingComment || !newComment.trim()}
-                className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmittingComment ? (
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  '등록'
-                )}
-              </button>
-            </div>
-
-            {/* 댓글 목록 */}
-            {isLoadingComments ? (
-              <div className="flex justify-center py-8">
-                <svg className="animate-spin h-6 w-6 text-teal-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              </div>
-            ) : comments.length > 0 ? (
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3">
-                    <div className="w-9 h-9 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium text-teal-600">
-                        {comment.authorName?.charAt(0) || '?'}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-gray-900 text-sm">{comment.authorName}</span>
-                        <span className="text-xs text-gray-400">
-                          {comment.createdAt && formatDate(comment.createdAt, 'MM.dd HH:mm')}
-                        </span>
-                        {comment.authorId === currentUserId && (
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-xs text-red-500 hover:text-red-600 ml-auto"
-                          >
-                            삭제
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-gray-700 text-sm break-words">{comment.content}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <p className="text-gray-500 text-sm">첫 댓글을 남겨보세요</p>
-              </div>
-            )}
+              <HStack gap={2} vAlign="center">
+                {selectedNotice.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
+                <Badge variant={getPriorityVariant(selectedNotice.priority)} label={getPriorityText(selectedNotice.priority)} />
+              </HStack>
+              <Heading level={2}>{selectedNotice.title}</Heading>
+              <HStack gap={4} vAlign="center" wrap="wrap">
+                <Text type="supporting" weight="medium">{selectedNotice.authorName}</Text>
+                <Text type="supporting">{formatDate(selectedNotice.publishedAt || selectedNotice.createdAt, 'yyyy년 M월 d일 HH:mm')}</Text>
+                <HStack gap={1} vAlign="center">
+                  <Icon icon={FiEye} size="sm" color="secondary" />
+                  <Text type="supporting">{selectedNotice.viewCount}</Text>
+                </HStack>
+              </HStack>
+            </VStack>
           </div>
-        </div>
+
+          <Divider />
+
+          {/* 상세 내용 */}
+          <div style={{ padding: 24, whiteSpace: 'pre-wrap', minHeight: 100 }}>
+            <Text type="large">{selectedNotice.content}</Text>
+          </div>
+
+          {/* 읽은 사람 섹션 */}
+          <div style={{ padding: '0 24px 16px' }}>
+            <VStack gap={3} align="start">
+              <Button
+                label={`읽은 사람 보기${readers.length > 0 ? ` (${readers.length}명)` : ''}`}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={FiUsers} size="sm" />}
+                endContent={<Icon icon="chevronDown" size="sm" />}
+                onClick={handleToggleReaders}
+              />
+
+              {showReaders && (
+                <div style={{ width: '100%' }}>
+                  <Card variant="muted" padding={4}>
+                    {isLoadingReaders ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+                        <Spinner size="sm" aria-label="불러오는 중" />
+                      </div>
+                    ) : readers.length > 0 ? (
+                      <HStack gap={2} wrap="wrap">
+                        {readers.map((reader) => (
+                          <div
+                            key={reader.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '6px 12px',
+                              background: '#ffffff',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: 9999,
+                            }}
+                          >
+                            <Avatar name={reader.userName || '?'} size="xsmall" />
+                            <Text type="body">{reader.userName}</Text>
+                            {reader.readAt && (
+                              <Text type="supporting">{formatDate(reader.readAt, 'MM.dd HH:mm')}</Text>
+                            )}
+                          </div>
+                        ))}
+                      </HStack>
+                    ) : (
+                      <Text type="supporting" justify="center">아직 읽은 사람이 없습니다</Text>
+                    )}
+                  </Card>
+                </div>
+              )}
+            </VStack>
+          </div>
+
+          <Divider />
+
+          {/* 댓글 섹션 */}
+          <div style={{ padding: 24 }}>
+            <VStack gap={4} align="start" width="100%">
+              <HStack gap={2} vAlign="center">
+                <Icon icon={FiMessageSquare} size="md" color="secondary" />
+                <Heading level={4}>댓글 {comments.length > 0 && `(${comments.length})`}</Heading>
+              </HStack>
+
+              {/* 댓글 입력 */}
+              <HStack gap={3} vAlign="stretch" width="100%">
+                <div
+                  style={{ flex: '1 1 auto', minWidth: 0 }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing && !isSubmittingComment) {
+                      e.preventDefault();
+                      handleSubmitComment();
+                    }
+                  }}
+                >
+                  <TextInput
+                    label="댓글"
+                    isLabelHidden
+                    value={newComment}
+                    onChange={(value) => setNewComment(value)}
+                    placeholder="댓글을 입력하세요..."
+                  />
+                </div>
+                <Button
+                  label="등록"
+                  variant="primary"
+                  onClick={handleSubmitComment}
+                  isDisabled={isSubmittingComment || !newComment.trim()}
+                  isLoading={isSubmittingComment}
+                />
+              </HStack>
+
+              {/* 댓글 목록 */}
+              {isLoadingComments ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0', width: '100%' }}>
+                  <Spinner size="md" aria-label="불러오는 중" />
+                </div>
+              ) : comments.length > 0 ? (
+                <VStack gap={4} align="start" width="100%">
+                  {comments.map((comment) => (
+                    <HStack key={comment.id} gap={3} vAlign="start" width="100%">
+                      <Avatar name={comment.authorName || '?'} size="small" />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <HStack gap={2} vAlign="center">
+                          <Text type="body" weight="medium">{comment.authorName}</Text>
+                          <Text type="supporting">
+                            {comment.createdAt && formatDate(comment.createdAt, 'MM.dd HH:mm')}
+                          </Text>
+                          {comment.authorId === currentUserId && (
+                            <div style={{ marginLeft: 'auto' }}>
+                              <Button
+                                label="삭제"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteComment(comment.id)}
+                              />
+                            </div>
+                          )}
+                        </HStack>
+                        <Text type="body" display="block" wordBreak="break-word">{comment.content}</Text>
+                      </div>
+                    </HStack>
+                  ))}
+                </VStack>
+              ) : (
+                <div style={{ width: '100%' }}>
+                  <EmptyState
+                    icon={<Icon icon={FiMessageSquare} size="lg" />}
+                    title="첫 댓글을 남겨보세요"
+                  />
+                </div>
+              )}
+            </VStack>
+          </div>
+        </Card>
       </motion.div>
     );
   }
 
   // 공지사항 목록
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <Card padding={0}>
       {/* 헤더 */}
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">공지사항</h2>
-            <p className="text-gray-500 text-sm mt-1">회사의 중요한 소식을 확인하세요</p>
-          </div>
-        </div>
+      <div style={{ padding: 24 }}>
+        <VStack gap={1} align="start">
+          <Heading level={2}>공지사항</Heading>
+          <Text type="supporting">회사의 중요한 소식을 확인하세요</Text>
+        </VStack>
       </div>
 
+      <Divider />
+
       {/* 공지사항 목록 */}
-      <div className="divide-y divide-gray-100">
-        {notices.length > 0 ? (
-          notices.map((notice, index) => (
-            <motion.div
-              key={notice.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => handleOpenNotice(notice)}
-              className={`p-5 hover:bg-gray-50 cursor-pointer transition-all duration-200 group ${
-                notice.isPinned ? 'bg-teal-50/50' : ''
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    {notice.isPinned && (
-                      <div className="w-5 h-5 bg-teal-100 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      </div>
-                    )}
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getPriorityStyle(notice.priority)}`}>
-                      {getPriorityText(notice.priority)}
-                    </span>
+      {notices.length > 0 ? (
+        <div>
+          {notices.map((notice, index) => (
+            <div key={notice.id}>
+              {index > 0 && <Divider />}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                onClick={() => handleOpenNotice(notice)}
+                className="carev-empnotice-item"
+                style={{
+                  padding: 20,
+                  cursor: 'pointer',
+                  background: notice.isPinned ? '#e6fcf5' : undefined,
+                }}
+              >
+                <HStack gap={3} vAlign="center">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <VStack gap={2} align="start">
+                      <HStack gap={2} vAlign="center">
+                        {notice.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
+                        <Badge variant={getPriorityVariant(notice.priority)} label={getPriorityText(notice.priority)} />
+                      </HStack>
+                      <Heading level={4} maxLines={1}>{notice.title}</Heading>
+                      <Text type="supporting" maxLines={1}>{notice.content}</Text>
+                      <HStack gap={3} vAlign="center">
+                        <Text type="supporting">{formatDate(notice.publishedAt || notice.createdAt, 'yyyy.MM.dd')}</Text>
+                        <HStack gap={1} vAlign="center">
+                          <Icon icon={FiEye} size="sm" color="secondary" />
+                          <Text type="supporting">{notice.viewCount}</Text>
+                        </HStack>
+                      </HStack>
+                    </VStack>
                   </div>
-                  <h3 className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors truncate">
-                    {notice.title}
-                  </h3>
-                  <p className="text-gray-500 text-sm line-clamp-1 mt-1">{notice.content}</p>
-                  <div className="flex items-center text-xs text-gray-400 space-x-3 mt-2">
-                    <span>{formatDate(notice.publishedAt || notice.createdAt, 'yyyy.MM.dd')}</span>
-                    <span className="flex items-center">
-                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      {notice.viewCount}
-                    </span>
-                  </div>
-                </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </motion.div>
-          ))
-        ) : (
-          <div className="text-center py-20">
-            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <p className="text-gray-500 font-medium">공지사항이 없습니다</p>
-            <p className="text-gray-400 text-sm mt-1">아직 등록된 공지사항이 없습니다</p>
-          </div>
-        )}
-      </div>
-    </div>
+                  <Icon icon="chevronRight" size="md" color="tertiary" />
+                </HStack>
+              </motion.div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: '48px 24px' }}>
+          <EmptyState
+            icon={<Icon icon={FiBell} size="lg" />}
+            title="공지사항이 없습니다"
+            description="아직 등록된 공지사항이 없습니다"
+          />
+        </div>
+      )}
+    </Card>
   );
 }
