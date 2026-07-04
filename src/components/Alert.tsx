@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Banner } from '@astryxdesign/core/Banner';
 
@@ -124,18 +124,21 @@ export function useAlert() {
     return id;
   };
 
-  const hideAlert = (id: string) => {
-    setAlerts(prev => prev.map(alert => 
+  const hideAlert = useCallback((id: string) => {
+    setAlerts(prev => prev.map(alert =>
       alert.id === id ? { ...alert, isVisible: false } : alert
     ));
-    
+
     // Remove from array after animation completes
     setTimeout(() => {
       setAlerts(prev => prev.filter(alert => alert.id !== id));
     }, 300);
-  };
+  }, []);
 
-  const AlertContainer = () => (
+  // 컴포넌트 타입을 렌더링마다 새로 만들면 부모가 리렌더링될 때마다
+  // 알림이 언마운트→리마운트되며 등장 애니메이션이 무한 반복된다.
+  // useCallback으로 alerts가 바뀔 때만 타입이 갱신되게 고정한다.
+  const AlertContainer = useCallback(() => (
     <>
       {alerts.map(alert => (
         <Alert
@@ -152,7 +155,7 @@ export function useAlert() {
         />
       ))}
     </>
-  );
+  ), [alerts, hideAlert]);
 
   return { showAlert, hideAlert, AlertContainer };
 }
