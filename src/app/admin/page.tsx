@@ -1019,7 +1019,7 @@ export default function AdminPage() {
     });
     const subTabButtonStyle = (active: boolean): React.CSSProperties => ({
         width: "100%", textAlign: "left", padding: "6px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
-        borderRadius: 'var(--radius-inner)', transition: "colors 150ms ease", border: "none", cursor: "pointer",
+        borderRadius: 'var(--radius-inner)', transition: 'colors var(--duration-fast-min) var(--ease-standard)', border: "none", cursor: "pointer",
         background: active ? 'var(--color-background-teal)' : "transparent", color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
     });
 
@@ -1046,7 +1046,7 @@ export default function AdminPage() {
                                 style={{
                                     width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-3)',
                                     padding: "10px 12px", fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-inner)',
-                                    transition: "colors 150ms ease", border: "none", cursor: "pointer",
+                                    transition: 'colors var(--duration-fast-min) var(--ease-standard)', border: "none", cursor: "pointer",
                                     background: activeMainTab === tab.key ? 'var(--color-background-teal)' : "transparent",
                                     color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                     boxShadow: activeMainTab === tab.key ? "0 1px 2px rgba(0,0,0,0.05)" : undefined,
@@ -1098,11 +1098,11 @@ export default function AdminPage() {
                 {/* 사이드바 하단 */}
                 <div style={{ borderTop: "1px solid var(--color-border)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
                     <div style={{ padding: "0 12px" }}><SubscriptionStatus /></div>
-                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)' }}>
                         <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         기관 프로필
                     </button>
-                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)' }}>
                         <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         로그아웃
                     </button>
@@ -1137,7 +1137,7 @@ export default function AdminPage() {
                             onClick={() => setActiveMainTab(tab.key as MainTab)}
                             style={{
                                 padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', whiteSpace: "nowrap",
-                                borderBottom: "2px solid", transition: "colors 150ms ease",
+                                borderBottom: "2px solid", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
                                 background: "transparent", cursor: "pointer",
                                 color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                 borderBottomColor: activeMainTab === tab.key ? 'var(--color-border-teal)' : "transparent",
@@ -1295,7 +1295,7 @@ export default function AdminPage() {
                                                             onClick={() => setStatusFilter(status)}
                                                             style={{
                                                                 padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
-                                                                border: "none", cursor: "pointer", transition: "colors 150ms ease",
+                                                                border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
                                                                 background: active ? activeBg : 'var(--color-background-muted)',
                                                                 color: active ? "#ffffff" : 'var(--color-text-primary)',
                                                             }}
@@ -1319,7 +1319,7 @@ export default function AdminPage() {
                                                             onClick={() => setRoleFilter(role)}
                                                             style={{
                                                                 padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
-                                                                border: "none", cursor: "pointer", transition: "colors 150ms ease",
+                                                                border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
                                                                 background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                                                                 color: active ? "#ffffff" : 'var(--color-text-primary)',
                                                             }}
@@ -1343,7 +1343,7 @@ export default function AdminPage() {
                                                             onClick={() => setSortOrder(order)}
                                                             style={{
                                                                 padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
-                                                                border: "none", cursor: "pointer", transition: "colors 150ms ease",
+                                                                border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
                                                                 background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                                                                 color: active ? "#ffffff" : 'var(--color-text-primary)',
                                                             }}
@@ -1468,7 +1468,7 @@ export default function AdminPage() {
                                                     return (
                                                     <li
                                                         key={request.id}
-                                                        style={{ padding: 'var(--spacing-2)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-none)', border: "1px solid var(--color-border)", transition: "box-shadow 150ms ease" }}
+                                                        style={{ padding: 'var(--spacing-2)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-none)', border: "1px solid var(--color-border)", transition: 'box-shadow var(--duration-fast-min) var(--ease-standard)' }}
                                                     >
                                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "flex-start", gap: 'var(--spacing-2)' }}>
@@ -1489,7 +1489,7 @@ export default function AdminPage() {
                                                                             fontWeight: nameFilter === request.userName ? 700 : 500,
                                                                             fontSize: 'var(--font-size-sm)',
                                                                             cursor: "pointer",
-                                                                            transition: "color 200ms ease",
+                                                                            transition: 'color var(--duration-fast) var(--ease-standard)',
                                                                             color: nameFilter === request.userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                                                             display: "flex",
                                                                             alignItems: "center",
@@ -1738,7 +1738,7 @@ export default function AdminPage() {
                                 href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: "color 150ms ease" }}
+                                style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}
                             >
                                 개인정보처리방침
                             </a>
@@ -1747,12 +1747,12 @@ export default function AdminPage() {
                                 href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: "color 150ms ease" }}
+                                style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}
                             >
                                 이용약관
                             </a>
                             <span style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <a href="mailto:ggprgrkjh@naver.com" style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: "color 150ms ease" }}>
+                            <a href="mailto:ggprgrkjh@naver.com" style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}>
                                 ggprgrkjh@naver.com
                             </a>
                         </div>

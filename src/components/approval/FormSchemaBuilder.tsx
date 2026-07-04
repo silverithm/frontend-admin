@@ -234,7 +234,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                           border: `1px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border)'}`,
                           background: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-card)',
                           cursor: 'pointer',
-                          transition: 'all 150ms ease',
+                          transition: 'all var(--duration-fast-min) var(--ease-standard)',
                         }}
                       >
                         <span

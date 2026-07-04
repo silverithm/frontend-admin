@@ -175,7 +175,7 @@ export default function FAQPage() {
                                                 display: 'inline-flex',
                                                 color: 'var(--color-text-blue)',
                                                 transform: activeIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
-                                                transition: 'transform 200ms ease',
+                                                transition: 'transform var(--duration-fast) var(--ease-standard)',
                                             }}
                                         >
                                             <Icon icon="chevronDown" size="md" color="inherit" />

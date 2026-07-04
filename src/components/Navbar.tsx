@@ -13,7 +13,7 @@ const navLinkStyle: React.CSSProperties = {
   color: '#c3fae8',
   fontWeight: 'var(--font-weight-medium)',
   textDecoration: 'none',
-  transition: 'color 200ms ease',
+  transition: 'color var(--duration-fast) var(--ease-standard)',
 };
 
 const Navbar: React.FC = () => {
@@ -45,7 +45,7 @@ const Navbar: React.FC = () => {
         left: 0,
         right: 0,
         zIndex: 50,
-        transition: 'all 300ms ease',
+        transition: 'all var(--duration-medium-min) var(--ease-standard)',
         background: isScrolled ? 'rgba(15, 23, 42, 0.95)' : 'transparent',
         backdropFilter: isScrolled ? 'blur(12px)' : undefined,
         boxShadow: isScrolled ? '0 4px 24px rgba(0,0,0,0.2)' : undefined,

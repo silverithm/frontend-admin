@@ -219,7 +219,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                         borderBottom: '1px solid var(--color-border)',
                         borderRight: '1px solid var(--color-border)',
                         cursor: 'pointer',
-                        transition: 'background 200ms',
+                        transition: 'background var(--duration-fast)',
                         color: !isCurrentMonth ? 'var(--color-text-primary)' : undefined,
                         background: isSelected
                           ? 'var(--color-background-teal)'

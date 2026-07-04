@@ -237,7 +237,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                     padding: 'var(--spacing-4)',
                     borderRadius: 'var(--radius-inner)',
                     cursor: "pointer",
-                    transition: "all 150ms ease",
+                    transition: 'all var(--duration-fast-min) var(--ease-standard)',
                     border: isSelected
                       ? "1px solid #14b8a6"
                       : "1px solid #e5e7eb",

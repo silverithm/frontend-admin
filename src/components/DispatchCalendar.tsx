@@ -234,7 +234,7 @@ export default function DispatchCalendar({
                 padding: 'var(--spacing-2)',
                 borderRadius: 'var(--radius-inner)',
                 textAlign: "left",
-                transition: "all 200ms",
+                transition: 'all var(--duration-fast)',
                 background: isCurrentMonth ? statusColors.bg : 'var(--color-background-muted)',
                 border: `1px solid ${isCurrentMonth ? statusColors.border : "var(--color-border)"}`,
                 boxShadow: isToday

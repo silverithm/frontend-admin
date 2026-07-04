@@ -475,7 +475,7 @@ export default function EmployeeCalendar() {
                       position: 'relative',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'background 200ms',
+                      transition: 'background var(--duration-fast)',
                       opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
                       background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
                       boxShadow: isSelected ? 'inset 0 0 0 2px #2dd4bf' : undefined,

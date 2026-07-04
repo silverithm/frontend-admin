@@ -88,7 +88,7 @@ export function FloatingChatRoomList({
                                 border: "none",
                                 borderBottom: "1px solid var(--color-border)",
                                 cursor: "pointer",
-                                transition: "background-color 150ms ease",
+                                transition: 'background-color var(--duration-fast-min) var(--ease-standard)',
                             }}
                         >
                             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 'var(--spacing-0-5)' }}>

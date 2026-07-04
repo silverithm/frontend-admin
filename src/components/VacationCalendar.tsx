@@ -869,7 +869,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               borderRadius: 'var(--radius-inner)',
               position: 'relative',
               cursor: 'pointer',
-              transition: 'background-color 200ms',
+              transition: 'background-color var(--duration-fast)',
               border: isSelected ? '1px solid #99f6e4' : '1px solid transparent',
               background: isSelected ? 'rgba(240,253,250,0.5)' : dayColor.bg,
               boxShadow: isSelected ? '0 0 0 2px #14b8a6, 0 1px 2px rgba(0,0,0,0.05)' : undefined,

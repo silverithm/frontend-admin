@@ -55,7 +55,7 @@ const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   boxShadow: selected ? '0 0 0 2px #d1d5db' : undefined,
   transform: selected ? 'scale(1.1)' : undefined,
   backgroundColor: value,
-  transition: 'all 150ms',
+  transition: 'all var(--duration-fast-min)',
 });
 
 interface ScheduleCalendarProps {
@@ -695,7 +695,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           borderRight: '1px solid var(--color-border)',
                           position: 'relative',
                           textAlign: 'left',
-                          transition: 'background 200ms',
+                          transition: 'background var(--duration-fast)',
                           opacity: !isCurrentMonth ? 0.3 : 1,
                           cursor: isCurrentMonth ? 'pointer' : 'default',
                           background: isCurrentMonth && statusColors.bg ? statusColors.bg : undefined,
@@ -779,7 +779,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         position: 'relative',
                         cursor: 'pointer',
                         textAlign: 'left',
-                        transition: 'all 200ms',
+                        transition: 'all var(--duration-fast)',
                         opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
                         background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
                         boxShadow: isSelected ? 'inset 0 0 0 2px #2dd4bf' : undefined,

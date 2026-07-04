@@ -149,7 +149,7 @@ export default function EmployeePage() {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)',
                     padding: '10px 12px', fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-inner)',
-                    transition: 'colors 150ms ease', border: 'none', cursor: 'pointer',
+                    transition: 'colors var(--duration-fast-min) var(--ease-standard)', border: 'none', cursor: 'pointer',
                     background: activeMainTab === tab.key ? 'var(--color-background-teal)' : 'transparent',
                     color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                     boxShadow: activeMainTab === tab.key ? '0 1px 2px rgba(0,0,0,0.05)' : undefined,
@@ -179,7 +179,7 @@ export default function EmployeePage() {
                 </div>
               </div>
             </div>
-            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
+            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors var(--duration-fast-min) var(--ease-standard)' }}>
               <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               로그아웃
             </button>
@@ -209,7 +209,7 @@ export default function EmployeePage() {
                 onClick={() => setActiveMainTab(tab.key as MainTab)}
                 style={{
                   padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap',
-                  borderBottom: '2px solid', transition: 'colors 150ms ease',
+                  borderBottom: '2px solid', transition: 'colors var(--duration-fast-min) var(--ease-standard)',
                   background: 'transparent', cursor: 'pointer',
                   color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                   borderBottomColor: activeMainTab === tab.key ? 'var(--color-border-teal)' : 'transparent',

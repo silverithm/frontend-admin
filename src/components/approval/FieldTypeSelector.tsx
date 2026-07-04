@@ -108,7 +108,7 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
                 background: 'var(--color-background-card)',
                 color: 'var(--color-text-secondary)',
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'all var(--duration-fast-min) var(--ease-standard)',
               }}
             >
               {option.icon}

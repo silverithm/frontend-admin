@@ -406,7 +406,7 @@ export default function DispatchSettings({
                               padding: 'var(--spacing-3)',
                               borderRadius: 'var(--radius-inner)',
                               cursor: "pointer",
-                              transition: "background-color 200ms ease",
+                              transition: 'background-color var(--duration-fast) var(--ease-standard)',
                               background: isSelected
                                 ? "var(--color-teal-background, #f0fdfa)"
                                 : "var(--color-surface, #ffffff)",
