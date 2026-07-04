@@ -10,6 +10,7 @@ import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormRenderer from './approval/FormRenderer';
+import DocumentViewerModal from './DocumentViewerModal';
 
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -34,6 +35,9 @@ export default function EmployeeApproval() {
   const [formData, setFormData] = useState<Record<string, any> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부
+  const [viewer, setViewer] = useState<{ fileUrl: string; fileName: string; authoring?: boolean } | null>(null);
 
   const [userId, setUserId] = useState('');
 
@@ -201,6 +205,20 @@ export default function EmployeeApproval() {
         message: '파일 다운로드에 실패했습니다.',
       });
     }
+  };
+
+  // HWP/HWPX 파일 여부 (웹에서 바로 작성 가능한 형식)
+  const isHwpFile = (name?: string) => !!name && /\.hwpx?$/i.test(name);
+
+  // 웹 에디터에서 작성 완료한 문서를 첨부파일로 등록
+  const handleEditorSave = (file: File) => {
+    setApprovalForm(prev => ({ ...prev, file }));
+    setViewer(null);
+    showAlert({
+      type: 'success',
+      title: '작성 완료',
+      message: `작성한 문서(${file.name})가 첨부되었습니다. 제출 버튼을 눌러 기안을 완료하세요.`,
+    });
   };
 
   // 파일 선택 핸들러
@@ -496,15 +514,27 @@ export default function EmployeeApproval() {
                         </div>
                       </div>
                       {(template.templateType === 'file' || template.templateType === 'hybrid' || !template.templateType) && template.fileUrl && (
-                        <button
-                          onClick={() => handleDownloadTemplate(template)}
-                          className="flex items-center space-x-1.5 px-4 py-2 text-teal-600 hover:bg-teal-50 border border-teal-200 rounded-lg transition-colors font-medium"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                          <span>다운로드</span>
-                        </button>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            onClick={() => setViewer({ fileUrl: template.fileUrl, fileName: template.fileName })}
+                            className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white hover:bg-teal-600 rounded-lg transition-colors font-medium shadow-sm"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>바로 보기</span>
+                          </button>
+                          <button
+                            onClick={() => handleDownloadTemplate(template)}
+                            className="flex items-center space-x-1.5 px-4 py-2 text-teal-600 hover:bg-teal-50 border border-teal-200 rounded-lg transition-colors font-medium"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            <span>다운로드</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -694,6 +724,21 @@ export default function EmployeeApproval() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       작성한 양식 첨부 <span className="text-red-500">*</span>
                     </label>
+                    {selectedTemplateInfo?.fileUrl && isHwpFile(selectedTemplateInfo.fileName) && (
+                      <button
+                        onClick={() => setViewer({
+                          fileUrl: selectedTemplateInfo.fileUrl,
+                          fileName: selectedTemplateInfo.fileName,
+                          authoring: true,
+                        })}
+                        className="w-full mb-3 flex items-center justify-center space-x-2 px-4 py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors shadow-sm font-medium"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>양식을 웹에서 바로 작성 (다운로드 불필요)</span>
+                      </button>
+                    )}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -763,6 +808,21 @@ export default function EmployeeApproval() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         추가 파일 첨부 <span className="text-red-500">*</span>
                       </label>
+                      {selectedTemplateInfo.fileUrl && isHwpFile(selectedTemplateInfo.fileName) && (
+                        <button
+                          onClick={() => setViewer({
+                            fileUrl: selectedTemplateInfo.fileUrl,
+                            fileName: selectedTemplateInfo.fileName,
+                            authoring: true,
+                          })}
+                          className="w-full mb-3 flex items-center justify-center space-x-2 px-4 py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors shadow-sm font-medium"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>양식을 웹에서 바로 작성 (다운로드 불필요)</span>
+                        </button>
+                      )}
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -905,18 +965,33 @@ export default function EmployeeApproval() {
                 {selectedApproval.attachmentUrl && (
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 mb-3">첨부파일</h4>
-                    <button
-                      onClick={() => handleDownloadAttachment(selectedApproval.attachmentUrl!, selectedApproval.attachmentFileName || '첨부파일')}
-                      className="w-full flex items-center space-x-3 bg-gray-50 rounded-lg p-3 hover:bg-teal-50 transition-colors text-left"
-                    >
-                      <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      <span className="text-gray-900 flex-1">{selectedApproval.attachmentFileName || '첨부파일'}</span>
-                      <span className="text-gray-500 text-sm">
-                        {formatFileSize(selectedApproval.attachmentFileSize || 0)}
-                      </span>
-                    </button>
+                    <div className="w-full flex items-center bg-gray-50 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setViewer({
+                          fileUrl: selectedApproval.attachmentUrl!,
+                          fileName: selectedApproval.attachmentFileName || '첨부파일',
+                        })}
+                        className="flex-1 flex items-center space-x-3 p-3 hover:bg-teal-50 transition-colors text-left min-w-0"
+                      >
+                        <svg className="w-5 h-5 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span className="text-gray-900 flex-1 truncate">{selectedApproval.attachmentFileName || '첨부파일'}</span>
+                        <span className="text-gray-500 text-sm flex-shrink-0">
+                          {formatFileSize(selectedApproval.attachmentFileSize || 0)}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => handleDownloadAttachment(selectedApproval.attachmentUrl!, selectedApproval.attachmentFileName || '첨부파일')}
+                        aria-label="첨부파일 다운로드"
+                        className="p-3 text-gray-400 hover:text-teal-600 hover:bg-teal-50 border-l border-gray-200 transition-colors flex-shrink-0"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -952,6 +1027,19 @@ export default function EmployeeApproval() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 문서 뷰어 / 웹 작성 모달 */}
+      <AnimatePresence>
+        {viewer && (
+          <DocumentViewerModal
+            fileUrl={viewer.fileUrl}
+            fileName={viewer.fileName}
+            onClose={() => setViewer(null)}
+            onSave={viewer.authoring ? handleEditorSave : undefined}
+            saveLabel="작성 완료 · 첨부하기"
+          />
         )}
       </AnimatePresence>
     </>

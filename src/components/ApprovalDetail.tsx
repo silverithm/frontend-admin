@@ -6,8 +6,9 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
-import { FiX, FiPaperclip, FiCheck, FiXCircle, FiAlertCircle, FiDownload } from 'react-icons/fi';
+import { FiX, FiPaperclip, FiCheck, FiXCircle, FiAlertCircle, FiDownload, FiEye } from 'react-icons/fi';
 import FormDataViewer from './approval/FormDataViewer';
+import DocumentViewerModal from './DocumentViewerModal';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
@@ -28,6 +29,7 @@ export default function ApprovalDetail({
 }: ApprovalDetailProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
 
   const getStatusStyle = (status: ApprovalStatus) => {
     switch (status) {
@@ -180,16 +182,26 @@ export default function ApprovalDetail({
               <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-4">
                 첨부파일
               </h4>
-              <button
-                onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
-                className="w-full flex items-center space-x-3 bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-teal-50 hover:border-teal-200 transition-colors text-left"
-              >
-                <FiDownload className="w-5 h-5 text-teal-500" />
-                <span className="text-gray-900 flex-1 font-medium">{approval.attachmentFileName || '첨부파일'}</span>
-                <span className="text-gray-500 text-sm">
-                  {((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB
-                </span>
-              </button>
+              <div className="w-full flex items-center bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => setShowAttachmentViewer(true)}
+                  className="flex-1 flex items-center space-x-3 p-4 hover:bg-teal-50 transition-colors text-left min-w-0"
+                >
+                  <FiEye className="w-5 h-5 text-teal-500 flex-shrink-0" />
+                  <span className="text-gray-900 flex-1 font-medium truncate">{approval.attachmentFileName || '첨부파일'}</span>
+                  <span className="text-gray-500 text-sm flex-shrink-0">
+                    {((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
+                  aria-label="첨부파일 다운로드"
+                  className="p-4 text-gray-400 hover:text-teal-600 hover:bg-teal-50 border-l border-gray-200 transition-colors flex-shrink-0"
+                >
+                  <FiDownload className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-400 text-xs mt-2">파일명을 클릭하면 다운로드 없이 바로 볼 수 있습니다</p>
             </div>
           )}
 
@@ -285,6 +297,15 @@ export default function ApprovalDetail({
           )}
         </div>
       </motion.div>
+
+      {/* 첨부파일 문서 뷰어 */}
+      {showAttachmentViewer && approval.attachmentUrl && (
+        <DocumentViewerModal
+          fileUrl={approval.attachmentUrl}
+          fileName={approval.attachmentFileName || '첨부파일'}
+          onClose={() => setShowAttachmentViewer(false)}
+        />
+      )}
     </motion.div>
   );
 }
