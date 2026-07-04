@@ -400,7 +400,7 @@ export default function PaymentPage() {
             <div
                 style={{
                     minHeight: '100vh',
-                    background: '#f9fafb',
+                    background: 'var(--color-background-muted)',
                     padding: '48px 16px',
                 }}
             >

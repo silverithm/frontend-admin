@@ -254,7 +254,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                           width: 36,
                           height: 36,
                           borderRadius: "9999px",
-                          background: "#f3f4f6",
+                          background: 'var(--color-background-muted)',
                           flexShrink: 0,
                         }}
                       >

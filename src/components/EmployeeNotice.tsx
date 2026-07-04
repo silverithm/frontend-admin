@@ -257,8 +257,8 @@ export default function EmployeeNotice() {
                               alignItems: 'center',
                               gap: 8,
                               padding: '6px 12px',
-                              background: '#ffffff',
-                              border: '1px solid #e5e7eb',
+                              background: 'var(--color-background-card)',
+                              border: '1px solid var(--color-border)',
                               borderRadius: 9999,
                             }}
                           >

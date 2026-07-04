@@ -80,12 +80,12 @@ export default function NewNoticePage() {
   return (
     <>
       <AlertContainer />
-      <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
         {/* 헤더 */}
         <div
           style={{
-            background: '#ffffff',
-            borderBottom: '1px solid #e5e7eb',
+            background: 'var(--color-background-card)',
+            borderBottom: '1px solid var(--color-border)',
             position: 'sticky',
             top: 0,
             zIndex: 10,

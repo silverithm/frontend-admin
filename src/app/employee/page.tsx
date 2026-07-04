@@ -103,7 +103,7 @@ export default function EmployeePage() {
 
   if (!isClient) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#ffffff' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-card)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <Spinner size="md" label="로딩 중..." />
         </div>
@@ -127,11 +127,11 @@ export default function EmployeePage() {
   return (
     <>
       <AlertContainer />
-      <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
+      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-background-muted)' }}>
         {/* 사이드바 (데스크탑) */}
-        <aside className="carev-emp-sidebar" style={{ flexDirection: 'column', width: 224, background: '#ffffff', borderRight: '1px solid #e5e7eb', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 30 }}>
+        <aside className="carev-emp-sidebar" style={{ flexDirection: 'column', width: 224, background: 'var(--color-background-card)', borderRight: '1px solid var(--color-border)', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 30 }}>
           {/* 로고 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 24px', height: 64, borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 24px', height: 64, borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
             <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 8 }} />
             <div>
               <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
@@ -165,7 +165,7 @@ export default function EmployeePage() {
           </nav>
 
           {/* 사이드바 하단 */}
-          <div style={{ borderTop: '1px solid #f3f4f6', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+          <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
             <div style={{ padding: '8px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #2dd4bf, #0d9488)', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -179,7 +179,7 @@ export default function EmployeePage() {
                 </div>
               </div>
             </div>
-            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 12, fontWeight: 500, color: '#6b7280', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
+            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
               <svg style={{ width: 16, height: 16, color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               로그아웃
             </button>
@@ -187,7 +187,7 @@ export default function EmployeePage() {
         </aside>
 
         {/* 모바일 헤더 (lg 미만) */}
-        <header className="carev-emp-mobile-header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30, background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <header className="carev-emp-mobile-header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 8 }} />
@@ -394,7 +394,7 @@ export default function EmployeePage() {
           </main>
 
           {/* 푸터 */}
-          <footer style={{ borderTop: '1px solid #e5e7eb', background: '#f9fafb' }}>
+          <footer style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
             <div style={{ maxWidth: 1600, margin: '0 auto', padding: '16px 24px' }}>
               <div className="carev-emp-footer-row">
                 <div className="carev-emp-footer-meta">

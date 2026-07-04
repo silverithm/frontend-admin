@@ -101,7 +101,7 @@ export default function NoticeRollingBanner({
       style={{
         width: '100%',
         height: '48px',
-        background: 'white',
+        background: 'var(--color-background-card)',
         borderBottom: `1px solid ${tokens.colors.border}`,
         cursor: 'pointer',
         position: 'relative',

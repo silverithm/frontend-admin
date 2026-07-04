@@ -487,7 +487,7 @@ export default function EmployeeApproval() {
         style={{
           width: '100%',
           padding: 24,
-          border: '2px dashed #d1d5db',
+          border: '2px dashed var(--color-border-emphasized)',
           borderRadius: 12,
           textAlign: 'center',
           cursor: 'pointer',
@@ -887,7 +887,7 @@ export default function EmployeeApproval() {
                         style={{
                           display: 'flex',
                           alignItems: 'stretch',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--color-border)',
                           borderRadius: 8,
                           overflow: 'hidden',
                         }}
@@ -915,7 +915,7 @@ export default function EmployeeApproval() {
                             {formatFileSize(selectedApproval.attachmentFileSize || 0)}
                           </Text>
                         </div>
-                        <div style={{ borderLeft: '1px solid #e5e7eb', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ borderLeft: '1px solid var(--color-border)', display: 'flex', alignItems: 'center' }}>
                           <IconButton
                             label="첨부파일 다운로드"
                             tooltip="다운로드"

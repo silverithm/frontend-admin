@@ -12,8 +12,8 @@ interface CalendarProps {
 }
 
 const CARD_STYLE: CSSProperties = {
-  background: '#fff',
-  border: '1px solid #e5e7eb',
+  background: 'var(--color-background-card)',
+  border: '1px solid var(--color-border)',
   borderRadius: 12,
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
   overflow: 'hidden',
@@ -133,7 +133,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       </div>
 
       {/* 요일 헤더 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#f9fafb' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--color-background-muted)' }}>
         {weekDays.map((day, index) => (
           <div
             key={index}
@@ -157,8 +157,8 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
               display: 'grid',
               gridTemplateColumns: 'repeat(7, 1fr)',
               gridTemplateRows: 'repeat(6, 1fr)',
-              borderTop: '1px solid #e5e7eb',
-              borderLeft: '1px solid #e5e7eb',
+              borderTop: '1px solid var(--color-border)',
+              borderLeft: '1px solid var(--color-border)',
             }}
           >
             {calendarData.map((row, rowIndex) => (
@@ -171,8 +171,8 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                         className="carev-cal-cell"
                         style={{
                           padding: 4,
-                          borderBottom: '1px solid #e5e7eb',
-                          borderRight: '1px solid #e5e7eb',
+                          borderBottom: '1px solid var(--color-border)',
+                          borderRight: '1px solid var(--color-border)',
                           background: 'rgba(249, 250, 251, 0.5)',
                         }}
                       />
@@ -205,7 +205,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                       ? { color: '#ef4444' }
                       : isSaturday
                       ? { color: '#3b82f6' }
-                      : { color: '#111827' }),
+                      : { color: 'var(--color-text-primary)' }),
                   };
 
                   return (
@@ -216,8 +216,8 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                       style={{
                         position: 'relative',
                         padding: 4,
-                        borderBottom: '1px solid #e5e7eb',
-                        borderRight: '1px solid #e5e7eb',
+                        borderBottom: '1px solid var(--color-border)',
+                        borderRight: '1px solid var(--color-border)',
                         cursor: 'pointer',
                         transition: 'background 200ms',
                         color: !isCurrentMonth ? '#d1d5db' : undefined,
@@ -310,8 +310,8 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       <div
         style={{
           padding: 12,
-          background: '#f9fafb',
-          borderTop: '1px solid #e5e7eb',
+          background: 'var(--color-background-muted)',
+          borderTop: '1px solid var(--color-border)',
           display: 'flex',
           justifyContent: 'center',
           gap: 24,

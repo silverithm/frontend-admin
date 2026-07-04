@@ -244,8 +244,8 @@ export default function SubscriptionCheckPage() {
                 {/* 현재 구독 상태 */}
                 <div
                   style={{
-                    backgroundColor: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    backgroundColor: 'var(--color-background-muted)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: 12,
                     padding: 16,
                   }}

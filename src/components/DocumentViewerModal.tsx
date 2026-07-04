@@ -470,7 +470,7 @@ export default function DocumentViewerModal({
                 )}
 
                 {/* 본문 */}
-                <div style={{ flex: 1, overflow: 'auto', background: '#f3f4f6', position: 'relative' }}>
+                <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-background-muted)', position: 'relative' }}>
                   {/* HWP 에디터 컨테이너 — createEditor가 iframe을 붙이므로 항상 렌더링 */}
                   <div
                     ref={hwpContainerRef}
@@ -497,7 +497,7 @@ export default function DocumentViewerModal({
                       <img
                         src={state.objectUrl}
                         alt={fileName}
-                        style={{ maxWidth: '100%', background: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: 8 }}
+                        style={{ maxWidth: '100%', background: 'var(--color-background-card)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: 8 }}
                       />
                     </div>
                   )}

@@ -86,7 +86,7 @@ export function FloatingChatRoomList({
                                 textAlign: "left",
                                 background: "transparent",
                                 border: "none",
-                                borderBottom: "1px solid #f3f4f6",
+                                borderBottom: "1px solid var(--color-border)",
                                 cursor: "pointer",
                                 transition: "background-color 150ms ease",
                             }}

@@ -35,10 +35,10 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const CARD_STYLE: CSSProperties = {
   position: "relative",
-  background: "#fff",
+  background: 'var(--color-background-card)',
   borderRadius: 12,
   boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-  border: "1px solid #e5e7eb",
+  border: "1px solid var(--color-border)",
   padding: 24,
 };
 
@@ -75,12 +75,12 @@ export default function DispatchCalendar({
   // 날짜별 상태 색상 결정
   const getStatusColors = (summary: DispatchDaySummary | undefined) => {
     if (!summary || summary.totalRoutes === 0) {
-      return { bg: "#f9fafb", border: "#e5e7eb" };
+      return { bg: "#f9fafb", border: "var(--color-border)" };
     }
 
     // 휴일인 경우
     if (summary.isHoliday) {
-      return { bg: "#f3f4f6", border: "#d1d5db" };
+      return { bg: "#f3f4f6", border: "var(--color-border-emphasized)" };
     }
 
     if (summary.noServiceCount > 0) {
@@ -218,7 +218,7 @@ export default function DispatchCalendar({
               ? { color: "#ef4444" }
               : isSaturday
               ? { color: "#3b82f6" }
-              : { color: "#111827" }),
+              : { color: 'var(--color-text-primary)' }),
           };
 
           return (
@@ -236,7 +236,7 @@ export default function DispatchCalendar({
                 textAlign: "left",
                 transition: "all 200ms",
                 background: isCurrentMonth ? statusColors.bg : "#f3f4f6",
-                border: `1px solid ${isCurrentMonth ? statusColors.border : "#e5e7eb"}`,
+                border: `1px solid ${isCurrentMonth ? statusColors.border : "var(--color-border)"}`,
                 boxShadow: isToday
                   ? "0 0 0 1px #fff, 0 0 0 3px #2dd4bf"
                   : undefined,

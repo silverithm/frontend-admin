@@ -989,7 +989,7 @@ export default function AdminPage() {
     // 클라이언트 사이드가 아직 준비되지 않았을 때만 로딩 화면 표시
     if (!isClient) {
         return (
-            <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
+            <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: 'var(--color-background-card)' }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
                     <Image
                         src="/images/carev-favicon.png"
@@ -1024,11 +1024,11 @@ export default function AdminPage() {
     });
 
     return (
-        <div style={{ display: "flex", minHeight: "100vh", background: "#f9fafb" }}>
+        <div style={{ display: "flex", minHeight: "100vh", background: 'var(--color-background-muted)' }}>
             {/* 사이드바 (데스크탑) */}
-            <aside className="carev-admin-sidebar" style={{ flexDirection: "column", width: 224, background: "#ffffff", borderRight: "1px solid #e5e7eb", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 30 }}>
+            <aside className="carev-admin-sidebar" style={{ flexDirection: "column", width: 224, background: 'var(--color-background-card)', borderRight: "1px solid var(--color-border)", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 30 }}>
                 {/* 로고 */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 24px", height: 64, borderBottom: "1px solid #f3f4f6", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 24px", height: 64, borderBottom: "1px solid var(--color-border)", flexShrink: 0 }}>
                     <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 8 }} />
                     <div>
                         <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
@@ -1096,13 +1096,13 @@ export default function AdminPage() {
                 </nav>
 
                 {/* 사이드바 하단 */}
-                <div style={{ borderTop: "1px solid #f3f4f6", padding: "12px 0", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                <div style={{ borderTop: "1px solid var(--color-border)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
                     <div style={{ padding: "0 12px" }}><SubscriptionStatus /></div>
-                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: "#6b7280", background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
                         <svg style={{ width: 16, height: 16, color: "#9ca3af" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         기관 프로필
                     </button>
-                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: "#6b7280", background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
                         <svg style={{ width: 16, height: 16, color: "#9ca3af" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         로그아웃
                     </button>
@@ -1110,7 +1110,7 @@ export default function AdminPage() {
             </aside>
 
             {/* 모바일 헤더 (lg 미만) */}
-            <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: "#ffffff", borderBottom: "1px solid #e5e7eb", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+            <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: "1px solid var(--color-border)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 52 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 8 }} />
@@ -1261,7 +1261,7 @@ export default function AdminPage() {
                             {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="carev-admin-work-layout">
                                 {/* 캘린더 영역 */}
-                                <div className="carev-admin-work-calendar" style={{ background: "#ffffff", padding: 24, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #e5e7eb", height: "fit-content" }}>
+                                <div className="carev-admin-work-calendar" style={{ background: 'var(--color-background-card)', padding: 24, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", height: "fit-content" }}>
                                     <VacationCalendar
                                         currentDate={currentDate}
                                         setCurrentDate={setCurrentDate}
@@ -1279,7 +1279,7 @@ export default function AdminPage() {
                                 {/* 필터 및 휴무 목록 사이드바 */}
                                 <div className="carev-admin-work-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                     {/* 필터 패널 */}
-                                    <div style={{ background: "#ffffff", padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #e5e7eb" }}>
+                                    <div style={{ background: 'var(--color-background-card)', padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)" }}>
                                         <div style={{ marginBottom: 12 }}><Text type="body" weight="medium" color="primary">필터</Text></div>
                                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                             {/* 상태 필터 */}
@@ -1383,7 +1383,7 @@ export default function AdminPage() {
                                     </div>
 
                                     {/* 휴무 목록 */}
-                                    <div style={{ flexGrow: 1, background: "#ffffff", padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #e5e7eb", overflow: "auto" }}>
+                                    <div style={{ flexGrow: 1, background: 'var(--color-background-card)', padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", overflow: "auto" }}>
                                         <div style={{ marginBottom: 12 }}>
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                 <Text type="body" weight="medium" color="primary">
@@ -1468,7 +1468,7 @@ export default function AdminPage() {
                                                     return (
                                                     <li
                                                         key={request.id}
-                                                        style={{ padding: 8, background: "#f9fafb", borderRadius: 4, border: "1px solid #e5e7eb", transition: "box-shadow 150ms ease" }}
+                                                        style={{ padding: 8, background: 'var(--color-background-muted)', borderRadius: 4, border: "1px solid var(--color-border)", transition: "box-shadow 150ms ease" }}
                                                     >
                                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
                                                             <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -1509,7 +1509,7 @@ export default function AdminPage() {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
+                                                                    <div style={{ fontSize: 10, color: 'var(--color-text-gray)', marginTop: 2 }}>
                                                                         {formatVacationDate(request.date)}
                                                                     </div>
                                                                 </div>
@@ -1565,7 +1565,7 @@ export default function AdminPage() {
                                                             )}
                                                         </div>
                                                         {request.reason && request.reason !== "(사유 미입력)" && (
-                                                            <div style={{ marginTop: 4, padding: 6, background: "#ffffff", borderRadius: 4, border: "1px solid #e5e7eb" }}>
+                                                            <div style={{ marginTop: 4, padding: 6, background: 'var(--color-background-card)', borderRadius: 4, border: "1px solid var(--color-border)" }}>
                                                                 <Text type="supporting" color="secondary">
                                                                     <Text type="supporting" weight="medium" color="primary">사유:</Text>{" "}
                                                                     {request.reason}
@@ -1681,7 +1681,7 @@ export default function AdminPage() {
                                 animate={{scale: 1}}
                                 exit={{scale: 0.95}}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ background: "#ffffff", borderRadius: 8, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 24, width: "100%", maxWidth: 384 }}
+                                style={{ background: 'var(--color-background-card)', borderRadius: 8, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 24, width: "100%", maxWidth: 384 }}
                             >
                                 <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 16 }}>
                                     <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: "50%", background: "#fee2e2" }}>
@@ -1723,7 +1723,7 @@ export default function AdminPage() {
             )}
 
             {/* 푸터 */}
-            <footer style={{ borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
+            <footer style={{ borderTop: "1px solid var(--color-border)", background: 'var(--color-background-muted)' }}>
                 <div style={{ maxWidth: 1600, margin: "0 auto", padding: "16px 24px" }}>
                     <div className="carev-admin-footer-row">
                         <div className="carev-admin-footer-meta" style={{ fontSize: 12, color: "#9ca3af" }}>

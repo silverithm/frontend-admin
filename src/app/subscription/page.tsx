@@ -128,7 +128,7 @@ export default function SubscriptionPage() {
       <div
         style={{
           minHeight: '100vh',
-          backgroundColor: '#f9fafb',
+          backgroundColor: 'var(--color-background-muted)',
           padding: '48px 16px',
         }}
       >

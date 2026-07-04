@@ -94,7 +94,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       <div
         style={{
           minHeight: '100vh',
-          backgroundColor: '#f9fafb',
+          backgroundColor: 'var(--color-background-muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -111,7 +111,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       <div
         style={{
           minHeight: '100vh',
-          backgroundColor: '#f9fafb',
+          backgroundColor: 'var(--color-background-muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

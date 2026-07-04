@@ -226,7 +226,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Spinner size="lg" aria-label="불러오는 중" />
       </div>
     );
@@ -234,7 +234,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
 
   if (!notice) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <VStack gap={4} align="center">
           <Text color="secondary" justify="center">공지사항을 찾을 수 없습니다.</Text>
           <Button label="돌아가기" variant="ghost" onClick={() => router.back()} />
@@ -247,9 +247,9 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
         {/* 헤더 */}
-        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ maxWidth: 896, margin: '0 auto', padding: '16px 24px' }}>
             <HStack hAlign="between" vAlign="center">
               <HStack gap={4} vAlign="center">
@@ -290,7 +290,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* 탭 */}
-        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)' }}>
           <div style={{ maxWidth: 896, margin: '0 auto', padding: '0 24px' }}>
             <TabList value={activeTab} onChange={(value) => setActiveTab(value as TabType)}>
               <Tab value="content" label="내용" />

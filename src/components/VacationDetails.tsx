@@ -239,7 +239,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
           maxWidth: 448,
           borderRadius: 16,
           overflow: 'hidden',
-          background: '#ffffff',
+          background: 'var(--color-background-card)',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
         }}
       >
@@ -418,10 +418,10 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                 {vacation.reason && (
                                   <div
                                     style={{
-                                      background: '#ffffff',
+                                      background: 'var(--color-background-card)',
                                       padding: 8,
                                       borderRadius: 6,
-                                      border: '1px solid #e5e7eb',
+                                      border: '1px solid var(--color-border)',
                                     }}
                                   >
                                     <Text type="supporting" color="secondary">
@@ -441,9 +441,9 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                   <div
                     style={{
                       padding: 32,
-                      background: '#f9fafb',
+                      background: 'var(--color-background-muted)',
                       borderRadius: 8,
-                      border: '1px solid #e5e7eb',
+                      border: '1px solid var(--color-border)',
                     }}
                   >
                     <VStack gap={2} hAlign="center">

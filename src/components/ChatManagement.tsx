@@ -81,7 +81,7 @@ const C = {
     accentDark: "#0ca678",
     surface: "#e6fcf5",
     softBorder: "#63e6be",
-    border: "#e5e7eb",
+    border: "var(--color-border)",
     bgGray: "#f9fafb",
     gray100: "#f3f4f6",
     gray300: "#d1d5db",

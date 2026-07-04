@@ -261,8 +261,8 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                                             alignItems: "center",
                                             gap: 6,
                                             padding: "4px 8px",
-                                            background: "#f3f4f6",
-                                            color: "#374151",
+                                            background: 'var(--color-background-muted)',
+                                            color: 'var(--color-text-gray)',
                                             borderRadius: 6,
                                             fontSize: 14,
                                           }}
@@ -275,7 +275,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                                               alignItems: "center",
                                               justifyContent: "center",
                                               background: "#d1d5db",
-                                              color: "#4b5563",
+                                              color: 'var(--color-text-gray)',
                                               borderRadius: 9999,
                                               fontSize: 11,
                                             }}

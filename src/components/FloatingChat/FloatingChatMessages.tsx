@@ -22,7 +22,7 @@ const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 
 // 잔여 스타일용 색상 상수 (Astryx 컴포넌트로 표현 불가한 레이아웃/버블 색상)
 const C = {
-    border: "#e5e7eb",       // gray-200
+    border: "var(--color-border)",       // gray-200
     borderLight: "#f3f4f6",  // gray-100
     bgGray50: "#f9fafb",     // gray-50
     bubbleMine: "#0d9488",   // teal-600
@@ -504,7 +504,7 @@ export function FloatingChatMessages({
                                             >
                                                 <div
                                                     style={{
-                                                        background: "#ffffff",
+                                                        background: 'var(--color-background-card)',
                                                         borderRadius: 12,
                                                         boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
                                                         border: `1px solid ${C.border}`,
@@ -609,7 +609,7 @@ export function FloatingChatMessages({
                     style={{
                         position: "absolute",
                         inset: 0,
-                        background: "#ffffff",
+                        background: 'var(--color-background-card)',
                         zIndex: 20,
                         display: "flex",
                         flexDirection: "column",

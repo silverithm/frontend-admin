@@ -662,7 +662,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       
       // html-to-image를 사용하여 캡처
       const dataUrl = await htmlToImage.toPng(captureElement, {
-        backgroundColor: '#ffffff',
+        backgroundColor: 'var(--color-background-card)',
         pixelRatio: 2,
         canvasWidth: captureElement.offsetWidth * 2,
         canvasHeight: captureElement.offsetHeight * 2,
@@ -718,7 +718,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   return (
-    <div style={{ width: '100%', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+    <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       {showMonthError && (
         <div style={{ margin: 12, padding: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626' }}>
           <VStack gap={0.5}>
@@ -826,7 +826,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </HStack>
 
         {/* 인터랙티브 캘린더 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #e5e7eb', marginBottom: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', marginBottom: 4 }}>
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
@@ -1015,7 +1015,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </motion.div>
       </div>
 
-      <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', background: 'rgba(249,250,251,0.5)' }}>
+      <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', background: 'rgba(249,250,251,0.5)' }}>
         <div style={{ marginBottom: 10 }}>
           <Text type="supporting" color="secondary" weight="medium">상태 표시</Text>
         </div>

@@ -770,7 +770,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                               todayFlag ? { background: '#10b981', fontWeight: 700, color: '#fff' } :
                               dayOfWeek === 0 ? { fontWeight: 500, color: '#ef4444' } :
                               dayOfWeek === 6 ? { fontWeight: 500, color: '#3b82f6' } :
-                              { fontWeight: 500, color: '#374151' }
+                              { fontWeight: 500, color: 'var(--color-text-gray)' }
                             ),
                           }}
                         >
@@ -823,7 +823,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            style={{ position: 'relative', background: '#fff', borderRadius: 16, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
+            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 16, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: '16px 24px', color: '#fff' }}>
@@ -874,7 +874,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '9999px', background: '#14b8a6', boxShadow: '0 0 0 4px #f0fdfa', flexShrink: 0, marginTop: 6 }} />
                         {idx < selectedSchedules.length - 1 && (
-                          <div style={{ width: 2, flex: 1, background: '#f3f4f6', margin: '4px 0' }} />
+                          <div style={{ width: 2, flex: 1, background: 'var(--color-background-muted)', margin: '4px 0' }} />
                         )}
                       </div>
                       <div style={{ paddingBottom: 16, flex: 1, minWidth: 0 }}>
@@ -900,7 +900,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               )}
             </div>
 
-            <div style={{ padding: '12px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '12px 24px', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Button
                 label="월간일정 전체보기"
                 variant="ghost"
@@ -928,7 +928,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            style={{ position: 'relative', background: '#fff', borderRadius: 16, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
+            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 16, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
@@ -1053,7 +1053,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
 
             {/* 하단 */}
-            <div style={{ padding: '12px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '12px 24px', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end' }}>
               <Button
                 label="닫기"
                 variant="secondary"

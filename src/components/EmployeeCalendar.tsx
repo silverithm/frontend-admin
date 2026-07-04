@@ -23,10 +23,10 @@ import { useAlert } from './Alert';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 const CARD_STYLE: CSSProperties = {
-  background: '#fff',
+  background: 'var(--color-background-card)',
   borderRadius: 12,
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  border: '1px solid #e5e7eb',
+  border: '1px solid var(--color-border)',
   overflow: 'hidden',
 };
 
@@ -228,7 +228,7 @@ export default function EmployeeCalendar() {
       case 'rejected':
         return { backgroundColor: '#fee2e2', color: '#dc2626' };
       default:
-        return { backgroundColor: '#f3f4f6', color: '#4b5563' };
+        return { backgroundColor: 'var(--color-background-muted)', color: 'var(--color-text-gray)' };
     }
   };
 
@@ -351,7 +351,7 @@ export default function EmployeeCalendar() {
         {/* 캘린더 카드 */}
         <div style={CARD_STYLE}>
           {/* 캘린더 헤더 */}
-          <div style={{ padding: 20, borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ padding: 20, borderBottom: '1px solid var(--color-border)' }}>
             <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
               <HStack gap={3} vAlign="center">
                 <Text type="display-3" as="h2" weight="bold" color="primary">
@@ -396,7 +396,7 @@ export default function EmployeeCalendar() {
           </div>
 
           {/* 요일 헤더 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)' }}>
             {WEEKDAYS.map((day, index) => (
               <div
                 key={day}
@@ -426,8 +426,8 @@ export default function EmployeeCalendar() {
                       style={{
                         minHeight: isExpanded ? 100 : undefined,
                         aspectRatio: isExpanded ? undefined : '1 / 1',
-                        borderBottom: '1px solid #f3f4f6',
-                        borderRight: '1px solid #f3f4f6',
+                        borderBottom: '1px solid var(--color-border)',
+                        borderRight: '1px solid var(--color-border)',
                       }}
                     />
                   );
@@ -458,7 +458,7 @@ export default function EmployeeCalendar() {
                   ? { color: '#ef4444' }
                   : dayOfWeek === 6
                   ? { color: '#3b82f6' }
-                  : { color: '#111827' };
+                  : { color: 'var(--color-text-primary)' };
 
                 return (
                   <button
@@ -470,8 +470,8 @@ export default function EmployeeCalendar() {
                       aspectRatio: isExpanded ? undefined : '1 / 1',
                       padding: 4,
                       border: 'none',
-                      borderBottom: '1px solid #f3f4f6',
-                      borderRight: '1px solid #f3f4f6',
+                      borderBottom: '1px solid var(--color-border)',
+                      borderRight: '1px solid var(--color-border)',
                       position: 'relative',
                       cursor: 'pointer',
                       textAlign: 'left',
@@ -557,7 +557,7 @@ export default function EmployeeCalendar() {
                             </div>
                           ))}
                           {!isExpanded && vacations.length > 3 && (
-                            <div style={{ marginTop: 2, color: '#6b7280' }}>
+                            <div style={{ marginTop: 2, color: 'var(--color-text-gray)' }}>
                               <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 3}명 더</Text>
                             </div>
                           )}
@@ -578,7 +578,7 @@ export default function EmployeeCalendar() {
             animate={{ opacity: 1, y: 0 }}
             style={CARD_STYLE}
           >
-            <div style={{ padding: 20, borderBottom: '1px solid #e5e7eb' }}>
+            <div style={{ padding: 20, borderBottom: '1px solid var(--color-border)' }}>
               <VStack gap={1}>
                 <Text type="display-3" as="h3" weight="bold" color="primary">
                   {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
@@ -707,7 +707,7 @@ export default function EmployeeCalendar() {
               <span style={circleBadgeStyle('#ef4444', 16)}>필</span>
               <Text type="supporting" color="secondary">필수 휴무</Text>
             </HStack>
-            <div style={{ borderLeft: '1px solid #e5e7eb', height: 16, margin: '0 8px' }} />
+            <div style={{ borderLeft: '1px solid var(--color-border)', height: 16, margin: '0 8px' }} />
             {/* 상태 */}
             <HStack gap={2} vAlign="center">
               <div style={{ width: 16, height: 16, borderRadius: 4, background: '#14b8a6' }} />

@@ -72,7 +72,7 @@ export default function FormFieldEditor({ field, onChange }: FormFieldEditorProp
   return (
     <VStack gap={4}>
       {/* 헤더 */}
-      <div style={{ paddingBottom: 12, borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--color-border)' }}>
         <HStack gap={2} vAlign="center">
           <Badge variant="teal" label={FIELD_TYPE_LABELS[field.type] ?? field.type} />
           <Text type="body" weight="semibold" maxLines={1}>

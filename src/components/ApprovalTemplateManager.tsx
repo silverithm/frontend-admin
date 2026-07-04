@@ -478,7 +478,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       style={{
                         width: '100%',
                         padding: '24px',
-                        border: '2px dashed var(--color-border, #e2e8f0)',
+                        border: '2px dashed var(--color-border, var(--color-border))',
                         borderRadius: '8px',
                         textAlign: 'center',
                         cursor: 'pointer',

@@ -140,7 +140,7 @@ export default function OrganizationProfilePage() {
 
   if (isLoading && !profile) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-muted)' }}>
         <Text type="body">회사 정보를 불러오는 중...</Text>
       </div>
     );
@@ -148,7 +148,7 @@ export default function OrganizationProfilePage() {
 
   if (error && !profile) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-muted)' }}>
         <Card padding={6}>
           <VStack gap={4} hAlign="center">
             <Text type="body" color="inherit"><span style={{ color: '#ef4444' }}>{error}</span></Text>
@@ -161,7 +161,7 @@ export default function OrganizationProfilePage() {
 
   if (!profile) { // profile이 null이고, 에러도 없고, 로딩도 아닌 경우 (이론상 발생하기 어려움)
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-muted)' }}>
         <Card padding={6}>
           <VStack gap={4} hAlign="center">
             <Text type="body">회사 정보를 찾을 수 없습니다.</Text>
@@ -173,7 +173,7 @@ export default function OrganizationProfilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
       {/* 모던 헤더 */}
       <header style={{ background: gradientBar, boxShadow: '0 10px 30px rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(30,64,175,0.3)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
@@ -291,7 +291,7 @@ export default function OrganizationProfilePage() {
                     {/* 위치 정보 카드 */}
                     <Card padding={6}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon icon={IconMapPin} size="md" color="secondary" />
                         </div>
                         <VStack gap={0.5}>
@@ -304,7 +304,7 @@ export default function OrganizationProfilePage() {
                     {/* 관리자 정보 카드 */}
                     <Card padding={6}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon icon={IconUser} size="md" color="secondary" />
                         </div>
                         <VStack gap={0.5}>
@@ -339,7 +339,7 @@ export default function OrganizationProfilePage() {
 
                   {/* 구독 정보 섹션 */}
                   <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 32 }}>
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 32 }}>
                       <Text type="large" weight="semibold">구독 정보</Text>
                     </div>
                     <SubscriptionInfo />
@@ -347,7 +347,7 @@ export default function OrganizationProfilePage() {
 
                   {/* 계정 설정 섹션 */}
                   <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 32 }}>
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 32 }}>
                       <Text type="large" weight="semibold">계정 설정</Text>
                     </div>
                     <div

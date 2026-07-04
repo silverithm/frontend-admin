@@ -558,8 +558,8 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                               alignItems: 'center',
                               gap: 8,
                               padding: '6px 12px',
-                              background: '#f9fafb',
-                              border: '1px solid #e5e7eb',
+                              background: 'var(--color-background-muted)',
+                              border: '1px solid var(--color-border)',
                               borderRadius: 9999,
                             }}
                           >

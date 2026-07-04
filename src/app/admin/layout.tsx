@@ -40,7 +40,7 @@ export default function AdminLayout({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f9fafb',
+          backgroundColor: 'var(--color-background-muted)',
         }}
       >
         <Spinner size="lg" aria-label="Loading" />

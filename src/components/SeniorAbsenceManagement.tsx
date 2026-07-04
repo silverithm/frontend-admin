@@ -93,9 +93,9 @@ export default function SeniorAbsenceManagement() {
     <Card width="100%" padding={0}>
       <div style={{ display: "flex", height: 600, overflow: "hidden", borderRadius: "inherit" }}>
         {/* 왼쪽: 노선 및 어르신 목록 */}
-        <div style={{ width: 320, borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column" }}>
+        <div style={{ width: 320, borderRight: "1px solid var(--color-border)", display: "flex", flexDirection: "column" }}>
           {/* 노선 선택 */}
-          <div style={{ padding: 16, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb" }}>
+          <div style={{ padding: 16, borderBottom: "1px solid var(--color-border)", backgroundColor: 'var(--color-background-muted)' }}>
             <Selector
               label="노선 선택"
               options={routeOptions}
@@ -204,7 +204,7 @@ export default function SeniorAbsenceManagement() {
                       icon={<Icon icon="chevronLeft" size="md" />}
                       onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
                     />
-                    <span style={{ fontSize: 18, fontWeight: 500, color: "#374151", minWidth: 120, textAlign: "center" }}>
+                    <span style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-gray)', minWidth: 120, textAlign: "center" }}>
                       {format(calendarMonth, "yyyy년 M월", { locale: ko })}
                     </span>
                     <IconButton
@@ -218,7 +218,7 @@ export default function SeniorAbsenceManagement() {
               </div>
 
               {/* 캘린더 */}
-              <div style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: 16 }}>
+              <div style={{ backgroundColor: 'var(--color-background-muted)', borderRadius: 12, padding: 16 }}>
                 {/* 요일 헤더 */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8 }}>
                   {["일", "월", "화", "수", "목", "금", "토"].map((day, i) => (
@@ -300,7 +300,7 @@ export default function SeniorAbsenceManagement() {
                     <Text type="body" color="secondary">결석</Text>
                   </HStack>
                   <HStack gap={2} vAlign="center">
-                    <div style={{ width: 16, height: 16, backgroundColor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 4 }} />
+                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-card)', border: "1px solid var(--color-border)", borderRadius: 4 }} />
                     <Text type="body" color="secondary">출석</Text>
                   </HStack>
                   <HStack gap={2} vAlign="center">
