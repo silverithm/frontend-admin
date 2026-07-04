@@ -9,6 +9,13 @@ import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
 import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera, FiUserPlus } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
+import { Button } from '@astryxdesign/core/Button';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Badge } from '@astryxdesign/core/Badge';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
 import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
 import {
@@ -352,30 +359,18 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
   };
 
-  const getDayColor = (date: Date) => {
+  // 날짜 셀 배경/호버 색상 (인라인 style 값 반환)
+  const getDayColor = (date: Date): { bg: string; hoverBg: string; today?: boolean; status?: string } => {
     if (!isSameMonth(date, currentDate)) {
-      return {
-        bg: 'bg-gray-50',
-        text: 'text-gray-300',
-        border: 'border-transparent'
-      };
+      return { bg: '#f9fafb', hoverBg: '#f3f4f6' };
     }
 
-    // 전체 필터일 때는 무색, 단 오늘 날짜는 파란색
+    // 전체 필터일 때는 무색, 단 오늘 날짜는 강조색
     if (roleFilter === ALL_ROLE_FILTER) {
       if (isToday(date)) {
-        return {
-          bg: 'bg-teal-50',
-          text: 'text-blue-700',
-          border: 'border-blue-400',
-          today: true
-        };
+        return { bg: '#f0fdfa', hoverBg: '#f3f4f6', today: true };
       }
-      return {
-        bg: 'bg-transparent',
-        text: 'text-black',
-        border: 'border-transparent'
-      };
+      return { bg: 'transparent', hoverBg: '#f3f4f6' };
     }
 
     const dateKey = format(date, 'yyyy-MM-dd');
@@ -383,31 +378,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const filteredVacations = getDayVacations(date);
     const vacationersCount = filteredVacations.length;
     const maxPeople = dayData?.maxPeople ?? 3;
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
     if (isToday(date)) {
-      return {
-        bg: 'bg-teal-50',
-        text: 'text-blue-700',
-        border: 'border-blue-400',
-        today: true
-      };
+      return { bg: '#f0fdfa', hoverBg: '#f3f4f6', today: true };
     }
 
     if (vacationersCount < maxPeople) {
-      return {
-        bg: 'bg-green-100 hover:bg-green-200',
-        text: isWeekend ? (date.getDay() === 0 ? 'text-red-600' : 'text-indigo-600') : 'text-green-800',
-        border: 'border-transparent',
-        status: '여유'
-      };
+      return { bg: '#dcfce7', hoverBg: '#bbf7d0', status: '여유' };
     } else {
-      return {
-        bg: 'bg-red-100 hover:bg-red-200',
-        text: isWeekend ? (date.getDay() === 0 ? 'text-red-600' : 'text-indigo-600') : 'text-red-700',
-        border: 'border-transparent',
-        status: '마감'
-      };
+      return { bg: '#fee2e2', hoverBg: '#fecaca', status: '마감' };
     }
   };
 
@@ -601,17 +580,47 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
   };
 
-  // 휴가 기간에 따른 색상 클래스 반환
-  const getDurationColorClass = (duration?: string) => {
+  // 휴가 기간에 따른 색상 반환 (인라인 style 값)
+  const getDurationColor = (duration?: string): string => {
     switch (duration) {
       case 'FULL_DAY':
-        return 'bg-blue-500'; // 연차는 파란색
+        return '#3b82f6'; // 연차는 파란색
       case 'HALF_DAY_AM':
       case 'HALF_DAY_PM':
-        return 'bg-green-500'; // 반차는 초록색
+        return '#22c55e'; // 반차는 초록색
       default:
-        return 'bg-blue-500';
+        return '#3b82f6';
     }
+  };
+
+  // 셀 안의 원형 배지 스타일
+  const circleBadgeStyle = (bg: string, size: number): React.CSSProperties => ({
+    width: size,
+    height: size,
+    borderRadius: '50%',
+    background: bg,
+    color: '#fff',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    fontSize: size <= 12 ? 8 : 10,
+    fontWeight: 700,
+  });
+
+  // 셀 안의 상태 라벨(pill) 스타일
+  const cellStatusPillStyle = (status?: string): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      flexShrink: 0,
+      whiteSpace: 'nowrap',
+      marginRight: 4,
+      padding: '2px 4px',
+      borderRadius: 9999,
+      fontWeight: 500,
+    };
+    if (status === 'approved') return { ...base, backgroundColor: '#f0fdfa', color: '#0d9488' };
+    if (status === 'rejected') return { ...base, backgroundColor: '#fef2f2', color: '#ef4444' };
+    return { ...base, backgroundColor: '#fefce8', color: '#ca8a04' };
   };
 
   // 휴가 기간이 유효한지 확인하는 함수
@@ -680,7 +689,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       // 성공 메시지 표시
       const successMessage = document.createElement('div');
       successMessage.textContent = '캡처가 완료되었습니다!';
-      successMessage.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+      successMessage.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:500;transition:opacity 300ms;';
       document.body.appendChild(successMessage);
       
       setTimeout(() => {
@@ -694,7 +703,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       // 실패 메시지 표시
       const errorMessage = document.createElement('div');
       errorMessage.textContent = '캡처에 실패했습니다. 다시 시도해주세요.';
-      errorMessage.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+      errorMessage.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:12px 24px;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:500;transition:opacity 300ms;';
       document.body.appendChild(errorMessage);
       
       setTimeout(() => {
@@ -709,152 +718,127 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   return (
-    <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div style={{ width: '100%', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       {showMonthError && (
-        <div className="p-3 m-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm">
-          <p className="font-medium text-red-700">데이터 로드 오류</p>
-          <p>요청한 월({format(currentDate, 'yyyy년 MM월')})의 데이터를 가져오지 못했습니다. 새로고침 버튼을 눌러 다시 시도해주세요.</p>
+        <div style={{ margin: 12, padding: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626' }}>
+          <VStack gap={0.5}>
+            <Text type="label" weight="semibold" color="inherit">데이터 로드 오류</Text>
+            <Text type="supporting" color="inherit">
+              요청한 월({format(currentDate, 'yyyy년 MM월')})의 데이터를 가져오지 못했습니다. 새로고침 버튼을 눌러 다시 시도해주세요.
+            </Text>
+          </VStack>
         </div>
       )}
-      <div ref={calendarRef} className="p-4 sm:p-5 md:p-6 flex flex-col">
-        <div className="flex justify-between items-center mb-4 sm:mb-5">
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="bg-teal-50 p-1.5 sm:p-2 rounded-lg text-teal-500">
-              <FiCalendar size={14} className="sm:w-5 sm:h-5" />
-            </div>
-            <div>
-              <div className="text-base sm:text-xl font-bold text-gray-900 flex items-center">
-                {format(currentDate, 'yyyy년 MM월', { locale: ko })}
-                <button
+      <div ref={calendarRef} style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
+        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%">
+          <HStack gap={2} vAlign="center">
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f0fdfa', padding: 8, borderRadius: 8, color: '#14b8a6' }}>
+              <Icon icon="calendar" size="sm" color="inherit" />
+            </span>
+            <VStack gap={0.5}>
+              <HStack gap={2} vAlign="center">
+                <Text type="large" weight="bold" color="primary">
+                  {format(currentDate, 'yyyy년 MM월', { locale: ko })}
+                </Text>
+                <Button
+                  label="월 선택"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon="calendar" size="sm" />}
                   onClick={handleOpenMonthPicker}
-                  className="ml-2 sm:ml-3 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 border border-gray-200 rounded-lg transition-colors duration-200 flex items-center space-x-1"
-                >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="hidden sm:inline">월 선택</span>
-                  <span className="sm:hidden">선택</span>
-                </button>
-              </div>
-              <p className="text-[10px] sm:text-sm text-gray-500 mt-0.5">
-                휴무 일정 캘린더
-              </p>
-            </div>
-          </div>
+                />
+              </HStack>
+              <Text type="supporting" color="secondary">휴무 일정 캘린더</Text>
+            </VStack>
+          </HStack>
 
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <button
+          <HStack gap={1} vAlign="center">
+            <Button
+              label="이전 달"
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              icon={<Icon icon="chevronLeft" size="md" />}
               onClick={prevMonth}
-              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600"
-              aria-label="이전 달"
-            >
-              <FiChevronLeft size={14} className="sm:w-5 sm:h-5" />
-            </button>
-            <button
+            />
+            <Button
+              label="이번 달로 돌아가기"
+              variant="secondary"
+              size="sm"
+              isIconOnly
+              icon={<Icon icon="calendar" size="sm" />}
               onClick={resetToCurrentMonth}
-              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 bg-teal-50 hover:bg-teal-100 text-teal-500"
-              aria-label="이번 달로 돌아가기"
-            >
-              <FiCalendar size={12} className="sm:w-[18px] sm:h-[18px]" />
-            </button>
-            <button
+            />
+            <Button
+              label="다음 달"
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              icon={<Icon icon="chevronRight" size="md" />}
               onClick={nextMonth}
-              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600"
-              aria-label="다음 달"
-            >
-              <FiChevronRight size={14} className="sm:w-5 sm:h-5" />
-            </button>
-            <div className="w-px h-5 bg-gray-200 mx-0.5 sm:mx-1"></div>
-            <button
+            />
+            <span style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 4px' }} />
+            <Button
+              label="데이터 새로고침"
+              variant="secondary"
+              size="sm"
+              isIconOnly
+              isLoading={isLoading}
+              icon={<Icon icon={FiRefreshCw} size="sm" />}
               onClick={handleRefresh}
-              className="p-1.5 sm:p-2 rounded-lg transition-colors duration-200 bg-teal-50 hover:bg-teal-100 text-teal-500"
-              aria-label="데이터 새로고침"
-            >
-              <FiRefreshCw size={12} className={`${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+            />
             {isAdmin && onShowLimitPanel && (
               <>
-                <button
+                <Button
+                  label="휴무 제한 설정"
+                  variant="secondary"
+                  size="sm"
                   onClick={onShowLimitPanel}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium bg-teal-50 hover:bg-teal-100 text-teal-600 border border-gray-200"
-                  aria-label="휴무 제한 설정"
-                >
-                  <span className="hidden sm:inline">휴무 제한 설정</span>
-                  <span className="sm:hidden">제한 설정</span>
-                </button>
-                <button
+                />
+                <Button
+                  label="직원 휴무 추가"
+                  variant="primary"
+                  size="sm"
+                  icon={<Icon icon={FiUserPlus} size="sm" />}
                   onClick={() => setShowAdminVacationModal(true)}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium flex items-center gap-1 bg-teal-500 hover:bg-teal-600 text-white"
-                  aria-label="직원 휴무 추가"
-                >
-                  <FiUserPlus size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">직원 휴무 추가</span>
-                  <span className="sm:hidden">추가</span>
-                </button>
+                />
               </>
             )}
-            <button
+            <Button
+              label={isExpanded ? '접기' : '펼치기'}
+              variant={isExpanded ? 'secondary' : 'ghost'}
+              size="sm"
+              isDisabled={isLoading}
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium border border-gray-200 ${
-                isLoading
-                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                  : isExpanded
-                  ? 'bg-teal-50 text-teal-600 border-teal-200'
-                  : 'bg-white hover:bg-gray-50 text-gray-600'
-              }`}
-              aria-label={isExpanded ? "접기" : "펼치기"}
-            >
-              <span className="hidden sm:inline">{isExpanded ? "접기" : "펼치기"}</span>
-              <span className="sm:hidden">{isExpanded ? "접기" : "펼치기"}</span>
-            </button>
+            />
             {isExpanded && (
-              <button
+              <Button
+                label={isCapturing ? '캡처 중...' : '캡처'}
+                variant="secondary"
+                size="sm"
+                isLoading={isCapturing}
+                isDisabled={isCapturing || isLoading}
+                icon={<Icon icon={FiCamera} size="sm" />}
                 onClick={handleCapture}
-                disabled={isCapturing || isLoading}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm font-medium flex items-center gap-1 border border-gray-200 ${
-                  isCapturing
-                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                    : 'bg-white hover:bg-gray-50 text-gray-600'
-                }`}
-                aria-label="캘린더 캡처"
-                title="펼쳐진 캘린더를 이미지로 저장합니다"
-              >
-                {isCapturing ? (
-                  <>
-                    <svg className="animate-spin h-3 w-3 sm:h-4 sm:w-4 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="hidden sm:inline">캡처 중...</span>
-                  </>
-                ) : (
-                  <>
-                    <FiCamera size={14} className="sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">캡처</span>
-                  </>
-                )}
-              </button>
+              />
             )}
-          </div>
-        </div>
+          </HStack>
+        </HStack>
 
         {/* 인터랙티브 캘린더 */}
-        <div className="grid grid-cols-7 border-b border-gray-200 mb-1">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #e5e7eb', marginBottom: 4 }}>
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
-              className={`py-1.5 sm:py-2.5 text-center font-medium text-[11px] sm:text-xs ${
-                index === 0 ? 'text-red-400' :
-                index === 6 ? 'text-blue-400' : 'text-gray-400'
-              }`}
+              style={{ padding: '10px 0', textAlign: 'center', color: index === 0 ? '#f87171' : index === 6 ? '#60a5fa' : '#9ca3af' }}
             >
-              {day}
+              <Text type="label" weight="medium" color="inherit">{day}</Text>
             </div>
           ))}
         </div>
 
         <motion.div
-          className="grid grid-cols-7 gap-x-0.5 gap-y-1 sm:gap-x-1 sm:gap-y-2 md:gap-x-2 md:gap-y-2"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px 4px' }}
           initial="hidden"
           animate="visible"
           variants={{
@@ -872,73 +856,73 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const isSunday = getDay(day) === 0;
             const isSaturday = getDay(day) === 6;
             const isPast = isBefore(day, startOfDay(new Date()));
-            
+
             let dayColor = getDayColor(day);
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayData = calendarData[dateKey];
             const vacations = getDayVacations(day);
             const vacationersCount = vacations.length;
             const maxPeople = dayData?.maxPeople ?? 3;
-            
+
+            const cellStyle = {
+              padding: 8,
+              borderRadius: 8,
+              position: 'relative',
+              cursor: 'pointer',
+              transition: 'background-color 200ms',
+              border: isSelected ? '1px solid #99f6e4' : '1px solid transparent',
+              background: isSelected ? 'rgba(240,253,250,0.5)' : dayColor.bg,
+              boxShadow: isSelected ? '0 0 0 2px #14b8a6, 0 1px 2px rgba(0,0,0,0.05)' : undefined,
+              opacity: !isCurrentMonth ? 0.3 : (isPast && isCurrentMonth ? 0.7 : 1),
+              overflow: isExpanded ? undefined : 'hidden',
+              zIndex: isSelected ? 10 : undefined,
+              ['--carev-cell-hover']: dayColor.hoverBg,
+            } as React.CSSProperties;
+
             return (
               <motion.div
                 key={index}
                 variants={fadeInVariants}
                 onClick={() => handleDateClick(day)}
-                className={`p-1 sm:p-2.5 ${
-                  isExpanded
-                    ? 'min-h-[80px] sm:min-h-[200px] md:min-h-[240px]'
-                    : 'min-h-[60px] sm:min-h-[120px] md:min-h-[140px]'
-                } rounded-lg relative cursor-pointer transition-colors duration-200 border border-transparent ${
-                  !isCurrentMonth ? 'opacity-30' : ''
-                } ${isSelected ? 'ring-2 ring-teal-500 bg-teal-50/50 border-teal-200 shadow-sm z-10' : 'hover:bg-gray-100'}
-                ${!isSelected ? dayColor.bg : ''}
-                ${isPast && isCurrentMonth ? 'opacity-70' : ''}
-                ${isExpanded ? '' : 'overflow-hidden'}`}
+                className={`${isExpanded ? 'carev-vaccal-cell-expanded' : 'carev-vaccal-cell'}${!isSelected ? ' carev-vaccal-hover' : ''}`}
+                style={cellStyle}
               >
-                <div className={`flex justify-between items-start mb-1`}>
-                  <div className="flex items-center gap-0.5">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {isCurrentDay ? (
-                      <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-teal-500 text-white text-xs sm:text-sm font-bold">
-                        {format(day, 'd')}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#14b8a6', color: '#fff' }}>
+                        <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     ) : (
-                      <span className={`text-xs sm:text-sm md:text-base font-semibold ${
-                        !isCurrentMonth ? 'text-gray-300' :
-                        isSunday ? 'text-red-500' :
-                        isSaturday ? 'text-blue-500' :
-                        'text-gray-900'
-                      }`}>
-                        {format(day, 'd')}
+                      <span style={{ color: !isCurrentMonth ? '#d1d5db' : isSunday ? '#ef4444' : isSaturday ? '#3b82f6' : '#111827' }}>
+                        <Text type="label" weight="semibold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     )}
                   </div>
-                  
+
                   {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
-                    <span className={`
-                      text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded-full inline-flex items-center
-                      ${
-                        vacationersCount >= maxPeople
-                          ? 'bg-red-500 text-white'
-                          : 'bg-teal-50 text-teal-600'
-                      }
-                    `}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: '2px 6px',
+                      borderRadius: 9999,
+                      background: vacationersCount >= maxPeople ? '#ef4444' : '#f0fdfa',
+                      color: vacationersCount >= maxPeople ? '#fff' : '#0d9488',
+                    }}>
                       {vacationersCount}/{maxPeople}
                     </span>
                   )}
                 </div>
-                
+
                 {isCurrentMonth && (
-                  <div className={`space-y-0.5 sm:space-y-1 ${
-                    isExpanded 
-                      ? 'max-h-none' 
-                      : 'max-h-20 sm:max-h-20 md:max-h-28 overflow-hidden'
-                  }`}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: isExpanded ? 'none' : 112, overflow: isExpanded ? undefined : 'hidden' }}>
                     {isLoading ? (
                       // 로딩 중일 때 스켈레톤 표시
                       <>
                         {[0, 1, 2].map((i) => (
-                          <div key={i} className="skeleton rounded-full w-full h-3 sm:h-4"></div>
+                          <div key={i} className="skeleton" style={{ borderRadius: 9999, width: '100%', height: 14 }}></div>
                         ))}
                       </>
                     ) : vacations && vacations.length > 0 ? (
@@ -947,45 +931,51 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         {vacations
                           .slice(0, isExpanded ? vacations.length : 4)
                           .map((vacation, idx) => (
-                        <div key={idx} className="flex items-center text-[8px] sm:text-xs md:text-sm">
-                          <span className={`flex-shrink-0 whitespace-nowrap text-[6px] sm:text-[10px] md:text-xs mr-1 px-1 py-0.5 rounded-full font-medium
-                            ${vacation.status === 'approved'
-                              ? 'bg-teal-50 text-teal-600'
-                              : vacation.status === 'rejected'
-                              ? 'bg-red-50 text-red-500'
-                              : 'bg-yellow-50 text-yellow-600'}`}>
-                            {getStatusText(vacation.status)}
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={cellStatusPillStyle(vacation.status)}>
+                            <Text type="supporting" size="4xs" color="inherit">{getStatusText(vacation.status)}</Text>
                           </span>
-                          <span className={`flex-1 leading-tight flex items-center gap-1 ${
-                            vacation.status === 'rejected'
-                              ? 'text-red-400 line-through'
-                              : nameFilter === vacation.userName
-                                ? 'text-teal-600 font-semibold cursor-pointer hover:text-teal-700'
-                                : 'text-gray-700 cursor-pointer hover:text-teal-600'
-                          }`}
-                          title={vacation.userName || '이름 없음'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (vacation.userName) {
-                              handleNameClick(vacation.userName);
-                            }
-                          }}>
-                            <span className="truncate">{vacation.userName || `이름 없음`}</span>
+                          <span
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              lineHeight: 1.25,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              cursor: vacation.status === 'rejected' ? 'default' : 'pointer',
+                              color: vacation.status === 'rejected'
+                                ? '#f87171'
+                                : nameFilter === vacation.userName
+                                  ? '#0d9488'
+                                  : '#374151',
+                              textDecoration: vacation.status === 'rejected' ? 'line-through' : undefined,
+                            }}
+                            title={vacation.userName || '이름 없음'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (vacation.userName) {
+                                handleNameClick(vacation.userName);
+                              }
+                            }}>
+                            <span style={{ minWidth: 0, overflow: 'hidden' }}>
+                              <Text type="supporting" size="4xs" color="inherit" weight={nameFilter === vacation.userName ? 'semibold' : 'normal'} maxLines={1}>
+                                {vacation.userName || `이름 없음`}
+                              </Text>
+                            </span>
                             {isValidDuration(vacation.duration) && (
-                              <span className={`w-3 h-3 rounded-full ${getDurationColorClass(vacation.duration)} text-white text-[8px] font-bold flex items-center justify-center flex-shrink-0`}>
+                              <span style={circleBadgeStyle(getDurationColor(vacation.duration), 12)}>
                                 {getDurationShortText(vacation.duration)}
                               </span>
                             )}
                             {vacation.type === 'mandatory' && (
-                              <span className="w-3 h-3 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center flex-shrink-0">
+                              <span style={circleBadgeStyle('#ef4444', 12)}>
                                 필
                               </span>
                             )}
                             {nameFilter === vacation.userName && (
-                              <span className="inline-flex items-center flex-shrink-0">
-                                <svg className="w-3 h-3 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: '#14b8a6' }}>
+                                <Icon icon="check" size="xsm" color="inherit" />
                               </span>
                             )}
                           </span>
@@ -993,31 +983,31 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         </div>
                         ))}
                         {!isExpanded && vacations.length > 4 && (
-                          <div className="text-[8px] sm:text-xs md:text-sm text-gray-400 mt-0.5 font-medium">
-                            +{vacations.length - 4}명 더
+                          <div style={{ marginTop: 2, color: '#9ca3af' }}>
+                            <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 4}명 더</Text>
                           </div>
                         )}
                       </>
                     ) : null}
                   </div>
                 )}
-                
+
                 {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
-                  <div className="absolute bottom-0.5 sm:bottom-1.5 right-0.5 sm:right-1.5">
+                  <div style={{ position: 'absolute', bottom: 6, right: 6 }}>
                     {vacationersCount >= maxPeople ? (
-                      <div className="bg-red-500 text-white rounded-full w-2.5 h-2.5 sm:w-4 sm:h-4 flex items-center justify-center">
-                        <FiAlertCircle size={6} className="sm:w-[10px] sm:h-[10px]" />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff' }}>
+                        <Icon icon={FiAlertCircle} size="xsm" color="inherit" />
                       </div>
                     ) : (
-                      <div className="bg-teal-500 text-white rounded-full w-2.5 h-2.5 sm:w-4 sm:h-4 flex items-center justify-center">
-                        <FiCheck size={6} className="sm:w-[10px] sm:h-[10px]" />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#14b8a6', color: '#fff' }}>
+                        <Icon icon="check" size="xsm" color="inherit" />
                       </div>
                     )}
                   </div>
                 )}
-                
+
                 {isSelected && (
-                  <div className="absolute inset-0 border-2 border-teal-500 rounded-lg pointer-events-none"></div>
+                  <div style={{ position: 'absolute', inset: 0, border: '2px solid #14b8a6', borderRadius: 8, pointerEvents: 'none' }}></div>
                 )}
               </motion.div>
             );
@@ -1025,53 +1015,55 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </motion.div>
       </div>
 
-      <div className="px-4 sm:px-5 md:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50/50">
-        <p className="text-[11px] sm:text-xs text-gray-400 mb-2 sm:mb-3 font-medium uppercase tracking-wide">상태 표시</p>
-        <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-5 items-center">
+      <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', background: 'rgba(249,250,251,0.5)' }}>
+        <div style={{ marginBottom: 10 }}>
+          <Text type="supporting" color="secondary" weight="medium">상태 표시</Text>
+        </div>
+        <HStack gap={4} vAlign="center" wrap="wrap">
           {/* 인원 상태 */}
-          <div className="flex items-center">
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-teal-500 rounded-full mr-1 sm:mr-1.5"></div>
-            <span className="text-[11px] sm:text-xs text-gray-500">여유</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full mr-1 sm:mr-1.5"></div>
-            <span className="text-[11px] sm:text-xs text-gray-500">마감</span>
-          </div>
+          <HStack gap={1.5} vAlign="center">
+            <span style={{ width: 12, height: 12, background: '#14b8a6', borderRadius: '50%' }} />
+            <Text type="supporting" color="secondary">여유</Text>
+          </HStack>
+          <HStack gap={1.5} vAlign="center">
+            <span style={{ width: 12, height: 12, background: '#ef4444', borderRadius: '50%' }} />
+            <Text type="supporting" color="secondary">마감</Text>
+          </HStack>
 
           {/* 구분선 */}
-          <div className="w-px h-3 bg-gray-200"></div>
+          <span style={{ width: 1, height: 12, background: '#e5e7eb' }} />
 
           {/* 승인 상태 */}
-          <div className="flex items-center">
-            <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded-full mr-1 sm:mr-1.5 font-medium">승인</span>
-            <span className="text-[11px] sm:text-xs text-gray-500">승인됨</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full mr-1 sm:mr-1.5 font-medium">대기</span>
-            <span className="text-[11px] sm:text-xs text-gray-500">대기중</span>
-          </div>
-          <div className="flex items-center">
-            <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded-full mr-1 sm:mr-1.5 font-medium">거절</span>
-            <span className="text-[11px] sm:text-xs text-gray-500">거부됨</span>
-          </div>
+          <HStack gap={1.5} vAlign="center">
+            <span style={{ padding: '2px 6px', background: '#f0fdfa', color: '#0d9488', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>승인</span>
+            <Text type="supporting" color="secondary">승인됨</Text>
+          </HStack>
+          <HStack gap={1.5} vAlign="center">
+            <span style={{ padding: '2px 6px', background: '#fefce8', color: '#ca8a04', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>대기</span>
+            <Text type="supporting" color="secondary">대기중</Text>
+          </HStack>
+          <HStack gap={1.5} vAlign="center">
+            <span style={{ padding: '2px 6px', background: '#fef2f2', color: '#ef4444', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>거절</span>
+            <Text type="supporting" color="secondary">거부됨</Text>
+          </HStack>
 
           {/* 구분선 */}
-          <div className="w-px h-3 bg-gray-200"></div>
+          <span style={{ width: 1, height: 12, background: '#e5e7eb' }} />
 
           {/* 휴가 유형 */}
-          <div className="flex items-center">
-            <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-blue-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">연</span>
-            <span className="text-[11px] sm:text-xs text-gray-500">연차</span>
-          </div>
-          <div className="flex items-center">
-            <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-green-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">반</span>
-            <span className="text-[11px] sm:text-xs text-gray-500">반차</span>
-          </div>
-          <div className="flex items-center">
-            <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-red-500 text-white text-[6px] sm:text-[8px] font-bold flex items-center justify-center mr-1 sm:mr-1.5">필</span>
-            <span className="text-[11px] sm:text-xs text-gray-500">필수 휴무</span>
-          </div>
-        </div>
+          <HStack gap={1.5} vAlign="center">
+            <span style={circleBadgeStyle('#3b82f6', 14)}>연</span>
+            <Text type="supporting" color="secondary">연차</Text>
+          </HStack>
+          <HStack gap={1.5} vAlign="center">
+            <span style={circleBadgeStyle('#22c55e', 14)}>반</span>
+            <Text type="supporting" color="secondary">반차</Text>
+          </HStack>
+          <HStack gap={1.5} vAlign="center">
+            <span style={circleBadgeStyle('#ef4444', 14)}>필</span>
+            <Text type="supporting" color="secondary">필수 휴무</Text>
+          </HStack>
+        </HStack>
       </div>
 
       {isAdmin && showAdminPanel && (
@@ -1085,115 +1077,86 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       )}
 
       {/* 월 선택 모달 */}
-      <AnimatePresence>
-        {showMonthPicker && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
-            onClick={() => setShowMonthPicker(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900">월 선택</h3>
-                  <button
-                    onClick={() => setShowMonthPicker(false)}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <FiX size={20} />
-                  </button>
-                </div>
-                
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="space-y-6">
-                    {(() => {
-                      const { years, months } = generateMonthPickerData();
-                      const currentYear = currentDate.getFullYear();
-                      const currentMonth = currentDate.getMonth();
-                      
-                      return (
-                        <>
-                          {/* 연도 선택 섹션 */}
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-3">연도 선택</h4>
-                            <div className="grid grid-cols-4 gap-2">
-                              {years.map((year) => (
-                                <button
-                                  key={year}
-                                  onClick={() => handleYearSelect(year)}
-                                  className={`p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                                    year === selectedYear
-                                      ? 'bg-teal-600 text-white shadow-lg ring-2 ring-teal-300'
-                                      : year === currentYear
-                                        ? 'bg-teal-50 text-teal-600 border border-teal-200 hover:bg-teal-100'
-                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                                  }`}
-                                >
-                                  {year}년
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          {/* 월 선택 섹션 */}
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-3">월 선택</h4>
-                            <div className="grid grid-cols-4 gap-2">
-                              {months.map((month, index) => (
-                                <button
-                                  key={month}
-                                  onClick={() => handleMonthClick(index)}
-                                  className={`p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                                    index === selectedMonth
-                                      ? 'bg-teal-600 text-white shadow-lg ring-2 ring-teal-300'
-                                      : index === currentMonth && selectedYear === currentYear
-                                        ? 'bg-teal-50 text-teal-600 border border-teal-200 hover:bg-teal-100'
-                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                                  }`}
-                                >
-                                  {month}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-                
-                {/* 액션 버튼들 */}
-                <div className="pt-4 border-t border-gray-200 flex gap-3">
-                  <button
-                    onClick={() => {
-                      const today = new Date();
-                      setSelectedYear(today.getFullYear());
-                      setSelectedMonth(today.getMonth());
-                    }}
-                    className="flex-1 p-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
-                  >
-                    오늘로 이동
-                  </button>
-                  <button
-                    onClick={handleApplyDateSelection}
-                    className="flex-1 p-3 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors duration-200 shadow-sm"
-                  >
-                    {selectedYear}년 {selectedMonth + 1}월 선택
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Dialog
+        isOpen={showMonthPicker}
+        onOpenChange={(open) => { if (!open) setShowMonthPicker(false); }}
+        purpose="info"
+        width={440}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title="월 선택"
+              onOpenChange={(open) => { if (!open) setShowMonthPicker(false); }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={6}>
+                {(() => {
+                  const { years, months } = generateMonthPickerData();
+
+                  return (
+                    <>
+                      {/* 연도 선택 섹션 */}
+                      <VStack gap={3}>
+                        <Text type="label" weight="medium" color="primary">연도 선택</Text>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                          {years.map((year) => (
+                            <Button
+                              key={year}
+                              label={`${year}년`}
+                              variant={year === selectedYear ? 'primary' : 'secondary'}
+                              size="sm"
+                              onClick={() => handleYearSelect(year)}
+                            />
+                          ))}
+                        </div>
+                      </VStack>
+
+                      {/* 월 선택 섹션 */}
+                      <VStack gap={3}>
+                        <Text type="label" weight="medium" color="primary">월 선택</Text>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                          {months.map((month, index) => (
+                            <Button
+                              key={month}
+                              label={month}
+                              variant={index === selectedMonth ? 'primary' : 'secondary'}
+                              size="sm"
+                              onClick={() => handleMonthClick(index)}
+                            />
+                          ))}
+                        </div>
+                      </VStack>
+                    </>
+                  );
+                })()}
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="between" width="100%">
+                <Button
+                  label="오늘로 이동"
+                  variant="secondary"
+                  onClick={() => {
+                    const today = new Date();
+                    setSelectedYear(today.getFullYear());
+                    setSelectedMonth(today.getMonth());
+                  }}
+                />
+                <Button
+                  label={`${selectedYear}년 ${selectedMonth + 1}월 선택`}
+                  variant="primary"
+                  onClick={handleApplyDateSelection}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
 
       {/* 관리자 직원 휴무 추가 모달 */}
       <AdminVacationAddModal

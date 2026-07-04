@@ -151,6 +151,67 @@ html {
 .carev-empnotice-item:hover { background-color: #f9fafb; }
 .carev-empcal-cell:hover { background-color: #f0fdfa; }
 
+/* ── Phase 5: 일정/휴가 도메인 ── */
+
+/* Calendar */
+.carev-cal-cell { min-height: 90px; }
+@media (min-width: 768px) { .carev-cal-cell { min-height: 100px; } }
+.carev-cal-daycell:hover { background: #f0fdfa; }
+.carev-cal-navbtn { transition: background 200ms; }
+.carev-cal-navbtn:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* SeniorAbsenceManagement hover */
+.carev-seniorabs-row { background-color: #f9fafb; }
+.carev-seniorabs-row:hover { background-color: #f3f4f6; }
+.carev-seniorabs-day-absent { background-color: #ef4444; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.carev-seniorabs-day-absent:hover { background-color: #dc2626; }
+.carev-seniorabs-day { background-color: #ffffff; border: 1px solid #e5e7eb; }
+.carev-seniorabs-day:hover { background-color: #f0fdfa; border-color: #5eead4; }
+
+/* VacationDetails 아이콘 버튼 hover */
+.carev-vacdetails-icon-btn { transition: color 0.15s, background 0.15s; }
+.carev-vacdetails-icon-btn:hover { color: #ffffff; background: rgba(255,255,255,0.1); }
+.carev-vacdetails-delete-btn { transition: color 0.15s, background 0.15s; }
+.carev-vacdetails-delete-btn:hover { color: #ef4444; background: #fef2f2; }
+
+/* VacationApproval 반응형 2단 */
+.carev-vacapproval-layout { display: flex; flex-direction: column; gap: 16px; }
+.carev-vacapproval-main { min-width: 0; }
+.carev-vacapproval-sidebar { width: 100%; }
+@media (min-width: 1280px) {
+  .carev-vacapproval-layout { flex-direction: row; }
+  .carev-vacapproval-main { flex: 1; }
+  .carev-vacapproval-sidebar { width: 200px; flex-shrink: 0; }
+}
+
+/* VacationCalendar 셀 반응형 + hover */
+.carev-vaccal-cell { min-height: 60px; transition: background-color 200ms ease; }
+.carev-vaccal-cell-expanded { min-height: 80px; transition: background-color 200ms ease; }
+@media (min-width: 640px) {
+  .carev-vaccal-cell { min-height: 120px; }
+  .carev-vaccal-cell-expanded { min-height: 200px; }
+}
+@media (min-width: 768px) {
+  .carev-vaccal-cell { min-height: 140px; }
+  .carev-vaccal-cell-expanded { min-height: 240px; }
+}
+.carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, #f3f4f6) !important; }
+
+/* ScheduleCalendar 반응형 2단 + hover */
+.carev-schedcal-layout { display: flex; flex-direction: column; gap: 24px; }
+.carev-schedcal-main { width: 100%; transition: all 300ms ease; }
+.carev-schedcal-detail { width: 100%; }
+@media (min-width: 1280px) {
+  .carev-schedcal-layout { flex-direction: row; }
+  .carev-schedcal-main--narrow { width: 75%; }
+  .carev-schedcal-detail { width: 25%; }
+}
+.carev-schedcal-cell:hover { background: #f3f4f6; }
+.carev-schedcal-list-item { transition: all 150ms ease; }
+.carev-schedcal-list-item:hover { background: #f0fdfa; border-color: #99f6e4; }
+.carev-schedcal-attach { transition: background 150ms ease; }
+.carev-schedcal-attach:hover { background: #f9fafb; }
+
 /* 탭 네비게이션 스크롤바 숨김 */
 .scrollbar-hide {
   -ms-overflow-style: none;

@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, CSSProperties } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
 import { VacationRequest, DayInfo } from '@/types/vacation';
 
 interface CalendarProps {
@@ -8,6 +10,14 @@ interface CalendarProps {
   onSelectDate: (date: Date) => void;
   selectedDate: Date | null;
 }
+
+const CARD_STYLE: CSSProperties = {
+  background: '#fff',
+  border: '1px solid #e5e7eb',
+  borderRadius: 12,
+  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+  overflow: 'hidden',
+};
 
 const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selectedDate }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -31,85 +41,126 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
     const monthEnd = endOfMonth(monthStart);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const startDay = getDay(monthStart);
-    
+
     // 각 날짜에 휴가 신청 정보 추가
     const daysWithInfo = daysInMonth.map(day => {
       const dateStr = format(day, 'yyyy-MM-dd');
       const dayVacations = vacations.filter(v => v.date === dateStr);
-      
+
       return {
         date: day,
         vacationCount: dayVacations.length,
         vacations: dayVacations
       };
     });
-    
+
     // 첫 주의 비어있는 셀 채우기
     const blanks = Array(startDay).fill(null);
-    
+
     // 6주(행) 채우기 위해 필요한 만큼 다음 달의 빈 셀 추가
     const totalCells = 6 * 7; // 6행 x 7열
     const daysWithBlanks = [...blanks, ...daysWithInfo];
-    
+
     while (daysWithBlanks.length < totalCells) {
       daysWithBlanks.push(null);
     }
-    
+
     // 6행 7열의 2차원 배열로 변환
     const rows = [];
     for (let i = 0; i < 6; i++) {
       rows.push(daysWithBlanks.slice(i * 7, (i + 1) * 7));
     }
-    
+
     return rows;
   }, [currentMonth, vacations]);
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
-    <div className="calendar-container bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div style={CARD_STYLE}>
       {/* 캘린더 헤더 */}
-      <div className="calendar-header bg-gradient-to-r from-teal-500 to-teal-600 text-white p-6 flex justify-between items-center">
-        <button 
+      <div
+        style={{
+          background: 'linear-gradient(to right, #14b8a6, #0d9488)',
+          color: '#fff',
+          padding: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <button
           onClick={prevMonth}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition-all text-white"
+          className="carev-cal-navbtn"
           aria-label="이전 달"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            border: 'none',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            cursor: 'pointer',
+          }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <Icon icon="chevronLeft" size="md" color="inherit" />
         </button>
-        <h2 className="text-2xl font-bold">
+        <Text type="display-3" as="h2" weight="bold" color="inherit">
           {format(currentMonth, 'yyyy년 MM월', { locale: ko })}
-        </h2>
-        <button 
+        </Text>
+        <button
           onClick={nextMonth}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition-all text-white"
+          className="carev-cal-navbtn"
           aria-label="다음 달"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            border: 'none',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            cursor: 'pointer',
+          }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          <Icon icon="chevronRight" size="md" color="inherit" />
         </button>
       </div>
 
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 bg-gray-50">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#f9fafb' }}>
         {weekDays.map((day, index) => (
           <div
             key={index}
-            className={`p-3 text-center text-xs font-semibold ${index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-500'}`}
+            style={{
+              padding: 12,
+              textAlign: 'center',
+              color: index === 0 ? '#ef4444' : index === 6 ? '#3b82f6' : '#6b7280',
+            }}
           >
-            {day}
+            <Text type="label" weight="semibold" color="inherit">{day}</Text>
           </div>
         ))}
       </div>
-      
+
       {/* 달력 그리드 */}
-      <div className="relative overflow-hidden">
+      <div style={{ position: 'relative', overflow: 'hidden' }}>
         {/* 달력 내용 */}
-        <div className="w-full">
-          <div className="grid grid-cols-7 grid-rows-6 border-t border-l border-gray-200">
+        <div style={{ width: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gridTemplateRows: 'repeat(6, 1fr)',
+              borderTop: '1px solid #e5e7eb',
+              borderLeft: '1px solid #e5e7eb',
+            }}
+          >
             {calendarData.map((row, rowIndex) => (
               <React.Fragment key={rowIndex}>
                 {row.map((dayInfo, colIndex) => {
@@ -117,8 +168,14 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                     return (
                       <div
                         key={`blank-${rowIndex}-${colIndex}`}
-                        className="p-1 border-b border-r border-gray-200 bg-gray-50/50 min-h-[90px] md:min-h-[100px]"
-                      ></div>
+                        className="carev-cal-cell"
+                        style={{
+                          padding: 4,
+                          borderBottom: '1px solid #e5e7eb',
+                          borderRight: '1px solid #e5e7eb',
+                          background: 'rgba(249, 250, 251, 0.5)',
+                        }}
+                      />
                     );
                   }
 
@@ -128,50 +185,100 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                   const isSunday = getDay(dayInfo.date) === 0;
                   const isSaturday = getDay(dayInfo.date) === 6;
 
+                  // 날짜 숫자 스타일
+                  const dayNumberStyle: CSSProperties = {
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    ...(isToday
+                      ? {
+                          background: '#14b8a6',
+                          color: '#fff',
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                        }
+                      : !isCurrentMonth
+                      ? { color: 'inherit' }
+                      : isSunday
+                      ? { color: '#ef4444' }
+                      : isSaturday
+                      ? { color: '#3b82f6' }
+                      : { color: '#111827' }),
+                  };
+
                   return (
                     <div
                       key={`day-${rowIndex}-${colIndex}`}
                       onClick={() => onSelectDate(dayInfo.date)}
-                      className={`
-                        relative p-1 border-b border-r border-gray-200 cursor-pointer
-                        transition-all duration-200 group min-h-[90px] md:min-h-[100px]
-                        ${isSelected ? 'bg-teal-50' : ''}
-                        ${!isCurrentMonth ? 'text-gray-300 bg-gray-50/50' : ''}
-                        ${isToday && !isSelected ? 'bg-teal-50/40' : ''}
-                        hover:bg-teal-50
-                      `}
+                      className="carev-cal-cell carev-cal-daycell"
+                      style={{
+                        position: 'relative',
+                        padding: 4,
+                        borderBottom: '1px solid #e5e7eb',
+                        borderRight: '1px solid #e5e7eb',
+                        cursor: 'pointer',
+                        transition: 'background 200ms',
+                        color: !isCurrentMonth ? '#d1d5db' : undefined,
+                        background: isSelected
+                          ? '#f0fdfa'
+                          : !isCurrentMonth
+                          ? 'rgba(249, 250, 251, 0.5)'
+                          : isToday
+                          ? 'rgba(240, 253, 250, 0.4)'
+                          : undefined,
+                      }}
                     >
-                      <div className="flex flex-col h-full">
-                        <div className="flex justify-between items-start p-1">
-                          <span
-                            className={`
-                              flex items-center justify-center text-sm font-medium
-                              ${isToday ? 'bg-teal-500 text-white w-7 h-7 rounded-full shadow-sm' : ''}
-                              ${!isToday && isSunday && isCurrentMonth ? 'text-red-500' : ''}
-                              ${!isToday && isSaturday && isCurrentMonth ? 'text-blue-500' : ''}
-                              ${!isToday && !isSunday && !isSaturday && isCurrentMonth ? 'text-gray-900' : ''}
-                            `}
-                          >
-                            {format(dayInfo.date, 'd')}
+                      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 4 }}>
+                          <span style={dayNumberStyle}>
+                            <Text type="body" weight="medium" color="inherit">{format(dayInfo.date, 'd')}</Text>
                           </span>
                           {dayInfo.vacationCount > 0 && (
-                            <div className="bg-red-500 text-white text-xs font-semibold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-sm">
-                              {dayInfo.vacationCount}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: 20,
+                                height: 20,
+                                padding: '0 6px',
+                                borderRadius: '9999px',
+                                background: '#ef4444',
+                                color: '#fff',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              }}
+                            >
+                              <Text type="supporting" size="2xs" weight="semibold" color="inherit">{dayInfo.vacationCount}</Text>
                             </div>
                           )}
                         </div>
 
                         {/* 휴가 표시 */}
                         {dayInfo.vacationCount > 0 && isCurrentMonth && (
-                          <div className="mt-1 px-1">
+                          <div style={{ marginTop: 4, padding: '0 4px' }}>
                             {dayInfo.vacations.slice(0, 2).map((vacation: VacationRequest, idx: number) => (
-                              <div key={idx} className="text-xs my-0.5 bg-red-50 text-red-700 p-1 rounded truncate font-medium">
-                                {vacation.userName}
+                              <div
+                                key={idx}
+                                style={{
+                                  margin: '2px 0',
+                                  padding: 4,
+                                  borderRadius: 4,
+                                  background: '#fef2f2',
+                                  color: '#b91c1c',
+                                }}
+                              >
+                                <Text type="supporting" size="2xs" weight="medium" color="inherit" maxLines={1}>
+                                  {vacation.userName}
+                                </Text>
                               </div>
                             ))}
                             {dayInfo.vacationCount > 2 && (
-                              <div className="text-xs text-gray-400 mt-1 font-medium">
-                                +{dayInfo.vacationCount - 2}명
+                              <div style={{ marginTop: 4, color: '#9ca3af' }}>
+                                <Text type="supporting" size="2xs" weight="medium" color="inherit">
+                                  +{dayInfo.vacationCount - 2}명
+                                </Text>
                               </div>
                             )}
                           </div>
@@ -180,7 +287,15 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
 
                       {/* 선택 효과 */}
                       {isSelected && (
-                        <div className="absolute inset-0 border-2 border-teal-500 rounded-sm pointer-events-none"></div>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            border: '2px solid #14b8a6',
+                            borderRadius: 2,
+                            pointerEvents: 'none',
+                          }}
+                        />
                       )}
                     </div>
                   );
@@ -190,18 +305,29 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
           </div>
         </div>
       </div>
-      
+
       {/* 하단 정보 */}
-      <div className="p-3 bg-gray-50 border-t border-gray-200 flex justify-center gap-6 text-xs text-gray-500">
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full bg-teal-500"></span> 오늘
+      <div
+        style={{
+          padding: 12,
+          background: '#f9fafb',
+          borderTop: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 24,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#14b8a6' }} />
+          <Text type="supporting" size="2xs" color="secondary">오늘</Text>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span> 휴가신청
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }} />
+          <Text type="supporting" size="2xs" color="secondary">휴가신청</Text>
         </div>
       </div>
     </div>
   );
 };
 
-export default React.memo(Calendar); 
+export default React.memo(Calendar);
