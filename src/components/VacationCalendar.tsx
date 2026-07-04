@@ -362,13 +362,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 날짜 셀 배경/호버 색상 (인라인 style 값 반환)
   const getDayColor = (date: Date): { bg: string; hoverBg: string; today?: boolean; status?: string } => {
     if (!isSameMonth(date, currentDate)) {
-      return { bg: '#f9fafb', hoverBg: '#f3f4f6' };
+      return { bg: 'var(--color-background-muted)', hoverBg: '#f3f4f6' };
     }
 
     // 전체 필터일 때는 무색, 단 오늘 날짜는 강조색
     if (roleFilter === ALL_ROLE_FILTER) {
       if (isToday(date)) {
-        return { bg: '#f0fdfa', hoverBg: '#f3f4f6', today: true };
+        return { bg: 'var(--color-background-teal)', hoverBg: '#f3f4f6', today: true };
       }
       return { bg: 'transparent', hoverBg: '#f3f4f6' };
     }
@@ -380,13 +380,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const maxPeople = dayData?.maxPeople ?? 3;
 
     if (isToday(date)) {
-      return { bg: '#f0fdfa', hoverBg: '#f3f4f6', today: true };
+      return { bg: 'var(--color-background-teal)', hoverBg: '#f3f4f6', today: true };
     }
 
     if (vacationersCount < maxPeople) {
-      return { bg: '#dcfce7', hoverBg: '#bbf7d0', status: '여유' };
+      return { bg: 'var(--color-background-green)', hoverBg: '#bbf7d0', status: '여유' };
     } else {
-      return { bg: '#fee2e2', hoverBg: '#fecaca', status: '마감' };
+      return { bg: 'var(--color-background-red)', hoverBg: '#fecaca', status: '마감' };
     }
   };
 
@@ -618,9 +618,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       borderRadius: 9999,
       fontWeight: 500,
     };
-    if (status === 'approved') return { ...base, backgroundColor: '#f0fdfa', color: '#0d9488' };
-    if (status === 'rejected') return { ...base, backgroundColor: '#fef2f2', color: '#ef4444' };
-    return { ...base, backgroundColor: '#fefce8', color: '#ca8a04' };
+    if (status === 'approved') return { ...base, backgroundColor: 'var(--color-background-teal)', color: 'var(--color-text-teal)' };
+    if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
+    return { ...base, backgroundColor: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)' };
   };
 
   // 휴가 기간이 유효한지 확인하는 함수
@@ -720,7 +720,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   return (
     <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       {showMonthError && (
-        <div style={{ margin: 12, padding: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626' }}>
+        <div style={{ margin: 12, padding: 12, background: 'var(--color-background-red)', border: '1px solid #fecaca', borderRadius: 8, color: 'var(--color-text-red)' }}>
           <VStack gap={0.5}>
             <Text type="label" weight="semibold" color="inherit">데이터 로드 오류</Text>
             <Text type="supporting" color="inherit">
@@ -732,7 +732,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       <div ref={calendarRef} style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%">
           <HStack gap={2} vAlign="center">
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f0fdfa', padding: 8, borderRadius: 8, color: '#14b8a6' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-teal)', padding: 8, borderRadius: 8, color: 'var(--color-text-teal)' }}>
               <Icon icon="calendar" size="sm" color="inherit" />
             </span>
             <VStack gap={0.5}>
@@ -777,7 +777,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               icon={<Icon icon="chevronRight" size="md" />}
               onClick={nextMonth}
             />
-            <span style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 4px' }} />
+            <span style={{ width: 1, height: 20, background: 'var(--color-background-muted)', margin: '0 4px' }} />
             <Button
               label="데이터 새로고침"
               variant="secondary"
@@ -890,7 +890,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {isCurrentDay ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#14b8a6', color: '#fff' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: 'var(--color-background-teal)', color: '#fff' }}>
                         <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     ) : (
@@ -974,7 +974,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               </span>
                             )}
                             {nameFilter === vacation.userName && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: '#14b8a6' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: 'var(--color-text-teal)' }}>
                                 <Icon icon="check" size="xsm" color="inherit" />
                               </span>
                             )}
@@ -983,7 +983,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         </div>
                         ))}
                         {!isExpanded && vacations.length > 4 && (
-                          <div style={{ marginTop: 2, color: '#9ca3af' }}>
+                          <div style={{ marginTop: 2, color: 'var(--color-text-gray)' }}>
                             <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 4}명 더</Text>
                           </div>
                         )}
@@ -995,11 +995,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
                   <div style={{ position: 'absolute', bottom: 6, right: 6 }}>
                     {vacationersCount >= maxPeople ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-red)', color: '#fff' }}>
                         <Icon icon={FiAlertCircle} size="xsm" color="inherit" />
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#14b8a6', color: '#fff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-teal)', color: '#fff' }}>
                         <Icon icon="check" size="xsm" color="inherit" />
                       </div>
                     )}
@@ -1022,33 +1022,33 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         <HStack gap={4} vAlign="center" wrap="wrap">
           {/* 인원 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ width: 12, height: 12, background: '#14b8a6', borderRadius: '50%' }} />
+            <span style={{ width: 12, height: 12, background: 'var(--color-background-teal)', borderRadius: '50%' }} />
             <Text type="supporting" color="secondary">여유</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ width: 12, height: 12, background: '#ef4444', borderRadius: '50%' }} />
+            <span style={{ width: 12, height: 12, background: 'var(--color-background-red)', borderRadius: '50%' }} />
             <Text type="supporting" color="secondary">마감</Text>
           </HStack>
 
           {/* 구분선 */}
-          <span style={{ width: 1, height: 12, background: '#e5e7eb' }} />
+          <span style={{ width: 1, height: 12, background: 'var(--color-background-muted)' }} />
 
           {/* 승인 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: '#f0fdfa', color: '#0d9488', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>승인</span>
+            <span style={{ padding: '2px 6px', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>승인</span>
             <Text type="supporting" color="secondary">승인됨</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: '#fefce8', color: '#ca8a04', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>대기</span>
+            <span style={{ padding: '2px 6px', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>대기</span>
             <Text type="supporting" color="secondary">대기중</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: '#fef2f2', color: '#ef4444', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>거절</span>
+            <span style={{ padding: '2px 6px', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>거절</span>
             <Text type="supporting" color="secondary">거부됨</Text>
           </HStack>
 
           {/* 구분선 */}
-          <span style={{ width: 1, height: 12, background: '#e5e7eb' }} />
+          <span style={{ width: 1, height: 12, background: 'var(--color-background-muted)' }} />
 
           {/* 휴가 유형 */}
           <HStack gap={1.5} vAlign="center">

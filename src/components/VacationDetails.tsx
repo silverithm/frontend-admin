@@ -381,7 +381,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                         background: 'transparent',
                                         border: 'none',
                                         cursor: 'pointer',
-                                        color: '#9ca3af',
+                                        color: 'var(--color-text-gray)',
                                         padding: 6,
                                         borderRadius: '50%',
                                         display: 'inline-flex',
@@ -492,7 +492,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                 <HStack gap={2} vAlign="start">
                   <span
                     style={{
-                      background: '#fee2e2',
+                      background: 'var(--color-background-red)',
                       padding: 10,
                       borderRadius: '50%',
                       display: 'inline-flex',

@@ -151,7 +151,7 @@ export default function OrganizationProfilePage() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-muted)' }}>
         <Card padding={6}>
           <VStack gap={4} hAlign="center">
-            <Text type="body" color="inherit"><span style={{ color: '#ef4444' }}>{error}</span></Text>
+            <Text type="body" color="inherit"><span style={{ color: 'var(--color-text-red)' }}>{error}</span></Text>
             <Button label="관리자 홈으로" variant="primary" onClick={() => router.push('/admin')} />
           </VStack>
         </Card>
@@ -187,7 +187,7 @@ export default function OrganizationProfilePage() {
               />
               <div style={{ color: '#ffffff' }}>
                 <Text type="display-3" color="inherit" weight="bold">기관 프로필</Text>
-                <div style={{ color: '#bfdbfe' }}>
+                <div style={{ color: 'var(--color-text-blue)' }}>
                   <Text type="supporting" color="inherit">기관 정보 관리</Text>
                 </div>
               </div>
@@ -360,7 +360,7 @@ export default function OrganizationProfilePage() {
                       <Card variant="blue" padding={6}>
                         <VStack gap={4}>
                           <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, borderRadius: 8, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon icon={IconKey} size="md" color="accent" />
                             </div>
                             <VStack gap={0.5}>
@@ -379,7 +379,7 @@ export default function OrganizationProfilePage() {
                       <Card variant="red" padding={6}>
                         <VStack gap={4}>
                           <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon icon={IconTrash} size="md" color="error" />
                             </div>
                             <VStack gap={0.5}>

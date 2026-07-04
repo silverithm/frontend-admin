@@ -180,7 +180,7 @@ export default function EmployeePage() {
               </div>
             </div>
             <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
-              <svg style={{ width: 16, height: 16, color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               로그아웃
             </button>
           </div>
@@ -197,7 +197,7 @@ export default function EmployeePage() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 6, color: '#9ca3af', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 6, color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                 <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
@@ -399,9 +399,9 @@ export default function EmployeePage() {
               <div className="carev-emp-footer-row">
                 <div className="carev-emp-footer-meta">
                   <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 (silverithm) 대표: 김준형</Text>
-                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
+                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
                   <Text as="span" type="supporting" color="secondary">사업자등록번호: 107-21-26475</Text>
-                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
+                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
                   <Text as="span" type="supporting" color="secondary">서울특별시 신림동 1547-10</Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -409,21 +409,21 @@ export default function EmployeePage() {
                     href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}
+                    style={{ fontSize: 12, color: 'var(--color-text-gray)', textDecoration: 'none' }}
                   >
                     개인정보처리방침
                   </a>
-                  <span style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
                   <a
                     href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}
+                    style={{ fontSize: 12, color: 'var(--color-text-gray)', textDecoration: 'none' }}
                   >
                     이용약관
                   </a>
-                  <span style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
-                  <a href="mailto:ggprgrkjh@naver.com" style={{ fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
+                  <a href="mailto:ggprgrkjh@naver.com" style={{ fontSize: 12, color: 'var(--color-text-gray)', textDecoration: 'none' }}>
                     ggprgrkjh@naver.com
                   </a>
                 </div>

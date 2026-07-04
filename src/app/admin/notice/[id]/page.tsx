@@ -482,7 +482,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
           content={
             <LayoutContent>
               <HStack gap={3} vAlign="start">
-                <div style={{ background: '#fee2e2', padding: 8, borderRadius: 9999, display: 'flex' }}>
+                <div style={{ background: 'var(--color-background-red)', padding: 8, borderRadius: 9999, display: 'flex' }}>
                   <Icon icon="warning" size="md" color="error" />
                 </div>
                 <Text type="body" color="secondary">이 공지사항을 삭제하시겠습니까? 삭제된 공지사항은 복구할 수 없습니다.</Text>

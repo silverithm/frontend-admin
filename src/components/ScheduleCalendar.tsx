@@ -202,10 +202,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   // 배차 날짜별 상태 배경 색상
   const getDispatchStatusColors = (summary: DispatchDaySummary | undefined) => {
     if (!summary || summary.totalRoutes === 0) return { bg: '', border: '' };
-    if (summary.isHoliday) return { bg: '#f3f4f6', border: '' };
-    if (summary.noServiceCount > 0) return { bg: '#fef2f2', border: '' };
-    if (summary.substituteCount > 0) return { bg: '#fefce8', border: '' };
-    return { bg: '#f0fdf4', border: '' };
+    if (summary.isHoliday) return { bg: 'var(--color-background-muted)', border: '' };
+    if (summary.noServiceCount > 0) return { bg: 'var(--color-background-red)', border: '' };
+    if (summary.substituteCount > 0) return { bg: 'var(--color-background-yellow)', border: '' };
+    return { bg: 'var(--color-background-green)', border: '' };
   };
 
   const loadSchedules = async () => {
@@ -542,19 +542,19 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       {/* 배차 범례 */}
                       <HStack gap={3} vAlign="center">
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-green)' }} />
                           <Text type="supporting" color="secondary">정상</Text>
                         </HStack>
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#eab308' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-yellow)' }} />
                           <Text type="supporting" color="secondary">대체</Text>
                         </HStack>
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-red)' }} />
                           <Text type="supporting" color="secondary">운행없음</Text>
                         </HStack>
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#9ca3af' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-muted)' }} />
                           <Text type="supporting" color="secondary">휴일</Text>
                         </HStack>
                       </HStack>
@@ -616,12 +616,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             {/* 배차 모드: 설정 비어있을 때 안내 */}
             {isDispatchMode && isHydrated && dispatchSettings.routes.length === 0 && (
               <div style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid var(--color-border)' }}>
-                <div style={{ background: '#fefce8', border: '1px solid #fef08a', borderRadius: 8, padding: 16 }}>
+                <div style={{ background: 'var(--color-background-yellow)', border: '1px solid #fef08a', borderRadius: 8, padding: 16 }}>
                   <VStack gap={1} hAlign="center">
                     <div style={{ color: '#854d0e' }}>
                       <Text type="body" weight="medium" color="inherit">배차 설정이 필요합니다</Text>
                     </div>
-                    <div style={{ color: '#a16207' }}>
+                    <div style={{ color: 'var(--color-text-yellow)' }}>
                       <Text type="supporting" color="inherit">노선, 직원 정보를 먼저 등록해주세요.</Text>
                     </div>
                     <div style={{ marginTop: 8 }}>
@@ -660,7 +660,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
                     const dayNumStyle: CSSProperties = isToday(date)
                       ? {
-                          background: '#14b8a6',
+                          background: 'var(--color-background-teal)',
                           color: '#fff',
                           width: 28,
                           height: 28,
@@ -671,9 +671,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           margin: '0 auto',
                         }
                       : dayOfWeek === 0
-                      ? { color: '#ef4444' }
+                      ? { color: 'var(--color-text-red)' }
                       : dayOfWeek === 6
-                      ? { color: '#3b82f6' }
+                      ? { color: 'var(--color-text-blue)' }
                       : { color: 'var(--color-text-primary)' };
 
                     return (
@@ -714,27 +714,27 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
                             <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {summary.normalCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', color: '#15803d' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', marginRight: 4, flexShrink: 0 }} />
+                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-green)' }}>
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-green)', marginRight: 4, flexShrink: 0 }} />
                                   <Text type="supporting" size="4xs" color="inherit">{summary.normalCount} 정상</Text>
                                 </div>
                               )}
                               {summary.substituteCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', color: '#a16207' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#eab308', marginRight: 4, flexShrink: 0 }} />
+                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-yellow)' }}>
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-yellow)', marginRight: 4, flexShrink: 0 }} />
                                   <Text type="supporting" size="4xs" color="inherit">{summary.substituteCount} 대체</Text>
                                 </div>
                               )}
                               {summary.noServiceCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', color: '#b91c1c' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', marginRight: 4, flexShrink: 0 }} />
+                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-red)' }}>
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-red)', marginRight: 4, flexShrink: 0 }} />
                                   <Text type="supporting" size="4xs" color="inherit">{summary.noServiceCount} 미운행</Text>
                                 </div>
                               )}
                             </div>
                           )}
                           {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
-                            <div style={{ marginTop: 4, color: '#9ca3af', fontStyle: 'italic' }}>
+                            <div style={{ marginTop: 4, color: 'var(--color-text-gray)', fontStyle: 'italic' }}>
                               <Text type="supporting" size="4xs" color="inherit">미설정</Text>
                             </div>
                           )}
@@ -749,7 +749,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
                   const dayNumStyle: CSSProperties = isToday(date)
                     ? {
-                        background: '#14b8a6',
+                        background: 'var(--color-background-teal)',
                         color: '#fff',
                         width: 28,
                         height: 28,
@@ -760,9 +760,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         margin: '0 auto',
                       }
                     : dayOfWeek === 0
-                    ? { color: '#ef4444' }
+                    ? { color: 'var(--color-text-red)' }
                     : dayOfWeek === 6
-                    ? { color: '#3b82f6' }
+                    ? { color: 'var(--color-text-blue)' }
                     : { color: 'var(--color-text-primary)' };
 
                   return (
@@ -1398,9 +1398,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             </div>
                           ) : deletingLabelId === label.id ? (
                             /* 삭제 확인 */
-                            <div style={{ padding: 12, background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+                            <div style={{ padding: 12, background: 'var(--color-background-red)', borderRadius: 8, border: '1px solid #fecaca' }}>
                               <VStack gap={2}>
-                                <div style={{ color: '#b91c1c' }}>
+                                <div style={{ color: 'var(--color-text-red)' }}>
                                   <Text type="supporting" color="inherit">
                                     &apos;{label.name}&apos; 라벨을 삭제하시겠습니까?
                                   </Text>

@@ -231,10 +231,10 @@ export default function ApprovalManagement() {
 
   const getStatusAvatar = (status: ApprovalStatus): { bg: string; color: 'success' | 'warning' | 'error' | 'secondary' } => {
     switch (status) {
-      case 'APPROVED': return { bg: '#dcfce7', color: 'success' };
-      case 'PENDING': return { bg: '#fef9c3', color: 'warning' };
-      case 'REJECTED': return { bg: '#fee2e2', color: 'error' };
-      default: return { bg: '#f3f4f6', color: 'secondary' };
+      case 'APPROVED': return { bg: 'var(--color-background-green)', color: 'success' };
+      case 'PENDING': return { bg: 'var(--color-background-yellow)', color: 'warning' };
+      case 'REJECTED': return { bg: 'var(--color-background-red)', color: 'error' };
+      default: return { bg: 'var(--color-background-muted)', color: 'secondary' };
     }
   };
 

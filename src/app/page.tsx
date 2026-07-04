@@ -138,7 +138,7 @@ export default function LandingPage() {
                     background: 'rgba(59,130,246,0.2)',
                     backdropFilter: 'blur(4px)',
                     borderRadius: 9999,
-                    color: '#bfdbfe',
+                    color: 'var(--color-text-blue)',
                     fontSize: '0.875rem',
                     fontWeight: 500,
                     border: '1px solid rgba(96,165,250,0.3)',
@@ -366,7 +366,7 @@ export default function LandingPage() {
                         {
                             [
                                 {
-                                    icon: <svg xmlns="http://www.w3.org/2000/svg" style={{width: 48, height: 48, color: '#60a5fa'}}
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" style={{width: 48, height: 48, color: 'var(--color-text-blue)'}}
                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -375,7 +375,7 @@ export default function LandingPage() {
                                     description: "요양보호사, 사회복지사, 간호조무사, 물리치료사 등 전 직원의 휴무 현황을 캘린더로 한눈에 파악하고 관리합니다."
                                 },
                                 {
-                                    icon: <svg xmlns="http://www.w3.org/2000/svg" style={{width: 48, height: 48, color: '#60a5fa'}}
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" style={{width: 48, height: 48, color: 'var(--color-text-blue)'}}
                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 8h.01M12 12h.01M9 12h.01M12 9h.01M9 9h.01M15 9h.01M15 12h.01M15 15h.01M12 15h.01M9 15h.01"/>
@@ -384,7 +384,7 @@ export default function LandingPage() {
                                     description: "주간보호센터, 요양원, 재가노인복지센터 등 모든 장기요양기관의 휴무 요청을 실시간으로 확인하고 승인 처리합니다."
                                 },
                                 {
-                                    icon: <svg xmlns="http://www.w3.org/2000/svg" style={{width: 48, height: 48, color: '#60a5fa'}}
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" style={{width: 48, height: 48, color: 'var(--color-text-blue)'}}
                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -479,13 +479,13 @@ export default function LandingPage() {
                                 justifyContent: 'center',
                                 marginBottom: 24,
                             }}>
-                                <svg style={{width: 32, height: 32, color: '#93c5fd'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg style={{width: 32, height: 32, color: 'var(--color-text-blue)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                                 </svg>
                             </div>
                             <h3 style={{fontSize: '1.5rem', fontWeight: 700, marginBottom: 12, color: '#ffffff'}}>블로그</h3>
                             <p style={{color: 'rgba(219,234,254,0.7)', marginBottom: 16}}>케어브이의 새로운 기능과 업데이트, 근무표 관리 노하우를 확인하세요.</p>
-                            <span style={{color: '#60a5fa', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
+                            <span style={{color: 'var(--color-text-blue)', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
                                 자세히 보기
                                 <svg style={{width: 16, height: 16, marginLeft: 8}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -526,7 +526,7 @@ export default function LandingPage() {
                             </div>
                             <h3 style={{fontSize: '1.5rem', fontWeight: 700, marginBottom: 12, color: '#ffffff'}}>자주 묻는 질문</h3>
                             <p style={{color: 'rgba(224,231,255,0.7)', marginBottom: 16}}>케어브이 사용에 대한 궁금증을 빠르게 해결하세요.</p>
-                            <span style={{color: '#818cf8', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
+                            <span style={{color: 'var(--color-text-purple)', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
                                 자세히 보기
                                 <svg style={{width: 16, height: 16, marginLeft: 8}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -742,7 +742,7 @@ export default function LandingPage() {
                                         </div>
 
                                         {/* 아이콘 */}
-                                        <div style={{display: 'flex', justifyContent: 'center', marginBottom: 16, color: '#60a5fa'}}>
+                                        <div style={{display: 'flex', justifyContent: 'center', marginBottom: 16, color: 'var(--color-text-blue)'}}>
                                             {item.icon}
                                         </div>
 
@@ -869,13 +869,13 @@ export default function LandingPage() {
                                         </svg>
                                     </div>
                                     <h3 style={{fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', marginBottom: 8}}>30일 무료 체험</h3>
-                                    <div style={{fontSize: '2.25rem', fontWeight: 700, color: '#4ade80', marginBottom: 16}}>무료</div>
+                                    <div style={{fontSize: '2.25rem', fontWeight: 700, color: 'var(--color-text-green)', marginBottom: 16}}>무료</div>
                                     <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 24, lineHeight: 1.625}}>
                                         케어브이의 모든 기능을 30일간 무료로 체험해보세요
                                     </p>
                                     <ul style={{listStyle: 'none', padding: 0, margin: 0, textAlign: 'left', color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 12}}>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#4ade80', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -884,7 +884,7 @@ export default function LandingPage() {
                                             모든 휴가 관리 기능 이용
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#4ade80', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -893,7 +893,7 @@ export default function LandingPage() {
                                             직원 등록 및 관리
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#4ade80', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -902,7 +902,7 @@ export default function LandingPage() {
                                             실시간 알림 및 승인
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#4ade80', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -966,7 +966,7 @@ export default function LandingPage() {
                                     </div>
                                     <h3 style={{fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', marginBottom: 8}}>Basic 플랜</h3>
                                     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16}}>
-                                        <span style={{fontSize: '2.25rem', fontWeight: 700, color: '#93c5fd'}}>₩9,900</span>
+                                        <span style={{fontSize: '2.25rem', fontWeight: 700, color: 'var(--color-text-blue)'}}>₩9,900</span>
                                         <span style={{color: 'rgba(191,219,254,0.7)', marginLeft: 8}}>/월</span>
                                     </div>
                                     <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 24, lineHeight: 1.625}}>
@@ -974,7 +974,7 @@ export default function LandingPage() {
                                     </p>
                                     <ul style={{listStyle: 'none', padding: 0, margin: 0, textAlign: 'left', color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 12}}>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#60a5fa', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -983,7 +983,7 @@ export default function LandingPage() {
                                             모든 휴가 관리 기능
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#60a5fa', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -992,7 +992,7 @@ export default function LandingPage() {
                                             무제한 직원 등록
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#60a5fa', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1001,7 +1001,7 @@ export default function LandingPage() {
                                             실시간 알림 기능
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: '#60a5fa', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1134,31 +1134,31 @@ export default function LandingPage() {
 
                         {/* 회사 정보 섹션 */}
                         <div style={{textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%'}}>
-                            <h3 style={{color: '#dbeafe', fontWeight: 600, fontSize: '1.125rem', marginBottom: 12}}>회사 정보</h3>
+                            <h3 style={{color: 'var(--color-text-blue)', fontWeight: 600, fontSize: '1.125rem', marginBottom: 12}}>회사 정보</h3>
                             <div style={{display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.875rem', color: 'rgba(191,219,254,0.7)', flexGrow: 1}}>
                                 <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 4}}>
-                                    <p><span style={{color: '#93c5fd'}}>회사명:</span> silverithm</p>
-                                    <p><span style={{color: '#93c5fd'}}>대표자:</span> 김준형</p>
+                                    <p><span style={{color: 'var(--color-text-blue)'}}>회사명:</span> silverithm</p>
+                                    <p><span style={{color: 'var(--color-text-blue)'}}>대표자:</span> 김준형</p>
                                 </div>
                                 <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 4}}>
-                                    <p><span style={{color: '#93c5fd'}}>사업자등록번호:</span> 107-21-26475</p>
-                                    <p><span style={{color: '#93c5fd'}}>주소:</span> 서울특별시 신림동 1547-10</p>
+                                    <p><span style={{color: 'var(--color-text-blue)'}}>사업자등록번호:</span> 107-21-26475</p>
+                                    <p><span style={{color: 'var(--color-text-blue)'}}>주소:</span> 서울특별시 신림동 1547-10</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* 연락처 섹션 */}
                         <div style={{textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%'}}>
-                            <h3 style={{color: '#dbeafe', fontWeight: 600, fontSize: '1.125rem', marginBottom: 12}}>연락처</h3>
+                            <h3 style={{color: 'var(--color-text-blue)', fontWeight: 600, fontSize: '1.125rem', marginBottom: 12}}>연락처</h3>
                             <div style={{display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.875rem', color: 'rgba(191,219,254,0.7)', flexGrow: 1}}>
                                 <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4}}>
-                                    <span style={{color: '#93c5fd'}}>이메일:</span>
+                                    <span style={{color: 'var(--color-text-blue)'}}>이메일:</span>
                                     <a href="mailto:ggprgrkjh@naver.com" style={{color: 'rgba(191,219,254,0.7)', textDecoration: 'none'}}>
                                         ggprgrkjh@naver.com
                                     </a>
                                 </div>
                                 <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4}}>
-                                    <span style={{color: '#93c5fd'}}>전화번호:</span>
+                                    <span style={{color: 'var(--color-text-blue)'}}>전화번호:</span>
                                     <a href="tel:010-4549-2094" style={{color: 'rgba(191,219,254,0.7)', textDecoration: 'none'}}>
                                         010-4549-2094
                                     </a>

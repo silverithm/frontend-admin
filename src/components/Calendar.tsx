@@ -192,7 +192,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                     justifyContent: 'center',
                     ...(isToday
                       ? {
-                          background: '#14b8a6',
+                          background: 'var(--color-background-teal)',
                           color: '#fff',
                           width: 28,
                           height: 28,
@@ -202,9 +202,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                       : !isCurrentMonth
                       ? { color: 'inherit' }
                       : isSunday
-                      ? { color: '#ef4444' }
+                      ? { color: 'var(--color-text-red)' }
                       : isSaturday
-                      ? { color: '#3b82f6' }
+                      ? { color: 'var(--color-text-blue)' }
                       : { color: 'var(--color-text-primary)' }),
                   };
 
@@ -245,7 +245,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                                 height: 20,
                                 padding: '0 6px',
                                 borderRadius: '9999px',
-                                background: '#ef4444',
+                                background: 'var(--color-background-red)',
                                 color: '#fff',
                                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                               }}
@@ -265,8 +265,8 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                                   margin: '2px 0',
                                   padding: 4,
                                   borderRadius: 4,
-                                  background: '#fef2f2',
-                                  color: '#b91c1c',
+                                  background: 'var(--color-background-red)',
+                                  color: 'var(--color-text-red)',
                                 }}
                               >
                                 <Text type="supporting" size="2xs" weight="medium" color="inherit" maxLines={1}>
@@ -275,7 +275,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                               </div>
                             ))}
                             {dayInfo.vacationCount > 2 && (
-                              <div style={{ marginTop: 4, color: '#9ca3af' }}>
+                              <div style={{ marginTop: 4, color: 'var(--color-text-gray)' }}>
                                 <Text type="supporting" size="2xs" weight="medium" color="inherit">
                                   +{dayInfo.vacationCount - 2}명
                                 </Text>
@@ -318,11 +318,11 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#14b8a6' }} />
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--color-background-teal)' }} />
           <Text type="supporting" size="2xs" color="secondary">오늘</Text>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }} />
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--color-background-red)' }} />
           <Text type="supporting" size="2xs" color="secondary">휴가신청</Text>
         </div>
       </div>

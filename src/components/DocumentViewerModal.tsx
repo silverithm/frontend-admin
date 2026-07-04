@@ -386,7 +386,7 @@ export default function DocumentViewerModal({
                     style={{
                       width: 36,
                       height: 36,
-                      background: '#ccfbf1',
+                      background: 'var(--color-background-teal)',
                       borderRadius: 8,
                       display: 'flex',
                       alignItems: 'center',
@@ -406,8 +406,8 @@ export default function DocumentViewerModal({
                         alignItems: 'center',
                         gap: 4,
                         flexShrink: 0,
-                        background: '#f0fdfa',
-                        color: '#0d9488',
+                        background: 'var(--color-background-teal)',
+                        color: 'var(--color-text-teal)',
                         padding: '4px 8px',
                         borderRadius: '9999px',
                       }}
@@ -508,7 +508,7 @@ export default function DocumentViewerModal({
                         style={{
                           width: 56,
                           height: 56,
-                          background: '#e5e7eb',
+                          background: 'var(--color-background-muted)',
                           borderRadius: '9999px',
                           display: 'flex',
                           alignItems: 'center',

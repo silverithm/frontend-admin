@@ -222,11 +222,11 @@ export default function EmployeeCalendar() {
     const lowerStatus = status?.toLowerCase();
     switch (lowerStatus) {
       case 'approved':
-        return { backgroundColor: '#dcfce7', color: '#16a34a' };
+        return { backgroundColor: 'var(--color-background-green)', color: 'var(--color-text-green)' };
       case 'pending':
-        return { backgroundColor: '#fef9c3', color: '#ca8a04' };
+        return { backgroundColor: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)' };
       case 'rejected':
-        return { backgroundColor: '#fee2e2', color: '#dc2626' };
+        return { backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
       default:
         return { backgroundColor: 'var(--color-background-muted)', color: 'var(--color-text-gray)' };
     }
@@ -444,7 +444,7 @@ export default function EmployeeCalendar() {
 
                 const dayNumberStyle: CSSProperties = isToday(date)
                   ? {
-                      background: '#14b8a6',
+                      background: 'var(--color-background-teal)',
                       color: '#fff',
                       width: 28,
                       height: 28,
@@ -455,9 +455,9 @@ export default function EmployeeCalendar() {
                       margin: '0 auto',
                     }
                   : dayOfWeek === 0
-                  ? { color: '#ef4444' }
+                  ? { color: 'var(--color-text-red)' }
                   : dayOfWeek === 6
-                  ? { color: '#3b82f6' }
+                  ? { color: 'var(--color-text-blue)' }
                   : { color: 'var(--color-text-primary)' };
 
                 return (
@@ -710,19 +710,19 @@ export default function EmployeeCalendar() {
             <div style={{ borderLeft: '1px solid var(--color-border)', height: 16, margin: '0 8px' }} />
             {/* 상태 */}
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: '#14b8a6' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-teal)' }} />
               <Text type="supporting" color="secondary" weight="medium">내 휴무</Text>
             </HStack>
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: '#dcfce7', border: '1px solid #bbf7d0' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-green)', border: '1px solid #bbf7d0' }} />
               <Text type="supporting" color="secondary">승인됨</Text>
             </HStack>
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: '#fef9c3', border: '1px solid #fef08a' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-yellow)', border: '1px solid #fef08a' }} />
               <Text type="supporting" color="secondary">대기중</Text>
             </HStack>
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: '#fee2e2', border: '1px solid #fecaca' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-red)', border: '1px solid #fecaca' }} />
               <Text type="supporting" color="secondary">반려됨</Text>
             </HStack>
           </HStack>

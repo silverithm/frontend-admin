@@ -555,7 +555,7 @@ export default function EmployeeApproval() {
                           width: 40,
                           height: 40,
                           borderRadius: 12,
-                          background: '#ccfbf1',
+                          background: 'var(--color-background-teal)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',

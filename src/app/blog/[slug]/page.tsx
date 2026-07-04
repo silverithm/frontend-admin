@@ -512,7 +512,7 @@ export default function BlogPostPage() {
                     <Heading level={1} style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 700, marginBottom: 16 }}>
                         포스트를 찾을 수 없습니다
                     </Heading>
-                    <Text as="p" style={{ display: 'block', color: '#dbeafe', fontSize: '1.25rem', marginBottom: 32 }}>
+                    <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.25rem', marginBottom: 32 }}>
                         요청하신 블로그 포스트가 존재하지 않습니다.
                     </Text>
                     <Button label="블로그로 돌아가기" variant="primary" size="md" onClick={() => router.push('/blog')} />
@@ -536,18 +536,18 @@ export default function BlogPostPage() {
                         <VStack gap={5} hAlign="start">
                             <Link
                                 href="/blog"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#93c5fd', textDecoration: 'none' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--color-text-blue)', textDecoration: 'none' }}
                             >
                                 <Icon icon="chevronLeft" size="sm" color="inherit" />
-                                <Text type="body" style={{ color: '#93c5fd' }}>블로그로 돌아가기</Text>
+                                <Text type="body" style={{ color: 'var(--color-text-blue)' }}>블로그로 돌아가기</Text>
                             </Link>
 
                             <HStack gap={3} vAlign="center" wrap="wrap">
                                 <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', background: 'rgba(59, 130, 246, 0.2)', borderRadius: 9999 }}>
-                                    <Text type="supporting" style={{ color: '#93c5fd' }}>{post.category}</Text>
+                                    <Text type="supporting" style={{ color: 'var(--color-text-blue)' }}>{post.category}</Text>
                                 </span>
-                                <Text type="supporting" style={{ color: '#9ca3af' }}>{post.date}</Text>
-                                <Text type="supporting" style={{ color: '#9ca3af' }}>· {post.readTime}</Text>
+                                <Text type="supporting" style={{ color: 'var(--color-text-gray)' }}>{post.date}</Text>
+                                <Text type="supporting" style={{ color: 'var(--color-text-gray)' }}>· {post.readTime}</Text>
                             </HStack>
 
                             <Heading
@@ -571,7 +571,7 @@ export default function BlogPostPage() {
                                         key={idx}
                                         style={{ display: 'inline-flex', padding: '4px 12px', background: 'rgba(51, 65, 85, 0.5)', borderRadius: 6 }}
                                     >
-                                        <Text type="supporting" style={{ color: '#bfdbfe' }}>#{keyword}</Text>
+                                        <Text type="supporting" style={{ color: 'var(--color-text-blue)' }}>#{keyword}</Text>
                                     </span>
                                 ))}
                             </HStack>
@@ -618,7 +618,7 @@ export default function BlogPostPage() {
                             <Heading level={3} style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700 }}>
                                 더 많은 정보가 필요하신가요?
                             </Heading>
-                            <Text as="p" style={{ display: 'block', color: '#dbeafe', fontSize: '1.125rem' }}>
+                            <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.125rem' }}>
                                 케어브이와 함께 스마트한 근무 관리를 시작하세요
                             </Text>
                             <HStack gap={4} hAlign="center" wrap="wrap">

@@ -120,7 +120,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                           width: 12,
                           height: 12,
                           borderRadius: 9999,
-                          background: "#22c55e",
+                          background: 'var(--color-background-green)',
                           display: "inline-block",
                         }}
                       />
@@ -134,7 +134,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                           width: 12,
                           height: 12,
                           borderRadius: 9999,
-                          background: "#eab308",
+                          background: 'var(--color-background-yellow)',
                           display: "inline-block",
                         }}
                       />
@@ -148,7 +148,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                           width: 12,
                           height: 12,
                           borderRadius: 9999,
-                          background: "#ef4444",
+                          background: 'var(--color-background-red)',
                           display: "inline-block",
                         }}
                       />
@@ -274,7 +274,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                                               display: "inline-flex",
                                               alignItems: "center",
                                               justifyContent: "center",
-                                              background: "#d1d5db",
+                                              background: 'var(--color-background-muted)',
                                               color: 'var(--color-text-gray)',
                                               borderRadius: 9999,
                                               fontSize: 11,
@@ -295,7 +295,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                               </div>
                             </VStack>
                           ) : (
-                            <div style={{ textAlign: "center", padding: "8px 0", color: "#dc2626" }}>
+                            <div style={{ textAlign: "center", padding: "8px 0", color: 'var(--color-text-red)' }}>
                               <Text type="body" weight="medium" color="inherit">
                                 {routeDispatch.reason || "운행 불가"}
                               </Text>

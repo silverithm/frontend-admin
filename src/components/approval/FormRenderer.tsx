@@ -49,7 +49,7 @@ function FieldRenderer({
     <Text type="label" weight="medium">
       {displayLabel}
       {required && (
-        <span style={{ color: '#ef4444', marginLeft: 2 }} aria-hidden>
+        <span style={{ color: 'var(--color-text-red)', marginLeft: 2 }} aria-hidden>
           *
         </span>
       )}

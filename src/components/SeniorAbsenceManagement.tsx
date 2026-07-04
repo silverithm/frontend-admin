@@ -194,7 +194,7 @@ export default function SeniorAbsenceManagement() {
                   <VStack gap={0.5} vAlign="start">
                     <Text type="large" weight="bold" size="xl">{selectedSenior.name}</Text>
                     <Text type="supporting" color="secondary">
-                      결석 일수: <span style={{ fontWeight: 500, color: "#dc2626" }}>{selectedSeniorAbsenceDates.size}일</span>
+                      결석 일수: <span style={{ fontWeight: 500, color: 'var(--color-text-red)' }}>{selectedSeniorAbsenceDates.size}일</span>
                     </Text>
                   </VStack>
                   <HStack gap={2} vAlign="center">
@@ -281,7 +281,7 @@ export default function SeniorAbsenceManagement() {
                               transform: "translateX(-50%)",
                               width: 4,
                               height: 4,
-                              backgroundColor: "#14b8a6",
+                              backgroundColor: 'var(--color-background-teal)',
                               borderRadius: "9999px",
                             }}
                           />
@@ -296,7 +296,7 @@ export default function SeniorAbsenceManagement() {
               <div style={{ marginTop: 16 }}>
                 <HStack gap={6} hAlign="center" vAlign="center">
                   <HStack gap={2} vAlign="center">
-                    <div style={{ width: 16, height: 16, backgroundColor: "#ef4444", borderRadius: 4 }} />
+                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-red)', borderRadius: 4 }} />
                     <Text type="body" color="secondary">결석</Text>
                   </HStack>
                   <HStack gap={2} vAlign="center">
@@ -304,7 +304,7 @@ export default function SeniorAbsenceManagement() {
                     <Text type="body" color="secondary">출석</Text>
                   </HStack>
                   <HStack gap={2} vAlign="center">
-                    <div style={{ width: 16, height: 16, backgroundColor: "#e5e7eb", borderRadius: 4 }} />
+                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-muted)', borderRadius: 4 }} />
                     <Text type="body" color="secondary">일요일 (휴무)</Text>
                   </HStack>
                 </HStack>

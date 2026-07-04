@@ -173,7 +173,7 @@ export default function FAQPage() {
                                         <span
                                             style={{
                                                 display: 'inline-flex',
-                                                color: '#93c5fd',
+                                                color: 'var(--color-text-blue)',
                                                 transform: activeIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
                                                 transition: 'transform 200ms ease',
                                             }}

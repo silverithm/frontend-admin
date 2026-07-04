@@ -44,10 +44,10 @@ const CARD_STYLE: CSSProperties = {
 
 // 범례/셀 표시용 색상
 const LEGEND: { color: string; label: string }[] = [
-  { color: "#22c55e", label: "정상" },
-  { color: "#eab308", label: "대체" },
-  { color: "#ef4444", label: "운행없음" },
-  { color: "#9ca3af", label: "휴일" },
+  { color: 'var(--color-text-green)', label: "정상" },
+  { color: 'var(--color-text-yellow)', label: "대체" },
+  { color: 'var(--color-text-red)', label: "운행없음" },
+  { color: 'var(--color-text-gray)', label: "휴일" },
 ];
 
 export default function DispatchCalendar({
@@ -75,23 +75,23 @@ export default function DispatchCalendar({
   // 날짜별 상태 색상 결정
   const getStatusColors = (summary: DispatchDaySummary | undefined) => {
     if (!summary || summary.totalRoutes === 0) {
-      return { bg: "#f9fafb", border: "var(--color-border)" };
+      return { bg: 'var(--color-background-muted)', border: "var(--color-border)" };
     }
 
     // 휴일인 경우
     if (summary.isHoliday) {
-      return { bg: "#f3f4f6", border: "var(--color-border-emphasized)" };
+      return { bg: 'var(--color-background-muted)', border: "var(--color-border-emphasized)" };
     }
 
     if (summary.noServiceCount > 0) {
-      return { bg: "#fef2f2", border: "#fecaca" };
+      return { bg: 'var(--color-background-red)', border: "#fecaca" };
     }
 
     if (summary.substituteCount > 0) {
-      return { bg: "#fefce8", border: "#fef08a" };
+      return { bg: 'var(--color-background-yellow)', border: "#fef08a" };
     }
 
-    return { bg: "#f0fdf4", border: "#bbf7d0" };
+    return { bg: 'var(--color-background-green)', border: "#bbf7d0" };
   };
 
   return (
@@ -209,15 +209,15 @@ export default function DispatchCalendar({
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  background: "#14b8a6",
+                  background: 'var(--color-background-teal)',
                   color: "#fff",
                 }
               : !isCurrentMonth
-              ? { color: "#9ca3af" }
+              ? { color: 'var(--color-text-gray)' }
               : isSunday
-              ? { color: "#ef4444" }
+              ? { color: 'var(--color-text-red)' }
               : isSaturday
-              ? { color: "#3b82f6" }
+              ? { color: 'var(--color-text-blue)' }
               : { color: 'var(--color-text-primary)' }),
           };
 
@@ -235,7 +235,7 @@ export default function DispatchCalendar({
                 borderRadius: 8,
                 textAlign: "left",
                 transition: "all 200ms",
-                background: isCurrentMonth ? statusColors.bg : "#f3f4f6",
+                background: isCurrentMonth ? statusColors.bg : 'var(--color-background-muted)',
                 border: `1px solid ${isCurrentMonth ? statusColors.border : "var(--color-border)"}`,
                 boxShadow: isToday
                   ? "0 0 0 1px #fff, 0 0 0 3px #2dd4bf"
@@ -267,7 +267,7 @@ export default function DispatchCalendar({
                     <HStack gap={1} vAlign="center">
                       <span style={dotStyle("#22c55e")} />
                       <Text type="supporting" color="inherit">
-                        <span style={{ color: "#15803d" }}>{summary.normalCount}개 정상</span>
+                        <span style={{ color: 'var(--color-text-green)' }}>{summary.normalCount}개 정상</span>
                       </Text>
                     </HStack>
                   )}
@@ -275,7 +275,7 @@ export default function DispatchCalendar({
                     <HStack gap={1} vAlign="center">
                       <span style={dotStyle("#eab308")} />
                       <Text type="supporting" color="inherit">
-                        <span style={{ color: "#a16207" }}>{summary.substituteCount}개 대체</span>
+                        <span style={{ color: 'var(--color-text-yellow)' }}>{summary.substituteCount}개 대체</span>
                       </Text>
                     </HStack>
                   )}
@@ -283,7 +283,7 @@ export default function DispatchCalendar({
                     <HStack gap={1} vAlign="center">
                       <span style={dotStyle("#ef4444")} />
                       <Text type="supporting" color="inherit">
-                        <span style={{ color: "#b91c1c" }}>{summary.noServiceCount}개 미운행</span>
+                        <span style={{ color: 'var(--color-text-red)' }}>{summary.noServiceCount}개 미운행</span>
                       </Text>
                     </HStack>
                   )}

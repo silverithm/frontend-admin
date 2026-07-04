@@ -142,7 +142,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                   width: 48,
                   height: 48,
                   borderRadius: 9999,
-                  backgroundColor: '#fef2f2',
+                  backgroundColor: 'var(--color-background-red)',
                   border: '1px solid #fecaca',
                   display: 'flex',
                   alignItems: 'center',
@@ -164,7 +164,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
               <div
                 style={{
                   width: '100%',
-                  backgroundColor: '#e6fcf5',
+                  backgroundColor: 'var(--color-background-teal)',
                   border: '1px solid #96f2d7',
                   borderRadius: 12,
                   padding: 16,
