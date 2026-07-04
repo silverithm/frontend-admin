@@ -15,6 +15,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { TextArea } from '@astryxdesign/core/TextArea';
+import { Avatar } from '@astryxdesign/core/Avatar';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { getVacationCalendar, requestVacation, getVacationLimits } from '@/lib/apiService';
 import { DayInfo, VacationRequest, VacationLimit, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
@@ -203,7 +204,7 @@ export default function EmployeeCalendar() {
   };
 
   // 상태 라벨 텍스트 (달력 셀용) - 관리자 달력과 동일
-  const getStatusShortText = (status: string) => {
+  const getStatusShortText = (status: string): string | null => {
     const lowerStatus = status?.toLowerCase();
     switch (lowerStatus) {
       case 'approved':
@@ -214,21 +215,6 @@ export default function EmployeeCalendar() {
         return '거절됨';
       default:
         return null; // unused 등은 null 반환
-    }
-  };
-
-  // 상태에 따른 라벨 스타일
-  const getStatusLabelStyle = (status: string): CSSProperties => {
-    const lowerStatus = status?.toLowerCase();
-    switch (lowerStatus) {
-      case 'approved':
-        return { backgroundColor: 'var(--color-background-green)', color: 'var(--color-text-green)' };
-      case 'pending':
-        return { backgroundColor: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)' };
-      case 'rejected':
-        return { backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
-      default:
-        return { backgroundColor: 'var(--color-background-muted)', color: 'var(--color-text-gray)' };
     }
   };
 
@@ -247,7 +233,7 @@ export default function EmployeeCalendar() {
     }
   };
 
-  // 휴가 기간을 짧게 표시하는 함수 (동그라미 안에 표시용)
+  // 휴가 기간을 짧게 표시하는 함수 (달력 셀 내부 표시용)
   const getDurationShortText = (duration?: string) => {
     switch (duration) {
       case 'FULL_DAY':
@@ -258,19 +244,6 @@ export default function EmployeeCalendar() {
         return '반';
       default:
         return '연';
-    }
-  };
-
-  // 휴가 기간에 따른 색상 반환
-  const getDurationColor = (duration?: string): string => {
-    switch (duration) {
-      case 'FULL_DAY':
-        return '#14b8a6'; // 연차는 teal
-      case 'HALF_DAY_AM':
-      case 'HALF_DAY_PM':
-        return '#22c55e'; // 반차는 초록색
-      default:
-        return '#14b8a6';
     }
   };
 
@@ -318,31 +291,6 @@ export default function EmployeeCalendar() {
     if (limits.length === 0) return null;
     return limits.reduce((sum, l) => sum + (l.maxPeople || 0), 0);
   };
-
-  // 셀 안의 작은 상태 라벨 스타일
-  const cellStatusPillStyle = (status: string): CSSProperties => ({
-    ...getStatusLabelStyle(status),
-    flexShrink: 0,
-    whiteSpace: 'nowrap',
-    marginRight: 'var(--spacing-1)',
-    padding: '1px 4px',
-    borderRadius: 'var(--radius-full)',
-  });
-
-  // 셀 안의 원형 배지 스타일
-  const circleBadgeStyle = (bg: string, size: number): CSSProperties => ({
-    width: size,
-    height: size,
-    borderRadius: '50%',
-    background: bg,
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    fontSize: size <= 12 ? 8 : 10,
-    fontWeight: 'var(--font-weight-bold)',
-  });
 
   return (
     <>
@@ -401,7 +349,7 @@ export default function EmployeeCalendar() {
               <div
                 key={day}
                 style={{
-                  padding: '12px 0',
+                  padding: 'var(--spacing-3) 0',
                   textAlign: 'center',
                   color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                 }}
@@ -413,7 +361,7 @@ export default function EmployeeCalendar() {
 
           {/* 캘린더 그리드 */}
           {isLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-10) 0' }}>
               <Spinner size="lg" aria-label="달력 불러오는 중" />
             </div>
           ) : (
@@ -446,8 +394,8 @@ export default function EmployeeCalendar() {
                   ? {
                       background: 'var(--color-background-teal)',
                       color: '#fff',
-                      width: 28,
-                      height: 28,
+                      width: 'var(--spacing-7)',
+                      height: 'var(--spacing-7)',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
@@ -478,7 +426,7 @@ export default function EmployeeCalendar() {
                       transition: 'background var(--duration-fast)',
                       opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
                       background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
-                      boxShadow: isSelected ? 'inset 0 0 0 2px #2dd4bf' : undefined,
+                      boxShadow: isSelected ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
                     }}
                   >
                     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -492,7 +440,7 @@ export default function EmployeeCalendar() {
                           const currentCount = vacations.filter(v => v.status?.toLowerCase() === 'approved').length;
                           const isFull = currentCount >= maxPeople;
                           return (
-                            <div style={{ padding: '0 4px', color: isFull ? 'var(--color-text-red)' : 'var(--color-text-primary)' }}>
+                            <div style={{ padding: '0 var(--spacing-1)', color: isFull ? 'var(--color-text-red)' : 'var(--color-text-primary)' }}>
                               <Text type="supporting" size="4xs" color="inherit">{currentCount}/{maxPeople}명</Text>
                             </div>
                           );
@@ -513,16 +461,17 @@ export default function EmployeeCalendar() {
                           {vacations.slice(0, isExpanded ? vacations.length : 3).map((vacation, i) => (
                             <div
                               key={vacation.id || i}
-                              style={{ display: 'flex', alignItems: 'center' }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}
                               title={`${vacation.userName} - ${getDurationText(vacation.duration)} - ${getVacationStatusText(vacation.status)}${vacation.type === 'mandatory' ? ' (필수)' : ''}`}
                             >
-                              {/* 상태 라벨 (관리자와 동일) */}
-                              {getStatusShortText(vacation.status) && (
-                                <span style={cellStatusPillStyle(vacation.status)}>
-                                  <Text type="supporting" size="4xs" color="inherit">{getStatusShortText(vacation.status)}</Text>
-                                </span>
-                              )}
-                              {/* 이름 + 배지 (관리자와 동일) */}
+                              {/* 상태 Badge (상태만 의미색) */}
+                              {(() => {
+                                const statusText = getStatusShortText(vacation.status);
+                                return statusText ? (
+                                  <Badge variant={getVacationBadgeVariant(vacation.status)} label={statusText} />
+                                ) : null;
+                              })()}
+                              {/* 이름 + 유형 표시 */}
                               <span
                                 style={{
                                   flex: 1,
@@ -546,18 +495,18 @@ export default function EmployeeCalendar() {
                                   </Text>
                                 </span>
                                 {isValidDuration(vacation.duration) && (
-                                  <span style={circleBadgeStyle(getDurationColor(vacation.duration), 12)}>
+                                  <Text type="supporting" size="4xs" color="secondary">
                                     {getDurationShortText(vacation.duration)}
-                                  </span>
+                                  </Text>
                                 )}
                                 {vacation.type === 'mandatory' && (
-                                  <span style={circleBadgeStyle('#ef4444', 12)}>필</span>
+                                  <Text type="supporting" size="4xs" color="secondary">필</Text>
                                 )}
                               </span>
                             </div>
                           ))}
                           {!isExpanded && vacations.length > 3 && (
-                            <div style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-gray)' }}>
+                            <div style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-secondary)' }}>
                               <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 3}명 더</Text>
                             </div>
                           )}
@@ -623,39 +572,27 @@ export default function EmployeeCalendar() {
                       >
                         <HStack hAlign="between" vAlign="center" gap={3}>
                           <HStack gap={3} vAlign="center">
-                            <span
-                              style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#fff',
-                                fontWeight: 'var(--font-weight-bold)',
-                                flexShrink: 0,
-                                background: isMyVacation ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
-                              }}
-                            >
-                              {vacation.userName?.charAt(0) || '?'}
-                            </span>
+                            <Avatar name={vacation.userName || '?'} size="medium" />
                             <div>
                               <HStack gap={2} vAlign="center" wrap="wrap">
-                                {/* 상태 라벨 (이름 왼쪽에 표시) - 관리자 달력처럼 */}
-                                {!isMyVacation && getStatusShortText(vacation.status) && (
-                                  <Badge variant={getVacationBadgeVariant(vacation.status)} label={getStatusShortText(vacation.status)} />
-                                )}
+                                {/* 상태 Badge (관리자 달력처럼) */}
+                                {(() => {
+                                  const statusText = getStatusShortText(vacation.status);
+                                  return !isMyVacation && statusText ? (
+                                    <Badge variant={getVacationBadgeVariant(vacation.status)} label={statusText} />
+                                  ) : null;
+                                })()}
                                 <Text type="body" weight="semibold" color="primary">
                                   {vacation.userName}
                                   {isMyVacation && <Text type="supporting" color="accent">{' (나)'}</Text>}
                                 </Text>
                                 {isValidDuration(vacation.duration) && (
-                                  <span style={circleBadgeStyle(getDurationColor(vacation.duration), 20)}>
+                                  <Text type="supporting" color="secondary">
                                     {getDurationShortText(vacation.duration)}
-                                  </span>
+                                  </Text>
                                 )}
                                 {vacation.type === 'mandatory' && (
-                                  <span style={circleBadgeStyle('#ef4444', 20)}>필</span>
+                                  <Badge variant="neutral" label="필" />
                                 )}
                                 <Text type="supporting">{getRoleText(vacation.role)}</Text>
                               </HStack>
@@ -676,7 +613,7 @@ export default function EmployeeCalendar() {
                   })}
                 </VStack>
               ) : (
-                <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                <div style={{ padding: 'var(--spacing-12) 0', textAlign: 'center' }}>
                     <Icon icon="calendar" size="lg" color="disabled" />
                     <div style={{ marginTop: 'var(--spacing-4)' }}>
                       <Text type="body" weight="medium" color="secondary">이 날에 등록된 휴무가 없습니다</Text>
@@ -694,37 +631,28 @@ export default function EmployeeCalendar() {
         {/* 범례 */}
         <div style={{ ...CARD_STYLE, padding: 'var(--spacing-4)' }}>
           <HStack gap={4} vAlign="center" hAlign="center" wrap="wrap">
-            {/* 휴가 유형 */}
+            {/* 휴가 유형 (배경 없이 중립 텍스트) */}
             <HStack gap={1.5} vAlign="center">
-              <span style={circleBadgeStyle('#14b8a6', 16)}>연</span>
+              <Text type="supporting" weight="semibold" color="secondary">연</Text>
               <Text type="supporting" color="secondary">연차</Text>
             </HStack>
             <HStack gap={1.5} vAlign="center">
-              <span style={circleBadgeStyle('#22c55e', 16)}>반</span>
+              <Text type="supporting" weight="semibold" color="secondary">반</Text>
               <Text type="supporting" color="secondary">반차</Text>
             </HStack>
             <HStack gap={1.5} vAlign="center">
-              <span style={circleBadgeStyle('#ef4444', 16)}>필</span>
+              <Text type="supporting" weight="semibold" color="secondary">필</Text>
               <Text type="supporting" color="secondary">필수 휴무</Text>
             </HStack>
-            <div style={{ borderLeft: '1px solid var(--color-border)', height: 16, margin: '0 8px' }} />
-            {/* 상태 */}
+            <div style={{ borderLeft: '1px solid var(--color-border)', height: 'var(--spacing-4)', margin: '0 var(--spacing-2)' }} />
+            {/* 상태 (의미색 Badge) */}
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-teal)' }} />
+              <div style={{ width: 'var(--spacing-4)', height: 'var(--spacing-4)', borderRadius: 'var(--radius-none)', background: 'var(--color-background-teal)' }} />
               <Text type="supporting" color="secondary" weight="medium">내 휴무</Text>
             </HStack>
-            <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-green)', border: '1px solid #bbf7d0' }} />
-              <Text type="supporting" color="secondary">승인됨</Text>
-            </HStack>
-            <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-yellow)', border: '1px solid #fef08a' }} />
-              <Text type="supporting" color="secondary">대기중</Text>
-            </HStack>
-            <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-red)', border: '1px solid #fecaca' }} />
-              <Text type="supporting" color="secondary">반려됨</Text>
-            </HStack>
+            <Badge variant="success" label="승인됨" />
+            <Badge variant="warning" label="대기중" />
+            <Badge variant="error" label="반려됨" />
           </HStack>
         </div>
       </VStack>

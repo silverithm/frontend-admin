@@ -21,6 +21,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
+import { Card } from '@astryxdesign/core/Card';
 import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconTag } from '@tabler/icons-react';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleCategory, SCHEDULE_CATEGORIES, LABEL_COLORS } from '@/types/schedule';
@@ -51,8 +52,8 @@ const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   borderRadius: '50%',
   padding: 'var(--spacing-0)',
   cursor: 'pointer',
-  border: selected ? '2px solid #111827' : '2px solid transparent',
-  boxShadow: selected ? '0 0 0 2px #d1d5db' : undefined,
+  border: selected ? '2px solid var(--color-border-emphasized)' : '2px solid transparent',
+  boxShadow: selected ? '0 0 0 2px var(--color-border)' : undefined,
   transform: selected ? 'scale(1.1)' : undefined,
   backgroundColor: value,
   transition: 'all var(--duration-fast-min)',
@@ -603,7 +604,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 <div
                   key={day}
                   style={{
-                    padding: '12px 0',
+                    padding: 'var(--spacing-3) 0',
                     textAlign: 'center',
                     color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                   }}
@@ -616,11 +617,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             {/* 배차 모드: 설정 비어있을 때 안내 */}
             {isDispatchMode && isHydrated && dispatchSettings.routes.length === 0 && (
               <div style={{ padding: 'var(--spacing-6)', textAlign: 'center', borderBottom: '1px solid var(--color-border)' }}>
-                <div style={{ background: 'var(--color-background-yellow)', border: '1px solid #fef08a', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-4)' }}>
+                <div style={{ background: 'var(--color-background-yellow)', border: '1px solid var(--color-border-yellow)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-4)' }}>
                   <VStack gap={1} hAlign="center">
-                    <div style={{ color: '#854d0e' }}>
-                      <Text type="body" weight="medium" color="inherit">배차 설정이 필요합니다</Text>
-                    </div>
+                    <Text type="body" weight="medium" color="primary">배차 설정이 필요합니다</Text>
                     <div style={{ color: 'var(--color-text-yellow)' }}>
                       <Text type="supporting" color="inherit">노선, 직원 정보를 먼저 등록해주세요.</Text>
                     </div>
@@ -634,7 +633,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
             {/* 캘린더 그리드 */}
             {isLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-10) 0' }}>
                 <Spinner size="lg" aria-label="달력 불러오는 중" />
               </div>
             ) : (
@@ -699,7 +698,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           opacity: !isCurrentMonth ? 0.3 : 1,
                           cursor: isCurrentMonth ? 'pointer' : 'default',
                           background: isCurrentMonth && statusColors.bg ? statusColors.bg : undefined,
-                          boxShadow: isToday(date) ? 'inset 0 0 0 2px #14b8a6' : undefined,
+                          boxShadow: isToday(date) ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
                         }}
                       >
                         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -707,7 +706,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             <Text type="label" weight={isToday(date) ? 'bold' : 'semibold'} color="inherit">{format(date, 'd')}</Text>
                           </span>
                           {isCurrentMonth && summary?.isHoliday && (
-                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-gray)' }}>
+                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)' }}>
                               <Text type="supporting" size="4xs" color="inherit" weight="medium">{summary.holidayName}</Text>
                             </div>
                           )}
@@ -734,7 +733,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             </div>
                           )}
                           {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
-                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-gray)', fontStyle: 'italic' }}>
+                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
                               <Text type="supporting" size="4xs" color="inherit">미설정</Text>
                             </div>
                           )}
@@ -782,7 +781,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         transition: 'all var(--duration-fast)',
                         opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
                         background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
-                        boxShadow: isSelected ? 'inset 0 0 0 2px #2dd4bf' : undefined,
+                        boxShadow: isSelected ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
                       }}
                     >
                       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -797,7 +796,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                 onClick={(e) => handleScheduleClick(e, schedule)}
                                 title={schedule.title}
                                 style={{
-                                  padding: '2px 6px',
+                                  padding: 'var(--spacing-0-5) var(--spacing-1-5)',
                                   borderRadius: 'var(--radius-none)',
                                   color: '#fff',
                                   backgroundColor: schedule.label?.color || 'var(--color-background-blue)',
@@ -854,7 +853,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 </div>
 
                 {/* 일정 추가 버튼 */}
-                <div style={{ padding: '16px 20px 0' }}>
+                <div style={{ padding: 'var(--spacing-4) var(--spacing-5) 0' }}>
                   <Button
                     label="일정 추가"
                     variant="primary"
@@ -919,7 +918,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       ))}
                     </VStack>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                    <div style={{ textAlign: 'center', padding: 'var(--spacing-8) 0' }}>
                       <Icon icon="calendar" size="lg" color="disabled" />
                       <div style={{ marginTop: 'var(--spacing-3)' }}>
                         <Text type="body" weight="medium" color="secondary">일정이 없습니다</Text>
@@ -1364,7 +1363,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         <div key={label.id}>
                           {editingLabelId === label.id ? (
                             /* 수정 모드 */
-                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)', border: '1px solid var(--color-border)' }}>
+                            <Card variant="muted" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
                               <VStack gap={3}>
                                 <TextInput
                                   label="라벨 이름"
@@ -1395,16 +1394,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                   />
                                 </HStack>
                               </VStack>
-                            </div>
+                            </Card>
                           ) : deletingLabelId === label.id ? (
                             /* 삭제 확인 */
-                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-red)', borderRadius: 'var(--radius-inner)', border: '1px solid #fecaca' }}>
+                            <Card variant="red" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
                               <VStack gap={2}>
-                                <div style={{ color: 'var(--color-text-red)' }}>
-                                  <Text type="supporting" color="inherit">
-                                    &apos;{label.name}&apos; 라벨을 삭제하시겠습니까?
-                                  </Text>
-                                </div>
+                                <Text type="supporting" color="secondary">
+                                  &apos;{label.name}&apos; 라벨을 삭제하시겠습니까?
+                                </Text>
                                 <HStack gap={2} hAlign="end">
                                   <Button label="취소" variant="ghost" size="sm" onClick={() => setDeletingLabelId(null)} />
                                   <Button
@@ -1417,40 +1414,42 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                   />
                                 </HStack>
                               </VStack>
-                            </div>
+                            </Card>
                           ) : (
                             /* 기본 표시 */
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
-                              <HStack gap={3} vAlign="center">
-                                <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, backgroundColor: label.color }} />
-                                <Text type="body" weight="medium">{label.name}</Text>
+                            <Card variant="muted" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
+                              <HStack hAlign="between" vAlign="center">
+                                <HStack gap={3} vAlign="center">
+                                  <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, backgroundColor: label.color }} />
+                                  <Text type="body" weight="medium">{label.name}</Text>
+                                </HStack>
+                                <HStack gap={1}>
+                                  <Button
+                                    label="수정"
+                                    variant="ghost"
+                                    size="sm"
+                                    isIconOnly
+                                    icon={<Icon icon={IconPencil} size="sm" />}
+                                    onClick={() => {
+                                      setEditingLabelId(label.id);
+                                      setEditLabelForm({ name: label.name, color: label.color });
+                                      setDeletingLabelId(null);
+                                    }}
+                                  />
+                                  <Button
+                                    label="삭제"
+                                    variant="ghost"
+                                    size="sm"
+                                    isIconOnly
+                                    icon={<Icon icon={IconTrash} size="sm" />}
+                                    onClick={() => {
+                                      setDeletingLabelId(label.id);
+                                      setEditingLabelId(null);
+                                    }}
+                                  />
+                                </HStack>
                               </HStack>
-                              <HStack gap={1}>
-                                <Button
-                                  label="수정"
-                                  variant="ghost"
-                                  size="sm"
-                                  isIconOnly
-                                  icon={<Icon icon={IconPencil} size="sm" />}
-                                  onClick={() => {
-                                    setEditingLabelId(label.id);
-                                    setEditLabelForm({ name: label.name, color: label.color });
-                                    setDeletingLabelId(null);
-                                  }}
-                                />
-                                <Button
-                                  label="삭제"
-                                  variant="ghost"
-                                  size="sm"
-                                  isIconOnly
-                                  icon={<Icon icon={IconTrash} size="sm" />}
-                                  onClick={() => {
-                                    setDeletingLabelId(label.id);
-                                    setEditingLabelId(null);
-                                  }}
-                                />
-                              </HStack>
-                            </div>
+                            </Card>
                           )}
                         </div>
                       ))}
@@ -1459,7 +1458,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 )}
 
                 {labels.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ textAlign: 'center', padding: 'var(--spacing-6) 0' }}>
                     <Icon icon={IconTag} size="lg" color="disabled" />
                     <div style={{ marginTop: 'var(--spacing-2)' }}>
                       <Text type="supporting" color="secondary">등록된 라벨이 없습니다</Text>

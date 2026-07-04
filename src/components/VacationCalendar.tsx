@@ -7,7 +7,7 @@ import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } 
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
-import { FiChevronLeft, FiChevronRight, FiX, FiCalendar, FiRefreshCw, FiAlertCircle, FiCheck, FiUser, FiBriefcase, FiUsers, FiArrowLeft, FiArrowRight, FiSettings, FiChevronDown, FiClock, FiSun, FiSunrise, FiSunset, FiCamera, FiUserPlus } from 'react-icons/fi';
+import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
@@ -384,7 +384,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     }
 
     if (vacationersCount < maxPeople) {
-      return { bg: 'var(--color-background-green)', hoverBg: '#bbf7d0', status: '여유' };
+      return { bg: 'var(--color-background-green)', hoverBg: 'var(--color-background-green)', status: '여유' };
     } else {
       return { bg: 'var(--color-background-red)', hoverBg: 'var(--color-background-red)', status: '마감' };
     }
@@ -584,12 +584,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const getDurationColor = (duration?: string): string => {
     switch (duration) {
       case 'FULL_DAY':
-        return '#3b82f6'; // 연차는 파란색
+        return 'var(--color-icon-blue)';
       case 'HALF_DAY_AM':
       case 'HALF_DAY_PM':
-        return '#22c55e'; // 반차는 초록색
+        return 'var(--color-icon-green)';
       default:
-        return '#3b82f6';
+        return 'var(--color-icon-blue)';
     }
   };
 
@@ -720,7 +720,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   return (
     <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-element)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       {showMonthError && (
-        <div style={{ margin: 'var(--spacing-3)', padding: 'var(--spacing-3)', background: 'var(--color-background-red)', border: '1px solid #fecaca', borderRadius: 'var(--radius-inner)', color: 'var(--color-text-red)' }}>
+        <div style={{ margin: 'var(--spacing-3)', padding: 'var(--spacing-3)', background: 'var(--color-background-red)', border: '1px solid var(--color-border-red)', borderRadius: 'var(--radius-inner)', color: 'var(--color-text-red)' }}>
           <VStack gap={0.5}>
             <Text type="label" weight="semibold" color="inherit">데이터 로드 오류</Text>
             <Text type="supporting" color="inherit">
@@ -732,9 +732,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       <div ref={calendarRef} style={{ padding: 'var(--spacing-5)', display: 'flex', flexDirection: 'column' }}>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%">
           <HStack gap={2} vAlign="center">
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-teal)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', color: 'var(--color-text-teal)' }}>
-              <Icon icon="calendar" size="sm" color="inherit" />
-            </span>
+            <Icon icon="calendar" size="sm" color="secondary" />
             <VStack gap={0.5}>
               <HStack gap={2} vAlign="center">
                 <Text type="large" weight="bold" color="primary">
@@ -870,9 +868,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               position: 'relative',
               cursor: 'pointer',
               transition: 'background-color var(--duration-fast)',
-              border: isSelected ? '1px solid #99f6e4' : '1px solid transparent',
-              background: isSelected ? 'rgba(240,253,250,0.5)' : dayColor.bg,
-              boxShadow: isSelected ? '0 0 0 2px #14b8a6, 0 1px 2px rgba(0,0,0,0.05)' : undefined,
+              border: isSelected ? '1px solid var(--color-border-teal)' : '1px solid transparent',
+              background: isSelected ? 'var(--color-background-teal)' : dayColor.bg,
+              boxShadow: isSelected ? '0 0 0 2px var(--color-border-teal), 0 1px 2px rgba(0,0,0,0.05)' : undefined,
               opacity: !isCurrentMonth ? 0.3 : (isPast && isCurrentMonth ? 0.7 : 1),
               overflow: isExpanded ? undefined : 'hidden',
               zIndex: isSelected ? 10 : undefined,
@@ -945,9 +943,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               gap: 'var(--spacing-1)',
                               cursor: vacation.status === 'rejected' ? 'default' : 'pointer',
                               color: vacation.status === 'rejected'
-                                ? '#f87171'
+                                ? 'var(--color-text-red)'
                                 : nameFilter === vacation.userName
-                                  ? '#0d9488'
+                                  ? 'var(--color-text-teal)'
                                   : 'var(--color-text-primary)',
                               textDecoration: vacation.status === 'rejected' ? 'line-through' : undefined,
                             }}
@@ -969,7 +967,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               </span>
                             )}
                             {vacation.type === 'mandatory' && (
-                              <span style={circleBadgeStyle('#ef4444', 12)}>
+                              <span style={circleBadgeStyle('var(--color-error)', 12)}>
                                 필
                               </span>
                             )}
@@ -1007,7 +1005,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 )}
 
                 {isSelected && (
-                  <div style={{ position: 'absolute', inset: 0, border: '2px solid #14b8a6', borderRadius: 'var(--radius-inner)', pointerEvents: 'none' }}></div>
+                  <div style={{ position: 'absolute', inset: 0, border: '2px solid var(--color-border-teal)', borderRadius: 'var(--radius-inner)', pointerEvents: 'none' }}></div>
                 )}
               </motion.div>
             );
@@ -1015,7 +1013,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </motion.div>
       </div>
 
-      <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', background: 'rgba(249,250,251,0.5)' }}>
+      <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', background: 'var(--color-background-card)' }}>
         <div style={{ marginBottom: 'var(--spacing-2)' }}>
           <Text type="supporting" color="secondary" weight="medium">상태 표시</Text>
         </div>
@@ -1052,15 +1050,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
           {/* 휴가 유형 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('#3b82f6', 14)}>연</span>
+            <span style={circleBadgeStyle('var(--color-icon-blue)', 14)}>연</span>
             <Text type="supporting" color="secondary">연차</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('#22c55e', 14)}>반</span>
+            <span style={circleBadgeStyle('var(--color-icon-green)', 14)}>반</span>
             <Text type="supporting" color="secondary">반차</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('#ef4444', 14)}>필</span>
+            <span style={circleBadgeStyle('var(--color-error)', 14)}>필</span>
             <Text type="supporting" color="secondary">필수 휴무</Text>
           </HStack>
         </HStack>

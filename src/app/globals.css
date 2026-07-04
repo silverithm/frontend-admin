@@ -170,7 +170,7 @@ html {
 .carev-vacdetails-delete-btn:hover { color: #ef4444; background: #fef2f2; }
 
 /* VacationApproval 반응형 2단 */
-.carev-vacapproval-layout { display: flex; flex-direction: column; gap: 16px; }
+.carev-vacapproval-layout { display: flex; flex-direction: column; gap: var(--spacing-4); }
 .carev-vacapproval-main { min-width: 0; }
 .carev-vacapproval-sidebar { width: 100%; }
 @media (min-width: 1280px) {

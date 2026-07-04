@@ -141,9 +141,9 @@ export default function SubscriptionInfo() {
   if (loading) {
     return (
       <Card padding={5}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+        <HStack hAlign="center" style={{ padding: 'var(--spacing-6) 0' }}>
           <Spinner size="md" label="로딩 중..." />
-        </div>
+        </HStack>
       </Card>
     );
   }

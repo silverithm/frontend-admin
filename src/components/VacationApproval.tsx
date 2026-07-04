@@ -25,6 +25,7 @@ import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
 import {
     VacationRequest,
     VacationLimit,
@@ -561,11 +562,11 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                 <Spinner label="불러오는 중..." />
                             </HStack>
                         ) : filteredRequests.length === 0 ? (
-                            <HStack hAlign="center">
-                                <Text type="supporting" color="secondary">
-                                    조건에 맞는 휴무 요청이 없습니다.
-                                </Text>
-                            </HStack>
+                            <EmptyState
+                                title="조건에 맞는 휴무 요청이 없습니다."
+                                description="필터 조건을 변경하거나 초기화해 보세요."
+                                isCompact
+                            />
                         ) : (
                             <div style={{ maxHeight: "80vh", overflow: "auto" }}>
                                 <Table density="compact" hasHover>
@@ -712,7 +713,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
 
             {/* 필터 패널 (우측 사이드바) */}
             <div className="carev-vacapproval-sidebar">
-                <div style={{ position: "sticky", top: 16 }}>
+                <div style={{ position: "sticky", top: 'var(--spacing-4)' }}>
                     <Card padding={3}>
                         <VStack gap={3}>
                             <Text weight="semibold" color="primary">

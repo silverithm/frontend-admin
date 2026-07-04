@@ -21,7 +21,8 @@ import { Avatar } from '@astryxdesign/core/Avatar';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { Center } from '@astryxdesign/core/Center';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import {
@@ -304,9 +305,9 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
   if (isLoading && notices.length === 0 && viewMode === 'list') {
     return (
       <Card padding={0}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px 0' }}>
+        <Center height="200px">
           <Spinner size="lg" aria-label="불러오는 중" />
-        </div>
+        </Center>
       </Card>
     );
   }
@@ -394,7 +395,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                         style={{
                           width: '100%',
                           padding: 'var(--spacing-4)',
-                          border: `1px solid ${n.isPinned ? '#c3fae8' : 'var(--color-border)'}`,
+                          border: `1px solid ${n.isPinned ? 'var(--color-border-teal)' : 'var(--color-border)'}`,
                           borderRadius: 'var(--radius-element)',
                           cursor: 'pointer',
                           background: n.isPinned ? 'var(--color-background-teal)' : 'var(--color-background-card)',
@@ -483,9 +484,9 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
           {/* 상세 본문 */}
           <div style={{ padding: 'var(--spacing-5)' }}>
             {isLoadingDetail ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px 0' }}>
+              <Center height="160px">
                 <Spinner size="lg" aria-label="불러오는 중" />
-              </div>
+              </Center>
             ) : notice ? (
               isEditing ? (
                 /* 수정 모드 */
@@ -549,24 +550,13 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                       <Heading level={4}>읽은 사람 {readers.length > 0 && `(${readers.length}명)`}</Heading>
                     </HStack>
                     {readers.length > 0 ? (
-                      <HStack gap={2} wrap="wrap">
+                      <HStack gap={3} wrap="wrap">
                         {readers.map((reader) => (
-                          <div
-                            key={reader.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 'var(--spacing-2)',
-                              padding: '6px 12px',
-                              background: 'var(--color-background-muted)',
-                              border: '1px solid var(--color-border)',
-                              borderRadius: 'var(--radius-full)',
-                            }}
-                          >
+                          <HStack key={reader.id} gap={1.5} vAlign="center">
                             <Avatar name={reader.userName || '?'} size="xsmall" />
                             <Text type="body">{reader.userName}</Text>
                             <Text type="supporting">{formatDate(reader.readAt, 'MM.dd HH:mm')}</Text>
-                          </div>
+                          </HStack>
                         ))}
                       </HStack>
                     ) : (
@@ -611,38 +601,38 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                         {comments.map((comment) => (
                           <HStack key={comment.id} gap={3} vAlign="start" width="100%">
                             <Avatar name={comment.authorName || '?'} size="small" />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <HStack gap={2} vAlign="center">
+                            <StackItem size="fill">
+                              <HStack gap={2} vAlign="center" width="100%">
                                 <Text type="body" weight="medium">{comment.authorName}</Text>
-                                <Text type="supporting">{formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
-                                <div style={{ marginLeft: 'auto' }}>
-                                  <Button
-                                    label="삭제"
-                                    variant="ghost"
-                                    size="sm"
-                                    isIconOnly
-                                    icon={<Icon icon={FiTrash2} size="sm" />}
-                                    onClick={() => handleDeleteComment(comment.id)}
-                                  />
-                                </div>
+                                <StackItem size="fill">
+                                  <Text type="supporting">{formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                </StackItem>
+                                <Button
+                                  label="삭제"
+                                  variant="ghost"
+                                  size="sm"
+                                  isIconOnly
+                                  icon={<Icon icon={FiTrash2} size="sm" />}
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                />
                               </HStack>
                               <Text type="body">{comment.content}</Text>
-                            </div>
+                            </StackItem>
                           </HStack>
                         ))}
                       </VStack>
                     ) : (
-                      <div style={{ width: '100%', textAlign: 'center', padding: '16px 0' }}>
+                      <Center width="100%" height="64px">
                         <Text type="supporting">아직 댓글이 없습니다</Text>
-                      </div>
+                      </Center>
                     )}
                   </VStack>
                 </VStack>
               )
             ) : (
-              <div style={{ width: '100%', textAlign: 'center', padding: '48px 0' }}>
+              <Center width="100%" height="160px">
                 <Text type="supporting">공지사항을 찾을 수 없습니다</Text>
-              </div>
+              </Center>
             )}
           </div>
         </Card>
