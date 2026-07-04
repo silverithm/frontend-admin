@@ -48,7 +48,7 @@ export default function SubscriptionStatus() {
     return (
       <Badge
         variant="neutral"
-        icon={<StatusDot color="#d1d5db" pulse />}
+        icon={<StatusDot color='var(--color-icon-disabled)' pulse />}
         label="구독 확인 중..."
       />
     );
@@ -86,7 +86,7 @@ export default function SubscriptionStatus() {
       <Button
         variant="secondary"
         size="sm"
-        icon={<StatusDot color="#f59e0b" />}
+        icon={<StatusDot color='var(--color-warning)' />}
         label={`무료 체험 ${daysRemaining}일 남음`}
         onClick={handlePayment}
       />
@@ -97,7 +97,7 @@ export default function SubscriptionStatus() {
     return (
       <Badge
         variant="teal"
-        icon={<StatusDot color="#14b8a6" />}
+        icon={<StatusDot color='var(--color-icon-teal)' />}
         label="Basic 플랜 활성"
       />
     );
@@ -106,7 +106,7 @@ export default function SubscriptionStatus() {
   return (
     <Badge
       variant="neutral"
-      icon={<StatusDot color="#9ca3af" />}
+      icon={<StatusDot color='var(--color-icon-secondary)' />}
       label="구독 상태 확인 필요"
     />
   );

@@ -25,9 +25,9 @@ const C = {
     border: "var(--color-border)",       // gray-200
     borderLight: 'var(--color-border)',  // gray-100
     bgGray50: 'var(--color-background-muted)',     // gray-50
-    bubbleMine: "#0d9488",   // teal-600
+    bubbleMine: 'var(--color-icon-teal)',   // teal-600
     bubbleOther: 'var(--color-background-muted)',  // gray-100
-    accent: "#0d9488",       // teal-600
+    accent: 'var(--color-icon-teal)',       // teal-600
 };
 
 function getDateKey(dateStr: string): string {
@@ -274,7 +274,7 @@ export function FloatingChatMessages({
                     marginBottom: 'var(--spacing-1)',
                     borderRadius: 'var(--radius-none)',
                     borderLeft: isMyMessage ? "2px solid #5eead4" : `2px solid #9ca3af`,
-                    background: isMyMessage ? "rgba(20,184,166,0.3)" : "#e5e7eb",
+                    background: isMyMessage ? "rgba(20,184,166,0.3)" : 'var(--color-border)',
                     color: isMyMessage ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                 }}
             >

@@ -265,7 +265,7 @@ export default function DispatchCalendar({
                 <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                   {summary.normalCount > 0 && (
                     <HStack gap={1} vAlign="center">
-                      <span style={dotStyle("#22c55e")} />
+                      <span style={dotStyle('var(--color-success)')} />
                       <Text type="supporting" color="inherit">
                         <span style={{ color: 'var(--color-text-green)' }}>{summary.normalCount}개 정상</span>
                       </Text>
@@ -273,7 +273,7 @@ export default function DispatchCalendar({
                   )}
                   {summary.substituteCount > 0 && (
                     <HStack gap={1} vAlign="center">
-                      <span style={dotStyle("#eab308")} />
+                      <span style={dotStyle('var(--color-warning)')} />
                       <Text type="supporting" color="inherit">
                         <span style={{ color: 'var(--color-text-yellow)' }}>{summary.substituteCount}개 대체</span>
                       </Text>
@@ -281,7 +281,7 @@ export default function DispatchCalendar({
                   )}
                   {summary.noServiceCount > 0 && (
                     <HStack gap={1} vAlign="center">
-                      <span style={dotStyle("#ef4444")} />
+                      <span style={dotStyle('var(--color-error)')} />
                       <Text type="supporting" color="inherit">
                         <span style={{ color: 'var(--color-text-red)' }}>{summary.noServiceCount}개 미운행</span>
                       </Text>

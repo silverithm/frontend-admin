@@ -3,6 +3,8 @@
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Spinner } from "@astryxdesign/core/Spinner";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { FiMessageCircle } from "react-icons/fi";
 import { ChatRoom } from "./floatingChatTypes";
 
 interface FloatingChatRoomListProps {
@@ -68,11 +70,8 @@ export function FloatingChatRoomList({
                         <Spinner aria-label="채팅방 불러오는 중" />
                     </div>
                 ) : rooms.length === 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 160, gap: 'var(--spacing-2)' }}>
-                        <svg style={{ width: 40, height: 40, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <Text type="supporting" color="secondary">채팅방이 없습니다</Text>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 160 }}>
+                        <EmptyState icon={FiMessageCircle} title="채팅방이 없습니다" isCompact />
                     </div>
                 ) : (
                     rooms.map((room) => (
