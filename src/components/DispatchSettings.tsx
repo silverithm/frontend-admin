@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiX, FiClipboard } from "react-icons/fi";
+import { Button } from "@astryxdesign/core/Button";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Selector } from "@astryxdesign/core/Selector";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Text } from "@astryxdesign/core/Text";
+import { Icon } from "@astryxdesign/core/Icon";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { useDispatchStore, generateId } from "@/lib/dispatchStore";
 import { getMemberUsers, getCompanyElders } from "@/lib/apiService";
 import type { ElderlyInfo } from "@/types/elderly";
@@ -330,413 +341,460 @@ export default function DispatchSettings({
     updateSenior(senior2.id, { boardingOrder: senior1.boardingOrder });
   };
 
-  if (!isOpen) return null;
+  const memberOptions = members.map((member) => ({
+    value: String(member.id),
+    label: `${member.name}${member.email ? ` (${member.email})` : ""}`,
+  }));
+
+  const dividerStyle = "1px solid var(--color-border, #e5e7eb)";
 
   return (
     <>
-    <ConfirmContainer />
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+      <ConfirmContainer />
+      <Dialog
+        isOpen={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        purpose="form"
+        width={1000}
+        maxHeight="90vh"
       >
-        {/* 헤더 */}
-        <div className="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold">배차 설정</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 콘텐츠 */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* 왼쪽: 노선 목록 */}
-          <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
-            <div className="p-4 border-b border-gray-200">
-              <button
-                onClick={() => {
-                  setIsAddingRoute(true);
-                  setSelectedRouteId(null);
-                }}
-                className="w-full px-4 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-                새 노선 추가
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-2">
-              {settings.routes.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  등록된 노선이 없습니다.
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {settings.routes.map((route) => (
-                    <div
-                      key={route.id}
-                      onClick={() => {
-                        setSelectedRouteId(route.id);
-                        setIsAddingRoute(false);
-                      }}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                        selectedRouteId === route.id
-                          ? "bg-teal-50 border-2 border-teal-500"
-                          : "bg-white border border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-900">{route.name}</span>
-                          <span className={`px-2 py-0.5 text-xs rounded-full ${
-                            route.type === "등원"
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-purple-100 text-purple-700"
-                          }`}>
-                            {route.type}
-                          </span>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteRoute(route.id);
-                          }}
-                          className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        운전자 {route.routeDrivers?.length || 0}명 · 어르신 {settings.seniors.filter(s => s.routeId === route.id).length}명
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 오른쪽: 상세 편집 */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {isAddingRoute ? (
-              /* 새 노선 추가 폼 */
-              <div className="space-y-6">
-                <h3 className="text-lg font-bold text-gray-800">새 노선 추가</h3>
-
-                {/* 노선 이름 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">노선 이름</label>
-                  <input
-                    type="text"
-                    value={newRouteName}
-                    onChange={(e) => setNewRouteName(e.target.value)}
-                    placeholder="예: 스타리아, 카니발"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none text-gray-900 placeholder-gray-400"
+        <Layout
+          header={
+            <DialogHeader
+              title="배차 설정"
+              onOpenChange={(open) => {
+                if (!open) onClose();
+              }}
+            />
+          }
+          start={
+            <LayoutPanel hasDivider width={320}>
+              <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                <div style={{ padding: 16, borderBottom: dividerStyle }}>
+                  <Button
+                    label="새 노선 추가"
+                    variant="primary"
+                    icon={<Icon icon={FiPlus} size="sm" />}
+                    onClick={() => {
+                      setIsAddingRoute(true);
+                      setSelectedRouteId(null);
+                    }}
                   />
                 </div>
 
-                {/* 등원/하원 선택 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">노선 유형</label>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => setNewRouteType("등원")}
-                      className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                        newRouteType === "등원"
-                          ? "bg-orange-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      등원
-                    </button>
-                    <button
-                      onClick={() => setNewRouteType("하원")}
-                      className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                        newRouteType === "하원"
-                          ? "bg-purple-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      하원
-                    </button>
-                  </div>
-                </div>
-
-                {/* 운전자 배정 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    운전자 배정
-                    {loadingMembers && <span className="text-gray-400 ml-2 text-xs">(직원 목록 로딩중...)</span>}
-                  </label>
-                  <div className="space-y-3">
-                    {newRouteDrivers.map((driver, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                        <span className={`px-2 py-1 text-xs rounded font-medium ${
-                          index === 0 ? "bg-teal-100 text-teal-700" : "bg-gray-200 text-gray-600"
-                        }`}>
-                          {index === 0 ? "주" : `부${index}`}
-                        </span>
-                        <select
-                          value={driver.driverId || ""}
-                          onChange={(e) => handleSelectMemberForNewRoute(index, e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
-                        >
-                          <option value="">직원 선택</option>
-                          {members.map((member) => (
-                            <option key={member.id} value={member.id}>
-                              {member.name} {member.email ? `(${member.email})` : ""}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          value={driver.vehicleName}
-                          onChange={(e) => updateNewRouteDriver(index, "vehicleName", e.target.value)}
-                          placeholder="차량명"
-                          list={`vehicle-names-new-${index}`}
-                          className="w-40 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400"
-                        />
-                        <datalist id={`vehicle-names-new-${index}`}>
-                          {knownVehicleNames.map(name => (
-                            <option key={name} value={name} />
-                          ))}
-                        </datalist>
-                        {newRouteDrivers.length > 1 && (
-                          <button
-                            onClick={() => removeNewRouteDriver(index)}
-                            className="p-2 text-gray-400 hover:text-red-500"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      onClick={addNewRouteDriver}
-                      className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-teal-400 hover:text-teal-500 transition-colors"
-                    >
-                      + 부운전자 추가
-                    </button>
-                  </div>
-                </div>
-
-                {/* 저장 버튼 */}
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setIsAddingRoute(false)}
-                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleAddRoute}
-                    className="px-6 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
-                  >
-                    노선 추가
-                  </button>
-                </div>
-              </div>
-            ) : selectedRoute ? (
-              /* 노선 상세 편집 */
-              <div className="space-y-6">
-                <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-bold text-gray-800">{selectedRoute.name}</h3>
-                  <span className={`px-3 py-1 text-sm rounded-full font-medium ${
-                    selectedRoute.type === "등원"
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-purple-100 text-purple-700"
-                  }`}>
-                    {selectedRoute.type}
-                  </span>
-                </div>
-
-                {/* 운전자 목록 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    운전자 배정
-                    {loadingMembers && <span className="text-gray-400 ml-2 text-xs">(직원 목록 로딩중...)</span>}
-                  </label>
-                  <div className="space-y-3">
-                    {(selectedRoute.routeDrivers || []).map((driver, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                        <span className={`px-2 py-1 text-xs rounded font-medium ${
-                          index === 0 ? "bg-teal-100 text-teal-700" : "bg-gray-200 text-gray-600"
-                        }`}>
-                          {index === 0 ? "주" : `부${index}`}
-                        </span>
-                        <select
-                          value={driver.driverId || ""}
-                          onChange={(e) => handleSelectMemberForRoute(selectedRoute.id, index, e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
-                        >
-                          <option value="">직원 선택</option>
-                          {members.map((member) => (
-                            <option key={member.id} value={member.id}>
-                              {member.name} {member.email ? `(${member.email})` : ""}
-                            </option>
-                          ))}
-                          {/* 기존에 저장된 운전자가 목록에 없는 경우 표시 */}
-                          {driver.driverId && !members.find(m => String(m.id) === driver.driverId) && (
-                            <option value={driver.driverId}>
-                              {driver.driverName} (기존 데이터)
-                            </option>
-                          )}
-                        </select>
-                        <input
-                          type="text"
-                          value={driver.vehicleName}
-                          onChange={(e) => handleUpdateRouteDriver(selectedRoute.id, index, "vehicleName", e.target.value)}
-                          placeholder="차량명"
-                          list={`vehicle-names-${index}`}
-                          className="w-40 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400"
-                        />
-                        <datalist id={`vehicle-names-${index}`}>
-                          {knownVehicleNames.map(name => (
-                            <option key={name} value={name} />
-                          ))}
-                        </datalist>
-                        {(selectedRoute.routeDrivers?.length || 0) > 1 && (
-                          <button
-                            onClick={() => handleRemoveRouteDriver(selectedRoute.id, index)}
-                            className="p-2 text-gray-400 hover:text-red-500"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => handleAddRouteDriver(selectedRoute.id)}
-                      className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-teal-400 hover:text-teal-500 transition-colors"
-                    >
-                      + 부운전자 추가
-                    </button>
-                  </div>
-                </div>
-
-                {/* 어르신 목록 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    탑승 어르신 ({selectedRouteSeniors.length}명)
-                  </label>
-
-                  {/* 어르신 추가 (드롭다운) */}
-                  <div className="flex space-x-2 mb-3">
-                    <select
-                      value={selectedSeniorId}
-                      onChange={(e) => setSelectedSeniorId(e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-900 bg-white"
-                    >
-                      <option value="">어르신 선택</option>
-                      {companySeniors
-                        .filter(s => !assignedElderlyIds.has(s.id))
-                        .map(senior => (
-                          <option key={senior.id} value={String(senior.id)}>
-                            {senior.name}{senior.requiredFrontSeat ? ' (앞좌석)' : ''}
-                          </option>
-                        ))}
-                    </select>
-                    <button
-                      onClick={handleAddSenior}
-                      disabled={!selectedSeniorId}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      추가
-                    </button>
-                  </div>
-                  {companySeniors.length === 0 && (
-                    <p className="text-xs text-gray-500 mb-2">
-                      회원관리 &gt; 어르신 관리에서 먼저 어르신을 등록해주세요.
-                    </p>
-                  )}
-
-                  {/* 어르신 목록 */}
-                  {selectedRouteSeniors.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                      등록된 어르신이 없습니다.
+                <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+                  {settings.routes.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "32px 0" }}>
+                      <Text type="body" color="secondary">
+                        등록된 노선이 없습니다.
+                      </Text>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {selectedRouteSeniors.map((senior, index) => (
-                        <div
-                          key={senior.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <span className="w-6 h-6 flex items-center justify-center bg-gray-300 text-gray-600 rounded-full text-xs font-medium">
-                              {index + 1}
-                            </span>
-                            <span className="font-medium text-gray-800">{senior.name}</span>
+                    <VStack gap={1}>
+                      {settings.routes.map((route) => {
+                        const isSelected = selectedRouteId === route.id;
+                        return (
+                          <div
+                            key={route.id}
+                            onClick={() => {
+                              setSelectedRouteId(route.id);
+                              setIsAddingRoute(false);
+                            }}
+                            style={{
+                              padding: 12,
+                              borderRadius: 8,
+                              cursor: "pointer",
+                              transition: "background-color 200ms ease",
+                              background: isSelected
+                                ? "var(--color-teal-background, #f0fdfa)"
+                                : "var(--color-surface, #ffffff)",
+                              border: isSelected
+                                ? "2px solid var(--color-teal-border, #14b8a6)"
+                                : dividerStyle,
+                            }}
+                          >
+                            <HStack hAlign="between" vAlign="center">
+                              <HStack gap={2} vAlign="center">
+                                <Text type="body" weight="medium">
+                                  {route.name}
+                                </Text>
+                                <Badge
+                                  variant={route.type === "등원" ? "orange" : "purple"}
+                                  label={route.type}
+                                />
+                              </HStack>
+                              <IconButton
+                                label="노선 삭제"
+                                variant="ghost"
+                                size="sm"
+                                icon={<Icon icon={FiTrash2} size="sm" />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteRoute(route.id);
+                                }}
+                              />
+                            </HStack>
+                            <div style={{ marginTop: 4 }}>
+                              <Text type="supporting" color="secondary">
+                                운전자 {route.routeDrivers?.length || 0}명 · 어르신{" "}
+                                {settings.seniors.filter((s) => s.routeId === route.id).length}명
+                              </Text>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <button
-                              onClick={() => handleMoveSenior(senior.id, "up")}
-                              disabled={index === 0}
-                              className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleMoveSenior(senior.id, "down")}
-                              disabled={index === selectedRouteSeniors.length - 1}
-                              className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSenior(senior.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-500"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        );
+                      })}
+                    </VStack>
                   )}
                 </div>
               </div>
-            ) : (
-              /* 선택 안내 */
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <div className="text-center">
-                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <p>왼쪽에서 노선을 선택하거나</p>
-                  <p>새 노선을 추가해주세요.</p>
+            </LayoutPanel>
+          }
+          content={
+            <LayoutContent>
+              {isAddingRoute ? (
+                /* 새 노선 추가 폼 */
+                <VStack gap={6}>
+                  <Text type="large" weight="bold">
+                    새 노선 추가
+                  </Text>
+
+                  {/* 노선 이름 */}
+                  <TextInput
+                    label="노선 이름"
+                    value={newRouteName}
+                    onChange={(value) => setNewRouteName(value)}
+                    placeholder="예: 스타리아, 카니발"
+                  />
+
+                  {/* 등원/하원 선택 */}
+                  <VStack gap={2}>
+                    <Text type="label">노선 유형</Text>
+                    <SegmentedControl
+                      label="노선 유형"
+                      value={newRouteType}
+                      onChange={(value) => setNewRouteType(value as RouteType)}
+                    >
+                      <SegmentedControlItem value="등원" label="등원" />
+                      <SegmentedControlItem value="하원" label="하원" />
+                    </SegmentedControl>
+                  </VStack>
+
+                  {/* 운전자 배정 */}
+                  <VStack gap={2}>
+                    <HStack gap={2} vAlign="center">
+                      <Text type="label">운전자 배정</Text>
+                      {loadingMembers && (
+                        <Text type="supporting" color="secondary">
+                          (직원 목록 로딩중...)
+                        </Text>
+                      )}
+                    </HStack>
+                    <VStack gap={3}>
+                      {newRouteDrivers.map((driver, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            padding: 12,
+                            background: "var(--color-muted-background, #f9fafb)",
+                            borderRadius: 8,
+                          }}
+                        >
+                          <HStack gap={2} vAlign="center">
+                            <Badge
+                              variant={index === 0 ? "teal" : "neutral"}
+                              label={index === 0 ? "주" : `부${index}`}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <Selector
+                                label="직원 선택"
+                                isLabelHidden
+                                placeholder="직원 선택"
+                                options={memberOptions}
+                                value={driver.driverId || ""}
+                                hasClear
+                                onChange={(value) =>
+                                  handleSelectMemberForNewRoute(index, value ?? "")
+                                }
+                              />
+                            </div>
+                            <div style={{ width: 160 }}>
+                              <TextInput
+                                label="차량명"
+                                isLabelHidden
+                                value={driver.vehicleName}
+                                onChange={(value) =>
+                                  updateNewRouteDriver(index, "vehicleName", value)
+                                }
+                                placeholder="차량명"
+                              />
+                            </div>
+                            {newRouteDrivers.length > 1 && (
+                              <IconButton
+                                label="운전자 삭제"
+                                variant="ghost"
+                                size="sm"
+                                icon={<Icon icon={FiX} size="sm" />}
+                                onClick={() => removeNewRouteDriver(index)}
+                              />
+                            )}
+                          </HStack>
+                        </div>
+                      ))}
+                      <Button
+                        label="+ 부운전자 추가"
+                        variant="secondary"
+                        onClick={addNewRouteDriver}
+                      />
+                    </VStack>
+                  </VStack>
+
+                  {/* 저장 버튼 */}
+                  <HStack gap={3}>
+                    <Button
+                      label="취소"
+                      variant="secondary"
+                      onClick={() => setIsAddingRoute(false)}
+                    />
+                    <Button label="노선 추가" variant="primary" onClick={handleAddRoute} />
+                  </HStack>
+                </VStack>
+              ) : selectedRoute ? (
+                /* 노선 상세 편집 */
+                <VStack gap={6}>
+                  <HStack gap={3} vAlign="center">
+                    <Text type="large" weight="bold">
+                      {selectedRoute.name}
+                    </Text>
+                    <Badge
+                      variant={selectedRoute.type === "등원" ? "orange" : "purple"}
+                      label={selectedRoute.type}
+                    />
+                  </HStack>
+
+                  {/* 운전자 목록 */}
+                  <VStack gap={2}>
+                    <HStack gap={2} vAlign="center">
+                      <Text type="label">운전자 배정</Text>
+                      {loadingMembers && (
+                        <Text type="supporting" color="secondary">
+                          (직원 목록 로딩중...)
+                        </Text>
+                      )}
+                    </HStack>
+                    <VStack gap={3}>
+                      {(selectedRoute.routeDrivers || []).map((driver, index) => {
+                        const driverOptions =
+                          driver.driverId &&
+                          !members.find((m) => String(m.id) === driver.driverId)
+                            ? [
+                                ...memberOptions,
+                                {
+                                  value: driver.driverId,
+                                  label: `${driver.driverName} (기존 데이터)`,
+                                },
+                              ]
+                            : memberOptions;
+                        return (
+                          <div
+                            key={index}
+                            style={{
+                              padding: 12,
+                              background: "var(--color-muted-background, #f9fafb)",
+                              borderRadius: 8,
+                            }}
+                          >
+                            <HStack gap={2} vAlign="center">
+                              <Badge
+                                variant={index === 0 ? "teal" : "neutral"}
+                                label={index === 0 ? "주" : `부${index}`}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <Selector
+                                  label="직원 선택"
+                                  isLabelHidden
+                                  placeholder="직원 선택"
+                                  options={driverOptions}
+                                  value={driver.driverId || ""}
+                                  hasClear
+                                  onChange={(value) =>
+                                    handleSelectMemberForRoute(
+                                      selectedRoute.id,
+                                      index,
+                                      value ?? ""
+                                    )
+                                  }
+                                />
+                              </div>
+                              <div style={{ width: 160 }}>
+                                <TextInput
+                                  label="차량명"
+                                  isLabelHidden
+                                  value={driver.vehicleName}
+                                  onChange={(value) =>
+                                    handleUpdateRouteDriver(
+                                      selectedRoute.id,
+                                      index,
+                                      "vehicleName",
+                                      value
+                                    )
+                                  }
+                                  placeholder="차량명"
+                                />
+                              </div>
+                              {(selectedRoute.routeDrivers?.length || 0) > 1 && (
+                                <IconButton
+                                  label="운전자 삭제"
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<Icon icon={FiX} size="sm" />}
+                                  onClick={() =>
+                                    handleRemoveRouteDriver(selectedRoute.id, index)
+                                  }
+                                />
+                              )}
+                            </HStack>
+                          </div>
+                        );
+                      })}
+                      <Button
+                        label="+ 부운전자 추가"
+                        variant="secondary"
+                        onClick={() => handleAddRouteDriver(selectedRoute.id)}
+                      />
+                    </VStack>
+                  </VStack>
+
+                  {/* 어르신 목록 */}
+                  <VStack gap={2}>
+                    <Text type="label">
+                      탑승 어르신 ({selectedRouteSeniors.length}명)
+                    </Text>
+
+                    {/* 어르신 추가 (드롭다운) */}
+                    <HStack gap={2} vAlign="end">
+                      <div style={{ flex: 1 }}>
+                        <Selector
+                          label="어르신 선택"
+                          isLabelHidden
+                          placeholder="어르신 선택"
+                          options={companySeniors
+                            .filter((s) => !assignedElderlyIds.has(s.id))
+                            .map((senior) => ({
+                              value: String(senior.id),
+                              label: `${senior.name}${
+                                senior.requiredFrontSeat ? " (앞좌석)" : ""
+                              }`,
+                            }))}
+                          value={selectedSeniorId}
+                          onChange={(value) => setSelectedSeniorId(value ?? "")}
+                        />
+                      </div>
+                      <Button
+                        label="추가"
+                        variant="primary"
+                        isDisabled={!selectedSeniorId}
+                        onClick={handleAddSenior}
+                      />
+                    </HStack>
+                    {companySeniors.length === 0 && (
+                      <Text type="supporting" color="secondary">
+                        회원관리 &gt; 어르신 관리에서 먼저 어르신을 등록해주세요.
+                      </Text>
+                    )}
+
+                    {/* 어르신 목록 */}
+                    {selectedRouteSeniors.length === 0 ? (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "32px 0",
+                          background: "var(--color-muted-background, #f9fafb)",
+                          borderRadius: 8,
+                        }}
+                      >
+                        <Text type="body" color="secondary">
+                          등록된 어르신이 없습니다.
+                        </Text>
+                      </div>
+                    ) : (
+                      <VStack gap={2}>
+                        {selectedRouteSeniors.map((senior, index) => (
+                          <div
+                            key={senior.id}
+                            style={{
+                              padding: 12,
+                              background: "var(--color-muted-background, #f9fafb)",
+                              borderRadius: 8,
+                            }}
+                          >
+                            <HStack hAlign="between" vAlign="center">
+                              <HStack gap={3} vAlign="center">
+                                <Badge variant="neutral" label={index + 1} />
+                                <Text type="body" weight="medium">
+                                  {senior.name}
+                                </Text>
+                              </HStack>
+                              <HStack gap={1} vAlign="center">
+                                <IconButton
+                                  label="위로 이동"
+                                  variant="ghost"
+                                  size="sm"
+                                  isDisabled={index === 0}
+                                  icon={<Icon icon={FiChevronUp} size="sm" />}
+                                  onClick={() => handleMoveSenior(senior.id, "up")}
+                                />
+                                <IconButton
+                                  label="아래로 이동"
+                                  variant="ghost"
+                                  size="sm"
+                                  isDisabled={index === selectedRouteSeniors.length - 1}
+                                  icon={<Icon icon={FiChevronDown} size="sm" />}
+                                  onClick={() => handleMoveSenior(senior.id, "down")}
+                                />
+                                <IconButton
+                                  label="어르신 삭제"
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<Icon icon={FiTrash2} size="sm" />}
+                                  onClick={() => handleDeleteSenior(senior.id)}
+                                />
+                              </HStack>
+                            </HStack>
+                          </div>
+                        ))}
+                      </VStack>
+                    )}
+                  </VStack>
+                </VStack>
+              ) : (
+                /* 선택 안내 */
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                  }}
+                >
+                  <VStack gap={4} vAlign="center">
+                    <Icon icon={FiClipboard} size="lg" color="tertiary" />
+                    <VStack gap={1} vAlign="center">
+                      <Text type="body" color="secondary">
+                        왼쪽에서 노선을 선택하거나
+                      </Text>
+                      <Text type="body" color="secondary">
+                        새 노선을 추가해주세요.
+                      </Text>
+                    </VStack>
+                  </VStack>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
+              )}
+            </LayoutContent>
+          }
+        />
+      </Dialog>
     </>
   );
 }

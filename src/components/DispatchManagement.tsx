@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { Banner } from "@astryxdesign/core/Banner";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Icon } from "@astryxdesign/core/Icon";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { IconCalendar, IconList, IconUsers, IconSettings } from "@tabler/icons-react";
 import { useDispatchStore } from "@/lib/dispatchStore";
 import type { DailyDispatch, DispatchDaySummary } from "@/types/dispatch";
 import type { VacationRequest } from "@/types/vacation";
@@ -97,113 +106,85 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
   if (!isHydrated) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-200 border-t-teal-500"></div>
-      </div>
+      <HStack width="100%" height={256} hAlign="center" vAlign="center">
+        <Spinner size="lg" aria-label="불러오는 중" />
+      </HStack>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <VStack gap={5}>
       {/* 서브탭 네비게이션 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveSubTab("calendar")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                activeSubTab === "calendar"
-                  ? "bg-teal-500 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+      <Card padding={5}>
+        <VStack gap={4}>
+          <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+            <SegmentedControl
+              value={activeSubTab}
+              onChange={(value) => setActiveSubTab(value as SubTab)}
+              label="배차 관리 뷰"
             >
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                캘린더 뷰
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveSubTab("list")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                activeSubTab === "list"
-                  ? "bg-teal-500 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                    d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                리스트 뷰
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveSubTab("absence")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                activeSubTab === "absence"
-                  ? "bg-teal-500 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                결석 관리
-              </span>
-            </button>
-          </div>
+              <SegmentedControlItem
+                value="calendar"
+                label="캘린더 뷰"
+                icon={<Icon icon={IconCalendar} size="sm" />}
+              />
+              <SegmentedControlItem
+                value="list"
+                label="리스트 뷰"
+                icon={<Icon icon={IconList} size="sm" />}
+              />
+              <SegmentedControlItem
+                value="absence"
+                label="결석 관리"
+                icon={<Icon icon={IconUsers} size="sm" />}
+              />
+            </SegmentedControl>
 
-          <button
-            onClick={() => setShowSettings(true)}
-            className="px-4 py-2 rounded-lg font-medium text-sm bg-gray-800 text-white hover:bg-gray-900 transition-colors flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            배차 설정
-          </button>
-        </div>
+            <Button
+              label="배차 설정"
+              variant="secondary"
+              onClick={() => setShowSettings(true)}
+              icon={<Icon icon={IconSettings} size="sm" />}
+            />
+          </HStack>
 
-        {/* 통계 요약 */}
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{settings.routes.length}</div>
-            <div className="text-xs font-medium text-gray-500">노선</div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{settings.seniors.length}</div>
-            <div className="text-xs font-medium text-gray-500">어르신</div>
-          </div>
-        </div>
-      </div>
+          {/* 통계 요약 */}
+          <HStack gap={4}>
+            <StackItem size="fill">
+              <Card width="100%" padding={4}>
+                <VStack gap={1} hAlign="center">
+                  <Text size="2xl" weight="bold">{settings.routes.length}</Text>
+                  <Text type="supporting">노선</Text>
+                </VStack>
+              </Card>
+            </StackItem>
+            <StackItem size="fill">
+              <Card width="100%" padding={4}>
+                <VStack gap={1} hAlign="center">
+                  <Text size="2xl" weight="bold">{settings.seniors.length}</Text>
+                  <Text type="supporting">어르신</Text>
+                </VStack>
+              </Card>
+            </StackItem>
+          </HStack>
+        </VStack>
+      </Card>
 
       {/* 설정이 비어있을 때 안내 메시지 */}
       {isSettingsEmpty && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-          <svg className="w-12 h-12 mx-auto text-amber-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <h3 className="text-lg font-bold text-amber-700 mb-2">배차 설정이 필요합니다</h3>
-          <p className="text-sm text-amber-700 mb-4">
-            배차 시스템을 사용하려면 먼저 노선, 직원 정보를 등록해주세요.
-          </p>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="px-6 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
-          >
-            설정하러 가기
-          </button>
-        </div>
+        <Banner
+          status="warning"
+          title="배차 설정이 필요합니다"
+          description="배차 시스템을 사용하려면 먼저 노선, 직원 정보를 등록해주세요."
+          endContent={
+            <Button
+              label="설정하러 가기"
+              variant="primary"
+              size="sm"
+              onClick={() => setShowSettings(true)}
+            />
+          }
+        />
       )}
 
       {/* 메인 컨텐츠 */}
@@ -279,6 +260,6 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
           />
         )}
       </AnimatePresence>
-    </div>
+    </VStack>
   );
 }
