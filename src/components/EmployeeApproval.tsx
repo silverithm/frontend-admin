@@ -889,10 +889,16 @@ export default function EmployeeApproval() {
                         }}
                       >
                         <div
-                          onClick={() => setViewer({
-                            fileUrl: selectedApproval.attachmentUrl!,
-                            fileName: selectedApproval.attachmentFileName || '첨부파일',
-                          })}
+                          onClick={() => {
+                            // 내가 올린 진행중 기안의 한글 첨부는 바로 편집 모드로 열어
+                            // Ctrl+S/저장이 서버에 반영되게 한다
+                            const editable = selectedApproval.status === 'PENDING' && isHwpFile(selectedApproval.attachmentFileName);
+                            setViewer({
+                              fileUrl: selectedApproval.attachmentUrl!,
+                              fileName: selectedApproval.attachmentFileName || '첨부파일',
+                              ...(editable ? { authoring: true, approvalId: String(selectedApproval.id) } : {}),
+                            });
+                          }}
                           style={{
                             flex: 1,
                             display: 'flex',
@@ -939,7 +945,7 @@ export default function EmployeeApproval() {
                       </div>
                       {selectedApproval.status === 'PENDING' && isHwpFile(selectedApproval.attachmentFileName) && (
                         <Text type="supporting" color="secondary">
-                          연필 버튼으로 첨부 문서를 웹에서 바로 수정할 수 있습니다 (결재 전까지만)
+                          클릭하면 웹에서 바로 수정할 수 있고, 저장(Ctrl+S)하면 결재 문서에 반영됩니다 (결재 전까지만)
                         </Text>
                       )}
                     </VStack>
