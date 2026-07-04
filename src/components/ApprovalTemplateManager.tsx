@@ -1,16 +1,28 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { FormSchema } from '@/types/formSchema';
+import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Card } from '@astryxdesign/core/Card';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Table, TableRow, TableCell, TableHeaderCell } from '@astryxdesign/core/Table';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
-import { FiPlus, FiDownload, FiEdit2, FiTrash2, FiUploadCloud, FiFileText, FiX } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiEdit2, FiTrash2, FiUploadCloud, FiFileText } from 'react-icons/fi';
 
 export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: boolean }) {
   const { showAlert, AlertContainer } = useAlert();
@@ -249,331 +261,269 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     }
   };
 
+  const isUploadDisabled = isUploading || !uploadForm.name.trim() || (templateType !== 'form' && !uploadForm.file && !editingTemplate);
+
   return (
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <div className="space-y-6">
+      <VStack gap={6}>
         {/* 헤더 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">양식 관리</h2>
-            <p className="text-gray-500 text-sm mt-1">전자결재 양식 파일을 관리합니다</p>
-          </div>
+        <HStack hAlign="between" vAlign="center">
+          <VStack gap={1}>
+            <Text as="h2" type="display-3" weight="bold">양식 관리</Text>
+            <Text type="supporting">전자결재 양식 파일을 관리합니다</Text>
+          </VStack>
           {isAdmin && (
-            <button
+            <Button
+              label="새 양식 등록"
+              variant="primary"
+              icon={<Icon icon={FiPlus} size="sm" />}
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm"
-            >
-              <FiPlus className="w-5 h-5" />
-              <span>새 양식 등록</span>
-            </button>
+            />
           )}
-        </div>
+        </HStack>
 
         {/* 템플릿 목록 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <Card padding={0}>
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-200 border-t-teal-500"></div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+              <Spinner size="lg" label="불러오는 중..." />
             </div>
           ) : templates.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">양식명</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">설명</th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">유형</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">파일</th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">상태</th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">수정일</th>
-                    {isAdmin && <th className="text-center px-6 py-4 text-sm font-semibold text-gray-700">액션</th>}
-                  </tr>
+            <div style={{ overflowX: 'auto' }}>
+              <Table hasHover dividers="rows">
+                <thead>
+                  <TableRow isHeaderRow>
+                    <TableHeaderCell>양식명</TableHeaderCell>
+                    <TableHeaderCell>설명</TableHeaderCell>
+                    <TableHeaderCell>유형</TableHeaderCell>
+                    <TableHeaderCell>파일</TableHeaderCell>
+                    <TableHeaderCell>상태</TableHeaderCell>
+                    <TableHeaderCell>수정일</TableHeaderCell>
+                    {isAdmin && <TableHeaderCell>액션</TableHeaderCell>}
+                  </TableRow>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {templates.map((template) => (
-                    <motion.tr
-                      key={template.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <span className="text-gray-900 font-medium">{template.name}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-gray-600 text-sm">{template.description}</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {(template.templateType === 'form') ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-700">온라인 폼</span>
-                        ) : (template.templateType === 'hybrid') ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-600">혼합</span>
-                        ) : (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">파일</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
+                    <TableRow key={template.id}>
+                      <TableCell>
+                        <Text weight="semibold">{template.name}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <Text type="supporting">{template.description}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <HStack hAlign="center">
+                          {template.templateType === 'form' ? (
+                            <Badge variant="teal" label="온라인 폼" />
+                          ) : template.templateType === 'hybrid' ? (
+                            <Badge variant="cyan" label="혼합" />
+                          ) : (
+                            <Badge variant="neutral" label="파일" />
+                          )}
+                        </HStack>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={FiDownload} size="sm" />}
+                          label={`${template.fileName} (${formatFileSize(template.fileSize)})`}
                           onClick={() => handleDownload(template)}
-                          className="flex items-center space-x-2 text-teal-600 hover:text-teal-700 transition-colors"
-                        >
-                          <FiDownload className="w-4 h-4" />
-                          <span className="text-sm">{template.fileName}</span>
-                          <span className="text-gray-400 text-xs">({formatFileSize(template.fileSize)})</span>
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {isAdmin ? (
-                          <button
-                            onClick={() => handleToggleActive(template.id)}
-                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                              template.isActive
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
-                          >
-                            {template.isActive ? '활성화' : '비활성화'}
-                          </button>
-                        ) : (
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            template.isActive
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {template.isActive ? '활성화' : '비활성화'}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-gray-500 text-sm">
-                          {format(new Date(template.updatedAt), 'MM.dd HH:mm', { locale: ko })}
-                        </span>
-                      </td>
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <HStack hAlign="center">
+                          {isAdmin ? (
+                            <Button
+                              variant={template.isActive ? 'secondary' : 'ghost'}
+                              size="sm"
+                              label={template.isActive ? '활성화' : '비활성화'}
+                              onClick={() => handleToggleActive(template.id)}
+                            />
+                          ) : (
+                            <Badge
+                              variant={template.isActive ? 'success' : 'neutral'}
+                              label={template.isActive ? '활성화' : '비활성화'}
+                            />
+                          )}
+                        </HStack>
+                      </TableCell>
+                      <TableCell>
+                        <HStack hAlign="center">
+                          <Text type="supporting">
+                            {format(new Date(template.updatedAt), 'MM.dd HH:mm', { locale: ko })}
+                          </Text>
+                        </HStack>
+                      </TableCell>
                       {isAdmin && (
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-center space-x-2">
-                            <button
+                        <TableCell>
+                          <HStack gap={1} hAlign="center">
+                            <IconButton
+                              variant="ghost"
+                              size="sm"
+                              label="편집"
+                              tooltip="편집"
+                              icon={<Icon icon={FiEdit2} size="sm" />}
                               onClick={() => openEditModal(template)}
-                              className="p-2 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                              title="편집"
-                            >
-                              <FiEdit2 className="w-4 h-4" />
-                            </button>
-                            <button
+                            />
+                            <IconButton
+                              variant="ghost"
+                              size="sm"
+                              label="삭제"
+                              tooltip="삭제"
+                              icon={<Icon icon={FiTrash2} size="sm" />}
                               onClick={() => handleDelete(template.id, template.name)}
-                              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="삭제"
-                            >
-                              <FiTrash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+                            />
+                          </HStack>
+                        </TableCell>
                       )}
-                    </motion.tr>
+                    </TableRow>
                   ))}
                 </tbody>
-              </table>
+              </Table>
             </div>
           ) : (
-            <div className="text-center py-20">
-              <FiFileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg mb-2 text-gray-400">등록된 양식이 없습니다</p>
-              <p className="text-sm text-gray-400">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</p>
+            <div style={{ padding: '80px 24px' }}>
+              <VStack gap={2} hAlign="center">
+                <FiFileText size={48} style={{ color: 'var(--color-icon-tertiary, #cbd5e1)' }} />
+                <Text type="large" color="secondary">등록된 양식이 없습니다</Text>
+                <Text type="supporting">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</Text>
+              </VStack>
             </div>
           )}
-        </div>
-
-      </div>
+        </Card>
+      </VStack>
 
       {/* 업로드 모달 */}
-      <AnimatePresence>
-        {showUploadModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={closeModal}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className={`bg-white rounded-2xl shadow-xl w-full border border-gray-200 ${templateType === 'file' ? 'max-w-md' : 'max-w-4xl'}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-teal-500 to-teal-600 rounded-t-2xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">
-                      {editingTemplate ? '양식 편집' : '새 양식 등록'}
-                    </h2>
-                    <p className="text-teal-100 text-sm mt-1">
-                      {editingTemplate ? '양식 정보를 수정하세요' : '양식 유형을 선택하고 등록하세요'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={closeModal}
-                    className="p-2 text-teal-100 hover:text-white hover:bg-teal-400/30 rounded-lg transition-colors"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+      <Dialog
+        isOpen={showUploadModal}
+        onOpenChange={(open) => { if (!open) closeModal(); }}
+        purpose="form"
+        width={templateType === 'file' ? 440 : 900}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title={editingTemplate ? '양식 편집' : '새 양식 등록'}
+              onOpenChange={(open) => { if (!open) closeModal(); }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={4}>
+                <Text type="supporting">
+                  {editingTemplate ? '양식 정보를 수정하세요' : '양식 유형을 선택하고 등록하세요'}
+                </Text>
 
-              <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
                 {/* 양식 유형 선택 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">양식 유형</label>
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setTemplateType('file')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        templateType === 'file'
-                          ? 'bg-teal-500 text-white border-teal-500'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
-                      }`}
-                    >
-                      파일
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTemplateType('form')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        templateType === 'form'
-                          ? 'bg-teal-500 text-white border-teal-500'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
-                      }`}
-                    >
-                      온라인 폼
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTemplateType('hybrid')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        templateType === 'hybrid'
-                          ? 'bg-teal-500 text-white border-teal-500'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:text-teal-600'
-                      }`}
-                    >
-                      혼합
-                    </button>
-                  </div>
-                </div>
+                <VStack gap={2}>
+                  <Text type="label">양식 유형</Text>
+                  <SegmentedControl
+                    value={templateType}
+                    onChange={(value) => setTemplateType(value as 'file' | 'form' | 'hybrid')}
+                    label="양식 유형"
+                    layout="fill"
+                  >
+                    <SegmentedControlItem value="file" label="파일" />
+                    <SegmentedControlItem value="form" label="온라인 폼" />
+                    <SegmentedControlItem value="hybrid" label="혼합" />
+                  </SegmentedControl>
+                </VStack>
 
                 {/* 양식명 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    양식명 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={uploadForm.name}
-                    onChange={(e) => setUploadForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="양식명을 입력하세요"
-                    className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
+                <TextInput
+                  label="양식명"
+                  isRequired
+                  value={uploadForm.name}
+                  onChange={(value) => setUploadForm(prev => ({ ...prev, name: value }))}
+                  placeholder="양식명을 입력하세요"
+                />
 
                 {/* 설명 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    설명
-                  </label>
-                  <input
-                    type="text"
-                    value={uploadForm.description}
-                    onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="양식 설명을 입력하세요"
-                    className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
+                <TextInput
+                  label="설명"
+                  value={uploadForm.description}
+                  onChange={(value) => setUploadForm(prev => ({ ...prev, description: value }))}
+                  placeholder="양식 설명을 입력하세요"
+                />
 
                 {/* 온라인 폼 빌더 */}
                 {(templateType === 'form' || templateType === 'hybrid') && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      온라인 폼 구성
-                    </label>
+                  <VStack gap={2}>
+                    <Text type="label">온라인 폼 구성</Text>
                     <FormSchemaBuilder
                       initialSchema={formSchema}
                       onSchemaChange={(schema) => setFormSchema(schema)}
                     />
-                  </div>
+                  </VStack>
                 )}
 
                 {/* 파일 업로드 */}
                 {templateType !== 'form' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      양식 파일 {templateType === 'file' && <span className="text-red-500">*</span>}
-                      {templateType === 'hybrid' && <span className="text-gray-400 text-xs ml-1">(선택)</span>}
-                    </label>
+                  <VStack gap={2}>
+                    <Text type="label">
+                      {templateType === 'file' ? '양식 파일 *' : '양식 파일 (선택)'}
+                    </Text>
                     <input
                       ref={fileInputRef}
                       type="file"
                       onChange={handleFileSelect}
                       accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
-                      className="hidden"
+                      style={{ display: 'none' }}
                     />
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full p-6 border-2 border-dashed border-gray-200 rounded-lg text-center cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-all"
+                      style={{
+                        width: '100%',
+                        padding: '24px',
+                        border: '2px dashed var(--color-border, #e2e8f0)',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                      }}
                     >
                       {uploadForm.file ? (
-                        <div className="flex items-center justify-center space-x-3">
-                          <FiFileText className="w-8 h-8 text-teal-500" />
-                          <div className="text-left">
-                            <p className="text-gray-900 font-medium">{uploadForm.file.name}</p>
-                            <p className="text-gray-500 text-sm">{formatFileSize(uploadForm.file.size)}</p>
-                          </div>
-                        </div>
+                        <HStack gap={3} hAlign="center" vAlign="center">
+                          <Icon icon={FiFileText} size="lg" color="accent" />
+                          <VStack gap={0.5}>
+                            <Text weight="semibold">{uploadForm.file.name}</Text>
+                            <Text type="supporting">{formatFileSize(uploadForm.file.size)}</Text>
+                          </VStack>
+                        </HStack>
                       ) : (
-                        <>
-                          <FiUploadCloud className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                          <p className="text-gray-500">클릭하여 파일 선택</p>
-                          <p className="text-gray-500 text-sm mt-1">지원 형식: .hwp, .docx, .pdf, .xlsx</p>
-                        </>
+                        <VStack gap={1} hAlign="center">
+                          <FiUploadCloud size={32} style={{ color: 'var(--color-icon-tertiary, #94a3b8)' }} />
+                          <Text color="secondary">클릭하여 파일 선택</Text>
+                          <Text type="supporting">지원 형식: .hwp, .docx, .pdf, .xlsx</Text>
+                        </VStack>
                       )}
                     </div>
                     {editingTemplate && !uploadForm.file && editingTemplate.fileName && (
-                      <p className="text-gray-500 text-sm mt-2">
-                        현재 파일: {editingTemplate.fileName}
-                      </p>
+                      <Text type="supporting">현재 파일: {editingTemplate.fileName}</Text>
                     )}
-                  </div>
+                  </VStack>
                 )}
-              </div>
-
-              <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex justify-end space-x-3">
-                <button
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  취소
-                </button>
-                <button
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="취소" variant="ghost" onClick={closeModal} />
+                <Button
+                  label={editingTemplate ? '저장' : '등록'}
+                  variant="primary"
                   onClick={handleUpload}
-                  disabled={isUploading || !uploadForm.name.trim() || (templateType !== 'form' && !uploadForm.file && !editingTemplate)}
-                  className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUploading ? (
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    editingTemplate ? '저장' : '등록'
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  isLoading={isUploading}
+                  isDisabled={isUploadDisabled}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
     </>
   );
 }

@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import { FormFieldSchema, FormFieldOption } from '@/types/formSchema';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
+import { Button } from '@astryxdesign/core/Button';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 
 interface FormFieldEditorProps {
   field: FormFieldSchema;
@@ -62,209 +70,189 @@ export default function FormFieldEditor({ field, onChange }: FormFieldEditorProp
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
-        <span className="text-xs font-medium text-white bg-teal-500 px-2 py-0.5 rounded-full">
-          {FIELD_TYPE_LABELS[field.type] ?? field.type}
-        </span>
-        <span className="text-sm font-semibold text-gray-800 truncate">{field.label || '(레이블 없음)'}</span>
+    <VStack gap={4}>
+      {/* 헤더 */}
+      <div style={{ paddingBottom: 12, borderBottom: '1px solid #e5e7eb' }}>
+        <HStack gap={2} vAlign="center">
+          <Badge variant="teal" label={FIELD_TYPE_LABELS[field.type] ?? field.type} />
+          <Text type="body" weight="semibold" maxLines={1}>
+            {field.label || '(레이블 없음)'}
+          </Text>
+        </HStack>
       </div>
 
       {/* 레이블 */}
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          레이블 <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={field.label}
-          onChange={(e) => update({ label: e.target.value })}
-          placeholder="필드 레이블을 입력하세요"
-          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-        />
-      </div>
+      <TextInput
+        label="레이블"
+        isRequired
+        value={field.label}
+        onChange={(value) => update({ label: value })}
+        placeholder="필드 레이블을 입력하세요"
+      />
 
       {/* 설명 */}
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">설명</label>
-        <input
-          type="text"
-          value={field.description ?? ''}
-          onChange={(e) => update({ description: e.target.value })}
-          placeholder="도움말 텍스트 (선택사항)"
-          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-        />
-      </div>
+      <TextInput
+        label="설명"
+        value={field.description ?? ''}
+        onChange={(value) => update({ description: value })}
+        placeholder="도움말 텍스트 (선택사항)"
+      />
 
       {/* 플레이스홀더 */}
       {hasPlaceholder && (
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">플레이스홀더</label>
-          <input
-            type="text"
-            value={field.placeholder ?? ''}
-            onChange={(e) => update({ placeholder: e.target.value })}
-            placeholder="입력 힌트 텍스트"
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-          />
-        </div>
+        <TextInput
+          label="플레이스홀더"
+          value={field.placeholder ?? ''}
+          onChange={(value) => update({ placeholder: value })}
+          placeholder="입력 힌트 텍스트"
+        />
       )}
 
       {/* 너비 */}
       {hasWidth && (
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">너비</label>
-          <div className="flex gap-2">
+        <VStack gap={1.5}>
+          <Text type="supporting" weight="medium">너비</Text>
+          <HStack gap={2}>
             {(['full', 'half'] as const).map((w) => (
-              <button
-                key={w}
-                onClick={() => update({ width: w })}
-                className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
-                  (field.width ?? 'full') === w
-                    ? 'border-teal-500 bg-teal-50 text-teal-700 font-medium'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
-              >
-                {w === 'full' ? '전체 너비' : '반 너비'}
-              </button>
+              <div key={w} style={{ flex: 1 }}>
+                <Button
+                  label={w === 'full' ? '전체 너비' : '반 너비'}
+                  variant={(field.width ?? 'full') === w ? 'primary' : 'secondary'}
+                  onClick={() => update({ width: w })}
+                  style={{ width: '100%' }}
+                />
+              </div>
             ))}
-          </div>
-        </div>
+          </HStack>
+        </VStack>
       )}
 
       {/* 필수 여부 */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-600">필수 입력</span>
-        <button
-          onClick={() => update({ required: !field.required })}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-            field.required ? 'bg-teal-500' : 'bg-gray-300'
-          }`}
-          aria-label="필수 여부 토글"
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-              field.required ? 'translate-x-4' : 'translate-x-1'
-            }`}
-          />
-        </button>
-      </div>
+      <Switch
+        label="필수 입력"
+        labelPosition="start"
+        labelSpacing="spread"
+        value={!!field.required}
+        onChange={(checked) => update({ required: checked })}
+      />
 
       {/* 텍스트 유효성 검사 */}
       {hasTextValidation && (
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-2">글자 수 제한</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">최소</label>
-              <input
-                type="number"
-                value={field.validation?.minLength ?? ''}
-                onChange={(e) =>
-                  updateValidation({ minLength: e.target.value ? Number(e.target.value) : undefined })
+        <VStack gap={2}>
+          <Text type="supporting" weight="medium">글자 수 제한</Text>
+          <HStack gap={2}>
+            <div style={{ flex: 1 }}>
+              <NumberInput
+                label="최소"
+                value={field.validation?.minLength}
+                onChange={(value) =>
+                  updateValidation({ minLength: value ?? undefined })
                 }
                 placeholder="0"
                 min={0}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                hasClear
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">최대</label>
-              <input
-                type="number"
-                value={field.validation?.maxLength ?? ''}
-                onChange={(e) =>
-                  updateValidation({ maxLength: e.target.value ? Number(e.target.value) : undefined })
+            <div style={{ flex: 1 }}>
+              <NumberInput
+                label="최대"
+                value={field.validation?.maxLength}
+                onChange={(value) =>
+                  updateValidation({ maxLength: value ?? undefined })
                 }
                 placeholder="제한 없음"
                 min={0}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                hasClear
               />
             </div>
-          </div>
-        </div>
+          </HStack>
+        </VStack>
       )}
 
       {/* 숫자 유효성 검사 */}
       {hasNumberValidation && (
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-2">숫자 범위</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">최솟값</label>
-              <input
-                type="number"
-                value={field.validation?.min ?? ''}
-                onChange={(e) =>
-                  updateValidation({ min: e.target.value !== '' ? Number(e.target.value) : undefined })
+        <VStack gap={2}>
+          <Text type="supporting" weight="medium">숫자 범위</Text>
+          <HStack gap={2}>
+            <div style={{ flex: 1 }}>
+              <NumberInput
+                label="최솟값"
+                value={field.validation?.min}
+                onChange={(value) =>
+                  updateValidation({ min: value ?? undefined })
                 }
                 placeholder="제한 없음"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                hasClear
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">최댓값</label>
-              <input
-                type="number"
-                value={field.validation?.max ?? ''}
-                onChange={(e) =>
-                  updateValidation({ max: e.target.value !== '' ? Number(e.target.value) : undefined })
+            <div style={{ flex: 1 }}>
+              <NumberInput
+                label="최댓값"
+                value={field.validation?.max}
+                onChange={(value) =>
+                  updateValidation({ max: value ?? undefined })
                 }
                 placeholder="제한 없음"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                hasClear
               />
             </div>
-          </div>
-        </div>
+          </HStack>
+        </VStack>
       )}
 
       {/* 옵션 편집 */}
       {hasOptions && (
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-2">선택지</label>
-          <div className="space-y-1.5 mb-2">
+        <VStack gap={2}>
+          <Text type="supporting" weight="medium">선택지</Text>
+          <VStack gap={1.5}>
             {(field.options ?? []).map((opt, index) => (
-              <div key={opt.value} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={opt.label}
-                  onChange={(e) => updateOption(index, e.target.value)}
-                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-                />
-                <button
+              <HStack key={opt.value} gap={2} vAlign="center">
+                <div style={{ flex: 1 }}>
+                  <TextInput
+                    label="선택지"
+                    isLabelHidden
+                    value={opt.label}
+                    onChange={(value) => updateOption(index, value)}
+                  />
+                </div>
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  label="옵션 삭제"
+                  icon={<Icon icon={IconTrash} size="sm" color="error" />}
                   onClick={() => removeOption(index)}
-                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  aria-label="옵션 삭제"
-                >
-                  <IconTrash size={14} stroke={1.5} />
-                </button>
-              </div>
+                />
+              </HStack>
             ))}
+          </VStack>
+          <div
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addOption();
+              }
+            }}
+          >
+            <HStack gap={2} vAlign="end">
+              <div style={{ flex: 1 }}>
+                <TextInput
+                  label="새 선택지"
+                  isLabelHidden
+                  value={newOptionLabel}
+                  onChange={(value) => setNewOptionLabel(value)}
+                  placeholder="새 선택지 입력"
+                />
+              </div>
+              <Button
+                label="추가"
+                variant="primary"
+                icon={<IconPlus size={16} stroke={1.5} />}
+                onClick={addOption}
+              />
+            </HStack>
           </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newOptionLabel}
-              onChange={(e) => setNewOptionLabel(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addOption();
-                }
-              }}
-              placeholder="새 선택지 입력"
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-            />
-            <button
-              onClick={addOption}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
-            >
-              <IconPlus size={14} stroke={1.5} />
-              추가
-            </button>
-          </div>
-        </div>
+        </VStack>
       )}
-    </div>
+    </VStack>
   );
 }

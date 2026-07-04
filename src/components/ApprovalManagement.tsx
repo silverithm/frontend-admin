@@ -4,7 +4,25 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle } from 'react-icons/fi';
+import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Badge } from '@astryxdesign/core/Badge';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, cancelApprovalRequest } from '@/lib/apiService';
 import { useConfirm } from './ConfirmDialog';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
@@ -202,16 +220,21 @@ export default function ApprovalManagement() {
     }
   };
 
-  const getStatusStyle = (status: ApprovalStatus) => {
+  const getStatusVariant = (status: ApprovalStatus): 'success' | 'warning' | 'error' | 'neutral' => {
     switch (status) {
-      case 'APPROVED':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-700 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'APPROVED': return 'success';
+      case 'PENDING': return 'warning';
+      case 'REJECTED': return 'error';
+      default: return 'neutral';
+    }
+  };
+
+  const getStatusAvatar = (status: ApprovalStatus): { bg: string; color: 'success' | 'warning' | 'error' | 'secondary' } => {
+    switch (status) {
+      case 'APPROVED': return { bg: '#dcfce7', color: 'success' };
+      case 'PENDING': return { bg: '#fef9c3', color: 'warning' };
+      case 'REJECTED': return { bg: '#fee2e2', color: 'error' };
+      default: return { bg: '#f3f4f6', color: 'secondary' };
     }
   };
 
@@ -228,9 +251,8 @@ export default function ApprovalManagement() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col justify-center items-center h-64">
-        <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin mb-3"></div>
-        <p className="text-sm text-gray-500">결재 목록을 불러오는 중...</p>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 256 }}>
+        <Spinner label="결재 목록을 불러오는 중..." />
       </div>
     );
   }
@@ -239,253 +261,225 @@ export default function ApprovalManagement() {
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <div>
+      <VStack gap={5}>
         {/* 헤더 */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">전자결재 관리</h2>
-            <p className="text-xs text-gray-400 mt-1">직원들의 결재 요청을 처리합니다</p>
-          </div>
-          <button
+        <HStack hAlign="between" vAlign="center">
+          <VStack gap={1}>
+            <Heading level={2}>전자결재 관리</Heading>
+            <Text type="supporting" color="secondary">직원들의 결재 요청을 처리합니다</Text>
+          </VStack>
+          <IconButton
+            label="새로고침"
+            tooltip="새로고침"
+            variant="ghost"
+            icon={<Icon icon={FiRefreshCw} />}
+            isLoading={isProcessing}
+            isDisabled={isProcessing}
             onClick={loadApprovals}
-            className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-            disabled={isProcessing}
-          >
-            <FiRefreshCw className={isProcessing ? 'animate-spin' : ''} size={18} />
-          </button>
-        </div>
+          />
+        </HStack>
 
         {/* 탭 네비게이션 */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="border-b border-gray-200">
-          <nav className="flex">
-            {[
-              { key: 'all', label: '전체', count: stats.all },
-              { key: 'pending', label: '진행중', count: stats.pending },
-              { key: 'approved', label: '승인됨', count: stats.approved },
-              { key: 'rejected', label: '반려됨', count: stats.rejected },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as TabType)}
-                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.key
-                    ? 'border-teal-500 text-teal-600 bg-teal-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {tab.label}
-                <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                  activeTab === tab.key
-                    ? 'bg-teal-100 text-teal-600'
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </nav>
-        </div>
+        <SegmentedControl
+          value={activeTab}
+          onChange={(value) => setActiveTab(value as TabType)}
+          label="결재 상태 탭"
+          layout="fill"
+        >
+          <SegmentedControlItem value="all" label={`전체 (${stats.all})`} />
+          <SegmentedControlItem value="pending" label={`진행중 (${stats.pending})`} />
+          <SegmentedControlItem value="approved" label={`승인됨 (${stats.approved})`} />
+          <SegmentedControlItem value="rejected" label={`반려됨 (${stats.rejected})`} />
+        </SegmentedControl>
 
         {/* 필터 영역 */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* 기간 필터 */}
-            <div className="flex items-center gap-2">
-              <FiCalendar className="text-gray-400 flex-shrink-0" size={16} />
-              <input
-                type="date"
-                value={dateFilter.startDate}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-                className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900 bg-white"
+        <Card variant="muted" padding={3}>
+          <HStack gap={3} vAlign="end" hAlign="between">
+            <HStack gap={2} vAlign="end">
+              <DateInput
+                label="시작일"
+                value={dateFilter.startDate as ISODateString}
+                onChange={(value) => setDateFilter(prev => ({ ...prev, startDate: value || '' }))}
               />
-              <span className="text-gray-400 text-sm">~</span>
-              <input
-                type="date"
-                value={dateFilter.endDate}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-                className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900 bg-white"
+              <DateInput
+                label="종료일"
+                value={dateFilter.endDate as ISODateString}
+                onChange={(value) => setDateFilter(prev => ({ ...prev, endDate: value || '' }))}
               />
-            </div>
-
-            {/* 검색 */}
-            <div className="flex-1 relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
+            </HStack>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <TextInput
+                label="검색"
+                isLabelHidden
+                startIcon={FiSearch}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(value) => setSearchQuery(value)}
                 placeholder="제목, 기안자 검색"
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
-          </div>
-        </div>
+          </HStack>
+        </Card>
 
         {/* 일괄 액션 */}
         {selectedIds.size > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-teal-50 border-b border-teal-200"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-teal-700 font-medium">
-                {selectedIds.size}건 선택됨
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleBulkApprove}
-                  disabled={isProcessing}
-                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
-                >
-                  <FiCheck className="mr-1.5" size={16} />
-                  일괄 승인
-                </button>
-                <button
-                  onClick={() => setShowBulkRejectModal(true)}
-                  disabled={isProcessing}
-                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
-                >
-                  <FiX className="mr-1.5" size={16} />
-                  일괄 반려
-                </button>
-              </div>
-            </div>
+            <Card variant="teal" padding={3}>
+              <HStack hAlign="between" vAlign="center">
+                <Text weight="medium" color="accent">
+                  {selectedIds.size}건 선택됨
+                </Text>
+                <HStack gap={2}>
+                  <Button
+                    label="일괄 승인"
+                    variant="primary"
+                    size="sm"
+                    icon={<Icon icon={FiCheck} />}
+                    isDisabled={isProcessing}
+                    onClick={handleBulkApprove}
+                  />
+                  <Button
+                    label="일괄 반려"
+                    variant="destructive"
+                    size="sm"
+                    icon={<Icon icon={FiX} />}
+                    isDisabled={isProcessing}
+                    onClick={() => setShowBulkRejectModal(true)}
+                  />
+                </HStack>
+              </HStack>
+            </Card>
           </motion.div>
         )}
 
         {/* 결재 목록 */}
-        <div className="p-5">
-          {approvals.length > 0 ? (
-            <div className="space-y-3">
-              {/* 전체 선택 체크박스 (진행중 탭에서만) */}
-              {activeTab === 'pending' && pendingApprovals.length > 0 && (
-                <div className="flex items-center pb-3 border-b border-gray-200">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pendingApprovals.length > 0 && selectedIds.size === pendingApprovals.length}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 text-teal-600 bg-white border-gray-300 rounded focus:ring-teal-500 accent-teal-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-500">전체 선택</span>
-                  </label>
-                </div>
-              )}
+        {approvals.length > 0 ? (
+          <VStack gap={3}>
+            {/* 전체 선택 체크박스 (진행중 탭에서만) */}
+            {activeTab === 'pending' && pendingApprovals.length > 0 && (
+              <HStack vAlign="center">
+                <CheckboxInput
+                  label="전체 선택"
+                  value={pendingApprovals.length > 0 && selectedIds.size === pendingApprovals.length}
+                  onChange={handleSelectAll}
+                />
+              </HStack>
+            )}
 
-              {/* 결재 카드 리스트 */}
-              {approvals.map((approval) => (
+            {/* 결재 카드 리스트 */}
+            {approvals.map((approval) => {
+              const avatar = getStatusAvatar(approval.status);
+              return (
                 <motion.div
                   key={approval.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start space-x-4">
-                      {approval.status === 'PENDING' && (
-                        <div className="flex-shrink-0 pt-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(approval.id)}
-                            onChange={() => handleSelectOne(approval.id)}
-                            className="w-4 h-4 text-teal-600 bg-white border-gray-300 rounded focus:ring-teal-500 accent-teal-500"
-                          />
-                        </div>
-                      )}
-                      <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          approval.status === 'APPROVED' ? 'bg-green-100' :
-                          approval.status === 'PENDING' ? 'bg-yellow-100' :
-                          'bg-red-100'
-                        }`}>
-                          <FiFileText className={
-                            approval.status === 'APPROVED' ? 'text-green-700' :
-                            approval.status === 'PENDING' ? 'text-yellow-700' :
-                            'text-red-700'
-                          } size={20} />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <h3 className="text-sm font-bold text-gray-900">{approval.title}</h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusStyle(approval.status)}`}>
-                            {getStatusText(approval.status)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500 space-y-1">
-                          <div className="flex items-center">
-                            <FiUser className="mr-1.5 text-gray-400" size={13} />
-                            {approval.requesterName}
+                  <Card>
+                    <HStack hAlign="between" vAlign="center" gap={4}>
+                      <HStack gap={3} vAlign="start">
+                        {approval.status === 'PENDING' && (
+                          <div style={{ paddingTop: 4, flexShrink: 0 }}>
+                            <CheckboxInput
+                              label="선택"
+                              isLabelHidden
+                              value={selectedIds.has(approval.id)}
+                              onChange={() => handleSelectOne(approval.id)}
+                            />
                           </div>
-                          <div className="flex items-center">
-                            <FiFileText className="mr-1.5 text-gray-400" size={13} />
-                            {approval.templateName}
-                          </div>
-                          <div className="flex items-center">
-                            <FiCalendar className="mr-1.5 text-gray-400" size={13} />
-                            {format(new Date(approval.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
-                          </div>
+                        )}
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            background: avatar.bg,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Icon icon={FiFileText} color={avatar.color} />
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenDetail(approval)}
-                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
-                      >
-                        <FiEye className="mr-1.5" size={16} />
-                        상세보기
-                      </button>
-                      {approval.status === 'PENDING' && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(approval.id)}
-                            disabled={isProcessing}
-                            className="flex items-center px-3 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
-                          >
-                            <FiCheck className="mr-1.5" size={16} />
-                            승인
-                          </button>
-                          <button
-                            onClick={() => handleOpenDetail(approval)}
-                            disabled={isProcessing}
-                            className="flex items-center px-3 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
-                          >
-                            <FiX className="mr-1.5" size={16} />
-                            반려
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleDelete(approval.id)}
-                        disabled={isProcessing}
-                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus:outline-none disabled:opacity-50 transition-colors"
-                        title="삭제"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+                        <VStack gap={1}>
+                          <HStack gap={2} vAlign="center">
+                            <Text weight="bold" color="primary">{approval.title}</Text>
+                            <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                          </HStack>
+                          <VStack gap={0.5}>
+                            <HStack gap={1} vAlign="center">
+                              <Icon icon={FiUser} size="sm" color="tertiary" />
+                              <Text type="supporting" color="secondary">{approval.requesterName}</Text>
+                            </HStack>
+                            <HStack gap={1} vAlign="center">
+                              <Icon icon={FiFileText} size="sm" color="tertiary" />
+                              <Text type="supporting" color="secondary">{approval.templateName}</Text>
+                            </HStack>
+                            <HStack gap={1} vAlign="center">
+                              <Icon icon={FiCalendar} size="sm" color="tertiary" />
+                              <Text type="supporting" color="secondary">
+                                {format(new Date(approval.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
+                              </Text>
+                            </HStack>
+                          </VStack>
+                        </VStack>
+                      </HStack>
+                      <HStack gap={2} vAlign="center">
+                        <Button
+                          label="상세보기"
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={FiEye} />}
+                          onClick={() => handleOpenDetail(approval)}
+                        />
+                        {approval.status === 'PENDING' && (
+                          <>
+                            <Button
+                              label="승인"
+                              variant="primary"
+                              size="sm"
+                              icon={<Icon icon={FiCheck} />}
+                              isDisabled={isProcessing}
+                              onClick={() => handleApprove(approval.id)}
+                            />
+                            <Button
+                              label="반려"
+                              variant="destructive"
+                              size="sm"
+                              icon={<Icon icon={FiX} />}
+                              isDisabled={isProcessing}
+                              onClick={() => handleOpenDetail(approval)}
+                            />
+                          </>
+                        )}
+                        <IconButton
+                          label="삭제"
+                          tooltip="삭제"
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={FiTrash2} />}
+                          isDisabled={isProcessing}
+                          onClick={() => handleDelete(approval.id)}
+                        />
+                      </HStack>
+                    </HStack>
+                  </Card>
                 </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <FiFileText className="text-gray-400" size={28} />
-              </div>
-              <h3 className="text-sm font-bold text-gray-900 mb-1">결재 요청이 없습니다</h3>
-              <p className="text-xs text-gray-400">조건에 맞는 결재 요청이 없습니다.</p>
-            </div>
-          )}
-        </div>
-      </div>
-      </div>{/* end card wrapper */}
+              );
+            })}
+          </VStack>
+        ) : (
+          <EmptyState
+            icon={<Icon icon={FiFileText} size="lg" />}
+            title="결재 요청이 없습니다"
+            description="조건에 맞는 결재 요청이 없습니다."
+          />
+        )}
+      </VStack>
 
       {/* 결재 상세 모달 */}
       <AnimatePresence>
@@ -502,79 +496,61 @@ export default function ApprovalManagement() {
       </AnimatePresence>
 
       {/* 일괄 반려 모달 */}
-      <AnimatePresence>
-        {showBulkRejectModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowBulkRejectModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-start mb-5">
-                <div className="bg-red-100 p-2.5 rounded-xl mr-3 flex-shrink-0">
-                  <FiAlertCircle size={20} className="text-red-700" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1">일괄 반려</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    {selectedIds.size}건의 결재를 반려합니다.<br />
-                    반려 사유를 입력해주세요.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-5">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  반려 사유 <span className="text-red-500">*</span>
-                </label>
-                <textarea
+      <Dialog
+        isOpen={showBulkRejectModal}
+        onOpenChange={(open) => { if (!open) { setShowBulkRejectModal(false); setRejectReason(''); } }}
+        purpose="required"
+        width={440}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title="일괄 반려"
+              onOpenChange={(open) => { if (!open) { setShowBulkRejectModal(false); setRejectReason(''); } }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={4}>
+                <HStack gap={3} vAlign="start">
+                  <Icon icon={FiAlertCircle} color="error" size="lg" />
+                  <Text type="supporting" color="secondary">
+                    {selectedIds.size}건의 결재를 반려합니다. 반려 사유를 입력해주세요.
+                  </Text>
+                </HStack>
+                <TextArea
+                  label="반려 사유"
+                  isRequired
                   value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                  onChange={(value) => setRejectReason(value)}
                   placeholder="반려 사유를 입력해주세요"
                   rows={4}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none text-sm text-gray-900 placeholder-gray-400"
                 />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button
+                  label="취소"
+                  variant="ghost"
+                  isDisabled={isProcessing}
                   onClick={() => { setShowBulkRejectModal(false); setRejectReason(''); }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
-                  disabled={isProcessing}
-                >
-                  취소
-                </button>
-                <button
+                />
+                <Button
+                  label="반려하기"
+                  variant="destructive"
+                  icon={<Icon icon={FiX} />}
+                  isLoading={isProcessing}
+                  isDisabled={isProcessing}
                   onClick={handleBulkReject}
-                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-red-200 border-t-white rounded-full animate-spin mr-2"></div>
-                      처리중...
-                    </>
-                  ) : (
-                    <>
-                      <FiX className="mr-1.5" size={16} />
-                      반려하기
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
     </>
   );
 }
