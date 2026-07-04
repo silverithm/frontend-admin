@@ -487,7 +487,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       <Card width="100%" padding={0}>
         <VStack gap={0}>
           {/* 탭 네비게이션 */}
-          <div style={{ padding: 'var(--spacing-4)', overflowX: 'auto' }}>
+          <HStack style={{ padding: 'var(--spacing-4)', overflowX: 'auto' }}>
             <SegmentedControl
               value={activeTab}
               onChange={(v) => setActiveTab(v as 'pending' | 'members' | 'roles' | 'seniors')}
@@ -498,14 +498,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
               {isAdmin && <SegmentedControlItem value="roles" label="역할 관리" icon={<Icon icon={FiBriefcase} size="sm" />} />}
               <SegmentedControlItem value="seniors" label={`어르신 관리 (${seniors.length})`} icon={<Icon icon={FiHeart} size="sm" />} />
             </SegmentedControl>
-          </div>
+          </HStack>
 
           <Divider />
 
           {/* 검색 및 필터 */}
           {activeTab !== 'roles' && (
             <>
-              <div style={{ padding: 'var(--spacing-4)' }}>
+              <VStack style={{ padding: 'var(--spacing-4)' }}>
                 {activeTab === 'seniors' ? (
                   <HStack gap={2} vAlign="end">
                     <StackItem size="fill">
@@ -570,13 +570,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     )}
                   </HStack>
                 )}
-              </div>
+              </VStack>
               <Divider />
             </>
           )}
 
           {/* 컨텐츠 영역 */}
-          <div style={{ padding: 'var(--spacing-6)' }}>
+          <VStack style={{ padding: 'var(--spacing-6)' }}>
             <AnimatePresence mode="wait">
               {activeTab === 'seniors' ? (
                 <motion.div
@@ -611,7 +611,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           header: '어르신',
                           renderCell: (s) => (
                             <HStack gap={2} vAlign="center">
-                              <Icon icon={FiHeart} size="sm" color="accent" />
+                              <Icon icon={FiHeart} size="sm" color="secondary" />
                               <Text weight="semibold">{s.name}</Text>
                               {s.requiredFrontSeat && <Badge variant="orange" label="앞좌석 필요" />}
                             </HStack>
@@ -834,7 +834,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </VStack>
         </VStack>
       </Card>
 

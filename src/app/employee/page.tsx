@@ -20,9 +20,23 @@ import DispatchManagement from '@/components/DispatchManagement';
 import Image from 'next/image';
 import type { Permission } from '@/types/auth';
 import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { Banner } from '@astryxdesign/core/Banner';
+import { Icon } from '@astryxdesign/core/Icon';
+import type { IconType } from '@astryxdesign/core/Icon';
+import {
+  IconLayoutDashboard,
+  IconBell,
+  IconMessageDots,
+  IconCalendar,
+  IconCalendarStats,
+  IconFileText,
+  IconUsers,
+  IconLogout,
+  IconUser,
+} from '@tabler/icons-react';
 
 type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members';
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
@@ -111,18 +125,18 @@ export default function EmployeePage() {
     );
   }
 
-  const TABS: { key: string; label: string; icon: string }[] = [
-    { key: 'dashboard', label: '대시보드', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
-    { key: 'notice', label: '공지사항', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-    { key: 'chat', label: '채팅', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
-    { key: 'schedule', label: '월간일정', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-    { key: 'approval', label: '전자결재', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { key: 'work', label: '근무조정', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+  const TABS = ([
+    { key: 'dashboard', label: '대시보드', icon: IconLayoutDashboard },
+    { key: 'notice', label: '공지사항', icon: IconBell },
+    { key: 'chat', label: '채팅', icon: IconMessageDots },
+    { key: 'schedule', label: '월간일정', icon: IconCalendar },
+    { key: 'approval', label: '전자결재', icon: IconFileText },
+    { key: 'work', label: '근무조정', icon: IconCalendarStats },
     // 권한이 있는 경우에만 회원관리 탭 표시
     ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
-      { key: 'members', label: '회원관리', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+      { key: 'members', label: '회원관리', icon: IconUsers },
     ] : []),
-  ];
+  ] as { key: string; label: string; icon: IconType }[]);
 
   return (
     <>
@@ -144,22 +158,14 @@ export default function EmployeePage() {
             <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
             {TABS.map((tab) => (
               <div key={tab.key}>
-                <button
+                <Button
+                  label={tab.label}
+                  variant={activeMainTab === tab.key ? 'secondary' : 'ghost'}
+                  size="md"
                   onClick={() => setActiveMainTab(tab.key as MainTab)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)',
-                    padding: '10px 12px', fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-inner)',
-                    transition: 'colors var(--duration-fast-min) var(--ease-standard)', border: 'none', cursor: 'pointer',
-                    background: activeMainTab === tab.key ? 'var(--color-background-teal)' : 'transparent',
-                    color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
-                    boxShadow: activeMainTab === tab.key ? '0 1px 2px rgba(0,0,0,0.05)' : undefined,
-                  }}
-                >
-                  <svg style={{ width: 18, height: 18, flexShrink: 0, color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={tab.icon} />
-                  </svg>
-                  {tab.label}
-                </button>
+                  icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? 'accent' : 'primary'} />}
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                />
               </div>
             ))}
           </nav>
@@ -168,21 +174,21 @@ export default function EmployeePage() {
           <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flexShrink: 0 }}>
             <div style={{ padding: '8px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-                <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #2dd4bf, #0d9488)', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg style={{ width: 14, height: 14, color: '#ffffff' }} fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                </div>
+                <Icon icon={IconUser} size="sm" color="secondary" />
                 <div style={{ minWidth: 0 }}>
                   <Text as="p" type="supporting" weight="medium" color="primary" maxLines={1}>{userName}</Text>
                   <Text as="p" type="supporting" color="secondary">직원</Text>
                 </div>
               </div>
             </div>
-            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors var(--duration-fast-min) var(--ease-standard)' }}>
-              <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              로그아웃
-            </button>
+            <Button
+              label="로그아웃"
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              icon={<Icon icon={IconLogout} size="sm" color="secondary" />}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            />
           </div>
         </aside>
 
@@ -197,26 +203,26 @@ export default function EmployeePage() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-              <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 'var(--spacing-1-5)', color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              </button>
+              <IconButton
+                label="로그아웃"
+                variant="ghost"
+                size="sm"
+                tooltip="로그아웃"
+                onClick={handleLogout}
+                icon={<Icon icon={IconLogout} size="sm" color="secondary" />}
+              />
             </div>
           </div>
           <nav className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', padding: '0 8px', marginBottom: -1 }}>
             {TABS.map((tab) => (
-              <button
+              <Button
                 key={tab.key}
+                label={tab.label}
+                variant={activeMainTab === tab.key ? 'secondary' : 'ghost'}
+                size="sm"
                 onClick={() => setActiveMainTab(tab.key as MainTab)}
-                style={{
-                  padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap',
-                  borderBottom: '2px solid', transition: 'colors var(--duration-fast-min) var(--ease-standard)',
-                  background: 'transparent', cursor: 'pointer',
-                  color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
-                  borderBottomColor: activeMainTab === tab.key ? 'var(--color-border-teal)' : 'transparent',
-                }}
-              >
-                {tab.label}
-              </button>
+                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+              />
             ))}
           </nav>
         </header>
@@ -302,13 +308,13 @@ export default function EmployeePage() {
                     <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
                       <Button
                         label="일정"
-                        variant={scheduleSubTab === 'schedule' ? 'primary' : 'secondary'}
+                        variant={scheduleSubTab === 'schedule' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setScheduleSubTab('schedule')}
                       />
                       <Button
                         label="배차관리"
-                        variant={scheduleSubTab === 'dispatch' ? 'primary' : 'secondary'}
+                        variant={scheduleSubTab === 'dispatch' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setScheduleSubTab('dispatch')}
                       />
@@ -334,14 +340,14 @@ export default function EmployeePage() {
                     <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
                       <Button
                         label="결재 신청"
-                        variant={approvalSubTab === 'submit' ? 'primary' : 'secondary'}
+                        variant={approvalSubTab === 'submit' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setApprovalSubTab('submit')}
                       />
                       {hasPermission('APPROVAL_MANAGE') && (
                         <Button
                           label="결재 관리"
-                          variant={approvalSubTab === 'management' ? 'primary' : 'secondary'}
+                          variant={approvalSubTab === 'management' ? 'secondary' : 'ghost'}
                           size="sm"
                           onClick={() => setApprovalSubTab('management')}
                         />
@@ -349,7 +355,7 @@ export default function EmployeePage() {
                       {hasPermission('APPROVAL_TEMPLATE') && (
                         <Button
                           label="양식 관리"
-                          variant={approvalSubTab === 'templates' ? 'primary' : 'secondary'}
+                          variant={approvalSubTab === 'templates' ? 'secondary' : 'ghost'}
                           size="sm"
                           onClick={() => setApprovalSubTab('templates')}
                         />

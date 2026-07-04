@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiPlus, FiFileText, FiEye, FiDownload, FiChevronRight, FiEdit3, FiUploadCloud, FiCheck } from 'react-icons/fi';
+import { FiPlus, FiFileText, FiEye, FiDownload, FiChevronRight, FiEdit3 } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -16,6 +16,9 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Center } from '@astryxdesign/core/Center';
+import { ClickableCard } from '@astryxdesign/core/ClickableCard';
+import { FileInput } from '@astryxdesign/core/FileInput';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -51,15 +54,16 @@ export default function EmployeeApproval() {
   });
   const [formData, setFormData] = useState<Record<string, any> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부,
-  // templateId가 있으면 저장 시 해당 양식으로 새 기안 작성 모달을 자동으로 연다
+  // templateId가 있으면 저장 시 해당 양식으로 새 기안 작성 모달을 자동으로 열고,
+  // approvalId가 있으면 진행중 기안의 첨부파일을 서버에 바로 교체한다
   const [viewer, setViewer] = useState<{
     fileUrl: string;
     fileName: string;
     authoring?: boolean;
     templateId?: string;
+    approvalId?: string;
   } | null>(null);
 
   const [userId, setUserId] = useState('');
@@ -233,9 +237,45 @@ export default function EmployeeApproval() {
   // HWP/HWPX 파일 여부 (웹에서 바로 작성 가능한 형식)
   const isHwpFile = (name?: string) => !!name && /\.hwpx?$/i.test(name);
 
+  // 진행중 기안의 첨부파일을 서버에 교체 (업로드 → 교체 API)
+  const replaceApprovalAttachment = async (approvalId: string, file: File) => {
+    const uploaded = await uploadFileToServer(file);
+    if (!uploaded) throw new Error('파일 업로드 실패');
+    await updateApprovalAttachment(approvalId, userId, {
+      attachmentUrl: uploaded.filePath,
+      attachmentFileName: uploaded.fileName,
+      attachmentFileSize: uploaded.fileSize,
+    });
+    return uploaded;
+  };
+
   // 웹 에디터에서 작성 완료한 문서를 첨부파일로 등록
   // (양식 탭에서 열었다면 해당 양식으로 새 기안 작성 모달을 자동으로 연다)
-  const handleEditorSave = (file: File) => {
+  const handleEditorSave = async (file: File) => {
+    // 진행중 기안 첨부 수정 모드: 서버에 바로 반영
+    if (viewer?.approvalId) {
+      const approvalId = viewer.approvalId;
+      try {
+        await replaceApprovalAttachment(approvalId, file);
+        setViewer(null);
+        setSelectedApproval(null);
+        loadApprovals();
+        showAlert({
+          type: 'success',
+          title: '첨부파일 수정 완료',
+          message: `수정한 문서(${file.name})가 결재 요청에 반영되었습니다.`,
+        });
+      } catch (error) {
+        console.error('첨부파일 수정 실패:', error);
+        showAlert({
+          type: 'error',
+          title: '수정 실패',
+          message: error instanceof Error ? error.message : '첨부파일 수정에 실패했습니다.',
+        });
+      }
+      return;
+    }
+
     const templateId = viewer?.templateId;
     setApprovalForm(prev => ({
       ...prev,
@@ -259,22 +299,22 @@ export default function EmployeeApproval() {
     }
   };
 
-  // Ctrl+S/자동 저장: 첨부 파일만 조용히 갱신 (모달 전환/알림 없음)
+  // Ctrl+S/자동 저장: 조용히 갱신 (모달 전환/알림 없음)
   const handleEditorAutoSave = (file: File) => {
+    // 진행중 기안 첨부 수정 모드: 서버에 조용히 반영 (실패해도 닫을 때 재시도됨)
+    if (viewer?.approvalId) {
+      replaceApprovalAttachment(viewer.approvalId, file)
+        .then(() => loadApprovals())
+        .catch((error) => console.warn('첨부 자동 저장 실패 (닫을 때 재시도):', error));
+      return;
+    }
+
     const templateId = viewer?.templateId;
     setApprovalForm(prev => ({
       ...prev,
       ...(templateId ? { templateId } : {}),
       file,
     }));
-  };
-
-  // 파일 선택 핸들러
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setApprovalForm(prev => ({ ...prev, file }));
-    }
   };
 
   // 파일 업로드 API 호출
@@ -473,43 +513,16 @@ export default function EmployeeApproval() {
   const isWideModal = selectedTemplateInfo?.templateType === 'form' || selectedTemplateInfo?.templateType === 'hybrid';
 
   // 파일 첨부 드롭존 (공용 렌더)
-  const renderFileDropzone = () => (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileSelect}
-        accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
-        style={{ display: 'none' }}
-      />
-      <div
-        onClick={() => fileInputRef.current?.click()}
-        style={{
-          width: '100%',
-          padding: 'var(--spacing-6)',
-          border: '2px dashed var(--color-border-emphasized)',
-          borderRadius: 'var(--radius-element)',
-          textAlign: 'center',
-          cursor: 'pointer',
-        }}
-      >
-        {approvalForm.file ? (
-          <HStack gap={3} hAlign="center" vAlign="center">
-            <Icon icon={FiFileText} color="accent" size="lg" />
-            <VStack gap={0.5}>
-              <Text weight="medium" color="primary">{approvalForm.file.name}</Text>
-              <Text type="supporting" color="secondary">{formatFileSize(approvalForm.file.size)}</Text>
-            </VStack>
-          </HStack>
-        ) : (
-          <VStack gap={1} hAlign="center" vAlign="center">
-            <Icon icon={FiUploadCloud} size="lg" color="tertiary" />
-            <Text color="secondary">클릭하여 작성한 파일 첨부</Text>
-            <Text type="supporting" color="disabled">.hwp, .docx, .pdf 등</Text>
-          </VStack>
-        )}
-      </div>
-    </>
+  const renderFileDropzone = (label: string = '작성한 양식 첨부') => (
+    <FileInput
+      label={label}
+      isRequired
+      mode="dropzone"
+      value={approvalForm.file}
+      onChange={(file) => setApprovalForm(prev => ({ ...prev, file: file as File | null }))}
+      accept=".hwp,.hwpx,.doc,.docx,.pdf,.xls,.xlsx"
+      placeholder="클릭하여 작성한 파일 첨부 (.hwp, .docx, .pdf 등)"
+    />
   );
 
   return (
@@ -550,20 +563,7 @@ export default function EmployeeApproval() {
                 <Card key={template.id}>
                   <HStack hAlign="between" vAlign="center" gap={4}>
                     <HStack gap={4} vAlign="start">
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 'var(--radius-element)',
-                          background: 'var(--color-background-teal)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon icon={FiFileText} color="accent" />
-                      </div>
+                      <Icon icon={FiFileText} color="secondary" size="lg" />
                       <VStack gap={1}>
                         <HStack gap={2} vAlign="center">
                           <Text weight="semibold" color="primary">{template.name}</Text>
@@ -639,9 +639,9 @@ export default function EmployeeApproval() {
 
             {/* 결재 목록 */}
             {isLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 256 }}>
+              <Center height={256}>
                 <Spinner label="결재 목록을 불러오는 중..." />
-              </div>
+              </Center>
             ) : filteredApprovals.length > 0 ? (
               <VStack gap={3}>
                 {filteredApprovals.map((approval) => (
@@ -651,23 +651,21 @@ export default function EmployeeApproval() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div style={{ cursor: 'pointer' }} onClick={() => setSelectedApproval(approval)}>
-                      <Card>
-                        <HStack hAlign="between" vAlign="center" gap={4}>
-                          <VStack gap={1}>
-                            <HStack gap={2} vAlign="center">
-                              <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
-                              <Text type="supporting" color="disabled">{approval.templateName}</Text>
-                            </HStack>
-                            <Text weight="semibold" color="primary">{approval.title}</Text>
-                            <Text type="supporting" color="secondary">
-                              {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                            </Text>
-                          </VStack>
-                          <Icon icon={FiChevronRight} color="tertiary" />
-                        </HStack>
-                      </Card>
-                    </div>
+                    <ClickableCard label={approval.title} onClick={() => setSelectedApproval(approval)}>
+                      <HStack hAlign="between" vAlign="center" gap={4}>
+                        <VStack gap={1}>
+                          <HStack gap={2} vAlign="center">
+                            <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                            <Text type="supporting" color="disabled">{approval.templateName}</Text>
+                          </HStack>
+                          <Text weight="semibold" color="primary">{approval.title}</Text>
+                          <Text type="supporting" color="secondary">
+                            {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
+                          </Text>
+                        </VStack>
+                        <Icon icon={FiChevronRight} color="tertiary" />
+                      </HStack>
+                    </ClickableCard>
                   </motion.div>
                 ))}
               </VStack>
@@ -735,7 +733,6 @@ export default function EmployeeApproval() {
                 {(!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
                   /* 파일 양식: 기존 파일 업로드 UI */
                   <VStack gap={2}>
-                    <Text type="label" weight="medium" color="primary">작성한 양식 첨부 *</Text>
                     {selectedTemplateInfo?.fileUrl && isHwpFile(selectedTemplateInfo.fileName) && (
                       <Button
                         label="양식을 웹에서 바로 작성 (다운로드 불필요)"
@@ -748,7 +745,7 @@ export default function EmployeeApproval() {
                         })}
                       />
                     )}
-                    {renderFileDropzone()}
+                    {renderFileDropzone('작성한 양식 첨부')}
                   </VStack>
                 )}
 
@@ -779,7 +776,6 @@ export default function EmployeeApproval() {
                       <Banner status="success" title="온라인 양식이 확인되었습니다." />
                     )}
                     <VStack gap={2}>
-                      <Text type="label" weight="medium" color="primary">추가 파일 첨부 *</Text>
                       {selectedTemplateInfo.fileUrl && isHwpFile(selectedTemplateInfo.fileName) && (
                         <Button
                           label="양식을 웹에서 바로 작성 (다운로드 불필요)"
@@ -792,7 +788,7 @@ export default function EmployeeApproval() {
                           })}
                         />
                       )}
-                      {renderFileDropzone()}
+                      {renderFileDropzone('추가 파일 첨부')}
                     </VStack>
                   </VStack>
                 )}
@@ -907,7 +903,7 @@ export default function EmployeeApproval() {
                             minWidth: 0,
                           }}
                         >
-                          <Icon icon={FiEye} color="accent" />
+                          <Icon icon={FiEye} color="secondary" />
                           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             <Text color="primary">{selectedApproval.attachmentFileName || '첨부파일'}</Text>
                           </span>

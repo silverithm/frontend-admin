@@ -229,12 +229,12 @@ export default function ApprovalManagement() {
     }
   };
 
-  const getStatusAvatar = (status: ApprovalStatus): { bg: string; color: 'success' | 'warning' | 'error' | 'secondary' } => {
+  const getStatusIconColor = (status: ApprovalStatus): 'success' | 'warning' | 'error' | 'secondary' => {
     switch (status) {
-      case 'APPROVED': return { bg: 'var(--color-background-green)', color: 'success' };
-      case 'PENDING': return { bg: 'var(--color-background-yellow)', color: 'warning' };
-      case 'REJECTED': return { bg: 'var(--color-background-red)', color: 'error' };
-      default: return { bg: 'var(--color-background-muted)', color: 'secondary' };
+      case 'APPROVED': return 'success';
+      case 'PENDING': return 'warning';
+      case 'REJECTED': return 'error';
+      default: return 'secondary';
     }
   };
 
@@ -251,9 +251,9 @@ export default function ApprovalManagement() {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 256 }}>
+      <VStack vAlign="center" hAlign="center" height={256}>
         <Spinner label="결재 목록을 불러오는 중..." />
-      </div>
+      </VStack>
     );
   }
 
@@ -370,7 +370,6 @@ export default function ApprovalManagement() {
 
             {/* 결재 카드 리스트 */}
             {approvals.map((approval) => {
-              const avatar = getStatusAvatar(approval.status);
               return (
                 <motion.div
                   key={approval.id}
@@ -391,20 +390,7 @@ export default function ApprovalManagement() {
                             />
                           </div>
                         )}
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 'var(--radius-element)',
-                            background: avatar.bg,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Icon icon={FiFileText} color={avatar.color} />
-                        </div>
+                        <Icon icon={FiFileText} size="md" color={getStatusIconColor(approval.status)} />
                         <VStack gap={1}>
                           <HStack gap={2} vAlign="center">
                             <Text weight="bold" color="primary">{approval.title}</Text>
