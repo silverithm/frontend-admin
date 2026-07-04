@@ -1,16 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { FiX, FiDownload, FiFileText, FiAlertCircle, FiInfo, FiCheck } from 'react-icons/fi';
+import { FiX, FiDownload, FiFileText, FiAlertCircle, FiInfo, FiCheck, FiCloud } from 'react-icons/fi';
 import type { RhwpEditor } from '@rhwp/editor';
+
+// 셀프 호스팅된 rhwp-studio (public/rhwp-studio/) — Ctrl+S 가로채기/isDirty 패치 포함
+const STUDIO_URL = '/rhwp-studio/index.html';
+// 자동 저장 주기 (ms)
+const AUTOSAVE_INTERVAL = 30_000;
 
 interface DocumentViewerModalProps {
   fileUrl: string;
   fileName: string;
   onClose: () => void;
-  /** 지정하면 HWP/HWPX 편집 후 "작성 완료" 버튼으로 파일을 돌려받는다 (기안 작성용) */
+  /** 지정하면 HWP/HWPX 편집 모드: 작성 완료/Ctrl+S/자동 저장으로 파일을 돌려받는다 */
   onSave?: (file: File) => void;
+  /** 중간 저장(Ctrl+S, 자동 저장) 시 조용히 파일만 갱신 — 모달 전환 없음 */
+  onAutoSave?: (file: File) => void;
   saveLabel?: string;
 }
 
@@ -44,17 +51,22 @@ export default function DocumentViewerModal({
   fileName,
   onClose,
   onSave,
+  onAutoSave,
   saveLabel = '작성 완료',
 }: DocumentViewerModalProps) {
   const [state, setState] = useState<ViewerState>({ kind: 'loading' });
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const objectUrlsRef = useRef<string[]>([]);
   const hwpContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RhwpEditor | null>(null);
+  const exportingRef = useRef(false);
+  const lastFileRef = useRef<File | null>(null);
 
   const ext = getExtension(fileName);
   const isHwp = HWP_EXTENSIONS.includes(ext);
+  const isAuthoring = !!onSave && isHwp;
 
   useEffect(() => {
     let cancelled = false;
@@ -120,7 +132,7 @@ export default function DocumentViewerModal({
             const { createEditor } = await import('@rhwp/editor');
             if (cancelled || !hwpContainerRef.current) return;
 
-            const editor = await createEditor(hwpContainerRef.current);
+            const editor = await createEditor(hwpContainerRef.current, { studioUrl: STUDIO_URL });
             if (cancelled) {
               editor.destroy();
               return;
@@ -177,6 +189,110 @@ export default function DocumentViewerModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileUrl, fileName]);
 
+  // 스튜디오 패치의 isDirty 메서드를 직접 postMessage로 조회 (래퍼에는 없는 메서드)
+  const requestIsDirty = useCallback((): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const iframe = editorRef.current?.element;
+      if (!iframe?.contentWindow) {
+        resolve(false);
+        return;
+      }
+      const id = `carev-dirty-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const timer = setTimeout(() => {
+        window.removeEventListener('message', onMessage);
+        resolve(false);
+      }, 3000);
+      const onMessage = (e: MessageEvent) => {
+        if (e.data?.type === 'rhwp-response' && e.data.id === id) {
+          clearTimeout(timer);
+          window.removeEventListener('message', onMessage);
+          resolve(Boolean(e.data.result));
+        }
+      };
+      window.addEventListener('message', onMessage);
+      iframe.contentWindow.postMessage({ type: 'rhwp-request', id, method: 'isDirty' }, '*');
+    });
+  }, []);
+
+  // 현재 편집 상태를 File로 내보내기
+  const exportCurrentFile = useCallback(async (): Promise<File | null> => {
+    const editor = editorRef.current;
+    if (!editor) return null;
+
+    let bytes: Uint8Array;
+    let outName = fileName;
+    if (ext === 'hwpx') {
+      try {
+        bytes = await editor.exportHwpx();
+      } catch {
+        // HWPX 직렬화가 안 되는 문서는 HWP로 변환 저장
+        bytes = await editor.exportHwp();
+        outName = fileName.replace(/\.hwpx$/i, '.hwp');
+      }
+    } else {
+      bytes = await editor.exportHwp();
+    }
+
+    return new File([bytes as BlobPart], outName, {
+      type: outName.endsWith('.hwpx') ? 'application/vnd.hancom.hwpx' : 'application/x-hwp',
+    });
+  }, [ext, fileName]);
+
+  // 조용한 저장 (Ctrl+S / 자동 저장): 파일만 갱신하고 표시등 업데이트
+  const silentSave = useCallback(async (): Promise<boolean> => {
+    if (exportingRef.current) return false;
+    exportingRef.current = true;
+    try {
+      const file = await exportCurrentFile();
+      if (!file) return false;
+      lastFileRef.current = file;
+      onAutoSave?.(file);
+      setLastSavedAt(new Date());
+      return true;
+    } catch (error) {
+      console.warn('자동 저장 실패 (다음 주기에 재시도):', error);
+      return false;
+    } finally {
+      exportingRef.current = false;
+    }
+  }, [exportCurrentFile, onAutoSave]);
+
+  // 에디터 안에서 Ctrl+S / 파일>저장을 누르면 스튜디오 패치가 부모로 이벤트를 보낸다
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type !== 'rhwp-event' || e.data.event !== 'save-requested') return;
+      // 우리 에디터 iframe에서 온 이벤트인지 확인
+      if (e.source !== editorRef.current?.element?.contentWindow) return;
+
+      if (isAuthoring) {
+        silentSave();
+      } else if (blobRef.current) {
+        // 조회 모드의 Ctrl+S는 다운로드로 처리
+        const url = URL.createObjectURL(blobRef.current);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [isAuthoring, silentSave, fileName]);
+
+  // 자동 저장: 편집 모드에서 30초마다, 문서가 수정된 경우에만
+  useEffect(() => {
+    if (!isAuthoring || state.kind !== 'hwp') return;
+    const timer = setInterval(async () => {
+      if (exportingRef.current) return;
+      const dirty = await requestIsDirty();
+      if (dirty) await silentSave();
+    }, AUTOSAVE_INTERVAL);
+    return () => clearInterval(timer);
+  }, [isAuthoring, state.kind, requestIsDirty, silentSave]);
+
   // 이미 받아둔 blob으로 즉시 다운로드
   const handleDownload = () => {
     if (!blobRef.current) return;
@@ -190,40 +306,56 @@ export default function DocumentViewerModal({
     URL.revokeObjectURL(url);
   };
 
-  // 에디터에서 편집한 문서를 파일로 내보내 onSave로 전달
+  // 작성 완료: 최종 내보내기 후 onSave로 전달 (부모가 첨부 + 기안 화면 전환)
   const handleSave = async () => {
-    const editor = editorRef.current;
-    if (!editor || !onSave) return;
-
+    if (!onSave) return;
     setIsSaving(true);
     try {
-      let bytes: Uint8Array;
-      let outName = fileName;
-      if (ext === 'hwpx') {
-        try {
-          bytes = await editor.exportHwpx();
-        } catch {
-          // HWPX 직렬화가 안 되는 문서는 HWP로 변환 저장
-          bytes = await editor.exportHwp();
-          outName = fileName.replace(/\.hwpx$/i, '.hwp');
-        }
-      } else {
-        bytes = await editor.exportHwp();
-      }
-
-      const file = new File([bytes as BlobPart], outName, {
-        type: outName.endsWith('.hwpx') ? 'application/vnd.hancom.hwpx' : 'application/x-hwp',
-      });
+      const file = await exportCurrentFile();
+      if (!file) throw new Error('편집기가 준비되지 않았습니다.');
       onSave(file);
     } catch (error) {
       console.error('문서 저장 실패:', error);
-      alert('작성한 문서를 저장하는 데 실패했습니다. 다시 시도해주세요.');
+      // 마지막 자동 저장본이라도 있으면 그걸로 전달
+      if (lastFileRef.current) {
+        onSave(lastFileRef.current);
+      } else {
+        alert('작성한 문서를 저장하는 데 실패했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
-  const showSaveButton = !!onSave && isHwp && state.kind === 'hwp';
+  // 닫기: 편집 모드에서 저장했거나 수정 중이던 문서가 있으면 작성 완료와 동일하게 처리
+  const handleClose = async () => {
+    if (isAuthoring && state.kind === 'hwp' && !isSaving) {
+      const dirty = await requestIsDirty();
+      if (dirty || lastFileRef.current) {
+        setIsSaving(true);
+        try {
+          const file = await exportCurrentFile();
+          const finalFile = file || lastFileRef.current;
+          if (finalFile && onSave) {
+            onSave(finalFile);
+            return;
+          }
+        } catch {
+          if (lastFileRef.current && onSave) {
+            onSave(lastFileRef.current);
+            return;
+          }
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    }
+    onClose();
+  };
+
+  const showSaveButton = isAuthoring && state.kind === 'hwp';
+  const formatTime = (d: Date) =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   return (
     <motion.div
@@ -233,7 +365,7 @@ export default function DocumentViewerModal({
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
       onClick={(e) => {
         e.stopPropagation();
-        onClose();
+        handleClose();
       }}
     >
       <motion.div
@@ -252,6 +384,12 @@ export default function DocumentViewerModal({
               <FiFileText className="w-5 h-5 text-teal-600" />
             </div>
             <h2 className="text-base font-bold text-gray-900 truncate">{fileName}</h2>
+            {lastSavedAt && (
+              <span className="flex items-center space-x-1 text-teal-600 text-xs font-medium flex-shrink-0 bg-teal-50 px-2 py-1 rounded-full">
+                <FiCloud className="w-3.5 h-3.5" />
+                <span>저장됨 {formatTime(lastSavedAt)}</span>
+              </span>
+            )}
           </div>
           <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
             {showSaveButton && (
@@ -273,7 +411,7 @@ export default function DocumentViewerModal({
               <span>다운로드</span>
             </button>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="닫기"
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
@@ -293,7 +431,7 @@ export default function DocumentViewerModal({
           <div className="px-5 py-2.5 bg-teal-50 border-b border-teal-100 flex items-center space-x-2 flex-shrink-0">
             <FiInfo className="w-4 h-4 text-teal-600 flex-shrink-0" />
             <p className="text-teal-700 text-sm">
-              문서를 웹에서 바로 작성한 뒤 <strong>{saveLabel}</strong> 버튼을 누르면 자동으로 첨부됩니다.
+              <strong>Ctrl+S</strong> 또는 30초마다 자동 저장됩니다. 닫으면 작성 내용이 자동으로 첨부돼요.
             </p>
           </div>
         )}

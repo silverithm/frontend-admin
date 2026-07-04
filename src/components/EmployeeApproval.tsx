@@ -242,6 +242,16 @@ export default function EmployeeApproval() {
     }
   };
 
+  // Ctrl+S/자동 저장: 첨부 파일만 조용히 갱신 (모달 전환/알림 없음)
+  const handleEditorAutoSave = (file: File) => {
+    const templateId = viewer?.templateId;
+    setApprovalForm(prev => ({
+      ...prev,
+      ...(templateId ? { templateId } : {}),
+      file,
+    }));
+  };
+
   // 파일 선택 핸들러
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1064,6 +1074,7 @@ export default function EmployeeApproval() {
             fileName={viewer.fileName}
             onClose={() => setViewer(null)}
             onSave={viewer.authoring ? handleEditorSave : undefined}
+            onAutoSave={viewer.authoring ? handleEditorAutoSave : undefined}
             saveLabel="작성 완료 · 첨부하기"
           />
         )}
