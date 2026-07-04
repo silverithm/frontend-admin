@@ -43,7 +43,13 @@ export async function GET(request: NextRequest) {
       });
 
       if (!backendResponse.ok) {
-        return NextResponse.json({ error: `백엔드 서버 오류: ${backendResponse.status}` }, { status: backendResponse.status, headers });
+        const errorText = await backendResponse.text().catch(() => '');
+        let errorMessage = `백엔드 서버 오류: ${backendResponse.status}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = parsed.error || parsed.message || errorMessage;
+        } catch { /* JSON이 아니면 기본 메시지 유지 */ }
+        return NextResponse.json({ error: errorMessage }, { status: backendResponse.status, headers });
       }
 
       const data = await backendResponse.json();
@@ -67,7 +73,13 @@ export async function GET(request: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      return NextResponse.json({ error: `백엔드 서버 오류: ${backendResponse.status}` }, { status: backendResponse.status, headers });
+      const errorText = await backendResponse.text().catch(() => '');
+        let errorMessage = `백엔드 서버 오류: ${backendResponse.status}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = parsed.error || parsed.message || errorMessage;
+        } catch { /* JSON이 아니면 기본 메시지 유지 */ }
+        return NextResponse.json({ error: errorMessage }, { status: backendResponse.status, headers });
     }
 
     const data = await backendResponse.json();
@@ -110,7 +122,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      return NextResponse.json({ error: `백엔드 서버 오류: ${backendResponse.status}` }, { status: backendResponse.status, headers });
+      const errorText = await backendResponse.text().catch(() => '');
+        let errorMessage = `백엔드 서버 오류: ${backendResponse.status}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = parsed.error || parsed.message || errorMessage;
+        } catch { /* JSON이 아니면 기본 메시지 유지 */ }
+        return NextResponse.json({ error: errorMessage }, { status: backendResponse.status, headers });
     }
 
     const data = await backendResponse.json();
@@ -153,7 +171,13 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      return NextResponse.json({ error: `백엔드 서버 오류: ${backendResponse.status}` }, { status: backendResponse.status, headers });
+      const errorText = await backendResponse.text().catch(() => '');
+        let errorMessage = `백엔드 서버 오류: ${backendResponse.status}`;
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = parsed.error || parsed.message || errorMessage;
+        } catch { /* JSON이 아니면 기본 메시지 유지 */ }
+        return NextResponse.json({ error: errorMessage }, { status: backendResponse.status, headers });
     }
 
     const data = await backendResponse.json();

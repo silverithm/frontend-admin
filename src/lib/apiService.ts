@@ -1295,6 +1295,21 @@ export async function deleteApprovalTemplate(id: string) {
 // ================== 전자결재 요청 API ==================
 
 // 결재 요청 목록 조회 (관리자)
+// 백엔드는 formData를 JSON 문자열로 저장하므로 조회 시 객체로 파싱한다
+function normalizeApprovalFormData<T extends { formData?: unknown; approvals?: unknown; approval?: unknown }>(res: T): T {
+    const parse = (a: any) => {
+        if (a && typeof a.formData === 'string' && a.formData.trim()) {
+            try { a.formData = JSON.parse(a.formData); } catch { /* 파싱 불가 시 원본 유지 */ }
+        }
+        return a;
+    };
+    const r = res as any;
+    if (Array.isArray(r?.approvals)) r.approvals.forEach(parse);
+    if (r?.approval) parse(r.approval);
+    parse(r);
+    return res;
+}
+
 export async function getApprovalRequests(filter?: {
     status?: string;
     startDate?: string;
@@ -1312,17 +1327,17 @@ export async function getApprovalRequests(filter?: {
     if (filter?.endDate) url += `&endDate=${filter.endDate}`;
     if (filter?.searchQuery) url += `&searchQuery=${encodeURIComponent(filter.searchQuery)}`;
 
-    return fetchWithAuth(url);
+    return normalizeApprovalFormData(await fetchWithAuth(url));
 }
 
 // 내 결재 요청 조회 (직원용)
 export async function getMyApprovalRequests(requesterId: string) {
-    return fetchWithAuth(`/api/v1/approvals?requesterId=${requesterId}`);
+    return normalizeApprovalFormData(await fetchWithAuth(`/api/v1/approvals?requesterId=${requesterId}`));
 }
 
 // 결재 요청 상세 조회
 export async function getApprovalRequestById(id: string) {
-    return fetchWithAuth(`/api/v1/approvals/${id}`);
+    return normalizeApprovalFormData(await fetchWithAuth(`/api/v1/approvals/${id}`));
 }
 
 // 결재용 requesterId 반환 (admin은 prefix로 구분하여 memberId 충돌 방지)
@@ -1350,9 +1365,15 @@ export async function createApprovalRequest(data: {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
 
+    // 백엔드 DTO의 formData는 String(JSON) 타입 — 객체를 그대로 보내면 역직렬화에 실패한다
+    const payload = {
+        ...data,
+        ...(data.formData ? { formData: JSON.stringify(data.formData) } : {}),
+    };
+
     return fetchWithAuth(`/api/v1/approvals?companyId=${companyId}&requesterId=${requesterId}&requesterName=${encodeURIComponent(userName)}`, {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
     });
 }
 
@@ -1403,6 +1424,18 @@ export async function bulkRejectApprovalRequests(ids: string[], reason: string) 
 export async function cancelApprovalRequest(id: string) {
     return fetchWithAuth(`/api/v1/approvals/${id}`, {
         method: 'DELETE',
+    });
+}
+
+// 진행중 결재의 첨부파일 교체 (기안자 본인)
+export async function updateApprovalAttachment(
+    id: string,
+    requesterId: string,
+    attachment: { attachmentUrl: string; attachmentFileName?: string; attachmentFileSize?: number }
+) {
+    return fetchWithAuth(`/api/v1/approvals/${id}/attachment?requesterId=${encodeURIComponent(requesterId)}`, {
+        method: 'PUT',
+        body: JSON.stringify(attachment),
     });
 }
 

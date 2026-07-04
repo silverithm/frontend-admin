@@ -24,7 +24,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
+import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
@@ -911,6 +911,22 @@ export default function EmployeeApproval() {
                             {formatFileSize(selectedApproval.attachmentFileSize || 0)}
                           </Text>
                         </div>
+                        {selectedApproval.status === 'PENDING' && isHwpFile(selectedApproval.attachmentFileName) && (
+                          <div style={{ borderLeft: '1px solid var(--color-border)', display: 'flex', alignItems: 'center' }}>
+                            <IconButton
+                              label="첨부파일 웹에서 수정"
+                              tooltip="웹에서 수정"
+                              variant="ghost"
+                              icon={<Icon icon={FiEdit3} />}
+                              onClick={() => setViewer({
+                                fileUrl: selectedApproval.attachmentUrl!,
+                                fileName: selectedApproval.attachmentFileName || '첨부파일',
+                                authoring: true,
+                                approvalId: String(selectedApproval.id),
+                              })}
+                            />
+                          </div>
+                        )}
                         <div style={{ borderLeft: '1px solid var(--color-border)', display: 'flex', alignItems: 'center' }}>
                           <IconButton
                             label="첨부파일 다운로드"
@@ -921,6 +937,11 @@ export default function EmployeeApproval() {
                           />
                         </div>
                       </div>
+                      {selectedApproval.status === 'PENDING' && isHwpFile(selectedApproval.attachmentFileName) && (
+                        <Text type="supporting" color="secondary">
+                          연필 버튼으로 첨부 문서를 웹에서 바로 수정할 수 있습니다 (결재 전까지만)
+                        </Text>
+                      )}
                     </VStack>
                   )}
 
@@ -962,7 +983,7 @@ export default function EmployeeApproval() {
             onClose={() => setViewer(null)}
             onSave={viewer.authoring ? handleEditorSave : undefined}
             onAutoSave={viewer.authoring ? handleEditorAutoSave : undefined}
-            saveLabel="작성 완료 · 첨부하기"
+            saveLabel={viewer.approvalId ? '수정 완료 · 반영하기' : '작성 완료 · 첨부하기'}
           />
         )}
       </AnimatePresence>
