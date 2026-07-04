@@ -100,7 +100,7 @@ html {
 .carev-dash-stats-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .carev-dash-panels { grid-template-columns: 1fr; }
 @media (min-width: 1024px) {
-  .carev-dash-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+  .carev-dash-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .carev-dash-panel-full { grid-column: span 2; }
 }
 .carev-dash-clock { display: none; }

@@ -4,6 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Icon } from "@astryxdesign/core/Icon";
 import { FiMessageCircle } from "react-icons/fi";
 import { ChatRoom } from "./floatingChatTypes";
 
@@ -71,7 +72,7 @@ export function FloatingChatRoomList({
                     </div>
                 ) : rooms.length === 0 ? (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 160 }}>
-                        <EmptyState icon={FiMessageCircle} title="채팅방이 없습니다" isCompact />
+                        <EmptyState icon={<Icon icon={FiMessageCircle} size="lg" />} title="채팅방이 없습니다" isCompact />
                     </div>
                 ) : (
                     rooms.map((room) => (

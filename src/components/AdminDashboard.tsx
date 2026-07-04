@@ -577,10 +577,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
         className="carev-dash-panels"
-        style={{ display: 'grid', minHeight: 0, flex: 1, gap: 'var(--spacing-3)' }}
+        style={{ display: 'grid', gap: 'var(--spacing-3)' }}
       >
         {/* Top-Left: 공지사항 */}
-        <Card padding={0} height="100%" minHeight={340}>
+        <Card padding={0} height={360}>
           <VStack gap={0} height="100%">
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
@@ -640,7 +640,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </Card>
 
         {/* Top-Right: 전자결재 */}
-        <Card padding={0} height="100%" minHeight={340}>
+        <Card padding={0} height={360}>
           <VStack gap={0} height="100%">
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">

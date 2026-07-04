@@ -1517,9 +1517,9 @@ export default function AdminPage() {
                                                             )}
                                                         </div>
                                                         {request.reason && request.reason !== "(사유 미입력)" && (
-                                                            <div style={{ marginTop: 'var(--spacing-1)', padding: 'var(--spacing-1-5)', background: 'var(--color-background-card)', borderRadius: 'var(--radius-none)', border: "1px solid var(--color-border)" }}>
-                                                                <Text type="supporting" color="secondary">
-                                                                    <Text type="supporting" weight="medium" color="primary">사유:</Text>{" "}
+                                                            <div style={{ marginTop: 'var(--spacing-1)', padding: 'var(--spacing-2)', background: 'var(--color-background-surface)', borderRadius: 'var(--radius-inner)', border: "1px solid var(--color-border)" }}>
+                                                                <Text type="supporting" color="primary">
+                                                                    <Text type="supporting" weight="medium" color="accent">사유:</Text>{" "}
                                                                     {request.reason}
                                                                 </Text>
                                                             </div>
