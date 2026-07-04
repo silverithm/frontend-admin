@@ -347,7 +347,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
 
                 {sortedVacations.length > 0 ? (
                   <div style={{ maxHeight: 256, overflowY: 'auto', paddingRight: 'var(--spacing-1)' }}>
-                    <VStack gap={3}>
+                    <VStack gap={2}>
                       {sortedVacations.map((vacation) => {
                         const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
 
@@ -357,8 +357,8 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                           >
-                            <Card variant="muted" padding={3} width="100%">
-                              <VStack gap={2}>
+                            <Card variant="muted" padding={2} width="100%">
+                              <VStack gap={1}>
                                 <HStack hAlign="between" vAlign="center">
                                   <HStack gap={1} vAlign="center">
                                     <Text type="body" weight="medium">{vacation.userName}</Text>
