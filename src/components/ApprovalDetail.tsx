@@ -6,7 +6,18 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
-import { FiX, FiPaperclip, FiCheck, FiXCircle, FiAlertCircle, FiDownload, FiEye } from 'react-icons/fi';
+import { FiCheck, FiXCircle, FiDownload, FiEye } from 'react-icons/fi';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Card } from '@astryxdesign/core/Card';
+import { Banner } from '@astryxdesign/core/Banner';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Divider } from '@astryxdesign/core/Divider';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import FormDataViewer from './approval/FormDataViewer';
 import DocumentViewerModal from './DocumentViewerModal';
 
@@ -31,16 +42,18 @@ export default function ApprovalDetail({
   const [rejectReason, setRejectReason] = useState('');
   const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
 
-  const getStatusStyle = (status: ApprovalStatus) => {
+  const getStatusVariant = (
+    status: ApprovalStatus
+  ): 'success' | 'warning' | 'error' | 'neutral' => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-green-100 text-green-700 border-green-200';
+        return 'success';
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        return 'warning';
       case 'REJECTED':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'error';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'neutral';
     }
   };
 
@@ -100,203 +113,212 @@ export default function ApprovalDetail({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-gray-200 max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <Dialog
+        isOpen
+        onOpenChange={(open) => { if (!open) onClose(); }}
+        purpose="form"
+        width={520}
+        maxHeight="90vh"
       >
-        {/* 헤더 */}
-        <div className="p-6 border-b border-teal-600 bg-gradient-to-r from-teal-500 to-teal-600 rounded-t-2xl flex-shrink-0">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold border ${getStatusStyle(approval.status)}`}>
-                {getStatusText(approval.status)}
-              </span>
-              <h2 className="text-xl font-bold text-white mt-3">{approval.title}</h2>
-              <p className="text-teal-100 text-sm mt-1">{approval.templateName}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-teal-100 hover:text-white hover:bg-teal-400/30 rounded-lg transition-colors"
-            >
-              <FiX className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        <Layout
+          header={
+            <DialogHeader
+              title={approval.title}
+              subtitle={approval.templateName}
+              onOpenChange={(open) => { if (!open) onClose(); }}
+              endContent={
+                <Badge
+                  variant={getStatusVariant(approval.status)}
+                  label={getStatusText(approval.status)}
+                />
+              }
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={5}>
+                {/* 기안 정보 */}
+                <VStack gap={3}>
+                  <HStack gap={3}>
+                    <StackItem size="fill">
+                      <Card variant="muted" padding={3}>
+                        <VStack gap={1}>
+                          <Text type="supporting">기안자</Text>
+                          <Text type="body" weight="semibold">{approval.requesterName}</Text>
+                        </VStack>
+                      </Card>
+                    </StackItem>
+                    <StackItem size="fill">
+                      <Card variant="muted" padding={3}>
+                        <VStack gap={1}>
+                          <Text type="supporting">기안일시</Text>
+                          <Text type="body" weight="semibold">
+                            {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
+                          </Text>
+                        </VStack>
+                      </Card>
+                    </StackItem>
+                  </HStack>
+                  {approval.processedAt && (
+                    <HStack gap={3}>
+                      <StackItem size="fill">
+                        <Card variant="muted" padding={3}>
+                          <VStack gap={1}>
+                            <Text type="supporting">처리자</Text>
+                            <Text type="body" weight="semibold">{approval.processedByName || '-'}</Text>
+                          </VStack>
+                        </Card>
+                      </StackItem>
+                      <StackItem size="fill">
+                        <Card variant="muted" padding={3}>
+                          <VStack gap={1}>
+                            <Text type="supporting">처리일시</Text>
+                            <Text type="body" weight="semibold">
+                              {format(new Date(approval.processedAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
+                            </Text>
+                          </VStack>
+                        </Card>
+                      </StackItem>
+                    </HStack>
+                  )}
+                </VStack>
 
-        {/* 내용 */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {/* 기안 정보 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <span className="text-gray-500 text-sm">기안자</span>
-              <p className="text-gray-900 font-semibold mt-1">{approval.requesterName}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <span className="text-gray-500 text-sm">기안일시</span>
-              <p className="text-gray-900 font-semibold mt-1">
-                {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-              </p>
-            </div>
-            {approval.processedAt && (
-              <>
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <span className="text-gray-500 text-sm">처리자</span>
-                  <p className="text-gray-900 font-semibold mt-1">{approval.processedByName || '-'}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <span className="text-gray-500 text-sm">처리일시</span>
-                  <p className="text-gray-900 font-semibold mt-1">
-                    {format(new Date(approval.processedAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* 기안 내용 */}
-          {approval.formData && Object.keys(approval.formData).length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-4">
-                기안 내용
-              </h4>
-              <FormDataViewer
-                formData={approval.formData}
-                schema={templateSchema}
-              />
-            </div>
-          )}
-
-          {/* 첨부파일 - 단일 필드 (백엔드 구조에 맞춤) */}
-          {approval.attachmentUrl && (
-            <div>
-              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-2 mb-4">
-                첨부파일
-              </h4>
-              <div className="w-full flex items-center bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                <button
-                  onClick={() => setShowAttachmentViewer(true)}
-                  className="flex-1 flex items-center space-x-3 p-4 hover:bg-teal-50 transition-colors text-left min-w-0"
-                >
-                  <FiEye className="w-5 h-5 text-teal-500 flex-shrink-0" />
-                  <span className="text-gray-900 flex-1 font-medium truncate">{approval.attachmentFileName || '첨부파일'}</span>
-                  <span className="text-gray-500 text-sm flex-shrink-0">
-                    {((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB
-                  </span>
-                </button>
-                <button
-                  onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
-                  aria-label="첨부파일 다운로드"
-                  className="p-4 text-gray-400 hover:text-teal-600 hover:bg-teal-50 border-l border-gray-200 transition-colors flex-shrink-0"
-                >
-                  <FiDownload className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-xs mt-2">파일명을 클릭하면 다운로드 없이 바로 볼 수 있습니다</p>
-            </div>
-          )}
-
-          {/* 반려 사유 */}
-          {approval.status === 'REJECTED' && approval.rejectReason && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <FiAlertCircle className="w-5 h-5 text-red-500" />
-                <h4 className="text-sm font-semibold text-red-700">반려 사유</h4>
-              </div>
-              <p className="text-red-700 whitespace-pre-wrap">{approval.rejectReason}</p>
-            </div>
-          )}
-
-          {/* 반려 사유 입력 폼 */}
-          {showRejectForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="border border-red-200 rounded-lg p-4 bg-red-50"
-            >
-              <h4 className="text-sm font-semibold text-red-700 mb-3">반려 사유 입력</h4>
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="반려 사유를 입력해주세요"
-                rows={3}
-                className="w-full px-4 py-3 bg-white border border-red-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-red-400 focus:border-red-400 resize-none"
-              />
-              <div className="flex justify-end space-x-3 mt-4">
-                <button
-                  onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={!rejectReason.trim()}
-                  className="px-5 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                >
-                  반려 확정
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* 버튼 */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex-shrink-0">
-          {approval.status === 'PENDING' && !showRejectForm ? (
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowRejectForm(true)}
-                className="px-5 py-2 text-red-600 font-semibold hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
-              >
-                <span className="flex items-center space-x-1">
-                  <FiXCircle className="w-4 h-4" />
-                  <span>반려</span>
-                </span>
-              </button>
-              <button
-                onClick={() => onApprove(approval.id)}
-                className="px-6 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-sm"
-              >
-                <span className="flex items-center space-x-1">
-                  <FiCheck className="w-4 h-4" />
-                  <span>승인</span>
-                </span>
-              </button>
-            </div>
-          ) : (
-            !showRejectForm && (
-              <div className="flex justify-between">
-                {onDelete && (
-                  <button
-                    onClick={() => onDelete(approval.id)}
-                    className="px-4 py-2 text-red-600 font-medium hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
-                  >
-                    삭제
-                  </button>
+                {/* 기안 내용 */}
+                {approval.formData && Object.keys(approval.formData).length > 0 && (
+                  <VStack gap={2}>
+                    <Text type="label" weight="semibold">기안 내용</Text>
+                    <Divider />
+                    <FormDataViewer
+                      formData={approval.formData}
+                      schema={templateSchema}
+                    />
+                  </VStack>
                 )}
-                <div className="flex-1" />
-                <button
-                  onClick={onClose}
-                  className="px-5 py-2 bg-teal-500 text-white font-semibold hover:bg-teal-600 rounded-lg transition-colors shadow-sm"
-                >
-                  닫기
-                </button>
-              </div>
-            )
-          )}
-        </div>
-      </motion.div>
+
+                {/* 첨부파일 - 단일 필드 (백엔드 구조에 맞춤) */}
+                {approval.attachmentUrl && (
+                  <VStack gap={2}>
+                    <Text type="label" weight="semibold">첨부파일</Text>
+                    <Divider />
+                    <Card variant="muted" padding={2}>
+                      <HStack gap={2} vAlign="center">
+                        <StackItem size="fill">
+                          <Button
+                            label={approval.attachmentFileName || '첨부파일'}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={FiEye} size="sm" color="accent" />}
+                            onClick={() => setShowAttachmentViewer(true)}
+                          />
+                        </StackItem>
+                        <Text type="supporting">
+                          {((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB
+                        </Text>
+                        <Button
+                          label="첨부파일 다운로드"
+                          isIconOnly
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={FiDownload} size="sm" />}
+                          onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
+                        />
+                      </HStack>
+                    </Card>
+                    <Text type="supporting">파일명을 클릭하면 다운로드 없이 바로 볼 수 있습니다</Text>
+                  </VStack>
+                )}
+
+                {/* 반려 사유 */}
+                {approval.status === 'REJECTED' && approval.rejectReason && (
+                  <Banner
+                    status="error"
+                    title="반려 사유"
+                    description={
+                      <span style={{ whiteSpace: 'pre-wrap' }}>{approval.rejectReason}</span>
+                    }
+                  />
+                )}
+
+                {/* 반려 사유 입력 폼 */}
+                {showRejectForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <Card variant="muted" padding={3}>
+                      <VStack gap={3}>
+                        <Text type="label" weight="semibold" color="accent">반려 사유 입력</Text>
+                        <TextArea
+                          label="반려 사유"
+                          isLabelHidden
+                          value={rejectReason}
+                          onChange={(value) => setRejectReason(value)}
+                          placeholder="반려 사유를 입력해주세요"
+                          rows={3}
+                        />
+                        <HStack gap={2} hAlign="end">
+                          <Button
+                            label="취소"
+                            variant="ghost"
+                            onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
+                          />
+                          <Button
+                            label="반려 확정"
+                            variant="destructive"
+                            isDisabled={!rejectReason.trim()}
+                            onClick={handleReject}
+                          />
+                        </HStack>
+                      </VStack>
+                    </Card>
+                  </motion.div>
+                )}
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              {approval.status === 'PENDING' && !showRejectForm ? (
+                <HStack gap={2} hAlign="end">
+                  <Button
+                    label="반려"
+                    variant="secondary"
+                    icon={<Icon icon={FiXCircle} size="sm" />}
+                    onClick={() => setShowRejectForm(true)}
+                  />
+                  <Button
+                    label="승인"
+                    variant="primary"
+                    icon={<Icon icon={FiCheck} size="sm" />}
+                    onClick={() => onApprove(approval.id)}
+                  />
+                </HStack>
+              ) : (
+                !showRejectForm && (
+                  <HStack gap={2} hAlign="between" vAlign="center">
+                    {onDelete ? (
+                      <Button
+                        label="삭제"
+                        variant="destructive"
+                        onClick={() => onDelete(approval.id)}
+                      />
+                    ) : (
+                      <span />
+                    )}
+                    <Button
+                      label="닫기"
+                      variant="primary"
+                      onClick={onClose}
+                    />
+                  </HStack>
+                )
+              )}
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
 
       {/* 첨부파일 문서 뷰어 */}
       {showAttachmentViewer && approval.attachmentUrl && (
@@ -306,6 +328,6 @@ export default function ApprovalDetail({
           onClose={() => setShowAttachmentViewer(false)}
         />
       )}
-    </motion.div>
+    </>
   );
 }
