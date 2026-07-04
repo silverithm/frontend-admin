@@ -579,8 +579,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         className="carev-dash-panels"
         style={{ display: 'grid', gap: 'var(--spacing-3)' }}
       >
-        {/* Top-Left: 공지사항 */}
-        <Card padding={0} height={360}>
+        {/* Top-Left: 공지사항 — 3개가 보이는 높이, 나머지는 스크롤 */}
+        <Card padding={0} height={252}>
           <VStack gap={0} height="100%">
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
@@ -639,8 +639,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           </VStack>
         </Card>
 
-        {/* Top-Right: 전자결재 */}
-        <Card padding={0} height={360}>
+        {/* Top-Right: 전자결재 — 3개가 보이는 높이, 나머지는 스크롤 */}
+        <Card padding={0} height={252}>
           <VStack gap={0} height="100%">
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
