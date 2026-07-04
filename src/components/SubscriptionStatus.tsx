@@ -2,8 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { SubscriptionResponseDTO, SubscriptionType, SubscriptionStatus as Status } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
+
+const dotStyle = (color: string): React.CSSProperties => ({
+  display: 'inline-block',
+  width: 8,
+  height: 8,
+  borderRadius: 9999,
+  backgroundColor: color,
+  flexShrink: 0,
+});
+
+const StatusDot = ({ color, pulse = false }: { color: string; pulse?: boolean }) => (
+  <span className={pulse ? 'carev-substatus-dot-pulse' : undefined} style={dotStyle(color)} />
+);
 
 export default function SubscriptionStatus() {
   const router = useRouter();
@@ -31,22 +46,23 @@ export default function SubscriptionStatus() {
 
   if (loading) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="w-2 h-2 bg-gray-300 rounded-full animate-pulse"></div>
-        <span className="text-gray-400 text-xs font-medium">구독 확인 중...</span>
-      </div>
+      <Badge
+        variant="neutral"
+        icon={<StatusDot color="#d1d5db" pulse />}
+        label="구독 확인 중..."
+      />
     );
   }
 
   if (!subscription) {
     return (
-      <button
+      <Button
+        variant="destructive"
+        size="sm"
+        icon={<StatusDot color="#ffffff" pulse />}
+        label="구독 필요"
         onClick={handlePayment}
-        className="flex items-center space-x-2 px-3 py-2 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-all duration-200"
-      >
-        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-        <span className="text-red-700 text-xs font-semibold">구독 필요</span>
-      </button>
+      />
     );
   }
 
@@ -55,47 +71,43 @@ export default function SubscriptionStatus() {
 
   if (needsPayment) {
     return (
-      <button
+      <Button
+        variant="destructive"
+        size="sm"
+        icon={<StatusDot color="#ffffff" pulse />}
+        label={subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
         onClick={handlePayment}
-        className="flex items-center space-x-2 px-3 py-2 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-all duration-200"
-      >
-        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-        <span className="text-red-700 text-xs font-semibold">
-          {subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
-        </span>
-      </button>
+      />
     );
   }
 
   if (subscription.planName === SubscriptionType.FREE && subscription.status === Status.ACTIVE) {
     return (
-      <button
+      <Button
+        variant="secondary"
+        size="sm"
+        icon={<StatusDot color="#f59e0b" />}
+        label={`무료 체험 ${daysRemaining}일 남음`}
         onClick={handlePayment}
-        className="flex items-center space-x-2 px-3 py-2 bg-amber-50 rounded-lg border border-amber-200 hover:bg-amber-100 transition-all duration-200 cursor-pointer"
-      >
-        <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-        <span className="text-amber-700 text-xs font-semibold">
-          무료 체험 {daysRemaining}일 남음
-        </span>
-      </button>
+      />
     );
   }
 
   if (subscription.planName === SubscriptionType.BASIC && subscription.status === Status.ACTIVE) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 bg-teal-50 rounded-lg border border-teal-200">
-        <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-        <span className="text-teal-700 text-xs font-semibold">
-          Basic 플랜 활성
-        </span>
-      </div>
+      <Badge
+        variant="teal"
+        icon={<StatusDot color="#14b8a6" />}
+        label="Basic 플랜 활성"
+      />
     );
   }
 
   return (
-    <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-      <span className="text-gray-600 text-xs font-medium">구독 상태 확인 필요</span>
-    </div>
+    <Badge
+      variant="neutral"
+      icon={<StatusDot color="#9ca3af" />}
+      label="구독 상태 확인 필요"
+    />
   );
 }

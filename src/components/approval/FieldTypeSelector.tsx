@@ -1,6 +1,10 @@
 'use client';
 
 import { FieldType } from '@/types/formSchema';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Stack';
 import {
   IconLetterCase,
   IconAlignLeft,
@@ -41,26 +45,50 @@ const FIELD_TYPE_OPTIONS: FieldTypeOption[] = [
 export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelectorProps) {
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        background: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 50,
+      }}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-sm p-5"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 384,
+          padding: 20,
+          background: 'var(--color-background-card)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-container)',
+          boxShadow: 'var(--shadow-high)',
+        }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-gray-900">필드 유형 선택</h3>
-          <button
+        <HStack hAlign="between" vAlign="center">
+          <Text type="large" weight="semibold">필드 유형 선택</Text>
+          <IconButton
+            label="닫기"
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon="close" size="sm" />}
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="닫기"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
+          />
+        </HStack>
+
+        <div
+          style={{
+            marginTop: 16,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 8,
+          }}
+        >
           {FIELD_TYPE_OPTIONS.map((option) => (
             <button
               key={option.type}
@@ -68,10 +96,23 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
                 onSelect(option.type);
                 onClose();
               }}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50 transition-all text-gray-600 hover:text-teal-600"
+              className="carev-fieldtype-option"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                padding: 12,
+                borderRadius: 'var(--radius-element)',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-background-card)',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
             >
               {option.icon}
-              <span className="text-xs font-medium">{option.label}</span>
+              <Text type="supporting" color="inherit" weight="medium">{option.label}</Text>
             </button>
           ))}
         </div>

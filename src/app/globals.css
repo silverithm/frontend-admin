@@ -1,20 +1,11 @@
-@import "tailwindcss";
-
-/* Astryx 디자인 시스템 (파일럿). reset.css는 Tailwind preflight와 충돌 가능성이 있어
-   전면 마이그레이션 전까지 의도적으로 제외한다. */
+/* Astryx 디자인 시스템 (Tailwind 제거 완료 — reset.css 단독 체제) */
+@import "@astryxdesign/core/reset.css";
 @import "@astryxdesign/core/astryx.css";
 @import "@astryxdesign/theme-neutral/theme.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 /* 관리자 대시보드는 라이트 모드 고정 */
@@ -273,6 +264,37 @@ html {
 .carev-blogpost-prose blockquote { border-left: 4px solid #60a5fa; background: rgba(30, 41, 59, 0.5); padding: 0.5rem 1rem; margin: 1rem 0; }
 .carev-blogpost-prose a { color: #60a5fa; text-decoration: none; }
 .carev-blogpost-prose a:hover { color: #93c5fd; }
+
+/* ── Phase 11: 누락 파일 정리 ── */
+
+/* FloatingChatRoomList / FieldTypeSelector hover */
+.carev-fchatroom-item:hover { background-color: #f9fafb; }
+.carev-fieldtype-option:hover { border-color: var(--color-border-teal); background: var(--color-background-teal); color: var(--color-text-accent); }
+
+/* SubscriptionStatus 상태 점 pulse */
+@keyframes carev-substatus-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.carev-substatus-dot-pulse { animation: carev-substatus-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* CalendarSkeleton 반응형 */
+.carev-calskel-root { width: 100%; }
+.carev-calskel-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid #e5e7eb; }
+.carev-calskel-weekday { padding: 2px 0; text-align: center; font-weight: 500; font-size: 8px; }
+.carev-calskel-grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: 4px; row-gap: 12px; margin-top: 8px; }
+.carev-calskel-cell { height: 60px; padding: 4px; }
+.carev-calskel-footer { margin-top: 24px; padding: 16px; border-top: 1px solid #f3f4f6; }
+.carev-calskel-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+@media (min-width: 640px) {
+  .carev-calskel-weekday { padding: 8px 0; font-size: 14px; }
+  .carev-calskel-grid { column-gap: 16px; row-gap: 20px; }
+  .carev-calskel-cell { height: 120px; padding: 12px; }
+}
+@media (min-width: 768px) {
+  .carev-calskel-grid { column-gap: 20px; row-gap: 24px; }
+  .carev-calskel-cell { height: 140px; }
+}
 
 /* 탭 네비게이션 스크롤바 숨김 */
 .scrollbar-hide {
