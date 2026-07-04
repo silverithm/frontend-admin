@@ -1,6 +1,13 @@
 "use client";
 
 import { Fragment, useRef, useEffect, useState, useCallback } from "react";
+import { FiSend, FiCornerUpLeft, FiPaperclip } from "react-icons/fi";
+import { Text } from "@astryxdesign/core/Text";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Avatar } from "@astryxdesign/core/Avatar";
+import { Spinner } from "@astryxdesign/core/Spinner";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction } from '@/lib/apiService';
 
@@ -12,6 +19,16 @@ interface ChatParticipant {
 }
 
 const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
+
+// 잔여 스타일용 색상 상수 (Astryx 컴포넌트로 표현 불가한 레이아웃/버블 색상)
+const C = {
+    border: "#e5e7eb",       // gray-200
+    borderLight: "#f3f4f6",  // gray-100
+    bgGray50: "#f9fafb",     // gray-50
+    bubbleMine: "#0d9488",   // teal-600
+    bubbleOther: "#f3f4f6",  // gray-100
+    accent: "#0d9488",       // teal-600
+};
 
 function getDateKey(dateStr: string): string {
     const d = new Date(dateStr);
@@ -218,20 +235,28 @@ export function FloatingChatMessages({
     const renderReactions = (message: ChatMessage) => {
         if (!message.reactions || message.reactions.length === 0) return null;
         return (
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
                 {message.reactions.map((reaction) => (
                     <button
                         key={reaction.emoji}
                         onClick={() => handleToggleReaction(message.id, reaction.emoji)}
-                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] border transition-colors ${
-                            reaction.myReaction
-                                ? "bg-blue-50 border-teal-300 text-blue-700"
-                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                        }`}
                         title={reaction.userNames?.join(", ")}
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 2,
+                            padding: "1px 6px",
+                            borderRadius: 9999,
+                            fontSize: 11,
+                            cursor: "pointer",
+                            transition: "background-color 150ms ease",
+                            border: reaction.myReaction ? "1px solid #5eead4" : `1px solid ${C.border}`,
+                            background: reaction.myReaction ? "#eff6ff" : C.bgGray50,
+                            color: reaction.myReaction ? "#1d4ed8" : "#4b5563",
+                        }}
                     >
                         <span>{reaction.emoji}</span>
-                        <span className="font-medium">{reaction.count}</span>
+                        <span style={{ fontWeight: 500 }}>{reaction.count}</span>
                     </button>
                 ))}
             </div>
@@ -244,62 +269,85 @@ export function FloatingChatMessages({
         const isMyMessage = message.senderId === userId;
         return (
             <div
-                className={`text-[11px] px-2 py-1 mb-1 rounded border-l-2 ${
-                    isMyMessage
-                        ? "bg-teal-500/30 border-teal-300 text-teal-100"
-                        : "bg-gray-200 border-gray-400 text-gray-600"
-                }`}
+                style={{
+                    padding: "4px 8px",
+                    marginBottom: 4,
+                    borderRadius: 4,
+                    borderLeft: isMyMessage ? "2px solid #5eead4" : `2px solid #9ca3af`,
+                    background: isMyMessage ? "rgba(20,184,166,0.3)" : "#e5e7eb",
+                    color: isMyMessage ? "#ccfbf1" : "#4b5563",
+                }}
             >
-                <p className="font-semibold truncate">{message.replyToSenderName}</p>
-                <p className="truncate opacity-80">
-                    {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
-                </p>
+                <Text type="supporting" color="inherit" weight="semibold" maxLines={1}>
+                    {message.replyToSenderName}
+                </Text>
+                <div style={{ opacity: 0.8 }}>
+                    <Text type="supporting" color="inherit" maxLines={1}>
+                        {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                    </Text>
+                </div>
             </div>
         );
     };
 
     return (
-        <div className="flex flex-col h-full relative">
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
             {/* Header */}
-            <div className="px-3 py-2.5 border-b border-gray-200 flex items-center gap-2 flex-shrink-0">
-                <button
+            <div
+                style={{
+                    padding: "10px 12px",
+                    borderBottom: `1px solid ${C.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    flexShrink: 0,
+                }}
+            >
+                <Button
+                    label="뒤로가기"
+                    isIconOnly
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon="chevronLeft" size="md" />}
                     onClick={onBack}
-                    className="p-1 rounded-md hover:bg-gray-100 transition-colors"
-                    aria-label="뒤로가기"
-                >
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate">{roomName}</h3>
-                    <p className="text-[11px] text-gray-400">참여자 {participantCount}명</p>
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text type="body" weight="semibold" color="primary" maxLines={1}>{roomName}</Text>
+                    <Text type="supporting" color="secondary">참여자 {participantCount}명</Text>
                 </div>
-                <button
+                <Button
+                    label="채팅방 정보"
+                    isIconOnly
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon="menu" size="md" />}
                     onClick={toggleDrawer}
-                    className="p-1 rounded-md hover:bg-gray-100 transition-colors"
-                    aria-label="채팅방 정보"
-                >
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
+                />
             </div>
 
             {/* Overlay for menus */}
             {(longPressMenuMessageId !== null || activeEmojiPickerMessageId !== null) && (
-                <div className="fixed inset-0 z-30" onClick={handleBackdropClick} />
+                <div style={{ position: "fixed", inset: 0, zIndex: 30 }} onClick={handleBackdropClick} />
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+            <div
+                style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    padding: "8px 12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                }}
+            >
                 {isLoadingMessages ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                        <Spinner aria-label="메시지 불러오는 중" />
                     </div>
                 ) : messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                        메시지가 없습니다
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                        <Text type="body" color="secondary">메시지가 없습니다</Text>
                     </div>
                 ) : (
                     messages.map((message, index) => {
@@ -310,12 +358,14 @@ export function FloatingChatMessages({
                             getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
 
                         const dateSeparator = showDateSeparator ? (
-                            <div className="flex items-center gap-3 my-3">
-                                <div className="flex-1 h-px bg-gray-200" />
-                                <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
-                                    {formatDateSeparator(message.createdAt)}
-                                </span>
-                                <div className="flex-1 h-px bg-gray-200" />
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0" }}>
+                                <div style={{ flex: 1, height: 1, background: C.border }} />
+                                <div style={{ whiteSpace: "nowrap" }}>
+                                    <Text type="supporting" color="secondary" weight="medium">
+                                        {formatDateSeparator(message.createdAt)}
+                                    </Text>
+                                </div>
+                                <div style={{ flex: 1, height: 1, background: C.border }} />
                             </div>
                         ) : null;
 
@@ -323,8 +373,8 @@ export function FloatingChatMessages({
                             return (
                                 <Fragment key={message.id}>
                                     {dateSeparator}
-                                    <div className="flex justify-center">
-                                        <p className="text-[11px] text-gray-400 italic">{message.content}</p>
+                                    <div style={{ display: "flex", justifyContent: "center", fontStyle: "italic" }}>
+                                        <Text type="supporting" color="secondary">{message.content}</Text>
                                     </div>
                                 </Fragment>
                             );
@@ -335,11 +385,15 @@ export function FloatingChatMessages({
                                 <Fragment key={message.id}>
                                     {dateSeparator}
                                     <div
-                                        className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: isMyMessage ? "flex-end" : "flex-start",
+                                            fontStyle: "italic",
+                                        }}
                                     >
-                                        <p className="text-[11px] text-gray-400 italic px-2 py-1">
-                                            삭제된 메시지입니다
-                                        </p>
+                                        <div style={{ padding: "4px 8px" }}>
+                                            <Text type="supporting" color="secondary">삭제된 메시지입니다</Text>
+                                        </div>
                                     </div>
                                 </Fragment>
                             );
@@ -349,29 +403,46 @@ export function FloatingChatMessages({
                             <Fragment key={message.id}>
                                 {dateSeparator}
                                 <div
-                                    className={`flex ${isMyMessage ? "justify-end" : "justify-start"} relative`}
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: isMyMessage ? "flex-end" : "flex-start",
+                                        position: "relative",
+                                    }}
                                 >
-                                    <div className={`max-w-[75%] ${isMyMessage ? "items-end" : "items-start"} flex flex-col`}>
+                                    <div
+                                        style={{
+                                            maxWidth: "75%",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: isMyMessage ? "flex-end" : "flex-start",
+                                        }}
+                                    >
                                         {!isMyMessage && (
-                                            <p className="text-[11px] text-gray-500 mb-0.5 ml-1">
-                                                {message.senderName}
+                                            <div style={{ marginBottom: 2, marginLeft: 4 }}>
+                                                <Text type="supporting" color="secondary">{message.senderName}</Text>
                                                 {message.senderPosition && (
-                                                    <span className="text-gray-400 ml-1">({message.senderPosition})</span>
+                                                    <Text type="supporting" color="disabled">{` (${message.senderPosition})`}</Text>
                                                 )}
-                                            </p>
+                                            </div>
                                         )}
-                                        <div className="flex items-end gap-1">
+                                        <div style={{ display: "flex", alignItems: "flex-end", gap: 4 }}>
                                             {isMyMessage && (
-                                                <span className="text-[10px] text-gray-400">
+                                                <Text type="supporting" color="secondary">
                                                     {formatMessageTime(message.createdAt)}
-                                                </span>
+                                                </Text>
                                             )}
                                             <div
-                                                className={`relative px-3 py-1.5 rounded-xl text-sm ${
-                                                    isMyMessage
-                                                        ? "bg-teal-600 text-white rounded-br-sm"
-                                                        : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                                                }`}
+                                                style={{
+                                                    position: "relative",
+                                                    padding: "6px 12px",
+                                                    borderRadius: 12,
+                                                    borderBottomRightRadius: isMyMessage ? 2 : 12,
+                                                    borderBottomLeftRadius: isMyMessage ? 12 : 2,
+                                                    whiteSpace: "pre-wrap",
+                                                    wordBreak: "break-word",
+                                                    background: isMyMessage ? C.bubbleMine : C.bubbleOther,
+                                                    color: isMyMessage ? "#ffffff" : "#111827",
+                                                }}
                                                 onTouchStart={() => handleTouchStart(message.id)}
                                                 onTouchEnd={handleTouchEnd}
                                                 onTouchCancel={handleTouchEnd}
@@ -387,8 +458,7 @@ export function FloatingChatMessages({
                                                     <img
                                                         src={message.fileUrl}
                                                         alt={message.fileName || "이미지"}
-                                                        className="max-w-full max-h-40 rounded cursor-pointer"
-                                                        style={{ display: "block" }}
+                                                        style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 4, cursor: "pointer", display: "block" }}
                                                         onClick={() => window.open(message.fileUrl, "_blank")}
                                                     />
                                                 ) : message.type === "FILE" && message.fileUrl ? (
@@ -396,22 +466,25 @@ export function FloatingChatMessages({
                                                         href={message.fileUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className={`text-xs underline flex items-center gap-1 ${
-                                                            isMyMessage ? "text-white" : "text-teal-600"
-                                                        }`}
+                                                        style={{
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            gap: 4,
+                                                            textDecoration: "underline",
+                                                            color: isMyMessage ? "#ffffff" : C.accent,
+                                                        }}
                                                     >
-                                                        <span>📎</span> {message.fileName || message.content}
+                                                        <Icon icon={FiPaperclip} size="xsm" color="inherit" />
+                                                        <Text type="supporting" color="inherit">{message.fileName || message.content}</Text>
                                                     </a>
                                                 ) : (
-                                                    <p className="text-[13px] whitespace-pre-wrap break-words leading-relaxed">
-                                                        {message.content}
-                                                    </p>
+                                                    <Text color="inherit">{message.content}</Text>
                                                 )}
                                             </div>
                                             {!isMyMessage && (
-                                                <span className="text-[10px] text-gray-400">
+                                                <Text type="supporting" color="secondary">
                                                     {formatMessageTime(message.createdAt)}
-                                                </span>
+                                                </Text>
                                             )}
                                         </div>
 
@@ -421,33 +494,47 @@ export function FloatingChatMessages({
                                         {/* 롱프레스 메뉴 (답글 + 이모지) */}
                                         {longPressMenuMessageId === message.id && (
                                             <div
-                                                className={`absolute z-40 ${
-                                                    isMyMessage ? "right-0" : "left-0"
-                                                } bottom-full mb-1`}
+                                                style={{
+                                                    position: "absolute",
+                                                    zIndex: 40,
+                                                    bottom: "100%",
+                                                    marginBottom: 4,
+                                                    ...(isMyMessage ? { right: 0 } : { left: 0 }),
+                                                }}
                                             >
-                                                <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                                                <div
+                                                    style={{
+                                                        background: "#ffffff",
+                                                        borderRadius: 12,
+                                                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+                                                        border: `1px solid ${C.border}`,
+                                                        overflow: "hidden",
+                                                    }}
+                                                >
                                                     {/* 이모지 바 */}
-                                                    <div className="flex gap-0.5 px-2 py-1.5 border-b border-gray-100">
+                                                    <div style={{ display: "flex", gap: 2, padding: "6px 8px", borderBottom: `1px solid ${C.borderLight}` }}>
                                                         {QUICK_EMOJIS.map((emoji) => (
-                                                            <button
+                                                            <Button
                                                                 key={emoji}
+                                                                label={`${emoji} 반응 추가`}
+                                                                isIconOnly
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                icon={<span style={{ fontSize: 18 }}>{emoji}</span>}
                                                                 onClick={() => handleToggleReaction(message.id, emoji)}
-                                                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-lg"
-                                                            >
-                                                                {emoji}
-                                                            </button>
+                                                            />
                                                         ))}
                                                     </div>
                                                     {/* 답글 버튼 */}
-                                                    <button
-                                                        onClick={() => handleReply(message)}
-                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                                        </svg>
-                                                        답장
-                                                    </button>
+                                                    <div style={{ padding: 4 }}>
+                                                        <Button
+                                                            label="답장"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<Icon icon={FiCornerUpLeft} size="sm" />}
+                                                            onClick={() => handleReply(message)}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -462,146 +549,190 @@ export function FloatingChatMessages({
 
             {/* 답글 미리보기 바 */}
             {replyTo && (
-                <div className="px-3 py-2 border-t border-gray-100 bg-gray-50 flex items-center gap-2">
-                    <div className="flex-1 min-w-0 border-l-2 border-teal-500 pl-2">
-                        <p className="text-[11px] font-semibold text-teal-600 truncate">{replyTo.senderName}</p>
-                        <p className="text-[11px] text-gray-500 truncate">
-                            {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
-                        </p>
+                <div
+                    style={{
+                        padding: "8px 12px",
+                        borderTop: `1px solid ${C.borderLight}`,
+                        background: C.bgGray50,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                    }}
+                >
+                    <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 8 }}>
+                        <Text type="supporting" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
+                        <div>
+                            <Text type="supporting" color="secondary" maxLines={1}>
+                                {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
+                            </Text>
+                        </div>
                     </div>
-                    <button
+                    <Button
+                        label="답장 취소"
+                        isIconOnly
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon="close" size="sm" />}
                         onClick={() => setReplyTo(null)}
-                        className="p-1 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
-                        aria-label="답장 취소"
-                    >
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    />
                 </div>
             )}
 
             {/* Input Area */}
-            <div className="px-3 py-2 border-t border-gray-200 flex-shrink-0">
-                <div className="flex gap-2 items-end">
-                    <input
-                        type="text"
-                        value={messageInput}
-                        onChange={(e) => onMessageInputChange(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={replyTo ? `${replyTo.senderName}에게 답장...` : "메시지를 입력하세요..."}
-                        disabled={isSendingMessage}
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50"
-                    />
-                    <button
+            <div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                    <div style={{ flex: 1 }} onKeyDown={handleKeyDown}>
+                        <TextInput
+                            label="메시지 입력"
+                            isLabelHidden
+                            type="text"
+                            value={messageInput}
+                            onChange={(value) => onMessageInputChange(value)}
+                            placeholder={replyTo ? `${replyTo.senderName}에게 답장...` : "메시지를 입력하세요..."}
+                            isDisabled={isSendingMessage}
+                        />
+                    </div>
+                    <Button
+                        label="전송"
+                        isIconOnly
+                        variant="primary"
+                        icon={<Icon icon={FiSend} size="sm" />}
                         onClick={handleSendMessage}
-                        disabled={!messageInput.trim() || isSendingMessage}
-                        className="p-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-                        aria-label="전송"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                    </button>
+                        isDisabled={!messageInput.trim() || isSendingMessage}
+                    />
                 </div>
             </div>
 
             {/* Info Drawer */}
             {showDrawer && (
-                <div className="absolute inset-0 bg-white z-20 flex flex-col">
+                <div
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "#ffffff",
+                        zIndex: 20,
+                        display: "flex",
+                        flexDirection: "column",
+                    }}
+                >
                     {/* Drawer Header */}
-                    <div className="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                        <h3 className="text-sm font-semibold text-gray-900">채팅방 정보</h3>
-                        <button
+                    <div
+                        style={{
+                            padding: "10px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Text type="body" weight="semibold" color="primary">채팅방 정보</Text>
+                        <Button
+                            label="닫기"
+                            isIconOnly
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon="close" size="md" />}
                             onClick={() => setShowDrawer(false)}
-                            className="p-1 rounded-md hover:bg-gray-100 transition-colors"
-                            aria-label="닫기"
-                        >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto">
+                    <div style={{ flex: 1, overflowY: "auto" }}>
                         {/* 참여자 */}
-                        <div className="p-3 border-b border-gray-100">
-                            <h4 className="text-xs font-semibold text-gray-700 mb-2">
-                                참여자 ({participants.length}명)
-                            </h4>
+                        <div style={{ padding: 12, borderBottom: `1px solid ${C.borderLight}` }}>
+                            <div style={{ marginBottom: 8 }}>
+                                <Text type="label" weight="semibold" color="primary">
+                                    참여자 ({participants.length}명)
+                                </Text>
+                            </div>
                             {isLoadingParticipants ? (
-                                <div className="flex justify-center py-3">
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-teal-500"></div>
+                                <div style={{ display: "flex", justifyContent: "center", padding: "12px 0" }}>
+                                    <Spinner size="sm" aria-label="참여자 불러오는 중" />
                                 </div>
                             ) : participants.length > 0 ? (
-                                <div className="space-y-1">
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                     {participants.map((p, i) => (
-                                        <div key={p.userId || i} className="flex items-center gap-2 py-1.5">
-                                            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <span className="text-xs font-medium text-teal-600">
-                                                    {p.userName?.charAt(0) || "?"}
-                                                </span>
-                                            </div>
-                                            <span className="text-sm text-gray-900">{p.userName}</span>
+                                        <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+                                            <Avatar name={p.userName || "?"} size="small" />
+                                            <Text type="body" color="primary">{p.userName}</Text>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-xs text-gray-400 text-center py-3">참여자 정보를 불러올 수 없습니다</p>
+                                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                    <Text type="supporting" color="secondary">참여자 정보를 불러올 수 없습니다</Text>
+                                </div>
                             )}
                         </div>
 
                         {/* 사진 */}
-                        <div className="p-3 border-b border-gray-100">
-                            <h4 className="text-xs font-semibold text-gray-700 mb-2">
-                                사진 ({messages.filter(m => m.type === "IMAGE" && m.fileUrl).length})
-                            </h4>
+                        <div style={{ padding: 12, borderBottom: `1px solid ${C.borderLight}` }}>
+                            <div style={{ marginBottom: 8 }}>
+                                <Text type="label" weight="semibold" color="primary">
+                                    사진 ({messages.filter(m => m.type === "IMAGE" && m.fileUrl).length})
+                                </Text>
+                            </div>
                             {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
-                                <div className="grid grid-cols-3 gap-1.5">
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                                     {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
                                         <img
                                             key={m.id}
                                             src={m.fileUrl!}
                                             alt={m.fileName || "사진"}
-                                            className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 8, cursor: "pointer" }}
                                             onClick={() => window.open(m.fileUrl, "_blank")}
                                         />
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-xs text-gray-400 text-center py-3">공유된 사진이 없습니다</p>
+                                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                    <Text type="supporting" color="secondary">공유된 사진이 없습니다</Text>
+                                </div>
                             )}
                         </div>
 
                         {/* 파일 */}
-                        <div className="p-3">
-                            <h4 className="text-xs font-semibold text-gray-700 mb-2">
-                                파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
-                            </h4>
+                        <div style={{ padding: 12 }}>
+                            <div style={{ marginBottom: 8 }}>
+                                <Text type="label" weight="semibold" color="primary">
+                                    파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
+                                </Text>
+                            </div>
                             {messages.filter(m => m.type === "FILE" && m.fileUrl).length > 0 ? (
-                                <div className="space-y-1">
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                     {messages.filter(m => m.type === "FILE" && m.fileUrl).map(m => (
                                         <a
                                             key={m.id}
                                             href={m.fileUrl!}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                            style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderRadius: 8, textDecoration: "none" }}
                                         >
-                                            <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                                </svg>
+                                            <div
+                                                style={{
+                                                    width: 28,
+                                                    height: 28,
+                                                    background: C.borderLight,
+                                                    borderRadius: 8,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <Icon icon={FiPaperclip} size="sm" color="secondary" />
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs text-gray-900 truncate">{m.fileName || m.content}</p>
-                                                <p className="text-[10px] text-gray-400">{formatMessageTime(m.createdAt)}</p>
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <Text type="supporting" color="primary" maxLines={1}>{m.fileName || m.content}</Text>
+                                                <Text type="supporting" color="secondary">{formatMessageTime(m.createdAt)}</Text>
                                             </div>
                                         </a>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-xs text-gray-400 text-center py-3">공유된 파일이 없습니다</p>
+                                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                    <Text type="supporting" color="secondary">공유된 파일이 없습니다</Text>
+                                </div>
                             )}
                         </div>
                     </div>

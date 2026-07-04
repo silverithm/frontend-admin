@@ -216,6 +216,24 @@ html {
 .carev-formbuilder-field-item:hover { border-color: var(--color-border-emphasized); background: var(--color-background-muted); }
 .carev-formbuilder-preset-item:hover { background: var(--color-background-muted); }
 
+/* Phase 7: 채팅 도메인 hover */
+.carev-fchat-fab:hover {
+  background: #0d9488 !important;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important;
+}
+.carev-chat-room-item { transition: background 150ms ease; }
+.carev-chat-room-item:hover { background: #f9fafb; }
+.carev-chat-reaction { transition: background 150ms ease; }
+.carev-chat-reaction:hover { background: #f9fafb; }
+.carev-chat-emoji-btn { transition: background 150ms ease; }
+.carev-chat-emoji-btn:hover { background: #f3f4f6; }
+.carev-chat-menu-item { transition: background 150ms ease; }
+.carev-chat-menu-item:hover { background: #f9fafb; }
+.carev-chat-file-link { transition: background 150ms ease; }
+.carev-chat-file-link:hover { background: #f9fafb; }
+.carev-chat-photo { transition: opacity 150ms ease; }
+.carev-chat-photo:hover { opacity: 0.8; }
+
 /* 탭 네비게이션 스크롤바 숨김 */
 .scrollbar-hide {
   -ms-overflow-style: none;
