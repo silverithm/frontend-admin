@@ -52,7 +52,7 @@ const nextConfig: NextConfig = {
       },
       {
         // 셀프호스팅 rhwp-studio의 해시된 에셋(wasm/js/css) — 파일명에 해시가 있어 영구 캐시 가능
-        source: '/rhwp/assets/:path*',
+        source: '/rhwp-studio/assets/:path*',
         headers: [
           {
             key: 'Cache-Control',

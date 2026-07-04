@@ -127,9 +127,9 @@ export default function DocumentViewerModal({
             const { createEditor } = await import('@rhwp/editor');
             if (cancelled || !hwpContainerRef.current) return;
 
-            // 셀프호스팅 rhwp-studio (public/rhwp/) — 문서가 외부 오리진 iframe으로 나가지 않도록 한다
+            // 셀프호스팅 rhwp-studio (public/rhwp-studio/) — 문서가 외부 오리진 iframe으로 나가지 않도록 한다
             const editor = await createEditor(hwpContainerRef.current, {
-              studioUrl: '/rhwp/index.html',
+              studioUrl: '/rhwp-studio/index.html',
             });
             if (cancelled) {
               editor.destroy();
