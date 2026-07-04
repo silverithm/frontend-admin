@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconSpeakerphone } from '@tabler/icons-react';
+import { HStack } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
 import { getNotices } from '@/lib/apiService';
 import { Notice } from '@/types/notice';
 import { tokens } from '@/theme';
@@ -128,57 +131,47 @@ export default function NoticeRollingBanner({
             padding: '0 24px',
           }}
         >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            maxWidth: '1140px',
-            margin: '0 auto',
-            width: '100%',
-          }}>
+          <HStack
+            gap={3}
+            vAlign="center"
+            width="100%"
+            style={{ maxWidth: '1140px', margin: '0 auto' }}
+          >
             {/* Icon + Label */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-              <IconSpeakerphone size={18} stroke={1.5} color={tokens.colors.textPrimary} />
-              <span style={{
-                fontSize: '12px',
-                fontWeight: 500,
-                color: tokens.colors.textPrimary,
-                whiteSpace: 'nowrap',
-              }}>
+            <HStack gap={1} vAlign="center" style={{ flexShrink: 0 }}>
+              <Icon icon={IconSpeakerphone} size="sm" color="primary" />
+              <Text type="label" color="primary" weight="medium" textWrap="nowrap">
                 공지사항
-              </span>
-            </div>
+              </Text>
+            </HStack>
 
             {/* Badge */}
-            <span style={{
+            <div style={{
               ...getBadgeStyle(),
               padding: '2px 8px',
               borderRadius: '4px',
-              fontSize: '11px',
-              fontWeight: 600,
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}>
-              {getBadgeLabel()}
-            </span>
+              <Text type="label" size="2xs" weight="semibold" color="inherit" textWrap="nowrap">
+                {getBadgeLabel()}
+              </Text>
+            </div>
 
             {/* Notice Title */}
-            <p style={{
-              fontSize: '14px',
-              fontWeight: 500,
-              color: tokens.colors.textPrimary,
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              margin: 0,
-            }}>
+            <Text
+              type="body"
+              weight="medium"
+              color="primary"
+              maxLines={1}
+              style={{ flex: 1, minWidth: 0 }}
+            >
               {currentNotice.title || '(제목 없음)'}
-            </p>
+            </Text>
 
             {/* Navigation Dots */}
             {notices.length > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <HStack gap={1.5} vAlign="center" style={{ flexShrink: 0 }}>
                 {notices.map((_, index) => (
                   <button
                     key={index}
@@ -201,9 +194,9 @@ export default function NoticeRollingBanner({
                     }}
                   />
                 ))}
-              </div>
+              </HStack>
             )}
-          </div>
+          </HStack>
         </motion.div>
       </AnimatePresence>
     </motion.div>

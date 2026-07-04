@@ -6,6 +6,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+
+const navLinkStyle: React.CSSProperties = {
+  color: '#c3fae8',
+  fontWeight: 500,
+  textDecoration: 'none',
+  transition: 'color 200ms ease',
+};
 
 const Navbar: React.FC = () => {
   const router = useRouter();
@@ -30,63 +39,56 @@ const Navbar: React.FC = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-slate-900/95 backdrop-blur-lg shadow-lg border-b border-teal-800/30'
-          : 'bg-transparent'
-      }`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        transition: 'all 300ms ease',
+        background: isScrolled ? 'rgba(15, 23, 42, 0.95)' : 'transparent',
+        backdropFilter: isScrolled ? 'blur(12px)' : undefined,
+        boxShadow: isScrolled ? '0 4px 24px rgba(0,0,0,0.2)' : undefined,
+        borderBottom: isScrolled ? '1px solid rgba(15, 118, 110, 0.3)' : undefined,
+      }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           {/* 로고 */}
-          <Link href="/" className="flex items-center">
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             <Image
               src="/images/logo-text.png"
               alt="케어브이 로고"
               width={120}
               height={40}
-              className="transition-transform duration-300 hover:scale-105"
             />
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="hidden md:flex items-center space-x-8">
-            {/* 네비게이션 링크 */}
-            <div className="flex items-center space-x-6">
+          <div className="carev-nav-desktop" style={{ alignItems: 'center', gap: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-teal-100 hover:text-white transition-colors duration-200 font-medium"
-                >
+                <a key={link.href} href={link.href} style={navLinkStyle}>
                   {link.label}
                 </a>
               ))}
             </div>
 
             {/* CTA 버튼들 */}
-            <div className="flex items-center space-x-4 ml-8">
-              <button
-                onClick={() => router.push('/signup')}
-                className="px-4 py-2 text-teal-100 hover:text-white transition-colors duration-200 font-medium"
-              >
-                회원가입
-              </button>
-              <button
-                onClick={() => router.push('/login')}
-                className="px-5 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                로그인
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Button label="회원가입" variant="ghost" onClick={() => router.push('/signup')} />
+              <Button label="로그인" variant="primary" onClick={() => router.push('/login')} />
             </div>
           </div>
 
           {/* 모바일 메뉴 버튼 */}
           <button
-            className="md:hidden text-teal-100 hover:text-white transition-colors"
+            className="carev-nav-mobile-toggle"
+            aria-label="메뉴 열기"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c3fae8' }}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            <Icon icon={isMobileMenuOpen ? FiX : FiMenu} size="lg" />
           </button>
         </div>
       </div>
@@ -95,42 +97,46 @@ const Navbar: React.FC = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
+            className="carev-nav-mobile-menu"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-slate-900/95 backdrop-blur-lg border-b border-teal-800/30"
+            style={{
+              overflow: 'hidden',
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(12px)',
+              borderBottom: '1px solid rgba(15, 118, 110, 0.3)',
+            }}
           >
-            <div className="px-4 py-4 space-y-4">
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="block text-teal-100 hover:text-white transition-colors duration-200 font-medium py-2"
+                  style={{ ...navLinkStyle, display: 'block', padding: '8px 0' }}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="pt-4 space-y-3 border-t border-teal-800/30">
-                <button
+              <div style={{ paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(15, 118, 110, 0.3)' }}>
+                <Button
+                  label="회원가입"
+                  variant="ghost"
                   onClick={() => {
                     router.push('/signup');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left text-teal-100 hover:text-white transition-colors duration-200 font-medium py-2"
-                >
-                  회원가입
-                </button>
-                <button
+                />
+                <Button
+                  label="로그인"
+                  variant="primary"
                   onClick={() => {
                     router.push('/login');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full px-5 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all duration-300 shadow-lg"
-                >
-                  로그인
-                </button>
+                />
               </div>
             </div>
           </motion.div>

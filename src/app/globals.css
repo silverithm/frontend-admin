@@ -55,6 +55,21 @@ html {
   }
 }
 
+/* Navbar 반응형 (Tailwind hidden/md:flex 대체) */
+.carev-nav-desktop { display: none; }
+.carev-nav-mobile-toggle { display: inline-flex; }
+@media (min-width: 768px) {
+  .carev-nav-desktop { display: flex; }
+  .carev-nav-mobile-toggle { display: none; }
+  .carev-nav-mobile-menu { display: none; }
+}
+
+/* MemberSelector 리스트 아이템 hover (Tailwind hover: 대체) */
+.carev-member-item:hover {
+  border-color: #99f6e4 !important;
+  background: #f9fafb !important;
+}
+
 /* 탭 네비게이션 스크롤바 숨김 */
 .scrollbar-hide {
   -ms-overflow-style: none;
