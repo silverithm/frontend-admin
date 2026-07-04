@@ -2,9 +2,28 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { FiChevronLeft, FiEye, FiMessageSquare, FiStar, FiTrash2 } from 'react-icons/fi';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { Selector } from '@astryxdesign/core/Selector';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Divider } from '@astryxdesign/core/Divider';
+import { TabList, Tab } from '@astryxdesign/core/TabList';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 import {
   getNoticeDetail,
   updateNotice,
@@ -178,11 +197,11 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const getPriorityStyle = (p: NoticePriority) => {
+  const getPriorityVariant = (p: NoticePriority): 'red' | 'blue' | 'neutral' => {
     switch (p) {
-      case 'HIGH': return 'bg-red-100 text-red-800';
-      case 'NORMAL': return 'bg-blue-100 text-blue-800';
-      case 'LOW': return 'bg-gray-100 text-gray-800';
+      case 'HIGH': return 'red';
+      case 'NORMAL': return 'blue';
+      case 'LOW': return 'neutral';
     }
   };
 
@@ -207,24 +226,19 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner size="lg" aria-label="불러오는 중" />
       </div>
     );
   }
 
   if (!notice) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500">공지사항을 찾을 수 없습니다.</p>
-          <button onClick={() => router.back()} className="mt-4 text-blue-600 hover:underline">
-            돌아가기
-          </button>
-        </div>
+      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <VStack gap={4} align="center">
+          <Text color="secondary" justify="center">공지사항을 찾을 수 없습니다.</Text>
+          <Button label="돌아가기" variant="ghost" onClick={() => router.back()} />
+        </VStack>
       </div>
     );
   }
@@ -233,310 +247,264 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <div className="min-h-screen bg-gray-50">
+      <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
         {/* 헤더 */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <button
+        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ maxWidth: 896, margin: '0 auto', padding: '16px 24px' }}>
+            <HStack hAlign="between" vAlign="center">
+              <HStack gap={4} vAlign="center">
+                <Button
+                  label="뒤로"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  icon={<Icon icon={FiChevronLeft} size="sm" />}
                   onClick={() => router.push(isAdmin ? '/admin?tab=notice' : '/employee?tab=notice')}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <h1 className="text-xl font-bold text-gray-900">공지사항 상세</h1>
-              </div>
+                />
+                <Heading level={3}>공지사항 상세</Heading>
+              </HStack>
               {isAdmin && (
-              <div className="flex items-center space-x-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleUpdate}
-                      disabled={isSubmitting}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                    >
-                      {isSubmitting ? '저장 중...' : '저장'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      삭제
-                    </button>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      수정
-                    </button>
-                  </>
-                )}
-              </div>
+                <HStack gap={2} vAlign="center">
+                  {isEditing ? (
+                    <>
+                      <Button label="취소" variant="secondary" size="sm" onClick={() => setIsEditing(false)} />
+                      <Button
+                        label={isSubmitting ? '저장 중...' : '저장'}
+                        variant="primary"
+                        size="sm"
+                        onClick={handleUpdate}
+                        isDisabled={isSubmitting}
+                        isLoading={isSubmitting}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Button label="삭제" variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} />
+                      <Button label="수정" variant="primary" size="sm" onClick={() => setIsEditing(true)} />
+                    </>
+                  )}
+                </HStack>
               )}
-            </div>
+            </HStack>
           </div>
         </div>
 
         {/* 탭 */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="flex space-x-8">
-              {[
-                { key: 'content', label: '내용' },
-                { key: 'comments', label: '댓글', count: comments.length },
-                { key: 'readers', label: '읽은 사람', count: readers.length },
-              ].map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as TabType)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.key
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {tab.label}
-                  {tab.count !== undefined && (
-                    <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                      activeTab === tab.key ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
+        <div style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ maxWidth: 896, margin: '0 auto', padding: '0 24px' }}>
+            <TabList value={activeTab} onChange={(value) => setActiveTab(value as TabType)}>
+              <Tab value="content" label="내용" />
+              <Tab value="comments" label={`댓글 (${comments.length})`} />
+              <Tab value="readers" label={`읽은 사람 (${readers.length})`} />
+            </TabList>
           </div>
         </div>
 
         {/* 본문 */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div style={{ maxWidth: 896, margin: '0 auto', padding: '32px 24px' }}>
           {activeTab === 'content' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               {isEditing ? (
                 /* 수정 모드 */
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      />
+                <Card padding={6}>
+                  <VStack gap={4} align="start" width="100%">
+                    <div style={{ width: '100%' }}>
+                      <TextInput label="제목" value={title} onChange={(value) => setTitle(value)} />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
-                      <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        rows={12}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 resize-none"
-                      />
+                    <div style={{ width: '100%' }}>
+                      <TextArea label="내용" value={content} onChange={(value) => setContent(value)} rows={12} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">우선순위</label>
-                        <select
-                          value={priority}
-                          onChange={(e) => setPriority(e.target.value as NoticePriority)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                        >
-                          <option value="HIGH">긴급</option>
-                          <option value="NORMAL">일반</option>
-                          <option value="LOW">낮음</option>
-                        </select>
-                      </div>
-                      <div className="flex items-center pt-8">
-                        <label className="flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isPinned}
-                            onChange={(e) => setIsPinned(e.target.checked)}
-                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="ml-3 text-sm text-gray-700">상단 고정</span>
-                        </label>
+                    <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'end' }}>
+                      <Selector
+                        label="우선순위"
+                        value={priority}
+                        onChange={(value) => setPriority(value as NoticePriority)}
+                        options={[
+                          { value: 'HIGH', label: '긴급' },
+                          { value: 'NORMAL', label: '일반' },
+                          { value: 'LOW', label: '낮음' },
+                        ]}
+                      />
+                      <div style={{ paddingBottom: 8 }}>
+                        <CheckboxInput label="상단 고정" value={isPinned} onChange={(checked) => setIsPinned(checked)} />
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </VStack>
+                </Card>
               ) : (
                 /* 보기 모드 */
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    {notice.isPinned && (
-                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                    )}
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getPriorityStyle(notice.priority)}`}>
-                      {getPriorityText(notice.priority)}
-                    </span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{notice.title}</h2>
-                  <div className="flex items-center text-sm text-gray-500 space-x-4 mb-6">
-                    <span>작성자: {notice.authorName}</span>
-                    <span>{formatDate(notice.createdAt, 'yyyy.MM.dd HH:mm')}</span>
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                      {notice.viewCount}
-                    </span>
-                  </div>
-                  <hr className="mb-6" />
-                  <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">{notice.content}</div>
-                </div>
+                <Card padding={6}>
+                  <VStack gap={2} align="start" width="100%">
+                    <HStack gap={2} vAlign="center">
+                      {notice.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
+                      <Badge variant={getPriorityVariant(notice.priority)} label={getPriorityText(notice.priority)} />
+                    </HStack>
+                    <Heading level={2}>{notice.title}</Heading>
+                    <HStack gap={4} vAlign="center" wrap="wrap">
+                      <Text type="supporting">작성자: {notice.authorName}</Text>
+                      <Text type="supporting">{formatDate(notice.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                      <HStack gap={1} vAlign="center">
+                        <Icon icon={FiEye} size="sm" color="secondary" />
+                        <Text type="supporting">{notice.viewCount}</Text>
+                      </HStack>
+                    </HStack>
+                    <div style={{ width: '100%', paddingTop: 8, paddingBottom: 8 }}>
+                      <Divider />
+                    </div>
+                    <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
+                      <Text type="body" color="secondary" display="block">{notice.content}</Text>
+                    </div>
+                  </VStack>
+                </Card>
               )}
             </motion.div>
           )}
 
           {activeTab === 'comments' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-              {/* 댓글 작성 */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">댓글 작성</h3>
-                <div className="flex space-x-3">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="댓글을 입력하세요..."
-                    rows={3}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 resize-none"
-                  />
-                  <button
-                    onClick={handleSubmitComment}
-                    disabled={isSubmittingComment || !newComment.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors self-end"
-                  >
-                    {isSubmittingComment ? '등록 중...' : '등록'}
-                  </button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <VStack gap={6} align="start" width="100%">
+                {/* 댓글 작성 */}
+                <div style={{ width: '100%' }}>
+                  <Card padding={6}>
+                    <VStack gap={4} align="start" width="100%">
+                      <Heading level={4}>댓글 작성</Heading>
+                      <HStack gap={3} vAlign="end" width="100%">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <TextArea
+                            label="댓글"
+                            isLabelHidden
+                            value={newComment}
+                            onChange={(value) => setNewComment(value)}
+                            placeholder="댓글을 입력하세요..."
+                            rows={3}
+                          />
+                        </div>
+                        <Button
+                          label={isSubmittingComment ? '등록 중...' : '등록'}
+                          variant="primary"
+                          onClick={handleSubmitComment}
+                          isDisabled={isSubmittingComment || !newComment.trim()}
+                          isLoading={isSubmittingComment}
+                        />
+                      </HStack>
+                    </VStack>
+                  </Card>
                 </div>
-              </div>
 
-              {/* 댓글 목록 */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {comments.length > 0 ? (
-                  <div className="divide-y divide-gray-100">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
-                              {comment.authorName.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <span className="font-medium text-gray-900">{comment.authorName}</span>
-                                <span className="text-xs text-gray-500">
-                                  {formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}
-                                </span>
-                              </div>
-                              <p className="text-gray-700 mt-1">{comment.content}</p>
+                {/* 댓글 목록 */}
+                <div style={{ width: '100%' }}>
+                  <Card padding={0}>
+                    {comments.length > 0 ? (
+                      <div>
+                        {comments.map((comment, index) => (
+                          <div key={comment.id}>
+                            {index > 0 && <Divider />}
+                            <div style={{ padding: 16 }}>
+                              <HStack gap={3} vAlign="start" hAlign="between" width="100%">
+                                <HStack gap={3} vAlign="start">
+                                  <Avatar name={comment.authorName || '?'} size="small" />
+                                  <VStack gap={1} align="start">
+                                    <HStack gap={2} vAlign="center">
+                                      <Text type="body" weight="medium">{comment.authorName}</Text>
+                                      <Text type="supporting">{formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                    </HStack>
+                                    <Text type="body" color="secondary" display="block" wordBreak="break-word">{comment.content}</Text>
+                                  </VStack>
+                                </HStack>
+                                <Button
+                                  label="댓글 삭제"
+                                  variant="ghost"
+                                  size="sm"
+                                  isIconOnly
+                                  icon={<Icon icon={FiTrash2} size="sm" />}
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                />
+                              </HStack>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    <p className="text-gray-500">아직 댓글이 없습니다</p>
-                  </div>
-                )}
-              </div>
+                    ) : (
+                      <div style={{ padding: '48px 24px' }}>
+                        <EmptyState icon={<Icon icon={FiMessageSquare} size="lg" />} title="아직 댓글이 없습니다" />
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              </VStack>
             </motion.div>
           )}
 
           {activeTab === 'readers' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900">읽은 사람 ({readers.length}명)</h3>
+              <Card padding={0}>
+                <div style={{ padding: 16 }}>
+                  <Heading level={4}>읽은 사람 ({readers.length}명)</Heading>
                 </div>
+                <Divider />
                 {readers.length > 0 ? (
-                  <div className="divide-y divide-gray-100">
-                    {readers.map((reader) => (
-                      <div key={reader.id} className="p-4 flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-semibold">
-                            {reader.userName.charAt(0)}
-                          </div>
-                          <span className="font-medium text-gray-900">{reader.userName}</span>
+                  <div>
+                    {readers.map((reader, index) => (
+                      <div key={reader.id}>
+                        {index > 0 && <Divider />}
+                        <div style={{ padding: 16 }}>
+                          <HStack gap={3} vAlign="center" hAlign="between" width="100%">
+                            <HStack gap={3} vAlign="center">
+                              <Avatar name={reader.userName || '?'} size="small" />
+                              <Text type="body" weight="medium">{reader.userName}</Text>
+                            </HStack>
+                            <Text type="supporting">{formatDate(reader.readAt, 'yyyy.MM.dd HH:mm')}</Text>
+                          </HStack>
                         </div>
-                        <span className="text-sm text-gray-500">
-                          {formatDate(reader.readAt, 'yyyy.MM.dd HH:mm')}
-                        </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    <p className="text-gray-500">아직 읽은 사람이 없습니다</p>
+                  <div style={{ padding: '48px 24px' }}>
+                    <EmptyState icon={<Icon icon={FiEye} size="lg" />} title="아직 읽은 사람이 없습니다" />
                   </div>
                 )}
-              </div>
+              </Card>
             </motion.div>
           )}
         </div>
       </div>
 
       {/* 삭제 확인 모달 */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-start mb-4">
-                <div className="bg-red-100 p-2 rounded-full mr-3">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      <Dialog
+        isOpen={showDeleteConfirm}
+        onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}
+        purpose="form"
+        width={440}
+      >
+        <Layout
+          header={<DialogHeader title="공지사항 삭제" onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }} />}
+          content={
+            <LayoutContent>
+              <HStack gap={3} vAlign="start">
+                <div style={{ background: '#fee2e2', padding: 8, borderRadius: 9999, display: 'flex' }}>
+                  <Icon icon="warning" size="md" color="error" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">공지사항 삭제</h3>
-                  <p className="text-gray-600 text-sm">이 공지사항을 삭제하시겠습니까?<br />삭제된 공지사항은 복구할 수 없습니다.</p>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={isSubmitting}>
-                  취소
-                </button>
-                <button onClick={handleDelete} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
-                  {isSubmitting ? '삭제 중...' : '삭제'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <Text type="body" color="secondary">이 공지사항을 삭제하시겠습니까? 삭제된 공지사항은 복구할 수 없습니다.</Text>
+              </HStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="취소" variant="secondary" onClick={() => setShowDeleteConfirm(false)} isDisabled={isSubmitting} />
+                <Button
+                  label={isSubmitting ? '삭제 중...' : '삭제'}
+                  variant="destructive"
+                  onClick={handleDelete}
+                  isDisabled={isSubmitting}
+                  isLoading={isSubmitting}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
     </>
   );
 }
