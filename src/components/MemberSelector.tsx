@@ -8,10 +8,17 @@ import {
   ALL_ROLE_FILTER,
   buildRoleNames,
   getMemberRoleName,
-  getRoleBadgeClasses,
   getRoleDisplayName,
   type MemberRoleSource,
 } from "@/lib/roleUtils";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Icon } from "@astryxdesign/core/Icon";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Button } from "@astryxdesign/core/Button";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Spinner } from "@astryxdesign/core/Spinner";
 
 export interface Member extends MemberRoleSource {
   id: string;
@@ -24,6 +31,54 @@ export interface Member extends MemberRoleSource {
 interface MemberSelectorProps {
   onSelect: (member: Member) => void;
   selectedMember: Member | null;
+}
+
+type BadgeVariant =
+  | "neutral"
+  | "blue"
+  | "green"
+  | "orange"
+  | "purple"
+  | "pink"
+  | "cyan";
+
+const ROLE_VARIANT_PALETTE: BadgeVariant[] = [
+  "blue",
+  "green",
+  "orange",
+  "purple",
+  "pink",
+  "cyan",
+];
+
+function hashRoleName(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function getRoleBadgeVariant(role?: string | null): BadgeVariant {
+  const normalizedRole = (role ?? "").trim();
+
+  if (!normalizedRole) {
+    return "neutral";
+  }
+  if (normalizedRole === "admin") {
+    return "purple";
+  }
+  if (normalizedRole === "caregiver") {
+    return "blue";
+  }
+  if (normalizedRole === "office") {
+    return "green";
+  }
+
+  return ROLE_VARIANT_PALETTE[
+    hashRoleName(normalizedRole) % ROLE_VARIANT_PALETTE.length
+  ];
 }
 
 const MemberSelector: React.FC<MemberSelectorProps> = ({
@@ -107,112 +162,131 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-200 border-t-teal-500"></div>
-      </div>
+      <VStack vAlign="center" hAlign="center" height={256}>
+        <Spinner size="lg" label="직원 목록을 불러오는 중..." />
+      </VStack>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500 font-medium">{error}</p>
-        <button
-          onClick={fetchMembers}
-          className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors font-medium"
-        >
-          다시 시도
-        </button>
-      </div>
+      <Banner
+        status="error"
+        title="직원 목록을 불러오지 못했습니다"
+        description={error}
+        endContent={
+          <Button label="다시 시도" variant="secondary" onClick={fetchMembers} />
+        }
+      />
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="이름 또는 이메일로 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-gray-900 placeholder-gray-400"
-          />
-        </div>
+    <VStack gap={4}>
+      <VStack gap={3}>
+        <TextInput
+          label="이름 또는 이메일로 검색"
+          isLabelHidden
+          value={searchTerm}
+          onChange={(value) => setSearchTerm(value)}
+          placeholder="이름 또는 이메일로 검색..."
+          startIcon={FiSearch}
+        />
 
-        <div className="flex flex-wrap gap-2">
+        <HStack gap={2} wrap="wrap">
           {[ALL_ROLE_FILTER, ...availableRoles].map((roleName) => (
-            <button
+            <Button
               key={roleName}
+              label={
+                roleName === ALL_ROLE_FILTER
+                  ? "전체"
+                  : getRoleDisplayName(roleName)
+              }
+              variant={roleFilter === roleName ? "primary" : "secondary"}
+              size="sm"
               onClick={() => setRoleFilter(roleName)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                roleFilter === roleName
-                  ? "bg-teal-500 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {roleName === ALL_ROLE_FILTER
-                ? "전체"
-                : getRoleDisplayName(roleName)}
-            </button>
+            />
           ))}
-        </div>
-      </div>
+        </HStack>
+      </VStack>
 
-      <div className="max-h-96 overflow-y-auto space-y-2 pr-2">
+      <div
+        style={{
+          maxHeight: 384,
+          overflowY: "auto",
+          paddingRight: 8,
+        }}
+      >
         {filteredMembers.length === 0 ? (
-          <div className="text-center py-8">
-            <FiUser className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-            <p className="text-gray-400">조건에 맞는 직원이 없습니다.</p>
-          </div>
+          <VStack vAlign="center" hAlign="center" gap={2} height={192}>
+            <Icon icon={FiUser} size="lg" color="tertiary" />
+            <Text type="supporting">조건에 맞는 직원이 없습니다.</Text>
+          </VStack>
         ) : (
-          filteredMembers.map((member) => {
-            const roleName = getMemberRoleName(member);
-            const roleBadgeClasses = getRoleBadgeClasses(roleName);
+          <VStack gap={2}>
+            {filteredMembers.map((member) => {
+              const roleName = getMemberRoleName(member);
+              const isSelected = selectedMember?.id === member.id;
 
-            return (
-              <div
-                key={member.id}
-                onClick={() => onSelect(member)}
-                className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedMember?.id === member.id
-                    ? "border-teal-500 bg-teal-50"
-                    : "border-gray-200 hover:border-teal-200 hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-full ${roleBadgeClasses}`}>
-                      <FiBriefcase className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.email}</p>
-                    </div>
-                  </div>
-                  <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full border ${roleBadgeClasses}`}
-                  >
-                    {getRoleDisplayName(roleName)}
-                  </span>
+              return (
+                <div
+                  key={member.id}
+                  onClick={() => onSelect(member)}
+                  className={isSelected ? undefined : "carev-member-item"}
+                  style={{
+                    padding: 16,
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    transition: "all 150ms ease",
+                    border: isSelected
+                      ? "1px solid #14b8a6"
+                      : "1px solid #e5e7eb",
+                    background: isSelected ? "#f0fdfa" : "#ffffff",
+                  }}
+                >
+                  <HStack hAlign="between" vAlign="center" gap={3}>
+                    <HStack gap={3} vAlign="center">
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 36,
+                          height: 36,
+                          borderRadius: "9999px",
+                          background: "#f3f4f6",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon icon={FiBriefcase} size="sm" color="secondary" />
+                      </div>
+                      <VStack gap={0.5}>
+                        <Text weight="medium">{member.name}</Text>
+                        <Text type="supporting">{member.email}</Text>
+                      </VStack>
+                    </HStack>
+                    <Badge
+                      variant={getRoleBadgeVariant(roleName)}
+                      label={getRoleDisplayName(roleName)}
+                    />
+                  </HStack>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </VStack>
         )}
       </div>
 
       {selectedMember && (
-        <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg">
-          <p className="text-sm text-teal-800">
-            <span className="font-medium">선택된 직원:</span>{" "}
-            {selectedMember.name} (
-            {getRoleDisplayName(getMemberRoleName(selectedMember))})
-          </p>
-        </div>
+        <Banner
+          status="success"
+          title="선택된 직원"
+          description={`${selectedMember.name} (${getRoleDisplayName(
+            getMemberRoleName(selectedMember)
+          )})`}
+        />
       )}
-    </div>
+    </VStack>
   );
 };
 

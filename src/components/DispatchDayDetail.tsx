@@ -2,7 +2,15 @@
 
 import { format, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
-import { motion } from "framer-motion";
+import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
+import { Button } from "@astryxdesign/core/Button";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Card } from "@astryxdesign/core/Card";
+import { Badge } from "@astryxdesign/core/Badge";
+import { IconUser, IconBus, IconUsers, IconMoon } from "@tabler/icons-react";
 import type { DailyDispatch, RouteDispatch } from "@/types/dispatch";
 import { isNonWorkingDay } from "@/lib/dispatchAlgorithm";
 
@@ -10,6 +18,12 @@ interface DispatchDayDetailProps {
   dispatch: DailyDispatch | null;
   onClose: () => void;
 }
+
+const infoBoxStyle: React.CSSProperties = {
+  background: "rgba(255, 255, 255, 0.6)",
+  borderRadius: 8,
+  padding: 12,
+};
 
 export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDetailProps) {
   if (!dispatch) return null;
@@ -19,277 +33,291 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
   // 휴일 체크
   const holidayInfo = isNonWorkingDay(dispatch.date);
 
-  // 상태별 스타일
+  // 상태별 스타일 (Astryx 매핑)
   const getStatusStyle = (status: RouteDispatch["status"]) => {
     switch (status) {
       case "정상":
         return {
-          bg: "bg-green-50",
-          border: "border-green-200",
-          badge: "bg-green-50 text-green-700",
-          icon: "text-green-500",
-        };
+          cardVariant: "green",
+          badgeVariant: "success",
+          icon: "success",
+          iconColor: "success",
+        } as const;
       case "대체":
         return {
-          bg: "bg-yellow-50",
-          border: "border-yellow-200",
-          badge: "bg-yellow-50 text-yellow-700",
-          icon: "text-yellow-500",
-        };
+          cardVariant: "yellow",
+          badgeVariant: "warning",
+          icon: "arrowsUpDown",
+          iconColor: "warning",
+        } as const;
       case "운행없음":
         return {
-          bg: "bg-red-50",
-          border: "border-red-200",
-          badge: "bg-red-50 text-red-700",
-          icon: "text-red-500",
-        };
+          cardVariant: "red",
+          badgeVariant: "error",
+          icon: "error",
+          iconColor: "error",
+        } as const;
       case "휴일":
         return {
-          bg: "bg-gray-50",
-          border: "border-gray-200",
-          badge: "bg-gray-50 text-gray-600",
-          icon: "text-gray-500",
-        };
+          cardVariant: "gray",
+          badgeVariant: "neutral",
+          icon: "info",
+          iconColor: "secondary",
+        } as const;
       default:
         return {
-          bg: "bg-gray-50",
-          border: "border-gray-200",
-          badge: "bg-gray-50 text-gray-600",
-          icon: "text-gray-500",
-        };
+          cardVariant: "gray",
+          badgeVariant: "neutral",
+          icon: "info",
+          iconColor: "secondary",
+        } as const;
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-      onClick={onClose}
+    <Dialog
+      isOpen={true}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      purpose="info"
+      width={760}
     >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden"
-      >
-        {/* 헤더 */}
-        <div className={`${holidayInfo.isHoliday ? "bg-gradient-to-r from-gray-500 to-gray-600" : "bg-gradient-to-r from-teal-500 to-teal-600"} text-white px-6 py-4`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">
-                {format(date, "yyyy년 M월 d일 (EEEE)", { locale: ko })}
-              </h2>
+      <Layout
+        header={
+          <DialogHeader
+            title={format(date, "yyyy년 M월 d일 (EEEE)", { locale: ko })}
+            onOpenChange={(open) => {
+              if (!open) onClose();
+            }}
+          />
+        }
+        content={
+          <LayoutContent>
+            <VStack gap={4}>
+              {/* 통계 요약 */}
               {holidayInfo.isHoliday ? (
-                <p className="text-gray-200 text-sm mt-1">
-                  {holidayInfo.holidayName} - 휴무
-                </p>
+                <div style={{ padding: "24px 0", textAlign: "center" }}>
+                  <VStack gap={2} hAlign="center">
+                    <Icon icon={IconMoon} size="lg" color="secondary" />
+                    <Text type="large" weight="medium">
+                      {holidayInfo.holidayName}
+                    </Text>
+                    <Text type="supporting" color="secondary">
+                      오늘은 휴무일입니다
+                    </Text>
+                  </VStack>
+                </div>
               ) : (
-                <p className="text-teal-100 text-sm mt-1">
-                  총 {dispatch.routeDispatches.length}개 노선 배차표
-                </p>
+                <VStack gap={3}>
+                  <Text type="supporting" color="secondary">
+                    총 {dispatch.routeDispatches.length}개 노선 배차표
+                  </Text>
+                  <HStack gap={4} wrap="wrap">
+                    <HStack gap={2} vAlign="center">
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: 9999,
+                          background: "#22c55e",
+                          display: "inline-block",
+                        }}
+                      />
+                      <Text type="supporting" color="secondary">
+                        정상 운행: {dispatch.routeDispatches.filter((r) => r.status === "정상").length}개
+                      </Text>
+                    </HStack>
+                    <HStack gap={2} vAlign="center">
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: 9999,
+                          background: "#eab308",
+                          display: "inline-block",
+                        }}
+                      />
+                      <Text type="supporting" color="secondary">
+                        대체 운행: {dispatch.routeDispatches.filter((r) => r.status === "대체").length}개
+                      </Text>
+                    </HStack>
+                    <HStack gap={2} vAlign="center">
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: 9999,
+                          background: "#ef4444",
+                          display: "inline-block",
+                        }}
+                      />
+                      <Text type="supporting" color="secondary">
+                        운행 없음: {dispatch.routeDispatches.filter((r) => r.status === "운행없음").length}개
+                      </Text>
+                    </HStack>
+                  </HStack>
+                </VStack>
               )}
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
 
-        {/* 통계 요약 */}
-        {holidayInfo.isHoliday ? (
-          <div className="px-6 py-8 bg-gray-50 border-b border-gray-200 text-center">
-            <div className="text-gray-500">
-              <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-              <p className="text-lg font-medium text-gray-900">{holidayInfo.holidayName}</p>
-              <p className="text-sm text-gray-500 mt-1">오늘은 휴무일입니다</p>
-            </div>
-          </div>
-        ) : (
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <div className="flex space-x-6">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                <span className="text-sm text-gray-600">
-                  정상 운행: {dispatch.routeDispatches.filter((r) => r.status === "정상").length}개
-                </span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                <span className="text-sm text-gray-600">
-                  대체 운행: {dispatch.routeDispatches.filter((r) => r.status === "대체").length}개
-                </span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <span className="text-sm text-gray-600">
-                  운행 없음: {dispatch.routeDispatches.filter((r) => r.status === "운행없음").length}개
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+              {/* 배차 목록 */}
+              {dispatch.routeDispatches.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                  <Text type="body" color="secondary">
+                    등록된 노선이 없습니다.
+                  </Text>
+                </div>
+              ) : (
+                <VStack gap={3}>
+                  {dispatch.routeDispatches.map((routeDispatch) => {
+                    const style = getStatusStyle(routeDispatch.status);
 
-        {/* 배차 목록 */}
-        <div className="px-6 py-4 overflow-y-auto max-h-[calc(85vh-200px)]">
-          {dispatch.routeDispatches.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              등록된 노선이 없습니다.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {dispatch.routeDispatches.map((routeDispatch) => {
-                const style = getStatusStyle(routeDispatch.status);
+                    return (
+                      <Card key={routeDispatch.routeId} variant={style.cardVariant} padding={4}>
+                        <VStack gap={3}>
+                          {/* 헤더 */}
+                          <HStack gap={3} vAlign="start">
+                            <Icon icon={style.icon} size="md" color={style.iconColor} />
+                            <VStack gap={1}>
+                              <Text type="body" weight="bold">
+                                {routeDispatch.routeName} 노선
+                              </Text>
+                              <HStack gap={2} vAlign="center" wrap="wrap">
+                                <Badge
+                                  variant={style.badgeVariant}
+                                  label={
+                                    routeDispatch.driverRole && routeDispatch.status === "대체"
+                                      ? `${routeDispatch.status} (${routeDispatch.driverRole})`
+                                      : routeDispatch.status
+                                  }
+                                />
+                              </HStack>
+                              {/* 배차 사유 표시 */}
+                              {routeDispatch.reason && (
+                                <Text type="supporting" color="secondary">
+                                  {routeDispatch.reason}
+                                </Text>
+                              )}
+                            </VStack>
+                          </HStack>
 
-                return (
-                  <div
-                    key={routeDispatch.routeId}
-                    className={`${style.bg} ${style.border} border rounded-xl p-4`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center">
-                        {/* 상태 아이콘 */}
-                        <div className={`mr-3 ${style.icon}`}>
-                          {routeDispatch.status === "정상" && (
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                          {routeDispatch.status === "대체" && (
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          )}
-                          {routeDispatch.status === "운행없음" && (
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">{routeDispatch.routeName} 노선</h3>
-                          <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${style.badge}`}>
-                            {routeDispatch.status}
-                            {routeDispatch.driverRole && routeDispatch.status === "대체" && (
-                              <> ({routeDispatch.driverRole})</>
-                            )}
-                          </span>
-                          {/* 배차 사유 표시 */}
-                          {routeDispatch.reason && (
-                            <p className="text-xs text-gray-600 mt-1">
-                              {routeDispatch.reason}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                          {routeDispatch.status !== "운행없음" ? (
+                            <VStack gap={2}>
+                              <div className="carev-dispatch-day-info-grid">
+                                {/* 운전자 정보 */}
+                                <div style={infoBoxStyle}>
+                                  <VStack gap={1}>
+                                    <HStack gap={2} vAlign="center">
+                                      <Icon icon={IconUser} size="sm" color="secondary" />
+                                      <Text type="label" color="secondary">
+                                        운전자
+                                      </Text>
+                                    </HStack>
+                                    <Text type="body" weight="semibold">
+                                      {routeDispatch.driver?.driverName || "-"}
+                                    </Text>
+                                    {routeDispatch.status === "대체" && routeDispatch.originalMainDriver && (
+                                      <Text type="supporting" color="secondary">
+                                        (원래: {routeDispatch.originalMainDriver.driverName} 휴무)
+                                      </Text>
+                                    )}
+                                  </VStack>
+                                </div>
 
-                    {routeDispatch.status !== "운행없음" ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* 운전자 정보 */}
-                        <div className="bg-white/60 rounded-lg p-3">
-                          <div className="flex items-center mb-2">
-                            <svg className="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span className="text-sm font-medium text-gray-600">운전자</span>
-                          </div>
-                          <p className="text-gray-900 font-semibold">
-                            {routeDispatch.driver?.driverName || "-"}
-                          </p>
-                          {routeDispatch.status === "대체" && routeDispatch.originalMainDriver && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              (원래: {routeDispatch.originalMainDriver.driverName} 휴무)
-                            </p>
-                          )}
-                        </div>
+                                {/* 차량 정보 */}
+                                <div style={infoBoxStyle}>
+                                  <VStack gap={1}>
+                                    <HStack gap={2} vAlign="center">
+                                      <Icon icon={IconBus} size="sm" color="secondary" />
+                                      <Text type="label" color="secondary">
+                                        차량
+                                      </Text>
+                                    </HStack>
+                                    <Text type="body" weight="semibold">
+                                      {routeDispatch.driver?.vehicleName || "-"}
+                                      {routeDispatch.driver?.vehicleCapacity &&
+                                        ` (${routeDispatch.driver.vehicleCapacity}인승)`}
+                                    </Text>
+                                  </VStack>
+                                </div>
+                              </div>
 
-                        {/* 차량 정보 */}
-                        <div className="bg-white/60 rounded-lg p-3">
-                          <div className="flex items-center mb-2">
-                            <svg className="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                            <span className="text-sm font-medium text-gray-600">차량</span>
-                          </div>
-                          <p className="text-gray-900 font-semibold">
-                            {routeDispatch.driver?.vehicleName || "-"}
-                            {routeDispatch.driver?.vehicleCapacity && (
-                              <span className="text-sm text-gray-500 ml-1">
-                                ({routeDispatch.driver.vehicleCapacity}인승)
-                              </span>
-                            )}
-                          </p>
-                        </div>
-
-                        {/* 탑승 어르신 */}
-                        <div className="md:col-span-2 bg-white/60 rounded-lg p-3">
-                          <div className="flex items-center mb-2">
-                            <svg className="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <span className="text-sm font-medium text-gray-600">
-                              탑승 어르신 ({routeDispatch.passengers.length}명)
-                            </span>
-                          </div>
-                          {routeDispatch.passengers.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {routeDispatch.passengers.map((senior, index) => (
-                                <span
-                                  key={senior.id}
-                                  className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm"
-                                >
-                                  <span className="w-5 h-5 flex items-center justify-center bg-gray-300 text-gray-600 rounded-full text-xs mr-1.5">
-                                    {index + 1}
-                                  </span>
-                                  {senior.name}
-                                </span>
-                              ))}
-                            </div>
+                              {/* 탑승 어르신 */}
+                              <div style={infoBoxStyle}>
+                                <VStack gap={2}>
+                                  <HStack gap={2} vAlign="center">
+                                    <Icon icon={IconUsers} size="sm" color="secondary" />
+                                    <Text type="label" color="secondary">
+                                      탑승 어르신 ({routeDispatch.passengers.length}명)
+                                    </Text>
+                                  </HStack>
+                                  {routeDispatch.passengers.length > 0 ? (
+                                    <HStack gap={2} wrap="wrap">
+                                      {routeDispatch.passengers.map((senior, index) => (
+                                        <span
+                                          key={senior.id}
+                                          style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 6,
+                                            padding: "4px 8px",
+                                            background: "#f3f4f6",
+                                            color: "#374151",
+                                            borderRadius: 6,
+                                            fontSize: 14,
+                                          }}
+                                        >
+                                          <span
+                                            style={{
+                                              width: 20,
+                                              height: 20,
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              background: "#d1d5db",
+                                              color: "#4b5563",
+                                              borderRadius: 9999,
+                                              fontSize: 11,
+                                            }}
+                                          >
+                                            {index + 1}
+                                          </span>
+                                          {senior.name}
+                                        </span>
+                                      ))}
+                                    </HStack>
+                                  ) : (
+                                    <Text type="supporting" color="secondary">
+                                      탑승 어르신 없음
+                                    </Text>
+                                  )}
+                                </VStack>
+                              </div>
+                            </VStack>
                           ) : (
-                            <p className="text-gray-500 text-sm">탑승 어르신 없음</p>
+                            <div style={{ textAlign: "center", padding: "8px 0", color: "#dc2626" }}>
+                              <Text type="body" weight="medium" color="inherit">
+                                {routeDispatch.reason || "운행 불가"}
+                              </Text>
+                            </div>
                           )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-red-600 font-medium">
-                          {routeDispatch.reason || "운행 불가"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 푸터 */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
-          >
-            닫기
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+                        </VStack>
+                      </Card>
+                    );
+                  })}
+                </VStack>
+              )}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider>
+            <HStack gap={2} hAlign="end">
+              <Button label="닫기" variant="primary" onClick={onClose} />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 }

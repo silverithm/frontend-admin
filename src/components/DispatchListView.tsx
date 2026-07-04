@@ -3,6 +3,24 @@
 import { useState, useMemo } from "react";
 import { format, parseISO, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
+import { Card } from "@astryxdesign/core/Card";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Text } from "@astryxdesign/core/Text";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Button } from "@astryxdesign/core/Button";
+import { DateInput } from "@astryxdesign/core/DateInput";
+import { Selector } from "@astryxdesign/core/Selector";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHeaderCell,
+} from "@astryxdesign/core/Table";
+import type { ISODateString } from "@astryxdesign/core/Calendar";
 import type { DispatchSettings, SeniorAbsence, DailyDispatch } from "@/types/dispatch";
 import type { VacationRequest } from "@/types/vacation";
 import { getDispatchForDateRange } from "@/lib/dispatchAlgorithm";
@@ -76,209 +94,171 @@ export default function DispatchListView({
     setEndDate(format(sunday, "yyyy-MM-dd"));
   };
 
+  const statusVariant = (status: string): "success" | "warning" | "neutral" | "error" =>
+    status === "정상"
+      ? "success"
+      : status === "대체"
+      ? "warning"
+      : status === "휴일"
+      ? "neutral"
+      : "error";
+
   return (
-    <div className="space-y-6">
+    <VStack gap={6}>
       {/* 필터 패널 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* 기간 선택 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">시작일</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+      <Card padding={6}>
+        <VStack gap={4}>
+          <Grid columns={{ minWidth: 180 }} gap={4}>
+            {/* 기간 선택 */}
+            <DateInput
+              label="시작일"
+              value={startDate as ISODateString}
+              onChange={(value) => setStartDate(value ?? "")}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">종료일</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+            <DateInput
+              label="종료일"
+              value={endDate as ISODateString}
+              onChange={(value) => setEndDate(value ?? "")}
             />
-          </div>
 
-          {/* 노선 필터 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">노선</label>
-            <select
+            {/* 노선 필터 */}
+            <Selector
+              label="노선"
               value={routeFilter}
-              onChange={(e) => setRouteFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-            >
-              <option value="all">전체 노선</option>
-              {settings.routes.map((route) => (
-                <option key={route.id} value={route.id}>{route.name}</option>
-              ))}
-            </select>
-          </div>
+              onChange={(value) => setRouteFilter(value)}
+              options={[
+                { value: "all", label: "전체 노선" },
+                ...settings.routes.map((route) => ({ value: route.id, label: route.name })),
+              ]}
+            />
 
-          {/* 상태 필터 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">상태</label>
-            <select
+            {/* 상태 필터 */}
+            <Selector
+              label="상태"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-            >
-              <option value="all">전체 상태</option>
-              <option value="정상">정상 운행</option>
-              <option value="대체">대체 운행</option>
-              <option value="운행없음">운행 없음</option>
-              <option value="휴일">휴일</option>
-            </select>
-          </div>
-        </div>
+              onChange={(value) => setStatusFilter(value)}
+              options={[
+                { value: "all", label: "전체 상태" },
+                { value: "정상", label: "정상 운행" },
+                { value: "대체", label: "대체 운행" },
+                { value: "운행없음", label: "운행 없음" },
+                { value: "휴일", label: "휴일" },
+              ]}
+            />
+          </Grid>
 
-        {/* 퀵 버튼 */}
-        <div className="mt-4 flex space-x-3">
-          <button
-            onClick={setThisWeek}
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            이번 주
-          </button>
-          <button
-            onClick={setThisMonth}
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            이번 달
-          </button>
-        </div>
-      </div>
+          {/* 퀵 버튼 */}
+          <HStack gap={3}>
+            <Button label="이번 주" variant="secondary" size="sm" onClick={setThisWeek} />
+            <Button label="이번 달" variant="secondary" size="sm" onClick={setThisMonth} />
+          </HStack>
+        </VStack>
+      </Card>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-500">운행일</div>
-        </div>
-        <div className="bg-green-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-green-700">{stats.normal}</div>
-          <div className="text-sm text-green-600">정상 운행</div>
-        </div>
-        <div className="bg-yellow-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-700">{stats.substitute}</div>
-          <div className="text-sm text-yellow-600">대체 운행</div>
-        </div>
-        <div className="bg-red-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-red-700">{stats.noService}</div>
-          <div className="text-sm text-red-600">운행 없음</div>
-        </div>
-        <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-gray-600">{stats.holiday}</div>
-          <div className="text-sm text-gray-500">휴일</div>
-        </div>
-      </div>
+      <Grid columns={5} gap={4}>
+        <Card padding={4}>
+          <VStack gap={1} hAlign="center">
+            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.total}</Text>
+            <Text type="supporting">운행일</Text>
+          </VStack>
+        </Card>
+        <Card variant="green" padding={4}>
+          <VStack gap={1} hAlign="center">
+            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.normal}</Text>
+            <Text type="supporting">정상 운행</Text>
+          </VStack>
+        </Card>
+        <Card variant="yellow" padding={4}>
+          <VStack gap={1} hAlign="center">
+            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.substitute}</Text>
+            <Text type="supporting">대체 운행</Text>
+          </VStack>
+        </Card>
+        <Card variant="red" padding={4}>
+          <VStack gap={1} hAlign="center">
+            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.noService}</Text>
+            <Text type="supporting">운행 없음</Text>
+          </VStack>
+        </Card>
+        <Card variant="muted" padding={4}>
+          <VStack gap={1} hAlign="center">
+            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.holiday}</Text>
+            <Text type="supporting">휴일</Text>
+          </VStack>
+        </Card>
+      </Grid>
 
       {/* 배차 테이블 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  날짜
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  노선
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  상태
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  사유
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  운전자
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  차량
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  탑승 인원
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredDispatches.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
-                    해당 기간에 배차 데이터가 없습니다.
-                  </td>
-                </tr>
-              ) : (
-                filteredDispatches.flatMap((daily) =>
+      <Card padding={0}>
+        {filteredDispatches.length === 0 ? (
+          <EmptyState
+            title="배차 데이터가 없습니다"
+            description="해당 기간에 배차 데이터가 없습니다."
+          />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <Table hasHover>
+              <TableHeader>
+                <TableRow isHeaderRow>
+                  <TableHeaderCell>날짜</TableHeaderCell>
+                  <TableHeaderCell>노선</TableHeaderCell>
+                  <TableHeaderCell>상태</TableHeaderCell>
+                  <TableHeaderCell>사유</TableHeaderCell>
+                  <TableHeaderCell>운전자</TableHeaderCell>
+                  <TableHeaderCell>차량</TableHeaderCell>
+                  <TableHeaderCell>탑승 인원</TableHeaderCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDispatches.flatMap((daily) =>
                   daily.routeDispatches.map((rd) => (
-                    <tr key={`${daily.date}-${rd.routeId}`} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
+                    <TableRow key={`${daily.date}-${rd.routeId}`}>
+                      <TableCell>
+                        <Text weight="medium">
                           {format(parseISO(daily.date), "M/d (EEE)", { locale: ko })}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{rd.routeName}</div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            rd.status === "정상"
-                              ? "bg-green-50 text-green-700"
-                              : rd.status === "대체"
-                              ? "bg-yellow-50 text-yellow-700"
-                              : rd.status === "휴일"
-                              ? "bg-gray-50 text-gray-600"
-                              : "bg-red-50 text-red-700"
-                          }`}
-                        >
-                          {rd.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-xs text-gray-600 max-w-xs">
-                          {rd.reason || "-"}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {rd.driver?.driverName || "-"}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        </Text>
+                      </TableCell>
+                      <TableCell>
+                        <Text>{rd.routeName}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(rd.status)} label={rd.status} />
+                      </TableCell>
+                      <TableCell>
+                        <Text type="supporting">{rd.reason || "-"}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <Text>{rd.driver?.driverName || "-"}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <Text>
                           {rd.driver?.vehicleName || "-"}
                           {rd.driver?.vehicleCapacity && (
-                            <span className="text-gray-500 text-xs ml-1">
-                              ({rd.driver.vehicleCapacity}인승)
-                            </span>
+                            <Text type="supporting"> ({rd.driver.vehicleCapacity}인승)</Text>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900">
-                          {rd.passengers.length > 0 ? (
-                            <span className="inline-flex items-center">
-                              <span className="font-medium">{rd.passengers.length}명</span>
-                              <span className="ml-2 text-gray-500 text-xs">
-                                ({rd.passengers.map((p) => p.name).join(", ")})
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                        </Text>
+                      </TableCell>
+                      <TableCell>
+                        {rd.passengers.length > 0 ? (
+                          <HStack gap={2} vAlign="center">
+                            <Text weight="medium">{rd.passengers.length}명</Text>
+                            <Text type="supporting">
+                              ({rd.passengers.map((p) => p.name).join(", ")})
+                            </Text>
+                          </HStack>
+                        ) : (
+                          <Text color="disabled">-</Text>
+                        )}
+                      </TableCell>
+                    </TableRow>
                   ))
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
+    </VStack>
   );
 }

@@ -4,8 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { IconShieldCheck } from '@tabler/icons-react';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { Text } from '@astryxdesign/core/Text';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
+
+const PAGE_GRADIENT = 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)';
 
 export default function SubscriptionCheckPage() {
   const router = useRouter();
@@ -21,7 +32,7 @@ export default function SubscriptionCheckPage() {
       router.push('/login');
       return;
     }
-    
+
     checkSubscription();
   }, [router]);
 
@@ -38,10 +49,10 @@ export default function SubscriptionCheckPage() {
       }
     } catch (err: any) {
       console.error('구독 확인 실패:', err);
-      
+
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
-      if (err.status === 404 && 
-          (err.message === 'No subscription found' || 
+      if (err.status === 404 &&
+          (err.message === 'No subscription found' ||
            err.data?.error === 'No subscription found')) {
         setHasSubscription(false);
       } else {
@@ -61,11 +72,11 @@ export default function SubscriptionCheckPage() {
     try {
       setCreatingFree(true);
       setError('');
-      
+
       const newSubscription = await subscriptionService.createFreeSubscription();
       setSubscription(newSubscription);
       setHasSubscription(true);
-      
+
       // 무료 구독 생성 성공 후 관리자 페이지로 이동
       router.push('/admin');
     } catch (err) {
@@ -82,85 +93,116 @@ export default function SubscriptionCheckPage() {
 
   // 만료된 구독이 있는 경우
   const isExpiredSubscription = subscription && subscriptionService.needsPayment(subscription);
-  
+
   // 무료 체험을 한 번이라도 사용한 경우 (무료로 시작하기 버튼 숨김 용도)
   const hasUsedFreeTrial = subscriptionService.hasUsedFreeSubscription(subscription);
   const canUseFreeSubscription = subscriptionService.canUseFreeSubscription(subscription);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">구독 정보를 확인하는 중...</p>
-        </div>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: PAGE_GRADIENT,
+          color: '#ffffff',
+        }}
+      >
+        <Spinner size="lg" shade="onMedia" label="구독 정보를 확인하는 중..." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white">
+    <div style={{ minHeight: '100vh', background: PAGE_GRADIENT }}>
       {/* 헤더 */}
-      <header className="bg-slate-900/50 backdrop-blur-sm border-b border-blue-800/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-center">
+      <header style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.2)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
+          <HStack hAlign="center">
             <Image
               src="/images/logo-text.png"
               alt="케어브이 로고"
               width={140}
               height={47}
-              className="transition-transform duration-300 hover:scale-105"
+              priority
             />
-          </div>
+          </HStack>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-16">
+      <main
+        style={{
+          maxWidth: 896,
+          margin: '0 auto',
+          padding: '64px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
         {/* 에러 발생 시 표시 */}
         {error && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center"
+            style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
           >
-            <div className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-red-400/20 mb-8">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              
-              <h1 className="text-3xl font-bold text-white mb-4">구독 정보 확인에 실패했습니다</h1>
-              <p className="text-red-200/80 mb-8 text-lg leading-relaxed">
-                {error === '서버 오류' 
-                  ? '서버에 일시적인 문제가 발생했습니다.'
-                  : '구독 정보를 불러올 수 없습니다.'}
-                <br />
-                잠시 후 다시 시도하거나 고객센터에 문의해주세요.
-              </p>
+            <Card width="100%" maxWidth={640} padding={6}>
+              <VStack gap={4}>
+                {/* 경고 아이콘 */}
+                <HStack hAlign="center">
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 16,
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon icon="warning" color="error" size="lg" />
+                  </div>
+                </HStack>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-6 py-3 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/20"
-                >
-                  다시 시도
-                </button>
-                <button
-                  onClick={() => router.push('/')}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 hover:scale-105 transition-all duration-300 shadow-xl"
-                >
-                  메인으로 돌아가기
-                </button>
-              </div>
+                <Text type="display-3" weight="bold" justify="center">
+                  구독 정보 확인에 실패했습니다
+                </Text>
+                <Text type="body" color="secondary" justify="center">
+                  {error === '서버 오류'
+                    ? '서버에 일시적인 문제가 발생했습니다.'
+                    : '구독 정보를 불러올 수 없습니다.'}
+                  <br />
+                  잠시 후 다시 시도하거나 고객센터에 문의해주세요.
+                </Text>
 
-              <div className="mt-8 pt-6 border-t border-red-400/20">
-                <p className="text-sm text-red-200/60">
-                  문의: ggprgrkjh@naver.com | 고객센터: 1234-5678
-                </p>
-              </div>
-            </div>
+                <HStack gap={3} hAlign="center" wrap="wrap">
+                  <Button
+                    label="다시 시도"
+                    variant="secondary"
+                    size="md"
+                    onClick={() => window.location.reload()}
+                  />
+                  <Button
+                    label="메인으로 돌아가기"
+                    variant="primary"
+                    size="md"
+                    onClick={() => router.push('/')}
+                  />
+                </HStack>
+
+                <div style={{ borderTop: '1px solid #f1f3f5', paddingTop: 16 }}>
+                  <Text type="supporting" justify="center">
+                    문의: ggprgrkjh@naver.com | 고객센터: 1234-5678
+                  </Text>
+                </div>
+              </VStack>
+            </Card>
           </motion.div>
         )}
 
@@ -170,42 +212,82 @@ export default function SubscriptionCheckPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center"
+            style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
           >
-            <div className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-red-400/20 mb-8">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              
-              <h1 className="text-3xl font-bold text-white mb-4">구독을 확인해주세요</h1>
-              <p className="text-red-200/80 mb-6 text-lg leading-relaxed">
-                현재 구독이 만료되었습니다. 서비스를 계속 이용하시려면 구독을 갱신해주세요.
-              </p>
+            <Card width="100%" maxWidth={640} padding={6}>
+              <VStack gap={4}>
+                {/* 경고 아이콘 */}
+                <HStack hAlign="center">
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 16,
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon icon="warning" color="error" size="lg" />
+                  </div>
+                </HStack>
 
-              {/* 현재 구독 상태 */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                <h3 className="text-lg font-semibold text-white mb-4">현재 구독 상태</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="text-left">
-                    <p className="text-blue-200/70">플랜: <span className="text-white font-medium">{subscription?.planName}</span></p>
-                    <p className="text-blue-200/70">상태: <span className="text-red-400 font-medium">만료됨</span></p>
-                  </div>
-                  <div className="text-left">
-                    <p className="text-blue-200/70">시작일: <span className="text-white font-medium">{subscription?.startDate ? new Date(subscription.startDate).toLocaleDateString() : '-'}</span></p>
-                    <p className="text-blue-200/70">종료일: <span className="text-white font-medium">{subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : '-'}</span></p>
-                  </div>
+                <Text type="display-3" weight="bold" justify="center">
+                  구독을 확인해주세요
+                </Text>
+                <Text type="body" color="secondary" justify="center">
+                  현재 구독이 만료되었습니다. 서비스를 계속 이용하시려면 구독을 갱신해주세요.
+                </Text>
+
+                {/* 현재 구독 상태 */}
+                <div
+                  style={{
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 12,
+                    padding: 16,
+                  }}
+                >
+                  <VStack gap={3}>
+                    <Text type="large" weight="semibold">현재 구독 상태</Text>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: 16,
+                      }}
+                    >
+                      <VStack gap={1}>
+                        <Text type="supporting" color="secondary">
+                          플랜: <Text type="supporting" color="primary" weight="medium">{subscription?.planName}</Text>
+                        </Text>
+                        <HStack gap={1} vAlign="center">
+                          <Text type="supporting" color="secondary">상태:</Text>
+                          <Badge variant="error" label="만료됨" />
+                        </HStack>
+                      </VStack>
+                      <VStack gap={1}>
+                        <Text type="supporting" color="secondary">
+                          시작일: <Text type="supporting" color="primary" weight="medium">{subscription?.startDate ? new Date(subscription.startDate).toLocaleDateString() : '-'}</Text>
+                        </Text>
+                        <Text type="supporting" color="secondary">
+                          종료일: <Text type="supporting" color="primary" weight="medium">{subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : '-'}</Text>
+                        </Text>
+                      </VStack>
+                    </div>
+                  </VStack>
                 </div>
-              </div>
 
-              <button
-                onClick={handleGoToPayment}
-                className="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 hover:scale-105 transition-all duration-300 shadow-xl"
-              >
-                구독 갱신하기
-              </button>
-            </div>
+                <Button
+                  label="구독 갱신하기"
+                  variant="primary"
+                  size="lg"
+                  onClick={handleGoToPayment}
+                />
+              </VStack>
+            </Card>
           </motion.div>
         )}
 
@@ -215,153 +297,158 @@ export default function SubscriptionCheckPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center"
+            style={{ width: '100%' }}
           >
-            <div className="mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
-                {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
-              </h1>
-              <p className="text-xl text-blue-100/90 leading-relaxed max-w-2xl mx-auto">
-                {hasUsedFreeTrial 
-                  ? '효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.'
-                  : !canUseFreeSubscription 
-                    ? '무료 체험 기간이 종료되었습니다. 서비스를 계속 이용하시려면 Basic 플랜을 구독해주세요.'
-                    : '효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.'
-                }
-              </p>
-            </div>
+            <VStack gap={6}>
+              <VStack gap={3}>
+                <div style={{ color: '#f8fafc' }}>
+                  <Text type="display-2" weight="bold" justify="center" color="inherit">
+                    {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
+                  </Text>
+                </div>
+                <div style={{ color: 'rgba(219, 234, 254, 0.9)' }}>
+                  <Text type="large" justify="center" color="inherit">
+                    {hasUsedFreeTrial
+                      ? '효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.'
+                      : !canUseFreeSubscription
+                        ? '무료 체험 기간이 종료되었습니다. 서비스를 계속 이용하시려면 Basic 플랜을 구독해주세요.'
+                        : '효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.'
+                    }
+                  </Text>
+                </div>
+              </VStack>
 
-            <div className="grid gap-8 grid-cols-1 md:grid-cols-2">
-              {/* 무료 체험 카드 - 항상 표시 */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: 32,
+                  alignItems: 'stretch',
+                }}
+              >
+                {/* 무료 체험 카드 - 항상 표시 */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-blue-400/20 hover:bg-white/15 transition-all duration-300"
+                  style={{ display: 'flex' }}
                 >
-                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-xl">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                
-                <h3 className="text-2xl font-bold text-white mb-4">30일 무료 체험</h3>
-                <div className="text-4xl font-bold text-green-400 mb-4">무료</div>
-                <p className="text-blue-100/80 mb-6 leading-relaxed">
-                  케어브이의 모든 기능을 30일간 무료로 체험해보세요
-                </p>
-                
-                <ul className="space-y-3 text-left text-blue-100/80 text-sm mb-8">
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    모든 휴가 관리 기능
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    직원 등록 및 관리
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    실시간 알림 및 승인
-                  </li>
-                </ul>
+                  <Card width="100%" padding={6}>
+                    <VStack gap={4} height="100%">
+                      <HStack hAlign="center">
+                        <div
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            backgroundColor: '#e6fcf5',
+                            border: '1px solid #96f2d7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Icon icon="clock" color="success" size="lg" />
+                        </div>
+                      </HStack>
 
-                  <button
-                    onClick={handleCreateFreeSubscription}
-                    disabled={creatingFree || !canUseFreeSubscription}
-                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-xl ${
-                      creatingFree || !canUseFreeSubscription
-                        ? 'bg-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:scale-105'
-                    } text-white`}
-                  >
-                    {creatingFree 
-                      ? '시작하는 중...' 
-                      : !canUseFreeSubscription 
-                        ? '이미 무료 체험을 사용했습니다' 
-                        : '무료로 시작하기'
-                    }
-                  </button>
+                      <Text type="display-3" weight="bold" justify="center">30일 무료 체험</Text>
+                      <Text type="display-2" weight="bold" color="accent" justify="center">무료</Text>
+                      <Text type="body" color="secondary" justify="center">
+                        케어브이의 모든 기능을 30일간 무료로 체험해보세요
+                      </Text>
+
+                      <VStack gap={2}>
+                        {['모든 휴가 관리 기능', '직원 등록 및 관리', '실시간 알림 및 승인'].map((feature) => (
+                          <HStack key={feature} gap={2} vAlign="center">
+                            <Icon icon="check" color="success" size="sm" />
+                            <Text type="body" color="secondary">{feature}</Text>
+                          </HStack>
+                        ))}
+                      </VStack>
+
+                      <Button
+                        label={creatingFree
+                          ? '시작하는 중...'
+                          : !canUseFreeSubscription
+                            ? '이미 무료 체험을 사용했습니다'
+                            : '무료로 시작하기'}
+                        variant="primary"
+                        size="lg"
+                        isLoading={creatingFree}
+                        isDisabled={creatingFree || !canUseFreeSubscription}
+                        onClick={handleCreateFreeSubscription}
+                      />
+                    </VStack>
+                  </Card>
                 </motion.div>
 
-              {/* 유료 구독 카드 */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border-2 border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 relative"
-              >
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-                    추천 플랜
-                  </span>
-                </div>
-                
-                <div className="mt-4">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                  </div>
-                  
-                  <h3 className="text-2xl font-bold text-white mb-4">Basic 플랜</h3>
-                  <div className="flex items-center justify-center mb-4">
-                    <span className="text-4xl font-bold text-blue-300">₩9,900</span>
-                    <span className="text-blue-200/70 ml-2">/월</span>
-                  </div>
-                  <p className="text-blue-100/80 mb-6 leading-relaxed">
-                    {!canUseFreeSubscription 
-                      ? '지속적인 서비스 이용을 위해 Basic 플랜을 구독하세요'
-                      : '무료 체험 없이 바로 모든 기능을 이용하거나, 30일 무료 체험 후 자동으로 시작하세요'
-                    }
-                  </p>
-                  
-                  <ul className="space-y-3 text-left text-blue-100/80 text-sm mb-8">
-                    <li className="flex items-center">
-                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      모든 휴가 관리 기능
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      무제한 직원 등록
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-4 h-4 text-blue-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      우선 고객 지원
-                    </li>
-                  </ul>
+                {/* 유료 구독 카드 */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  style={{ display: 'flex' }}
+                >
+                  <Card width="100%" padding={6}>
+                    <VStack gap={4} height="100%">
+                      <HStack hAlign="center">
+                        <Badge variant="info" label="추천 플랜" />
+                      </HStack>
 
-                  <button
-                    onClick={handleGoToPayment}
-                    className="w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 hover:scale-105 transition-all duration-300 shadow-xl"
-                  >
-                    결제하기
-                  </button>
-                </div>
-              </motion.div>
-            </div>
+                      <HStack hAlign="center">
+                        <div
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            backgroundColor: '#e7f5ff',
+                            border: '1px solid #a5d8ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Icon icon={IconShieldCheck} color="accent" size="lg" />
+                        </div>
+                      </HStack>
 
-            {error && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-8 p-4 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-400/30"
-              >
-                <p className="text-red-200">{error}</p>
-              </motion.div>
-            )}
+                      <Text type="display-3" weight="bold" justify="center">Basic 플랜</Text>
+                      <HStack gap={1} hAlign="center" vAlign="end">
+                        <Text type="display-2" weight="bold" color="accent">₩9,900</Text>
+                        <Text type="body" color="secondary">/월</Text>
+                      </HStack>
+                      <Text type="body" color="secondary" justify="center">
+                        {!canUseFreeSubscription
+                          ? '지속적인 서비스 이용을 위해 Basic 플랜을 구독하세요'
+                          : '무료 체험 없이 바로 모든 기능을 이용하거나, 30일 무료 체험 후 자동으로 시작하세요'
+                        }
+                      </Text>
+
+                      <VStack gap={2}>
+                        {['모든 휴가 관리 기능', '무제한 직원 등록', '우선 고객 지원'].map((feature) => (
+                          <HStack key={feature} gap={2} vAlign="center">
+                            <Icon icon="check" color="accent" size="sm" />
+                            <Text type="body" color="secondary">{feature}</Text>
+                          </HStack>
+                        ))}
+                      </VStack>
+
+                      <Button
+                        label="결제하기"
+                        variant="primary"
+                        size="lg"
+                        onClick={handleGoToPayment}
+                      />
+                    </VStack>
+                  </Card>
+                </motion.div>
+              </div>
+
+              {error && (
+                <Banner status="error" title={error} />
+              )}
+            </VStack>
           </motion.div>
         )}
       </main>

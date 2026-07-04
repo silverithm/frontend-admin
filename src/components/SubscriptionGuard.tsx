@@ -6,6 +6,12 @@ import { SubscriptionResponseDTO } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from './Alert';
 import { Agentation } from 'agentation';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { Text } from '@astryxdesign/core/Text';
+import { VStack } from '@astryxdesign/core/Stack';
+import { Icon } from '@astryxdesign/core/Icon';
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
@@ -37,7 +43,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   const checkSubscription = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      
+
       // 로그인하지 않은 경우
       if (!token) {
         router.push('/login');
@@ -53,16 +59,16 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
       }
     } catch (error: any) {
       console.error('구독 확인 실패:', error);
-      
+
       // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
       // 백엔드 GlobalExceptionHandler의 error 필드 확인
-      if (error.status === 404 && 
-          (error.message === 'No subscription found' || 
+      if (error.status === 404 &&
+          (error.message === 'No subscription found' ||
            error.data?.error === 'No subscription found')) {
         router.push('/subscription-check');
         return;
       }
-      
+
       // 500 에러 시 서버 오류 알림 후 랜딩페이지로
       if (error.status >= 500) {
         showAlert({
@@ -74,7 +80,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
         setTimeout(() => router.push('/'), 3000);
         return;
       }
-      
+
       // 기타 API 오류 시 일단 통과시킴 (백엔드 연결 문제 등)
     } finally {
       setLoading(false);
@@ -85,11 +91,16 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   // 로딩 중
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm text-gray-500 font-medium">로딩 중...</span>
-        </div>
+      <div
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#f9fafb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Spinner size="md" label="로딩 중..." />
       </div>
     );
   }
@@ -97,68 +108,103 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   // 무료 체험 종료 모달
   if (showBlockModal) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl border border-gray-200 max-w-md w-full p-6 relative">
-          {/* 좌측 상단 뒤로가기 버튼 */}
-          <button
-            onClick={() => {
-              // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
-              ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
-              window.location.href = 'https://carev.kr';
-            }}
-            className="absolute left-6 top-6 text-gray-500 hover:text-gray-900 flex items-center text-sm font-medium transition-colors"
-          >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            뒤로가기
-          </button>
-
-          <div className="text-center pt-10">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-50 border border-red-200 mb-4">
-              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {subscription?.planName === 'FREE' ? '무료 체험이 종료되었습니다' : '구독이 만료되었습니다'}
-            </h2>
-
-            <p className="text-gray-500 mb-6">
-              서비스를 계속 이용하시려면 Basic 플랜을 구독해주세요.
-            </p>
-
-            <div className="bg-teal-50 rounded-xl p-4 mb-6 border border-teal-200">
-              <p className="text-lg font-semibold text-teal-900">Basic 플랜</p>
-              <p className="text-2xl font-bold text-teal-900 mt-1">₩9,900<span className="text-sm font-normal text-teal-700">/월</span></p>
-              <p className="text-sm text-teal-700 mt-1">모든 기능을 이용하실 수 있습니다</p>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setShowBlockModal(false);
-                  router.push('/payment');
-                }}
-                className="w-full bg-teal-500 text-white py-3 px-4 rounded-lg hover:bg-teal-600 transition-colors font-medium"
-              >
-                결제하기
-              </button>
-
-              <button
+      <div
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#f9fafb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+        }}
+      >
+        <Card width="100%" maxWidth={448} padding={6}>
+          <div style={{ position: 'relative', paddingTop: 40 }}>
+            {/* 좌측 상단 뒤로가기 버튼 */}
+            <div style={{ position: 'absolute', left: 0, top: 0 }}>
+              <Button
+                label="뒤로가기"
+                variant="ghost"
+                size="sm"
+                icon={<span aria-hidden>←</span>}
                 onClick={() => {
                   // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
-              ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
+                  ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
                   window.location.href = 'https://carev.kr';
                 }}
-                className="w-full text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
-              >
-                로그아웃
-              </button>
+              />
             </div>
+
+            <VStack gap={4} hAlign="center">
+              {/* 경고 아이콘 */}
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 9999,
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon icon="warning" color="error" size="md" />
+              </div>
+
+              <Text type="display-3" weight="bold" justify="center">
+                {subscription?.planName === 'FREE' ? '무료 체험이 종료되었습니다' : '구독이 만료되었습니다'}
+              </Text>
+
+              <Text type="body" color="secondary" justify="center">
+                서비스를 계속 이용하시려면 Basic 플랜을 구독해주세요.
+              </Text>
+
+              {/* Basic 플랜 안내 박스 */}
+              <div
+                style={{
+                  width: '100%',
+                  backgroundColor: '#e6fcf5',
+                  border: '1px solid #96f2d7',
+                  borderRadius: 12,
+                  padding: 16,
+                }}
+              >
+                <VStack gap={1} hAlign="center">
+                  <Text type="large" weight="semibold" color="accent">Basic 플랜</Text>
+                  <Text type="display-3" weight="bold" color="accent">
+                    ₩9,900<Text type="supporting" weight="normal" color="accent">/월</Text>
+                  </Text>
+                  <Text type="supporting" color="accent">모든 기능을 이용하실 수 있습니다</Text>
+                </VStack>
+              </div>
+
+              {/* 액션 버튼 (VStack 기본 cross-axis stretch로 전체 너비) */}
+              <VStack gap={3} width="100%">
+                <Button
+                  label="결제하기"
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    setShowBlockModal(false);
+                    router.push('/payment');
+                  }}
+                />
+
+                <Button
+                  label="로그아웃"
+                  variant="ghost"
+                  size="md"
+                  onClick={() => {
+                    // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
+                    ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
+                    window.location.href = 'https://carev.kr';
+                  }}
+                />
+              </VStack>
+            </VStack>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }

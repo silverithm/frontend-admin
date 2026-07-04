@@ -2,13 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { motion } from 'framer-motion';
+import { FiX, FiCalendar, FiUsers, FiSend, FiBriefcase, FiTrash2, FiLock } from 'react-icons/fi';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { Text } from '@astryxdesign/core/Text';
+import { Badge } from '@astryxdesign/core/Badge';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { VacationDetailsProps, VacationRequest, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import VacationForm from './VacationForm';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiCalendar, FiUsers, FiClock, FiCheck, FiAlertCircle, FiSend, FiBriefcase, FiTrash2, FiLock } from 'react-icons/fi';
 import {
   ALL_ROLE_FILTER,
-  getRoleBadgeClasses,
   getRoleDisplayName,
   getVacationRequestRole,
   type RoleLookup,
@@ -18,6 +27,32 @@ import { deleteVacation as apiDeleteVacation } from '@/lib/apiService';
 type VacationDetailsComponentProps = VacationDetailsProps & {
   roleOptions?: string[];
   memberRoleLookup?: RoleLookup;
+};
+
+type BadgeColorVariant =
+  | 'neutral'
+  | 'blue'
+  | 'green'
+  | 'orange'
+  | 'purple'
+  | 'pink'
+  | 'cyan';
+
+// 직원 유형 뱃지의 Astryx 색상 변형 매핑 (표현용, roleUtils의 색상 의도를 반영)
+const getRoleBadgeVariant = (role?: string | null): BadgeColorVariant => {
+  const normalized = (role ?? '').trim();
+  if (!normalized) return 'neutral';
+  if (normalized === 'admin') return 'purple';
+  if (normalized === 'caregiver') return 'blue';
+  if (normalized === 'office') return 'green';
+
+  const palette: BadgeColorVariant[] = ['blue', 'green', 'orange', 'purple', 'pink', 'cyan'];
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = (hash << 5) - hash + normalized.charCodeAt(index);
+    hash |= 0;
+  }
+  return palette[Math.abs(hash) % palette.length];
 };
 
 const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
@@ -105,7 +140,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
       setShowDeleteModal(false);
       setSelectedVacation(null);
       setDeletePassword('');
-      
+
       // 데이터 새로고침
       if (onVacationUpdated) {
         await onVacationUpdated();
@@ -171,6 +206,20 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
     }
   };
 
+  // 상태별 Astryx Badge 색상 변형
+  const getStatusBadgeVariant = (status?: string): BadgeColorVariant | 'yellow' | 'red' => {
+    switch (status) {
+      case 'approved':
+        return 'green';
+      case 'pending':
+        return 'yellow';
+      case 'rejected':
+        return 'red';
+      default:
+        return 'neutral';
+    }
+  };
+
   // 유효한(승인됨 또는 대기중) 휴무 수 계산
   const validVacationCount = vacations.filter(v => v.status !== 'rejected').length;
   const remainingSlots = maxPeople - validVacationCount;
@@ -181,16 +230,30 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
 
   return (
     <>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md"
+        style={{
+          width: '100%',
+          maxWidth: 448,
+          borderRadius: 16,
+          overflow: 'hidden',
+          background: '#ffffff',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+        }}
       >
         {isLoading ? (
-          <div className="p-4 sm:p-8 flex flex-col items-center justify-center h-48 sm:h-64">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mb-3 sm:mb-4"></div>
-            <p className="text-gray-600 font-medium text-sm sm:text-base">로딩 중...</p>
+          <div
+            style={{
+              minHeight: 200,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 32,
+            }}
+          >
+            <Spinner size="lg" label="로딩 중..." />
           </div>
         ) : showForm ? (
           <VacationForm
@@ -204,223 +267,282 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
           />
         ) : (
           <>
-            <div className="p-5 sm:p-6 bg-gradient-to-r from-teal-500 to-teal-600">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
-                  <span className="bg-white/20 text-white p-1.5 sm:p-2 rounded-md mr-2 sm:mr-3 flex items-center justify-center">
-                    <FiCalendar size={18} className="sm:w-5 sm:h-5" />
+            {/* 헤더 (브랜드 그라데이션) */}
+            <div
+              style={{
+                padding: 24,
+                background: 'linear-gradient(to right, #14b8a6, #0d9488)',
+                color: '#ffffff',
+              }}
+            >
+              <HStack hAlign="between" vAlign="center">
+                <HStack gap={2} vAlign="center">
+                  <span
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      padding: 8,
+                      borderRadius: 8,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <FiCalendar size={18} />
                   </span>
-                  휴무 상세 정보
-                </h2>
+                  <Text type="large" weight="bold" color="inherit">휴무 상세 정보</Text>
+                </HStack>
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                   aria-label="닫기"
+                  className="carev-vacdetails-icon-btn"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    padding: 8,
+                    borderRadius: '50%',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
-                  <FiX size={20} className="sm:w-6 sm:h-6" />
+                  <FiX size={20} />
                 </button>
-              </div>
-              
-              <div className="mt-4 sm:mt-5 flex items-center justify-center p-3 sm:p-4 bg-white/15 rounded-lg border border-white/20">
-                <h3 className="text-white font-medium text-base sm:text-lg">
+              </HStack>
+
+              <div
+                style={{
+                  marginTop: 20,
+                  padding: 16,
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  textAlign: 'center',
+                }}
+              >
+                <Text type="large" weight="medium" color="inherit">
                   {date && format(date, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })}
-                </h3>
+                </Text>
               </div>
             </div>
-            
-            <div className="p-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4 sm:mb-5">
-                <div className="flex items-center text-gray-700">
-                  <FiUsers className="mr-2 sm:mr-3" size={18} />
-                  <span className="font-medium text-sm sm:text-base">휴무 신청 현황</span>
-                </div>
-                {shouldShowVacationLimit && (
-                  <div className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium flex items-center ${
-                    isFull ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-green-100 text-green-600 border border-green-200'
-                  }`}>
-                    {isFull ? (
-                      <FiAlertCircle className="mr-1.5 sm:mr-2 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    ) : (
-                      <FiCheck className="mr-1.5 sm:mr-2 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    )}
-                    {validVacationCount}/{maxPeople}명
+
+            {/* 본문 */}
+            <div style={{ padding: 24 }}>
+              <VStack gap={5}>
+                <HStack hAlign="between" vAlign="center">
+                  <HStack gap={2} vAlign="center">
+                    <Icon icon={FiUsers} size="sm" color="secondary" />
+                    <Text type="body" weight="medium">휴무 신청 현황</Text>
+                  </HStack>
+                  {shouldShowVacationLimit && (
+                    <Badge
+                      variant={isFull ? 'red' : 'green'}
+                      icon={<Icon icon={isFull ? 'error' : 'check'} size="sm" />}
+                      label={`${validVacationCount}/${maxPeople}명`}
+                    />
+                  )}
+                </HStack>
+
+                {sortedVacations.length > 0 ? (
+                  <div style={{ maxHeight: 256, overflowY: 'auto', paddingRight: 4 }}>
+                    <VStack gap={3}>
+                      {sortedVacations.map((vacation) => {
+                        const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
+
+                        return (
+                          <motion.div
+                            key={vacation.id}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                          >
+                            <Card variant="muted" padding={3} width="100%">
+                              <VStack gap={2}>
+                                <HStack hAlign="between" vAlign="center">
+                                  <HStack gap={1} vAlign="center">
+                                    <Text type="body" weight="medium">{vacation.userName}</Text>
+                                    {vacation.status === 'approved' && (
+                                      <Icon icon="check" size="sm" color="success" />
+                                    )}
+                                  </HStack>
+                                  <HStack gap={2} vAlign="center">
+                                    <Badge
+                                      variant={getStatusBadgeVariant(vacation.status)}
+                                      label={getStatusText(vacation.status)}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteClick(vacation)}
+                                      aria-label="휴가 삭제"
+                                      title="휴가 삭제"
+                                      className="carev-vacdetails-delete-btn"
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: '#9ca3af',
+                                        padding: 6,
+                                        borderRadius: '50%',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <FiTrash2 size={16} />
+                                    </button>
+                                  </HStack>
+                                </HStack>
+
+                                <HStack gap={2} wrap="wrap" vAlign="center">
+                                  {/* 휴가 기간 뱃지 - 유효한 duration일 때만 표시 */}
+                                  {isValidDuration(vacation.duration) && (
+                                    <Badge variant="teal" label={getDurationText(vacation.duration)} />
+                                  )}
+
+                                  {/* 휴무 유형 뱃지 */}
+                                  <Badge
+                                    variant="neutral"
+                                    icon={<Icon icon="clock" size="sm" />}
+                                    label={getVacationTypeText(vacation.type)}
+                                  />
+
+                                  {/* 직원 유형 뱃지 */}
+                                  <Badge
+                                    variant={getRoleBadgeVariant(resolvedRole)}
+                                    icon={<Icon icon={FiBriefcase} size="sm" />}
+                                    label={getRoleDisplayName(resolvedRole)}
+                                  />
+                                </HStack>
+
+                                {vacation.reason && (
+                                  <div
+                                    style={{
+                                      background: '#ffffff',
+                                      padding: 8,
+                                      borderRadius: 6,
+                                      border: '1px solid #e5e7eb',
+                                    }}
+                                  >
+                                    <Text type="supporting" color="secondary">
+                                      <Text as="span" type="supporting" weight="semibold" color="primary">사유: </Text>
+                                      {vacation.reason}
+                                    </Text>
+                                  </div>
+                                )}
+                              </VStack>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </VStack>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: 32,
+                      background: '#f9fafb',
+                      borderRadius: 8,
+                      border: '1px solid #e5e7eb',
+                    }}
+                  >
+                    <VStack gap={2} hAlign="center">
+                      <Icon icon={FiCalendar} size="lg" color="disabled" />
+                      <Text type="body" color="secondary">이 날짜에 신청된 휴무가 없습니다.</Text>
+                    </VStack>
                   </div>
                 )}
-              </div>
-              
-              {sortedVacations.length > 0 ? (
-                <div className="max-h-48 sm:max-h-64 overflow-y-auto mb-4 sm:mb-5 pr-1 sm:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  <ul className="space-y-3 sm:space-y-4">
-                    {sortedVacations.map((vacation) => {
-                      const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
-                      const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
 
-                      return (
-                      <motion.li
-                        key={vacation.id}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative"
-                      >
-                        <div className="flex justify-between items-center mb-2 sm:mb-3">
-                          <div className="font-medium text-gray-800 text-sm sm:text-base flex items-center">
-                            {vacation.userName}
-                            {vacation.status === 'approved' && (
-                              <span className="ml-2 text-green-500">
-                                <FiCheck size={16} />
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <span className={`text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-full font-medium flex items-center ${
-                              vacation.status === 'approved'
-                                ? 'bg-green-100 text-green-700 border border-green-200'
-                                : vacation.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                  : 'bg-red-100 text-red-700 border border-red-200'
-                            }`}>
-                              {getStatusText(vacation.status)}
-                            </span>
-                            <button 
-                              onClick={() => handleDeleteClick(vacation)} 
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                              aria-label="휴가 삭제"
-                              title="휴가 삭제"
-                            >
-                              <FiTrash2 size={16} className="sm:w-4 sm:h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {/* 휴가 기간 뱃지 - 유효한 duration일 때만 표시 */}
-                          {isValidDuration(vacation.duration) && (
-                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-teal-200 bg-teal-50 text-teal-700">
-                            <span>{getDurationText(vacation.duration)}</span>
-                          </div>
-                          )}
-                          
-                          {/* 휴무 유형 뱃지 */}
-                          <div className="inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border border-gray-200 bg-white">
-                            <FiClock className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />
-                            <span className="text-gray-700">{getVacationTypeText(vacation.type)}</span>
-                          </div>
-                          
-                          {/* 직원 유형 뱃지 */}
-                          <div className={`inline-flex items-center text-xs sm:text-sm px-2.5 py-1 rounded-md border ${roleBadgeClasses}`}>
-                            <FiBriefcase className="mr-1.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            <span>{getRoleDisplayName(resolvedRole)}</span>
-                          </div>
-                          
-                          {vacation.reason && (
-                            <div className="w-full mt-2 text-xs sm:text-sm text-gray-600 bg-white p-2 rounded-md border border-gray-200">
-                              <strong className="text-gray-700 mr-1">사유:</strong> {vacation.reason}
-                            </div>
-                          )}
-                        </div>
-                      </motion.li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6 sm:py-8 bg-gray-50 rounded-lg border border-gray-200 mb-4 sm:mb-5">
-                  <FiCalendar size={24} className="text-gray-400 mb-2" />
-                  <p className="text-gray-500 text-sm sm:text-base">이 날짜에 신청된 휴무가 없습니다.</p>
-                </div>
-              )}
-              
-              {!isAdmin && !isFull && (
-                <button
-                  onClick={handleApplyClick}
-                  className="w-full py-2.5 sm:py-3 bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center justify-center"
-                >
-                  <FiSend className="mr-2" size={18} />
-                  휴무 신청하기
-                </button>
-              )}
+                {!isAdmin && !isFull && (
+                  <Button
+                    label="휴무 신청하기"
+                    variant="primary"
+                    size="md"
+                    onClick={handleApplyClick}
+                    icon={<FiSend size={18} />}
+                  />
+                )}
+              </VStack>
             </div>
           </>
         )}
       </motion.div>
 
       {/* 삭제 확인 모달 */}
-      <AnimatePresence>
-        {showDeleteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={handleDeleteModalClose}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-start mb-4">
-                <div className="bg-red-100 p-2.5 rounded-full mr-3">
-                  <FiLock size={20} className="text-red-700" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">휴무 삭제 확인</h3>
-                  <p className="text-gray-600 text-sm">
+      <Dialog
+        isOpen={showDeleteModal}
+        onOpenChange={(open) => {
+          if (!open) handleDeleteModalClose();
+        }}
+        purpose="form"
+        width={440}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title="휴무 삭제 확인"
+              onOpenChange={(open) => {
+                if (!open) handleDeleteModalClose();
+              }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={4}>
+                <HStack gap={2} vAlign="start">
+                  <span
+                    style={{
+                      background: '#fee2e2',
+                      padding: 10,
+                      borderRadius: '50%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon icon={FiLock} size="md" color="error" />
+                  </span>
+                  <Text type="body" color="secondary">
                     {selectedVacation?.userName}님의 {selectedVacation?.date} 휴무를 삭제하시려면 비밀번호를 입력해주세요.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="deletePassword" className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                <input
+                  </Text>
+                </HStack>
+
+                <TextInput
+                  label="비밀번호"
                   type="password"
-                  id="deletePassword"
                   value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  onChange={(value) => setDeletePassword(value)}
                   placeholder="비밀번호를 입력하세요"
-                  autoComplete="current-password"
+                  htmlName="deletePassword"
+                  status={deleteError ? { type: 'error', message: deleteError } : undefined}
                 />
-                {deleteError && (
-                  <p className="mt-1 text-sm text-red-600">{deleteError}</p>
-                )}
-              </div>
-              
-              <div className="flex justify-end gap-3">
-                <button
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button
+                  label="취소"
+                  variant="ghost"
                   onClick={handleDeleteModalClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  disabled={isDeleting}
-                >
-                  취소
-                </button>
-                <button
+                  isDisabled={isDeleting}
+                />
+                <Button
+                  label="삭제하기"
+                  variant="destructive"
                   onClick={handleDeleteVacation}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      처리중...
-                    </>
-                  ) : (
-                    <>
-                      <FiTrash2 className="mr-1.5" size={16} />
-                      삭제하기
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  isLoading={isDeleting}
+                  icon={<FiTrash2 size={16} />}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
     </>
   );
 };
 
-export default VacationDetails; 
+export default VacationDetails;

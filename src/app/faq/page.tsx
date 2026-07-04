@@ -3,6 +3,10 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
+import { Text, Heading } from '@astryxdesign/core/Text';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Stack';
 
 interface FAQItem {
     question: string;
@@ -61,49 +65,67 @@ export default function FAQPage() {
         : faqData.filter(item => item.category === selectedCategory);
 
     return (
-        <main className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white">
+        <main
+            style={{
+                minHeight: '100vh',
+                background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)',
+                color: '#fff',
+            }}
+        >
             <Navbar />
 
             {/* 헤더 섹션 */}
-            <section className="relative pt-32 pb-16 px-4">
-                <div className="container mx-auto max-w-6xl">
+            <section style={{ position: 'relative', padding: '128px 16px 64px' }}>
+                <div style={{ maxWidth: 1152, margin: '0 auto' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="text-center mb-12"
+                        style={{ textAlign: 'center', marginBottom: 48 }}
                     >
-                        <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
+                        <Heading
+                            level={1}
+                            type="display-1"
+                            color="inherit"
+                            style={{
+                                marginBottom: 24,
+                                fontWeight: 800,
+                                backgroundImage: 'linear-gradient(to right, #ffffff, #dbeafe, #e0e7ff)',
+                                WebkitBackgroundClip: 'text',
+                                backgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                            }}
+                        >
                             자주 묻는 질문
-                        </h1>
-                        <p className="text-xl text-blue-100/90 max-w-3xl mx-auto">
+                        </Heading>
+                        <Text
+                            type="large"
+                            color="inherit"
+                            display="block"
+                            style={{ color: 'rgba(219, 234, 254, 0.9)', maxWidth: 768, margin: '0 auto' }}
+                        >
                             케어브이 사용에 대한 궁금증을 해결해드립니다
-                        </p>
+                        </Text>
                     </motion.div>
 
                     {/* 카테고리 필터 */}
-                    <div className="flex flex-wrap justify-center gap-3">
+                    <HStack wrap="wrap" hAlign="center" gap={3}>
                         {categories.map((category) => (
-                            <button
+                            <Button
                                 key={category.id}
+                                label={category.name}
                                 onClick={() => setSelectedCategory(category.id)}
-                                className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
-                                    selectedCategory === category.id
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'bg-white/10 text-blue-200 hover:bg-white/20'
-                                }`}
-                            >
-                                {category.name}
-                            </button>
+                                variant={selectedCategory === category.id ? 'primary' : 'secondary'}
+                            />
                         ))}
-                    </div>
+                    </HStack>
                 </div>
             </section>
 
             {/* FAQ 리스트 */}
-            <section className="py-16 px-4">
-                <div className="container mx-auto max-w-4xl">
-                    <div className="space-y-4">
+            <section style={{ padding: '64px 16px' }}>
+                <div style={{ maxWidth: 896, margin: '0 auto' }}>
+                    <VStack gap={4}>
                         {filteredFAQ.map((item, index) => (
                             <motion.div
                                 key={index}
@@ -112,75 +134,122 @@ export default function FAQPage() {
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.5, delay: index * 0.05 }}
                             >
-                                <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-blue-400/20 overflow-hidden">
+                                <div
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.1)',
+                                        backdropFilter: 'blur(16px)',
+                                        WebkitBackdropFilter: 'blur(16px)',
+                                        borderRadius: 16,
+                                        border: '1px solid rgba(96, 165, 250, 0.2)',
+                                        overflow: 'hidden',
+                                    }}
+                                >
                                     <button
-                                        className="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+                                        className="carev-faq-trigger"
+                                        style={{
+                                            width: '100%',
+                                            padding: '20px 24px',
+                                            textAlign: 'left',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            color: 'inherit',
+                                        }}
                                         onClick={() => setActiveIndex(activeIndex === index ? null : index)}
                                     >
-                                        <div className="flex-1">
-                                            <h3 className="text-lg font-semibold text-white pr-4">
+                                        <div style={{ flex: 1 }}>
+                                            <Text
+                                                type="large"
+                                                weight="semibold"
+                                                color="inherit"
+                                                style={{ color: '#fff', paddingRight: 16 }}
+                                            >
                                                 {item.question}
-                                            </h3>
+                                            </Text>
                                         </div>
-                                        <svg
-                                            className={`w-6 h-6 text-blue-300 transform transition-transform ${
-                                                activeIndex === index ? 'rotate-180' : ''
-                                            }`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
+                                        <span
+                                            style={{
+                                                display: 'inline-flex',
+                                                color: '#93c5fd',
+                                                transform: activeIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                transition: 'transform 200ms ease',
+                                            }}
                                         >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 9l-7 7-7-7"
-                                            />
-                                        </svg>
+                                            <Icon icon="chevronDown" size="md" color="inherit" />
+                                        </span>
                                     </button>
                                     {activeIndex === index && (
                                         <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             transition={{ duration: 0.3 }}
-                                            className="px-6 pb-5"
+                                            style={{ padding: '0 24px 20px' }}
                                         >
-                                            <p className="text-blue-100/80 leading-relaxed">
+                                            <Text
+                                                color="inherit"
+                                                display="block"
+                                                style={{ color: 'rgba(219, 234, 254, 0.8)', lineHeight: 1.625 }}
+                                            >
                                                 {item.answer}
-                                            </p>
+                                            </Text>
                                         </motion.div>
                                     )}
                                 </div>
                             </motion.div>
                         ))}
-                    </div>
+                    </VStack>
                 </div>
             </section>
 
             {/* CTA 섹션 */}
-            <section className="py-20 px-4">
-                <div className="container mx-auto max-w-4xl text-center">
+            <section style={{ padding: '80px 16px' }}>
+                <div style={{ maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12"
+                        style={{
+                            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
+                            borderRadius: 24,
+                            padding: 48,
+                        }}
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                        <Heading
+                            level={2}
+                            type="display-2"
+                            color="inherit"
+                            style={{ marginBottom: 16, fontWeight: 800, color: '#fff' }}
+                        >
                             더 궁금하신 점이 있으신가요?
-                        </h2>
-                        <p className="text-xl mb-8 text-blue-100">
+                        </Heading>
+                        <Text
+                            type="large"
+                            color="inherit"
+                            display="block"
+                            style={{ marginBottom: 32, color: 'rgba(219, 234, 254, 1)' }}
+                        >
                             고객센터에서 친절하게 답변해드립니다
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <a href="mailto:ggprgrkjh@naver.com" className="px-8 py-4 bg-white text-blue-600 font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                                이메일 문의하기
-                            </a>
-                            <a href="https://open.kakao.com/o/gvK6Okag" target="_blank" rel="noopener noreferrer" className="px-8 py-4 bg-white/20 text-white font-bold rounded-full hover:bg-white/30 transition-all duration-300">
-                                카카오톡 실시간 상담
-                            </a>
-                        </div>
+                        </Text>
+                        <HStack wrap="wrap" hAlign="center" gap={4}>
+                            <Button
+                                label="이메일 문의하기"
+                                href="mailto:ggprgrkjh@naver.com"
+                                variant="secondary"
+                                size="lg"
+                            />
+                            <Button
+                                label="카카오톡 실시간 상담"
+                                href="https://open.kakao.com/o/gvK6Okag"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                variant="ghost"
+                                size="lg"
+                            />
+                        </HStack>
                     </motion.div>
                 </div>
             </section>

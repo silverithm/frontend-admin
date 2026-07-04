@@ -7,6 +7,14 @@ import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from 
 import {subscriptionService} from '@/services/subscription';
 import {useAlert} from '@/components/Alert';
 import confetti from 'canvas-confetti';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Banner } from '@astryxdesign/core/Banner';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Text, Heading } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Divider } from '@astryxdesign/core/Divider';
 
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
@@ -129,7 +137,7 @@ export default function PaymentPage() {
               title: '🎉 결제 완료! 🎉',
               message: '축하합니다! 결제가 성공적으로 완료되었습니다.\nBasic 플랜을 이용하실 수 있습니다.'
             });
-            
+
             // 3초 후 리다이렉트
             setTimeout(() => {
                 router.push('/admin');
@@ -138,11 +146,11 @@ export default function PaymentPage() {
             // 에러 메시지 파싱
             let errorMessage = '구독 활성화에 실패했습니다. 고객센터에 문의해주세요.';
             let errorTitle = '구독 활성화 실패';
-            
+
             try {
                 if (error?.message) {
                     const errorString = error.message;
-                    
+
                     // 내부 시스템 에러 필터링 (사용자에게 노출하지 않음)
                     const internalErrors = [
                         'User not found with email',
@@ -153,11 +161,11 @@ export default function PaymentPage() {
                         'Token expired',
                         'Unauthorized access'
                     ];
-                    
-                    const isInternalError = internalErrors.some(pattern => 
+
+                    const isInternalError = internalErrors.some(pattern =>
                         errorString.toLowerCase().includes(pattern.toLowerCase())
                     );
-                    
+
                     // 내부 에러인 경우 결제 관련 에러만 추출
                     if (isInternalError) {
                         // 결제 실패 관련 JSON만 추출
@@ -166,7 +174,7 @@ export default function PaymentPage() {
                             const paymentErrorData = JSON.parse(paymentErrorMatch[1]);
                             if (paymentErrorData.message) {
                                 errorMessage = paymentErrorData.message;
-                                
+
                                 // 결제 에러 코드에 따른 제목 및 메시지 설정
                                 switch (paymentErrorData.code) {
                                     case 'REJECT_ACCOUNT_PAYMENT':
@@ -196,7 +204,7 @@ export default function PaymentPage() {
                             const errorData = JSON.parse(jsonMatch[0]);
                             if (errorData.message) {
                                 errorMessage = errorData.message;
-                                
+
                                 // 에러 코드에 따른 제목 및 메시지 설정
                                 switch (errorData.code) {
                                     case 'REJECT_ACCOUNT_PAYMENT':
@@ -258,13 +266,13 @@ export default function PaymentPage() {
                 console.error('에러 메시지 파싱 실패:', parseError);
                 // 파싱 실패 시 기본 메시지 유지
             }
-            
+
             console.error('구독 생성 실패:', {
                 title: errorTitle,
                 message: errorMessage,
                 originalError: error?.message
             });
-            
+
             showAlert({
               type: 'error',
               title: errorTitle,
@@ -305,7 +313,7 @@ export default function PaymentPage() {
             url.searchParams.delete('authKey');
             url.searchParams.delete('customerKey');
             window.history.replaceState({}, '', url.toString());
-            
+
             handleBillingSuccess(authKey).finally(() => {
                 setIsProcessingPayment(false);
             });
@@ -389,179 +397,179 @@ export default function PaymentPage() {
     return (
         <>
             <AlertContainer />
-            <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md mx-auto">
-                <div className="bg-white shadow rounded-lg p-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-6">Basic 플랜 결제</h1>
+            <div
+                style={{
+                    minHeight: '100vh',
+                    background: '#f9fafb',
+                    padding: '48px 16px',
+                }}
+            >
+                <div style={{ maxWidth: 448, margin: '0 auto' }}>
+                    <VStack gap={4}>
+                        <Card width="100%" padding={6}>
+                            <VStack gap={6}>
+                                <Heading level={1}>Basic 플랜 결제</Heading>
 
-                    {/* 사용자 정보 표시 */}
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-medium text-gray-700 mb-2">결제자 정보</h3>
-                        <div className="text-sm text-gray-600 space-y-1">
-                            <p><span className="font-medium">이름:</span> {userInfo.name || '정보 없음'}</p>
-                            <p><span className="font-medium">이메일:</span> {userInfo.email || '정보 없음'}</p>
-                        </div>
-                        {(!userInfo.name || !userInfo.email) && (
-                            <p className="text-xs text-red-500 mt-2">
-                                * 결제자 정보가 누락되었습니다. 다시 로그인해주세요.
-                            </p>
-                        )}
-                    </div>
+                                {/* 사용자 정보 표시 */}
+                                <Card variant="muted" width="100%" padding={4}>
+                                    <VStack gap={2}>
+                                        <Text type="label">결제자 정보</Text>
+                                        <VStack gap={1}>
+                                            <HStack gap={1}>
+                                                <Text type="body" weight="medium">이름:</Text>
+                                                <Text type="body" color="secondary">{userInfo.name || '정보 없음'}</Text>
+                                            </HStack>
+                                            <HStack gap={1}>
+                                                <Text type="body" weight="medium">이메일:</Text>
+                                                <Text type="body" color="secondary">{userInfo.email || '정보 없음'}</Text>
+                                            </HStack>
+                                        </VStack>
+                                        {(!userInfo.name || !userInfo.email) && (
+                                            <Banner
+                                                status="error"
+                                                title="결제자 정보가 누락되었습니다. 다시 로그인해주세요."
+                                            />
+                                        )}
+                                    </VStack>
+                                </Card>
 
-                    <div className="mb-6">
-                        <div className="bg-blue-50 rounded-lg p-4">
-                            <h2 className="text-lg font-semibold text-blue-900 mb-2">Basic 플랜</h2>
-                            <p className="text-3xl font-bold text-blue-900">₩9,900<span
-                                className="text-sm font-normal">/월</span></p>
-                        </div>
-                    </div>
+                                {/* 플랜 가격 */}
+                                <Card variant="blue" width="100%" padding={4}>
+                                    <VStack gap={1}>
+                                        <Text type="large" weight="semibold">Basic 플랜</Text>
+                                        <HStack gap={1} vAlign="end">
+                                            <Text type="display-2" weight="bold">₩9,900</Text>
+                                            <Text type="supporting">/월</Text>
+                                        </HStack>
+                                    </VStack>
+                                </Card>
 
-                    <div className="mb-6 space-y-3">
-                        <h3 className="font-medium text-gray-700">플랜 혜택</h3>
-                        <ul className="space-y-2 text-sm text-gray-600">
-                            <li className="flex items-start">
-                                <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor"
-                                     viewBox="0 0 20 20">
-                                    <path fillRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                          clipRule="evenodd"/>
-                                </svg>
-                                모든 휴가 관리 기능 이용
-                            </li>
-                            <li className="flex items-start">
-                                <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor"
-                                     viewBox="0 0 20 20">
-                                    <path fillRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                          clipRule="evenodd"/>
-                                </svg>
-                                무제한 직원 등록
-                            </li>
-                            <li className="flex items-start">
-                                <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor"
-                                     viewBox="0 0 20 20">
-                                    <path fillRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                          clipRule="evenodd"/>
-                                </svg>
-                                실시간 알림 기능
-                            </li>
-                            <li className="flex items-start">
-                                <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor"
-                                     viewBox="0 0 20 20">
-                                    <path fillRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                          clipRule="evenodd"/>
-                                </svg>
-                                우선 고객 지원
-                            </li>
-                        </ul>
-                    </div>
+                                {/* 플랜 혜택 */}
+                                <VStack gap={3}>
+                                    <Text type="label">플랜 혜택</Text>
+                                    <VStack gap={2}>
+                                        <HStack gap={2} vAlign="start">
+                                            <Icon icon="check" color="success" size="sm" />
+                                            <Text type="body" color="secondary">모든 휴가 관리 기능 이용</Text>
+                                        </HStack>
+                                        <HStack gap={2} vAlign="start">
+                                            <Icon icon="check" color="success" size="sm" />
+                                            <Text type="body" color="secondary">무제한 직원 등록</Text>
+                                        </HStack>
+                                        <HStack gap={2} vAlign="start">
+                                            <Icon icon="check" color="success" size="sm" />
+                                            <Text type="body" color="secondary">실시간 알림 기능</Text>
+                                        </HStack>
+                                        <HStack gap={2} vAlign="start">
+                                            <Icon icon="check" color="success" size="sm" />
+                                            <Text type="body" color="secondary">우선 고객 지원</Text>
+                                        </HStack>
+                                    </VStack>
+                                </VStack>
 
-                    <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600 mb-4">
-                            구독 서비스는 요금제에 따라 매월 또는 매년 자동 갱신되며, 별도의 해지 조치가 없는 한 정해진 구독 요금이 청구됩니다.
-                        </p>
-                    </div>
+                                <Divider />
 
-                    {/* 약관 동의 */}
-                    <div className="border-t pt-4 mb-4">
-                        <div className="flex items-start space-x-2">
-                            <input
-                                type="checkbox"
-                                id="agreement"
-                                checked={agreementChecked}
-                                onChange={(e) => setAgreementChecked(e.target.checked)}
-                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="agreement" className="text-sm text-gray-700">
-                                <span className="font-medium">정기 구독 서비스 이용약관</span>에 동의합니다 
-                                <button
-                                    type="button"
-                                    onClick={() => setShowTerms(!showTerms)}
-                                    className="text-blue-600 hover:text-blue-700 ml-1 underline"
-                                >
-                                    (약관 보기)
-                                </button>
-                            </label>
-                        </div>
+                                <Text type="supporting">
+                                    구독 서비스는 요금제에 따라 매월 또는 매년 자동 갱신되며, 별도의 해지 조치가 없는 한 정해진 구독 요금이 청구됩니다.
+                                </Text>
 
-                        {/* 약관 내용 */}
-                        {showTerms && (
-                            <div className="mt-4 p-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto text-sm text-gray-700">
-                                <h4 className="font-semibold mb-2">정기 구독 서비스 이용약관</h4>
-                                
-                                <div className="space-y-3">
-                                    <div>
-                                        <h5 className="font-medium">제1조 (목적)</h5>
-                                        <p>본 약관은 실버리즘(이하 &quot;회사&quot;)가 제공하는 서비스의 이용과 관련하여 일정 기간 서비스 이용을 보장하는 회사의 정기 구독 서비스(이하 &quot;정기 구독 서비스&quot;)에 가입 및 결제한 회원(이하 &quot;구독자&quot;) 사이의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정하는 것을 목적으로 합니다.</p>
-                                    </div>
+                                <Divider />
 
-                                    <div>
-                                        <h5 className="font-medium">제2조 (용어의 정의)</h5>
-                                        <p>본 약관에서 사용하는 주요 용어의 정의는 실버리즘 서비스 이용약관을 따릅니다.</p>
-                                    </div>
+                                {/* 약관 동의 */}
+                                <VStack gap={3}>
+                                    <HStack gap={1} vAlign="center">
+                                        <CheckboxInput
+                                            label="정기 구독 서비스 이용약관에 동의합니다"
+                                            value={agreementChecked}
+                                            onChange={(checked) => setAgreementChecked(checked)}
+                                            size="sm"
+                                        />
+                                        <Button
+                                            label="(약관 보기)"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowTerms(!showTerms)}
+                                        />
+                                    </HStack>
 
-                                    <div>
-                                        <h5 className="font-medium">제3조 (정기 구독 서비스 가입과 결제방식)</h5>
-                                        <p>회원은 정기 구독 서비스에 가입하기 위하여 사이트 내 버튼을 클릭하여 정기 구독 서비스 가입 화면인 &quot;요금제 – 결제 페이지&quot;(이하 &quot;요금제 안내 화면&quot;)에서 가입할 수 있습니다. 회원은 계약기간을 선택하고 가입하기 버튼을 클릭함으로써 회사와 구독 계약을 체결하게 되며, 구독자는 구매 시점에 제시된 가격으로 구독자에게 계약기간 동안의 구독료를 청구하도록 허용합니다.</p>
-                                    </div>
+                                    {/* 약관 내용 */}
+                                    {showTerms && (
+                                        <div style={{ maxHeight: 256, overflowY: 'auto' }}>
+                                            <Card variant="muted" width="100%" padding={4}>
+                                                <VStack gap={3}>
+                                                    <Text type="label">정기 구독 서비스 이용약관</Text>
+                                                    <VStack gap={3}>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제1조 (목적)</Text>
+                                                            <Text type="body" color="secondary">본 약관은 실버리즘(이하 &quot;회사&quot;)가 제공하는 서비스의 이용과 관련하여 일정 기간 서비스 이용을 보장하는 회사의 정기 구독 서비스(이하 &quot;정기 구독 서비스&quot;)에 가입 및 결제한 회원(이하 &quot;구독자&quot;) 사이의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정하는 것을 목적으로 합니다.</Text>
+                                                        </VStack>
 
-                                    <div>
-                                        <h5 className="font-medium">제4조 (구독중 생성된 콘텐츠의 유효기간)</h5>
-                                        <p>구독자가 구독 중 생성한 콘텐츠의 유효기간은 구독기간 내에 한하며, 사용자의 구독 콘텐츠 이용 시 이를 고지합니다.</p>
-                                    </div>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제2조 (용어의 정의)</Text>
+                                                            <Text type="body" color="secondary">본 약관에서 사용하는 주요 용어의 정의는 실버리즘 서비스 이용약관을 따릅니다.</Text>
+                                                        </VStack>
 
-                                    <div>
-                                        <h5 className="font-medium">제5조 (정기 구독 서비스 해지 방법)</h5>
-                                        <p>구독자는 특별한 구독 해지 방법이 있지 아니하고, 구매한 구독기간 만큼 구독서비스를 제공받을 수 있습니다.</p>
-                                    </div>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제3조 (정기 구독 서비스 가입과 결제방식)</Text>
+                                                            <Text type="body" color="secondary">회원은 정기 구독 서비스에 가입하기 위하여 사이트 내 버튼을 클릭하여 정기 구독 서비스 가입 화면인 &quot;요금제 – 결제 페이지&quot;(이하 &quot;요금제 안내 화면&quot;)에서 가입할 수 있습니다. 회원은 계약기간을 선택하고 가입하기 버튼을 클릭함으로써 회사와 구독 계약을 체결하게 되며, 구독자는 구매 시점에 제시된 가격으로 구독자에게 계약기간 동안의 구독료를 청구하도록 허용합니다.</Text>
+                                                        </VStack>
 
-                                    <div>
-                                        <h5 className="font-medium">제6조 (구독 철회 및 환불)</h5>
-                                        <p>구독자는 구독 시작일 이후 정기 구독 서비스를 1회라도 사용했거나 구독 시작일 이후 7일이 지난 경우 구독을 철회할 수 없습니다. (구독 환불은 고객센터, 취소는 홈페이지 내 구독 관리 페이지에서 가능합니다.)</p>
-                                    </div>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제4조 (구독중 생성된 콘텐츠의 유효기간)</Text>
+                                                            <Text type="body" color="secondary">구독자가 구독 중 생성한 콘텐츠의 유효기간은 구독기간 내에 한하며, 사용자의 구독 콘텐츠 이용 시 이를 고지합니다.</Text>
+                                                        </VStack>
 
-                                    <div>
-                                        <h5 className="font-medium">제7조 (구독제 변경 및 중단)</h5>
-                                        <p>회사는 구독자의 구독 혜택을 유지하기 위해 합리적으로 운영을 지속할 의무가 있습니다.</p>
-                                    </div>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제5조 (정기 구독 서비스 해지 방법)</Text>
+                                                            <Text type="body" color="secondary">구독자는 특별한 구독 해지 방법이 있지 아니하고, 구매한 구독기간 만큼 구독서비스를 제공받을 수 있습니다.</Text>
+                                                        </VStack>
 
-                                    <div>
-                                        <h5 className="font-medium">제8조 (구독 요금)</h5>
-                                        <p>&quot;정기 구독 서비스&quot;의 월 이용요금의 구체적인 내용은 (주)실버리즘 홈페이지 내 게재하며, 구독 요금은 회사의 요금정책에 따라 변경될 수 있습니다.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제6조 (구독 철회 및 환불)</Text>
+                                                            <Text type="body" color="secondary">구독자는 구독 시작일 이후 정기 구독 서비스를 1회라도 사용했거나 구독 시작일 이후 7일이 지난 경우 구독을 철회할 수 없습니다. (구독 환불은 고객센터, 취소는 홈페이지 내 구독 관리 페이지에서 가능합니다.)</Text>
+                                                        </VStack>
 
-                    <button
-                        onClick={handlePayment}
-                        disabled={loading || !customerKey || !agreementChecked || !userInfo.name || !userInfo.email}
-                        className={`w-full py-3 px-4 rounded-md text-white font-medium transition-colors ${
-                            loading || !customerKey || !agreementChecked || !userInfo.name || !userInfo.email
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-700'
-                        }`}
-                    >
-                        {loading ? '처리 중...' : '결제하기'}
-                    </button>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제7조 (구독제 변경 및 중단)</Text>
+                                                            <Text type="body" color="secondary">회사는 구독자의 구독 혜택을 유지하기 위해 합리적으로 운영을 지속할 의무가 있습니다.</Text>
+                                                        </VStack>
 
-                    <button
-                        onClick={() => router.push('/admin')}
-                        className="w-full mt-3 py-2 px-4 text-gray-600 hover:text-gray-800 text-sm"
-                    >
-                        관리자 페이지로 돌아가기
-                    </button>
+                                                        <VStack gap={1}>
+                                                            <Text type="body" weight="medium">제8조 (구독 요금)</Text>
+                                                            <Text type="body" color="secondary">&quot;정기 구독 서비스&quot;의 월 이용요금의 구체적인 내용은 (주)실버리즘 홈페이지 내 게재하며, 구독 요금은 회사의 요금정책에 따라 변경될 수 있습니다.</Text>
+                                                        </VStack>
+                                                    </VStack>
+                                                </VStack>
+                                            </Card>
+                                        </div>
+                                    )}
+                                </VStack>
+
+                                <VStack gap={3}>
+                                    <Button
+                                        label={loading ? '처리 중...' : '결제하기'}
+                                        variant="primary"
+                                        size="lg"
+                                        onClick={handlePayment}
+                                        isLoading={loading}
+                                        isDisabled={loading || !customerKey || !agreementChecked || !userInfo.name || !userInfo.email}
+                                    />
+                                    <Button
+                                        label="관리자 페이지로 돌아가기"
+                                        variant="ghost"
+                                        onClick={() => router.push('/admin')}
+                                    />
+                                </VStack>
+                            </VStack>
+                        </Card>
+
+                        <HStack hAlign="center">
+                            <Text type="supporting">
+                                결제는 안전하게 토스페이먼츠를 통해 처리됩니다
+                            </Text>
+                        </HStack>
+                    </VStack>
                 </div>
-
-                <div className="mt-4 text-center">
-                    <p className="text-sm text-gray-600">
-                        결제는 안전하게 토스페이먼츠를 통해 처리됩니다
-                    </p>
-                </div>
-            </div>
             </div>
         </>
     );

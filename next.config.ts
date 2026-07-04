@@ -51,6 +51,16 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // 셀프호스팅 rhwp-studio의 해시된 에셋(wasm/js/css) — 파일명에 해시가 있어 영구 캐시 가능
+        source: '/rhwp-studio/assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // 결제 페이지에 대한 추가 보안 헤더
         source: '/payment/:path*',
         headers: [

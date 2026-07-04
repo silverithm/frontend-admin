@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiFilter, FiRefreshCw, FiMail, FiCalendar, FiShield, FiAlertCircle, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiX } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck } from 'react-icons/fi';
 import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberPermissions, updateMemberPermissions, type PendingUser } from '@/lib/apiService';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
@@ -13,9 +13,27 @@ import {
   ALL_ROLE_FILTER,
   buildRoleNames,
   getMemberRoleName,
-  getRoleBadgeClasses,
   getRoleDisplayName,
 } from '@/lib/roleUtils';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Selector } from '@astryxdesign/core/Selector';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Table } from '@astryxdesign/core/Table';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Divider } from '@astryxdesign/core/Divider';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
 interface User {
   id: string;
@@ -30,6 +48,10 @@ interface User {
   position?: string;
   positionId?: number;
 }
+
+// Table 행 타입 (Astryx Table의 T는 Record<string, unknown>를 만족해야 함)
+interface UserRow extends User, Record<string, unknown> {}
+interface SeniorRow extends ElderlyInfo, Record<string, unknown> {}
 
 interface UserManagementProps {
   organizationName?: string;
@@ -335,7 +357,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     setIsProcessing(true);
-    
+
     try {
       await updateUserStatus(userId, newStatus as 'active' | 'inactive');
       await fetchUsers();
@@ -396,16 +418,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   };
 
   const filteredMembers = members.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === ALL_ROLE_FILTER || getMemberRoleName(user) === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
+
     return matchesSearch && matchesRole && matchesStatus;
   });
 
   const filteredPendingUsers = pendingUsers.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
@@ -425,996 +447,707 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const statusVariant = (status: string): 'warning' | 'success' | 'error' | 'neutral' => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'pending': return 'warning';
+      case 'approved':
+      case 'active': return 'success';
+      case 'rejected': return 'error';
+      case 'inactive':
+      default: return 'neutral';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-500 rounded-full animate-spin mr-3"></div>
-        <p className="text-gray-600">사용자 목록을 불러오는 중...</p>
-      </div>
+      <HStack height={256} hAlign="center" vAlign="center">
+        <Spinner label="사용자 목록을 불러오는 중..." />
+      </HStack>
     );
   }
 
   return (
-    <div>
+    <VStack gap={4}>
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">회원 관리</h2>
-          {organizationName && (
-            <p className="text-gray-400 text-sm mt-0.5">{organizationName}</p>
-          )}
-        </div>
-        <button
+      <HStack hAlign="between" vAlign="center">
+        <VStack gap={0}>
+          <Heading level={2}>회원 관리</Heading>
+          {organizationName && <Text type="supporting">{organizationName}</Text>}
+        </VStack>
+        <IconButton
+          label="새로고침"
+          variant="ghost"
+          icon={<Icon icon={FiRefreshCw} />}
           onClick={fetchUsers}
-          className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-          disabled={isProcessing}
-        >
-          <FiRefreshCw className={isProcessing ? 'animate-spin' : ''} size={18} />
-        </button>
-      </div>
+          isLoading={isProcessing}
+        />
+      </HStack>
 
-      {/* 탭 네비게이션 */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="border-b border-gray-200">
-        <nav className="flex">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'pending'
-                ? 'border-teal-500 text-teal-700 bg-teal-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <FiUserPlus className="inline mr-2" size={16} />
-            가입 신청 ({pendingUsers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'members'
-                ? 'border-teal-500 text-teal-700 bg-teal-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <FiUsers className="inline mr-2" size={16} />
-            기존 회원 ({members.length})
-          </button>
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('roles')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'roles'
-                  ? 'border-teal-500 text-teal-700 bg-teal-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
+      {/* 탭 + 필터 + 콘텐츠 카드 */}
+      <Card width="100%" padding={0}>
+        <VStack gap={0}>
+          {/* 탭 네비게이션 */}
+          <div style={{ padding: 16, overflowX: 'auto' }}>
+            <SegmentedControl
+              value={activeTab}
+              onChange={(v) => setActiveTab(v as 'pending' | 'members' | 'roles' | 'seniors')}
+              label="회원 관리 탭"
             >
-              <FiBriefcase className="inline mr-2" size={16} />
-              역할 관리
-            </button>
-          )}
-          <button
-            onClick={() => setActiveTab('seniors')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'seniors'
-                ? 'border-teal-500 text-teal-700 bg-teal-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <FiHeart className="inline mr-2" size={16} />
-            어르신 관리 ({seniors.length})
-          </button>
-        </nav>
-      </div>
+              <SegmentedControlItem value="pending" label={`가입 신청 (${pendingUsers.length})`} icon={<Icon icon={FiUserPlus} size="sm" />} />
+              <SegmentedControlItem value="members" label={`기존 회원 (${members.length})`} icon={<Icon icon={FiUsers} size="sm" />} />
+              {isAdmin && <SegmentedControlItem value="roles" label="역할 관리" icon={<Icon icon={FiBriefcase} size="sm" />} />}
+              <SegmentedControlItem value="seniors" label={`어르신 관리 (${seniors.length})`} icon={<Icon icon={FiHeart} size="sm" />} />
+            </SegmentedControl>
+          </div>
 
-      {/* 검색 및 필터 */}
-      {activeTab !== 'roles' && (
-      <div className="p-4 bg-gray-50 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* 검색 */}
-          {activeTab === 'seniors' ? (
+          <Divider />
+
+          {/* 검색 및 필터 */}
+          {activeTab !== 'roles' && (
             <>
-              <div className="flex-1 relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="어르신 이름으로 검색..."
-                  value={seniorSearchTerm}
-                  onChange={(e) => setSeniorSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
+              <div style={{ padding: 16 }}>
+                {activeTab === 'seniors' ? (
+                  <HStack gap={2} vAlign="end">
+                    <StackItem size="fill">
+                      <TextInput
+                        label="어르신 검색"
+                        isLabelHidden
+                        placeholder="어르신 이름으로 검색..."
+                        value={seniorSearchTerm}
+                        onChange={(v) => setSeniorSearchTerm(v)}
+                        startIcon={FiSearch}
+                        hasClear
+                      />
+                    </StackItem>
+                    {isAdmin && (
+                      <Button
+                        label="어르신 추가"
+                        variant="primary"
+                        icon={<Icon icon={FiPlus} size="sm" />}
+                        onClick={openAddSeniorModal}
+                      />
+                    )}
+                  </HStack>
+                ) : (
+                  <HStack gap={2} vAlign="end">
+                    <StackItem size="fill">
+                      <TextInput
+                        label="검색"
+                        isLabelHidden
+                        placeholder="이름 또는 이메일로 검색..."
+                        value={searchTerm}
+                        onChange={(v) => setSearchTerm(v)}
+                        startIcon={FiSearch}
+                        hasClear
+                      />
+                    </StackItem>
+                    {activeTab === 'members' && (
+                      <>
+                        <Selector
+                          label="역할 필터"
+                          isLabelHidden
+                          placeholder="모든 역할"
+                          value={roleFilter}
+                          options={[
+                            { value: ALL_ROLE_FILTER, label: '모든 역할' },
+                            ...availableRoles.map((roleName) => ({ value: roleName, label: getRoleDisplayName(roleName) })),
+                          ]}
+                          onChange={(v) => setRoleFilter(v)}
+                        />
+                        <Selector
+                          label="상태 필터"
+                          isLabelHidden
+                          placeholder="모든 상태"
+                          value={statusFilter}
+                          options={[
+                            { value: 'all', label: '모든 상태' },
+                            { value: 'active', label: '활성화' },
+                            { value: 'inactive', label: '비활성화' },
+                          ]}
+                          onChange={(v) => setStatusFilter(v as 'all' | 'active' | 'inactive')}
+                        />
+                      </>
+                    )}
+                  </HStack>
+                )}
               </div>
-              {isAdmin && (
-                <button
-                  onClick={openAddSeniorModal}
-                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 flex items-center whitespace-nowrap"
+              <Divider />
+            </>
+          )}
+
+          {/* 컨텐츠 영역 */}
+          <div style={{ padding: 24 }}>
+            <AnimatePresence mode="wait">
+              {activeTab === 'seniors' ? (
+                <motion.div
+                  key="seniors"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <FiPlus className="mr-1.5" size={16} />
-                  어르신 추가
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="flex-1 relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="이름 또는 이메일로 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-
-              {/* 필터 (기존 회원 탭에서만 표시) */}
-              {activeTab === 'members' && (
-                <>
-                  <select
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                  >
-                    <option value={ALL_ROLE_FILTER}>모든 역할</option>
-                    {availableRoles.map((roleName) => (
-                      <option key={roleName} value={roleName}>
-                        {getRoleDisplayName(roleName)}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                  >
-                    <option value="all">모든 상태</option>
-                    <option value="active">활성화</option>
-                    <option value="inactive">비활성화</option>
-                  </select>
-
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-      )}
-
-      {/* 컨텐츠 영역 */}
-      <div className="p-6">
-        <AnimatePresence mode="wait">
-          {activeTab === 'seniors' ? (
-            <motion.div
-              key="seniors"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {filteredSeniors.length === 0 ? (
-                <div className="text-center py-12">
-                  <FiHeart className="mx-auto text-gray-300 mb-4" size={48} />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">등록된 어르신이 없습니다</h3>
-                  <p className="text-gray-400 mb-4">어르신을 추가하여 관리를 시작하세요.</p>
-                  {isAdmin && (
-                    <button
-                      onClick={openAddSeniorModal}
-                      className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                    >
-                      <FiPlus className="inline mr-1.5" size={16} />
-                      어르신 추가
-                    </button>
+                  {filteredSeniors.length === 0 ? (
+                    <EmptyState
+                      icon={<Icon icon={FiHeart} size="lg" color="disabled" />}
+                      title="등록된 어르신이 없습니다"
+                      description="어르신을 추가하여 관리를 시작하세요."
+                      actions={isAdmin ? (
+                        <Button
+                          label="어르신 추가"
+                          variant="primary"
+                          icon={<Icon icon={FiPlus} size="sm" />}
+                          onClick={openAddSeniorModal}
+                        />
+                      ) : undefined}
+                    />
+                  ) : (
+                    <Table
+                      data={filteredSeniors as SeniorRow[]}
+                      idKey={(s) => String(s.id)}
+                      hasHover
+                      columns={[
+                        {
+                          key: 'name',
+                          header: '어르신',
+                          renderCell: (s) => (
+                            <HStack gap={2} vAlign="center">
+                              <Icon icon={FiHeart} size="sm" color="accent" />
+                              <Text weight="semibold">{s.name}</Text>
+                              {s.requiredFrontSeat && <Badge variant="orange" label="앞좌석 필요" />}
+                            </HStack>
+                          ),
+                        },
+                        {
+                          key: 'address',
+                          header: '주소',
+                          renderCell: (s) => (
+                            s.homeAddressName
+                              ? <Text type="supporting">{s.homeAddressName}</Text>
+                              : <Text type="supporting" color="disabled">주소 미등록</Text>
+                          ),
+                        },
+                        ...(isAdmin ? [{
+                          key: 'actions',
+                          header: '',
+                          renderCell: (s: SeniorRow) => (
+                            <HStack gap={2} hAlign="end">
+                              <Button label="수정" size="sm" variant="secondary" icon={<Icon icon={FiEdit2} size="sm" />} onClick={() => openEditSeniorModal(s)} isDisabled={isProcessing} />
+                              <Button label="삭제" size="sm" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={() => { setSelectedSenior(s); setShowDeleteSeniorModal(true); }} isDisabled={isProcessing} />
+                            </HStack>
+                          ),
+                        }] : []),
+                      ]}
+                    />
                   )}
-                </div>
+                </motion.div>
+              ) : activeTab === 'roles' ? (
+                <motion.div
+                  key="roles"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <PositionManagement
+                    organizationName={organizationName}
+                    onNotification={onNotification}
+                    isAdmin={isAdmin}
+                  />
+                </motion.div>
+              ) : activeTab === 'pending' ? (
+                <motion.div
+                  key="pending"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {filteredPendingUsers.length === 0 ? (
+                    <EmptyState
+                      icon={<Icon icon={FiUserPlus} size="lg" color="disabled" />}
+                      title="가입 신청이 없습니다"
+                      description="현재 승인 대기 중인 사용자가 없습니다."
+                    />
+                  ) : (
+                    <Table
+                      data={filteredPendingUsers as UserRow[]}
+                      idKey="id"
+                      hasHover
+                      columns={[
+                        {
+                          key: 'name',
+                          header: '회원',
+                          renderCell: (u) => (
+                            <HStack gap={2} vAlign="center" wrap="wrap">
+                              <Text weight="semibold">{u.name}</Text>
+                              <Badge variant={statusVariant(u.status)} label={getStatusLabel(u.status)} />
+                            </HStack>
+                          ),
+                        },
+                        {
+                          key: 'email',
+                          header: '이메일',
+                          renderCell: (u) => (
+                            <HStack gap={1} vAlign="center">
+                              <Icon icon={FiMail} size="sm" color="secondary" />
+                              <Text type="supporting">{u.email}</Text>
+                            </HStack>
+                          ),
+                        },
+                        {
+                          key: 'role',
+                          header: '역할',
+                          renderCell: (u) => <Text type="body">{getRoleLabel(u.role)}</Text>,
+                        },
+                        {
+                          key: 'requestedAt',
+                          header: '신청일',
+                          renderCell: (u) => (
+                            u.requestedAt
+                              ? <Text type="supporting">{format(new Date(u.requestedAt), 'yyyy-MM-dd HH:mm', { locale: ko })}</Text>
+                              : <Text type="supporting" color="disabled">-</Text>
+                          ),
+                        },
+                        ...(isAdmin ? [{
+                          key: 'actions',
+                          header: '',
+                          renderCell: (u: UserRow) => (
+                            <HStack gap={2} hAlign="end">
+                              <Button label="승인" size="sm" variant="primary" icon={<Icon icon={FiUserCheck} size="sm" />} onClick={() => handleApproveUser(u.id)} isDisabled={isProcessing} />
+                              <Button label="거절" size="sm" variant="destructive" icon={<Icon icon={FiUserX} size="sm" />} onClick={() => handleRejectUser(u.id)} isDisabled={isProcessing} />
+                            </HStack>
+                          ),
+                        }] : []),
+                      ]}
+                    />
+                  )}
+                </motion.div>
               ) : (
-                <div className="space-y-4">
-                  {filteredSeniors.map((senior) => (
-                    <motion.div
-                      key={senior.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                              <FiHeart className="text-teal-600" size={24} />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-medium text-gray-900">{senior.name}</h3>
-                              {senior.requiredFrontSeat && (
-                                <span className="px-2 py-1 text-xs font-medium rounded-full border bg-orange-100 text-orange-800 border-orange-200">
-                                  앞좌석 필요
-                                </span>
+                <motion.div
+                  key="members"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {filteredMembers.length === 0 ? (
+                    <EmptyState
+                      icon={<Icon icon={FiUsers} size="lg" color="disabled" />}
+                      title="회원이 없습니다"
+                      description="현재 등록된 회원이 없습니다."
+                    />
+                  ) : (
+                    <Table
+                      data={filteredMembers as UserRow[]}
+                      idKey="id"
+                      hasHover
+                      columns={[
+                        {
+                          key: 'name',
+                          header: '회원',
+                          renderCell: (u) => {
+                            const resolvedRole = getMemberRoleName(u);
+                            return (
+                              <HStack gap={2} vAlign="center" wrap="wrap">
+                                <Text weight="semibold">{u.name}</Text>
+                                <Badge variant={statusVariant(u.status)} label={getStatusLabel(u.status)} />
+                                <Badge variant={u.role === 'admin' ? 'purple' : 'blue'} label={getRoleLabel(resolvedRole)} />
+                              </HStack>
+                            );
+                          },
+                        },
+                        {
+                          key: 'email',
+                          header: '이메일',
+                          renderCell: (u) => (
+                            <HStack gap={1} vAlign="center">
+                              <Icon icon={FiMail} size="sm" color="secondary" />
+                              <Text type="supporting">{u.email}</Text>
+                            </HStack>
+                          ),
+                        },
+                        {
+                          key: 'position',
+                          header: '직책',
+                          renderCell: (u) => (
+                            isAdmin ? (
+                              <Selector
+                                label="역할 배정"
+                                isLabelHidden
+                                size="sm"
+                                placeholder="역할 미배정"
+                                value={u.positionId?.toString() || ''}
+                                options={[
+                                  { value: '', label: '역할 미배정' },
+                                  ...positions.map((pos) => ({ value: pos.id.toString(), label: pos.name })),
+                                ]}
+                                onChange={(val) => handleAssignPosition(u.id, val ? parseInt(val) : null)}
+                                isDisabled={isProcessing}
+                              />
+                            ) : u.position ? (
+                              <Badge variant="orange" label={u.position} />
+                            ) : (
+                              <Text type="supporting" color="disabled">-</Text>
+                            )
+                          ),
+                        },
+                        {
+                          key: 'joined',
+                          header: '가입/로그인',
+                          renderCell: (u) => (
+                            <VStack gap={0.5}>
+                              {u.approvedAt && <Text type="supporting">가입: {format(new Date(u.approvedAt), 'yyyy-MM-dd', { locale: ko })}</Text>}
+                              {u.lastLoginAt && <Text type="supporting">로그인: {format(new Date(u.lastLoginAt), 'yyyy-MM-dd HH:mm', { locale: ko })}</Text>}
+                              {!u.approvedAt && !u.lastLoginAt && <Text type="supporting" color="disabled">-</Text>}
+                            </VStack>
+                          ),
+                        },
+                        ...(isAdmin ? [{
+                          key: 'actions',
+                          header: '',
+                          renderCell: (u: UserRow) => (
+                            <HStack gap={2} hAlign="end">
+                              {u.role !== 'admin' && (
+                                <Button label="권한" size="sm" variant="secondary" icon={<Icon icon={FiShield} size="sm" />} onClick={() => openPermissionModal(u)} isDisabled={isProcessing} />
                               )}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {senior.homeAddressName ? (
-                                <span>주소: {senior.homeAddressName}</span>
-                              ) : (
-                                <span className="text-gray-400">주소 미등록</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {isAdmin && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openEditSeniorModal(senior)}
-                              disabled={isProcessing}
-                              className="px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                              <FiEdit2 className="mr-1" size={14} />
-                              수정
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedSenior(senior);
-                                setShowDeleteSeniorModal(true);
-                              }}
-                              disabled={isProcessing}
-                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                              <FiTrash2 className="mr-1" size={14} />
-                              삭제
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                              <Button
+                                label={u.status === 'active' ? '비활성화' : '활성화'}
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleToggleUserStatus(u.id, u.status)}
+                                isDisabled={isProcessing || u.role === 'admin'}
+                              />
+                              <Button
+                                label="삭제"
+                                size="sm"
+                                variant="destructive"
+                                icon={<Icon icon={FiTrash2} size="sm" />}
+                                onClick={() => { setSelectedUser(u); setShowDeleteModal(true); }}
+                                isDisabled={isProcessing || u.role === 'admin'}
+                              />
+                            </HStack>
+                          ),
+                        }] : []),
+                      ]}
+                    />
+                  )}
+                </motion.div>
               )}
-            </motion.div>
-          ) : activeTab === 'roles' ? (
-            <motion.div
-              key="roles"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <PositionManagement
-                organizationName={organizationName}
-                onNotification={onNotification}
-                isAdmin={isAdmin}
-              />
-            </motion.div>
-          ) : activeTab === 'pending' ? (
-            <motion.div
-              key="pending"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {filteredPendingUsers.length === 0 ? (
-                <div className="text-center py-12">
-                  <FiUserPlus className="mx-auto text-gray-300 mb-4" size={48} />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">가입 신청이 없습니다</h3>
-                  <p className="text-gray-400">현재 승인 대기 중인 사용자가 없습니다.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredPendingUsers.map((user) => (
-                    <motion.div
-                      key={user.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                              <FiUserPlus className="text-yellow-600" size={24} />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-medium text-gray-900">{user.name}</h3>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(user.status)}`}>
-                                {getStatusLabel(user.status)}
-                              </span>
-                            </div>
-                            <div className="text-sm text-gray-600 space-y-1">
-                              <div className="flex items-center">
-                                <FiMail className="mr-2" size={14} />
-                                {user.email}
-                              </div>
-                              <div className="flex items-center">
-                                <FiShield className="mr-2" size={14} />
-                                {getRoleLabel(user.role)}
-                              </div>
-                              {user.requestedAt && (
-                                <div className="flex items-center">
-                                  <FiCalendar className="mr-2" size={14} />
-                                  신청일: {format(new Date(user.requestedAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {isAdmin && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleApproveUser(user.id)}
-                              disabled={isProcessing}
-                              className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                              <FiUserCheck className="mr-1.5" size={16} />
-                              승인
-                            </button>
-                            <button
-                              onClick={() => handleRejectUser(user.id)}
-                              disabled={isProcessing}
-                              className="px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                              <FiUserX className="mr-1.5" size={16} />
-                              거절
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="members"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {filteredMembers.length === 0 ? (
-                <div className="text-center py-12">
-                  <FiUsers className="mx-auto text-gray-300 mb-4" size={48} />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">회원이 없습니다</h3>
-                  <p className="text-gray-400">현재 등록된 회원이 없습니다.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredMembers.map((user) => {
-                    const resolvedRole = getMemberRoleName(user);
-                    const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
-
-                    return (
-                    <motion.div
-                      key={user.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-shrink-0">
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                              user.status === 'active' ? 'bg-green-100' : 'bg-gray-100'
-                            }`}>
-                              <FiUsers className={user.status === 'active' ? 'text-green-600' : 'text-gray-600'} size={24} />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-medium text-gray-900">{user.name}</h3>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(user.status)}`}>
-                                {getStatusLabel(user.status)}
-                              </span>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full border ${roleBadgeClasses}`}>
-                                {getRoleLabel(resolvedRole)}
-                              </span>
-                              {isAdmin ? (
-                                <select
-                                  value={(user as any).positionId?.toString() || ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    handleAssignPosition(user.id, val ? parseInt(val) : null);
-                                  }}
-                                  disabled={isProcessing}
-                                  className={`px-2 py-1 text-xs font-medium rounded-full border focus:outline-none focus:ring-1 focus:ring-teal-500 ${
-                                    (user as any).position
-                                      ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                      : 'bg-gray-100 text-gray-500 border-gray-200'
-                                  }`}
-                                >
-                                  <option value="">역할 미배정</option>
-                                  {positions.map(pos => (
-                                    <option key={pos.id} value={pos.id.toString()}>{pos.name}</option>
-                                  ))}
-                                </select>
-                              ) : (user as any).position ? (
-                                <span className="px-2 py-1 text-xs font-medium rounded-full border bg-orange-100 text-orange-800 border-orange-200">
-                                  {(user as any).position}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="text-sm text-gray-600 space-y-1">
-                              <div className="flex items-center">
-                                <FiMail className="mr-2" size={14} />
-                                {user.email}
-                              </div>
-                              {user.approvedAt && (
-                                <div className="flex items-center">
-                                  <FiCalendar className="mr-2" size={14} />
-                                  가입일: {format(new Date(user.approvedAt), 'yyyy년 MM월 dd일', { locale: ko })}
-                                </div>
-                              )}
-                              {user.lastLoginAt && (
-                                <div className="flex items-center">
-                                  <FiCalendar className="mr-2" size={14} />
-                                  최근 로그인: {format(new Date(user.lastLoginAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {isAdmin && (
-                          <div className="flex space-x-2">
-                            {user.role !== 'admin' && (
-                              <button
-                                onClick={() => openPermissionModal(user)}
-                                disabled={isProcessing}
-                                className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                              >
-                                <FiShield className="mr-1" size={14} />
-                                권한
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleToggleUserStatus(user.id, user.status)}
-                              disabled={isProcessing || user.role === 'admin'}
-                              className={`px-3 py-2 text-sm font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                user.status === 'active'
-                                  ? 'text-gray-700 bg-gray-100 border-gray-200 hover:bg-gray-200 focus:ring-gray-500'
-                                  : 'text-teal-700 bg-teal-50 border-teal-200 hover:bg-teal-100 focus:ring-teal-500'
-                              }`}
-                            >
-                              {user.status === 'active' ? '비활성화' : '활성화'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowDeleteModal(true);
-                              }}
-                              disabled={isProcessing || user.role === 'admin'}
-                              className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                              <FiTrash2 className="mr-1" size={14} />
-                              삭제
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      </div>{/* end card wrapper */}
+            </AnimatePresence>
+          </div>
+        </VStack>
+      </Card>
 
       {/* 삭제 확인 모달 */}
-      <AnimatePresence>
-        {showDeleteModal && selectedUser && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDeleteModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white">회원 삭제 확인</h3>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start mb-4">
-                  <div className="bg-red-100 p-2 rounded-full mr-3">
-                    <FiAlertCircle size={20} className="text-red-600" />
-                  </div>
-                  <p className="text-gray-700 text-sm pt-1">
-                    <strong>{selectedUser.name}</strong>님을 삭제하시겠습니까?<br />
-                    이 작업은 되돌릴 수 없습니다.
-                  </p>
-                </div>
-              </div>
-              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
-                  disabled={isProcessing}
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleDeleteUser}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-lg hover:bg-red-600 flex items-center"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-red-200 border-t-white rounded-full animate-spin mr-2"></div>
-                      처리중...
-                    </>
-                  ) : (
-                    <>
-                      <FiTrash2 className="mr-1.5" size={16} />
-                      삭제하기
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {/* 직책 관리 모달 */}
-      <AnimatePresence>
-        {showPositionModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowPositionModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <FiBriefcase size={20} />
-                  역할 관리
-                </h3>
-              </div>
+      {selectedUser && (
+        <Dialog
+          isOpen={showDeleteModal}
+          onOpenChange={(o) => { if (!o) setShowDeleteModal(false); }}
+          purpose="form"
+          width={440}
+        >
+          <Layout
+            header={<DialogHeader title="회원 삭제 확인" onOpenChange={(o) => { if (!o) setShowDeleteModal(false); }} />}
+            content={
+              <LayoutContent>
+                <HStack gap={3} vAlign="start">
+                  <Icon icon="error" color="error" size="lg" />
+                  <Text type="body" color="secondary">
+                    <Text as="span" weight="bold" color="primary">{selectedUser.name}</Text>님을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                  </Text>
+                </HStack>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+                <HStack gap={2} hAlign="end">
+                  <Button label="취소" variant="ghost" onClick={() => setShowDeleteModal(false)} isDisabled={isProcessing} />
+                  <Button label="삭제하기" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={handleDeleteUser} isLoading={isProcessing} isDisabled={isProcessing} />
+                </HStack>
+              </LayoutFooter>
+            }
+          />
+        </Dialog>
+      )}
 
-              <div className="p-6">
+      {/* 직책 관리 모달 */}
+      <Dialog
+        isOpen={showPositionModal}
+        onOpenChange={(o) => { if (!o) setShowPositionModal(false); }}
+        purpose="form"
+        width={560}
+      >
+        <Layout
+          header={<DialogHeader title="역할 관리" onOpenChange={(o) => { if (!o) setShowPositionModal(false); }} />}
+          content={
+            <LayoutContent>
+              <VStack gap={4}>
                 {/* 직책 추가 폼 */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-xl space-y-3">
-                  <label className="block text-sm font-bold text-gray-900">
-                    {editingPosition ? '역할 수정' : '새 역할 추가'}
-                  </label>
-                  <input
-                    type="text"
-                    value={positionForm.name}
-                    onChange={(e) => setPositionForm(prev => ({ ...prev, name: e.target.value }))}
+                <VStack gap={3}>
+                  <Text type="label">{editingPosition ? '역할 수정' : '새 역할 추가'}</Text>
+                  <TextInput
+                    label="역할명"
+                    isLabelHidden
                     placeholder="역할명 (예: 팀장, 사회복지사)"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    value={positionForm.name}
+                    onChange={(v) => setPositionForm(prev => ({ ...prev, name: v }))}
                   />
-                  <input
-                    type="text"
-                    value={positionForm.description}
-                    onChange={(e) => setPositionForm(prev => ({ ...prev, description: e.target.value }))}
+                  <TextInput
+                    label="설명"
+                    isLabelHidden
                     placeholder="설명 (선택사항)"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    value={positionForm.description}
+                    onChange={(v) => setPositionForm(prev => ({ ...prev, description: v }))}
                   />
-                  <div className="flex gap-2">
-                    <button
+                  <HStack gap={2}>
+                    <Button
+                      label={editingPosition ? '수정' : '추가'}
+                      variant="primary"
                       onClick={editingPosition ? handleUpdatePosition : handleCreatePosition}
-                      disabled={isProcessing || !positionForm.name.trim()}
-                      className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50"
-                    >
-                      {isProcessing ? '처리중...' : editingPosition ? '수정' : '추가'}
-                    </button>
+                      isLoading={isProcessing}
+                      isDisabled={isProcessing || !positionForm.name.trim()}
+                    />
                     {editingPosition && (
-                      <button
+                      <Button
+                        label="취소"
+                        variant="ghost"
                         onClick={() => {
                           setEditingPosition(null);
                           setPositionForm({ name: '', description: '' });
                         }}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                      >
-                        취소
-                      </button>
+                      />
                     )}
-                  </div>
-                </div>
+                  </HStack>
+                </VStack>
+
+                <Divider />
 
                 {/* 직책 목록 */}
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+                <VStack gap={2}>
                   {positions.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-4">등록된 역할이 없습니다.</p>
+                    <Text type="supporting" color="disabled">등록된 역할이 없습니다.</Text>
                   ) : (
                     positions.map((pos) => (
-                      <div
-                        key={pos.id}
-                        className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div>
-                          <span className="text-sm font-medium text-gray-900">{pos.name}</span>
-                          {pos.description && (
-                            <p className="text-xs text-gray-400">{pos.description}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <button
+                      <HStack key={pos.id} gap={2} hAlign="between" vAlign="center">
+                        <VStack gap={0}>
+                          <Text weight="medium">{pos.name}</Text>
+                          {pos.description && <Text type="supporting">{pos.description}</Text>}
+                        </VStack>
+                        <HStack gap={1}>
+                          <IconButton
+                            label="역할 수정"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={FiEdit2} size="sm" />}
                             onClick={() => {
                               setEditingPosition(pos);
                               setPositionForm({ name: pos.name, description: pos.description || '' });
                             }}
-                            className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                          >
-                            <FiEdit2 size={14} />
-                          </button>
-                          <button
+                          />
+                          <IconButton
+                            label="역할 삭제"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={FiTrash2} size="sm" />}
                             onClick={() => {
                               setSelectedPosition(pos);
                               setShowDeletePositionModal(true);
                             }}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <FiTrash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
+                          />
+                        </HStack>
+                      </HStack>
                     ))
                   )}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end">
-                <button
-                  onClick={() => setShowPositionModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
-                >
-                  닫기
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </VStack>
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="닫기" variant="secondary" onClick={() => setShowPositionModal(false)} />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
 
       {/* 직책 삭제 확인 모달 */}
-      <AnimatePresence>
-        {showDeletePositionModal && selectedPosition && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
-            onClick={() => setShowDeletePositionModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white">역할 삭제</h3>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start">
-                  <div className="bg-red-100 p-2 rounded-full mr-3">
-                    <FiAlertCircle size={20} className="text-red-600" />
-                  </div>
-                  <p className="text-gray-700 text-sm pt-1">
-                    <strong>{selectedPosition.name}</strong> 역할을 삭제하시겠습니까?
-                  </p>
-                </div>
-              </div>
-              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
-                <button
-                  onClick={() => setShowDeletePositionModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
-                  disabled={isProcessing}
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleDeletePositionConfirm}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 flex items-center"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? '삭제 중...' : '삭제'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selectedPosition && (
+        <Dialog
+          isOpen={showDeletePositionModal}
+          onOpenChange={(o) => { if (!o) setShowDeletePositionModal(false); }}
+          purpose="form"
+          width={400}
+        >
+          <Layout
+            header={<DialogHeader title="역할 삭제" onOpenChange={(o) => { if (!o) setShowDeletePositionModal(false); }} />}
+            content={
+              <LayoutContent>
+                <HStack gap={3} vAlign="start">
+                  <Icon icon="error" color="error" size="lg" />
+                  <Text type="body" color="secondary">
+                    <Text as="span" weight="bold" color="primary">{selectedPosition.name}</Text> 역할을 삭제하시겠습니까?
+                  </Text>
+                </HStack>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+                <HStack gap={2} hAlign="end">
+                  <Button label="취소" variant="ghost" onClick={() => setShowDeletePositionModal(false)} isDisabled={isProcessing} />
+                  <Button label="삭제" variant="destructive" onClick={handleDeletePositionConfirm} isLoading={isProcessing} isDisabled={isProcessing} />
+                </HStack>
+              </LayoutFooter>
+            }
+          />
+        </Dialog>
+      )}
 
       {/* 어르신 추가/수정 모달 */}
-      <AnimatePresence>
-        {showSeniorModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowSeniorModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white">
-                  {editingSenior ? '어르신 정보 수정' : '어르신 추가'}
-                </h3>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    이름 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={seniorForm.name}
-                    onChange={(e) => setSeniorForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="어르신 이름"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    주소 <span className="text-gray-400">(선택)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={seniorForm.homeAddress}
-                    onChange={(e) => setSeniorForm(prev => ({ ...prev, homeAddress: e.target.value }))}
-                    placeholder="주소 입력 (선택사항)"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="requiredFrontSeat"
-                    checked={seniorForm.requiredFrontSeat}
-                    onChange={(e) => setSeniorForm(prev => ({ ...prev, requiredFrontSeat: e.target.checked }))}
-                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-200 rounded"
-                  />
-                  <label htmlFor="requiredFrontSeat" className="ml-2 block text-sm text-gray-700">
-                    앞좌석 필요
-                  </label>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowSeniorModal(false);
-                    setEditingSenior(null);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
-                  disabled={isProcessing}
-                >
-                  취소
-                </button>
-                <button
+      <Dialog
+        isOpen={showSeniorModal}
+        onOpenChange={(o) => { if (!o) { setShowSeniorModal(false); setEditingSenior(null); } }}
+        purpose="form"
+        width={460}
+      >
+        <Layout
+          header={<DialogHeader title={editingSenior ? '어르신 정보 수정' : '어르신 추가'} onOpenChange={(o) => { if (!o) { setShowSeniorModal(false); setEditingSenior(null); } }} />}
+          content={
+            <LayoutContent>
+              <VStack gap={4}>
+                <TextInput
+                  label="이름"
+                  isRequired
+                  placeholder="어르신 이름"
+                  value={seniorForm.name}
+                  onChange={(v) => setSeniorForm(prev => ({ ...prev, name: v }))}
+                />
+                <TextInput
+                  label="주소"
+                  isOptional
+                  placeholder="주소 입력 (선택사항)"
+                  value={seniorForm.homeAddress}
+                  onChange={(v) => setSeniorForm(prev => ({ ...prev, homeAddress: v }))}
+                />
+                <CheckboxInput
+                  label="앞좌석 필요"
+                  value={seniorForm.requiredFrontSeat}
+                  onChange={(checked) => setSeniorForm(prev => ({ ...prev, requiredFrontSeat: checked }))}
+                />
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button
+                  label="취소"
+                  variant="ghost"
+                  onClick={() => { setShowSeniorModal(false); setEditingSenior(null); }}
+                  isDisabled={isProcessing}
+                />
+                <Button
+                  label={editingSenior ? '수정하기' : '추가하기'}
+                  variant="primary"
                   onClick={editingSenior ? handleUpdateSenior : handleAddSenior}
-                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 border border-transparent rounded-lg hover:bg-teal-600 flex items-center"
-                  disabled={isProcessing || !seniorForm.name.trim()}
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-teal-200 border-t-white rounded-full animate-spin mr-2"></div>
-                      처리중...
-                    </>
-                  ) : (
-                    editingSenior ? '수정하기' : '추가하기'
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  isLoading={isProcessing}
+                  isDisabled={isProcessing || !seniorForm.name.trim()}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
 
       {/* 어르신 삭제 확인 모달 */}
-      <AnimatePresence>
-        {showDeleteSeniorModal && selectedSenior && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDeleteSeniorModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white">어르신 삭제 확인</h3>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start">
-                  <div className="bg-red-100 p-2 rounded-full mr-3">
-                    <FiAlertCircle size={20} className="text-red-600" />
-                  </div>
-                  <p className="text-gray-700 text-sm pt-1">
-                    <strong>{selectedSenior.name}</strong>님을 삭제하시겠습니까?<br />
-                    이 작업은 되돌릴 수 없습니다.
-                  </p>
-                </div>
-              </div>
-              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
-                <button
-                  onClick={() => setShowDeleteSeniorModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200"
-                  disabled={isProcessing}
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleDeleteSenior}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-lg hover:bg-red-600 flex items-center"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-red-200 border-t-white rounded-full animate-spin mr-2"></div>
-                      처리중...
-                    </>
-                  ) : (
-                    <>
-                      <FiTrash2 className="mr-1.5" size={16} />
-                      삭제하기
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selectedSenior && (
+        <Dialog
+          isOpen={showDeleteSeniorModal}
+          onOpenChange={(o) => { if (!o) setShowDeleteSeniorModal(false); }}
+          purpose="form"
+          width={440}
+        >
+          <Layout
+            header={<DialogHeader title="어르신 삭제 확인" onOpenChange={(o) => { if (!o) setShowDeleteSeniorModal(false); }} />}
+            content={
+              <LayoutContent>
+                <HStack gap={3} vAlign="start">
+                  <Icon icon="error" color="error" size="lg" />
+                  <Text type="body" color="secondary">
+                    <Text as="span" weight="bold" color="primary">{selectedSenior.name}</Text>님을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                  </Text>
+                </HStack>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+                <HStack gap={2} hAlign="end">
+                  <Button label="취소" variant="ghost" onClick={() => setShowDeleteSeniorModal(false)} isDisabled={isProcessing} />
+                  <Button label="삭제하기" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={handleDeleteSenior} isLoading={isProcessing} isDisabled={isProcessing} />
+                </HStack>
+              </LayoutFooter>
+            }
+          />
+        </Dialog>
+      )}
 
       {/* 권한 설정 모달 */}
-      <AnimatePresence>
-        {showPermissionModal && permissionUser && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => { setShowPermissionModal(false); setPermissionUser(null); }}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  <FiShield className="mr-2" size={20} />
-                  권한 설정
-                </h3>
-                <p className="text-blue-100 text-sm mt-1">{permissionUser.name}님의 관리 권한</p>
-              </div>
-              <div className="p-6">
-                {permissionLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                    <span className="ml-3 text-gray-500 text-sm">권한 정보 로딩 중...</span>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-4">
-                      <p className="text-sm text-gray-500">부여할 권한을 선택하세요</p>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setSelectedPermissions(new Set(ALL_PERMISSIONS))}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          전체 선택
-                        </button>
-                        <span className="text-gray-300">|</span>
-                        <button
-                          onClick={() => setSelectedPermissions(new Set())}
-                          className="text-xs text-gray-500 hover:text-gray-700 font-medium"
-                        >
-                          전체 해제
-                        </button>
-                      </div>
-                    </div>
-                    {ALL_PERMISSIONS.map((perm) => (
-                      <label
-                        key={perm}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-150 ${
-                          selectedPermissions.has(perm)
-                            ? 'bg-blue-50 border-blue-200'
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">{PERMISSION_LABELS[perm]}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{PERMISSION_DESCRIPTIONS[perm]}</div>
-                        </div>
-                        <div className="ml-3 flex-shrink-0">
-                          <div
-                            className={`w-10 h-6 rounded-full transition-colors duration-200 relative ${
-                              selectedPermissions.has(perm) ? 'bg-blue-500' : 'bg-gray-300'
-                            }`}
-                            onClick={(e) => { e.preventDefault(); togglePermission(perm); }}
-                          >
-                            <div
-                              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                                selectedPermissions.has(perm) ? 'translate-x-4' : 'translate-x-0.5'
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end space-x-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
-                <button
-                  onClick={() => { setShowPermissionModal(false); setPermissionUser(null); }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleSavePermissions}
-                  disabled={permissionLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center"
-                >
+      {permissionUser && (
+        <Dialog
+          isOpen={showPermissionModal}
+          onOpenChange={(o) => { if (!o) { setShowPermissionModal(false); setPermissionUser(null); } }}
+          purpose="form"
+          width={520}
+        >
+          <Layout
+            header={<DialogHeader title="권한 설정" onOpenChange={(o) => { if (!o) { setShowPermissionModal(false); setPermissionUser(null); } }} />}
+            content={
+              <LayoutContent>
+                <VStack gap={4}>
+                  <Text type="supporting">{permissionUser.name}님의 관리 권한</Text>
                   {permissionLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-blue-200 border-t-white rounded-full animate-spin mr-2"></div>
-                      저장 중...
-                    </>
+                    <HStack gap={2} vAlign="center" hAlign="center">
+                      <Spinner size="sm" label="권한 정보 로딩 중..." />
+                    </HStack>
                   ) : (
-                    <>
-                      <FiCheck className="mr-1.5" size={16} />
-                      저장
-                    </>
+                    <VStack gap={3}>
+                      <HStack hAlign="between" vAlign="center">
+                        <Text type="supporting">부여할 권한을 선택하세요</Text>
+                        <HStack gap={1}>
+                          <Button label="전체 선택" variant="ghost" size="sm" onClick={() => setSelectedPermissions(new Set(ALL_PERMISSIONS))} />
+                          <Button label="전체 해제" variant="ghost" size="sm" onClick={() => setSelectedPermissions(new Set())} />
+                        </HStack>
+                      </HStack>
+                      <VStack gap={2}>
+                        {ALL_PERMISSIONS.map((perm) => (
+                          <Switch
+                            key={perm}
+                            label={PERMISSION_LABELS[perm]}
+                            description={PERMISSION_DESCRIPTIONS[perm]}
+                            labelSpacing="spread"
+                            value={selectedPermissions.has(perm)}
+                            onChange={() => togglePermission(perm)}
+                          />
+                        ))}
+                      </VStack>
+                    </VStack>
                   )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                </VStack>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+                <HStack gap={2} hAlign="end">
+                  <Button label="취소" variant="ghost" onClick={() => { setShowPermissionModal(false); setPermissionUser(null); }} />
+                  <Button label="저장" variant="primary" icon={<Icon icon={FiCheck} size="sm" />} onClick={handleSavePermissions} isLoading={permissionLoading} isDisabled={permissionLoading} />
+                </HStack>
+              </LayoutFooter>
+            }
+          />
+        </Dialog>
+      )}
+    </VStack>
   );
 };
 

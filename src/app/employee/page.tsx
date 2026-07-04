@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { logout as apiLogout } from '@/lib/apiService';
+import { logout as apiLogout, getMemberPermissions } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import EmployeeCalendar from '@/components/EmployeeCalendar';
 import EmployeeApproval from '@/components/EmployeeApproval';
@@ -19,6 +19,10 @@ import UserManagement from '@/components/UserManagement';
 import DispatchManagement from '@/components/DispatchManagement';
 import Image from 'next/image';
 import type { Permission } from '@/types/auth';
+import { Button } from '@astryxdesign/core/Button';
+import { Text } from '@astryxdesign/core/Text';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Banner } from '@astryxdesign/core/Banner';
 
 type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members';
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
@@ -58,6 +62,21 @@ export default function EmployeePage() {
     } catch {
       setPermissions([]);
     }
+
+    // 관리자가 변경한 권한을 재로그인 없이 반영하기 위해 서버에서 최신 권한 재조회
+    const userId = localStorage.getItem('userId');
+    const loginType = localStorage.getItem('loginType');
+    if (userId && loginType === 'employee') {
+      getMemberPermissions(userId)
+        .then((data) => {
+          const freshPerms = (data?.permissions || []) as Permission[];
+          setPermissions(freshPerms);
+          localStorage.setItem('permissions', JSON.stringify(freshPerms));
+        })
+        .catch(() => {
+          // 조회 실패 시 로그인 시점에 저장된 권한 유지
+        });
+    }
   }, [isClient]);
 
   const hasPermission = (perm: Permission) => permissions.includes(perm);
@@ -84,10 +103,9 @@ export default function EmployeePage() {
 
   if (!isClient) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-gray-500 font-medium">로딩 중...</span>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#ffffff' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <Spinner size="md" label="로딩 중..." />
         </div>
       </div>
     );
@@ -109,32 +127,35 @@ export default function EmployeePage() {
   return (
     <>
       <AlertContainer />
-      <div className="flex min-h-screen bg-gray-50">
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
         {/* 사이드바 (데스크탑) */}
-        <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 fixed inset-y-0 left-0 z-30">
+        <aside className="carev-emp-sidebar" style={{ flexDirection: 'column', width: 224, background: '#ffffff', borderRight: '1px solid #e5e7eb', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 30 }}>
           {/* 로고 */}
-          <div className="flex items-center gap-3 px-6 h-16 border-b border-gray-100 flex-shrink-0">
-            <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} className="rounded-lg" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 24px', height: 64, borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+            <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 8 }} />
             <div>
-              <h1 className="text-sm font-bold text-gray-900 leading-tight">케어브이</h1>
-              {companyName && <p className="text-[11px] text-gray-400 leading-tight truncate max-w-[140px]">{companyName}</p>}
+              <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
+              {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
             </div>
           </div>
 
           {/* 네비게이션 */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-            <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">메뉴</p>
+          <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
             {TABS.map((tab) => (
               <div key={tab.key}>
                 <button
                   onClick={() => setActiveMainTab(tab.key as MainTab)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                    activeMainTab === tab.key
-                      ? 'bg-teal-50 text-teal-700 shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 12px', fontSize: 14, fontWeight: 500, borderRadius: 8,
+                    transition: 'colors 150ms ease', border: 'none', cursor: 'pointer',
+                    background: activeMainTab === tab.key ? '#f0fdfa' : 'transparent',
+                    color: activeMainTab === tab.key ? '#0f766e' : '#4b5563',
+                    boxShadow: activeMainTab === tab.key ? '0 1px 2px rgba(0,0,0,0.05)' : undefined,
+                  }}
                 >
-                  <svg className={`w-[18px] h-[18px] flex-shrink-0 ${activeMainTab === tab.key ? 'text-teal-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg style={{ width: 18, height: 18, flexShrink: 0, color: activeMainTab === tab.key ? '#14b8a6' : '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={tab.icon} />
                   </svg>
                   {tab.label}
@@ -144,46 +165,56 @@ export default function EmployeePage() {
           </nav>
 
           {/* 사이드바 하단 */}
-          <div className="border-t border-gray-100 py-3 space-y-1 flex-shrink-0">
-            <div className="px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+          <div style={{ borderTop: '1px solid #f3f4f6', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+            <div style={{ padding: '8px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #2dd4bf, #0d9488)', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg style={{ width: 14, height: 14, color: '#ffffff' }} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-900 truncate">{userName}</p>
-                  <p className="text-[10px] text-gray-400">직원</p>
+                <div style={{ minWidth: 0 }}>
+                  <Text as="p" type="supporting" weight="medium" color="primary" maxLines={1}>{userName}</Text>
+                  <Text as="p" type="supporting" color="secondary">직원</Text>
                 </div>
               </div>
             </div>
-            <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 12, fontWeight: 500, color: '#6b7280', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
+              <svg style={{ width: 16, height: 16, color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               로그아웃
             </button>
           </div>
         </aside>
 
         {/* 모바일 헤더 (lg 미만) */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between px-4 h-13">
-            <div className="flex items-center gap-2">
-              <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} className="rounded-lg" />
+        <header className="carev-emp-mobile-header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30, background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 8 }} />
               <div>
-                <span className="text-sm font-bold text-gray-900">케어브이</span>
-                {companyName && <p className="text-[10px] text-gray-400 leading-tight truncate max-w-[120px]">{companyName}</p>}
+                <Text as="span" type="body" weight="bold" color="primary">케어브이</Text>
+                {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={handleLogout} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 6, color: '#9ca3af', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
           </div>
-          <nav className="flex overflow-x-auto scrollbar-hide px-2 -mb-px">
+          <nav className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', padding: '0 8px', marginBottom: -1 }}>
             {TABS.map((tab) => (
-              <button key={tab.key} onClick={() => setActiveMainTab(tab.key as MainTab)} className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${activeMainTab === tab.key ? 'text-teal-600 border-teal-500' : 'text-gray-500 border-transparent'}`}>
+              <button
+                key={tab.key}
+                onClick={() => setActiveMainTab(tab.key as MainTab)}
+                style={{
+                  padding: '8px 12px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
+                  borderBottom: '2px solid', transition: 'colors 150ms ease',
+                  background: 'transparent', cursor: 'pointer',
+                  color: activeMainTab === tab.key ? '#0d9488' : '#6b7280',
+                  borderBottomColor: activeMainTab === tab.key ? '#14b8a6' : 'transparent',
+                }}
+              >
                 {tab.label}
               </button>
             ))}
@@ -191,9 +222,9 @@ export default function EmployeePage() {
         </header>
 
         {/* 메인 콘텐츠 영역 */}
-        <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
+        <div className="carev-emp-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           {/* 공지사항 롤링 배너 */}
-          <div className="mt-[88px] lg:mt-0">
+          <div className="carev-emp-rolling">
             <NoticeRollingBanner
               onNoticeClick={() => setActiveMainTab('notice')}
               autoScrollInterval={5000}
@@ -202,7 +233,7 @@ export default function EmployeePage() {
           </div>
 
           {/* 메인 콘텐츠 */}
-          <main className="flex-grow w-full px-3 sm:px-4 lg:px-5 py-4 flex flex-col">
+          <main style={{ flexGrow: 1, width: '100%', padding: '16px 12px', display: 'flex', flexDirection: 'column' }}>
             {/* 알림 메시지 */}
             <AnimatePresence>
               {notification.show && (
@@ -210,27 +241,14 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: -12, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                  className={`mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md ${
-                    notification.type === 'success'
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : notification.type === 'error'
-                        ? 'bg-red-50 text-red-700 border border-red-200'
-                        : 'bg-blue-50 text-blue-700 border border-blue-200'
-                  }`}
+                  style={{ marginBottom: 16 }}
                 >
-                  <span className="text-base">
-                    {notification.type === 'success' ? '✓' : notification.type === 'error' ? '✕' : 'ℹ'}
-                  </span>
-                  <p className="text-xs font-medium flex-1">{notification.message}</p>
-                  <button
-                    onClick={() => setNotification({ ...notification, show: false })}
-                    className="text-current opacity-40 hover:opacity-70 transition-opacity p-0.5"
-                    aria-label="닫기"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  <Banner
+                    status={notification.type === 'success' ? 'success' : notification.type === 'error' ? 'error' : 'info'}
+                    title={notification.message}
+                    isDismissable
+                    onDismiss={() => setNotification({ ...notification, show: false })}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -244,7 +262,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} />
                 </motion.div>
@@ -255,7 +273,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <NoticeManagement isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
@@ -266,7 +284,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
@@ -277,31 +295,23 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 배차관리 권한이 있으면 서브탭 표시 */}
                   {hasPermission('SCHEDULE_DISPATCH') && (
-                    <div className="flex gap-2 mb-4">
-                      <button
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                      <Button
+                        label="일정"
+                        variant={scheduleSubTab === 'schedule' ? 'primary' : 'secondary'}
+                        size="sm"
                         onClick={() => setScheduleSubTab('schedule')}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          scheduleSubTab === 'schedule'
-                            ? 'bg-teal-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        일정
-                      </button>
-                      <button
+                      />
+                      <Button
+                        label="배차관리"
+                        variant={scheduleSubTab === 'dispatch' ? 'primary' : 'secondary'}
+                        size="sm"
                         onClick={() => setScheduleSubTab('dispatch')}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          scheduleSubTab === 'dispatch'
-                            ? 'bg-teal-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        배차관리
-                      </button>
+                      />
                     </div>
                   )}
                   {scheduleSubTab === 'schedule' ? (
@@ -317,44 +327,32 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 결재 관리/양식 관리 권한이 있으면 서브탭 표시 */}
                   {hasAnyPermission('APPROVAL_MANAGE', 'APPROVAL_TEMPLATE') && (
-                    <div className="flex gap-2 mb-4">
-                      <button
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                      <Button
+                        label="결재 신청"
+                        variant={approvalSubTab === 'submit' ? 'primary' : 'secondary'}
+                        size="sm"
                         onClick={() => setApprovalSubTab('submit')}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          approvalSubTab === 'submit'
-                            ? 'bg-teal-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        결재 신청
-                      </button>
+                      />
                       {hasPermission('APPROVAL_MANAGE') && (
-                        <button
+                        <Button
+                          label="결재 관리"
+                          variant={approvalSubTab === 'management' ? 'primary' : 'secondary'}
+                          size="sm"
                           onClick={() => setApprovalSubTab('management')}
-                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            approvalSubTab === 'management'
-                              ? 'bg-teal-500 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          결재 관리
-                        </button>
+                        />
                       )}
                       {hasPermission('APPROVAL_TEMPLATE') && (
-                        <button
+                        <Button
+                          label="양식 관리"
+                          variant={approvalSubTab === 'templates' ? 'primary' : 'secondary'}
+                          size="sm"
                           onClick={() => setApprovalSubTab('templates')}
-                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            approvalSubTab === 'templates'
-                              ? 'bg-teal-500 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          양식 관리
-                        </button>
+                        />
                       )}
                     </div>
                   )}
@@ -373,7 +371,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <EmployeeCalendar />
                 </motion.div>
@@ -384,7 +382,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 flex flex-col"
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <UserManagement
                     onNotification={showNotification}
@@ -396,36 +394,36 @@ export default function EmployeePage() {
           </main>
 
           {/* 푸터 */}
-          <footer className="border-t border-gray-200 bg-gray-50">
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 text-xs text-gray-400">
-                  <span>&copy; 2025 케어브이 (silverithm) 대표: 김준형</span>
-                  <span className="hidden sm:inline text-gray-300">|</span>
-                  <span>사업자등록번호: 107-21-26475</span>
-                  <span className="hidden sm:inline text-gray-300">|</span>
-                  <span>서울특별시 신림동 1547-10</span>
+          <footer style={{ borderTop: '1px solid #e5e7eb', background: '#f9fafb' }}>
+            <div style={{ maxWidth: 1600, margin: '0 auto', padding: '16px 24px' }}>
+              <div className="carev-emp-footer-row">
+                <div className="carev-emp-footer-meta">
+                  <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 (silverithm) 대표: 김준형</Text>
+                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
+                  <Text as="span" type="supporting" color="secondary">사업자등록번호: 107-21-26475</Text>
+                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
+                  <Text as="span" type="supporting" color="secondary">서울특별시 신림동 1547-10</Text>
                 </div>
-                <div className="flex items-center gap-3 text-xs">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <a
                     href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    style={{ fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}
                   >
                     개인정보처리방침
                   </a>
-                  <span className="text-gray-300">|</span>
+                  <span style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
                   <a
                     href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    style={{ fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}
                   >
                     이용약관
                   </a>
-                  <span className="text-gray-300">|</span>
-                  <a href="mailto:ggprgrkjh@naver.com" className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <span style={{ fontSize: 12, color: '#d1d5db' }}>|</span>
+                  <a href="mailto:ggprgrkjh@naver.com" style={{ fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}>
                     ggprgrkjh@naver.com
                   </a>
                 </div>

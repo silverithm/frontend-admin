@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { motion, AnimatePresence } from "framer-motion";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Card } from "@astryxdesign/core/Card";
+import { Badge } from "@astryxdesign/core/Badge";
 import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
 import { FloatingChatRoomList } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
@@ -303,7 +306,7 @@ export function FloatingChat() {
     const selectedRoom = rooms.find(r => r.id === selectedRoomId);
 
     return (
-        <div className="fixed bottom-6 right-6 z-40">
+        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 40 }}>
             {/* Panel */}
             <AnimatePresence>
                 {isOpen && (
@@ -312,100 +315,131 @@ export function FloatingChat() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute bottom-16 right-0 w-[380px] h-[550px] bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col"
+                        style={{ position: "absolute", bottom: 64, right: 0 }}
                     >
-                        <AnimatePresence mode="wait" initial={false}>
-                            {currentView === "rooms" ? (
-                                <motion.div
-                                    key="rooms"
-                                    initial={{ x: -20, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: -20, opacity: 0 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="flex-1 flex flex-col min-h-0"
-                                >
-                                    <FloatingChatRoomList
-                                        rooms={rooms}
-                                        isLoadingRooms={isLoadingRooms}
-                                        isConnected={isConnected}
-                                        onSelectRoom={handleSelectRoom}
-                                    />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="messages"
-                                    initial={{ x: 20, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: 20, opacity: 0 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="flex-1 flex flex-col min-h-0"
-                                >
-                                    <FloatingChatMessages
-                                        roomId={selectedRoomId!}
-                                        roomName={selectedRoom?.name || "채팅방"}
-                                        participantCount={selectedRoom?.participantCount || 0}
-                                        messages={messages}
-                                        isLoadingMessages={isLoadingMessages}
-                                        isSendingMessage={isSendingMessage}
-                                        userId={userId}
-                                        messageInput={messageInput}
-                                        onMessageInputChange={setMessageInput}
-                                        onBack={handleBack}
-                                        onSendMessage={sendMessage}
-                                        onMessagesUpdate={setMessages}
-                                    />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <Card
+                            padding={0}
+                            style={{
+                                width: 380,
+                                height: 550,
+                                borderRadius: 16,
+                                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                                overflow: "hidden",
+                                display: "flex",
+                                flexDirection: "column",
+                            }}
+                        >
+                            <AnimatePresence mode="wait" initial={false}>
+                                {currentView === "rooms" ? (
+                                    <motion.div
+                                        key="rooms"
+                                        initial={{ x: -20, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        exit={{ x: -20, opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+                                    >
+                                        <FloatingChatRoomList
+                                            rooms={rooms}
+                                            isLoadingRooms={isLoadingRooms}
+                                            isConnected={isConnected}
+                                            onSelectRoom={handleSelectRoom}
+                                        />
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="messages"
+                                        initial={{ x: 20, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        exit={{ x: 20, opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+                                    >
+                                        <FloatingChatMessages
+                                            roomId={selectedRoomId!}
+                                            roomName={selectedRoom?.name || "채팅방"}
+                                            participantCount={selectedRoom?.participantCount || 0}
+                                            messages={messages}
+                                            isLoadingMessages={isLoadingMessages}
+                                            isSendingMessage={isSendingMessage}
+                                            userId={userId}
+                                            messageInput={messageInput}
+                                            onMessageInputChange={setMessageInput}
+                                            onBack={handleBack}
+                                            onSendMessage={sendMessage}
+                                            onMessagesUpdate={setMessages}
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </Card>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* FAB Button */}
-            <button
-                onClick={handleToggle}
-                className="w-14 h-14 bg-teal-500 hover:bg-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center relative"
-                aria-label={isOpen ? "채팅 닫기" : "채팅 열기"}
-            >
-                <AnimatePresence mode="wait">
-                    {isOpen ? (
-                        <motion.svg
-                            key="close"
-                            initial={{ rotate: -90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: 90, opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </motion.svg>
-                    ) : (
-                        <motion.svg
-                            key="chat"
-                            initial={{ rotate: 90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: -90, opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </motion.svg>
-                    )}
-                </AnimatePresence>
+            <div style={{ position: "relative" }}>
+                <IconButton
+                    label={isOpen ? "채팅 닫기" : "채팅 열기"}
+                    className="carev-fchat-fab"
+                    onClick={handleToggle}
+                    style={{
+                        width: 56,
+                        height: 56,
+                        minWidth: 56,
+                        padding: 0,
+                        borderRadius: "50%",
+                        background: "#14b8a6",
+                        color: "#fff",
+                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+                        transition: "background-color 200ms ease, box-shadow 200ms ease",
+                    }}
+                    icon={
+                        <AnimatePresence mode="wait">
+                            {isOpen ? (
+                                <motion.svg
+                                    key="close"
+                                    initial={{ rotate: -90, opacity: 0 }}
+                                    animate={{ rotate: 0, opacity: 1 }}
+                                    exit={{ rotate: 90, opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{ width: 24, height: 24, color: "#fff" }}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </motion.svg>
+                            ) : (
+                                <motion.svg
+                                    key="chat"
+                                    initial={{ rotate: 90, opacity: 0 }}
+                                    animate={{ rotate: 0, opacity: 1 }}
+                                    exit={{ rotate: -90, opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{ width: 24, height: 24, color: "#fff" }}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </motion.svg>
+                            )}
+                        </AnimatePresence>
+                    }
+                />
 
                 {/* Unread badge */}
                 {!isOpen && totalUnread > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-[20px] flex items-center justify-center px-1 rounded-full animate-pulse">
-                        {totalUnread > 99 ? "99+" : totalUnread}
-                    </span>
+                    <motion.div
+                        style={{ position: "absolute", top: -4, right: -4, pointerEvents: "none" }}
+                        animate={{ scale: [1, 1.12, 1] }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        <Badge variant="error" label={totalUnread > 99 ? "99+" : totalUnread} />
+                    </motion.div>
                 )}
-            </button>
+            </div>
         </div>
     );
 }

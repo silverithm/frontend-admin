@@ -3,6 +3,28 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { FiTrash2 } from "react-icons/fi";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Badge } from "@astryxdesign/core/Badge";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { Selector } from "@astryxdesign/core/Selector";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableCell,
+    TableHeaderCell,
+} from "@astryxdesign/core/Table";
+import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Spinner } from "@astryxdesign/core/Spinner";
 import {
     VacationRequest,
     VacationLimit,
@@ -438,350 +460,429 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
         }
     };
 
+    const getStatusVariant = (
+        status?: string
+    ): "success" | "warning" | "error" | "neutral" => {
+        switch (status) {
+            case "approved":
+                return "success";
+            case "pending":
+                return "warning";
+            case "rejected":
+                return "error";
+            default:
+                return "neutral";
+        }
+    };
+
+    const pendingCount = filteredRequests.filter(
+        (req) => req.status === "pending"
+    ).length;
+
     return (
-        <div className="flex flex-col xl:flex-row gap-4">
+        <div className="carev-vacapproval-layout">
             {/* 휴무 목록 (좌측 메인) */}
-            <div className="xl:flex-1 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div className="mb-3">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-gray-800">
-                            {selectedDate
-                                ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
-                                : "전체 휴무 목록"}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            {selectedDate && (
-                                <button
-                                    onClick={() => setSelectedDate(null)}
-                                    className="text-xs text-teal-600 hover:text-teal-800 underline"
-                                >
-                                    전체 보기
-                                </button>
-                            )}
-                            {filteredRequests.some(req => req.status === 'pending') && (
-                                <button
-                                    onClick={() => {
-                                        setIsSelectMode(!isSelectMode);
-                                        setSelectedVacationIds(new Set());
-                                    }}
-                                    className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                        isSelectMode
-                                            ? 'bg-teal-50 text-teal-600 border-teal-300'
-                                            : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    {isSelectMode ? '선택 취소' : '다중 선택'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <div className="carev-vacapproval-main">
+                <Card>
+                    <VStack gap={3}>
+                        {/* 헤더 */}
+                        <HStack hAlign="between" vAlign="center">
+                            <Text weight="semibold" color="primary">
+                                {selectedDate
+                                    ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
+                                    : "전체 휴무 목록"}
+                            </Text>
+                            <HStack gap={2} vAlign="center">
+                                {selectedDate && (
+                                    <Button
+                                        label="전체 보기"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSelectedDate(null)}
+                                    />
+                                )}
+                                {pendingCount > 0 && (
+                                    <Button
+                                        label={isSelectMode ? "선택 취소" : "다중 선택"}
+                                        variant={isSelectMode ? "primary" : "secondary"}
+                                        size="sm"
+                                        onClick={() => {
+                                            setIsSelectMode(!isSelectMode);
+                                            setSelectedVacationIds(new Set());
+                                        }}
+                                    />
+                                )}
+                            </HStack>
+                        </HStack>
 
-                {/* 일괄 작업 바 */}
-                {isSelectMode && (
-                    <div className="mb-3 p-2 bg-teal-50 rounded-lg border border-teal-200">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleSelectAll}
-                                    className="px-2 py-1 text-xs bg-white border border-teal-300 text-teal-600 rounded hover:bg-teal-50 transition-colors"
-                                >
-                                    {selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length
-                                        ? '전체 해제'
-                                        : '전체 선택'}
-                                </button>
-                                <span className="text-xs text-teal-700 font-medium">{selectedVacationIds.size}개</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleBulkApprove}
-                                    disabled={selectedVacationIds.size === 0 || isProcessing}
-                                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                        selectedVacationIds.size === 0 || isProcessing
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                            : 'bg-green-600 text-white hover:bg-green-700'
-                                    }`}
-                                >
-                                    {isProcessing ? '처리 중...' : '승인'}
-                                </button>
-                                <button
-                                    onClick={handleBulkReject}
-                                    disabled={selectedVacationIds.size === 0 || isProcessing}
-                                    className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                        selectedVacationIds.size === 0 || isProcessing
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                            : 'bg-red-600 text-white hover:bg-red-700'
-                                    }`}
-                                >
-                                    {isProcessing ? '처리 중...' : '거절'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                        {/* 일괄 작업 바 */}
+                        {isSelectMode && (
+                            <Card variant="teal" padding={2}>
+                                <HStack hAlign="between" vAlign="center">
+                                    <HStack gap={2} vAlign="center">
+                                        <Button
+                                            label={
+                                                selectedVacationIds.size === pendingCount
+                                                    ? "전체 해제"
+                                                    : "전체 선택"
+                                            }
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={handleSelectAll}
+                                        />
+                                        <Text type="supporting" weight="medium" color="accent">
+                                            {selectedVacationIds.size}개
+                                        </Text>
+                                    </HStack>
+                                    <HStack gap={2}>
+                                        <Button
+                                            label="승인"
+                                            variant="primary"
+                                            size="sm"
+                                            isLoading={isProcessing}
+                                            isDisabled={selectedVacationIds.size === 0 || isProcessing}
+                                            onClick={handleBulkApprove}
+                                        />
+                                        <Button
+                                            label="거절"
+                                            variant="destructive"
+                                            size="sm"
+                                            isLoading={isProcessing}
+                                            isDisabled={selectedVacationIds.size === 0 || isProcessing}
+                                            onClick={handleBulkReject}
+                                        />
+                                    </HStack>
+                                </HStack>
+                            </Card>
+                        )}
 
-                {isLoadingRequests ? (
-                    <div className="flex justify-center items-center h-32">
-                        <div className="w-8 h-8 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
-                    </div>
-                ) : filteredRequests.length === 0 ? (
-                    <div className="text-center py-6 text-gray-500 text-xs">
-                        조건에 맞는 휴무 요청이 없습니다.
-                    </div>
-                ) : (
-                    <div className="max-h-[80vh] overflow-y-auto">
-                        <table className="w-full text-xs">
-                            <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    {isSelectMode && <th className="py-1.5 px-1 w-6"></th>}
-                                    <th className="py-1.5 px-2 text-left font-medium text-gray-600">이름</th>
-                                    <th className="py-1.5 px-2 text-left font-medium text-gray-600">날짜</th>
-                                    <th className="py-1.5 px-2 text-left font-medium text-gray-600">직무</th>
-                                    <th className="py-1.5 px-2 text-left font-medium text-gray-600">유형</th>
-                                    <th className="py-1.5 px-2 text-left font-medium text-gray-600">기간</th>
-                                    <th className="py-1.5 px-2 text-center font-medium text-gray-600">상태</th>
-                                    <th className="py-1.5 px-2 text-right font-medium text-gray-600">작업</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filteredRequests.map((request) => (
-                                    <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                                        {isSelectMode && (
-                                            <td className="py-1.5 px-1">
-                                                {request.status === 'pending' && (
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedVacationIds.has(request.id)}
-                                                        onChange={() => handleToggleSelection(request.id)}
-                                                        className="w-3.5 h-3.5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                        {isLoadingRequests ? (
+                            <HStack hAlign="center" vAlign="center">
+                                <Spinner label="불러오는 중..." />
+                            </HStack>
+                        ) : filteredRequests.length === 0 ? (
+                            <HStack hAlign="center">
+                                <Text type="supporting" color="secondary">
+                                    조건에 맞는 휴무 요청이 없습니다.
+                                </Text>
+                            </HStack>
+                        ) : (
+                            <div style={{ maxHeight: "80vh", overflow: "auto" }}>
+                                <Table density="compact" hasHover>
+                                    <TableHeader>
+                                        <TableRow isHeaderRow>
+                                            {isSelectMode && <TableHeaderCell> </TableHeaderCell>}
+                                            <TableHeaderCell>이름</TableHeaderCell>
+                                            <TableHeaderCell>날짜</TableHeaderCell>
+                                            <TableHeaderCell>직무</TableHeaderCell>
+                                            <TableHeaderCell>유형</TableHeaderCell>
+                                            <TableHeaderCell>기간</TableHeaderCell>
+                                            <TableHeaderCell>상태</TableHeaderCell>
+                                            <TableHeaderCell>작업</TableHeaderCell>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredRequests.map((request) => (
+                                            <TableRow key={request.id}>
+                                                {isSelectMode && (
+                                                    <TableCell>
+                                                        {request.status === "pending" && (
+                                                            <CheckboxInput
+                                                                label="선택"
+                                                                isLabelHidden
+                                                                size="sm"
+                                                                value={selectedVacationIds.has(request.id)}
+                                                                onChange={() =>
+                                                                    handleToggleSelection(request.id)
+                                                                }
+                                                            />
+                                                        )}
+                                                    </TableCell>
+                                                )}
+                                                <TableCell>
+                                                    <span
+                                                        onClick={() =>
+                                                            setNameFilter(
+                                                                nameFilter === request.userName
+                                                                    ? null
+                                                                    : request.userName
+                                                            )
+                                                        }
+                                                        style={{ cursor: "pointer" }}
+                                                        title={`${request.userName} 필터`}
+                                                    >
+                                                        <Text
+                                                            weight={
+                                                                nameFilter === request.userName
+                                                                    ? "bold"
+                                                                    : "medium"
+                                                            }
+                                                            color={
+                                                                nameFilter === request.userName
+                                                                    ? "accent"
+                                                                    : "primary"
+                                                            }
+                                                        >
+                                                            {request.userName}
+                                                        </Text>
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Text type="supporting" color="secondary">
+                                                        {formatVacationDate(request.date)}
+                                                    </Text>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={
+                                                            request.role === "caregiver"
+                                                                ? "blue"
+                                                                : "green"
+                                                        }
+                                                        label={getRoleText(request.role)}
                                                     />
-                                                )}
-                                            </td>
-                                        )}
-                                        <td className="py-1.5 px-2">
-                                            <span
-                                                className={`font-medium cursor-pointer transition-colors ${
-                                                    nameFilter === request.userName
-                                                        ? "text-teal-600 font-bold"
-                                                        : "text-gray-900 hover:text-teal-600"
-                                                }`}
-                                                onClick={() => setNameFilter(nameFilter === request.userName ? null : request.userName)}
-                                                title={`${request.userName} 필터`}
-                                            >
-                                                {request.userName}
-                                            </span>
-                                        </td>
-                                        <td className="py-1.5 px-2 text-gray-600">{formatVacationDate(request.date)}</td>
-                                        <td className="py-1.5 px-2">
-                                            <span className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                                request.role === "caregiver" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
-                                            }`}>
-                                                {getRoleText(request.role)}
-                                            </span>
-                                        </td>
-                                        <td className="py-1.5 px-2">
-                                            <span className={`px-1.5 py-0.5 text-[9px] rounded ${
-                                                request.type === "mandatory" ? "bg-orange-50 text-orange-700" : "bg-gray-100 text-gray-600"
-                                            }`}>
-                                                {getVacationTypeText(request.type)}
-                                            </span>
-                                        </td>
-                                        <td className="py-1.5 px-2">
-                                            {isValidDuration(request.duration) && (
-                                                <span className="px-1.5 py-0.5 text-[9px] rounded bg-teal-50 text-teal-700">
-                                                    {getDurationText(request.duration)}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-1.5 px-2 text-center">
-                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
-                                                request.status === "approved"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : request.status === "pending"
-                                                        ? "bg-yellow-100 text-yellow-700"
-                                                        : "bg-red-100 text-red-700"
-                                            }`}>
-                                                {getStatusText(request.status)}
-                                            </span>
-                                        </td>
-                                        <td className="py-1.5 px-2 text-right">
-                                            <div className="flex gap-1 justify-end">
-                                                {request.status === "pending" && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleApproveVacation(request.id)}
-                                                            className="px-1.5 py-0.5 text-[10px] text-green-600 hover:bg-green-50 rounded border border-green-200 transition-colors"
-                                                        >
-                                                            승인
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleRejectVacation(request.id)}
-                                                            className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors"
-                                                        >
-                                                            거절
-                                                        </button>
-                                                    </>
-                                                )}
-                                                <button
-                                                    onClick={() => handleDeleteVacation(request)}
-                                                    className="p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                                                    title="삭제"
-                                                >
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={
+                                                            request.type === "mandatory"
+                                                                ? "orange"
+                                                                : "neutral"
+                                                        }
+                                                        label={getVacationTypeText(request.type)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    {isValidDuration(request.duration) && (
+                                                        <Badge
+                                                            variant="teal"
+                                                            label={getDurationText(request.duration)}
+                                                        />
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={getStatusVariant(request.status)}
+                                                        label={getStatusText(request.status)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <HStack gap={1} hAlign="end" vAlign="center">
+                                                        {request.status === "pending" && (
+                                                            <>
+                                                                <Button
+                                                                    label="승인"
+                                                                    variant="secondary"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        handleApproveVacation(request.id)
+                                                                    }
+                                                                />
+                                                                <Button
+                                                                    label="거절"
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        handleRejectVacation(request.id)
+                                                                    }
+                                                                />
+                                                            </>
+                                                        )}
+                                                        <IconButton
+                                                            label="삭제"
+                                                            tooltip="삭제"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<Icon icon={FiTrash2} />}
+                                                            onClick={() =>
+                                                                handleDeleteVacation(request)
+                                                            }
+                                                        />
+                                                    </HStack>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </VStack>
+                </Card>
             </div>
 
             {/* 필터 패널 (우측 사이드바) */}
-            <div className="xl:w-48 flex-shrink-0">
-                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 sticky top-4">
-                    <h3 className="text-sm font-medium text-gray-800 mb-3">필터</h3>
-                    <div className="space-y-3">
-                        {/* 상태 */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">상태</label>
-                            <div className="grid grid-cols-2 gap-1">
-                                {(["all", "pending", "approved", "rejected"] as const).map((status) => (
-                                    <button
-                                        key={status}
-                                        onClick={() => toggleStatusFilter(status)}
-                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                            statusFilter === status
-                                                ? status === "all" ? "bg-teal-600 text-white"
-                                                    : status === "pending" ? "bg-yellow-500 text-white"
-                                                        : status === "approved" ? "bg-green-600 text-white"
-                                                            : "bg-red-600 text-white"
-                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                        }`}
-                                    >
-                                        {status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            <div className="carev-vacapproval-sidebar">
+                <div style={{ position: "sticky", top: 16 }}>
+                    <Card padding={3}>
+                        <VStack gap={3}>
+                            <Text weight="semibold" color="primary">
+                                필터
+                            </Text>
 
-                        {/* 직원 */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">직원</label>
-                            <div className="grid grid-cols-1 gap-1">
-                                {(["all", "caregiver", "office"] as const).map((role) => (
-                                    <button
-                                        key={role}
-                                        onClick={() => toggleRoleFilter(role)}
-                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                            roleFilter === role
-                                                ? role === "all" ? "bg-teal-600 text-white"
-                                                    : role === "caregiver" ? "bg-blue-600 text-white"
-                                                        : "bg-green-600 text-white"
-                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                        }`}
-                                    >
-                                        {role === "all" ? "전체" : role === "caregiver" ? "요양보호사" : "사무직"}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                            {/* 상태 */}
+                            <VStack gap={1}>
+                                <Text type="label" color="secondary">
+                                    상태
+                                </Text>
+                                <SegmentedControl
+                                    value={statusFilter}
+                                    onChange={(value) =>
+                                        toggleStatusFilter(
+                                            value as "all" | "pending" | "approved" | "rejected"
+                                        )
+                                    }
+                                    label="상태 필터"
+                                    size="sm"
+                                    layout="fill"
+                                >
+                                    <SegmentedControlItem value="all" label="전체" />
+                                    <SegmentedControlItem value="pending" label="대기" />
+                                    <SegmentedControlItem value="approved" label="승인" />
+                                    <SegmentedControlItem value="rejected" label="거부" />
+                                </SegmentedControl>
+                            </VStack>
 
-                        {/* 정렬 */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">정렬</label>
-                            <div className="grid grid-cols-1 gap-1">
-                                {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => (
-                                    <button
-                                        key={order}
-                                        onClick={() => toggleSortOrder(order)}
-                                        className={`px-2 py-1 text-[10px] font-medium rounded ${
-                                            sortOrder === order
-                                                ? "bg-purple-600 text-white"
-                                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                                        }`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                            {/* 직원 */}
+                            <Selector
+                                label="직원"
+                                value={roleFilter}
+                                onChange={(value) =>
+                                    toggleRoleFilter(value as "all" | "caregiver" | "office")
+                                }
+                                options={[
+                                    { value: "all", label: "전체" },
+                                    { value: "caregiver", label: "요양보호사" },
+                                    { value: "office", label: "사무직" },
+                                ]}
+                            />
 
-                        {/* 이름 필터 */}
-                        {nameFilter && (
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">선택된 직원</label>
-                                <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded px-2 py-1">
-                                    <span className="text-[10px] font-medium text-teal-800">{nameFilter}</span>
-                                    <button onClick={() => setNameFilter(null)} className="text-teal-600 hover:text-teal-800 ml-1" title="필터 해제">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                            {/* 정렬 */}
+                            <Selector
+                                label="정렬"
+                                value={sortOrder}
+                                onChange={(value) =>
+                                    toggleSortOrder(
+                                        value as
+                                            | "latest"
+                                            | "oldest"
+                                            | "vacation-date-asc"
+                                            | "vacation-date-desc"
+                                            | "name"
+                                            | "role"
+                                    )
+                                }
+                                options={[
+                                    { value: "latest", label: "최신순" },
+                                    { value: "name", label: "이름순" },
+                                    { value: "role", label: "직무순" },
+                                ]}
+                            />
 
-                        {/* 초기화 */}
-                        <button
-                            onClick={resetFilter}
-                            className="w-full px-2 py-1 text-[10px] font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                        >
-                            초기화
-                        </button>
-                    </div>
+                            {/* 이름 필터 */}
+                            {nameFilter && (
+                                <VStack gap={1}>
+                                    <Text type="label" color="secondary">
+                                        선택된 직원
+                                    </Text>
+                                    <Card variant="teal" padding={2}>
+                                        <HStack hAlign="between" vAlign="center">
+                                            <Text
+                                                type="supporting"
+                                                weight="medium"
+                                                color="accent"
+                                            >
+                                                {nameFilter}
+                                            </Text>
+                                            <IconButton
+                                                label="필터 해제"
+                                                tooltip="필터 해제"
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={<Icon icon="close" />}
+                                                onClick={() => setNameFilter(null)}
+                                            />
+                                        </HStack>
+                                    </Card>
+                                </VStack>
+                            )}
+
+                            {/* 초기화 */}
+                            <div style={{ display: "grid" }}>
+                                <Button
+                                    label="초기화"
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={resetFilter}
+                                />
+                            </div>
+                        </VStack>
+                    </Card>
                 </div>
             </div>
 
             {/* 삭제 확인 모달 */}
-            {showDeleteConfirm && selectedDeleteVacation && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-                        <div className="flex items-start mb-4">
-                            <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0" />
-                                </svg>
-                            </div>
-                            <div className="ml-4">
-                                <h3 className="text-lg font-medium text-gray-900">휴무 삭제 확인</h3>
-                                <p className="mt-2 text-sm text-gray-600">
-                                    <span className="font-semibold text-gray-800">{selectedDeleteVacation.userName}</span>님의 <span className="font-semibold text-gray-800">{selectedDeleteVacation.date}</span> 휴무를 정말 삭제하시겠습니까?
-                                </p>
-                                <p className="mt-1 text-xs text-gray-500">이 작업은 되돌릴 수 없습니다.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={cancelDelete}
-                                disabled={isProcessing}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                disabled={isProcessing}
-                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        삭제 중...
-                                    </>
-                                ) : (
-                                    '삭제하기'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                isOpen={showDeleteConfirm && !!selectedDeleteVacation}
+                onOpenChange={(open) => {
+                    if (!open) cancelDelete();
+                }}
+                purpose="info"
+                width={400}
+            >
+                {selectedDeleteVacation && (
+                    <Layout
+                        header={
+                            <DialogHeader
+                                title="휴무 삭제 확인"
+                                onOpenChange={(open) => {
+                                    if (!open) cancelDelete();
+                                }}
+                            />
+                        }
+                        content={
+                            <LayoutContent>
+                                <HStack gap={3} vAlign="start">
+                                    <Icon icon="warning" color="error" size="lg" />
+                                    <VStack gap={1}>
+                                        <Text color="primary">
+                                            <Text weight="semibold" color="primary">
+                                                {selectedDeleteVacation.userName}
+                                            </Text>
+                                            님의{" "}
+                                            <Text weight="semibold" color="primary">
+                                                {selectedDeleteVacation.date}
+                                            </Text>{" "}
+                                            휴무를 정말 삭제하시겠습니까?
+                                        </Text>
+                                        <Text type="supporting" color="secondary">
+                                            이 작업은 되돌릴 수 없습니다.
+                                        </Text>
+                                    </VStack>
+                                </HStack>
+                            </LayoutContent>
+                        }
+                        footer={
+                            <LayoutFooter hasDivider>
+                                <HStack gap={2} hAlign="end">
+                                    <Button
+                                        label="취소"
+                                        variant="ghost"
+                                        isDisabled={isProcessing}
+                                        onClick={cancelDelete}
+                                    />
+                                    <Button
+                                        label="삭제하기"
+                                        variant="destructive"
+                                        isLoading={isProcessing}
+                                        isDisabled={isProcessing}
+                                        onClick={confirmDelete}
+                                    />
+                                </HStack>
+                            </LayoutFooter>
+                        }
+                    />
+                )}
+            </Dialog>
         </div>
     );
 }

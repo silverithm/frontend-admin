@@ -2,9 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { FiChevronLeft, FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiRefreshCw, FiPlus, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
+import { Card } from '@astryxdesign/core/Card';
+import { Button } from '@astryxdesign/core/Button';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { Selector } from '@astryxdesign/core/Selector';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Divider } from '@astryxdesign/core/Divider';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import {
   getNotices,
   getNoticeDetail,
@@ -265,11 +284,11 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
     }
   };
 
-  const getPriorityStyle = (p: NoticePriority) => {
+  const getPriorityVariant = (p: NoticePriority): 'red' | 'neutral' => {
     switch (p) {
-      case 'HIGH': return 'bg-red-100 text-red-600';
-      case 'NORMAL': return 'bg-gray-100 text-gray-500';
-      case 'LOW': return 'bg-gray-100 text-gray-400';
+      case 'HIGH': return 'red';
+      case 'NORMAL': return 'neutral';
+      case 'LOW': return 'neutral';
     }
   };
 
@@ -284,12 +303,11 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
   // 로딩 중
   if (isLoading && notices.length === 0 && viewMode === 'list') {
     return (
-      <div className="flex justify-center items-center h-64">
-        <svg className="animate-spin h-10 w-10 text-teal-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
+      <Card padding={0}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px 0' }}>
+          <Spinner size="lg" aria-label="불러오는 중" />
+        </div>
+      </Card>
     );
   }
 
@@ -297,364 +315,366 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <div>
-        {viewMode === 'list' ? (
-          /* === 목록 뷰 === */
-          <>
-            {/* 헤더 */}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">공지사항</h2>
-                <p className="text-gray-400 text-sm mt-0.5">직원들에게 중요한 소식을 전달합니다</p>
+
+      {viewMode === 'list' ? (
+        /* === 목록 뷰 === */
+        <VStack gap={4} align="start" width="100%">
+          {/* 헤더 */}
+          <HStack gap={3} hAlign="between" vAlign="center" width="100%">
+            <VStack gap={0.5} align="start">
+              <Heading level={2}>공지사항</Heading>
+              <Text type="supporting">직원들에게 중요한 소식을 전달합니다</Text>
+            </VStack>
+            <HStack gap={2} vAlign="center">
+              <Button
+                label="새로고침"
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                icon={<Icon icon={FiRefreshCw} size="sm" />}
+                onClick={loadNotices}
+                isDisabled={isLoading}
+                isLoading={isLoading}
+              />
+              {isAdmin && (
+                <Button
+                  label="새 공지 작성"
+                  variant="primary"
+                  size="sm"
+                  icon={<Icon icon={FiPlus} size="sm" />}
+                  onClick={() => router.push('/admin/notice/new')}
+                />
+              )}
+            </HStack>
+          </HStack>
+
+          {/* 카드: 탭 + 검색 + 목록 */}
+          <div style={{ width: '100%' }}>
+            <Card padding={0}>
+              {/* 탭 */}
+              <div style={{ padding: 16 }}>
+                <SegmentedControl
+                  value={activeTab}
+                  onChange={(v) => setActiveTab(v as TabType)}
+                  label="공지 필터"
+                >
+                  <SegmentedControlItem value="all" label={`전체 (${stats.total})`} />
+                  <SegmentedControlItem value="published" label={`게시중 (${stats.published})`} />
+                </SegmentedControl>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={loadNotices} className="p-2 text-gray-400 hover:text-teal-500 hover:bg-teal-50 rounded-lg transition-colors" disabled={isLoading}>
-                  <svg className={`w-4.5 h-4.5 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-                {isAdmin && (
-                  <button onClick={() => router.push('/admin/notice/new')} className="flex items-center px-3 py-1.5 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors">
-                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    새 공지 작성
-                  </button>
+
+              <Divider />
+
+              {/* 검색 */}
+              <div style={{ padding: 16 }}>
+                <div style={{ maxWidth: 420 }}>
+                  <TextInput
+                    label="검색"
+                    isLabelHidden
+                    value={searchQuery}
+                    onChange={(value) => setSearchQuery(value)}
+                    placeholder="제목, 내용 검색"
+                    startIcon={FiSearch}
+                  />
+                </div>
+              </div>
+
+              <Divider />
+
+              {/* 목록 */}
+              <div style={{ padding: 20 }}>
+                {notices.length > 0 ? (
+                  <VStack gap={2} align="start" width="100%">
+                    {notices.map((n) => (
+                      <motion.div
+                        key={n.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => handleSelectNotice(n.id)}
+                        style={{
+                          width: '100%',
+                          padding: 16,
+                          border: `1px solid ${n.isPinned ? '#c3fae8' : '#e5e7eb'}`,
+                          borderRadius: 12,
+                          cursor: 'pointer',
+                          background: n.isPinned ? '#e6fcf5' : '#ffffff',
+                        }}
+                      >
+                        <HStack gap={3} vAlign="start">
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <VStack gap={2} align="start">
+                              <HStack gap={2} vAlign="center" wrap="wrap">
+                                {n.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
+                                <Heading level={4} maxLines={1}>{n.title}</Heading>
+                                <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
+                              </HStack>
+                              <Text type="supporting" maxLines={2}>{n.content}</Text>
+                              <HStack gap={3} vAlign="center" wrap="wrap">
+                                <Text type="supporting">작성자: {n.authorName}</Text>
+                                <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                <HStack gap={1} vAlign="center">
+                                  <Icon icon={FiEye} size="sm" color="secondary" />
+                                  <Text type="supporting">{n.viewCount}</Text>
+                                </HStack>
+                              </HStack>
+                            </VStack>
+                          </div>
+                          <Icon icon="chevronRight" size="md" color="tertiary" />
+                        </HStack>
+                      </motion.div>
+                    ))}
+                  </VStack>
+                ) : (
+                  <VStack gap={4} align="center" width="100%">
+                    <div style={{ width: '100%' }}>
+                      <EmptyState
+                        icon={<Icon icon={FiBell} size="lg" />}
+                        title="공지사항이 없습니다"
+                        description="아직 등록된 공지사항이 없습니다"
+                      />
+                    </div>
+                    {isAdmin && (
+                      <Button
+                        label="새 공지 작성"
+                        variant="primary"
+                        icon={<Icon icon={FiPlus} size="sm" />}
+                        onClick={() => router.push('/admin/notice/new')}
+                      />
+                    )}
+                  </VStack>
                 )}
               </div>
-            </div>
-
-            {/* 탭 */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="border-b border-gray-200">
-              <nav className="flex">
-                {[
-                  { key: 'all', label: '전체', count: stats.total },
-                  { key: 'published', label: '게시중', count: stats.published },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key as TabType)}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === tab.key ? 'border-teal-500 text-teal-600 bg-teal-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tab.label}
-                    <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${activeTab === tab.key ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-600'}`}>
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {/* 검색 */}
-            <div className="p-4 bg-gray-50 border-b border-gray-200">
-              <div className="relative max-w-md">
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="제목, 내용 검색"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900 placeholder-gray-400"
-                />
-              </div>
-            </div>
-
-            {/* 목록 */}
-            <div className="p-5">
-              {notices.length > 0 ? (
-                <div className="space-y-2">
-                  {notices.map((n) => (
-                    <motion.div
-                      key={n.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`p-4 border rounded-xl hover:shadow-md transition-all cursor-pointer ${n.isPinned ? 'border-teal-200 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}
-                      onClick={() => handleSelectNotice(n.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            {n.isPinned && (
-                              <svg className="w-4 h-4 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                            )}
-                            <h3 className="text-sm font-bold text-gray-900">{n.title}</h3>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getPriorityStyle(n.priority)}`}>
-                              {getPriorityText(n.priority)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 line-clamp-2 mb-2">{n.content}</p>
-                          <div className="flex items-center text-xs text-gray-400 space-x-4">
-                            <span>작성자: {n.authorName}</span>
-                            <span>작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</span>
-                            <span className="flex items-center">
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              {n.viewCount}
-                            </span>
-                          </div>
-                        </div>
-                        <svg className="w-5 h-5 text-gray-400 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <svg className="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  <p className="text-sm text-gray-400 mb-4">공지사항이 없습니다</p>
-                  {isAdmin && (
-                    <button onClick={() => router.push('/admin/notice/new')} className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                      </svg>
-                      새 공지 작성
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            </div>{/* end card wrapper */}
-          </>
-        ) : (
-          /* === 상세 뷰 === */
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            {/* 상세 헤더 */}
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <button onClick={handleBackToList} className="flex items-center text-sm font-medium text-teal-500 hover:text-teal-600 transition-colors">
-                  <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  목록으로
-                </button>
-                <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
-                      <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                        취소
-                      </button>
-                      <button onClick={handleUpdate} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50 transition-colors">
-                        {isSubmitting ? '저장 중...' : '저장'}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {isAdmin && (
-                        <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2 text-sm font-medium text-red-500 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 bg-white transition-colors">
-                          삭제
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button onClick={() => setIsEditing(true)} className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors">
-                          수정
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 상세 본문 */}
-            <div className="p-5">
-              {isLoadingDetail ? (
-                <div className="flex justify-center items-center py-12">
-                  <svg className="animate-spin h-10 w-10 text-teal-500" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                </div>
-              ) : notice ? (
-                <div className="space-y-6">
-                  {isEditing ? (
-                    /* 수정 모드 */
-                    <>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
-                          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={10} className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900 resize-none" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">우선순위</label>
-                            <select value={priority} onChange={(e) => setPriority(e.target.value as NoticePriority)} className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900">
-                              <option value="HIGH">긴급</option>
-                              <option value="NORMAL">일반</option>
-                              <option value="LOW">낮음</option>
-                            </select>
-                          </div>
-                          <div className="flex items-center pt-8">
-                            <label className="flex items-center cursor-pointer">
-                              <input type="checkbox" checked={isPinned} onChange={(e) => setIsPinned(e.target.checked)} className="w-5 h-5 text-teal-500 border-gray-200 rounded focus:ring-teal-500" />
-                              <span className="ml-3 text-sm text-gray-700">상단 고정</span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    /* 보기 모드 */
-                    <>
-                      <div className="flex items-center gap-2 mb-4">
-                        {notice.isPinned && (
-                          <svg className="w-5 h-5 text-teal-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                        )}
-                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getPriorityStyle(notice.priority)}`}>
-                          {getPriorityText(notice.priority)}
-                        </span>
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-2">{notice.title}</h2>
-                      <div className="flex items-center text-xs text-gray-400 space-x-4 mb-6">
-                        <span>작성자: {notice.authorName}</span>
-                        <span>{formatDate(notice.createdAt, 'yyyy.MM.dd HH:mm')}</span>
-                        <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                          {notice.viewCount}
-                        </span>
-                      </div>
-                      <hr className="border-gray-200 mb-6" />
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{notice.content}</div>
-
-                      {/* 읽은 사람 섹션 */}
-                      <div className="mt-8 pt-8 border-t border-gray-200">
-                        <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                          읽은 사람 {readers.length > 0 && <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">{readers.length}명</span>}
-                        </h4>
-                        {readers.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {readers.map((reader) => (
-                              <div
-                                key={reader.id}
-                                className="flex items-center px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200 text-sm"
-                              >
-                                <div className="w-6 h-6 bg-teal-50 rounded-full flex items-center justify-center mr-2">
-                                  <span className="text-xs font-medium text-teal-600">
-                                    {reader.userName?.charAt(0) || '?'}
-                                  </span>
-                                </div>
-                                <span className="text-sm text-gray-700">{reader.userName}</span>
-                                <span className="text-gray-400 text-xs ml-2">
-                                  {formatDate(reader.readAt, 'MM.dd HH:mm')}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-sm text-gray-400">아직 읽은 사람이 없습니다</div>
-                        )}
-                      </div>
-
-                      {/* 댓글 섹션 */}
-                      <div className="mt-8 pt-8 border-t border-gray-200">
-                        <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                          댓글 {comments.length > 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-teal-100 text-teal-600 rounded-full">{comments.length}</span>}
-                        </h4>
-
-                        {/* 댓글 작성 */}
-                        <div className="flex space-x-3 mb-6">
-                          <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="댓글을 입력하세요..." rows={2} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm text-gray-900 placeholder-gray-400 resize-none" />
-                          <button onClick={handleSubmitComment} disabled={isSubmittingComment || !newComment.trim()} className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 disabled:opacity-50 self-end transition-colors">
-                            {isSubmittingComment ? '등록 중...' : '등록'}
-                          </button>
-                        </div>
-
-                        {/* 댓글 목록 */}
-                        {comments.length > 0 ? (
-                          <div className="space-y-4">
-                            {comments.map((comment) => (
-                              <div key={comment.id} className="flex items-start space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-semibold flex-shrink-0 text-sm">
-                                  {comment.authorName?.charAt(0) || '?'}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-sm font-medium text-gray-900">{comment.authorName}</span>
-                                      <span className="text-xs text-gray-400">{formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}</span>
-                                    </div>
-                                    <button onClick={() => handleDeleteComment(comment.id)} className="p-1 text-gray-400 hover:text-red-500">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                  </div>
-                                  <p className="text-sm text-gray-700 mt-1">{comment.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-sm text-gray-400">아직 댓글이 없습니다</div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-sm text-gray-400">공지사항을 찾을 수 없습니다</div>
-              )}
-            </div>
+            </Card>
           </div>
-        )}
-      </div>
+        </VStack>
+      ) : (
+        /* === 상세 뷰 === */
+        <Card padding={0}>
+          {/* 상세 헤더 */}
+          <div style={{ padding: 16 }}>
+            <HStack gap={3} hAlign="between" vAlign="center" width="100%">
+              <Button
+                label="목록으로"
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon="chevronLeft" size="sm" />}
+                onClick={handleBackToList}
+              />
+              {isEditing ? (
+                <HStack gap={2} vAlign="center">
+                  <Button label="취소" variant="secondary" onClick={() => setIsEditing(false)} isDisabled={isSubmitting} />
+                  <Button label="저장" variant="primary" onClick={handleUpdate} isLoading={isSubmitting} isDisabled={isSubmitting} />
+                </HStack>
+              ) : (
+                <HStack gap={2} vAlign="center">
+                  {isAdmin && (
+                    <Button label="삭제" variant="destructive" onClick={() => setShowDeleteConfirm(true)} />
+                  )}
+                  {isAdmin && (
+                    <Button label="수정" variant="primary" onClick={() => setIsEditing(true)} />
+                  )}
+                </HStack>
+              )}
+            </HStack>
+          </div>
+
+          <Divider />
+
+          {/* 상세 본문 */}
+          <div style={{ padding: 20 }}>
+            {isLoadingDetail ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px 0' }}>
+                <Spinner size="lg" aria-label="불러오는 중" />
+              </div>
+            ) : notice ? (
+              isEditing ? (
+                /* 수정 모드 */
+                <VStack gap={4} align="start" width="100%">
+                  <div style={{ width: '100%' }}>
+                    <TextInput label="제목" value={title} onChange={(value) => setTitle(value)} />
+                  </div>
+                  <div style={{ width: '100%' }}>
+                    <TextArea label="내용" value={content} onChange={(value) => setContent(value)} rows={10} />
+                  </div>
+                  <HStack gap={4} vAlign="end" wrap="wrap" width="100%">
+                    <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                      <Selector
+                        label="우선순위"
+                        value={priority}
+                        onChange={(value) => setPriority(value as NoticePriority)}
+                        options={[
+                          { value: 'HIGH', label: '긴급' },
+                          { value: 'NORMAL', label: '일반' },
+                          { value: 'LOW', label: '낮음' },
+                        ]}
+                      />
+                    </div>
+                    <div style={{ flex: '1 1 200px', minWidth: 0, paddingBottom: 8 }}>
+                      <CheckboxInput label="상단 고정" value={isPinned} onChange={(checked) => setIsPinned(checked)} />
+                    </div>
+                  </HStack>
+                </VStack>
+              ) : (
+                /* 보기 모드 */
+                <VStack gap={4} align="start" width="100%">
+                  <HStack gap={2} vAlign="center">
+                    {notice.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
+                    <Badge variant={getPriorityVariant(notice.priority)} label={getPriorityText(notice.priority)} />
+                  </HStack>
+                  <Heading level={2}>{notice.title}</Heading>
+                  <HStack gap={4} vAlign="center" wrap="wrap">
+                    <Text type="supporting">작성자: {notice.authorName}</Text>
+                    <Text type="supporting">{formatDate(notice.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                    <HStack gap={1} vAlign="center">
+                      <Icon icon={FiEye} size="sm" color="secondary" />
+                      <Text type="supporting">{notice.viewCount}</Text>
+                    </HStack>
+                  </HStack>
+
+                  <div style={{ width: '100%' }}>
+                    <Divider />
+                  </div>
+
+                  <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
+                    <Text type="body">{notice.content}</Text>
+                  </div>
+
+                  {/* 읽은 사람 섹션 */}
+                  <div style={{ width: '100%' }}>
+                    <Divider />
+                  </div>
+                  <VStack gap={3} align="start" width="100%">
+                    <HStack gap={2} vAlign="center">
+                      <Icon icon={FiUsers} size="md" color="secondary" />
+                      <Heading level={4}>읽은 사람 {readers.length > 0 && `(${readers.length}명)`}</Heading>
+                    </HStack>
+                    {readers.length > 0 ? (
+                      <HStack gap={2} wrap="wrap">
+                        {readers.map((reader) => (
+                          <div
+                            key={reader.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '6px 12px',
+                              background: '#f9fafb',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: 9999,
+                            }}
+                          >
+                            <Avatar name={reader.userName || '?'} size="xsmall" />
+                            <Text type="body">{reader.userName}</Text>
+                            <Text type="supporting">{formatDate(reader.readAt, 'MM.dd HH:mm')}</Text>
+                          </div>
+                        ))}
+                      </HStack>
+                    ) : (
+                      <Text type="supporting">아직 읽은 사람이 없습니다</Text>
+                    )}
+                  </VStack>
+
+                  {/* 댓글 섹션 */}
+                  <div style={{ width: '100%' }}>
+                    <Divider />
+                  </div>
+                  <VStack gap={4} align="start" width="100%">
+                    <HStack gap={2} vAlign="center">
+                      <Icon icon={FiMessageSquare} size="md" color="secondary" />
+                      <Heading level={4}>댓글 {comments.length > 0 && `(${comments.length})`}</Heading>
+                    </HStack>
+
+                    {/* 댓글 작성 */}
+                    <HStack gap={3} vAlign="end" width="100%">
+                      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <TextArea
+                          label="댓글"
+                          isLabelHidden
+                          value={newComment}
+                          onChange={(value) => setNewComment(value)}
+                          placeholder="댓글을 입력하세요..."
+                          rows={2}
+                        />
+                      </div>
+                      <Button
+                        label="등록"
+                        variant="primary"
+                        onClick={handleSubmitComment}
+                        isDisabled={isSubmittingComment || !newComment.trim()}
+                        isLoading={isSubmittingComment}
+                      />
+                    </HStack>
+
+                    {/* 댓글 목록 */}
+                    {comments.length > 0 ? (
+                      <VStack gap={4} align="start" width="100%">
+                        {comments.map((comment) => (
+                          <HStack key={comment.id} gap={3} vAlign="start" width="100%">
+                            <Avatar name={comment.authorName || '?'} size="small" />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <HStack gap={2} vAlign="center">
+                                <Text type="body" weight="medium">{comment.authorName}</Text>
+                                <Text type="supporting">{formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                <div style={{ marginLeft: 'auto' }}>
+                                  <Button
+                                    label="삭제"
+                                    variant="ghost"
+                                    size="sm"
+                                    isIconOnly
+                                    icon={<Icon icon={FiTrash2} size="sm" />}
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                  />
+                                </div>
+                              </HStack>
+                              <Text type="body">{comment.content}</Text>
+                            </div>
+                          </HStack>
+                        ))}
+                      </VStack>
+                    ) : (
+                      <div style={{ width: '100%', textAlign: 'center', padding: '16px 0' }}>
+                        <Text type="supporting">아직 댓글이 없습니다</Text>
+                      </div>
+                    )}
+                  </VStack>
+                </VStack>
+              )
+            ) : (
+              <div style={{ width: '100%', textAlign: 'center', padding: '48px 0' }}>
+                <Text type="supporting">공지사항을 찾을 수 없습니다</Text>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* 삭제 확인 모달 */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
-                <h3 className="text-lg font-bold text-white">공지사항 삭제</h3>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start mb-4">
-                  <div className="bg-red-100 p-2 rounded-full mr-3 flex-shrink-0">
-                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  </div>
-                  <p className="text-sm text-gray-700">이 공지사항을 삭제하시겠습니까?<br />삭제된 공지사항은 복구할 수 없습니다.</p>
-                </div>
-              </div>
-              <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 flex justify-end gap-2">
-                <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors" disabled={isSubmitting}>
-                  취소
-                </button>
-                <button onClick={handleDelete} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors">
-                  {isSubmitting ? '삭제 중...' : '삭제'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Dialog
+        isOpen={showDeleteConfirm}
+        onOpenChange={(o) => { if (!o) setShowDeleteConfirm(false); }}
+        purpose="required"
+        width={440}
+      >
+        <Layout
+          header={<DialogHeader title="공지사항 삭제" onOpenChange={(o) => { if (!o) setShowDeleteConfirm(false); }} />}
+          content={
+            <LayoutContent>
+              <HStack gap={3} vAlign="start">
+                <Icon icon={FiAlertTriangle} size="md" color="error" />
+                <Text type="body">이 공지사항을 삭제하시겠습니까? 삭제된 공지사항은 복구할 수 없습니다.</Text>
+              </HStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="취소" variant="secondary" onClick={() => setShowDeleteConfirm(false)} isDisabled={isSubmitting} />
+                <Button label="삭제" variant="destructive" onClick={handleDelete} isLoading={isSubmitting} isDisabled={isSubmitting} />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
     </>
   );
 }

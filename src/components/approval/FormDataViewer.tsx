@@ -2,16 +2,17 @@
 
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { Card } from '@astryxdesign/core/Card';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Text } from '@astryxdesign/core/Text';
+import { Link } from '@astryxdesign/core/Link';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
-
-interface FormDataViewerProps {
-  formData: Record<string, any>;
-  schema?: FormSchema;
-}
 
 function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
-    return <span className="text-gray-400">-</span>;
+    return <Text color="disabled">-</Text>;
   }
 
   switch (field.type) {
@@ -52,21 +53,14 @@ function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
 
     case 'checkbox': {
       const selected: string[] = Array.isArray(value) ? value : [];
-      if (selected.length === 0) return <span className="text-gray-400">-</span>;
+      if (selected.length === 0) return <Text color="disabled">-</Text>;
       return (
-        <div className="flex flex-wrap gap-1">
+        <HStack gap={1} wrap="wrap">
           {selected.map((v) => {
             const option = field.options?.find((o) => o.value === v);
-            return (
-              <span
-                key={v}
-                className="px-2 py-0.5 bg-teal-100 text-teal-700 text-xs rounded-full font-medium"
-              >
-                {option ? option.label : v}
-              </span>
-            );
+            return <Badge key={v} variant="teal" label={option ? option.label : v} />;
           })}
-        </div>
+        </HStack>
       );
     }
 
@@ -75,22 +69,38 @@ function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
       const fileUrl = value?.fileUrl || value?.url || '';
       if (fileUrl) {
         return (
-          <a
+          <Link
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-teal-600 underline hover:text-teal-800 break-all"
+            hasUnderline
+            style={{ wordBreak: 'break-all' }}
           >
             {fileName}
-          </a>
+          </Link>
         );
       }
-      return <span className="break-all">{fileName}</span>;
+      return <Text style={{ wordBreak: 'break-all' }}>{fileName}</Text>;
     }
 
     default:
-      return <span className="whitespace-pre-wrap">{String(value)}</span>;
+      return <Text style={{ whiteSpace: 'pre-wrap' }}>{String(value)}</Text>;
   }
+}
+
+function FieldCell({ field, value }: { field: FormFieldSchema; value: any }) {
+  return (
+    <Card variant="muted" padding={3} width="100%">
+      <VStack gap={1}>
+        <Text type="supporting" weight="semibold">
+          {field.label}
+        </Text>
+        <Text as="div" type="body">
+          {formatValue(field, value)}
+        </Text>
+      </VStack>
+    </Card>
+  );
 }
 
 function SchemaViewer({ formData, schema }: { formData: Record<string, any>; schema: FormSchema }) {
@@ -137,65 +147,72 @@ function SchemaViewer({ formData, schema }: { formData: Record<string, any>; sch
   const rows = renderFields();
 
   return (
-    <div className="space-y-3">
+    <VStack gap={3}>
       {rows.map((row, rowIdx) => {
         if (row.length === 1 && row[0].type === 'section') {
           return (
-            <div key={`section-${rowIdx}`} className="pt-2">
-              <div className="flex items-center gap-3">
-                <hr className="flex-1 border-gray-300" />
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  {row[0].label}
-                </span>
-                <hr className="flex-1 border-gray-300" />
-              </div>
+            <div key={`section-${rowIdx}`} style={{ paddingTop: 8 }}>
+              <Divider
+                label={
+                  <Text
+                    type="supporting"
+                    weight="semibold"
+                    style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                  >
+                    {row[0].label}
+                  </Text>
+                }
+              />
             </div>
           );
         }
 
         if (row.length === 2) {
           return (
-            <div key={`row-${rowIdx}`} className="grid grid-cols-2 gap-3">
+            <HStack key={`row-${rowIdx}`} gap={3}>
               {row.map((field) => (
-                <div key={field.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <span className="text-gray-500 text-xs font-semibold">{field.label}</span>
-                  <div className="text-gray-900 text-sm mt-1">
-                    {formatValue(field, formData[field.id])}
-                  </div>
-                </div>
+                <StackItem key={field.id} size="fill">
+                  <FieldCell field={field} value={formData[field.id]} />
+                </StackItem>
               ))}
-            </div>
+            </HStack>
           );
         }
 
         return (
           <div key={`row-${rowIdx}`}>
             {row.map((field) => (
-              <div key={field.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <span className="text-gray-500 text-xs font-semibold">{field.label}</span>
-                <div className="text-gray-900 text-sm mt-1">
-                  {formatValue(field, formData[field.id])}
-                </div>
-              </div>
+              <FieldCell key={field.id} field={field} value={formData[field.id]} />
             ))}
           </div>
         );
       })}
-    </div>
+    </VStack>
   );
 }
 
 function FallbackViewer({ formData }: { formData: Record<string, any> }) {
   return (
-    <div className="space-y-3">
+    <VStack gap={3}>
       {Object.entries(formData).map(([key, value]) => (
-        <div key={key} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-          <span className="text-gray-500 text-xs font-semibold">{key}</span>
-          <p className="text-gray-900 text-sm mt-1 whitespace-pre-wrap">{value as string}</p>
-        </div>
+        <Card key={key} variant="muted" padding={3} width="100%">
+          <VStack gap={1}>
+            <Text type="supporting" weight="semibold">
+              {key}
+            </Text>
+            <Text as="p" type="body" style={{ whiteSpace: 'pre-wrap' }}>
+              {value as string}
+            </Text>
+          </VStack>
+        </Card>
       ))}
-    </div>
+    </VStack>
   );
+}
+
+interface FormDataViewerProps {
+  formData: Record<string, any>;
+  schema?: FormSchema;
 }
 
 export default function FormDataViewer({ formData, schema }: FormDataViewerProps) {

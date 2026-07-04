@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Spinner } from '@astryxdesign/core/Spinner';
 
 export default function EmployeeLayout({
   children,
@@ -38,8 +39,17 @@ export default function EmployeeLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-400"></div>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background:
+            'linear-gradient(to bottom, #0f172a, #1e3a8a, #312e81)',
+        }}
+      >
+        <Spinner size="lg" shade="onMedia" aria-label="Loading" />
       </div>
     );
   }

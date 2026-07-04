@@ -1,15 +1,11 @@
-@import "tailwindcss";
+/* Astryx 디자인 시스템 (Tailwind 제거 완료 — reset.css 단독 체제) */
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/theme-neutral/theme.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 /* 관리자 대시보드는 라이트 모드 고정 */
@@ -48,6 +44,256 @@ html {
   * {
     font-size-adjust: 0.5;
   }
+}
+
+/* Navbar 반응형 (Tailwind hidden/md:flex 대체) */
+.carev-nav-desktop { display: none; }
+.carev-nav-mobile-toggle { display: inline-flex; }
+@media (min-width: 768px) {
+  .carev-nav-desktop { display: flex; }
+  .carev-nav-mobile-toggle { display: none; }
+  .carev-nav-mobile-menu { display: none; }
+}
+
+/* MemberSelector 리스트 아이템 hover (Tailwind hover: 대체) */
+.carev-member-item:hover {
+  border-color: #99f6e4 !important;
+  background: #f9fafb !important;
+}
+
+/* admin/page 반응형 (Tailwind lg:/xl:/sm: 대체) */
+.carev-admin-sidebar { display: none; }
+.carev-admin-mobile-header { display: block; }
+.carev-admin-content { margin-left: 0; }
+.carev-admin-rolling { margin-top: 88px; }
+@media (min-width: 1024px) {
+  .carev-admin-sidebar { display: flex; }
+  .carev-admin-mobile-header { display: none; }
+  .carev-admin-content { margin-left: 224px; }
+  .carev-admin-rolling { margin-top: 0; }
+}
+.carev-admin-work-layout { display: flex; flex-direction: column; gap: 24px; }
+.carev-admin-work-calendar { width: 100%; }
+.carev-admin-work-side { width: 100%; }
+@media (min-width: 1280px) {
+  .carev-admin-work-layout { flex-direction: row; }
+  .carev-admin-work-calendar { width: 80%; }
+  .carev-admin-work-side { width: 20%; }
+}
+.carev-admin-footer-row { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.carev-admin-footer-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.carev-admin-footer-sep { display: none; }
+@media (min-width: 640px) {
+  .carev-admin-footer-row { flex-direction: row; justify-content: space-between; }
+  .carev-admin-footer-meta { flex-direction: row; gap: 12px; }
+  .carev-admin-footer-sep { display: inline; }
+}
+
+/* AdminDashboard 반응형 + hover (Tailwind 대체) */
+.carev-dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px)  { .carev-dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .carev-dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.carev-dash-stats-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.carev-dash-panels { grid-template-columns: 1fr; }
+@media (min-width: 1024px) {
+  .carev-dash-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+  .carev-dash-panel-full { grid-column: span 2; }
+}
+.carev-dash-clock { display: none; }
+@media (min-width: 640px) { .carev-dash-clock { display: block; } }
+.carev-dash-cal-dots  { display: flex; }
+.carev-dash-cal-chips { display: none; }
+@media (min-width: 640px) {
+  .carev-dash-cal-dots  { display: none; }
+  .carev-dash-cal-chips { display: flex; }
+}
+.carev-dash-viewall { transition: opacity 150ms ease; }
+.carev-dash-viewall:hover { opacity: 0.7; }
+.carev-dash-row { transition: background 150ms ease; cursor: pointer; }
+.carev-dash-row:hover { background: #f9fafb; }
+.carev-dash-cal-cell { transition: background 150ms ease, border-color 150ms ease; }
+.carev-dash-cal-cell-today:hover { background: #ecfdf5 !important; }
+.carev-dash-cal-cell-day:hover   { border-color: #e5e7eb !important; background: #f9fafb !important; }
+.carev-dash-timeline { transition: background 150ms ease; cursor: pointer; }
+.carev-dash-timeline:hover { background: #f0fdfa; }
+
+/* employee/page 반응형 (Tailwind lg:/sm: 대체, carev-admin-*와 동일 값) */
+.carev-emp-sidebar { display: none; }
+.carev-emp-mobile-header { display: block; }
+.carev-emp-content { margin-left: 0; }
+.carev-emp-rolling { margin-top: 88px; }
+@media (min-width: 1024px) {
+  .carev-emp-sidebar { display: flex; }
+  .carev-emp-mobile-header { display: none; }
+  .carev-emp-content { margin-left: 224px; }
+  .carev-emp-rolling { margin-top: 0; }
+}
+.carev-emp-footer-row { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.carev-emp-footer-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.carev-emp-footer-sep { display: none; }
+@media (min-width: 640px) {
+  .carev-emp-footer-row { flex-direction: row; justify-content: space-between; }
+  .carev-emp-footer-meta { flex-direction: row; gap: 12px; }
+  .carev-emp-footer-sep { display: inline; }
+}
+
+/* EmployeeNotice / EmployeeCalendar hover (Tailwind hover: 대체) */
+.carev-empnotice-item { transition: background-color 200ms ease; }
+.carev-empnotice-item:hover { background-color: #f9fafb; }
+.carev-empcal-cell:hover { background-color: #f0fdfa; }
+
+/* ── Phase 5: 일정/휴가 도메인 ── */
+
+/* Calendar */
+.carev-cal-cell { min-height: 90px; }
+@media (min-width: 768px) { .carev-cal-cell { min-height: 100px; } }
+.carev-cal-daycell:hover { background: #f0fdfa; }
+.carev-cal-navbtn { transition: background 200ms; }
+.carev-cal-navbtn:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* SeniorAbsenceManagement hover */
+.carev-seniorabs-row { background-color: #f9fafb; }
+.carev-seniorabs-row:hover { background-color: #f3f4f6; }
+.carev-seniorabs-day-absent { background-color: #ef4444; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.carev-seniorabs-day-absent:hover { background-color: #dc2626; }
+.carev-seniorabs-day { background-color: #ffffff; border: 1px solid #e5e7eb; }
+.carev-seniorabs-day:hover { background-color: #f0fdfa; border-color: #5eead4; }
+
+/* VacationDetails 아이콘 버튼 hover */
+.carev-vacdetails-icon-btn { transition: color 0.15s, background 0.15s; }
+.carev-vacdetails-icon-btn:hover { color: #ffffff; background: rgba(255,255,255,0.1); }
+.carev-vacdetails-delete-btn { transition: color 0.15s, background 0.15s; }
+.carev-vacdetails-delete-btn:hover { color: #ef4444; background: #fef2f2; }
+
+/* VacationApproval 반응형 2단 */
+.carev-vacapproval-layout { display: flex; flex-direction: column; gap: 16px; }
+.carev-vacapproval-main { min-width: 0; }
+.carev-vacapproval-sidebar { width: 100%; }
+@media (min-width: 1280px) {
+  .carev-vacapproval-layout { flex-direction: row; }
+  .carev-vacapproval-main { flex: 1; }
+  .carev-vacapproval-sidebar { width: 200px; flex-shrink: 0; }
+}
+
+/* VacationCalendar 셀 반응형 + hover */
+.carev-vaccal-cell { min-height: 60px; transition: background-color 200ms ease; }
+.carev-vaccal-cell-expanded { min-height: 80px; transition: background-color 200ms ease; }
+@media (min-width: 640px) {
+  .carev-vaccal-cell { min-height: 120px; }
+  .carev-vaccal-cell-expanded { min-height: 200px; }
+}
+@media (min-width: 768px) {
+  .carev-vaccal-cell { min-height: 140px; }
+  .carev-vaccal-cell-expanded { min-height: 240px; }
+}
+.carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, #f3f4f6) !important; }
+
+/* ScheduleCalendar 반응형 2단 + hover */
+.carev-schedcal-layout { display: flex; flex-direction: column; gap: 24px; }
+.carev-schedcal-main { width: 100%; transition: all 300ms ease; }
+.carev-schedcal-detail { width: 100%; }
+@media (min-width: 1280px) {
+  .carev-schedcal-layout { flex-direction: row; }
+  .carev-schedcal-main--narrow { width: 75%; }
+  .carev-schedcal-detail { width: 25%; }
+}
+.carev-schedcal-cell:hover { background: #f3f4f6; }
+.carev-schedcal-list-item { transition: all 150ms ease; }
+.carev-schedcal-list-item:hover { background: #f0fdfa; border-color: #99f6e4; }
+.carev-schedcal-attach { transition: background 150ms ease; }
+.carev-schedcal-attach:hover { background: #f9fafb; }
+
+/* Phase 6: 전자결재 - FormSchemaBuilder hover */
+.carev-formbuilder-field-item:hover { border-color: var(--color-border-emphasized); background: var(--color-background-muted); }
+.carev-formbuilder-preset-item:hover { background: var(--color-background-muted); }
+
+/* Phase 7: 채팅 도메인 hover */
+.carev-fchat-fab:hover {
+  background: #0d9488 !important;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important;
+}
+.carev-chat-room-item { transition: background 150ms ease; }
+.carev-chat-room-item:hover { background: #f9fafb; }
+.carev-chat-reaction { transition: background 150ms ease; }
+.carev-chat-reaction:hover { background: #f9fafb; }
+.carev-chat-emoji-btn { transition: background 150ms ease; }
+.carev-chat-emoji-btn:hover { background: #f3f4f6; }
+.carev-chat-menu-item { transition: background 150ms ease; }
+.carev-chat-menu-item:hover { background: #f9fafb; }
+.carev-chat-file-link { transition: background 150ms ease; }
+.carev-chat-file-link:hover { background: #f9fafb; }
+.carev-chat-photo { transition: opacity 150ms ease; }
+.carev-chat-photo:hover { opacity: 0.8; }
+
+/* Phase 8: 디스패치 - DispatchDayDetail 정보 그리드 반응형 */
+.carev-dispatch-day-info-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 768px) { .carev-dispatch-day-info-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ── Phase 10: 공개/마케팅 페이지 ── */
+
+/* guide 반응형 */
+.carev-guide-grid-2 { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 768px) { .carev-guide-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.carev-guide-cta-actions { display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+@media (min-width: 640px) { .carev-guide-cta-actions { flex-direction: row; } }
+
+/* faq 아코디언 hover */
+.carev-faq-trigger:hover { background: rgba(255, 255, 255, 0.05); }
+
+/* landing 스텝 연결선 (데스크탑만) */
+.carev-landing-step-connector { display: none; }
+@media (min-width: 1024px) { .carev-landing-step-connector { display: block; } }
+
+/* blog/[slug] 마크다운 prose (dangerouslySetInnerHTML 출력용) */
+.carev-blogpost-prose { color: #e5e7eb; max-width: none; }
+.carev-blogpost-prose h1,
+.carev-blogpost-prose h2,
+.carev-blogpost-prose h3,
+.carev-blogpost-prose h4 { color: #ffffff; font-weight: 700; }
+.carev-blogpost-prose h1 { font-size: 2.25rem; margin-top: 2rem; margin-bottom: 1rem; }
+.carev-blogpost-prose h2 { font-size: 1.875rem; margin-top: 2rem; margin-bottom: 1rem; }
+.carev-blogpost-prose h3 { font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #bfdbfe; }
+.carev-blogpost-prose h4 { font-size: 1.125rem; margin-top: 1rem; margin-bottom: 0.5rem; color: #93c5fd; }
+.carev-blogpost-prose p { color: #e5e7eb; line-height: 1.625; margin-bottom: 1rem; }
+.carev-blogpost-prose strong { color: #ffffff; font-weight: 600; }
+.carev-blogpost-prose ul { color: #e5e7eb; margin-top: 1rem; margin-bottom: 1rem; padding-left: 1.5rem; list-style: disc; }
+.carev-blogpost-prose li { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+.carev-blogpost-prose li::marker { color: #60a5fa; }
+.carev-blogpost-prose code { color: #93c5fd; background: #1e293b; padding: 0.25rem 0.5rem; border-radius: 0.375rem; }
+.carev-blogpost-prose pre { background: #1e293b; border: 1px solid #475569; border-radius: 0.5rem; padding: 1rem; overflow-x: auto; }
+.carev-blogpost-prose blockquote { border-left: 4px solid #60a5fa; background: rgba(30, 41, 59, 0.5); padding: 0.5rem 1rem; margin: 1rem 0; }
+.carev-blogpost-prose a { color: #60a5fa; text-decoration: none; }
+.carev-blogpost-prose a:hover { color: #93c5fd; }
+
+/* ── Phase 11: 누락 파일 정리 ── */
+
+/* FloatingChatRoomList / FieldTypeSelector hover */
+.carev-fchatroom-item:hover { background-color: #f9fafb; }
+.carev-fieldtype-option:hover { border-color: var(--color-border-teal); background: var(--color-background-teal); color: var(--color-text-accent); }
+
+/* SubscriptionStatus 상태 점 pulse */
+@keyframes carev-substatus-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.carev-substatus-dot-pulse { animation: carev-substatus-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* CalendarSkeleton 반응형 */
+.carev-calskel-root { width: 100%; }
+.carev-calskel-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid #e5e7eb; }
+.carev-calskel-weekday { padding: 2px 0; text-align: center; font-weight: 500; font-size: 8px; }
+.carev-calskel-grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: 4px; row-gap: 12px; margin-top: 8px; }
+.carev-calskel-cell { height: 60px; padding: 4px; }
+.carev-calskel-footer { margin-top: 24px; padding: 16px; border-top: 1px solid #f3f4f6; }
+.carev-calskel-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+@media (min-width: 640px) {
+  .carev-calskel-weekday { padding: 8px 0; font-size: 14px; }
+  .carev-calskel-grid { column-gap: 16px; row-gap: 20px; }
+  .carev-calskel-cell { height: 120px; padding: 12px; }
+}
+@media (min-width: 768px) {
+  .carev-calskel-grid { column-gap: 20px; row-gap: 24px; }
+  .carev-calskel-cell { height: 140px; }
 }
 
 /* 탭 네비게이션 스크롤바 숨김 */

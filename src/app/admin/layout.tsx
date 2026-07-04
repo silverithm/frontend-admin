@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Spinner } from '@astryxdesign/core/Spinner';
 
 export default function AdminLayout({
   children,
@@ -33,8 +34,16 @@ export default function AdminLayout({
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500"></div>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9fafb',
+        }}
+      >
+        <Spinner size="lg" aria-label="Loading" />
       </div>
     );
   }
