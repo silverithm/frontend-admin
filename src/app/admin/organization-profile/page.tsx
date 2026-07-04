@@ -37,7 +37,7 @@ interface OrganizationProfileData {
 }
 
 const gradientBar =
-  'linear-gradient(90deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)';
+  'linear-gradient(90deg, #0f1115 0%, #16181d 55%, #0f1115 100%)';
 
 export default function OrganizationProfilePage() {
   const router = useRouter();
@@ -278,7 +278,7 @@ export default function OrganizationProfilePage() {
                     {/* 기관 정보 카드 */}
                     <Card padding={6}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon icon={IconBuilding} size="md" color="accent" />
                         </div>
                         <VStack gap={0.5}>

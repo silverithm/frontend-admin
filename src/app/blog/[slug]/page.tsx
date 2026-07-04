@@ -506,7 +506,7 @@ export default function BlogPostPage() {
 
     if (!post) {
         return (
-            <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)' }}>
+            <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)' }}>
                 <Navbar />
                 <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '128px 16px 0', textAlign: 'center' }}>
                     <Heading level={1} style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 700, marginBottom: 16 }}>
@@ -522,7 +522,7 @@ export default function BlogPostPage() {
     }
 
     return (
-        <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)' }}>
+        <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)' }}>
             <Navbar />
 
             {/* 헤더 */}
@@ -555,7 +555,7 @@ export default function BlogPostPage() {
                                 style={{
                                     fontWeight: 700,
                                     fontSize: 'clamp(1.875rem, 4vw, 3rem)',
-                                    background: 'linear-gradient(to right, #ffffff, #dbeafe, #e0e7ff)',
+                                    background: 'linear-gradient(to right, #ffffff, #a5e3d6)',
                                     WebkitBackgroundClip: 'text',
                                     backgroundClip: 'text',
                                     WebkitTextFillColor: 'transparent',

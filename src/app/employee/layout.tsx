@@ -46,7 +46,7 @@ export default function EmployeeLayout({
           alignItems: 'center',
           justifyContent: 'center',
           background:
-            'linear-gradient(to bottom, #0f172a, #1e3a8a, #312e81)',
+            'linear-gradient(to bottom, #0f1115, #16181d, #0f1115)',
         }}
       >
         <Spinner size="lg" shade="onMedia" aria-label="Loading" />

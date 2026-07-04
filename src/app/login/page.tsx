@@ -209,7 +209,7 @@ export default function LoginPage() {
           justifyContent: 'center',
           padding: 16,
           position: 'relative',
-          background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)',
+          background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)',
         }}
       >
         {/* 뒤로가기 버튼 */}

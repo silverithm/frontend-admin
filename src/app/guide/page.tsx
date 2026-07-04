@@ -12,7 +12,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 
 const heroBackground =
-    'linear-gradient(to bottom, #0f172a 0%, #1e3a8a 55%, #312e81 100%)';
+    'linear-gradient(to bottom, #0f1115 0%, #16181d 55%, #0f1115 100%)';
 
 const panelStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.1)',

@@ -81,7 +81,7 @@ export default function RegisterPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,
-        background: 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
+        background: 'linear-gradient(180deg, #0f1115 0%, #16181d 100%)',
       }}
     >
       <motion.div

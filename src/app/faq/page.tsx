@@ -68,7 +68,7 @@ export default function FAQPage() {
         <main
             style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)',
+                background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)',
                 color: '#fff',
             }}
         >
@@ -90,7 +90,7 @@ export default function FAQPage() {
                             style={{
                                 marginBottom: 24,
                                 fontWeight: 800,
-                                backgroundImage: 'linear-gradient(to right, #ffffff, #dbeafe, #e0e7ff)',
+                                backgroundImage: 'linear-gradient(to right, #ffffff, #a5e3d6)',
                                 WebkitBackgroundClip: 'text',
                                 backgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',

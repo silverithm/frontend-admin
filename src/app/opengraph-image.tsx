@@ -38,7 +38,7 @@ export default async function Image() {
               fontSize: 72,
               fontWeight: 'bold',
               marginBottom: 40,
-              background: 'linear-gradient(135deg, #ffffff 0%, #93c5fd 100%)',
+              background: 'linear-gradient(to right, #ffffff, #a5e3d6)',
               backgroundClip: 'text',
               color: 'transparent',
             }}

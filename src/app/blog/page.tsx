@@ -91,7 +91,7 @@ export default function BlogPage() {
         <main
             style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(to bottom, #0f172a, #1e3a8a, #312e81)',
+                background: 'linear-gradient(to bottom, #0f1115, #16181d, #0f1115)',
                 color: '#ffffff',
             }}
         >

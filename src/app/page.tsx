@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 
 // 그라데이션 클립 텍스트(마케팅 히어로/섹션 제목 전용 bespoke 스타일)
 const gradientText: React.CSSProperties = {
-    backgroundImage: 'linear-gradient(to right, #ffffff, #dbeafe, #e0e7ff)',
+    backgroundImage: 'linear-gradient(to right, #ffffff, #a5e3d6)',
     WebkitBackgroundClip: 'text',
     backgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
@@ -79,7 +79,7 @@ export default function LandingPage() {
     return (
         <main style={{
             minHeight: '100vh',
-            backgroundImage: 'linear-gradient(to bottom, #0f172a, #1e3a8a, #312e81)',
+            backgroundImage: 'linear-gradient(to bottom, #0f1115, #16181d, #0f1115)',
             color: '#ffffff',
         }}>
             <Navbar/>
@@ -1107,7 +1107,7 @@ export default function LandingPage() {
 
             {/* 푸터 */}
             <footer id="contact" style={{
-                backgroundImage: 'linear-gradient(to right, #0f172a, #1e3a8a, #312e81)',
+                backgroundImage: 'linear-gradient(to right, #0f1115, #16181d, #0f1115)',
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                 borderTop: '1px solid rgba(30,64,175,0.3)',
                 backdropFilter: 'blur(4px)',

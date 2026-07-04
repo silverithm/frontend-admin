@@ -16,7 +16,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 
-const PAGE_GRADIENT = 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)';
+const PAGE_GRADIENT = 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)';
 
 export default function SubscriptionCheckPage() {
   const router = useRouter();
