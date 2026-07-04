@@ -9,8 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@mantine/core": "^8.3.10",
-    "@mantine/hooks": "^8.3.10",
+    "@astryxdesign/core": "^0.1.2",
+    "@astryxdesign/theme-neutral": "^0.1.2",
+    "@rhwp/editor": "^0.7.17",
     "@stomp/stompjs": "^7.3.0",
     "@tabler/icons-react": "^3.36.1",
     "@tosspayments/payment-sdk": "^1.9.1",
@@ -24,6 +25,7 @@
     "framer-motion": "^12.8.0",
     "html-to-image": "^1.11.13",
     "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
     "next": "^15.5.12",
     "react": "^19.0.0",
     "react-calendar": "^5.1.0",
@@ -33,6 +35,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "^0.1.2",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

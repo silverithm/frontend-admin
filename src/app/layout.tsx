@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import SubscriptionGuard from '@/components/SubscriptionGuard'
+import { AstryxProvider } from './AstryxProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -346,9 +347,11 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <SubscriptionGuard>
-          {children}
-        </SubscriptionGuard>
+        <AstryxProvider>
+          <SubscriptionGuard>
+            {children}
+          </SubscriptionGuard>
+        </AstryxProvider>
       </body>
     </html>
   )
