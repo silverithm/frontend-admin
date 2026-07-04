@@ -158,7 +158,7 @@ export default function SubscriptionCheckPage() {
                     style={{
                       width: 64,
                       height: 64,
-                      borderRadius: 16,
+                      borderRadius: 'var(--radius-container)',
                       backgroundColor: 'var(--color-background-red)',
                       border: '1px solid #fecaca',
                       display: 'flex',
@@ -196,7 +196,7 @@ export default function SubscriptionCheckPage() {
                   />
                 </HStack>
 
-                <div style={{ borderTop: '1px solid #f1f3f5', paddingTop: 16 }}>
+                <div style={{ borderTop: '1px solid #f1f3f5', paddingTop: 'var(--spacing-4)' }}>
                   <Text type="supporting" justify="center">
                     문의: ggprgrkjh@naver.com | 고객센터: 1234-5678
                   </Text>
@@ -222,7 +222,7 @@ export default function SubscriptionCheckPage() {
                     style={{
                       width: 64,
                       height: 64,
-                      borderRadius: 16,
+                      borderRadius: 'var(--radius-container)',
                       backgroundColor: 'var(--color-background-red)',
                       border: '1px solid #fecaca',
                       display: 'flex',
@@ -246,8 +246,8 @@ export default function SubscriptionCheckPage() {
                   style={{
                     backgroundColor: 'var(--color-background-muted)',
                     border: '1px solid var(--color-border)',
-                    borderRadius: 12,
-                    padding: 16,
+                    borderRadius: 'var(--radius-element)',
+                    padding: 'var(--spacing-4)',
                   }}
                 >
                   <VStack gap={3}>
@@ -256,7 +256,7 @@ export default function SubscriptionCheckPage() {
                       style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: 16,
+                        gap: 'var(--spacing-4)',
                       }}
                     >
                       <VStack gap={1}>
@@ -322,7 +322,7 @@ export default function SubscriptionCheckPage() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                  gap: 32,
+                  gap: 'var(--spacing-8)',
                   alignItems: 'stretch',
                 }}
               >
@@ -340,7 +340,7 @@ export default function SubscriptionCheckPage() {
                           style={{
                             width: 64,
                             height: 64,
-                            borderRadius: 16,
+                            borderRadius: 'var(--radius-container)',
                             backgroundColor: 'var(--color-background-teal)',
                             border: '1px solid #96f2d7',
                             display: 'flex',
@@ -401,7 +401,7 @@ export default function SubscriptionCheckPage() {
                           style={{
                             width: 64,
                             height: 64,
-                            borderRadius: 16,
+                            borderRadius: 'var(--radius-container)',
                             backgroundColor: 'var(--color-background-blue)',
                             border: '1px solid #a5d8ff',
                             display: 'flex',

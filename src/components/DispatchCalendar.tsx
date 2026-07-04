@@ -36,10 +36,10 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const CARD_STYLE: CSSProperties = {
   position: "relative",
   background: 'var(--color-background-card)',
-  borderRadius: 12,
+  borderRadius: 'var(--radius-element)',
   boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
   border: "1px solid var(--color-border)",
-  padding: 24,
+  padding: 'var(--spacing-6)',
 };
 
 // 범례/셀 표시용 색상
@@ -97,7 +97,7 @@ export default function DispatchCalendar({
   return (
     <div style={CARD_STYLE}>
       {/* 헤더 */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 'var(--spacing-6)' }}>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
           <HStack gap={3} vAlign="center">
           <Button
@@ -156,7 +156,7 @@ export default function DispatchCalendar({
             alignItems: "center",
             justifyContent: "center",
             zIndex: 10,
-            borderRadius: 12,
+            borderRadius: 'var(--radius-element)',
           }}
         >
           <Spinner size="lg" aria-label="달력 불러오는 중" />
@@ -168,8 +168,8 @@ export default function DispatchCalendar({
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 4,
-          marginBottom: 8,
+          gap: 'var(--spacing-1)',
+          marginBottom: 'var(--spacing-2)',
         }}
       >
         {WEEKDAYS.map((day, index) => (
@@ -188,7 +188,7 @@ export default function DispatchCalendar({
       </div>
 
       {/* 캘린더 그리드 */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 'var(--spacing-1)' }}>
         {calendarDays.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd");
           const summary = monthlySummary.get(dateStr);
@@ -203,7 +203,7 @@ export default function DispatchCalendar({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 4,
+            marginBottom: 'var(--spacing-1)',
             ...(isToday
               ? {
                   width: 28,
@@ -231,8 +231,8 @@ export default function DispatchCalendar({
               style={{
                 position: "relative",
                 minHeight: 100,
-                padding: 8,
-                borderRadius: 8,
+                padding: 'var(--spacing-2)',
+                borderRadius: 'var(--radius-inner)',
                 textAlign: "left",
                 transition: "all 200ms",
                 background: isCurrentMonth ? statusColors.bg : 'var(--color-background-muted)',
@@ -262,7 +262,7 @@ export default function DispatchCalendar({
 
               {/* 배차 요약 (휴일이 아닌 경우만) */}
               {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                   {summary.normalCount > 0 && (
                     <HStack gap={1} vAlign="center">
                       <span style={dotStyle("#22c55e")} />

@@ -199,7 +199,7 @@ export default function SignupPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 16,
+          padding: 'var(--spacing-4)',
           background: 'linear-gradient(180deg, #0f1115 0%, #16181d 100%)',
         }}
       >

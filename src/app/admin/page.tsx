@@ -990,13 +990,13 @@ export default function AdminPage() {
     if (!isClient) {
         return (
             <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: 'var(--color-background-card)' }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 'var(--spacing-6)' }}>
                     <Image
                         src="/images/carev-favicon.png"
                         alt="케어브이 로고"
                         width={48}
                         height={48}
-                        style={{ marginBottom: 8, borderRadius: 12 }}
+                        style={{ marginBottom: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                     />
                     <Spinner size="md" label={!isClient ? "준비 중..." : "불러오는 중..."} />
                 </div>
@@ -1018,8 +1018,8 @@ export default function AdminPage() {
         width: 18, height: 18, flexShrink: 0, color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
     });
     const subTabButtonStyle = (active: boolean): React.CSSProperties => ({
-        width: "100%", textAlign: "left", padding: "6px 12px", fontSize: 12, fontWeight: 500,
-        borderRadius: 6, transition: "colors 150ms ease", border: "none", cursor: "pointer",
+        width: "100%", textAlign: "left", padding: "6px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
+        borderRadius: 'var(--radius-inner)', transition: "colors 150ms ease", border: "none", cursor: "pointer",
         background: active ? 'var(--color-background-teal)' : "transparent", color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
     });
 
@@ -1028,8 +1028,8 @@ export default function AdminPage() {
             {/* 사이드바 (데스크탑) */}
             <aside className="carev-admin-sidebar" style={{ flexDirection: "column", width: 224, background: 'var(--color-background-card)', borderRight: "1px solid var(--color-border)", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 30 }}>
                 {/* 로고 */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 24px", height: 64, borderBottom: "1px solid var(--color-border)", flexShrink: 0 }}>
-                    <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 8 }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "0 24px", height: 64, borderBottom: "1px solid var(--color-border)", flexShrink: 0 }}>
+                    <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 'var(--radius-inner)' }} />
                     <div>
                         <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
                         {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
@@ -1037,15 +1037,15 @@ export default function AdminPage() {
                 </div>
 
                 {/* 네비게이션 */}
-                <nav style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+                <nav style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                     <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
                     {navItems.map((tab) => (
                         <div key={tab.key}>
                             <button
                                 onClick={() => setActiveMainTab(tab.key as MainTab)}
                                 style={{
-                                    width: "100%", display: "flex", alignItems: "center", gap: 12,
-                                    padding: "10px 12px", fontSize: 14, fontWeight: 500, borderRadius: 8,
+                                    width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-3)',
+                                    padding: "10px 12px", fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-inner)',
                                     transition: "colors 150ms ease", border: "none", cursor: "pointer",
                                     background: activeMainTab === tab.key ? 'var(--color-background-teal)' : "transparent",
                                     color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -1064,7 +1064,7 @@ export default function AdminPage() {
                             </button>
                             {/* 전자결재 서브탭 */}
                             {tab.key === "approval" && activeMainTab === "approval" && (
-                                <div style={{ paddingLeft: 36, marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                                <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
                                     <button onClick={() => setApprovalSubTab("submit")} style={subTabButtonStyle(approvalSubTab === "submit")}>
                                         결재 신청
                                     </button>
@@ -1082,7 +1082,7 @@ export default function AdminPage() {
                             )}
                             {/* 월간일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
-                                <div style={{ paddingLeft: 36, marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                                <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
                                     <button onClick={() => setScheduleMode("schedule")} style={subTabButtonStyle(scheduleMode === "schedule")}>
                                         일정
                                     </button>
@@ -1096,13 +1096,13 @@ export default function AdminPage() {
                 </nav>
 
                 {/* 사이드바 하단 */}
-                <div style={{ borderTop: "1px solid var(--color-border)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                <div style={{ borderTop: "1px solid var(--color-border)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
                     <div style={{ padding: "0 12px" }}><SubscriptionStatus /></div>
-                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
                         <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         기관 프로필
                     </button>
-                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
+                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: "colors 150ms ease" }}>
                         <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         로그아웃
                     </button>
@@ -1112,16 +1112,16 @@ export default function AdminPage() {
             {/* 모바일 헤더 (lg 미만) */}
             <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: "1px solid var(--color-border)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 52 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 8 }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                        <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 'var(--radius-inner)' }} />
                         <div>
                             <Text type="body" weight="bold" color="primary">케어브이</Text>
                             {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
                         </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                         <SubscriptionStatus />
-                        <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 6, color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer" }}>
+                        <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 'var(--spacing-1-5)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer" }}>
                             <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         </button>
                     </div>
@@ -1136,7 +1136,7 @@ export default function AdminPage() {
                             key={tab.key}
                             onClick={() => setActiveMainTab(tab.key as MainTab)}
                             style={{
-                                padding: "8px 12px", fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
+                                padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', whiteSpace: "nowrap",
                                 borderBottom: "2px solid", transition: "colors 150ms ease",
                                 background: "transparent", cursor: "pointer",
                                 color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -1161,7 +1161,7 @@ export default function AdminPage() {
             </div>
 
             {/* 메인 콘텐츠 */}
-            <main style={{ flexGrow: 1, width: "100%", padding: "16px", display: "flex", flexDirection: "column" }}>
+            <main style={{ flexGrow: 1, width: "100%", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
                 {/* 알림 메시지 */}
                 <AnimatePresence>
                     {notification.show && (
@@ -1169,7 +1169,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: -12, scale: 0.95}}
                             animate={{opacity: 1, y: 0, scale: 1}}
                             exit={{opacity: 0, y: -12, scale: 0.95}}
-                            style={{ marginBottom: 16 }}
+                            style={{ marginBottom: 'var(--spacing-4)' }}
                         >
                             <Banner
                                 status={notification.type === "success" ? "success" : notification.type === "error" ? "error" : "info"}
@@ -1261,7 +1261,7 @@ export default function AdminPage() {
                             {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="carev-admin-work-layout">
                                 {/* 캘린더 영역 */}
-                                <div className="carev-admin-work-calendar" style={{ background: 'var(--color-background-card)', padding: 24, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", height: "fit-content" }}>
+                                <div className="carev-admin-work-calendar" style={{ background: 'var(--color-background-card)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-inner)', boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", height: "fit-content" }}>
                                     <VacationCalendar
                                         currentDate={currentDate}
                                         setCurrentDate={setCurrentDate}
@@ -1277,15 +1277,15 @@ export default function AdminPage() {
                                 </div>
 
                                 {/* 필터 및 휴무 목록 사이드바 */}
-                                <div className="carev-admin-work-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div className="carev-admin-work-side" style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-4)' }}>
                                     {/* 필터 패널 */}
-                                    <div style={{ background: 'var(--color-background-card)', padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)" }}>
-                                        <div style={{ marginBottom: 12 }}><Text type="body" weight="medium" color="primary">필터</Text></div>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                    <div style={{ background: 'var(--color-background-card)', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)" }}>
+                                        <div style={{ marginBottom: 'var(--spacing-3)' }}><Text type="body" weight="medium" color="primary">필터</Text></div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-3)' }}>
                                             {/* 상태 필터 */}
                                             <div>
-                                                <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">상태</Text></div>
-                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                                                <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">상태</Text></div>
+                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 'var(--spacing-1)' }}>
                                                     {(["all", "pending", "approved", "rejected"] as const).map((status) => {
                                                         const activeBg = status === "all" ? "#14b8a6" : status === "pending" ? "#eab308" : status === "approved" ? "#22c55e" : "#ef4444";
                                                         const active = statusFilter === status;
@@ -1294,7 +1294,7 @@ export default function AdminPage() {
                                                             key={status}
                                                             onClick={() => setStatusFilter(status)}
                                                             style={{
-                                                                padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
+                                                                padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
                                                                 border: "none", cursor: "pointer", transition: "colors 150ms ease",
                                                                 background: active ? activeBg : 'var(--color-background-muted)',
                                                                 color: active ? "#ffffff" : 'var(--color-text-primary)',
@@ -1309,8 +1309,8 @@ export default function AdminPage() {
 
                                             {/* 역할 필터 */}
                                             <div>
-                                                <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">역할</Text></div>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">역할</Text></div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                                     {[ALL_ROLE_FILTER, ...availableRoles].map((role) => {
                                                         const active = roleFilter === role;
                                                         return (
@@ -1318,7 +1318,7 @@ export default function AdminPage() {
                                                             key={role}
                                                             onClick={() => setRoleFilter(role)}
                                                             style={{
-                                                                padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
+                                                                padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
                                                                 border: "none", cursor: "pointer", transition: "colors 150ms ease",
                                                                 background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                                                                 color: active ? "#ffffff" : 'var(--color-text-primary)',
@@ -1333,8 +1333,8 @@ export default function AdminPage() {
 
                                             {/* 정렬 옵션 */}
                                             <div>
-                                                <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">정렬</Text></div>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">정렬</Text></div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                                     {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => {
                                                         const active = sortOrder === order;
                                                         return (
@@ -1342,7 +1342,7 @@ export default function AdminPage() {
                                                             key={order}
                                                             onClick={() => setSortOrder(order)}
                                                             style={{
-                                                                padding: "4px 8px", fontSize: 10, fontWeight: 500, borderRadius: 4,
+                                                                padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
                                                                 border: "none", cursor: "pointer", transition: "colors 150ms ease",
                                                                 background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                                                                 color: active ? "#ffffff" : 'var(--color-text-primary)',
@@ -1358,14 +1358,14 @@ export default function AdminPage() {
                                             {/* 이름 필터 표시 */}
                                             {nameFilter && (
                                                 <div>
-                                                    <div style={{ marginBottom: 4 }}><Text as="label" type="supporting" weight="medium" color="primary">선택된 직원</Text></div>
-                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: 'var(--color-background-teal)', border: "1px solid #99f6e4", borderRadius: 4, padding: "4px 8px" }}>
+                                                    <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">선택된 직원</Text></div>
+                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: 'var(--color-background-teal)', border: "1px solid #99f6e4", borderRadius: 'var(--radius-none)', padding: "4px 8px" }}>
                                                         <Text type="supporting" weight="medium" color="accent">{nameFilter}</Text>
                                                         <button
                                                             onClick={() => setNameFilter(null)}
                                                             aria-label="필터 해제"
                                                             title="필터 해제"
-                                                            style={{ color: 'var(--color-text-teal)', marginLeft: 4, background: "transparent", border: "none", cursor: "pointer", display: "inline-flex" }}
+                                                            style={{ color: 'var(--color-text-teal)', marginLeft: 'var(--spacing-1)', background: "transparent", border: "none", cursor: "pointer", display: "inline-flex" }}
                                                         >
                                                             <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -1376,15 +1376,15 @@ export default function AdminPage() {
                                             )}
 
                                             {/* 필터 초기화 */}
-                                            <div style={{ marginTop: 8 }}>
+                                            <div style={{ marginTop: 'var(--spacing-2)' }}>
                                                 <Button label="초기화" variant="secondary" size="sm" onClick={resetFilter} />
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* 휴무 목록 */}
-                                    <div style={{ flexGrow: 1, background: 'var(--color-background-card)', padding: 12, borderRadius: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", overflow: "auto" }}>
-                                        <div style={{ marginBottom: 12 }}>
+                                    <div style={{ flexGrow: 1, background: 'var(--color-background-card)', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", overflow: "auto" }}>
+                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                 <Text type="body" weight="medium" color="primary">
                                                     {selectedDate
@@ -1404,7 +1404,7 @@ export default function AdminPage() {
                                                 )}
                                             </div>
                                             {selectedDate && (
-                                                <div style={{ marginTop: 4 }}>
+                                                <div style={{ marginTop: 'var(--spacing-1)' }}>
                                                     <Button
                                                         label="전체 목록 보기"
                                                         variant="ghost"
@@ -1417,9 +1417,9 @@ export default function AdminPage() {
 
                                         {/* 일괄 작업 버튼 */}
                                         {isAdmin && isSelectMode && (
-                                            <div style={{ marginBottom: 12, padding: 8, background: 'var(--color-background-teal)', borderRadius: 8, border: "1px solid #99f6e4" }}>
-                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <div style={{ marginBottom: 'var(--spacing-3)', padding: 'var(--spacing-2)', background: 'var(--color-background-teal)', borderRadius: 'var(--radius-inner)', border: "1px solid #99f6e4" }}>
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 'var(--spacing-2)' }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                                                         <Button
                                                             label={selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length ? '전체 해제' : '전체 선택'}
                                                             variant="secondary"
@@ -1428,7 +1428,7 @@ export default function AdminPage() {
                                                         />
                                                         <Text type="supporting" weight="medium" color="accent">{selectedVacationIds.size}개</Text>
                                                     </div>
-                                                    <div style={{ display: "flex", gap: 8 }}>
+                                                    <div style={{ display: "flex", gap: 'var(--spacing-2)' }}>
                                                         <Button
                                                             label="승인"
                                                             variant="primary"
@@ -1457,7 +1457,7 @@ export default function AdminPage() {
                                         ) : filteredRequests.length === 0 ? (
                                             <EmptyState isCompact title="조건에 맞는 휴무 요청이 없습니다." />
                                         ) : (
-                                            <ul style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "100vh", overflowY: "auto", paddingRight: 4, listStyle: "none", margin: 0 }}>
+                                            <ul style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-2)', maxHeight: "100vh", overflowY: "auto", paddingRight: 'var(--spacing-1)', listStyle: "none", margin: 'var(--spacing-0)' }}>
                                                 {filteredRequests.map((request) => {
                                                     const resolvedRole = getVacationRequestRole(
                                                         request,
@@ -1468,12 +1468,12 @@ export default function AdminPage() {
                                                     return (
                                                     <li
                                                         key={request.id}
-                                                        style={{ padding: 8, background: 'var(--color-background-muted)', borderRadius: 4, border: "1px solid var(--color-border)", transition: "box-shadow 150ms ease" }}
+                                                        style={{ padding: 'var(--spacing-2)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-none)', border: "1px solid var(--color-border)", transition: "box-shadow 150ms ease" }}
                                                     >
-                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                                                            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 'var(--spacing-1)' }}>
+                                                            <div style={{ display: "flex", alignItems: "flex-start", gap: 'var(--spacing-2)' }}>
                                                                 {isSelectMode && request.status === 'pending' && (
-                                                                    <div style={{ marginTop: 2 }}>
+                                                                    <div style={{ marginTop: 'var(--spacing-0-5)' }}>
                                                                         <CheckboxInput
                                                                             label="선택"
                                                                             isLabelHidden
@@ -1487,7 +1487,7 @@ export default function AdminPage() {
                                                                     <div
                                                                         style={{
                                                                             fontWeight: nameFilter === request.userName ? 700 : 500,
-                                                                            fontSize: 12,
+                                                                            fontSize: 'var(--font-size-sm)',
                                                                             cursor: "pointer",
                                                                             transition: "color 200ms ease",
                                                                             color: nameFilter === request.userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -1502,14 +1502,14 @@ export default function AdminPage() {
                                                                     >
                                                                         {request.userName}
                                                                         {nameFilter === request.userName && (
-                                                                            <span style={{ marginLeft: 4, display: "inline-flex", alignItems: "center" }}>
+                                                                            <span style={{ marginLeft: 'var(--spacing-1)', display: "inline-flex", alignItems: "center" }}>
                                                                                 <svg style={{ width: 12, height: 12, color: 'var(--color-text-teal)' }} fill="currentColor" viewBox="0 0 20 20">
                                                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                                 </svg>
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div style={{ fontSize: 10, color: 'var(--color-text-gray)', marginTop: 2 }}>
+                                                                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-gray)', marginTop: 'var(--spacing-0-5)' }}>
                                                                         {formatVacationDate(request.date)}
                                                                     </div>
                                                                 </div>
@@ -1519,8 +1519,8 @@ export default function AdminPage() {
                                                                 label={getStatusText(request.status)}
                                                             />
                                                         </div>
-                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                                                            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-1)' }}>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1)', flexWrap: "wrap" }}>
                                                                 <Badge variant={roleBadgeVariant(roleBadgeClasses)} label={getRoleText(resolvedRole)} />
                                                                 {isValidDuration(request.duration) && (
                                                                     <Badge variant="purple" label={getDurationText(request.duration)} />
@@ -1532,7 +1532,7 @@ export default function AdminPage() {
                                                                 <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>
                                                             {isAdmin && (
-                                                            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                                            <div style={{ display: "flex", gap: 'var(--spacing-1)', alignItems: "center" }}>
                                                                 {request.status === "pending" && (
                                                                     <>
                                                                         <Button
@@ -1565,7 +1565,7 @@ export default function AdminPage() {
                                                             )}
                                                         </div>
                                                         {request.reason && request.reason !== "(사유 미입력)" && (
-                                                            <div style={{ marginTop: 4, padding: 6, background: 'var(--color-background-card)', borderRadius: 4, border: "1px solid var(--color-border)" }}>
+                                                            <div style={{ marginTop: 'var(--spacing-1)', padding: 'var(--spacing-1-5)', background: 'var(--color-background-card)', borderRadius: 'var(--radius-none)', border: "1px solid var(--color-border)" }}>
                                                                 <Text type="supporting" color="secondary">
                                                                     <Text type="supporting" weight="medium" color="primary">사유:</Text>{" "}
                                                                     {request.reason}
@@ -1609,7 +1609,7 @@ export default function AdminPage() {
                             initial={{opacity: 0}}
                             animate={{opacity: 1}}
                             exit={{opacity: 0}}
-                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.5)" }}
+                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 'var(--spacing-4)', background: "rgba(0,0,0,0.5)" }}
                             onClick={handleCloseDetails}
                         >
                             <motion.div
@@ -1647,7 +1647,7 @@ export default function AdminPage() {
                             initial={{opacity: 0}}
                             animate={{opacity: 1}}
                             exit={{opacity: 0}}
-                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.5)" }}
+                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 'var(--spacing-4)', background: "rgba(0,0,0,0.5)" }}
                             onClick={handleCloseLimitPanel}
                         >
                             <motion.div
@@ -1673,7 +1673,7 @@ export default function AdminPage() {
                             initial={{opacity: 0}}
                             animate={{opacity: 1}}
                             exit={{opacity: 0}}
-                            style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.5)" }}
+                            style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 'var(--spacing-4)', background: "rgba(0,0,0,0.5)" }}
                             onClick={cancelDelete}
                         >
                             <motion.div
@@ -1681,28 +1681,28 @@ export default function AdminPage() {
                                 animate={{scale: 1}}
                                 exit={{scale: 0.95}}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ background: 'var(--color-background-card)', borderRadius: 8, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 24, width: "100%", maxWidth: 384 }}
+                                style={{ background: 'var(--color-background-card)', borderRadius: 'var(--radius-inner)', boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 'var(--spacing-6)', width: "100%", maxWidth: 384 }}
                             >
-                                <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 16 }}>
+                                <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 'var(--spacing-4)' }}>
                                     <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: "50%", background: 'var(--color-background-red)' }}>
                                         <svg style={{ height: 24, width: 24, color: 'var(--color-text-red)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0" />
                                         </svg>
                                     </div>
-                                    <div style={{ marginLeft: 16 }}>
+                                    <div style={{ marginLeft: 'var(--spacing-4)' }}>
                                         <Text type="large" weight="medium" color="primary">휴무 삭제 확인</Text>
-                                        <div style={{ marginTop: 8 }}>
+                                        <div style={{ marginTop: 'var(--spacing-2)' }}>
                                             <Text type="body" color="secondary">
                                                 <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.userName}</Text>님의 <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.date}</Text> 휴무를 정말 삭제하시겠습니까?
                                             </Text>
                                         </div>
-                                        <div style={{ marginTop: 4 }}>
+                                        <div style={{ marginTop: 'var(--spacing-1)' }}>
                                             <Text type="supporting" color="secondary">이 작업은 되돌릴 수 없습니다.</Text>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+                                <div style={{ display: "flex", justifyContent: "flex-end", gap: 'var(--spacing-3)' }}>
                                     <Button
                                         label="취소"
                                         variant="secondary"
@@ -1726,14 +1726,14 @@ export default function AdminPage() {
             <footer style={{ borderTop: "1px solid var(--color-border)", background: 'var(--color-background-muted)' }}>
                 <div style={{ maxWidth: 1600, margin: "0 auto", padding: "16px 24px" }}>
                     <div className="carev-admin-footer-row">
-                        <div className="carev-admin-footer-meta" style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>
+                        <div className="carev-admin-footer-meta" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>
                             <span>&copy; 2025 케어브이 (silverithm) 대표: 김준형</span>
                             <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
                             <span>사업자등록번호: 107-21-26475</span>
                             <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
                             <span>서울특별시 신림동 1547-10</span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)' }}>
                             <a
                                 href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                                 target="_blank"

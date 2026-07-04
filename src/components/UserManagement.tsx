@@ -487,7 +487,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       <Card width="100%" padding={0}>
         <VStack gap={0}>
           {/* 탭 네비게이션 */}
-          <div style={{ padding: 16, overflowX: 'auto' }}>
+          <div style={{ padding: 'var(--spacing-4)', overflowX: 'auto' }}>
             <SegmentedControl
               value={activeTab}
               onChange={(v) => setActiveTab(v as 'pending' | 'members' | 'roles' | 'seniors')}
@@ -505,7 +505,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           {/* 검색 및 필터 */}
           {activeTab !== 'roles' && (
             <>
-              <div style={{ padding: 16 }}>
+              <div style={{ padding: 'var(--spacing-4)' }}>
                 {activeTab === 'seniors' ? (
                   <HStack gap={2} vAlign="end">
                     <StackItem size="fill">
@@ -576,7 +576,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           )}
 
           {/* 컨텐츠 영역 */}
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: 'var(--spacing-6)' }}>
             <AnimatePresence mode="wait">
               {activeTab === 'seniors' ? (
                 <motion.div

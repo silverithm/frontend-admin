@@ -74,3 +74,41 @@ import { Spinner } from '@astryxdesign/core/Spinner';
 
 ## 검증
 전환 후 반드시 타입/빌드가 깨지지 않게. 확신 없는 prop은 docs.mjs로 재확인.
+
+---
+
+# Astryx 디자인 토큰 전체 레퍼런스 (공식 문서 기준 — 하드코딩 금지, 반드시 토큰 사용)
+
+인라인 style에서 `style={{ fontSize: 'var(--font-size-base)' }}` 처럼 CSS 변수를 쓴다(theme.css가 전역 로드됨). 하드코딩 px/hex 금지.
+
+## 색상 (Color)
+- 표면 계층: `--color-background-body`(최하단) → `--color-background-surface`(#262626 다크) → `--color-background-card` → `--color-background-popover`. 중첩 표면은 이 계층으로.
+- 텍스트: `--color-text-primary`(본문), `--color-text-secondary`(부제/캡션), `--color-text-disabled`, `--color-text-accent`.
+- 보더: `--color-border`, `--color-border-emphasized`.
+- **상태(status)는 시맨틱 토큰**: 성공 `--color-success` / `--color-success-muted`(배경) / `--color-on-success`(그 위 텍스트). 오류 `--color-error/-muted/on-error`. 경고 `--color-warning/-muted/on-warning`. → 승인=success, 거절=error, 대기=warning.
+- 카테고리(역할/일정종류 등 비상태): 데이터-비주얼 팔레트 `--color-background-<blue|green|teal|purple|orange|pink|cyan|yellow|red>` + `--color-text-<...>` + `--color-border-<...>`.
+- 아이콘 색: `--color-icon-primary/secondary/disabled/accent`. Astryx `Icon color="primary|secondary|accent|success|error|warning"` 사용.
+- 규칙: accent와 status를 같은 맥락에서 섞지 말 것. 하드코딩 hex 금지(흰/검 텍스트 제외).
+
+## 타이포그래피 (Typography)
+- 폰트: `--font-family-body`, `--font-family-heading`, `--font-family-code`.
+- **가능하면 Astryx `Text type=` / `Heading`를 쓴다**(인라인 fontSize 대신). type: body(14)/large/label/supporting/code + Display 1~3 + Heading H1~H6.
+- 인라인 불가피할 때만 토큰: `--font-size-4xs(6) 3xs(7) 2xs(8) xs(10) sm(12) base(14) lg(17) xl(20) 2xl(24) 3xl(29) 4xl(35) 5xl(42)`(px 근사). 가장 가까운 스텝으로.
+- 굵기: `--font-weight-normal(400) medium(500) semibold(600) bold(700)`.
+
+## 스페이싱 (Spacing) — 4px 베이스
+- **Stack `gap`/Card `padding` prop 우선**(스텝 0~12). 
+- 인라인 padding/margin/gap px → `--spacing-*`: 0(0) 0-5(2) 1(4) 1-5(6) 2(8) 3(12) 4(16) 5(20) 6(24) 7(28) 8(32) 9(36) 10(40) 11(44) 12(48). 임의 px 금지, 가장 가까운 스텝.
+
+## 쉐이프/Radius (Shape)
+- `--radius-none(0) inner(8) element(12) container(16) chat(28) page(32) full(9999)`.
+- 인터랙티브 컨트롤=`--radius-element`, 콘텐츠 영역=`--radius-container`, pill=`--radius-full`. 하드코딩 borderRadius 금지.
+
+## 모션 (Motion)
+- duration: `--duration-fast(175) fast-min(130) fast-max(230) medium(410) slow(975)` (+min/max).
+- easing: `--ease-standard: cubic-bezier(0.24,1,0.4,1)`.
+- CSS transition: `transition: background var(--duration-fast) var(--ease-standard)`. 작은 인터랙션=fast, 레이아웃 전환=medium.
+
+## 컴포넌트 강제 (Components)
+- **커스텀 하드빌드(raw <div>/<button> + 인라인 스타일)로 UI를 만들지 말 것.** 항상 적절한 Astryx 컴포넌트를 쓴다: 버튼=Button/IconButton, 카드/박스=Card, 배지/칩=Badge, 텍스트=Text/Heading, 표=Table, 입력=TextInput/Selector/..., 탭=SegmentedControl/TabList, 모달=Dialog+Layout, 알림=Banner, 목록빈상태=EmptyState, 아바타=Avatar, 구분선=Divider, 로딩=Spinner/Skeleton, 아이콘=Icon.
+- Astryx로 표현 불가한 bespoke 레이아웃(캘린더 그리드 등)만 인라인 style + 토큰. 그 안의 요소도 최대한 Astryx.

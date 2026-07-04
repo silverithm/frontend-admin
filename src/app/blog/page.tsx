@@ -104,7 +104,7 @@ export default function BlogPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        style={{ textAlign: 'center', marginBottom: 48 }}
+                        style={{ textAlign: 'center', marginBottom: 'var(--spacing-12)' }}
                     >
                         <Heading level={1} type="display-1" color="inherit" justify="center">
                             케어브이 블로그
@@ -125,7 +125,7 @@ export default function BlogPage() {
                         style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                            gap: 32,
+                            gap: 'var(--spacing-8)',
                         }}
                     >
                         {blogPosts.map((post, index) => (
@@ -160,7 +160,7 @@ export default function BlogPage() {
                                         </Text>
                                     </div>
 
-                                    <div style={{ padding: 24 }}>
+                                    <div style={{ padding: 'var(--spacing-6)' }}>
                                         <VStack gap={3}>
                                             <HStack gap={2} vAlign="center" wrap="wrap">
                                                 <Badge variant="blue" label={post.category} />
@@ -200,8 +200,8 @@ export default function BlogPage() {
                         transition={{ duration: 0.6 }}
                         style={{
                             background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-                            borderRadius: 24,
-                            padding: 48,
+                            borderRadius: 'var(--radius-chat)',
+                            padding: 'var(--spacing-12)',
                         }}
                     >
                         <Heading level={2} type="display-2" color="inherit" justify="center">

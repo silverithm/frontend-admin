@@ -20,7 +20,7 @@ const gradientText: React.CSSProperties = {
 const glassCard: React.CSSProperties = {
     background: 'rgba(255,255,255,0.1)',
     backdropFilter: 'blur(16px)',
-    borderRadius: 16,
+    borderRadius: 'var(--radius-container)',
     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
     border: '1px solid rgba(96,165,250,0.2)',
 };
@@ -37,10 +37,10 @@ const containerStyle = (px: number = 16, maxWidth: number = 1200): React.CSSProp
 const sectionHeading: React.CSSProperties = {
     ...gradientText,
     textAlign: 'center',
-    fontWeight: 700,
+    fontWeight: 'var(--font-weight-bold)',
     fontSize: 'clamp(2.25rem, 5vw, 3rem)',
     lineHeight: 1.1,
-    marginBottom: 64,
+    marginBottom: 'var(--spacing-12)',
 };
 
 export default function LandingPage() {
@@ -109,7 +109,7 @@ export default function LandingPage() {
                         width: 288,
                         height: 288,
                         background: 'rgba(59,130,246,0.1)',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         filter: 'blur(64px)',
                     }}></div>
                     <div style={{
@@ -119,17 +119,17 @@ export default function LandingPage() {
                         width: 384,
                         height: 384,
                         background: 'rgba(99,102,241,0.1)',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         filter: 'blur(64px)',
                     }}></div>
                 </div>
 
-                <div style={{...containerStyle(16), textAlign: 'center', position: 'relative', zIndex: 10, marginBottom: 64}}>
+                <div style={{...containerStyle(16), textAlign: 'center', position: 'relative', zIndex: 10, marginBottom: 'var(--spacing-12)'}}>
                     <motion.div
                         initial={{opacity: 0, y: 30}}
                         animate={{opacity: 1, y: 0}}
                         transition={{duration: 0.8, ease: "easeOut"}}
-                        style={{marginBottom: 24}}
+                        style={{marginBottom: 'var(--spacing-6)'}}
                     >
             <span
                 style={{
@@ -137,12 +137,12 @@ export default function LandingPage() {
                     padding: '8px 16px',
                     background: 'rgba(59,130,246,0.2)',
                     backdropFilter: 'blur(4px)',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     color: 'var(--color-text-blue)',
                     fontSize: '0.875rem',
-                    fontWeight: 500,
+                    fontWeight: 'var(--font-weight-medium)',
                     border: '1px solid rgba(96,165,250,0.3)',
-                    marginBottom: 24,
+                    marginBottom: 'var(--spacing-6)',
                 }}>
               🚀 스마트한 휴무 관리의 시작
             </span>
@@ -155,8 +155,8 @@ export default function LandingPage() {
                         style={{
                             ...gradientText,
                             fontSize: 'clamp(3rem, 6vw, 4.5rem)',
-                            fontWeight: 700,
-                            marginBottom: 24,
+                            fontWeight: 'var(--font-weight-bold)',
+                            marginBottom: 'var(--spacing-6)',
                             lineHeight: 1.1,
                         }}
                     >
@@ -171,7 +171,7 @@ export default function LandingPage() {
                         style={{
                             fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
                             color: 'rgba(219,234,254,0.9)',
-                            marginBottom: 48,
+                            marginBottom: 'var(--spacing-12)',
                             maxWidth: 768,
                             marginLeft: 'auto',
                             marginRight: 'auto',
@@ -190,7 +190,7 @@ export default function LandingPage() {
                     zIndex: 10,
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: 32,
+                    gap: 'var(--spacing-8)',
                 }}>
                     {/* 일반 사용자: 앱 다운로드 안내 */}
                     <motion.div
@@ -199,7 +199,7 @@ export default function LandingPage() {
                         transition={{duration: 0.7, delay: 0.4, ease: "easeOut"}}
                         style={{
                             ...glassCard,
-                            padding: 32,
+                            padding: 'var(--spacing-8)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
@@ -208,12 +208,12 @@ export default function LandingPage() {
                         <div style={{
                             width: 80,
                             height: 80,
-                            borderRadius: 16,
+                            borderRadius: 'var(--radius-container)',
                             backgroundImage: 'linear-gradient(to bottom right, #60a5fa, #6366f1)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: 24,
+                            marginBottom: 'var(--spacing-6)',
                             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
                         }}>
                             <svg xmlns="http://www.w3.org/2000/svg" style={{width: 40, height: 40, color: '#ffffff'}}
@@ -222,14 +222,14 @@ export default function LandingPage() {
                                       d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
                         </div>
-                        <h2 style={{fontSize: '1.875rem', fontWeight: 700, color: '#ffffff', marginBottom: 16}}>관리자 및 직원 전용 앱</h2>
-                        <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 32, textAlign: 'center', lineHeight: 1.625}}>
+                        <h2 style={{fontSize: '1.875rem', fontWeight: 'var(--font-weight-bold)', color: '#ffffff', marginBottom: 'var(--spacing-4)'}}>관리자 및 직원 전용 앱</h2>
+                        <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 'var(--spacing-8)', textAlign: 'center', lineHeight: 1.625}}>
                             요양보호사, 사회복지사, 간호조무사 등<br/>모든 직원이 휴무 신청을 편리하게 이용하세요.
                         </p>
                         <div style={{
                             display: 'flex',
                             flexWrap: 'wrap',
-                            gap: 16,
+                            gap: 'var(--spacing-4)',
                             width: '100%',
                             justifyContent: 'center',
                         }}>
@@ -242,13 +242,13 @@ export default function LandingPage() {
                                     flex: '1 1 180px',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: 12,
+                                    gap: 'var(--spacing-3)',
                                     padding: '12px 24px',
-                                    borderRadius: 12,
+                                    borderRadius: 'var(--radius-element)',
                                     background: 'rgba(30,41,59,0.8)',
                                     backdropFilter: 'blur(4px)',
                                     color: '#ffffff',
-                                    fontWeight: 600,
+                                    fontWeight: 'var(--font-weight-semibold)',
                                     textDecoration: 'none',
                                     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
                                     border: '1px solid rgba(96,165,250,0.2)',
@@ -270,13 +270,13 @@ export default function LandingPage() {
                                     flex: '1 1 180px',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: 12,
+                                    gap: 'var(--spacing-3)',
                                     padding: '12px 24px',
-                                    borderRadius: 12,
+                                    borderRadius: 'var(--radius-element)',
                                     background: 'rgba(37,99,235,0.8)',
                                     backdropFilter: 'blur(4px)',
                                     color: '#ffffff',
-                                    fontWeight: 600,
+                                    fontWeight: 'var(--font-weight-semibold)',
                                     textDecoration: 'none',
                                     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
                                     border: '1px solid rgba(96,165,250,0.2)',
@@ -299,7 +299,7 @@ export default function LandingPage() {
                         transition={{duration: 0.7, delay: 0.5, ease: "easeOut"}}
                         style={{
                             ...glassCard,
-                            padding: 32,
+                            padding: 'var(--spacing-8)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
@@ -308,12 +308,12 @@ export default function LandingPage() {
                         <div style={{
                             width: 80,
                             height: 80,
-                            borderRadius: 16,
+                            borderRadius: 'var(--radius-container)',
                             backgroundImage: 'linear-gradient(to bottom right, #818cf8, #a855f7)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: 24,
+                            marginBottom: 'var(--spacing-6)',
                             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
                         }}>
                             <svg xmlns="http://www.w3.org/2000/svg" style={{width: 40, height: 40, color: '#ffffff'}}
@@ -324,11 +324,11 @@ export default function LandingPage() {
                                       d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
                         </div>
-                        <h2 style={{fontSize: '1.875rem', fontWeight: 700, color: '#ffffff', marginBottom: 16}}>관리자 페이지</h2>
-                        <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 32, textAlign: 'center', lineHeight: 1.625}}>
+                        <h2 style={{fontSize: '1.875rem', fontWeight: 'var(--font-weight-bold)', color: '#ffffff', marginBottom: 'var(--spacing-4)'}}>관리자 페이지</h2>
+                        <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 'var(--spacing-8)', textAlign: 'center', lineHeight: 1.625}}>
                             장기요양기관 관리자를 위한 웹 기능을 제공합니다.<br/>요양보호사, 사회복지사 등 전 직원의 근무표와 휴무를 효율적으로 관리하세요.
                         </p>
-                        <div style={{display: 'flex', flexDirection: 'column', gap: 12, width: '100%'}}>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', width: '100%'}}>
                             <Button
                                 label="관리자 로그인"
                                 variant="primary"
@@ -361,7 +361,7 @@ export default function LandingPage() {
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: 40,
+                        gap: 'var(--spacing-10)',
                     }}>
                         {
                             [
@@ -401,7 +401,7 @@ export default function LandingPage() {
                                     transition={{duration: 0.5, delay: index * 0.1 + 0.2}}
                                     style={{
                                         ...glassCard,
-                                        padding: 32,
+                                        padding: 'var(--spacing-8)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
@@ -411,17 +411,17 @@ export default function LandingPage() {
                                     <div style={{
                                         width: 96,
                                         height: 96,
-                                        borderRadius: 16,
+                                        borderRadius: 'var(--radius-container)',
                                         backgroundImage: 'linear-gradient(to bottom right, rgba(59,130,246,0.2), rgba(99,102,241,0.2))',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        marginBottom: 24,
+                                        marginBottom: 'var(--spacing-6)',
                                         border: '1px solid rgba(96,165,250,0.3)',
                                     }}>
                                         {feature.icon}
                                     </div>
-                                    <h3 style={{fontSize: '1.5rem', fontWeight: 600, marginBottom: 16, color: '#ffffff'}}>{feature.title}</h3>
+                                    <h3 style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--spacing-4)', color: '#ffffff'}}>{feature.title}</h3>
                                     <p style={{color: 'rgba(219,234,254,0.8)', lineHeight: 1.625}}>{feature.description}</p>
                                 </motion.div>
                             ))
@@ -438,16 +438,16 @@ export default function LandingPage() {
                         whileInView={{opacity: 1, y: 0}}
                         transition={{duration: 0.6}}
                         viewport={{once: true}}
-                        style={{textAlign: 'center', marginBottom: 48}}
+                        style={{textAlign: 'center', marginBottom: 'var(--spacing-12)'}}
                     >
-                        <h2 style={{fontSize: '2.25rem', fontWeight: 700, marginBottom: 16}}>케어브이 더 알아보기</h2>
+                        <h2 style={{fontSize: '2.25rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-4)'}}>케어브이 더 알아보기</h2>
                         <p style={{fontSize: '1.25rem', color: 'rgba(219,234,254,0.8)'}}>최신 소식과 유용한 정보를 확인하세요</p>
                     </motion.div>
 
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: 32,
+                        gap: 'var(--spacing-8)',
                         maxWidth: 1152,
                         marginLeft: 'auto',
                         marginRight: 'auto',
@@ -462,8 +462,8 @@ export default function LandingPage() {
                             style={{
                                 backgroundImage: 'linear-gradient(to bottom right, rgba(37,99,235,0.2), rgba(79,70,229,0.2))',
                                 backdropFilter: 'blur(16px)',
-                                borderRadius: 16,
-                                padding: 32,
+                                borderRadius: 'var(--radius-container)',
+                                padding: 'var(--spacing-8)',
                                 border: '1px solid rgba(96,165,250,0.2)',
                                 textDecoration: 'none',
                                 display: 'block',
@@ -473,21 +473,21 @@ export default function LandingPage() {
                                 width: 64,
                                 height: 64,
                                 background: 'rgba(59,130,246,0.2)',
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                marginBottom: 24,
+                                marginBottom: 'var(--spacing-6)',
                             }}>
                                 <svg style={{width: 32, height: 32, color: 'var(--color-text-blue)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                                 </svg>
                             </div>
-                            <h3 style={{fontSize: '1.5rem', fontWeight: 700, marginBottom: 12, color: '#ffffff'}}>블로그</h3>
-                            <p style={{color: 'rgba(219,234,254,0.7)', marginBottom: 16}}>케어브이의 새로운 기능과 업데이트, 근무표 관리 노하우를 확인하세요.</p>
-                            <span style={{color: 'var(--color-text-blue)', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
+                            <h3 style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-3)', color: '#ffffff'}}>블로그</h3>
+                            <p style={{color: 'rgba(219,234,254,0.7)', marginBottom: 'var(--spacing-4)'}}>케어브이의 새로운 기능과 업데이트, 근무표 관리 노하우를 확인하세요.</p>
+                            <span style={{color: 'var(--color-text-blue)', fontWeight: 'var(--font-weight-medium)', display: 'inline-flex', alignItems: 'center'}}>
                                 자세히 보기
-                                <svg style={{width: 16, height: 16, marginLeft: 8}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg style={{width: 16, height: 16, marginLeft: 'var(--spacing-2)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </span>
@@ -503,8 +503,8 @@ export default function LandingPage() {
                             style={{
                                 backgroundImage: 'linear-gradient(to bottom right, rgba(79,70,229,0.2), rgba(147,51,234,0.2))',
                                 backdropFilter: 'blur(16px)',
-                                borderRadius: 16,
-                                padding: 32,
+                                borderRadius: 'var(--radius-container)',
+                                padding: 'var(--spacing-8)',
                                 border: '1px solid rgba(129,140,248,0.2)',
                                 textDecoration: 'none',
                                 display: 'block',
@@ -514,21 +514,21 @@ export default function LandingPage() {
                                 width: 64,
                                 height: 64,
                                 background: 'rgba(99,102,241,0.2)',
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                marginBottom: 24,
+                                marginBottom: 'var(--spacing-6)',
                             }}>
                                 <svg style={{width: 32, height: 32, color: '#a5b4fc'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 style={{fontSize: '1.5rem', fontWeight: 700, marginBottom: 12, color: '#ffffff'}}>자주 묻는 질문</h3>
-                            <p style={{color: 'rgba(224,231,255,0.7)', marginBottom: 16}}>케어브이 사용에 대한 궁금증을 빠르게 해결하세요.</p>
-                            <span style={{color: 'var(--color-text-purple)', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
+                            <h3 style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-3)', color: '#ffffff'}}>자주 묻는 질문</h3>
+                            <p style={{color: 'rgba(224,231,255,0.7)', marginBottom: 'var(--spacing-4)'}}>케어브이 사용에 대한 궁금증을 빠르게 해결하세요.</p>
+                            <span style={{color: 'var(--color-text-purple)', fontWeight: 'var(--font-weight-medium)', display: 'inline-flex', alignItems: 'center'}}>
                                 자세히 보기
-                                <svg style={{width: 16, height: 16, marginLeft: 8}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg style={{width: 16, height: 16, marginLeft: 'var(--spacing-2)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </span>
@@ -544,8 +544,8 @@ export default function LandingPage() {
                             style={{
                                 backgroundImage: 'linear-gradient(to bottom right, rgba(147,51,234,0.2), rgba(219,39,119,0.2))',
                                 backdropFilter: 'blur(16px)',
-                                borderRadius: 16,
-                                padding: 32,
+                                borderRadius: 'var(--radius-container)',
+                                padding: 'var(--spacing-8)',
                                 border: '1px solid rgba(192,132,252,0.2)',
                                 textDecoration: 'none',
                                 display: 'block',
@@ -555,21 +555,21 @@ export default function LandingPage() {
                                 width: 64,
                                 height: 64,
                                 background: 'rgba(168,85,247,0.2)',
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                marginBottom: 24,
+                                marginBottom: 'var(--spacing-6)',
                             }}>
                                 <svg style={{width: 32, height: 32, color: '#d8b4fe'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                 </svg>
                             </div>
-                            <h3 style={{fontSize: '1.5rem', fontWeight: 700, marginBottom: 12, color: '#ffffff'}}>사용 가이드</h3>
-                            <p style={{color: 'rgba(243,232,255,0.7)', marginBottom: 16}}>케어브이의 모든 기능을 단계별로 쉽게 배워보세요.</p>
-                            <span style={{color: '#c084fc', fontWeight: 500, display: 'inline-flex', alignItems: 'center'}}>
+                            <h3 style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-3)', color: '#ffffff'}}>사용 가이드</h3>
+                            <p style={{color: 'rgba(243,232,255,0.7)', marginBottom: 'var(--spacing-4)'}}>케어브이의 모든 기능을 단계별로 쉽게 배워보세요.</p>
+                            <span style={{color: '#c084fc', fontWeight: 'var(--font-weight-medium)', display: 'inline-flex', alignItems: 'center'}}>
                                 자세히 보기
-                                <svg style={{width: 16, height: 16, marginLeft: 8}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg style={{width: 16, height: 16, marginLeft: 'var(--spacing-2)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </span>
@@ -585,7 +585,7 @@ export default function LandingPage() {
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                        gap: 16,
+                        gap: 'var(--spacing-4)',
                     }}>
                         {designImages.map((image, index) => (
                             <motion.div
@@ -600,9 +600,9 @@ export default function LandingPage() {
                                     position: 'relative',
                                     background: 'rgba(255,255,255,0.1)',
                                     backdropFilter: 'blur(16px)',
-                                    borderRadius: 12,
+                                    borderRadius: 'var(--radius-element)',
                                     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                                    padding: 8,
+                                    padding: 'var(--spacing-2)',
                                     border: '1px solid rgba(96,165,250,0.2)',
                                     overflow: 'hidden',
                                 }}
@@ -637,7 +637,7 @@ export default function LandingPage() {
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                            gap: 24,
+                            gap: 'var(--spacing-6)',
                         }}>
                             {[
                                 {
@@ -721,38 +721,38 @@ export default function LandingPage() {
 
                                     <div style={{
                                         ...glassCard,
-                                        padding: 24,
+                                        padding: 'var(--spacing-6)',
                                         height: '100%',
                                     }}>
                                         {/* 단계 번호 */}
                                         <div style={{
                                             width: 64,
                                             height: 64,
-                                            borderRadius: 16,
+                                            borderRadius: 'var(--radius-container)',
                                             backgroundImage: item.color,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            marginBottom: 16,
+                                            marginBottom: 'var(--spacing-4)',
                                             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
                                             marginLeft: 'auto',
                                             marginRight: 'auto',
                                         }}>
-                                            <span style={{fontSize: '1.5rem', fontWeight: 700, color: '#ffffff'}}>{item.step}</span>
+                                            <span style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)', color: '#ffffff'}}>{item.step}</span>
                                         </div>
 
                                         {/* 아이콘 */}
-                                        <div style={{display: 'flex', justifyContent: 'center', marginBottom: 16, color: 'var(--color-text-blue)'}}>
+                                        <div style={{display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)'}}>
                                             {item.icon}
                                         </div>
 
                                         {/* 역할 */}
-                                        <div style={{textAlign: 'center', marginBottom: 8}}>
+                                        <div style={{textAlign: 'center', marginBottom: 'var(--spacing-2)'}}>
                       <span style={{
                           fontSize: '0.875rem',
-                          fontWeight: 500,
+                          fontWeight: 'var(--font-weight-medium)',
                           padding: '4px 12px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           backgroundImage: item.color,
                           color: '#ffffff',
                       }}>
@@ -761,7 +761,7 @@ export default function LandingPage() {
                                         </div>
 
                                         {/* 제목 */}
-                                        <h3 style={{fontSize: '1.25rem', fontWeight: 600, color: '#ffffff', textAlign: 'center', marginBottom: 12}}>{item.title}</h3>
+                                        <h3 style={{fontSize: '1.25rem', fontWeight: 'var(--font-weight-semibold)', color: '#ffffff', textAlign: 'center', marginBottom: 'var(--spacing-3)'}}>{item.title}</h3>
 
                                         {/* 설명 */}
                                         <p style={{color: 'rgba(219,234,254,0.8)', textAlign: 'center', fontSize: '0.875rem', lineHeight: 1.625}}>{item.description}</p>
@@ -776,7 +776,7 @@ export default function LandingPage() {
                             whileInView={{opacity: 1, y: 0}}
                             viewport={{once: true}}
                             transition={{duration: 0.7, delay: 0.4}}
-                            style={{marginTop: 48, textAlign: 'center'}}
+                            style={{marginTop: 'var(--spacing-12)', textAlign: 'center'}}
                         >
                             <p style={{color: 'rgba(219,234,254,0.8)', fontSize: '1.125rem'}}>
                                 ✨ 간단한 4단계로 케어브이 서비스 이용을 시작하세요!
@@ -785,7 +785,7 @@ export default function LandingPage() {
                     </div>
 
                     {/* 사용 영상 서브섹션 */}
-                    <div style={{marginTop: 40}}>
+                    <div style={{marginTop: 'var(--spacing-10)'}}>
                         {/* 유튜브 영상 */}
                         <motion.div
                             initial={{opacity: 0, scale: 0.9}}
@@ -799,7 +799,7 @@ export default function LandingPage() {
                                 aspectRatio: '16 / 9',
                                 background: 'rgba(255,255,255,0.1)',
                                 backdropFilter: 'blur(16px)',
-                                borderRadius: 16,
+                                borderRadius: 'var(--radius-container)',
                                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                                 overflow: 'hidden',
                                 border: '1px solid rgba(96,165,250,0.2)',
@@ -813,7 +813,7 @@ export default function LandingPage() {
                                     allowFullScreen
                                 ></iframe>
                             </div>
-                            <p style={{textAlign: 'center', color: 'rgba(219,234,254,0.8)', marginTop: 16, fontSize: '1.125rem'}}>
+                            <p style={{textAlign: 'center', color: 'rgba(219,234,254,0.8)', marginTop: 'var(--spacing-4)', fontSize: '1.125rem'}}>
                                 📹 케어브이 사용방법을 영상으로 확인해보세요
                             </p>
                         </motion.div>
@@ -838,7 +838,7 @@ export default function LandingPage() {
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                            gap: 32,
+                            gap: 'var(--spacing-8)',
                         }}>
                             {/* 무료 체험 카드 */}
                             <motion.div
@@ -846,7 +846,7 @@ export default function LandingPage() {
                                 whileInView={{opacity: 1, x: 0}}
                                 viewport={{once: true}}
                                 transition={{duration: 0.6, delay: 0.1}}
-                                style={{...glassCard, padding: 32}}
+                                style={{...glassCard, padding: 'var(--spacing-8)'}}
                             >
                                 <div style={{textAlign: 'center'}}>
                                     <div style={{
@@ -854,8 +854,8 @@ export default function LandingPage() {
                                         height: 80,
                                         marginLeft: 'auto',
                                         marginRight: 'auto',
-                                        marginBottom: 24,
-                                        borderRadius: 16,
+                                        marginBottom: 'var(--spacing-6)',
+                                        borderRadius: 'var(--radius-container)',
                                         backgroundImage: 'linear-gradient(to bottom right, #4ade80, #10b981)',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -868,14 +868,14 @@ export default function LandingPage() {
                                                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </div>
-                                    <h3 style={{fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', marginBottom: 8}}>30일 무료 체험</h3>
-                                    <div style={{fontSize: '2.25rem', fontWeight: 700, color: 'var(--color-text-green)', marginBottom: 16}}>무료</div>
-                                    <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 24, lineHeight: 1.625}}>
+                                    <h3 style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)', color: '#ffffff', marginBottom: 'var(--spacing-2)'}}>30일 무료 체험</h3>
+                                    <div style={{fontSize: '2.25rem', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-green)', marginBottom: 'var(--spacing-4)'}}>무료</div>
+                                    <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 'var(--spacing-6)', lineHeight: 1.625}}>
                                         케어브이의 모든 기능을 30일간 무료로 체험해보세요
                                     </p>
-                                    <ul style={{listStyle: 'none', padding: 0, margin: 0, textAlign: 'left', color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 12}}>
+                                    <ul style={{listStyle: 'none', padding: 'var(--spacing-0)', margin: 'var(--spacing-0)', textAlign: 'left', color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)'}}>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -884,7 +884,7 @@ export default function LandingPage() {
                                             모든 휴가 관리 기능 이용
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -893,7 +893,7 @@ export default function LandingPage() {
                                             직원 등록 및 관리
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -902,7 +902,7 @@ export default function LandingPage() {
                                             실시간 알림 및 승인
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-green)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -923,8 +923,8 @@ export default function LandingPage() {
                                 style={{
                                     backgroundImage: 'linear-gradient(to bottom right, rgba(59,130,246,0.2), rgba(79,70,229,0.2))',
                                     backdropFilter: 'blur(16px)',
-                                    borderRadius: 16,
-                                    padding: 32,
+                                    borderRadius: 'var(--radius-container)',
+                                    padding: 'var(--spacing-8)',
                                     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                                     border: '2px solid rgba(96,165,250,0.3)',
                                     position: 'relative',
@@ -935,23 +935,23 @@ export default function LandingPage() {
                       backgroundImage: 'linear-gradient(to right, #3b82f6, #6366f1)',
                       color: '#ffffff',
                       padding: '8px 16px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       fontSize: '0.875rem',
-                      fontWeight: 600,
+                      fontWeight: 'var(--font-weight-semibold)',
                       boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2)',
                       whiteSpace: 'nowrap',
                   }}>
                     추천 플랜
                   </span>
                                 </div>
-                                <div style={{textAlign: 'center', marginTop: 16}}>
+                                <div style={{textAlign: 'center', marginTop: 'var(--spacing-4)'}}>
                                     <div style={{
                                         width: 80,
                                         height: 80,
                                         marginLeft: 'auto',
                                         marginRight: 'auto',
-                                        marginBottom: 24,
-                                        borderRadius: 16,
+                                        marginBottom: 'var(--spacing-6)',
+                                        borderRadius: 'var(--radius-container)',
                                         backgroundImage: 'linear-gradient(to bottom right, #60a5fa, #6366f1)',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -964,17 +964,17 @@ export default function LandingPage() {
                                                   d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                                         </svg>
                                     </div>
-                                    <h3 style={{fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', marginBottom: 8}}>Basic 플랜</h3>
-                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16}}>
-                                        <span style={{fontSize: '2.25rem', fontWeight: 700, color: 'var(--color-text-blue)'}}>₩9,900</span>
-                                        <span style={{color: 'rgba(191,219,254,0.7)', marginLeft: 8}}>/월</span>
+                                    <h3 style={{fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)', color: '#ffffff', marginBottom: 'var(--spacing-2)'}}>Basic 플랜</h3>
+                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-4)'}}>
+                                        <span style={{fontSize: '2.25rem', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-blue)'}}>₩9,900</span>
+                                        <span style={{color: 'rgba(191,219,254,0.7)', marginLeft: 'var(--spacing-2)'}}>/월</span>
                                     </div>
-                                    <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 24, lineHeight: 1.625}}>
+                                    <p style={{color: 'rgba(219,234,254,0.8)', marginBottom: 'var(--spacing-6)', lineHeight: 1.625}}>
                                         무료 체험 이후 모든 기능을 계속 이용하세요
                                     </p>
-                                    <ul style={{listStyle: 'none', padding: 0, margin: 0, textAlign: 'left', color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 12}}>
+                                    <ul style={{listStyle: 'none', padding: 'var(--spacing-0)', margin: 'var(--spacing-0)', textAlign: 'left', color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)'}}>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -983,7 +983,7 @@ export default function LandingPage() {
                                             모든 휴가 관리 기능
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -992,7 +992,7 @@ export default function LandingPage() {
                                             무제한 직원 등록
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1001,7 +1001,7 @@ export default function LandingPage() {
                                             실시간 알림 기능
                                         </li>
                                         <li style={{display: 'flex', alignItems: 'center'}}>
-                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 12, flexShrink: 0}}
+                                            <svg style={{width: 16, height: 16, color: 'var(--color-text-blue)', marginRight: 'var(--spacing-3)', flexShrink: 0}}
                                                  fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd"
                                                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1019,13 +1019,13 @@ export default function LandingPage() {
                             whileInView={{opacity: 1, y: 0}}
                             viewport={{once: true}}
                             transition={{duration: 0.7, delay: 0.3}}
-                            style={{marginTop: 48, textAlign: 'center'}}
+                            style={{marginTop: 'var(--spacing-12)', textAlign: 'center'}}
                         >
                             <div style={{
                                 background: 'rgba(255,255,255,0.1)',
                                 backdropFilter: 'blur(16px)',
-                                borderRadius: 16,
-                                padding: 24,
+                                borderRadius: 'var(--radius-container)',
+                                padding: 'var(--spacing-6)',
                                 border: '1px solid rgba(96,165,250,0.2)',
                             }}>
                                 <p style={{color: 'rgba(219,234,254,0.8)', fontSize: '0.875rem', lineHeight: 1.625}}>
@@ -1052,8 +1052,8 @@ export default function LandingPage() {
                         style={{
                             ...gradientText,
                             fontSize: 'clamp(2.25rem, 5vw, 3rem)',
-                            fontWeight: 700,
-                            marginBottom: 24,
+                            fontWeight: 'var(--font-weight-bold)',
+                            marginBottom: 'var(--spacing-6)',
                             lineHeight: 1.1,
                         }}
                     >
@@ -1067,7 +1067,7 @@ export default function LandingPage() {
                         style={{
                             fontSize: '1.25rem',
                             color: 'rgba(219,234,254,0.9)',
-                            marginBottom: 40,
+                            marginBottom: 'var(--spacing-10)',
                             maxWidth: 672,
                             marginLeft: 'auto',
                             marginRight: 'auto',
@@ -1086,7 +1086,7 @@ export default function LandingPage() {
                             flexWrap: 'wrap',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 16,
+                            gap: 'var(--spacing-4)',
                         }}
                     >
                         <Button
@@ -1116,12 +1116,12 @@ export default function LandingPage() {
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                        gap: 32,
-                        marginBottom: 24,
+                        gap: 'var(--spacing-8)',
+                        marginBottom: 'var(--spacing-6)',
                     }}>
                         {/* 브랜드 섹션 */}
                         <div style={{textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%'}}>
-                            <div style={{display: 'flex', justifyContent: 'flex-start', marginBottom: 16}}>
+                            <div style={{display: 'flex', justifyContent: 'flex-start', marginBottom: 'var(--spacing-4)'}}>
                                 <Image
                                     src="/images/logo-text.png"
                                     alt="케어브이 로고"
@@ -1134,13 +1134,13 @@ export default function LandingPage() {
 
                         {/* 회사 정보 섹션 */}
                         <div style={{textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%'}}>
-                            <h3 style={{color: 'var(--color-text-blue)', fontWeight: 600, fontSize: '1.125rem', marginBottom: 12}}>회사 정보</h3>
-                            <div style={{display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.875rem', color: 'rgba(191,219,254,0.7)', flexGrow: 1}}>
-                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 4}}>
+                            <h3 style={{color: 'var(--color-text-blue)', fontWeight: 'var(--font-weight-semibold)', fontSize: '1.125rem', marginBottom: 'var(--spacing-3)'}}>회사 정보</h3>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', fontSize: '0.875rem', color: 'rgba(191,219,254,0.7)', flexGrow: 1}}>
+                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 'var(--spacing-1)'}}>
                                     <p><span style={{color: 'var(--color-text-blue)'}}>회사명:</span> silverithm</p>
                                     <p><span style={{color: 'var(--color-text-blue)'}}>대표자:</span> 김준형</p>
                                 </div>
-                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 4}}>
+                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 'var(--spacing-1)'}}>
                                     <p><span style={{color: 'var(--color-text-blue)'}}>사업자등록번호:</span> 107-21-26475</p>
                                     <p><span style={{color: 'var(--color-text-blue)'}}>주소:</span> 서울특별시 신림동 1547-10</p>
                                 </div>
@@ -1149,15 +1149,15 @@ export default function LandingPage() {
 
                         {/* 연락처 섹션 */}
                         <div style={{textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%'}}>
-                            <h3 style={{color: 'var(--color-text-blue)', fontWeight: 600, fontSize: '1.125rem', marginBottom: 12}}>연락처</h3>
-                            <div style={{display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.875rem', color: 'rgba(191,219,254,0.7)', flexGrow: 1}}>
-                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4}}>
+                            <h3 style={{color: 'var(--color-text-blue)', fontWeight: 'var(--font-weight-semibold)', fontSize: '1.125rem', marginBottom: 'var(--spacing-3)'}}>연락처</h3>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', fontSize: '0.875rem', color: 'rgba(191,219,254,0.7)', flexGrow: 1}}>
+                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-1)'}}>
                                     <span style={{color: 'var(--color-text-blue)'}}>이메일:</span>
                                     <a href="mailto:ggprgrkjh@naver.com" style={{color: 'rgba(191,219,254,0.7)', textDecoration: 'none'}}>
                                         ggprgrkjh@naver.com
                                     </a>
                                 </div>
-                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4}}>
+                                <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-1)'}}>
                                     <span style={{color: 'var(--color-text-blue)'}}>전화번호:</span>
                                     <a href="tel:010-4549-2094" style={{color: 'rgba(191,219,254,0.7)', textDecoration: 'none'}}>
                                         010-4549-2094
@@ -1168,18 +1168,18 @@ export default function LandingPage() {
                     </div>
 
                     {/* 저작권 및 링크 정보 */}
-                    <div style={{borderTop: '1px solid rgba(96,165,250,0.2)', paddingTop: 24}}>
+                    <div style={{borderTop: '1px solid rgba(96,165,250,0.2)', paddingTop: 'var(--spacing-6)'}}>
                         <div style={{
                             display: 'flex',
                             flexWrap: 'wrap',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            gap: 16,
+                            gap: 'var(--spacing-4)',
                         }}>
                             <p style={{color: 'rgba(191,219,254,0.6)', fontSize: '0.875rem'}}>
                                 &copy; 2025 케어브이. 모든 권리 보유.
                             </p>
-                            <div style={{display: 'flex', alignItems: 'center', gap: 16, fontSize: '0.875rem'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)', fontSize: '0.875rem'}}>
                                 <a
                                     href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                                     target="_blank"

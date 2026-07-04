@@ -477,9 +477,9 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       onClick={() => fileInputRef.current?.click()}
                       style={{
                         width: '100%',
-                        padding: '24px',
+                        padding: 'var(--spacing-6)',
                         border: '2px dashed var(--color-border, var(--color-border))',
-                        borderRadius: '8px',
+                        borderRadius: 'var(--radius-inner)',
                         textAlign: 'center',
                         cursor: 'pointer',
                       }}

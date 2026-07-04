@@ -94,7 +94,7 @@ export default function SubscriptionPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 16,
+          padding: 'var(--spacing-4)',
         }}
       >
         <div style={{ width: '100%', maxWidth: 420 }}>

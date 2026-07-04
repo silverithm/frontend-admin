@@ -43,7 +43,7 @@ export function FloatingChatRoomList({
                     borderTopRightRadius: 16,
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 'var(--spacing-2)',
                     flexShrink: 0,
                     color: "#ffffff",
                 }}
@@ -68,7 +68,7 @@ export function FloatingChatRoomList({
                         <Spinner aria-label="채팅방 불러오는 중" />
                     </div>
                 ) : rooms.length === 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 160, gap: 8 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 160, gap: 'var(--spacing-2)' }}>
                         <svg style={{ width: 40, height: 40, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
@@ -91,13 +91,13 @@ export function FloatingChatRoomList({
                                 transition: "background-color 150ms ease",
                             }}
                         >
-                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 2 }}>
-                                <div style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 'var(--spacing-0-5)' }}>
+                                <div style={{ flex: 1, minWidth: 0, marginRight: 'var(--spacing-2)' }}>
                                     <Text type="body" weight="semibold" color="primary" maxLines={1}>
                                         {room.name}
                                     </Text>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', flexShrink: 0 }}>
                                     {room.lastMessageAt && (
                                         <Text type="supporting" color="disabled">
                                             {formatTimestamp(room.lastMessageAt)}

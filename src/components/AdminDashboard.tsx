@@ -106,9 +106,9 @@ const viewAllStyle = (color: string): CSSProperties => ({
   border: 'none',
   cursor: 'pointer',
   color,
-  fontSize: 12,
-  fontWeight: 600,
-  padding: 0,
+  fontSize: 'var(--font-size-sm)',
+  fontWeight: 'var(--font-weight-semibold)',
+  padding: 'var(--spacing-0)',
 });
 
 export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
@@ -392,14 +392,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 20, paddingBottom: 16 }}>
+      <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-5)', paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ height: 56 }} />
-        <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 12 }}>
+        <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} height={96} radius={3} index={i} />
           ))}
         </div>
-        <div className="carev-dash-panels" style={{ display: 'grid', gap: 12, flex: 1 }}>
+        <div className="carev-dash-panels" style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1 }}>
           <Skeleton height={340} radius={3} />
           <Skeleton height={340} radius={3} />
           <div className="carev-dash-panel-full">
@@ -509,7 +509,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   });
 
   return (
-    <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 20, paddingBottom: 16 }}>
+    <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-5)', paddingBottom: 'var(--spacing-4)' }}>
       {/* 1. Header Bar */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -531,7 +531,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       </motion.div>
 
       {/* 2. Stat Cards */}
-      <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 12 }}>
+      <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
         {visibleStatCards.map((card, idx) => (
           <motion.div
             key={card.label}
@@ -550,7 +550,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   {card.change && <Badge variant="teal" label={card.change} />}
                 </HStack>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--spacing-1)' }}>
                     <Text type="large" weight="bold" color="primary" hasTabularNumbers>{card.value}</Text>
                     <Text type="supporting" color="secondary">{card.subtitle}</Text>
                   </div>
@@ -568,7 +568,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
         className="carev-dash-panels"
-        style={{ display: 'grid', minHeight: 0, flex: 1, gap: 12 }}
+        style={{ display: 'grid', minHeight: 0, flex: 1, gap: 'var(--spacing-3)' }}
       >
         {/* Top-Left: 공지사항 */}
         <Card padding={0} height="100%" minHeight={340}>
@@ -615,7 +615,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <div
                       key={notice.id}
                       className="carev-dash-row"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 12 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                       onClick={() => onTabChange('notice')}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -681,7 +681,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <div
                       key={approval.id}
                       className="carev-dash-row"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 12 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                       onClick={() => onTabChange('approval')}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -735,10 +735,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
               <div style={{ padding: '0 16px 12px', flex: 1, minHeight: 0 }}>
                 <div
-                  style={{ display: 'grid', height: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, gridTemplateRows: `auto repeat(${monthlyCalendarDays.weeksCount}, minmax(0, 1fr))` }}
+                  style={{ display: 'grid', height: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', gridTemplateRows: `auto repeat(${monthlyCalendarDays.weeksCount}, minmax(0, 1fr))` }}
                 >
                   {['일','월','화','수','목','금','토'].map((d) => (
-                    <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 12, fontWeight: 500, color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
+                    <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
                   {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const maxChips = 2;
@@ -755,7 +755,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         className={!inMonth ? undefined : todayFlag ? 'carev-dash-cal-cell carev-dash-cal-cell-today' : 'carev-dash-cal-cell carev-dash-cal-cell-day'}
                         style={{
                           position: 'relative', display: 'flex', height: '100%', minHeight: 60,
-                          flexDirection: 'column', alignItems: 'stretch', gap: 2, borderRadius: 8, padding: 4, textAlign: 'left',
+                          flexDirection: 'column', alignItems: 'stretch', gap: 'var(--spacing-0-5)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-1)', textAlign: 'left',
                           background: !inMonth ? 'transparent' : todayFlag ? 'rgba(16, 185, 129, 0.06)' : 'transparent',
                           border: `1px solid ${!inMonth ? 'transparent' : todayFlag ? 'var(--color-border-green)' : 'transparent'}`,
                           cursor: !inMonth ? 'default' : 'pointer',
@@ -764,13 +764,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       >
                         <span
                           style={{
-                            display: 'flex', height: 24, width: 24, flexShrink: 0, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', borderRadius: '9999px', fontSize: 12,
+                            display: 'flex', height: 24, width: 24, flexShrink: 0, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-sm)',
                             ...(
                               !inMonth ? { color: 'var(--color-text-gray)' } :
-                              todayFlag ? { background: 'var(--color-background-green)', fontWeight: 700, color: '#fff' } :
-                              dayOfWeek === 0 ? { fontWeight: 500, color: 'var(--color-text-red)' } :
-                              dayOfWeek === 6 ? { fontWeight: 500, color: 'var(--color-text-blue)' } :
-                              { fontWeight: 500, color: 'var(--color-text-gray)' }
+                              todayFlag ? { background: 'var(--color-background-green)', fontWeight: 'var(--font-weight-bold)', color: '#fff' } :
+                              dayOfWeek === 0 ? { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-red)' } :
+                              dayOfWeek === 6 ? { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-blue)' } :
+                              { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)' }
                             ),
                           }}
                         >
@@ -779,26 +779,26 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         {scheduleCount > 0 && inMonth && (
                           <>
                             {/* 모바일: 도트 표시 */}
-                            <div className="carev-dash-cal-dots" style={{ alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                            <div className="carev-dash-cal-dots" style={{ alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-0)' }}>
                               {Array.from({ length: Math.min(scheduleCount, 3) }).map((_, i) => (
-                                <div key={i} style={{ height: 4, width: 4, borderRadius: '9999px', background: 'var(--color-background-green)' }} />
+                                <div key={i} style={{ height: 4, width: 4, borderRadius: 'var(--radius-full)', background: 'var(--color-background-green)' }} />
                               ))}
                               {scheduleCount > 3 && (
-                                <span style={{ fontSize: 7, fontWeight: 700, lineHeight: 1, color: 'var(--color-text-green)' }}>+{scheduleCount - 3}</span>
+                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', lineHeight: 1, color: 'var(--color-text-green)' }}>+{scheduleCount - 3}</span>
                               )}
                             </div>
                             {/* 데스크탑: 일정 제목 칩 표시 */}
-                            <div className="carev-dash-cal-chips" style={{ minHeight: 0, flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
+                            <div className="carev-dash-cal-chips" style={{ minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-0-5)', overflow: 'hidden' }}>
                               {daySchedules.slice(0, maxChips).map((schedule, i) => (
                                 <span
                                   key={`${schedule.id}-${i}`}
-                                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRadius: 4, background: 'rgba(16, 185, 129, 0.12)', padding: '1px 4px', fontSize: 10, fontWeight: 500, lineHeight: '16px', color: 'var(--color-text-green)' }}
+                                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRadius: 'var(--radius-none)', background: 'rgba(16, 185, 129, 0.12)', padding: '1px 4px', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', lineHeight: '16px', color: 'var(--color-text-green)' }}
                                 >
                                   {schedule.title}
                                 </span>
                               ))}
                               {scheduleCount > maxChips && (
-                                <span style={{ padding: '0 4px', fontSize: 9, fontWeight: 600, lineHeight: '12px', color: 'var(--color-text-gray)' }}>
+                                <span style={{ padding: '0 4px', fontSize: 'var(--font-size-2xs)', fontWeight: 'var(--font-weight-semibold)', lineHeight: '12px', color: 'var(--color-text-gray)' }}>
                                   +{scheduleCount - maxChips}개 더보기
                                 </span>
                               )}
@@ -817,13 +817,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
       {/* 날짜별 일정 목록 팝업 */}
       {showDaySchedules && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setShowDaySchedules(false)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-4)' }} onClick={() => setShowDaySchedules(false)}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }} />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 16, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
+            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: '16px 24px', color: '#fff' }}>
@@ -841,14 +841,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   </svg>
                 </button>
               </div>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 'var(--spacing-1)' }}>
                 <Text type="supporting" color="inherit">총 {selectedSchedules.length}개의 일정</Text>
               </div>
             </div>
 
             <div style={{ padding: '16px 24px', maxHeight: '50vh', overflowY: 'auto' }}>
               {selectedSchedules.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '32px 0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-3)', padding: '32px 0' }}>
                   <EmptyState
                     isCompact
                     title={`${format(selectedDate, 'M월 d일')} 일정이 없습니다`}
@@ -865,26 +865,26 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <div
                       key={schedule.id}
                       className="carev-dash-timeline"
-                      style={{ display: 'flex', gap: 12, borderRadius: 8, padding: '0 8px', margin: '0 -8px' }}
+                      style={{ display: 'flex', gap: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', padding: '0 8px', margin: '0 -8px' }}
                       onClick={() => {
                         setShowDaySchedules(false);
                         setSelectedSchedule(schedule);
                       }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '9999px', background: 'var(--color-background-teal)', boxShadow: '0 0 0 4px #f0fdfa', flexShrink: 0, marginTop: 6 }} />
+                        <div style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-teal)', boxShadow: '0 0 0 4px #f0fdfa', flexShrink: 0, marginTop: 'var(--spacing-1-5)' }} />
                         {idx < selectedSchedules.length - 1 && (
                           <div style={{ width: 2, flex: 1, background: 'var(--color-background-muted)', margin: '4px 0' }} />
                         )}
                       </div>
-                      <div style={{ paddingBottom: 16, flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ paddingBottom: 'var(--spacing-4)', flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                           <Text type="supporting" weight="semibold" color="accent" hasTabularNumbers>
                             {schedule.isAllDay ? '종일' : (schedule.startTime || '')}
                           </Text>
                           {schedule.category && <Badge variant="neutral" label={schedule.category} />}
                         </div>
-                        <div style={{ marginTop: 2 }}>
+                        <div style={{ marginTop: 'var(--spacing-0-5)' }}>
                           <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{schedule.title}</Text>
                         </div>
                         {schedule.location && (
@@ -921,27 +921,27 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
       {/* 일정 상세 모달 */}
       {selectedSchedule && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setSelectedSchedule(null)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-4)' }} onClick={() => setSelectedSchedule(null)}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }} />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 16, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
+            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
             <div style={{ background: 'linear-gradient(90deg, #14b8a6, #0d9488)', padding: '16px 24px', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                   {selectedSchedule.category && (
-                    <span style={{ fontSize: 12, padding: '2px 8px', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 9999, fontWeight: 500 }}>
+                    <span style={{ fontSize: 'var(--font-size-sm)', padding: '2px 8px', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 'var(--radius-full)', fontWeight: 'var(--font-weight-medium)' }}>
                       {selectedSchedule.category}
                     </span>
                   )}
                   {selectedSchedule.isAllDay && (
-                    <span style={{ fontSize: 12, padding: '2px 8px', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 9999, fontWeight: 500 }}>
+                    <span style={{ fontSize: 'var(--font-size-sm)', padding: '2px 8px', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 'var(--radius-full)', fontWeight: 'var(--font-weight-medium)' }}>
                       종일
                     </span>
                   )}
@@ -956,7 +956,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   </svg>
                 </button>
               </div>
-              <div style={{ marginTop: 8 }}>
+              <div style={{ marginTop: 'var(--spacing-2)' }}>
                 <Text type="large" weight="bold" color="inherit">{selectedSchedule.title}</Text>
               </div>
             </div>
@@ -966,7 +966,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <VStack gap={4} align="stretch">
                 {/* 날짜 */}
                 <HStack gap={3} vAlign="start">
-                  <div style={{ ...iconBox('var(--color-background-teal)'), marginTop: 2 }}>
+                  <div style={{ ...iconBox('var(--color-background-teal)'), marginTop: 'var(--spacing-0-5)' }}>
                     <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-teal)' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -985,7 +985,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 시간 */}
                 {!selectedSchedule.isAllDay && (selectedSchedule.startTime || selectedSchedule.endTime) && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-purple)'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-purple)'), marginTop: 'var(--spacing-0-5)' }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-purple)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -1003,7 +1003,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 장소 */}
                 {selectedSchedule.location && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-green)'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-green)'), marginTop: 'var(--spacing-0-5)' }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-green)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1019,7 +1019,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 설명 */}
                 {selectedSchedule.description && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-yellow)'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-yellow)'), marginTop: 'var(--spacing-0-5)' }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-yellow)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
                       </svg>
@@ -1034,14 +1034,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 참석자 */}
                 {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-red)'), marginTop: 2 }}>
+                    <div style={{ ...iconBox('var(--color-background-red)'), marginTop: 'var(--spacing-0-5)' }}>
                       <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-red)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                     </div>
                     <VStack gap={1} align="start">
                       <Text type="supporting" weight="medium" color="secondary">참석자</Text>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1-5)' }}>
                         {selectedSchedule.participants.map((p, i) => (
                           <Badge key={i} variant="neutral" label={p.memberName || p.userName || '참석자'} />
                         ))}

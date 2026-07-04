@@ -196,7 +196,7 @@ export default function EmployeeNotice() {
       >
         <Card padding={0}>
           {/* 상세 헤더 */}
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: 'var(--spacing-6)' }}>
             <VStack gap={3} align="start">
               <Button
                 label="목록"
@@ -224,7 +224,7 @@ export default function EmployeeNotice() {
           <Divider />
 
           {/* 상세 내용 */}
-          <div style={{ padding: 24, whiteSpace: 'pre-wrap', minHeight: 100 }}>
+          <div style={{ padding: 'var(--spacing-6)', whiteSpace: 'pre-wrap', minHeight: 100 }}>
             <Text type="large">{selectedNotice.content}</Text>
           </div>
 
@@ -255,11 +255,11 @@ export default function EmployeeNotice() {
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 8,
+                              gap: 'var(--spacing-2)',
                               padding: '6px 12px',
                               background: 'var(--color-background-card)',
                               border: '1px solid var(--color-border)',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                             }}
                           >
                             <Avatar name={reader.userName || '?'} size="xsmall" />
@@ -282,7 +282,7 @@ export default function EmployeeNotice() {
           <Divider />
 
           {/* 댓글 섹션 */}
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: 'var(--spacing-6)' }}>
             <VStack gap={4} align="start" width="100%">
               <HStack gap={2} vAlign="center">
                 <Icon icon={FiMessageSquare} size="md" color="secondary" />
@@ -368,7 +368,7 @@ export default function EmployeeNotice() {
   return (
     <Card padding={0}>
       {/* 헤더 */}
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 'var(--spacing-6)' }}>
         <VStack gap={1} align="start">
           <Heading level={2}>공지사항</Heading>
           <Text type="supporting">회사의 중요한 소식을 확인하세요</Text>
@@ -390,7 +390,7 @@ export default function EmployeeNotice() {
                 onClick={() => handleOpenNotice(notice)}
                 className="carev-empnotice-item"
                 style={{
-                  padding: 20,
+                  padding: 'var(--spacing-5)',
                   cursor: 'pointer',
                   background: notice.isPinned ? 'var(--color-background-teal)' : undefined,
                 }}

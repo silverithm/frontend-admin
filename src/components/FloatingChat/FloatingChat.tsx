@@ -322,7 +322,7 @@ export function FloatingChat() {
                             style={{
                                 width: 380,
                                 height: 550,
-                                borderRadius: 16,
+                                borderRadius: 'var(--radius-container)',
                                 boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
                                 overflow: "hidden",
                                 display: "flex",
@@ -387,7 +387,7 @@ export function FloatingChat() {
                         width: 56,
                         height: 56,
                         minWidth: 56,
-                        padding: 0,
+                        padding: 'var(--spacing-0)',
                         borderRadius: "50%",
                         background: 'var(--color-background-teal)',
                         color: "#fff",

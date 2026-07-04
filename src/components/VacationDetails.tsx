@@ -237,7 +237,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
         style={{
           width: '100%',
           maxWidth: 448,
-          borderRadius: 16,
+          borderRadius: 'var(--radius-container)',
           overflow: 'hidden',
           background: 'var(--color-background-card)',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -250,7 +250,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 32,
+              padding: 'var(--spacing-8)',
             }}
           >
             <Spinner size="lg" label="로딩 중..." />
@@ -270,7 +270,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
             {/* 헤더 (브랜드 그라데이션) */}
             <div
               style={{
-                padding: 24,
+                padding: 'var(--spacing-6)',
                 background: 'linear-gradient(to right, #14b8a6, #0d9488)',
                 color: '#ffffff',
               }}
@@ -280,8 +280,8 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                   <span
                     style={{
                       background: 'rgba(255, 255, 255, 0.2)',
-                      padding: 8,
-                      borderRadius: 8,
+                      padding: 'var(--spacing-2)',
+                      borderRadius: 'var(--radius-inner)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -301,7 +301,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                     border: 'none',
                     cursor: 'pointer',
                     color: 'rgba(255, 255, 255, 0.8)',
-                    padding: 8,
+                    padding: 'var(--spacing-2)',
                     borderRadius: '50%',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -314,10 +314,10 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
 
               <div
                 style={{
-                  marginTop: 20,
-                  padding: 16,
+                  marginTop: 'var(--spacing-5)',
+                  padding: 'var(--spacing-4)',
                   background: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--radius-inner)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   textAlign: 'center',
                 }}
@@ -329,7 +329,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
             </div>
 
             {/* 본문 */}
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: 'var(--spacing-6)' }}>
               <VStack gap={5}>
                 <HStack hAlign="between" vAlign="center">
                   <HStack gap={2} vAlign="center">
@@ -346,7 +346,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                 </HStack>
 
                 {sortedVacations.length > 0 ? (
-                  <div style={{ maxHeight: 256, overflowY: 'auto', paddingRight: 4 }}>
+                  <div style={{ maxHeight: 256, overflowY: 'auto', paddingRight: 'var(--spacing-1)' }}>
                     <VStack gap={3}>
                       {sortedVacations.map((vacation) => {
                         const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
@@ -382,7 +382,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                         border: 'none',
                                         cursor: 'pointer',
                                         color: 'var(--color-text-gray)',
-                                        padding: 6,
+                                        padding: 'var(--spacing-1-5)',
                                         borderRadius: '50%',
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -419,8 +419,8 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                   <div
                                     style={{
                                       background: 'var(--color-background-card)',
-                                      padding: 8,
-                                      borderRadius: 6,
+                                      padding: 'var(--spacing-2)',
+                                      borderRadius: 'var(--radius-inner)',
                                       border: '1px solid var(--color-border)',
                                     }}
                                   >
@@ -440,9 +440,9 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                 ) : (
                   <div
                     style={{
-                      padding: 32,
+                      padding: 'var(--spacing-8)',
                       background: 'var(--color-background-muted)',
-                      borderRadius: 8,
+                      borderRadius: 'var(--radius-inner)',
                       border: '1px solid var(--color-border)',
                     }}
                   >
@@ -493,7 +493,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                   <span
                     style={{
                       background: 'var(--color-background-red)',
-                      padding: 10,
+                      padding: 'var(--spacing-2)',
                       borderRadius: '50%',
                       display: 'inline-flex',
                       alignItems: 'center',

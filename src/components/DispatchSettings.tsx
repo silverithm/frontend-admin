@@ -372,7 +372,7 @@ export default function DispatchSettings({
           start={
             <LayoutPanel hasDivider width={320}>
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                <div style={{ padding: 16, borderBottom: dividerStyle }}>
+                <div style={{ padding: 'var(--spacing-4)', borderBottom: dividerStyle }}>
                   <Button
                     label="새 노선 추가"
                     variant="primary"
@@ -384,7 +384,7 @@ export default function DispatchSettings({
                   />
                 </div>
 
-                <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+                <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-2)' }}>
                   {settings.routes.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "32px 0" }}>
                       <Text type="body" color="secondary">
@@ -403,8 +403,8 @@ export default function DispatchSettings({
                               setIsAddingRoute(false);
                             }}
                             style={{
-                              padding: 12,
-                              borderRadius: 8,
+                              padding: 'var(--spacing-3)',
+                              borderRadius: 'var(--radius-inner)',
                               cursor: "pointer",
                               transition: "background-color 200ms ease",
                               background: isSelected
@@ -436,7 +436,7 @@ export default function DispatchSettings({
                                 }}
                               />
                             </HStack>
-                            <div style={{ marginTop: 4 }}>
+                            <div style={{ marginTop: 'var(--spacing-1)' }}>
                               <Text type="supporting" color="secondary">
                                 운전자 {route.routeDrivers?.length || 0}명 · 어르신{" "}
                                 {settings.seniors.filter((s) => s.routeId === route.id).length}명
@@ -496,9 +496,9 @@ export default function DispatchSettings({
                         <div
                           key={index}
                           style={{
-                            padding: 12,
+                            padding: 'var(--spacing-3)',
                             background: "var(--color-muted-background, #f9fafb)",
-                            borderRadius: 8,
+                            borderRadius: 'var(--radius-inner)',
                           }}
                         >
                           <HStack gap={2} vAlign="center">
@@ -600,9 +600,9 @@ export default function DispatchSettings({
                           <div
                             key={index}
                             style={{
-                              padding: 12,
+                              padding: 'var(--spacing-3)',
                               background: "var(--color-muted-background, #f9fafb)",
-                              borderRadius: 8,
+                              borderRadius: 'var(--radius-inner)',
                             }}
                           >
                             <HStack gap={2} vAlign="center">
@@ -711,7 +711,7 @@ export default function DispatchSettings({
                           textAlign: "center",
                           padding: "32px 0",
                           background: "var(--color-muted-background, #f9fafb)",
-                          borderRadius: 8,
+                          borderRadius: 'var(--radius-inner)',
                         }}
                       >
                         <Text type="body" color="secondary">
@@ -724,9 +724,9 @@ export default function DispatchSettings({
                           <div
                             key={senior.id}
                             style={{
-                              padding: 12,
+                              padding: 'var(--spacing-3)',
                               background: "var(--color-muted-background, #f9fafb)",
-                              borderRadius: 8,
+                              borderRadius: 'var(--radius-inner)',
                             }}
                           >
                             <HStack hAlign="between" vAlign="center">

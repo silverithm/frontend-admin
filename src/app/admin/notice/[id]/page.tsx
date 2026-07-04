@@ -314,7 +314,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                     <div style={{ width: '100%' }}>
                       <TextArea label="내용" value={content} onChange={(value) => setContent(value)} rows={12} />
                     </div>
-                    <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'end' }}>
+                    <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)', alignItems: 'end' }}>
                       <Selector
                         label="우선순위"
                         value={priority}
@@ -325,7 +325,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                           { value: 'LOW', label: '낮음' },
                         ]}
                       />
-                      <div style={{ paddingBottom: 8 }}>
+                      <div style={{ paddingBottom: 'var(--spacing-2)' }}>
                         <CheckboxInput label="상단 고정" value={isPinned} onChange={(checked) => setIsPinned(checked)} />
                       </div>
                     </div>
@@ -348,7 +348,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                         <Text type="supporting">{notice.viewCount}</Text>
                       </HStack>
                     </HStack>
-                    <div style={{ width: '100%', paddingTop: 8, paddingBottom: 8 }}>
+                    <div style={{ width: '100%', paddingTop: 'var(--spacing-2)', paddingBottom: 'var(--spacing-2)' }}>
                       <Divider />
                     </div>
                     <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
@@ -399,7 +399,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                         {comments.map((comment, index) => (
                           <div key={comment.id}>
                             {index > 0 && <Divider />}
-                            <div style={{ padding: 16 }}>
+                            <div style={{ padding: 'var(--spacing-4)' }}>
                               <HStack gap={3} vAlign="start" hAlign="between" width="100%">
                                 <HStack gap={3} vAlign="start">
                                   <Avatar name={comment.authorName || '?'} size="small" />
@@ -438,7 +438,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
           {activeTab === 'readers' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Card padding={0}>
-                <div style={{ padding: 16 }}>
+                <div style={{ padding: 'var(--spacing-4)' }}>
                   <Heading level={4}>읽은 사람 ({readers.length}명)</Heading>
                 </div>
                 <Divider />
@@ -447,7 +447,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                     {readers.map((reader, index) => (
                       <div key={reader.id}>
                         {index > 0 && <Divider />}
-                        <div style={{ padding: 16 }}>
+                        <div style={{ padding: 'var(--spacing-4)' }}>
                           <HStack gap={3} vAlign="center" hAlign="between" width="100%">
                             <HStack gap={3} vAlign="center">
                               <Avatar name={reader.userName || '?'} size="small" />
@@ -482,7 +482,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
           content={
             <LayoutContent>
               <HStack gap={3} vAlign="start">
-                <div style={{ background: 'var(--color-background-red)', padding: 8, borderRadius: 9999, display: 'flex' }}>
+                <div style={{ background: 'var(--color-background-red)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-full)', display: 'flex' }}>
                   <Icon icon="warning" size="md" color="error" />
                 </div>
                 <Text type="body" color="secondary">이 공지사항을 삭제하시겠습니까? 삭제된 공지사항은 복구할 수 없습니다.</Text>

@@ -149,7 +149,7 @@ export default function NoticeRollingBanner({
             <div style={{
               ...getBadgeStyle(),
               padding: '2px 8px',
-              borderRadius: '4px',
+              borderRadius: 'var(--radius-none)',
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}>
@@ -183,9 +183,9 @@ export default function NoticeRollingBanner({
                     style={{
                       width: index === currentIndex ? '16px' : '6px',
                       height: '6px',
-                      padding: 0,
+                      padding: 'var(--spacing-0)',
                       border: 'none',
-                      borderRadius: '3px',
+                      borderRadius: 'var(--radius-none)',
                       backgroundColor: index === currentIndex
                         ? tokens.colors.accent
                         : tokens.colors.border,

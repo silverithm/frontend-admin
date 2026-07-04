@@ -203,7 +203,7 @@ export default function OrganizationProfilePage() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main style={{ maxWidth: 1280, margin: '0 auto', padding: 32 }}>
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: 'var(--spacing-8)' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -272,13 +272,13 @@ export default function OrganizationProfilePage() {
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                      gap: 24,
+                      gap: 'var(--spacing-6)',
                     }}
                   >
                     {/* 기관 정보 카드 */}
                     <Card padding={6}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon icon={IconBuilding} size="md" color="accent" />
                         </div>
                         <VStack gap={0.5}>
@@ -291,7 +291,7 @@ export default function OrganizationProfilePage() {
                     {/* 위치 정보 카드 */}
                     <Card padding={6}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon icon={IconMapPin} size="md" color="secondary" />
                         </div>
                         <VStack gap={0.5}>
@@ -304,7 +304,7 @@ export default function OrganizationProfilePage() {
                     {/* 관리자 정보 카드 */}
                     <Card padding={6}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon icon={IconUser} size="md" color="secondary" />
                         </div>
                         <VStack gap={0.5}>
@@ -320,7 +320,7 @@ export default function OrganizationProfilePage() {
                       <HStack gap={4} hAlign="between" vAlign="center" wrap="wrap">
                         <VStack gap={2}>
                           <Text type="label" weight="medium">직원 회원가입용 회사 코드</Text>
-                          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '0.3em', color: '#451a03' }}>
+                          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', letterSpacing: '0.3em', color: '#451a03' }}>
                             {profile.companyCode}
                           </div>
                           <Text type="supporting">
@@ -339,7 +339,7 @@ export default function OrganizationProfilePage() {
 
                   {/* 구독 정보 섹션 */}
                   <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 32 }}>
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
                       <Text type="large" weight="semibold">구독 정보</Text>
                     </div>
                     <SubscriptionInfo />
@@ -347,20 +347,20 @@ export default function OrganizationProfilePage() {
 
                   {/* 계정 설정 섹션 */}
                   <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 32 }}>
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
                       <Text type="large" weight="semibold">계정 설정</Text>
                     </div>
                     <div
                       style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                        gap: 16,
+                        gap: 'var(--spacing-4)',
                       }}
                     >
                       <Card variant="blue" padding={6}>
                         <VStack gap={4}>
                           <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon icon={IconKey} size="md" color="accent" />
                             </div>
                             <VStack gap={0.5}>
@@ -379,7 +379,7 @@ export default function OrganizationProfilePage() {
                       <Card variant="red" padding={6}>
                         <VStack gap={4}>
                           <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon icon={IconTrash} size="md" color="error" />
                             </div>
                             <VStack gap={0.5}>
@@ -419,7 +419,7 @@ export default function OrganizationProfilePage() {
                   href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: 'rgba(147,197,253,0.7)', textDecoration: 'none', fontSize: 14 }}
+                  style={{ color: 'rgba(147,197,253,0.7)', textDecoration: 'none', fontSize: 'var(--font-size-base)' }}
                 >
                   개인정보처리방침
                 </a>
@@ -428,7 +428,7 @@ export default function OrganizationProfilePage() {
                   href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: 'rgba(147,197,253,0.7)', textDecoration: 'none', fontSize: 14 }}
+                  style={{ color: 'rgba(147,197,253,0.7)', textDecoration: 'none', fontSize: 'var(--font-size-base)' }}
                 >
                   이용약관
                 </a>

@@ -605,7 +605,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     justifyContent: 'center',
     flexShrink: 0,
     fontSize: size <= 12 ? 8 : 10,
-    fontWeight: 700,
+    fontWeight: 'var(--font-weight-bold)',
   });
 
   // 셀 안의 상태 라벨(pill) 스타일
@@ -613,10 +613,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const base: React.CSSProperties = {
       flexShrink: 0,
       whiteSpace: 'nowrap',
-      marginRight: 4,
+      marginRight: 'var(--spacing-1)',
       padding: '2px 4px',
-      borderRadius: 9999,
-      fontWeight: 500,
+      borderRadius: 'var(--radius-full)',
+      fontWeight: 'var(--font-weight-medium)',
     };
     if (status === 'approved') return { ...base, backgroundColor: 'var(--color-background-teal)', color: 'var(--color-text-teal)' };
     if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
@@ -668,7 +668,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         canvasHeight: captureElement.offsetHeight * 2,
         style: {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '14px',
+          fontSize: 'var(--font-size-base)',
         },
         filter: (node: HTMLElement) => {
           // 버튼과 불필요한 요소 제외
@@ -718,9 +718,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   return (
-    <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+    <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-element)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       {showMonthError && (
-        <div style={{ margin: 12, padding: 12, background: 'var(--color-background-red)', border: '1px solid #fecaca', borderRadius: 8, color: 'var(--color-text-red)' }}>
+        <div style={{ margin: 'var(--spacing-3)', padding: 'var(--spacing-3)', background: 'var(--color-background-red)', border: '1px solid #fecaca', borderRadius: 'var(--radius-inner)', color: 'var(--color-text-red)' }}>
           <VStack gap={0.5}>
             <Text type="label" weight="semibold" color="inherit">데이터 로드 오류</Text>
             <Text type="supporting" color="inherit">
@@ -729,10 +729,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </VStack>
         </div>
       )}
-      <div ref={calendarRef} style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
+      <div ref={calendarRef} style={{ padding: 'var(--spacing-5)', display: 'flex', flexDirection: 'column' }}>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%">
           <HStack gap={2} vAlign="center">
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-teal)', padding: 8, borderRadius: 8, color: 'var(--color-text-teal)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-teal)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', color: 'var(--color-text-teal)' }}>
               <Icon icon="calendar" size="sm" color="inherit" />
             </span>
             <VStack gap={0.5}>
@@ -826,7 +826,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </HStack>
 
         {/* 인터랙티브 캘린더 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', marginBottom: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)' }}>
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
@@ -865,8 +865,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const maxPeople = dayData?.maxPeople ?? 3;
 
             const cellStyle = {
-              padding: 8,
-              borderRadius: 8,
+              padding: 'var(--spacing-2)',
+              borderRadius: 'var(--radius-inner)',
               position: 'relative',
               cursor: 'pointer',
               transition: 'background-color 200ms',
@@ -887,8 +887,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 className={`${isExpanded ? 'carev-vaccal-cell-expanded' : 'carev-vaccal-cell'}${!isSelected ? ' carev-vaccal-hover' : ''}`}
                 style={cellStyle}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-1)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
                     {isCurrentDay ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: 'var(--color-background-teal)', color: '#fff' }}>
                         <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
@@ -904,10 +904,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      fontSize: 10,
-                      fontWeight: 600,
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
                       padding: '2px 6px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: vacationersCount >= maxPeople ? 'var(--color-background-red)' : 'var(--color-background-teal)',
                       color: vacationersCount >= maxPeople ? '#fff' : 'var(--color-text-teal)',
                     }}>
@@ -917,12 +917,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 </div>
 
                 {isCurrentMonth && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: isExpanded ? 'none' : 112, overflow: isExpanded ? undefined : 'hidden' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', maxHeight: isExpanded ? 'none' : 112, overflow: isExpanded ? undefined : 'hidden' }}>
                     {isLoading ? (
                       // 로딩 중일 때 스켈레톤 표시
                       <>
                         {[0, 1, 2].map((i) => (
-                          <div key={i} className="skeleton" style={{ borderRadius: 9999, width: '100%', height: 14 }}></div>
+                          <div key={i} className="skeleton" style={{ borderRadius: 'var(--radius-full)', width: '100%', height: 14 }}></div>
                         ))}
                       </>
                     ) : vacations && vacations.length > 0 ? (
@@ -942,7 +942,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               lineHeight: 1.25,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 4,
+                              gap: 'var(--spacing-1)',
                               cursor: vacation.status === 'rejected' ? 'default' : 'pointer',
                               color: vacation.status === 'rejected'
                                 ? '#f87171'
@@ -983,7 +983,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         </div>
                         ))}
                         {!isExpanded && vacations.length > 4 && (
-                          <div style={{ marginTop: 2, color: 'var(--color-text-gray)' }}>
+                          <div style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-gray)' }}>
                             <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 4}명 더</Text>
                           </div>
                         )}
@@ -1007,7 +1007,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 )}
 
                 {isSelected && (
-                  <div style={{ position: 'absolute', inset: 0, border: '2px solid #14b8a6', borderRadius: 8, pointerEvents: 'none' }}></div>
+                  <div style={{ position: 'absolute', inset: 0, border: '2px solid #14b8a6', borderRadius: 'var(--radius-inner)', pointerEvents: 'none' }}></div>
                 )}
               </motion.div>
             );
@@ -1016,7 +1016,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       </div>
 
       <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', background: 'rgba(249,250,251,0.5)' }}>
-        <div style={{ marginBottom: 10 }}>
+        <div style={{ marginBottom: 'var(--spacing-2)' }}>
           <Text type="supporting" color="secondary" weight="medium">상태 표시</Text>
         </div>
         <HStack gap={4} vAlign="center" wrap="wrap">
@@ -1035,15 +1035,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
           {/* 승인 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>승인</span>
+            <span style={{ padding: '2px 6px', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>승인</span>
             <Text type="supporting" color="secondary">승인됨</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>대기</span>
+            <span style={{ padding: '2px 6px', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>대기</span>
             <Text type="supporting" color="secondary">대기중</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 9999, fontSize: 11, fontWeight: 500 }}>거절</span>
+            <span style={{ padding: '2px 6px', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>거절</span>
             <Text type="supporting" color="secondary">거부됨</Text>
           </HStack>
 
@@ -1101,7 +1101,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       {/* 연도 선택 섹션 */}
                       <VStack gap={3}>
                         <Text type="label" weight="medium" color="primary">연도 선택</Text>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--spacing-2)' }}>
                           {years.map((year) => (
                             <Button
                               key={year}
@@ -1117,7 +1117,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       {/* 월 선택 섹션 */}
                       <VStack gap={3}>
                         <Text type="label" weight="medium" color="primary">월 선택</Text>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--spacing-2)' }}>
                           {months.map((month, index) => (
                             <Button
                               key={month}

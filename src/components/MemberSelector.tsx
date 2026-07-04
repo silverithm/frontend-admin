@@ -214,7 +214,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
         style={{
           maxHeight: 384,
           overflowY: "auto",
-          paddingRight: 8,
+          paddingRight: 'var(--spacing-2)',
         }}
       >
         {filteredMembers.length === 0 ? (
@@ -234,8 +234,8 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                   onClick={() => onSelect(member)}
                   className={isSelected ? undefined : "carev-member-item"}
                   style={{
-                    padding: 16,
-                    borderRadius: 8,
+                    padding: 'var(--spacing-4)',
+                    borderRadius: 'var(--radius-inner)',
                     cursor: "pointer",
                     transition: "all 150ms ease",
                     border: isSelected
@@ -253,7 +253,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                           justifyContent: "center",
                           width: 36,
                           height: 36,
-                          borderRadius: "9999px",
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--color-background-muted)',
                           flexShrink: 0,
                         }}

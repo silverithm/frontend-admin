@@ -104,7 +104,7 @@ export default function EmployeePage() {
   if (!isClient) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-card)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-3)' }}>
           <Spinner size="md" label="로딩 중..." />
         </div>
       </div>
@@ -131,8 +131,8 @@ export default function EmployeePage() {
         {/* 사이드바 (데스크탑) */}
         <aside className="carev-emp-sidebar" style={{ flexDirection: 'column', width: 224, background: 'var(--color-background-card)', borderRight: '1px solid var(--color-border)', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 30 }}>
           {/* 로고 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 24px', height: 64, borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
-            <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 8 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', padding: '0 24px', height: 64, borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+            <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 'var(--radius-inner)' }} />
             <div>
               <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
               {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
@@ -140,15 +140,15 @@ export default function EmployeePage() {
           </div>
 
           {/* 네비게이션 */}
-          <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
             <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
             {TABS.map((tab) => (
               <div key={tab.key}>
                 <button
                   onClick={() => setActiveMainTab(tab.key as MainTab)}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '10px 12px', fontSize: 14, fontWeight: 500, borderRadius: 8,
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)',
+                    padding: '10px 12px', fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-inner)',
                     transition: 'colors 150ms ease', border: 'none', cursor: 'pointer',
                     background: activeMainTab === tab.key ? 'var(--color-background-teal)' : 'transparent',
                     color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -165,10 +165,10 @@ export default function EmployeePage() {
           </nav>
 
           {/* 사이드바 하단 */}
-          <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+          <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flexShrink: 0 }}>
             <div style={{ padding: '8px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #2dd4bf, #0d9488)', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #2dd4bf, #0d9488)', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg style={{ width: 14, height: 14, color: '#ffffff' }} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                   </svg>
@@ -179,7 +179,7 @@ export default function EmployeePage() {
                 </div>
               </div>
             </div>
-            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 12, fontWeight: 500, color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
+            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'colors 150ms ease' }}>
               <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               로그아웃
             </button>
@@ -189,15 +189,15 @@ export default function EmployeePage() {
         {/* 모바일 헤더 (lg 미만) */}
         <header className="carev-emp-mobile-header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 8 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+              <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 'var(--radius-inner)' }} />
               <div>
                 <Text as="span" type="body" weight="bold" color="primary">케어브이</Text>
                 {companyName && <Text as="p" type="supporting" color="secondary" maxLines={1}>{companyName}</Text>}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 6, color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+              <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 'var(--spacing-1-5)', color: 'var(--color-text-gray)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                 <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
@@ -208,7 +208,7 @@ export default function EmployeePage() {
                 key={tab.key}
                 onClick={() => setActiveMainTab(tab.key as MainTab)}
                 style={{
-                  padding: '8px 12px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
+                  padding: '8px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap',
                   borderBottom: '2px solid', transition: 'colors 150ms ease',
                   background: 'transparent', cursor: 'pointer',
                   color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -241,7 +241,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: -12, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                  style={{ marginBottom: 16 }}
+                  style={{ marginBottom: 'var(--spacing-4)' }}
                 >
                   <Banner
                     status={notification.type === 'success' ? 'success' : notification.type === 'error' ? 'error' : 'info'}
@@ -299,7 +299,7 @@ export default function EmployeePage() {
                 >
                   {/* 배차관리 권한이 있으면 서브탭 표시 */}
                   {hasPermission('SCHEDULE_DISPATCH') && (
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
                       <Button
                         label="일정"
                         variant={scheduleSubTab === 'schedule' ? 'primary' : 'secondary'}
@@ -331,7 +331,7 @@ export default function EmployeePage() {
                 >
                   {/* 결재 관리/양식 관리 권한이 있으면 서브탭 표시 */}
                   {hasAnyPermission('APPROVAL_MANAGE', 'APPROVAL_TEMPLATE') && (
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
                       <Button
                         label="결재 신청"
                         variant={approvalSubTab === 'submit' ? 'primary' : 'secondary'}
@@ -399,31 +399,31 @@ export default function EmployeePage() {
               <div className="carev-emp-footer-row">
                 <div className="carev-emp-footer-meta">
                   <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 (silverithm) 대표: 김준형</Text>
-                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
+                  <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
                   <Text as="span" type="supporting" color="secondary">사업자등록번호: 107-21-26475</Text>
-                  <span className="carev-emp-footer-sep" style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
+                  <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
                   <Text as="span" type="supporting" color="secondary">서울특별시 신림동 1547-10</Text>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
                   <a
                     href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: 'var(--color-text-gray)', textDecoration: 'none' }}
+                    style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}
                   >
                     개인정보처리방침
                   </a>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
+                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
                   <a
                     href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: 'var(--color-text-gray)', textDecoration: 'none' }}
+                    style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}
                   >
                     이용약관
                   </a>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-gray)' }}>|</span>
-                  <a href="mailto:ggprgrkjh@naver.com" style={{ fontSize: 12, color: 'var(--color-text-gray)', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
+                  <a href="mailto:ggprgrkjh@naver.com" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}>
                     ggprgrkjh@naver.com
                   </a>
                 </div>

@@ -115,11 +115,11 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 16,
+          padding: 'var(--spacing-4)',
         }}
       >
         <Card width="100%" maxWidth={448} padding={6}>
-          <div style={{ position: 'relative', paddingTop: 40 }}>
+          <div style={{ position: 'relative', paddingTop: 'var(--spacing-10)' }}>
             {/* 좌측 상단 뒤로가기 버튼 */}
             <div style={{ position: 'absolute', left: 0, top: 0 }}>
               <Button
@@ -141,7 +141,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                 style={{
                   width: 48,
                   height: 48,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   backgroundColor: 'var(--color-background-red)',
                   border: '1px solid #fecaca',
                   display: 'flex',
@@ -166,8 +166,8 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                   width: '100%',
                   backgroundColor: 'var(--color-background-teal)',
                   border: '1px solid #96f2d7',
-                  borderRadius: 12,
-                  padding: 16,
+                  borderRadius: 'var(--radius-element)',
+                  padding: 'var(--spacing-4)',
                 }}
               >
                 <VStack gap={1} hAlign="center">

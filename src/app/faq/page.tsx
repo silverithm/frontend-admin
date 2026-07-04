@@ -81,15 +81,15 @@ export default function FAQPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        style={{ textAlign: 'center', marginBottom: 48 }}
+                        style={{ textAlign: 'center', marginBottom: 'var(--spacing-12)' }}
                     >
                         <Heading
                             level={1}
                             type="display-1"
                             color="inherit"
                             style={{
-                                marginBottom: 24,
-                                fontWeight: 800,
+                                marginBottom: 'var(--spacing-6)',
+                                fontWeight: 'var(--font-weight-bold)',
                                 backgroundImage: 'linear-gradient(to right, #ffffff, #a5e3d6)',
                                 WebkitBackgroundClip: 'text',
                                 backgroundClip: 'text',
@@ -139,7 +139,7 @@ export default function FAQPage() {
                                         background: 'rgba(255, 255, 255, 0.1)',
                                         backdropFilter: 'blur(16px)',
                                         WebkitBackdropFilter: 'blur(16px)',
-                                        borderRadius: 16,
+                                        borderRadius: 'var(--radius-container)',
                                         border: '1px solid rgba(96, 165, 250, 0.2)',
                                         overflow: 'hidden',
                                     }}
@@ -165,7 +165,7 @@ export default function FAQPage() {
                                                 type="large"
                                                 weight="semibold"
                                                 color="inherit"
-                                                style={{ color: '#fff', paddingRight: 16 }}
+                                                style={{ color: '#fff', paddingRight: 'var(--spacing-4)' }}
                                             >
                                                 {item.question}
                                             </Text>
@@ -214,15 +214,15 @@ export default function FAQPage() {
                         transition={{ duration: 0.6 }}
                         style={{
                             background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-                            borderRadius: 24,
-                            padding: 48,
+                            borderRadius: 'var(--radius-chat)',
+                            padding: 'var(--spacing-12)',
                         }}
                     >
                         <Heading
                             level={2}
                             type="display-2"
                             color="inherit"
-                            style={{ marginBottom: 16, fontWeight: 800, color: '#fff' }}
+                            style={{ marginBottom: 'var(--spacing-4)', fontWeight: 'var(--font-weight-bold)', color: '#fff' }}
                         >
                             더 궁금하신 점이 있으신가요?
                         </Heading>
@@ -230,7 +230,7 @@ export default function FAQPage() {
                             type="large"
                             color="inherit"
                             display="block"
-                            style={{ marginBottom: 32, color: 'rgba(219, 234, 254, 1)' }}
+                            style={{ marginBottom: 'var(--spacing-8)', color: 'rgba(219, 234, 254, 1)' }}
                         >
                             고객센터에서 친절하게 답변해드립니다
                         </Text>

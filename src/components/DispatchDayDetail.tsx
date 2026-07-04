@@ -21,8 +21,8 @@ interface DispatchDayDetailProps {
 
 const infoBoxStyle: React.CSSProperties = {
   background: "rgba(255, 255, 255, 0.6)",
-  borderRadius: 8,
-  padding: 12,
+  borderRadius: 'var(--radius-inner)',
+  padding: 'var(--spacing-3)',
 };
 
 export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDetailProps) {
@@ -119,7 +119,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                         style={{
                           width: 12,
                           height: 12,
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--color-background-green)',
                           display: "inline-block",
                         }}
@@ -133,7 +133,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                         style={{
                           width: 12,
                           height: 12,
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--color-background-yellow)',
                           display: "inline-block",
                         }}
@@ -147,7 +147,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                         style={{
                           width: 12,
                           height: 12,
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--color-background-red)',
                           display: "inline-block",
                         }}
@@ -259,12 +259,12 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                                           style={{
                                             display: "inline-flex",
                                             alignItems: "center",
-                                            gap: 6,
+                                            gap: 'var(--spacing-1-5)',
                                             padding: "4px 8px",
                                             background: 'var(--color-background-muted)',
                                             color: 'var(--color-text-gray)',
-                                            borderRadius: 6,
-                                            fontSize: 14,
+                                            borderRadius: 'var(--radius-inner)',
+                                            fontSize: 'var(--font-size-base)',
                                           }}
                                         >
                                           <span
@@ -276,8 +276,8 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                                               justifyContent: "center",
                                               background: 'var(--color-background-muted)',
                                               color: 'var(--color-text-gray)',
-                                              borderRadius: 9999,
-                                              fontSize: 11,
+                                              borderRadius: 'var(--radius-full)',
+                                              fontSize: 'var(--font-size-xs)',
                                             }}
                                           >
                                             {index + 1}

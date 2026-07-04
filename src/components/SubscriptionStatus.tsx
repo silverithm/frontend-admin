@@ -11,7 +11,7 @@ const dotStyle = (color: string): React.CSSProperties => ({
   display: 'inline-block',
   width: 8,
   height: 8,
-  borderRadius: 9999,
+  borderRadius: 'var(--radius-full)',
   backgroundColor: color,
   flexShrink: 0,
 });

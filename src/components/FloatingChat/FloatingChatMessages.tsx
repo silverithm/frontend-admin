@@ -235,7 +235,7 @@ export function FloatingChatMessages({
     const renderReactions = (message: ChatMessage) => {
         if (!message.reactions || message.reactions.length === 0) return null;
         return (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 'var(--spacing-1)', marginTop: 'var(--spacing-1)' }}>
                 {message.reactions.map((reaction) => (
                     <button
                         key={reaction.emoji}
@@ -244,10 +244,10 @@ export function FloatingChatMessages({
                         style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 2,
+                            gap: 'var(--spacing-0-5)',
                             padding: "1px 6px",
-                            borderRadius: 9999,
-                            fontSize: 11,
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: 'var(--font-size-xs)',
                             cursor: "pointer",
                             transition: "background-color 150ms ease",
                             border: reaction.myReaction ? "1px solid #5eead4" : `1px solid ${C.border}`,
@@ -256,7 +256,7 @@ export function FloatingChatMessages({
                         }}
                     >
                         <span>{reaction.emoji}</span>
-                        <span style={{ fontWeight: 500 }}>{reaction.count}</span>
+                        <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{reaction.count}</span>
                     </button>
                 ))}
             </div>
@@ -271,8 +271,8 @@ export function FloatingChatMessages({
             <div
                 style={{
                     padding: "4px 8px",
-                    marginBottom: 4,
-                    borderRadius: 4,
+                    marginBottom: 'var(--spacing-1)',
+                    borderRadius: 'var(--radius-none)',
                     borderLeft: isMyMessage ? "2px solid #5eead4" : `2px solid #9ca3af`,
                     background: isMyMessage ? "rgba(20,184,166,0.3)" : "#e5e7eb",
                     color: isMyMessage ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -299,7 +299,7 @@ export function FloatingChatMessages({
                     borderBottom: `1px solid ${C.border}`,
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 'var(--spacing-2)',
                     flexShrink: 0,
                 }}
             >
@@ -338,7 +338,7 @@ export function FloatingChatMessages({
                     padding: "8px 12px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
+                    gap: 'var(--spacing-2)',
                 }}
             >
                 {isLoadingMessages ? (
@@ -358,7 +358,7 @@ export function FloatingChatMessages({
                             getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
 
                         const dateSeparator = showDateSeparator ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "12px 0" }}>
                                 <div style={{ flex: 1, height: 1, background: C.border }} />
                                 <div style={{ whiteSpace: "nowrap" }}>
                                     <Text type="supporting" color="secondary" weight="medium">
@@ -418,14 +418,14 @@ export function FloatingChatMessages({
                                         }}
                                     >
                                         {!isMyMessage && (
-                                            <div style={{ marginBottom: 2, marginLeft: 4 }}>
+                                            <div style={{ marginBottom: 'var(--spacing-0-5)', marginLeft: 'var(--spacing-1)' }}>
                                                 <Text type="supporting" color="secondary">{message.senderName}</Text>
                                                 {message.senderPosition && (
                                                     <Text type="supporting" color="disabled">{` (${message.senderPosition})`}</Text>
                                                 )}
                                             </div>
                                         )}
-                                        <div style={{ display: "flex", alignItems: "flex-end", gap: 4 }}>
+                                        <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)' }}>
                                             {isMyMessage && (
                                                 <Text type="supporting" color="secondary">
                                                     {formatMessageTime(message.createdAt)}
@@ -435,7 +435,7 @@ export function FloatingChatMessages({
                                                 style={{
                                                     position: "relative",
                                                     padding: "6px 12px",
-                                                    borderRadius: 12,
+                                                    borderRadius: 'var(--radius-element)',
                                                     borderBottomRightRadius: isMyMessage ? 2 : 12,
                                                     borderBottomLeftRadius: isMyMessage ? 12 : 2,
                                                     whiteSpace: "pre-wrap",
@@ -458,7 +458,7 @@ export function FloatingChatMessages({
                                                     <img
                                                         src={message.fileUrl}
                                                         alt={message.fileName || "이미지"}
-                                                        style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 4, cursor: "pointer", display: "block" }}
+                                                        style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', cursor: "pointer", display: "block" }}
                                                         onClick={() => window.open(message.fileUrl, "_blank")}
                                                     />
                                                 ) : message.type === "FILE" && message.fileUrl ? (
@@ -469,7 +469,7 @@ export function FloatingChatMessages({
                                                         style={{
                                                             display: "inline-flex",
                                                             alignItems: "center",
-                                                            gap: 4,
+                                                            gap: 'var(--spacing-1)',
                                                             textDecoration: "underline",
                                                             color: isMyMessage ? "#ffffff" : C.accent,
                                                         }}
@@ -498,21 +498,21 @@ export function FloatingChatMessages({
                                                     position: "absolute",
                                                     zIndex: 40,
                                                     bottom: "100%",
-                                                    marginBottom: 4,
+                                                    marginBottom: 'var(--spacing-1)',
                                                     ...(isMyMessage ? { right: 0 } : { left: 0 }),
                                                 }}
                                             >
                                                 <div
                                                     style={{
                                                         background: 'var(--color-background-card)',
-                                                        borderRadius: 12,
+                                                        borderRadius: 'var(--radius-element)',
                                                         boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
                                                         border: `1px solid ${C.border}`,
                                                         overflow: "hidden",
                                                     }}
                                                 >
                                                     {/* 이모지 바 */}
-                                                    <div style={{ display: "flex", gap: 2, padding: "6px 8px", borderBottom: `1px solid ${C.borderLight}` }}>
+                                                    <div style={{ display: "flex", gap: 'var(--spacing-0-5)', padding: "6px 8px", borderBottom: `1px solid ${C.borderLight}` }}>
                                                         {QUICK_EMOJIS.map((emoji) => (
                                                             <Button
                                                                 key={emoji}
@@ -520,13 +520,13 @@ export function FloatingChatMessages({
                                                                 isIconOnly
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                icon={<span style={{ fontSize: 18 }}>{emoji}</span>}
+                                                                icon={<span style={{ fontSize: 'var(--font-size-lg)' }}>{emoji}</span>}
                                                                 onClick={() => handleToggleReaction(message.id, emoji)}
                                                             />
                                                         ))}
                                                     </div>
                                                     {/* 답글 버튼 */}
-                                                    <div style={{ padding: 4 }}>
+                                                    <div style={{ padding: 'var(--spacing-1)' }}>
                                                         <Button
                                                             label="답장"
                                                             variant="ghost"
@@ -556,10 +556,10 @@ export function FloatingChatMessages({
                         background: C.bgGray50,
                         display: "flex",
                         alignItems: "center",
-                        gap: 8,
+                        gap: 'var(--spacing-2)',
                     }}
                 >
-                    <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 'var(--spacing-2)' }}>
                         <Text type="supporting" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
                         <div>
                             <Text type="supporting" color="secondary" maxLines={1}>
@@ -580,7 +580,7 @@ export function FloatingChatMessages({
 
             {/* Input Area */}
             <div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                <div style={{ display: "flex", gap: 'var(--spacing-2)', alignItems: "flex-end" }}>
                     <div style={{ flex: 1 }} onKeyDown={handleKeyDown}>
                         <TextInput
                             label="메시지 입력"
@@ -639,8 +639,8 @@ export function FloatingChatMessages({
 
                     <div style={{ flex: 1, overflowY: "auto" }}>
                         {/* 참여자 */}
-                        <div style={{ padding: 12, borderBottom: `1px solid ${C.borderLight}` }}>
-                            <div style={{ marginBottom: 8 }}>
+                        <div style={{ padding: 'var(--spacing-3)', borderBottom: `1px solid ${C.borderLight}` }}>
+                            <div style={{ marginBottom: 'var(--spacing-2)' }}>
                                 <Text type="label" weight="semibold" color="primary">
                                     참여자 ({participants.length}명)
                                 </Text>
@@ -650,9 +650,9 @@ export function FloatingChatMessages({
                                     <Spinner size="sm" aria-label="참여자 불러오는 중" />
                                 </div>
                             ) : participants.length > 0 ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                     {participants.map((p, i) => (
-                                        <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+                                        <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "6px 0" }}>
                                             <Avatar name={p.userName || "?"} size="small" />
                                             <Text type="body" color="primary">{p.userName}</Text>
                                         </div>
@@ -666,20 +666,20 @@ export function FloatingChatMessages({
                         </div>
 
                         {/* 사진 */}
-                        <div style={{ padding: 12, borderBottom: `1px solid ${C.borderLight}` }}>
-                            <div style={{ marginBottom: 8 }}>
+                        <div style={{ padding: 'var(--spacing-3)', borderBottom: `1px solid ${C.borderLight}` }}>
+                            <div style={{ marginBottom: 'var(--spacing-2)' }}>
                                 <Text type="label" weight="semibold" color="primary">
                                     사진 ({messages.filter(m => m.type === "IMAGE" && m.fileUrl).length})
                                 </Text>
                             </div>
                             {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-1-5)' }}>
                                     {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
                                         <img
                                             key={m.id}
                                             src={m.fileUrl!}
                                             alt={m.fileName || "사진"}
-                                            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 8, cursor: "pointer" }}
+                                            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)', cursor: "pointer" }}
                                             onClick={() => window.open(m.fileUrl, "_blank")}
                                         />
                                     ))}
@@ -692,28 +692,28 @@ export function FloatingChatMessages({
                         </div>
 
                         {/* 파일 */}
-                        <div style={{ padding: 12 }}>
-                            <div style={{ marginBottom: 8 }}>
+                        <div style={{ padding: 'var(--spacing-3)' }}>
+                            <div style={{ marginBottom: 'var(--spacing-2)' }}>
                                 <Text type="label" weight="semibold" color="primary">
                                     파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
                                 </Text>
                             </div>
                             {messages.filter(m => m.type === "FILE" && m.fileUrl).length > 0 ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                     {messages.filter(m => m.type === "FILE" && m.fileUrl).map(m => (
                                         <a
                                             key={m.id}
                                             href={m.fileUrl!}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderRadius: 8, textDecoration: "none" }}
+                                            style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', textDecoration: "none" }}
                                         >
                                             <div
                                                 style={{
                                                     width: 28,
                                                     height: 28,
                                                     background: C.borderLight,
-                                                    borderRadius: 8,
+                                                    borderRadius: 'var(--radius-inner)',
                                                     display: "flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",

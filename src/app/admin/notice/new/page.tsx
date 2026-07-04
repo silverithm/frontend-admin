@@ -175,7 +175,7 @@ export default function NewNoticePage() {
                         onChange={(value) => setPriority(value as NoticePriority)}
                       />
                     </div>
-                    <div style={{ flex: 1, paddingBottom: 8 }}>
+                    <div style={{ flex: 1, paddingBottom: 'var(--spacing-2)' }}>
                       <CheckboxInput
                         label="상단 고정"
                         value={isPinned}

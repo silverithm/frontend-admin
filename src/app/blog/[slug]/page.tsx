@@ -509,10 +509,10 @@ export default function BlogPostPage() {
             <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)' }}>
                 <Navbar />
                 <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '128px 16px 0', textAlign: 'center' }}>
-                    <Heading level={1} style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 700, marginBottom: 16 }}>
+                    <Heading level={1} style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-4)' }}>
                         포스트를 찾을 수 없습니다
                     </Heading>
-                    <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.25rem', marginBottom: 32 }}>
+                    <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.25rem', marginBottom: 'var(--spacing-8)' }}>
                         요청하신 블로그 포스트가 존재하지 않습니다.
                     </Text>
                     <Button label="블로그로 돌아가기" variant="primary" size="md" onClick={() => router.push('/blog')} />
@@ -536,14 +536,14 @@ export default function BlogPostPage() {
                         <VStack gap={5} hAlign="start">
                             <Link
                                 href="/blog"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--color-text-blue)', textDecoration: 'none' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)', color: 'var(--color-text-blue)', textDecoration: 'none' }}
                             >
                                 <Icon icon="chevronLeft" size="sm" color="inherit" />
                                 <Text type="body" style={{ color: 'var(--color-text-blue)' }}>블로그로 돌아가기</Text>
                             </Link>
 
                             <HStack gap={3} vAlign="center" wrap="wrap">
-                                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', background: 'rgba(59, 130, 246, 0.2)', borderRadius: 9999 }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', background: 'rgba(59, 130, 246, 0.2)', borderRadius: 'var(--radius-full)' }}>
                                     <Text type="supporting" style={{ color: 'var(--color-text-blue)' }}>{post.category}</Text>
                                 </span>
                                 <Text type="supporting" style={{ color: 'var(--color-text-gray)' }}>{post.date}</Text>
@@ -553,7 +553,7 @@ export default function BlogPostPage() {
                             <Heading
                                 level={1}
                                 style={{
-                                    fontWeight: 700,
+                                    fontWeight: 'var(--font-weight-bold)',
                                     fontSize: 'clamp(1.875rem, 4vw, 3rem)',
                                     background: 'linear-gradient(to right, #ffffff, #a5e3d6)',
                                     WebkitBackgroundClip: 'text',
@@ -569,7 +569,7 @@ export default function BlogPostPage() {
                                 {post.keywords.map((keyword, idx) => (
                                     <span
                                         key={idx}
-                                        style={{ display: 'inline-flex', padding: '4px 12px', background: 'rgba(51, 65, 85, 0.5)', borderRadius: 6 }}
+                                        style={{ display: 'inline-flex', padding: '4px 12px', background: 'rgba(51, 65, 85, 0.5)', borderRadius: 'var(--radius-inner)' }}
                                     >
                                         <Text type="supporting" style={{ color: 'var(--color-text-blue)' }}>#{keyword}</Text>
                                     </span>
@@ -595,7 +595,7 @@ export default function BlogPostPage() {
                                 background: 'rgba(255, 255, 255, 0.1)',
                                 backdropFilter: 'blur(16px)',
                                 WebkitBackdropFilter: 'blur(16px)',
-                                borderRadius: 16,
+                                borderRadius: 'var(--radius-container)',
                                 border: '1px solid rgba(96, 165, 250, 0.2)',
                             }}
                         >
@@ -612,10 +612,10 @@ export default function BlogPostPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
-                        style={{ marginTop: 48 }}
+                        style={{ marginTop: 'var(--spacing-12)' }}
                     >
                         <VStack gap={5} hAlign="center">
-                            <Heading level={3} style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700 }}>
+                            <Heading level={3} style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)' }}>
                                 더 많은 정보가 필요하신가요?
                             </Heading>
                             <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.125rem' }}>

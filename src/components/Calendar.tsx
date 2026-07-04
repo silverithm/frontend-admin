@@ -14,7 +14,7 @@ interface CalendarProps {
 const CARD_STYLE: CSSProperties = {
   background: 'var(--color-background-card)',
   border: '1px solid var(--color-border)',
-  borderRadius: 12,
+  borderRadius: 'var(--radius-element)',
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
   overflow: 'hidden',
 };
@@ -83,7 +83,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
         style={{
           background: 'linear-gradient(to right, #14b8a6, #0d9488)',
           color: '#fff',
-          padding: 24,
+          padding: 'var(--spacing-6)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -138,7 +138,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
           <div
             key={index}
             style={{
-              padding: 12,
+              padding: 'var(--spacing-3)',
               textAlign: 'center',
               color: index === 0 ? 'var(--color-text-red)' : index === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
             }}
@@ -170,7 +170,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                         key={`blank-${rowIndex}-${colIndex}`}
                         className="carev-cal-cell"
                         style={{
-                          padding: 4,
+                          padding: 'var(--spacing-1)',
                           borderBottom: '1px solid var(--color-border)',
                           borderRight: '1px solid var(--color-border)',
                           background: 'rgba(249, 250, 251, 0.5)',
@@ -215,7 +215,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                       className="carev-cal-cell carev-cal-daycell"
                       style={{
                         position: 'relative',
-                        padding: 4,
+                        padding: 'var(--spacing-1)',
                         borderBottom: '1px solid var(--color-border)',
                         borderRight: '1px solid var(--color-border)',
                         cursor: 'pointer',
@@ -231,7 +231,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                       }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 'var(--spacing-1)' }}>
                           <span style={dayNumberStyle}>
                             <Text type="body" weight="medium" color="inherit">{format(dayInfo.date, 'd')}</Text>
                           </span>
@@ -244,7 +244,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                                 minWidth: 20,
                                 height: 20,
                                 padding: '0 6px',
-                                borderRadius: '9999px',
+                                borderRadius: 'var(--radius-full)',
                                 background: 'var(--color-background-red)',
                                 color: '#fff',
                                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
@@ -257,14 +257,14 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
 
                         {/* 휴가 표시 */}
                         {dayInfo.vacationCount > 0 && isCurrentMonth && (
-                          <div style={{ marginTop: 4, padding: '0 4px' }}>
+                          <div style={{ marginTop: 'var(--spacing-1)', padding: '0 4px' }}>
                             {dayInfo.vacations.slice(0, 2).map((vacation: VacationRequest, idx: number) => (
                               <div
                                 key={idx}
                                 style={{
                                   margin: '2px 0',
-                                  padding: 4,
-                                  borderRadius: 4,
+                                  padding: 'var(--spacing-1)',
+                                  borderRadius: 'var(--radius-none)',
                                   background: 'var(--color-background-red)',
                                   color: 'var(--color-text-red)',
                                 }}
@@ -275,7 +275,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                               </div>
                             ))}
                             {dayInfo.vacationCount > 2 && (
-                              <div style={{ marginTop: 4, color: 'var(--color-text-gray)' }}>
+                              <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-gray)' }}>
                                 <Text type="supporting" size="2xs" weight="medium" color="inherit">
                                   +{dayInfo.vacationCount - 2}명
                                 </Text>
@@ -292,7 +292,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                             position: 'absolute',
                             inset: 0,
                             border: '2px solid #14b8a6',
-                            borderRadius: 2,
+                            borderRadius: 'var(--radius-none)',
                             pointerEvents: 'none',
                           }}
                         />
@@ -309,19 +309,19 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       {/* 하단 정보 */}
       <div
         style={{
-          padding: 12,
+          padding: 'var(--spacing-3)',
           background: 'var(--color-background-muted)',
           borderTop: '1px solid var(--color-border)',
           display: 'flex',
           justifyContent: 'center',
-          gap: 24,
+          gap: 'var(--spacing-6)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1-5)' }}>
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--color-background-teal)' }} />
           <Text type="supporting" size="2xs" color="secondary">오늘</Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1-5)' }}>
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--color-background-red)' }} />
           <Text type="supporting" size="2xs" color="secondary">휴가신청</Text>
         </div>

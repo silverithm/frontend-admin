@@ -197,7 +197,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
               </HStack>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-3)' }}>
               {schema.fields.length === 0 ? (
                 <div
                   style={{
@@ -214,7 +214,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                   </VStack>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1-5)' }}>
                   {schema.fields.map((field, index) => {
                     const isSelected = selectedFieldId === field.id;
                     return (
@@ -228,7 +228,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 8,
+                          gap: 'var(--spacing-2)',
                           padding: '10px 12px',
                           borderRadius: 'var(--radius-element)',
                           border: `1px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border)'}`,
@@ -288,7 +288,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
               )}
             </div>
 
-            <div style={{ padding: 12, borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ padding: 'var(--spacing-3)', borderTop: '1px solid var(--color-border)' }}>
               <Button
                 label="필드 추가"
                 variant="secondary"
@@ -317,7 +317,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
             >
               <Text type="label" weight="semibold">필드 설정</Text>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-4)' }}>
               {selectedField ? (
                 <FormFieldEditor
                   field={selectedField}
@@ -346,7 +346,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
         </div>
 
         {/* 하단 툴바 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', paddingTop: 'var(--spacing-3)' }}>
           {/* 프리셋 선택 */}
           <div style={{ position: 'relative' }}>
             <Button
@@ -367,7 +367,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                     position: 'absolute',
                     bottom: '100%',
                     left: 0,
-                    marginBottom: 4,
+                    marginBottom: 'var(--spacing-1)',
                     width: 208,
                     background: 'var(--color-background-popover)',
                     border: '1px solid var(--color-border)',

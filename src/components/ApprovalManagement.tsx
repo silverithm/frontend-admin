@@ -382,7 +382,7 @@ export default function ApprovalManagement() {
                     <HStack hAlign="between" vAlign="center" gap={4}>
                       <HStack gap={3} vAlign="start">
                         {approval.status === 'PENDING' && (
-                          <div style={{ paddingTop: 4, flexShrink: 0 }}>
+                          <div style={{ paddingTop: 'var(--spacing-1)', flexShrink: 0 }}>
                             <CheckboxInput
                               label="선택"
                               isLabelHidden
@@ -395,7 +395,7 @@ export default function ApprovalManagement() {
                           style={{
                             width: 40,
                             height: 40,
-                            borderRadius: 12,
+                            borderRadius: 'var(--radius-element)',
                             background: avatar.bg,
                             display: 'flex',
                             alignItems: 'center',

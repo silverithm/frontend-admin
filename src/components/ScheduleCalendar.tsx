@@ -38,7 +38,7 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 const CARD_STYLE: CSSProperties = {
   background: 'var(--color-background-card)',
-  borderRadius: 12,
+  borderRadius: 'var(--radius-element)',
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
   border: '1px solid var(--color-border)',
   overflow: 'hidden',
@@ -49,7 +49,7 @@ const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   width: 28,
   height: 28,
   borderRadius: '50%',
-  padding: 0,
+  padding: 'var(--spacing-0)',
   cursor: 'pointer',
   border: selected ? '2px solid #111827' : '2px solid transparent',
   boxShadow: selected ? '0 0 0 2px #d1d5db' : undefined,
@@ -494,7 +494,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       <AlertContainer />
       {/* 배차 모드: 서브탭 */}
       {isDispatchMode && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 'var(--spacing-4)' }}>
           <SegmentedControl
             value={dispatchSubTab}
             onChange={(v) => setDispatchSubTab(v as 'calendar' | 'list' | 'absence')}
@@ -528,7 +528,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
         <div className={!isDispatchMode && selectedDate ? 'carev-schedcal-main carev-schedcal-main--narrow' : 'carev-schedcal-main'}>
           <div style={CARD_STYLE}>
             {/* 캘린더 헤더 */}
-            <div style={{ padding: 24, borderBottom: '1px solid var(--color-border)' }}>
+            <div style={{ padding: 'var(--spacing-6)', borderBottom: '1px solid var(--color-border)' }}>
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
                 <HStack gap={4} vAlign="center">
                   <Text type="display-3" as="h2" weight="bold" color="primary">
@@ -575,7 +575,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       onClick={() => openCreateModal()}
                     />
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
                     <Button
                       label="이전 달"
                       variant="ghost"
@@ -615,8 +615,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
             {/* 배차 모드: 설정 비어있을 때 안내 */}
             {isDispatchMode && isHydrated && dispatchSettings.routes.length === 0 && (
-              <div style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid var(--color-border)' }}>
-                <div style={{ background: 'var(--color-background-yellow)', border: '1px solid #fef08a', borderRadius: 8, padding: 16 }}>
+              <div style={{ padding: 'var(--spacing-6)', textAlign: 'center', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ background: 'var(--color-background-yellow)', border: '1px solid #fef08a', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-4)' }}>
                   <VStack gap={1} hAlign="center">
                     <div style={{ color: '#854d0e' }}>
                       <Text type="body" weight="medium" color="inherit">배차 설정이 필요합니다</Text>
@@ -624,7 +624,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                     <div style={{ color: 'var(--color-text-yellow)' }}>
                       <Text type="supporting" color="inherit">노선, 직원 정보를 먼저 등록해주세요.</Text>
                     </div>
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 'var(--spacing-2)' }}>
                       <Button label="설정하러 가기" variant="primary" size="sm" onClick={() => setShowDispatchSettings(true)} />
                     </div>
                   </VStack>
@@ -689,7 +689,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         disabled={!isCurrentMonth}
                         style={{
                           aspectRatio: '1 / 1',
-                          padding: 8,
+                          padding: 'var(--spacing-2)',
                           border: 'none',
                           borderBottom: '1px solid var(--color-border)',
                           borderRight: '1px solid var(--color-border)',
@@ -707,34 +707,34 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             <Text type="label" weight={isToday(date) ? 'bold' : 'semibold'} color="inherit">{format(date, 'd')}</Text>
                           </span>
                           {isCurrentMonth && summary?.isHoliday && (
-                            <div style={{ marginTop: 4, color: 'var(--color-text-gray)' }}>
+                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-gray)' }}>
                               <Text type="supporting" size="4xs" color="inherit" weight="medium">{summary.holidayName}</Text>
                             </div>
                           )}
                           {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
-                            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <div style={{ marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)' }}>
                               {summary.normalCount > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-green)' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-green)', marginRight: 4, flexShrink: 0 }} />
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-green)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
                                   <Text type="supporting" size="4xs" color="inherit">{summary.normalCount} 정상</Text>
                                 </div>
                               )}
                               {summary.substituteCount > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-yellow)' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-yellow)', marginRight: 4, flexShrink: 0 }} />
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-yellow)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
                                   <Text type="supporting" size="4xs" color="inherit">{summary.substituteCount} 대체</Text>
                                 </div>
                               )}
                               {summary.noServiceCount > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-red)' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-red)', marginRight: 4, flexShrink: 0 }} />
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-red)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
                                   <Text type="supporting" size="4xs" color="inherit">{summary.noServiceCount} 미운행</Text>
                                 </div>
                               )}
                             </div>
                           )}
                           {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
-                            <div style={{ marginTop: 4, color: 'var(--color-text-gray)', fontStyle: 'italic' }}>
+                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-gray)', fontStyle: 'italic' }}>
                               <Text type="supporting" size="4xs" color="inherit">미설정</Text>
                             </div>
                           )}
@@ -772,7 +772,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       className="carev-schedcal-cell"
                       style={{
                         aspectRatio: '1 / 1',
-                        padding: 8,
+                        padding: 'var(--spacing-2)',
                         border: 'none',
                         borderBottom: '1px solid var(--color-border)',
                         borderRight: '1px solid var(--color-border)',
@@ -790,7 +790,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           <Text type="label" weight={isToday(date) ? 'bold' : 'medium'} color="inherit">{format(date, 'd')}</Text>
                         </span>
                         {daySchedules.length > 0 && (
-                          <div style={{ flex: 1, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+                          <div style={{ flex: 1, marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)', overflowY: 'auto' }}>
                             {daySchedules.map((schedule) => (
                               <div
                                 key={schedule.id}
@@ -798,7 +798,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                 title={schedule.title}
                                 style={{
                                   padding: '2px 6px',
-                                  borderRadius: 4,
+                                  borderRadius: 'var(--radius-none)',
                                   color: '#fff',
                                   backgroundColor: schedule.label?.color || 'var(--color-background-blue)',
                                   opacity: 0.9,
@@ -834,7 +834,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             >
               <div style={{ ...CARD_STYLE, position: 'sticky', top: 24, minHeight: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
                 {/* 헤더 */}
-                <div style={{ padding: 20, borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ padding: 'var(--spacing-5)', borderBottom: '1px solid var(--color-border)' }}>
                   <HStack hAlign="between" vAlign="start">
                     <VStack gap={1}>
                       <Text type="display-3" as="h3" weight="bold" color="primary">
@@ -866,26 +866,26 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 </div>
 
                 {/* 일정 목록 (스크롤 가능) */}
-                <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+                <div style={{ padding: 'var(--spacing-5)', flex: 1, overflowY: 'auto' }}>
                   {getSchedulesForDate(selectedDate).length > 0 ? (
                     <VStack gap={2}>
                       {getSchedulesForDate(selectedDate).map((schedule) => (
                         <div
                           key={schedule.id}
                           className="carev-schedcal-list-item"
-                          style={{ width: '100%', padding: 12, borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-background-muted)', textAlign: 'left' }}
+                          style={{ width: '100%', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-element)', border: '1px solid var(--color-border)', background: 'var(--color-background-muted)', textAlign: 'left' }}
                         >
                           <button
                             onClick={() => handleScheduleClick(null, schedule)}
-                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 'var(--spacing-0)', cursor: 'pointer' }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
                               <div
-                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 6, flexShrink: 0, backgroundColor: schedule.label?.color || 'var(--color-background-blue)' }}
+                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 'var(--spacing-1-5)', flexShrink: 0, backgroundColor: schedule.label?.color || 'var(--color-background-blue)' }}
                               />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <Text type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>
-                                <div style={{ marginTop: 4 }}>
+                                <div style={{ marginTop: 'var(--spacing-1)' }}>
                                   <HStack gap={1.5} vAlign="center">
                                     <Badge variant="teal" label={getCategoryText(schedule.category)} />
                                     <Text type="supporting">
@@ -894,7 +894,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                   </HStack>
                                 </div>
                                 {schedule.location && (
-                                  <div style={{ marginTop: 2 }}>
+                                  <div style={{ marginTop: 'var(--spacing-0-5)' }}>
                                     <Text type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
                                   </div>
                                 )}
@@ -902,7 +902,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             </div>
                           </button>
                           {(isAdmin || schedule.authorId === currentUserEmail) && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-1)', marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)' }}>
                               <Button label="수정" variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule)} />
                               <Button
                                 label="삭제"
@@ -921,10 +921,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   ) : (
                     <div style={{ textAlign: 'center', padding: '32px 0' }}>
                       <Icon icon="calendar" size="lg" color="disabled" />
-                      <div style={{ marginTop: 12 }}>
+                      <div style={{ marginTop: 'var(--spacing-3)' }}>
                         <Text type="body" weight="medium" color="secondary">일정이 없습니다</Text>
                       </div>
-                      <div style={{ marginTop: 4 }}>
+                      <div style={{ marginTop: 'var(--spacing-1)' }}>
                         <Text type="supporting">일정 추가 버튼으로 새 일정을 등록하세요</Text>
                       </div>
                     </div>
@@ -964,7 +964,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   placeholder="일정 제목을 입력하세요"
                 />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)' }}>
                   {/* 일정 구분 */}
                   <Selector
                     label="일정 구분"
@@ -976,7 +976,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
                   {/* 라벨 (색상) */}
                   <div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-2)', alignItems: 'flex-end' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Selector
                           label="라벨"
@@ -995,7 +995,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       />
                     </div>
                     {formData.labelId && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginTop: 'var(--spacing-1-5)' }}>
                         <span
                           style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: labels.find(l => String(l.id) === String(formData.labelId))?.color }}
                         />
@@ -1025,7 +1025,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       onChange={(checked) => setFormData(prev => ({ ...prev, isAllDay: checked }))}
                     />
                   </HStack>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)' }}>
                     <DateInput
                       label="시작일"
                       value={formData.startDate ? (formData.startDate as ISODateString) : undefined}
@@ -1040,7 +1040,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       />
                     )}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)' }}>
                     <DateInput
                       label="종료일"
                       value={formData.endDate ? (formData.endDate as ISODateString) : undefined}
@@ -1067,10 +1067,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 {/* 참석자 선택 */}
                 <VStack gap={2}>
                   <Text type="label" weight="medium">참석자</Text>
-                  <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--color-border-emphasized)', borderRadius: 8, padding: 8 }}>
+                  <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--color-border-emphasized)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-2)' }}>
                     <VStack gap={1}>
                       {members.map((member) => (
-                        <div key={member.id} style={{ padding: 6, borderRadius: 6 }}>
+                        <div key={member.id} style={{ padding: 'var(--spacing-1-5)', borderRadius: 'var(--radius-inner)' }}>
                           <CheckboxInput
                             label={member.name}
                             description={getMemberRoleText(member.role)}
@@ -1087,7 +1087,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         </div>
                       ))}
                       {members.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: 8 }}>
+                        <div style={{ textAlign: 'center', padding: 'var(--spacing-2)' }}>
                           <Text type="supporting" color="secondary">직원이 없습니다</Text>
                         </div>
                       )}
@@ -1221,7 +1221,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
                   {/* 내용 */}
                   {selectedSchedule.content && (
-                    <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                       <div style={{ whiteSpace: 'pre-wrap' }}>
                         <Text type="body" color="secondary">{selectedSchedule.content}</Text>
                       </div>
@@ -1230,7 +1230,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
                   {/* 첨부파일 */}
                   {selectedSchedule.attachments && selectedSchedule.attachments.length > 0 && (
-                    <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                       <VStack gap={2}>
                         <Text type="label" weight="medium">첨부파일</Text>
                         {selectedSchedule.attachments.map((attachment) => (
@@ -1240,7 +1240,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             target="_blank"
                             rel="noopener noreferrer"
                             className="carev-schedcal-attach"
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8, borderRadius: 8, textDecoration: 'none' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', textDecoration: 'none' }}
                           >
                             <Icon icon={IconFileText} size="sm" color="tertiary" />
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1256,11 +1256,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
                   {/* 참석자 */}
                   {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
-                    <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                       <VStack gap={2}>
                         <Text type="label" weight="medium">참석자</Text>
                         {selectedSchedule.participants.map((participant) => (
-                          <div key={participant.id} style={{ padding: 8, borderRadius: 8, background: 'var(--color-background-muted)' }}>
+                          <div key={participant.id} style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
                             <Text type="supporting" color="primary">{(participant as any).memberName || participant.userName || '참석자'}</Text>
                           </div>
                         ))}
@@ -1269,7 +1269,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   )}
 
                   {/* 작성자 */}
-                  <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                  <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                     <Text type="supporting" color="secondary">
                       작성자: {selectedSchedule.authorName} · {format(new Date(selectedSchedule.createdAt), 'yyyy.MM.dd HH:mm')}
                     </Text>
@@ -1364,7 +1364,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         <div key={label.id}>
                           {editingLabelId === label.id ? (
                             /* 수정 모드 */
-                            <div style={{ padding: 12, background: 'var(--color-background-muted)', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)', border: '1px solid var(--color-border)' }}>
                               <VStack gap={3}>
                                 <TextInput
                                   label="라벨 이름"
@@ -1372,7 +1372,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                   value={editLabelForm.name}
                                   onChange={(value) => setEditLabelForm(prev => ({ ...prev, name: value }))}
                                 />
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
                                   {LABEL_COLORS.map((color) => (
                                     <button
                                       key={color.value}
@@ -1398,7 +1398,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             </div>
                           ) : deletingLabelId === label.id ? (
                             /* 삭제 확인 */
-                            <div style={{ padding: 12, background: 'var(--color-background-red)', borderRadius: 8, border: '1px solid #fecaca' }}>
+                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-red)', borderRadius: 'var(--radius-inner)', border: '1px solid #fecaca' }}>
                               <VStack gap={2}>
                                 <div style={{ color: 'var(--color-text-red)' }}>
                                   <Text type="supporting" color="inherit">
@@ -1420,7 +1420,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             </div>
                           ) : (
                             /* 기본 표시 */
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, background: 'var(--color-background-muted)', borderRadius: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
                               <HStack gap={3} vAlign="center">
                                 <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, backgroundColor: label.color }} />
                                 <Text type="body" weight="medium">{label.name}</Text>
@@ -1461,7 +1461,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 {labels.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '24px 0' }}>
                     <Icon icon={IconTag} size="lg" color="disabled" />
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 'var(--spacing-2)' }}>
                       <Text type="supporting" color="secondary">등록된 라벨이 없습니다</Text>
                     </div>
                   </div>
@@ -1481,7 +1481,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       onChange={(value) => setLabelForm(prev => ({ ...prev, name: value }))}
                       placeholder="라벨 이름을 입력하세요"
                     />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
                       {LABEL_COLORS.map((color) => (
                         <button
                           key={color.value}

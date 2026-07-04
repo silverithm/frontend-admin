@@ -95,7 +95,7 @@ export default function SeniorAbsenceManagement() {
         {/* 왼쪽: 노선 및 어르신 목록 */}
         <div style={{ width: 320, borderRight: "1px solid var(--color-border)", display: "flex", flexDirection: "column" }}>
           {/* 노선 선택 */}
-          <div style={{ padding: 16, borderBottom: "1px solid var(--color-border)", backgroundColor: 'var(--color-background-muted)' }}>
+          <div style={{ padding: 'var(--spacing-4)', borderBottom: "1px solid var(--color-border)", backgroundColor: 'var(--color-background-muted)' }}>
             <Selector
               label="노선 선택"
               options={routeOptions}
@@ -106,7 +106,7 @@ export default function SeniorAbsenceManagement() {
           </div>
 
           {/* 어르신 목록 */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)' }}>
             {!selectedRouteId ? (
               <EmptyState
                 icon={<Icon icon={IconUsers} size="lg" color="disabled" />}
@@ -133,8 +133,8 @@ export default function SeniorAbsenceManagement() {
                       className={isSelected ? undefined : "carev-seniorabs-row"}
                       style={{
                         width: "100%",
-                        padding: 12,
-                        borderRadius: 8,
+                        padding: 'var(--spacing-3)',
+                        borderRadius: 'var(--radius-inner)',
                         transition: "all 150ms ease",
                         cursor: "pointer",
                         textAlign: "left",
@@ -151,16 +151,16 @@ export default function SeniorAbsenceManagement() {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              borderRadius: "9999px",
-                              fontSize: 12,
-                              fontWeight: 500,
+                              borderRadius: 'var(--radius-full)',
+                              fontSize: 'var(--font-size-sm)',
+                              fontWeight: 'var(--font-weight-medium)',
                               backgroundColor: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                               color: isSelected ? "#ffffff" : 'var(--color-text-primary)',
                             }}
                           >
                             {index + 1}
                           </span>
-                          <span style={{ fontWeight: 500, color: isSelected ? 'var(--color-text-teal)' : 'var(--color-text-primary)' }}>
+                          <span style={{ fontWeight: 'var(--font-weight-medium)', color: isSelected ? 'var(--color-text-teal)' : 'var(--color-text-primary)' }}>
                             {senior.name}
                           </span>
                         </HStack>
@@ -177,7 +177,7 @@ export default function SeniorAbsenceManagement() {
         </div>
 
         {/* 오른쪽: 결석 캘린더 */}
-        <div style={{ flex: 1, padding: 24 }}>
+        <div style={{ flex: 1, padding: 'var(--spacing-6)' }}>
           {!selectedSenior ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
               <EmptyState
@@ -189,12 +189,12 @@ export default function SeniorAbsenceManagement() {
           ) : (
             <div>
               {/* 헤더 */}
-              <div style={{ marginBottom: 24 }}>
+              <div style={{ marginBottom: 'var(--spacing-6)' }}>
                 <HStack gap={0} hAlign="between" vAlign="center">
                   <VStack gap={0.5} vAlign="start">
                     <Text type="large" weight="bold" size="xl">{selectedSenior.name}</Text>
                     <Text type="supporting" color="secondary">
-                      결석 일수: <span style={{ fontWeight: 500, color: 'var(--color-text-red)' }}>{selectedSeniorAbsenceDates.size}일</span>
+                      결석 일수: <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-red)' }}>{selectedSeniorAbsenceDates.size}일</span>
                     </Text>
                   </VStack>
                   <HStack gap={2} vAlign="center">
@@ -204,7 +204,7 @@ export default function SeniorAbsenceManagement() {
                       icon={<Icon icon="chevronLeft" size="md" />}
                       onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
                     />
-                    <span style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-gray)', minWidth: 120, textAlign: "center" }}>
+                    <span style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', minWidth: 120, textAlign: "center" }}>
                       {format(calendarMonth, "yyyy년 M월", { locale: ko })}
                     </span>
                     <IconButton
@@ -218,18 +218,18 @@ export default function SeniorAbsenceManagement() {
               </div>
 
               {/* 캘린더 */}
-              <div style={{ backgroundColor: 'var(--color-background-muted)', borderRadius: 12, padding: 16 }}>
+              <div style={{ backgroundColor: 'var(--color-background-muted)', borderRadius: 'var(--radius-element)', padding: 'var(--spacing-4)' }}>
                 {/* 요일 헤더 */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-2)' }}>
                   {["일", "월", "화", "수", "목", "금", "토"].map((day, i) => (
                     <div
                       key={day}
                       style={{
                         textAlign: "center",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        paddingTop: 8,
-                        paddingBottom: 8,
+                        fontSize: 'var(--font-size-base)',
+                        fontWeight: 'var(--font-weight-medium)',
+                        paddingTop: 'var(--spacing-2)',
+                        paddingBottom: 'var(--spacing-2)',
                         color: i === 0 ? 'var(--color-text-red)' : i === 6 ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                       }}
                     >
@@ -239,7 +239,7 @@ export default function SeniorAbsenceManagement() {
                 </div>
 
                 {/* 날짜 */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 'var(--spacing-2)' }}>
                   {/* 첫 주 빈 칸 */}
                   {Array.from({ length: getDay(calendarDays[0]) }).map((_, i) => (
                     <div key={`empty-${i}`} style={{ height: 48 }} />
@@ -261,10 +261,10 @@ export default function SeniorAbsenceManagement() {
                         className={isAbsent ? "carev-seniorabs-day-absent" : isSunday ? undefined : "carev-seniorabs-day"}
                         style={{
                           height: 48,
-                          fontSize: 14,
-                          borderRadius: 8,
+                          fontSize: 'var(--font-size-base)',
+                          borderRadius: 'var(--radius-inner)',
                           transition: "all 150ms ease",
-                          fontWeight: 500,
+                          fontWeight: 'var(--font-weight-medium)',
                           position: "relative",
                           cursor: isSunday ? "not-allowed" : "pointer",
                           backgroundColor: isSunday && !isAbsent ? 'var(--color-background-muted)' : undefined,
@@ -282,7 +282,7 @@ export default function SeniorAbsenceManagement() {
                               width: 4,
                               height: 4,
                               backgroundColor: 'var(--color-background-teal)',
-                              borderRadius: "9999px",
+                              borderRadius: 'var(--radius-full)',
                             }}
                           />
                         )}
@@ -293,24 +293,24 @@ export default function SeniorAbsenceManagement() {
               </div>
 
               {/* 범례 */}
-              <div style={{ marginTop: 16 }}>
+              <div style={{ marginTop: 'var(--spacing-4)' }}>
                 <HStack gap={6} hAlign="center" vAlign="center">
                   <HStack gap={2} vAlign="center">
-                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-red)', borderRadius: 4 }} />
+                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-red)', borderRadius: 'var(--radius-none)' }} />
                     <Text type="body" color="secondary">결석</Text>
                   </HStack>
                   <HStack gap={2} vAlign="center">
-                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-card)', border: "1px solid var(--color-border)", borderRadius: 4 }} />
+                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-card)', border: "1px solid var(--color-border)", borderRadius: 'var(--radius-none)' }} />
                     <Text type="body" color="secondary">출석</Text>
                   </HStack>
                   <HStack gap={2} vAlign="center">
-                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-muted)', borderRadius: 4 }} />
+                    <div style={{ width: 16, height: 16, backgroundColor: 'var(--color-background-muted)', borderRadius: 'var(--radius-none)' }} />
                     <Text type="body" color="secondary">일요일 (휴무)</Text>
                   </HStack>
                 </HStack>
               </div>
 
-              <div style={{ marginTop: 16, textAlign: "center" }}>
+              <div style={{ marginTop: 'var(--spacing-4)', textAlign: "center" }}>
                 <Text type="supporting" color="secondary">
                   날짜를 클릭하여 결석을 등록하거나 해제할 수 있습니다.
                 </Text>

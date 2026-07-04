@@ -52,7 +52,7 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16,
+        padding: 'var(--spacing-4)',
         background: 'rgba(0, 0, 0, 0.4)',
         backdropFilter: 'blur(4px)',
         zIndex: 50,
@@ -63,7 +63,7 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
         style={{
           width: '100%',
           maxWidth: 384,
-          padding: 20,
+          padding: 'var(--spacing-5)',
           background: 'var(--color-background-card)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-container)',
@@ -83,10 +83,10 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
 
         <div
           style={{
-            marginTop: 16,
+            marginTop: 'var(--spacing-4)',
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 8,
+            gap: 'var(--spacing-2)',
           }}
         >
           {FIELD_TYPE_OPTIONS.map((option) => (
@@ -101,8 +101,8 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 6,
-                padding: 12,
+                gap: 'var(--spacing-1-5)',
+                padding: 'var(--spacing-3)',
                 borderRadius: 'var(--radius-element)',
                 border: '1px solid var(--color-border)',
                 background: 'var(--color-background-card)',

@@ -207,7 +207,7 @@ export default function LoginPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 16,
+          padding: 'var(--spacing-4)',
           position: 'relative',
           background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)',
         }}

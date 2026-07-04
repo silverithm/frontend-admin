@@ -151,7 +151,7 @@ function SchemaViewer({ formData, schema }: { formData: Record<string, any>; sch
       {rows.map((row, rowIdx) => {
         if (row.length === 1 && row[0].type === 'section') {
           return (
-            <div key={`section-${rowIdx}`} style={{ paddingTop: 8 }}>
+            <div key={`section-${rowIdx}`} style={{ paddingTop: 'var(--spacing-2)' }}>
               <Divider
                 label={
                   <Text

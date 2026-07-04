@@ -24,7 +24,7 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 const CARD_STYLE: CSSProperties = {
   background: 'var(--color-background-card)',
-  borderRadius: 12,
+  borderRadius: 'var(--radius-element)',
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
   border: '1px solid var(--color-border)',
   overflow: 'hidden',
@@ -324,9 +324,9 @@ export default function EmployeeCalendar() {
     ...getStatusLabelStyle(status),
     flexShrink: 0,
     whiteSpace: 'nowrap',
-    marginRight: 4,
+    marginRight: 'var(--spacing-1)',
     padding: '1px 4px',
-    borderRadius: 9999,
+    borderRadius: 'var(--radius-full)',
   });
 
   // 셀 안의 원형 배지 스타일
@@ -341,7 +341,7 @@ export default function EmployeeCalendar() {
     justifyContent: 'center',
     flexShrink: 0,
     fontSize: size <= 12 ? 8 : 10,
-    fontWeight: 700,
+    fontWeight: 'var(--font-weight-bold)',
   });
 
   return (
@@ -351,7 +351,7 @@ export default function EmployeeCalendar() {
         {/* 캘린더 카드 */}
         <div style={CARD_STYLE}>
           {/* 캘린더 헤더 */}
-          <div style={{ padding: 20, borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ padding: 'var(--spacing-5)', borderBottom: '1px solid var(--color-border)' }}>
             <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
               <HStack gap={3} vAlign="center">
                 <Text type="display-3" as="h2" weight="bold" color="primary">
@@ -468,7 +468,7 @@ export default function EmployeeCalendar() {
                     style={{
                       minHeight: isExpanded ? 100 : undefined,
                       aspectRatio: isExpanded ? undefined : '1 / 1',
-                      padding: 4,
+                      padding: 'var(--spacing-1)',
                       border: 'none',
                       borderBottom: '1px solid var(--color-border)',
                       borderRight: '1px solid var(--color-border)',
@@ -503,10 +503,10 @@ export default function EmployeeCalendar() {
                         <div
                           style={{
                             flex: 1,
-                            marginTop: 4,
+                            marginTop: 'var(--spacing-1)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: 2,
+                            gap: 'var(--spacing-0-5)',
                             overflow: isExpanded ? undefined : 'hidden',
                           }}
                         >
@@ -529,7 +529,7 @@ export default function EmployeeCalendar() {
                                   lineHeight: 1.25,
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 4,
+                                  gap: 'var(--spacing-1)',
                                   minWidth: 0,
                                   color: vacation.userName === userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                                 }}
@@ -557,7 +557,7 @@ export default function EmployeeCalendar() {
                             </div>
                           ))}
                           {!isExpanded && vacations.length > 3 && (
-                            <div style={{ marginTop: 2, color: 'var(--color-text-gray)' }}>
+                            <div style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-gray)' }}>
                               <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 3}명 더</Text>
                             </div>
                           )}
@@ -578,7 +578,7 @@ export default function EmployeeCalendar() {
             animate={{ opacity: 1, y: 0 }}
             style={CARD_STYLE}
           >
-            <div style={{ padding: 20, borderBottom: '1px solid var(--color-border)' }}>
+            <div style={{ padding: 'var(--spacing-5)', borderBottom: '1px solid var(--color-border)' }}>
               <VStack gap={1}>
                 <Text type="display-3" as="h3" weight="bold" color="primary">
                   {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
@@ -603,7 +603,7 @@ export default function EmployeeCalendar() {
               </VStack>
             </div>
 
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: 'var(--spacing-5)' }}>
               {/* 휴가 목록 표시 */}
               {(() => {
                 const filteredVacations = dayVacations;
@@ -615,8 +615,8 @@ export default function EmployeeCalendar() {
                       <div
                         key={vacation.id || index}
                         style={{
-                          padding: 16,
-                          borderRadius: 12,
+                          padding: 'var(--spacing-4)',
+                          borderRadius: 'var(--radius-element)',
                           background: isMyVacation ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                           border: `1px solid ${isMyVacation ? 'var(--color-border-teal)' : 'var(--color-border)'}`,
                         }}
@@ -632,7 +632,7 @@ export default function EmployeeCalendar() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: '#fff',
-                                fontWeight: 700,
+                                fontWeight: 'var(--font-weight-bold)',
                                 flexShrink: 0,
                                 background: isMyVacation ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
                               }}
@@ -678,10 +678,10 @@ export default function EmployeeCalendar() {
               ) : (
                 <div style={{ padding: '48px 0', textAlign: 'center' }}>
                     <Icon icon="calendar" size="lg" color="disabled" />
-                    <div style={{ marginTop: 16 }}>
+                    <div style={{ marginTop: 'var(--spacing-4)' }}>
                       <Text type="body" weight="medium" color="secondary">이 날에 등록된 휴무가 없습니다</Text>
                     </div>
-                    <div style={{ marginTop: 4 }}>
+                    <div style={{ marginTop: 'var(--spacing-1)' }}>
                       <Text type="supporting">휴무 신청 버튼을 눌러 휴무를 신청하세요</Text>
                     </div>
                   </div>
@@ -692,7 +692,7 @@ export default function EmployeeCalendar() {
         )}
 
         {/* 범례 */}
-        <div style={{ ...CARD_STYLE, padding: 16 }}>
+        <div style={{ ...CARD_STYLE, padding: 'var(--spacing-4)' }}>
           <HStack gap={4} vAlign="center" hAlign="center" wrap="wrap">
             {/* 휴가 유형 */}
             <HStack gap={1.5} vAlign="center">
@@ -710,19 +710,19 @@ export default function EmployeeCalendar() {
             <div style={{ borderLeft: '1px solid var(--color-border)', height: 16, margin: '0 8px' }} />
             {/* 상태 */}
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-teal)' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-teal)' }} />
               <Text type="supporting" color="secondary" weight="medium">내 휴무</Text>
             </HStack>
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-green)', border: '1px solid #bbf7d0' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-green)', border: '1px solid #bbf7d0' }} />
               <Text type="supporting" color="secondary">승인됨</Text>
             </HStack>
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-yellow)', border: '1px solid #fef08a' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-yellow)', border: '1px solid #fef08a' }} />
               <Text type="supporting" color="secondary">대기중</Text>
             </HStack>
             <HStack gap={2} vAlign="center">
-              <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--color-background-red)', border: '1px solid #fecaca' }} />
+              <div style={{ width: 16, height: 16, borderRadius: 'var(--radius-none)', background: 'var(--color-background-red)', border: '1px solid #fecaca' }} />
               <Text type="supporting" color="secondary">반려됨</Text>
             </HStack>
           </HStack>

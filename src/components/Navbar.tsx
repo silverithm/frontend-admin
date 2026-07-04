@@ -11,7 +11,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 
 const navLinkStyle: React.CSSProperties = {
   color: '#c3fae8',
-  fontWeight: 500,
+  fontWeight: 'var(--font-weight-medium)',
   textDecoration: 'none',
   transition: 'color 200ms ease',
 };
@@ -65,8 +65,8 @@ const Navbar: React.FC = () => {
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="carev-nav-desktop" style={{ alignItems: 'center', gap: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div className="carev-nav-desktop" style={{ alignItems: 'center', gap: 'var(--spacing-8)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-6)' }}>
               {navLinks.map((link) => (
                 <a key={link.href} href={link.href} style={navLinkStyle}>
                   {link.label}
@@ -75,7 +75,7 @@ const Navbar: React.FC = () => {
             </div>
 
             {/* CTA 버튼들 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
               <Button label="회원가입" variant="ghost" onClick={() => router.push('/signup')} />
               <Button label="로그인" variant="primary" onClick={() => router.push('/login')} />
             </div>
@@ -109,7 +109,7 @@ const Navbar: React.FC = () => {
               borderBottom: '1px solid rgba(15, 118, 110, 0.3)',
             }}
           >
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
               {navLinks.map((link) => (
                 <a
                   key={link.href}
@@ -120,7 +120,7 @@ const Navbar: React.FC = () => {
                   {link.label}
                 </a>
               ))}
-              <div style={{ paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(15, 118, 110, 0.3)' }}>
+              <div style={{ paddingTop: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', borderTop: '1px solid rgba(15, 118, 110, 0.3)' }}>
                 <Button
                   label="회원가입"
                   variant="ghost"

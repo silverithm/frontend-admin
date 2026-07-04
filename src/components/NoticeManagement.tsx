@@ -352,7 +352,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
           <div style={{ width: '100%' }}>
             <Card padding={0}>
               {/* 탭 */}
-              <div style={{ padding: 16 }}>
+              <div style={{ padding: 'var(--spacing-4)' }}>
                 <SegmentedControl
                   value={activeTab}
                   onChange={(v) => setActiveTab(v as TabType)}
@@ -366,7 +366,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
               <Divider />
 
               {/* 검색 */}
-              <div style={{ padding: 16 }}>
+              <div style={{ padding: 'var(--spacing-4)' }}>
                 <div style={{ maxWidth: 420 }}>
                   <TextInput
                     label="검색"
@@ -382,7 +382,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
               <Divider />
 
               {/* 목록 */}
-              <div style={{ padding: 20 }}>
+              <div style={{ padding: 'var(--spacing-5)' }}>
                 {notices.length > 0 ? (
                   <VStack gap={2} align="start" width="100%">
                     {notices.map((n) => (
@@ -393,9 +393,9 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                         onClick={() => handleSelectNotice(n.id)}
                         style={{
                           width: '100%',
-                          padding: 16,
+                          padding: 'var(--spacing-4)',
                           border: `1px solid ${n.isPinned ? '#c3fae8' : 'var(--color-border)'}`,
-                          borderRadius: 12,
+                          borderRadius: 'var(--radius-element)',
                           cursor: 'pointer',
                           background: n.isPinned ? 'var(--color-background-teal)' : '#ffffff',
                         }}
@@ -451,7 +451,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
         /* === 상세 뷰 === */
         <Card padding={0}>
           {/* 상세 헤더 */}
-          <div style={{ padding: 16 }}>
+          <div style={{ padding: 'var(--spacing-4)' }}>
             <HStack gap={3} hAlign="between" vAlign="center" width="100%">
               <Button
                 label="목록으로"
@@ -481,7 +481,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
           <Divider />
 
           {/* 상세 본문 */}
-          <div style={{ padding: 20 }}>
+          <div style={{ padding: 'var(--spacing-5)' }}>
             {isLoadingDetail ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px 0' }}>
                 <Spinner size="lg" aria-label="불러오는 중" />
@@ -509,7 +509,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                         ]}
                       />
                     </div>
-                    <div style={{ flex: '1 1 200px', minWidth: 0, paddingBottom: 8 }}>
+                    <div style={{ flex: '1 1 200px', minWidth: 0, paddingBottom: 'var(--spacing-2)' }}>
                       <CheckboxInput label="상단 고정" value={isPinned} onChange={(checked) => setIsPinned(checked)} />
                     </div>
                   </HStack>
@@ -556,11 +556,11 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 8,
+                              gap: 'var(--spacing-2)',
                               padding: '6px 12px',
                               background: 'var(--color-background-muted)',
                               border: '1px solid var(--color-border)',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                             }}
                           >
                             <Avatar name={reader.userName || '?'} size="xsmall" />

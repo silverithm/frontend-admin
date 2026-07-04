@@ -49,7 +49,7 @@ function FieldRenderer({
     <Text type="label" weight="medium">
       {displayLabel}
       {required && (
-        <span style={{ color: 'var(--color-text-red)', marginLeft: 2 }} aria-hidden>
+        <span style={{ color: 'var(--color-text-red)', marginLeft: 'var(--spacing-0-5)' }} aria-hidden>
           *
         </span>
       )}
@@ -134,7 +134,7 @@ function FieldRenderer({
       <GridSpan columns={span}>
         <VStack gap={1.5} vAlign="start">
           {groupLabelNode}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
             {(options ?? []).map((opt) => (
               <CheckboxInput
                 key={opt.value}

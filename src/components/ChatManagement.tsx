@@ -537,7 +537,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                 display: "flex",
                 height: "calc(100vh - 180px)",
                 background: C.white,
-                borderRadius: 12,
+                borderRadius: 'var(--radius-element)',
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                 border: `1px solid ${C.border}`,
                 overflow: "hidden",
@@ -546,8 +546,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             {/* Left Panel - Room List */}
             <div style={{ width: "33.3333%", borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column" }}>
                 {/* Header */}
-                <div style={{ padding: 16, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                         <Text type="large" weight="semibold">채팅</Text>
                         <span
                             style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", background: isConnected ? C.green : C.gray400 }}
@@ -566,7 +566,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                             <Spinner size="lg" />
                         </div>
                     ) : rooms.length === 0 ? (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 128, gap: 8 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 128, gap: 'var(--spacing-2)' }}>
                             <svg style={{ width: 40, height: 40, color: C.gray300 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
@@ -582,7 +582,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     className="carev-chat-room-item"
                                     style={{
                                         width: "100%",
-                                        padding: 12,
+                                        padding: 'var(--spacing-3)',
                                         borderBottom: `1px solid ${C.border}`,
                                         borderLeft: isSelected ? `2px solid ${C.accent}` : "2px solid transparent",
                                         background: isSelected ? C.surface : "transparent",
@@ -590,11 +590,11 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         cursor: "pointer",
                                     }}
                                 >
-                                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
-                                        <div style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 'var(--spacing-1)' }}>
+                                        <div style={{ flex: 1, minWidth: 0, marginRight: 'var(--spacing-2)' }}>
                                             <Text type="body" weight="semibold" maxLines={1}>{room.name}</Text>
                                         </div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1-5)', flexShrink: 0 }}>
                                             {(room.lastMessageAt || room.lastMessage?.createdAt) && (
                                                 <Text type="supporting" size="2xs">
                                                     {formatTimestamp(room.lastMessageAt || room.lastMessage!.createdAt)}
@@ -605,15 +605,15 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                     style={{
                                                         background: C.accent,
                                                         color: C.white,
-                                                        fontSize: 10,
-                                                        fontWeight: 700,
+                                                        fontSize: 'var(--font-size-xs)',
+                                                        fontWeight: 'var(--font-weight-bold)',
                                                         minWidth: 18,
                                                         height: 18,
                                                         display: "inline-flex",
                                                         alignItems: "center",
                                                         justifyContent: "center",
                                                         padding: "0 6px",
-                                                        borderRadius: 9999,
+                                                        borderRadius: 'var(--radius-full)',
                                                     }}
                                                 >
                                                     {room.unreadCount > 99 ? "99+" : room.unreadCount}
@@ -628,7 +628,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                 : "메시지가 없습니다"}
                                         </Text>
                                     </div>
-                                    <div style={{ marginTop: 2 }}>
+                                    <div style={{ marginTop: 'var(--spacing-0-5)' }}>
                                         <Text type="supporting" size="2xs">참여자 {room.participantCount}명</Text>
                                     </div>
                                 </button>
@@ -643,7 +643,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                 {selectedRoom ? (
                     <>
                         {/* Header */}
-                        <div style={{ padding: 16, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <div>
                                 <Text type="large" weight="semibold">
                                     {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
@@ -668,13 +668,13 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         )}
 
                         {/* Messages */}
-                        <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12, background: C.bgGray }}>
+                        <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray }}>
                             {isLoadingMessages ? (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                                     <Spinner size="lg" />
                                 </div>
                             ) : messages.length === 0 ? (
-                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8 }}>
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 'var(--spacing-2)' }}>
                                     <svg style={{ width: 48, height: 48, color: C.gray300 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                     </svg>
@@ -689,7 +689,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
 
                                     const dateSeparator = showDateSeparator ? (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "12px 0" }}>
                                             <div style={{ flex: 1, height: 1, background: C.border }} />
                                             <Text type="supporting" size="xsm" weight="medium" textWrap="nowrap">
                                                 {formatDateSeparator(message.createdAt)}
@@ -703,7 +703,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
                                                 <div style={{ display: "flex", justifyContent: "center" }}>
-                                                    <span style={{ fontSize: 12, color: C.gray400, fontStyle: "italic" }}>{message.content}</span>
+                                                    <span style={{ fontSize: 'var(--font-size-sm)', color: C.gray400, fontStyle: "italic" }}>{message.content}</span>
                                                 </div>
                                             </Fragment>
                                         );
@@ -714,7 +714,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
                                                 <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start" }}>
-                                                    <span style={{ fontSize: 12, color: C.gray400, fontStyle: "italic", padding: "8px 12px" }}>
+                                                    <span style={{ fontSize: 'var(--font-size-sm)', color: C.gray400, fontStyle: "italic", padding: "8px 12px" }}>
                                                         삭제된 메시지입니다
                                                     </span>
                                                 </div>
@@ -728,7 +728,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                             <div style={{ display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start" }}>
                                                 <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isMyMessage ? "flex-end" : "flex-start" }}>
                                                     {!isMyMessage && (
-                                                        <div style={{ marginBottom: 4 }}>
+                                                        <div style={{ marginBottom: 'var(--spacing-1)' }}>
                                                             <Text type="supporting" size="xsm" weight="medium" color="primary">
                                                                 {message.senderName}
                                                             </Text>
@@ -737,7 +737,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                             )}
                                                         </div>
                                                     )}
-                                                    <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                                                    <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
                                                         {isMyMessage && (
                                                             <Text type="supporting" size="2xs">
                                                                 {formatMessageTime(message.createdAt)}
@@ -766,16 +766,16 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                             {message.replyToId && (
                                                                 <div
                                                                     style={{
-                                                                        fontSize: 12,
+                                                                        fontSize: 'var(--font-size-sm)',
                                                                         padding: "4px 8px",
-                                                                        marginBottom: 6,
-                                                                        borderRadius: 6,
+                                                                        marginBottom: 'var(--spacing-1-5)',
+                                                                        borderRadius: 'var(--radius-inner)',
                                                                         borderLeft: isMyMessage ? "2px solid rgba(255,255,255,0.6)" : `2px solid ${C.gray300}`,
                                                                         background: isMyMessage ? "rgba(255,255,255,0.18)" : C.bgGray,
                                                                         color: isMyMessage ? "rgba(255,255,255,0.9)" : C.gray500,
                                                                     }}
                                                                 >
-                                                                    <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.replyToSenderName}</div>
+                                                                    <div style={{ fontWeight: 'var(--font-weight-semibold)', overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.replyToSenderName}</div>
                                                                     <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.8 }}>
                                                                         {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
                                                                     </div>
@@ -786,7 +786,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                 <img
                                                                     src={message.fileUrl}
                                                                     alt={message.fileName || "이미지"}
-                                                                    style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 4, cursor: "pointer" }}
+                                                                    style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)', cursor: "pointer" }}
                                                                     onClick={() => window.open(message.fileUrl, "_blank")}
                                                                 />
                                                             ) : message.type === "FILE" && message.fileUrl ? (
@@ -795,18 +795,18 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     style={{
-                                                                        fontSize: 14,
+                                                                        fontSize: 'var(--font-size-base)',
                                                                         textDecoration: "underline",
                                                                         display: "inline-flex",
                                                                         alignItems: "center",
-                                                                        gap: 4,
+                                                                        gap: 'var(--spacing-1)',
                                                                         color: isMyMessage ? C.white : C.accent,
                                                                     }}
                                                                 >
                                                                     📎 {message.fileName || message.content}
                                                                 </a>
                                                             ) : (
-                                                                <span style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
+                                                                <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
                                                                     {message.content}
                                                                 </span>
                                                             )}
@@ -820,7 +820,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                                                     {/* 리액션 표시 */}
                                                     {message.reactions && message.reactions.length > 0 && (
-                                                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                                                        <div style={{ display: "flex", flexWrap: "wrap", gap: 'var(--spacing-1)', marginTop: 'var(--spacing-1)' }}>
                                                             {message.reactions.map((reaction) => (
                                                                 <button
                                                                     key={reaction.emoji}
@@ -829,10 +829,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                     style={{
                                                                         display: "inline-flex",
                                                                         alignItems: "center",
-                                                                        gap: 2,
+                                                                        gap: 'var(--spacing-0-5)',
                                                                         padding: "2px 6px",
-                                                                        borderRadius: 9999,
-                                                                        fontSize: 12,
+                                                                        borderRadius: 'var(--radius-full)',
+                                                                        fontSize: 'var(--font-size-sm)',
                                                                         cursor: "pointer",
                                                                         border: `1px solid ${reaction.myReaction ? C.softBorder : C.border}`,
                                                                         background: reaction.myReaction ? C.surface : C.white,
@@ -841,7 +841,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                     title={reaction.userNames?.join(", ")}
                                                                 >
                                                                     <span>{reaction.emoji}</span>
-                                                                    <span style={{ fontWeight: 500 }}>{reaction.count}</span>
+                                                                    <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{reaction.count}</span>
                                                                 </button>
                                                             ))}
                                                         </div>
@@ -849,15 +849,15 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                                                     {/* 롱프레스 메뉴 */}
                                                     {contextMenuMessageId === message.id && (
-                                                        <div style={{ position: "absolute", zIndex: 40, bottom: "100%", marginBottom: 4, ...(isMyMessage ? { right: 0 } : { left: 0 }) }}>
-                                                            <div style={{ background: C.white, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.12)", border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                                                                <div style={{ display: "flex", gap: 2, padding: "6px 8px", borderBottom: `1px solid ${C.gray100}` }}>
+                                                        <div style={{ position: "absolute", zIndex: 40, bottom: "100%", marginBottom: 'var(--spacing-1)', ...(isMyMessage ? { right: 0 } : { left: 0 }) }}>
+                                                            <div style={{ background: C.white, borderRadius: 'var(--radius-element)', boxShadow: "0 10px 25px rgba(0,0,0,0.12)", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                                                                <div style={{ display: "flex", gap: 'var(--spacing-0-5)', padding: "6px 8px", borderBottom: `1px solid ${C.gray100}` }}>
                                                                     {QUICK_EMOJIS.map((emoji) => (
                                                                         <button
                                                                             key={emoji}
                                                                             onClick={() => handleToggleReaction(message.id, emoji)}
                                                                             className="carev-chat-emoji-btn"
-                                                                            style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, fontSize: 18, border: "none", background: "transparent", cursor: "pointer" }}
+                                                                            style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 'var(--radius-inner)', fontSize: 'var(--font-size-lg)', border: "none", background: "transparent", cursor: "pointer" }}
                                                                         >
                                                                             {emoji}
                                                                         </button>
@@ -866,7 +866,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                 <button
                                                                     onClick={() => { setReplyTo(message); setContextMenuMessageId(null); }}
                                                                     className="carev-chat-menu-item"
-                                                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", fontSize: 14, color: C.gray700, border: "none", background: "transparent", cursor: "pointer", textAlign: "left" }}
+                                                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-base)', color: C.gray700, border: "none", background: "transparent", cursor: "pointer", textAlign: "left" }}
                                                                 >
                                                                     <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -887,8 +887,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                         {/* 답글 미리보기 바 */}
                         {replyTo && (
-                            <div style={{ padding: "8px 16px", borderTop: `1px solid ${C.border}`, background: C.bgGray, display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 8 }}>
+                            <div style={{ padding: "8px 16px", borderTop: `1px solid ${C.border}`, background: C.bgGray, display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                                <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 'var(--spacing-2)' }}>
                                     <div>
                                         <Text type="supporting" size="xsm" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
                                     </div>
@@ -909,8 +909,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         )}
 
                         {/* Input Area */}
-                        <div style={{ padding: 16, borderTop: `1px solid ${C.border}` }}>
-                            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <div style={{ padding: 'var(--spacing-4)', borderTop: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", gap: 'var(--spacing-2)', alignItems: "flex-start" }}>
                                 <div style={{ flex: 1 }}>
                                     <TextInput
                                         label="메시지 입력"
@@ -937,7 +937,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         {showDrawer && (
                             <div style={{ position: "absolute", inset: 0, background: C.white, zIndex: 20, display: "flex", flexDirection: "column" }}>
                                 {/* Drawer Header */}
-                                <div style={{ padding: 16, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <Text type="large" weight="semibold">채팅방 정보</Text>
                                     <IconButton
                                         label="닫기"
@@ -949,8 +949,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                                 <div style={{ flex: 1, overflowY: "auto" }}>
                                     {/* 참여자 */}
-                                    <div style={{ padding: 16, borderBottom: `1px solid ${C.gray100}` }}>
-                                        <div style={{ marginBottom: 12 }}>
+                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
+                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
                                                 참여자 ({participants.length}명)
                                             </Text>
@@ -962,9 +962,9 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         ) : participants.length > 0 ? (
                                             <VStack gap={2}>
                                                 {participants.map((p, i) => (
-                                                    <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0" }}>
+                                                    <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "8px 0" }}>
                                                         <div style={{ width: 32, height: 32, background: C.surface, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                            <span style={{ fontSize: 14, fontWeight: 500, color: C.accentDark }}>
+                                                            <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', color: C.accentDark }}>
                                                                 {p.userName?.charAt(0) || "?"}
                                                             </span>
                                                         </div>
@@ -980,21 +980,21 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     </div>
 
                                     {/* 사진 */}
-                                    <div style={{ padding: 16, borderBottom: `1px solid ${C.gray100}` }}>
-                                        <div style={{ marginBottom: 12 }}>
+                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
+                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
                                                 사진 ({messages.filter(m => m.type === "IMAGE" && m.fileUrl).length})
                                             </Text>
                                         </div>
                                         {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
-                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-2)' }}>
                                                 {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
                                                     <img
                                                         key={m.id}
                                                         src={m.fileUrl!}
                                                         alt={m.fileName || "사진"}
                                                         className="carev-chat-photo"
-                                                        style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 8, cursor: "pointer" }}
+                                                        style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)', cursor: "pointer" }}
                                                         onClick={() => window.open(m.fileUrl, "_blank")}
                                                     />
                                                 ))}
@@ -1007,8 +1007,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     </div>
 
                                     {/* 파일 */}
-                                    <div style={{ padding: 16, borderBottom: `1px solid ${C.gray100}` }}>
-                                        <div style={{ marginBottom: 12 }}>
+                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
+                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
                                                 파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
                                             </Text>
@@ -1022,9 +1022,9 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="carev-chat-file-link"
-                                                        style={{ display: "flex", alignItems: "center", gap: 12, padding: 8, borderRadius: 8, textDecoration: "none" }}
+                                                        style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', textDecoration: "none" }}
                                                     >
-                                                        <div style={{ width: 32, height: 32, background: C.gray100, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <div style={{ width: 32, height: 32, background: C.gray100, borderRadius: 'var(--radius-inner)', display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                             <svg style={{ width: 16, height: 16, color: C.gray500 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                                             </svg>
@@ -1047,7 +1047,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                                     {/* 채팅방 삭제 (관리자만) */}
                                     {isAdmin && (
-                                        <div style={{ padding: 16 }}>
+                                        <div style={{ padding: 'var(--spacing-4)' }}>
                                             <Button
                                                 label="채팅방 삭제"
                                                 variant="destructive"
@@ -1152,7 +1152,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                 <Text type="body">
                                     <strong>{rooms.find(r => r.id === selectedRoom)?.name}</strong> 채팅방을 삭제하시겠습니까?
                                 </Text>
-                                <span style={{ fontSize: 14, color: C.red500 }}>삭제된 채팅방과 메시지는 복구할 수 없습니다.</span>
+                                <span style={{ fontSize: 'var(--font-size-base)', color: C.red500 }}>삭제된 채팅방과 메시지는 복구할 수 없습니다.</span>
                             </VStack>
                         </LayoutContent>
                     }

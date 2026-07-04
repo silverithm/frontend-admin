@@ -381,13 +381,13 @@ export default function DocumentViewerModal({
             <LayoutHeader hasDivider>
               <HStack hAlign="between" vAlign="center" gap={3}>
                 {/* 왼쪽: 파일 아이콘 + 이름 + 저장 표시등 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', minWidth: 0 }}>
                   <div
                     style={{
                       width: 36,
                       height: 36,
                       background: 'var(--color-background-teal)',
-                      borderRadius: 8,
+                      borderRadius: 'var(--radius-inner)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -404,12 +404,12 @@ export default function DocumentViewerModal({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4,
+                        gap: 'var(--spacing-1)',
                         flexShrink: 0,
                         background: 'var(--color-background-teal)',
                         color: 'var(--color-text-teal)',
                         padding: '4px 8px',
-                        borderRadius: '9999px',
+                        borderRadius: 'var(--radius-full)',
                       }}
                     >
                       <Icon icon={FiCloud} color="inherit" size="xsm" />
@@ -418,7 +418,7 @@ export default function DocumentViewerModal({
                   )}
                 </div>
                 {/* 오른쪽: 액션 버튼 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', flexShrink: 0 }}>
                   {showSaveButton && (
                     <Button
                       label={isSaving ? '저장 중...' : saveLabel}
@@ -492,24 +492,24 @@ export default function DocumentViewerModal({
                   )}
 
                   {state.kind === 'image' && (
-                    <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24 }}>
+                    <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'var(--spacing-6)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={state.objectUrl}
                         alt={fileName}
-                        style={{ maxWidth: '100%', background: 'var(--color-background-card)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: 8 }}
+                        style={{ maxWidth: '100%', background: 'var(--color-background-card)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: 'var(--radius-inner)' }}
                       />
                     </div>
                   )}
 
                   {(state.kind === 'unsupported' || state.kind === 'error') && (
-                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-4)', padding: 'var(--spacing-6)' }}>
                       <div
                         style={{
                           width: 56,
                           height: 56,
                           background: 'var(--color-background-muted)',
-                          borderRadius: '9999px',
+                          borderRadius: 'var(--radius-full)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',

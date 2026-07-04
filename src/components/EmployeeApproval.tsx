@@ -486,9 +486,9 @@ export default function EmployeeApproval() {
         onClick={() => fileInputRef.current?.click()}
         style={{
           width: '100%',
-          padding: 24,
+          padding: 'var(--spacing-6)',
           border: '2px dashed var(--color-border-emphasized)',
-          borderRadius: 12,
+          borderRadius: 'var(--radius-element)',
           textAlign: 'center',
           cursor: 'pointer',
         }}
@@ -554,7 +554,7 @@ export default function EmployeeApproval() {
                         style={{
                           width: 40,
                           height: 40,
-                          borderRadius: 12,
+                          borderRadius: 'var(--radius-element)',
                           background: 'var(--color-background-teal)',
                           display: 'flex',
                           alignItems: 'center',
@@ -888,7 +888,7 @@ export default function EmployeeApproval() {
                           display: 'flex',
                           alignItems: 'stretch',
                           border: '1px solid var(--color-border)',
-                          borderRadius: 8,
+                          borderRadius: 'var(--radius-inner)',
                           overflow: 'hidden',
                         }}
                       >
@@ -901,8 +901,8 @@ export default function EmployeeApproval() {
                             flex: 1,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 12,
-                            padding: 12,
+                            gap: 'var(--spacing-3)',
+                            padding: 'var(--spacing-3)',
                             cursor: 'pointer',
                             minWidth: 0,
                           }}
