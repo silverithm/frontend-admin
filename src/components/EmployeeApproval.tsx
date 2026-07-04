@@ -36,8 +36,14 @@ export default function EmployeeApproval() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부
-  const [viewer, setViewer] = useState<{ fileUrl: string; fileName: string; authoring?: boolean } | null>(null);
+  // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부,
+  // templateId가 있으면 저장 시 해당 양식으로 새 기안 작성 모달을 자동으로 연다
+  const [viewer, setViewer] = useState<{
+    fileUrl: string;
+    fileName: string;
+    authoring?: boolean;
+    templateId?: string;
+  } | null>(null);
 
   const [userId, setUserId] = useState('');
 
@@ -211,14 +217,29 @@ export default function EmployeeApproval() {
   const isHwpFile = (name?: string) => !!name && /\.hwpx?$/i.test(name);
 
   // 웹 에디터에서 작성 완료한 문서를 첨부파일로 등록
+  // (양식 탭에서 열었다면 해당 양식으로 새 기안 작성 모달을 자동으로 연다)
   const handleEditorSave = (file: File) => {
-    setApprovalForm(prev => ({ ...prev, file }));
+    const templateId = viewer?.templateId;
+    setApprovalForm(prev => ({
+      ...prev,
+      ...(templateId ? { templateId } : {}),
+      file,
+    }));
     setViewer(null);
-    showAlert({
-      type: 'success',
-      title: '작성 완료',
-      message: `작성한 문서(${file.name})가 첨부되었습니다. 제출 버튼을 눌러 기안을 완료하세요.`,
-    });
+    if (templateId) {
+      setShowNewApproval(true);
+      showAlert({
+        type: 'success',
+        title: '작성 완료',
+        message: `작성한 문서(${file.name})가 첨부되었습니다. 제목을 입력하고 제출하면 기안이 완료됩니다.`,
+      });
+    } else {
+      showAlert({
+        type: 'success',
+        title: '작성 완료',
+        message: `작성한 문서(${file.name})가 첨부되었습니다. 제출 버튼을 눌러 기안을 완료하세요.`,
+      });
+    }
   };
 
   // 파일 선택 핸들러
@@ -516,14 +537,19 @@ export default function EmployeeApproval() {
                       {(template.templateType === 'file' || template.templateType === 'hybrid' || !template.templateType) && template.fileUrl && (
                         <div className="flex items-center space-x-2 flex-shrink-0">
                           <button
-                            onClick={() => setViewer({ fileUrl: template.fileUrl, fileName: template.fileName })}
+                            onClick={() => setViewer({
+                              fileUrl: template.fileUrl,
+                              fileName: template.fileName,
+                              authoring: isHwpFile(template.fileName),
+                              templateId: String(template.id),
+                            })}
                             className="flex items-center space-x-1.5 px-4 py-2 bg-teal-500 text-white hover:bg-teal-600 rounded-lg transition-colors font-medium shadow-sm"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                            <span>바로 보기</span>
+                            <span>{isHwpFile(template.fileName) ? '바로 보기 · 작성' : '바로 보기'}</span>
                           </button>
                           <button
                             onClick={() => handleDownloadTemplate(template)}
