@@ -4,6 +4,12 @@ import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ClickableCard } from '@astryxdesign/core/ClickableCard';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 
 interface BlogPost {
     id: number;
@@ -82,32 +88,46 @@ export default function BlogPage() {
     ];
 
     return (
-        <main className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white">
+        <main
+            style={{
+                minHeight: '100vh',
+                background: 'linear-gradient(to bottom, #0f172a, #1e3a8a, #312e81)',
+                color: '#ffffff',
+            }}
+        >
             <Navbar />
 
             {/* 헤더 섹션 */}
-            <section className="relative pt-32 pb-16 px-4">
-                <div className="container mx-auto max-w-6xl">
+            <section style={{ position: 'relative', padding: '128px 16px 64px' }}>
+                <div style={{ maxWidth: 1152, margin: '0 auto' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="text-center mb-12"
+                        style={{ textAlign: 'center', marginBottom: 48 }}
                     >
-                        <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
+                        <Heading level={1} type="display-1" color="inherit" justify="center">
                             케어브이 블로그
-                        </h1>
-                        <p className="text-xl text-blue-100/90 max-w-3xl mx-auto">
-                            케어브이의 새로운 소식과 근무표 관리 노하우를 확인하세요
-                        </p>
+                        </Heading>
+                        <div style={{ maxWidth: 768, margin: '24px auto 0' }}>
+                            <Text type="large" color="inherit" justify="center">
+                                케어브이의 새로운 소식과 근무표 관리 노하우를 확인하세요
+                            </Text>
+                        </div>
                     </motion.div>
                 </div>
             </section>
 
             {/* 블로그 포스트 그리드 */}
-            <section className="py-16 px-4">
-                <div className="container mx-auto max-w-6xl">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <section style={{ padding: '64px 16px' }}>
+                <div style={{ maxWidth: 1152, margin: '0 auto' }}>
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                            gap: 32,
+                        }}
+                    >
                         {blogPosts.map((post, index) => (
                             <motion.article
                                 key={post.id}
@@ -116,46 +136,54 @@ export default function BlogPage() {
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.5, delay: index * 0.1 }}
                             >
-                                <Link href={`/blog/${post.slug}`}>
-                                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl overflow-hidden border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 h-full flex flex-col cursor-pointer group">
-                                        {/* 이미지 플레이스홀더 */}
-                                        <div className="h-48 bg-gradient-to-br from-blue-600 to-indigo-600 relative overflow-hidden">
-                                            <div className="absolute inset-0 bg-black/20"></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-4xl font-bold text-white/20">CareV</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-6 flex-1 flex flex-col">
-                                            <div className="flex items-center gap-3 mb-3 text-sm">
-                                                <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full">
-                                                    {post.category}
-                                                </span>
-                                                <span className="text-gray-400">{post.date}</span>
-                                                <span className="text-gray-400">· {post.readTime}</span>
-                                            </div>
-
-                                            <h3 className="text-xl font-bold mb-3 text-white group-hover:text-blue-300 transition-colors">
-                                                {post.title}
-                                            </h3>
-
-                                            <p className="text-gray-300 mb-4 line-clamp-3 flex-1">
-                                                {post.excerpt}
-                                            </p>
-
-                                            <div className="flex flex-wrap gap-2">
-                                                {post.keywords.slice(0, 3).map((keyword, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className="text-xs px-2 py-1 bg-slate-700/50 text-blue-200 rounded"
-                                                    >
-                                                        #{keyword}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
+                                <ClickableCard
+                                    label={post.title}
+                                    href={`/blog/${post.slug}`}
+                                    padding={0}
+                                    height="100%"
+                                >
+                                    {/* 이미지 플레이스홀더 */}
+                                    <div
+                                        style={{
+                                            height: 192,
+                                            background: 'linear-gradient(to bottom right, #2563eb, #4f46e5)',
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'rgba(255, 255, 255, 0.25)',
+                                        }}
+                                    >
+                                        <Text type="display-2" weight="bold" color="inherit">
+                                            CareV
+                                        </Text>
                                     </div>
-                                </Link>
+
+                                    <div style={{ padding: 24 }}>
+                                        <VStack gap={3}>
+                                            <HStack gap={2} vAlign="center" wrap="wrap">
+                                                <Badge variant="blue" label={post.category} />
+                                                <Text type="supporting">{post.date}</Text>
+                                                <Text type="supporting">· {post.readTime}</Text>
+                                            </HStack>
+
+                                            <Heading level={3} maxLines={2}>
+                                                {post.title}
+                                            </Heading>
+
+                                            <Text type="body" color="secondary" maxLines={3}>
+                                                {post.excerpt}
+                                            </Text>
+
+                                            <HStack gap={1} wrap="wrap">
+                                                {post.keywords.slice(0, 3).map((keyword, idx) => (
+                                                    <Badge key={idx} variant="neutral" label={`#${keyword}`} />
+                                                ))}
+                                            </HStack>
+                                        </VStack>
+                                    </div>
+                                </ClickableCard>
                             </motion.article>
                         ))}
                     </div>
@@ -163,25 +191,29 @@ export default function BlogPage() {
             </section>
 
             {/* CTA 섹션 */}
-            <section className="py-20 px-4">
-                <div className="container mx-auto max-w-4xl text-center">
+            <section style={{ padding: '80px 16px' }}>
+                <div style={{ maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12"
+                        style={{
+                            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
+                            borderRadius: 24,
+                            padding: 48,
+                        }}
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                        <Heading level={2} type="display-2" color="inherit" justify="center">
                             케어브이와 함께 스마트한 근무 관리를 시작하세요
-                        </h2>
-                        <p className="text-xl mb-8 text-blue-100">
-                            지금 무료로 시작하고 팀의 업무 효율을 높여보세요
-                        </p>
-                        <Link href="/register">
-                            <button className="px-8 py-4 bg-white text-blue-600 font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                                무료로 시작하기
-                            </button>
+                        </Heading>
+                        <div style={{ margin: '16px 0 32px' }}>
+                            <Text type="large" color="inherit" justify="center">
+                                지금 무료로 시작하고 팀의 업무 효율을 높여보세요
+                            </Text>
+                        </div>
+                        <Link href="/register" style={{ display: 'inline-block' }}>
+                            <Button label="무료로 시작하기" variant="secondary" size="lg" />
                         </Link>
                     </motion.div>
                 </div>

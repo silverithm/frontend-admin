@@ -4,6 +4,12 @@ import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 
 interface BlogPost {
     slug: string;
@@ -500,91 +506,104 @@ export default function BlogPostPage() {
 
     if (!post) {
         return (
-            <main className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white">
+            <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)' }}>
                 <Navbar />
-                <div className="container mx-auto max-w-4xl px-4 pt-32 text-center">
-                    <h1 className="text-4xl font-bold mb-4">포스트를 찾을 수 없습니다</h1>
-                    <p className="text-xl text-blue-100 mb-8">요청하신 블로그 포스트가 존재하지 않습니다.</p>
-                    <Link href="/blog">
-                        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                            블로그로 돌아가기
-                        </button>
-                    </Link>
+                <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '128px 16px 0', textAlign: 'center' }}>
+                    <Heading level={1} style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 700, marginBottom: 16 }}>
+                        포스트를 찾을 수 없습니다
+                    </Heading>
+                    <Text as="p" style={{ display: 'block', color: '#dbeafe', fontSize: '1.25rem', marginBottom: 32 }}>
+                        요청하신 블로그 포스트가 존재하지 않습니다.
+                    </Text>
+                    <Button label="블로그로 돌아가기" variant="primary" size="md" onClick={() => router.push('/blog')} />
                 </div>
             </main>
         );
     }
 
     return (
-        <main className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white">
+        <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #312e81 100%)' }}>
             <Navbar />
 
             {/* 헤더 */}
-            <section className="relative pt-32 pb-16 px-4">
-                <div className="container mx-auto max-w-4xl">
+            <section style={{ position: 'relative', padding: '128px 16px 64px' }}>
+                <div style={{ maxWidth: '56rem', margin: '0 auto' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                     >
-                        <Link href="/blog" className="inline-flex items-center text-blue-300 hover:text-blue-200 mb-6 transition-colors">
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            블로그로 돌아가기
-                        </Link>
+                        <VStack gap={5} hAlign="start">
+                            <Link
+                                href="/blog"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#93c5fd', textDecoration: 'none' }}
+                            >
+                                <Icon icon="chevronLeft" size="sm" color="inherit" />
+                                <Text type="body" style={{ color: '#93c5fd' }}>블로그로 돌아가기</Text>
+                            </Link>
 
-                        <div className="flex items-center gap-3 mb-4 text-sm">
-                            <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full">
-                                {post.category}
-                            </span>
-                            <span className="text-gray-400">{post.date}</span>
-                            <span className="text-gray-400">· {post.readTime}</span>
-                        </div>
-
-                        <h1 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
-                            {post.title}
-                        </h1>
-
-                        <div className="flex flex-wrap gap-2">
-                            {post.keywords.map((keyword, idx) => (
-                                <span
-                                    key={idx}
-                                    className="text-sm px-3 py-1 bg-slate-700/50 text-blue-200 rounded"
-                                >
-                                    #{keyword}
+                            <HStack gap={3} vAlign="center" wrap="wrap">
+                                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', background: 'rgba(59, 130, 246, 0.2)', borderRadius: 9999 }}>
+                                    <Text type="supporting" style={{ color: '#93c5fd' }}>{post.category}</Text>
                                 </span>
-                            ))}
-                        </div>
+                                <Text type="supporting" style={{ color: '#9ca3af' }}>{post.date}</Text>
+                                <Text type="supporting" style={{ color: '#9ca3af' }}>· {post.readTime}</Text>
+                            </HStack>
+
+                            <Heading
+                                level={1}
+                                style={{
+                                    fontWeight: 700,
+                                    fontSize: 'clamp(1.875rem, 4vw, 3rem)',
+                                    background: 'linear-gradient(to right, #ffffff, #dbeafe, #e0e7ff)',
+                                    WebkitBackgroundClip: 'text',
+                                    backgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    color: 'transparent',
+                                }}
+                            >
+                                {post.title}
+                            </Heading>
+
+                            <HStack gap={2} wrap="wrap">
+                                {post.keywords.map((keyword, idx) => (
+                                    <span
+                                        key={idx}
+                                        style={{ display: 'inline-flex', padding: '4px 12px', background: 'rgba(51, 65, 85, 0.5)', borderRadius: 6 }}
+                                    >
+                                        <Text type="supporting" style={{ color: '#bfdbfe' }}>#{keyword}</Text>
+                                    </span>
+                                ))}
+                            </HStack>
+                        </VStack>
                     </motion.div>
                 </div>
             </section>
 
             {/* 본문 */}
-            <section className="pb-20 px-4">
-                <div className="container mx-auto max-w-4xl">
+            <section style={{ padding: '0 16px 80px' }}>
+                <div style={{ maxWidth: '56rem', margin: '0 auto' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 md:p-12 border border-blue-400/20"
                     >
-                        <div
-                            className="prose prose-lg prose-invert max-w-none
-                                prose-headings:text-white prose-headings:font-bold
-                                prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4
-                                prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-h3:text-blue-200
-                                prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2 prose-h4:text-blue-300
-                                prose-p:text-gray-200 prose-p:leading-relaxed prose-p:mb-4
-                                prose-strong:text-white prose-strong:font-semibold
-                                prose-ul:text-gray-200 prose-ul:my-4
-                                prose-li:my-1 prose-li:marker:text-blue-400
-                                prose-code:text-blue-300 prose-code:bg-slate-800 prose-code:px-2 prose-code:py-1 prose-code:rounded
-                                prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-600
-                                prose-blockquote:border-blue-400 prose-blockquote:bg-slate-800/50 prose-blockquote:px-4 prose-blockquote:py-2
-                                prose-a:text-blue-400 prose-a:no-underline hover:prose-a:text-blue-300"
-                            dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(post.content) }}
-                        />
+                        <Card
+                            variant="transparent"
+                            padding={8}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                borderRadius: 16,
+                                border: '1px solid rgba(96, 165, 250, 0.2)',
+                            }}
+                        >
+                            <div
+                                className="carev-blogpost-prose"
+                                dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(post.content) }}
+                            />
+                        </Card>
                     </motion.div>
 
                     {/* 하단 CTA */}
@@ -593,22 +612,20 @@ export default function BlogPostPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
-                        className="mt-12 text-center"
+                        style={{ marginTop: 48 }}
                     >
-                        <h3 className="text-2xl font-bold mb-4">더 많은 정보가 필요하신가요?</h3>
-                        <p className="text-lg text-blue-100 mb-8">케어브이와 함께 스마트한 근무 관리를 시작하세요</p>
-                        <div className="flex gap-4 justify-center">
-                            <Link href="/register">
-                                <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                    무료로 시작하기
-                                </button>
-                            </Link>
-                            <Link href="/blog">
-                                <button className="px-6 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors">
-                                    다른 글 보기
-                                </button>
-                            </Link>
-                        </div>
+                        <VStack gap={5} hAlign="center">
+                            <Heading level={3} style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700 }}>
+                                더 많은 정보가 필요하신가요?
+                            </Heading>
+                            <Text as="p" style={{ display: 'block', color: '#dbeafe', fontSize: '1.125rem' }}>
+                                케어브이와 함께 스마트한 근무 관리를 시작하세요
+                            </Text>
+                            <HStack gap={4} hAlign="center" wrap="wrap">
+                                <Button label="무료로 시작하기" variant="primary" size="md" onClick={() => router.push('/register')} />
+                                <Button label="다른 글 보기" variant="secondary" size="md" onClick={() => router.push('/blog')} />
+                            </HStack>
+                        </VStack>
                     </motion.div>
                 </div>
             </section>
