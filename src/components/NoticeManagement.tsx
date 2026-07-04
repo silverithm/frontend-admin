@@ -397,7 +397,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                           border: `1px solid ${n.isPinned ? '#c3fae8' : 'var(--color-border)'}`,
                           borderRadius: 'var(--radius-element)',
                           cursor: 'pointer',
-                          background: n.isPinned ? 'var(--color-background-teal)' : '#ffffff',
+                          background: n.isPinned ? 'var(--color-background-teal)' : 'var(--color-background-card)',
                         }}
                       >
                         <HStack gap={3} vAlign="start">

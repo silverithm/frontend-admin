@@ -11,6 +11,10 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Card } from "@astryxdesign/core/Card";
+import { SelectableCard } from "@astryxdesign/core/SelectableCard";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Divider } from "@astryxdesign/core/Divider";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
 import { useDispatchStore, generateId } from "@/lib/dispatchStore";
@@ -346,8 +350,6 @@ export default function DispatchSettings({
     label: `${member.name}${member.email ? ` (${member.email})` : ""}`,
   }));
 
-  const dividerStyle = "1px solid var(--color-border, #e5e7eb)";
-
   return (
     <>
       <ConfirmContainer />
@@ -372,7 +374,7 @@ export default function DispatchSettings({
           start={
             <LayoutPanel hasDivider width={320}>
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                <div style={{ padding: 'var(--spacing-4)', borderBottom: dividerStyle }}>
+                <div style={{ padding: 'var(--spacing-4)' }}>
                   <Button
                     label="새 노선 추가"
                     variant="primary"
@@ -383,66 +385,58 @@ export default function DispatchSettings({
                     }}
                   />
                 </div>
+                <Divider />
 
                 <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-2)' }}>
                   {settings.routes.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "32px 0" }}>
-                      <Text type="body" color="secondary">
-                        등록된 노선이 없습니다.
-                      </Text>
-                    </div>
+                    <EmptyState
+                      isCompact
+                      title="등록된 노선이 없습니다"
+                      description="새 노선을 추가해주세요."
+                    />
                   ) : (
                     <VStack gap={1}>
                       {settings.routes.map((route) => {
                         const isSelected = selectedRouteId === route.id;
                         return (
-                          <div
+                          <SelectableCard
                             key={route.id}
-                            onClick={() => {
+                            label={`${route.name} 노선 선택`}
+                            isSelected={isSelected}
+                            onChange={() => {
                               setSelectedRouteId(route.id);
                               setIsAddingRoute(false);
                             }}
-                            style={{
-                              padding: 'var(--spacing-3)',
-                              borderRadius: 'var(--radius-inner)',
-                              cursor: "pointer",
-                              transition: 'background-color var(--duration-fast) var(--ease-standard)',
-                              background: isSelected
-                                ? "var(--color-teal-background, #f0fdfa)"
-                                : "var(--color-surface, #ffffff)",
-                              border: isSelected
-                                ? "2px solid var(--color-teal-border, #14b8a6)"
-                                : dividerStyle,
-                            }}
+                            padding={3}
                           >
-                            <HStack hAlign="between" vAlign="center">
-                              <HStack gap={2} vAlign="center">
-                                <Text type="body" weight="medium">
-                                  {route.name}
-                                </Text>
-                                <Badge
-                                  variant={route.type === "등원" ? "orange" : "purple"}
-                                  label={route.type}
+                            <VStack gap={1}>
+                              <HStack hAlign="between" vAlign="center">
+                                <HStack gap={2} vAlign="center">
+                                  <Text type="body" weight="medium">
+                                    {route.name}
+                                  </Text>
+                                  <Badge
+                                    variant={route.type === "등원" ? "orange" : "purple"}
+                                    label={route.type}
+                                  />
+                                </HStack>
+                                <IconButton
+                                  label="노선 삭제"
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<Icon icon={FiTrash2} size="sm" />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteRoute(route.id);
+                                  }}
                                 />
                               </HStack>
-                              <IconButton
-                                label="노선 삭제"
-                                variant="ghost"
-                                size="sm"
-                                icon={<Icon icon={FiTrash2} size="sm" />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteRoute(route.id);
-                                }}
-                              />
-                            </HStack>
-                            <div style={{ marginTop: 'var(--spacing-1)' }}>
                               <Text type="supporting" color="secondary">
                                 운전자 {route.routeDrivers?.length || 0}명 · 어르신{" "}
                                 {settings.seniors.filter((s) => s.routeId === route.id).length}명
                               </Text>
-                            </div>
-                          </div>
+                            </VStack>
+                          </SelectableCard>
                         );
                       })}
                     </VStack>
@@ -493,14 +487,7 @@ export default function DispatchSettings({
                     </HStack>
                     <VStack gap={3}>
                       {newRouteDrivers.map((driver, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            padding: 'var(--spacing-3)',
-                            background: "var(--color-muted-background, #f9fafb)",
-                            borderRadius: 'var(--radius-inner)',
-                          }}
-                        >
+                        <Card key={index} variant="muted" padding={3}>
                           <HStack gap={2} vAlign="center">
                             <Badge
                               variant={index === 0 ? "teal" : "neutral"}
@@ -540,11 +527,12 @@ export default function DispatchSettings({
                               />
                             )}
                           </HStack>
-                        </div>
+                        </Card>
                       ))}
                       <Button
-                        label="+ 부운전자 추가"
+                        label="부운전자 추가"
                         variant="secondary"
+                        icon={<Icon icon={FiPlus} size="sm" />}
                         onClick={addNewRouteDriver}
                       />
                     </VStack>
@@ -597,14 +585,7 @@ export default function DispatchSettings({
                               ]
                             : memberOptions;
                         return (
-                          <div
-                            key={index}
-                            style={{
-                              padding: 'var(--spacing-3)',
-                              background: "var(--color-muted-background, #f9fafb)",
-                              borderRadius: 'var(--radius-inner)',
-                            }}
-                          >
+                          <Card key={index} variant="muted" padding={3}>
                             <HStack gap={2} vAlign="center">
                               <Badge
                                 variant={index === 0 ? "teal" : "neutral"}
@@ -655,12 +636,13 @@ export default function DispatchSettings({
                                 />
                               )}
                             </HStack>
-                          </div>
+                          </Card>
                         );
                       })}
                       <Button
-                        label="+ 부운전자 추가"
+                        label="부운전자 추가"
                         variant="secondary"
+                        icon={<Icon icon={FiPlus} size="sm" />}
                         onClick={() => handleAddRouteDriver(selectedRoute.id)}
                       />
                     </VStack>
@@ -706,29 +688,15 @@ export default function DispatchSettings({
 
                     {/* 어르신 목록 */}
                     {selectedRouteSeniors.length === 0 ? (
-                      <div
-                        style={{
-                          textAlign: "center",
-                          padding: "32px 0",
-                          background: "var(--color-muted-background, #f9fafb)",
-                          borderRadius: 'var(--radius-inner)',
-                        }}
-                      >
-                        <Text type="body" color="secondary">
-                          등록된 어르신이 없습니다.
-                        </Text>
-                      </div>
+                      <EmptyState
+                        isCompact
+                        title="등록된 어르신이 없습니다"
+                        description="위에서 어르신을 선택해 추가해주세요."
+                      />
                     ) : (
                       <VStack gap={2}>
                         {selectedRouteSeniors.map((senior, index) => (
-                          <div
-                            key={senior.id}
-                            style={{
-                              padding: 'var(--spacing-3)',
-                              background: "var(--color-muted-background, #f9fafb)",
-                              borderRadius: 'var(--radius-inner)',
-                            }}
-                          >
+                          <Card key={senior.id} variant="muted" padding={3}>
                             <HStack hAlign="between" vAlign="center">
                               <HStack gap={3} vAlign="center">
                                 <Badge variant="neutral" label={index + 1} />
@@ -762,7 +730,7 @@ export default function DispatchSettings({
                                 />
                               </HStack>
                             </HStack>
-                          </div>
+                          </Card>
                         ))}
                       </VStack>
                     )}
@@ -778,17 +746,11 @@ export default function DispatchSettings({
                     height: "100%",
                   }}
                 >
-                  <VStack gap={4} vAlign="center">
-                    <Icon icon={FiClipboard} size="lg" color="tertiary" />
-                    <VStack gap={1} vAlign="center">
-                      <Text type="body" color="secondary">
-                        왼쪽에서 노선을 선택하거나
-                      </Text>
-                      <Text type="body" color="secondary">
-                        새 노선을 추가해주세요.
-                      </Text>
-                    </VStack>
-                  </VStack>
+                  <EmptyState
+                    icon={<Icon icon={FiClipboard} size="lg" color="tertiary" />}
+                    title="노선을 선택하세요"
+                    description="왼쪽에서 노선을 선택하거나 새 노선을 추가해주세요."
+                  />
                 </div>
               )}
             </LayoutContent>

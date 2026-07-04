@@ -8,10 +8,30 @@ import { Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
+import {
+  IconUsers,
+  IconCalendar,
+  IconBell,
+  IconCircleCheck,
+  IconMoon,
+  IconHeart,
+  IconHome,
+  IconBan,
+  IconSpeakerphone,
+  IconFileText,
+  IconClock,
+  IconMapPin,
+  IconAlignLeft,
+  IconChevronRight,
+  IconX,
+  type TablerIcon,
+} from '@tabler/icons-react';
 import {
   getAllMembers,
   getAllVacationRequests,
@@ -90,25 +110,16 @@ interface MemberItem {
   status?: string;
 }
 
-const iconBox = (background: string, size = 32, radius = 8): CSSProperties => ({
+// 아이콘 칩 배경 제거(투명) — 아이콘은 중립 단색으로 통일(너무 튀지 않게)
+const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => ({
   width: size,
   height: size,
-  borderRadius: radius,
-  background,
+  background: 'transparent',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
-});
-
-const viewAllStyle = (color: string): CSSProperties => ({
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  color,
-  fontSize: 'var(--font-size-sm)',
-  fontWeight: 'var(--font-weight-semibold)',
-  padding: 'var(--spacing-0)',
+  color: 'var(--color-icon-secondary)',
 });
 
 export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
@@ -417,7 +428,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '명',
       iconBg: 'var(--color-background-teal)',
       iconColor: 'var(--color-text-teal)',
-      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+      icon: IconUsers as TablerIcon,
       tab: isAdmin ? 'members' : 'work',
       change: null as string | null,
       adminOnly: false,
@@ -428,7 +439,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '건',
       iconBg: 'var(--color-background-blue)',
       iconColor: 'var(--color-text-blue)',
-      icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+      icon: IconCalendar as TablerIcon,
       tab: 'schedule',
       change: null as string | null,
       employeeOnly: true,
@@ -440,7 +451,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '건',
       iconBg: 'var(--color-background-purple)',
       iconColor: 'var(--color-text-purple)',
-      icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
+      icon: IconBell as TablerIcon,
       tab: 'notice',
       change: null as string | null,
       employeeOnly: true,
@@ -452,7 +463,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '명',
       iconBg: 'var(--color-background-green)',
       iconColor: 'var(--color-text-green)',
-      icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+      icon: IconCircleCheck as TablerIcon,
       tab: 'members',
       change: employeeAttendanceBase > 0 ? `${Math.round((todayWorkingCount / employeeAttendanceBase) * 100)}%` : null,
       adminOnly: true,
@@ -463,7 +474,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '명',
       iconBg: 'var(--color-background-yellow)',
       iconColor: 'var(--color-text-yellow)',
-      icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z',
+      icon: IconMoon as TablerIcon,
       tab: 'work',
       change: employeeAttendanceBase > 0 ? `${Math.round((todayVacationCount / employeeAttendanceBase) * 100)}%` : null,
       adminOnly: true,
@@ -474,7 +485,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '명',
       iconBg: 'var(--color-background-red)',
       iconColor: 'var(--color-text-red)',
-      icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+      icon: IconHeart as TablerIcon,
       tab: 'members',
       change: null as string | null,
       adminOnly: true,
@@ -485,7 +496,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '명',
       iconBg: 'var(--color-background-purple)',
       iconColor: 'var(--color-text-purple)',
-      icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+      icon: IconHome as TablerIcon,
       tab: 'members',
       change: elderAttendanceBase > 0 ? `${Math.round((elderAttendance.present / elderAttendanceBase) * 100)}%` : null,
       adminOnly: true,
@@ -496,7 +507,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       subtitle: '명',
       iconBg: 'var(--color-background-muted)',
       iconColor: 'var(--color-text-gray)',
-      icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636',
+      icon: IconBan as TablerIcon,
       tab: 'members',
       change: null as string | null,
       adminOnly: true,
@@ -542,10 +553,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <ClickableCard label={card.label} onClick={() => onTabChange(card.tab)} padding={4} height="100%">
               <VStack gap={3} align="stretch">
                 <HStack hAlign="between" vAlign="center">
-                  <div style={iconBox(card.iconBg, 40, 12)}>
-                    <svg width={20} height={20} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: card.iconColor }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={card.icon} />
-                    </svg>
+                  <div style={{ ...iconBox(card.iconBg, 40, 12) }}>
+                    <Icon icon={card.icon} size="md" color="inherit" />
                   </div>
                   {card.change && <Badge variant="teal" label={card.change} />}
                 </HStack>
@@ -576,23 +585,21 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
-                  <div style={iconBox('var(--color-background-yellow)')}>
-                    <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-yellow)' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                    </svg>
+                  <div style={{ ...iconBox('var(--color-background-yellow)'), color: 'var(--color-text-yellow)' }}>
+                    <Icon icon={IconSpeakerphone} size="sm" color="inherit" />
                   </div>
                   <VStack gap={0} align="start">
                     <Text type="body" weight="bold" color="primary">공지사항</Text>
                     <Text type="supporting" color="secondary">{notices.length}개</Text>
                   </VStack>
                 </HStack>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label="전체보기"
+                  endContent={<Icon icon={IconChevronRight} size="xsm" />}
                   onClick={() => onTabChange('notice')}
-                  className="carev-dash-viewall"
-                  style={viewAllStyle('#d97706')}
-                >
-                  전체보기 →
-                </button>
+                />
               </HStack>
             </div>
 
@@ -602,11 +609,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   <EmptyState
                     isCompact
                     title="공지사항이 없습니다"
-                    icon={
-                      <svg width={24} height={24} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-gray)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                      </svg>
-                    }
+                    icon={<Icon icon={IconSpeakerphone} size="lg" color="secondary" />}
                   />
                 </div>
               ) : (
@@ -642,23 +645,21 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div style={{ padding: '16px 16px 8px' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
-                  <div style={iconBox('var(--color-background-purple)')}>
-                    <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-purple)' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                  <div style={{ ...iconBox('var(--color-background-purple)'), color: 'var(--color-text-purple)' }}>
+                    <Icon icon={IconFileText} size="sm" color="inherit" />
                   </div>
                   <VStack gap={0} align="start">
                     <Text type="body" weight="bold" color="primary">전자결재</Text>
                     <Text type="supporting" color="secondary">대기 {approvalRequests.length}건</Text>
                   </VStack>
                 </HStack>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label="전체보기"
+                  endContent={<Icon icon={IconChevronRight} size="xsm" />}
                   onClick={() => onTabChange('approval')}
-                  className="carev-dash-viewall"
-                  style={viewAllStyle('#7c3aed')}
-                >
-                  전체보기 →
-                </button>
+                />
               </HStack>
             </div>
 
@@ -668,11 +669,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   <EmptyState
                     isCompact
                     title="대기 중인 결재가 없습니다"
-                    icon={
-                      <svg width={24} height={24} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-gray)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    }
+                    icon={<Icon icon={IconCircleCheck} size="lg" color="secondary" />}
                   />
                 </div>
               ) : (
@@ -711,10 +708,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <div style={{ padding: '16px 16px 8px' }}>
                 <HStack hAlign="between" vAlign="center">
                   <HStack gap={2} vAlign="center">
-                    <div style={iconBox('var(--color-background-green)')}>
-                      <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-green)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                    <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)' }}>
+                      <Icon icon={IconCalendar} size="sm" color="inherit" />
                     </div>
                     <VStack gap={0} align="start">
                       <Text type="body" weight="bold" color="primary">월간일정</Text>
@@ -723,13 +718,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       </Text>
                     </VStack>
                   </HStack>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    label="전체보기"
+                    endContent={<Icon icon={IconChevronRight} size="xsm" />}
                     onClick={() => onTabChange('schedule')}
-                    className="carev-dash-viewall"
-                    style={viewAllStyle('#059669')}
-                  >
-                    전체보기 →
-                  </button>
+                  />
                 </HStack>
               </div>
 
@@ -831,15 +826,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 <Text type="large" weight="bold" color="inherit">
                   {isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                 </Text>
-                <button
+                <IconButton
+                  label="닫기"
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={IconX} size="md" color="inherit" />}
                   onClick={() => setShowDaySchedules(false)}
-                  aria-label="닫기"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex' }}
-                >
-                  <svg width={20} height={20} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  style={{ color: '#fff' }}
+                />
               </div>
               <div style={{ marginTop: 'var(--spacing-1)' }}>
                 <Text type="supporting" color="inherit">총 {selectedSchedules.length}개의 일정</Text>
@@ -852,11 +846,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   <EmptyState
                     isCompact
                     title={`${format(selectedDate, 'M월 d일')} 일정이 없습니다`}
-                    icon={
-                      <svg width={24} height={24} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-gray)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    }
+                    icon={<Icon icon={IconClock} size="lg" color="secondary" />}
                   />
                 </div>
               ) : (
@@ -891,9 +881,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           <Text as="p" type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
                         )}
                       </div>
-                      <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-gray)', flexShrink: 0, alignSelf: 'center' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <div style={{ flexShrink: 0, alignSelf: 'center', display: 'flex' }}>
+                        <Icon icon={IconChevronRight} size="sm" color="secondary" />
+                      </div>
                     </div>
                   ))}
                 </VStack>
@@ -936,25 +926,20 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                   {selectedSchedule.category && (
-                    <span style={{ fontSize: 'var(--font-size-sm)', padding: '2px 8px', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 'var(--radius-full)', fontWeight: 'var(--font-weight-medium)' }}>
-                      {selectedSchedule.category}
-                    </span>
+                    <Badge variant="neutral" label={selectedSchedule.category} />
                   )}
                   {selectedSchedule.isAllDay && (
-                    <span style={{ fontSize: 'var(--font-size-sm)', padding: '2px 8px', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 'var(--radius-full)', fontWeight: 'var(--font-weight-medium)' }}>
-                      종일
-                    </span>
+                    <Badge variant="neutral" label="종일" />
                   )}
                 </div>
-                <button
+                <IconButton
+                  label="닫기"
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={IconX} size="md" color="inherit" />}
                   onClick={() => setSelectedSchedule(null)}
-                  aria-label="닫기"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex' }}
-                >
-                  <svg width={20} height={20} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  style={{ color: '#fff' }}
+                />
               </div>
               <div style={{ marginTop: 'var(--spacing-2)' }}>
                 <Text type="large" weight="bold" color="inherit">{selectedSchedule.title}</Text>
@@ -966,10 +951,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <VStack gap={4} align="stretch">
                 {/* 날짜 */}
                 <HStack gap={3} vAlign="start">
-                  <div style={{ ...iconBox('var(--color-background-teal)'), marginTop: 'var(--spacing-0-5)' }}>
-                    <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-teal)' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                  <div style={{ ...iconBox('var(--color-background-teal)'), color: 'var(--color-text-teal)', marginTop: 'var(--spacing-0-5)' }}>
+                    <Icon icon={IconCalendar} size="sm" color="inherit" />
                   </div>
                   <VStack gap={0} align="start">
                     <Text type="supporting" weight="medium" color="secondary">날짜</Text>
@@ -985,10 +968,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 시간 */}
                 {!selectedSchedule.isAllDay && (selectedSchedule.startTime || selectedSchedule.endTime) && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-purple)'), marginTop: 'var(--spacing-0-5)' }}>
-                      <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-purple)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                    <div style={{ ...iconBox('var(--color-background-purple)'), color: 'var(--color-text-purple)', marginTop: 'var(--spacing-0-5)' }}>
+                      <Icon icon={IconClock} size="sm" color="inherit" />
                     </div>
                     <VStack gap={0} align="start">
                       <Text type="supporting" weight="medium" color="secondary">시간</Text>
@@ -1003,11 +984,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 장소 */}
                 {selectedSchedule.location && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-green)'), marginTop: 'var(--spacing-0-5)' }}>
-                      <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-green)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                    <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)', marginTop: 'var(--spacing-0-5)' }}>
+                      <Icon icon={IconMapPin} size="sm" color="inherit" />
                     </div>
                     <VStack gap={0} align="start">
                       <Text type="supporting" weight="medium" color="secondary">장소</Text>
@@ -1019,10 +997,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 설명 */}
                 {selectedSchedule.description && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-yellow)'), marginTop: 'var(--spacing-0-5)' }}>
-                      <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-yellow)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                      </svg>
+                    <div style={{ ...iconBox('var(--color-background-yellow)'), color: 'var(--color-text-yellow)', marginTop: 'var(--spacing-0-5)' }}>
+                      <Icon icon={IconAlignLeft} size="sm" color="inherit" />
                     </div>
                     <VStack gap={0} align="start">
                       <Text type="supporting" weight="medium" color="secondary">설명</Text>
@@ -1034,10 +1010,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 {/* 참석자 */}
                 {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
                   <HStack gap={3} vAlign="start">
-                    <div style={{ ...iconBox('var(--color-background-red)'), marginTop: 'var(--spacing-0-5)' }}>
-                      <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-red)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                    <div style={{ ...iconBox('var(--color-background-red)'), color: 'var(--color-text-red)', marginTop: 'var(--spacing-0-5)' }}>
+                      <Icon icon={IconUsers} size="sm" color="inherit" />
                     </div>
                     <VStack gap={1} align="start">
                       <Text type="supporting" weight="medium" color="secondary">참석자</Text>

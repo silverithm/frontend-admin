@@ -60,6 +60,23 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Banner } from "@astryxdesign/core/Banner";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Icon } from "@astryxdesign/core/Icon";
+import type { IconType } from "@astryxdesign/core/Icon";
+import {
+    IconLayoutDashboard,
+    IconBell,
+    IconMessageDots,
+    IconCalendar,
+    IconCalendarStats,
+    IconFileText,
+    IconUsers,
+    IconBuilding,
+    IconLogout,
+    IconX,
+    IconCheck,
+    IconTrash,
+    IconAlertTriangle,
+} from "@tabler/icons-react";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -1005,23 +1022,14 @@ export default function AdminPage() {
     }
 
     const navItems = ([
-        { key: "dashboard", label: "대시보드", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
-        { key: "notice", label: "공지사항", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
-        { key: "chat", label: "채팅", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
-        { key: "schedule", label: "월간일정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-        { key: "approval", label: "전자결재", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
-        { key: "work", label: "근무조정", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
-        ...(isAdmin ? [{ key: "members", label: "회원관리", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" }] : []),
-    ] as { key: string; label: string; icon: string; badge?: number }[]);
-
-    const navIconStyle = (active: boolean): React.CSSProperties => ({
-        width: 18, height: 18, flexShrink: 0, color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
-    });
-    const subTabButtonStyle = (active: boolean): React.CSSProperties => ({
-        width: "100%", textAlign: "left", padding: "6px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
-        borderRadius: 'var(--radius-inner)', transition: 'colors var(--duration-fast-min) var(--ease-standard)', border: "none", cursor: "pointer",
-        background: active ? 'var(--color-background-teal)' : "transparent", color: active ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
-    });
+        { key: "dashboard", label: "대시보드", icon: IconLayoutDashboard },
+        { key: "notice", label: "공지사항", icon: IconBell },
+        { key: "chat", label: "채팅", icon: IconMessageDots },
+        { key: "schedule", label: "월간일정", icon: IconCalendar },
+        { key: "approval", label: "전자결재", icon: IconFileText },
+        { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
+        ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
+    ] as { key: string; label: string; icon: IconType; badge?: number }[]);
 
     return (
         <div style={{ display: "flex", minHeight: "100vh", background: 'var(--color-background-muted)' }}>
@@ -1041,54 +1049,32 @@ export default function AdminPage() {
                     <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
                     {navItems.map((tab) => (
                         <div key={tab.key}>
-                            <button
+                            <Button
+                                label={tab.label}
+                                variant={activeMainTab === tab.key ? "secondary" : "ghost"}
+                                size="md"
                                 onClick={() => setActiveMainTab(tab.key as MainTab)}
-                                style={{
-                                    width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-3)',
-                                    padding: "10px 12px", fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-inner)',
-                                    transition: 'colors var(--duration-fast-min) var(--ease-standard)', border: "none", cursor: "pointer",
-                                    background: activeMainTab === tab.key ? 'var(--color-background-teal)' : "transparent",
-                                    color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
-                                    boxShadow: activeMainTab === tab.key ? "0 1px 2px rgba(0,0,0,0.05)" : undefined,
-                                }}
-                            >
-                                <svg style={navIconStyle(activeMainTab === tab.key)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={tab.icon} />
-                                </svg>
-                                {tab.label}
-                                {tab.badge && (
-                                    <span style={{ marginLeft: "auto", display: "inline-flex" }}>
-                                        <Badge variant="error" label={tab.badge} />
-                                    </span>
-                                )}
-                            </button>
+                                icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? "accent" : "primary"} />}
+                                endContent={tab.badge ? <Badge variant="error" label={tab.badge} /> : undefined}
+                                style={{ width: "100%", justifyContent: "flex-start" }}
+                            />
                             {/* 전자결재 서브탭 */}
                             {tab.key === "approval" && activeMainTab === "approval" && (
                                 <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
-                                    <button onClick={() => setApprovalSubTab("submit")} style={subTabButtonStyle(approvalSubTab === "submit")}>
-                                        결재 신청
-                                    </button>
+                                    <Button label="결재 신청" variant={approvalSubTab === "submit" ? "secondary" : "ghost"} size="sm" onClick={() => setApprovalSubTab("submit")} style={{ width: "100%", justifyContent: "flex-start" }} />
                                     {isAdmin && (
-                                    <button onClick={() => setApprovalSubTab("management")} style={subTabButtonStyle(approvalSubTab === "management")}>
-                                        결재 관리
-                                    </button>
+                                    <Button label="결재 관리" variant={approvalSubTab === "management" ? "secondary" : "ghost"} size="sm" onClick={() => setApprovalSubTab("management")} style={{ width: "100%", justifyContent: "flex-start" }} />
                                     )}
                                     {isAdmin && (
-                                    <button onClick={() => setApprovalSubTab("templates")} style={subTabButtonStyle(approvalSubTab === "templates")}>
-                                        양식 관리
-                                    </button>
+                                    <Button label="양식 관리" variant={approvalSubTab === "templates" ? "secondary" : "ghost"} size="sm" onClick={() => setApprovalSubTab("templates")} style={{ width: "100%", justifyContent: "flex-start" }} />
                                     )}
                                 </div>
                             )}
                             {/* 월간일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
                                 <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
-                                    <button onClick={() => setScheduleMode("schedule")} style={subTabButtonStyle(scheduleMode === "schedule")}>
-                                        일정
-                                    </button>
-                                    <button onClick={() => setScheduleMode("dispatch")} style={subTabButtonStyle(scheduleMode === "dispatch")}>
-                                        배차관리
-                                    </button>
+                                    <Button label="일정" variant={scheduleMode === "schedule" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("schedule")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <Button label="배차관리" variant={scheduleMode === "dispatch" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("dispatch")} style={{ width: "100%", justifyContent: "flex-start" }} />
                                 </div>
                             )}
                         </div>
@@ -1098,14 +1084,8 @@ export default function AdminPage() {
                 {/* 사이드바 하단 */}
                 <div style={{ borderTop: "1px solid var(--color-border)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
                     <div style={{ padding: "0 12px" }}><SubscriptionStatus /></div>
-                    <button onClick={() => router.push("/admin/organization-profile")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)' }}>
-                        <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                        기관 프로필
-                    </button>
-                    <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)' }}>
-                        <svg style={{ width: 16, height: 16, color: 'var(--color-text-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        로그아웃
-                    </button>
+                    <Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
+                    <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                 </div>
             </aside>
 
@@ -1121,9 +1101,7 @@ export default function AdminPage() {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                         <SubscriptionStatus />
-                        <button onClick={handleLogout} aria-label="로그아웃" style={{ padding: 'var(--spacing-1-5)', color: 'var(--color-text-gray)', background: "transparent", border: "none", cursor: "pointer" }}>
-                            <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        </button>
+                        <IconButton label="로그아웃" variant="ghost" size="sm" tooltip="로그아웃" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} />
                     </div>
                 </div>
                 <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 8px", marginBottom: -1 }}>
@@ -1132,19 +1110,14 @@ export default function AdminPage() {
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
-                        <button
+                        <Button
                             key={tab.key}
+                            label={tab.label}
+                            variant={activeMainTab === tab.key ? "secondary" : "ghost"}
+                            size="sm"
                             onClick={() => setActiveMainTab(tab.key as MainTab)}
-                            style={{
-                                padding: "8px 12px", fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', whiteSpace: "nowrap",
-                                borderBottom: "2px solid", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
-                                background: "transparent", cursor: "pointer",
-                                color: activeMainTab === tab.key ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
-                                borderBottomColor: activeMainTab === tab.key ? 'var(--color-border-teal)' : "transparent",
-                            }}
-                        >
-                            {tab.label}
-                        </button>
+                            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                        />
                     ))}
                 </nav>
             </header>
@@ -1287,21 +1260,16 @@ export default function AdminPage() {
                                                 <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">상태</Text></div>
                                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 'var(--spacing-1)' }}>
                                                     {(["all", "pending", "approved", "rejected"] as const).map((status) => {
-                                                        const activeBg = status === "all" ? "#14b8a6" : status === "pending" ? "#eab308" : status === "approved" ? "#22c55e" : "#ef4444";
                                                         const active = statusFilter === status;
                                                         return (
-                                                        <button
+                                                        <Button
                                                             key={status}
+                                                            label={status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
+                                                            variant={active ? (status === "rejected" ? "destructive" : "primary") : "ghost"}
+                                                            size="sm"
                                                             onClick={() => setStatusFilter(status)}
-                                                            style={{
-                                                                padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
-                                                                border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
-                                                                background: active ? activeBg : 'var(--color-background-muted)',
-                                                                color: active ? "#ffffff" : 'var(--color-text-primary)',
-                                                            }}
-                                                        >
-                                                            {status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
-                                                        </button>
+                                                            style={{ width: "100%" }}
+                                                        />
                                                         );
                                                     })}
                                                 </div>
@@ -1314,18 +1282,14 @@ export default function AdminPage() {
                                                     {[ALL_ROLE_FILTER, ...availableRoles].map((role) => {
                                                         const active = roleFilter === role;
                                                         return (
-                                                        <button
+                                                        <Button
                                                             key={role}
+                                                            label={role === ALL_ROLE_FILTER ? "전체" : getRoleDisplayName(role)}
+                                                            variant={active ? "primary" : "ghost"}
+                                                            size="sm"
                                                             onClick={() => setRoleFilter(role)}
-                                                            style={{
-                                                                padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
-                                                                border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
-                                                                background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
-                                                                color: active ? "#ffffff" : 'var(--color-text-primary)',
-                                                            }}
-                                                        >
-                                                            {role === ALL_ROLE_FILTER ? "전체" : getRoleDisplayName(role)}
-                                                        </button>
+                                                            style={{ width: "100%", justifyContent: "flex-start" }}
+                                                        />
                                                         );
                                                     })}
                                                 </div>
@@ -1338,18 +1302,14 @@ export default function AdminPage() {
                                                     {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => {
                                                         const active = sortOrder === order;
                                                         return (
-                                                        <button
+                                                        <Button
                                                             key={order}
+                                                            label={label}
+                                                            variant={active ? "primary" : "ghost"}
+                                                            size="sm"
                                                             onClick={() => setSortOrder(order)}
-                                                            style={{
-                                                                padding: "4px 8px", fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', borderRadius: 'var(--radius-none)',
-                                                                border: "none", cursor: "pointer", transition: 'colors var(--duration-fast-min) var(--ease-standard)',
-                                                                background: active ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
-                                                                color: active ? "#ffffff" : 'var(--color-text-primary)',
-                                                            }}
-                                                        >
-                                                            {label}
-                                                        </button>
+                                                            style={{ width: "100%", justifyContent: "flex-start" }}
+                                                        />
                                                         );
                                                     })}
                                                 </div>
@@ -1359,18 +1319,16 @@ export default function AdminPage() {
                                             {nameFilter && (
                                                 <div>
                                                     <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">선택된 직원</Text></div>
-                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: 'var(--color-background-teal)', border: "1px solid #99f6e4", borderRadius: 'var(--radius-none)', padding: "4px 8px" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: 'var(--color-background-teal)', border: "1px solid var(--color-border-teal)", borderRadius: 'var(--radius-inner)', padding: "4px 8px" }}>
                                                         <Text type="supporting" weight="medium" color="accent">{nameFilter}</Text>
-                                                        <button
+                                                        <IconButton
+                                                            label="필터 해제"
+                                                            tooltip="필터 해제"
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => setNameFilter(null)}
-                                                            aria-label="필터 해제"
-                                                            title="필터 해제"
-                                                            style={{ color: 'var(--color-text-teal)', marginLeft: 'var(--spacing-1)', background: "transparent", border: "none", cursor: "pointer", display: "inline-flex" }}
-                                                        >
-                                                            <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
+                                                            icon={<Icon icon={IconX} size="xsm" color="accent" />}
+                                                        />
                                                     </div>
                                                 </div>
                                             )}
@@ -1417,7 +1375,7 @@ export default function AdminPage() {
 
                                         {/* 일괄 작업 버튼 */}
                                         {isAdmin && isSelectMode && (
-                                            <div style={{ marginBottom: 'var(--spacing-3)', padding: 'var(--spacing-2)', background: 'var(--color-background-teal)', borderRadius: 'var(--radius-inner)', border: "1px solid #99f6e4" }}>
+                                            <div style={{ marginBottom: 'var(--spacing-3)', padding: 'var(--spacing-2)', background: 'var(--color-background-teal)', borderRadius: 'var(--radius-inner)', border: "1px solid var(--color-border-teal)" }}>
                                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 'var(--spacing-2)' }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                                                         <Button
@@ -1503,9 +1461,7 @@ export default function AdminPage() {
                                                                         {request.userName}
                                                                         {nameFilter === request.userName && (
                                                                             <span style={{ marginLeft: 'var(--spacing-1)', display: "inline-flex", alignItems: "center" }}>
-                                                                                <svg style={{ width: 12, height: 12, color: 'var(--color-text-teal)' }} fill="currentColor" viewBox="0 0 20 20">
-                                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                                </svg>
+                                                                                <Icon icon={IconCheck} size="xsm" color="accent" />
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -1555,11 +1511,7 @@ export default function AdminPage() {
                                                                     size="sm"
                                                                     tooltip="삭제"
                                                                     onClick={() => handleDeleteVacation(request)}
-                                                                    icon={
-                                                                        <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                        </svg>
-                                                                    }
+                                                                    icon={<Icon icon={IconTrash} size="sm" color="inherit" />}
                                                                 />
                                                             </div>
                                                             )}
@@ -1684,10 +1636,8 @@ export default function AdminPage() {
                                 style={{ background: 'var(--color-background-card)', borderRadius: 'var(--radius-inner)', boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 'var(--spacing-6)', width: "100%", maxWidth: 384 }}
                             >
                                 <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 'var(--spacing-4)' }}>
-                                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: "50%", background: 'var(--color-background-red)' }}>
-                                        <svg style={{ height: 24, width: 24, color: 'var(--color-text-red)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4v2m0 4v2m-6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0m6-4a2 2 0 11-4 0 2 2 0 014 0" />
-                                        </svg>
+                                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }}>
+                                        <Icon icon={IconAlertTriangle} size="lg" color="error" />
                                     </div>
                                     <div style={{ marginLeft: 'var(--spacing-4)' }}>
                                         <Text type="large" weight="medium" color="primary">휴무 삭제 확인</Text>

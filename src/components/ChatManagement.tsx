@@ -11,9 +11,17 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
+import { Badge } from '@astryxdesign/core/Badge';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { Item } from '@astryxdesign/core/Item';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { FiCornerUpLeft, FiPaperclip, FiMessageCircle } from 'react-icons/fi';
 
 interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
@@ -75,23 +83,17 @@ interface ChatParticipant {
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
-// Astryx 마이그레이션: 잔여 인라인 스타일용 색상 토큰 (mintGreen 브랜드 기준)
+// Astryx 마이그레이션: bespoke 레이아웃(스플릿 패널/메시지 버블)에서만 쓰는 잔여 색상 — 전부 디자인 토큰
 const C = {
-    accent: "#20c997",
-    accentDark: "#0ca678",
-    surface: 'var(--color-background-teal)',
-    softBorder: "#63e6be",
-    border: "var(--color-border)",
+    accent: 'var(--color-accent)',
+    border: 'var(--color-border)',
     bgGray: 'var(--color-background-muted)',
     gray100: 'var(--color-background-muted)',
-    gray300: "#d1d5db",
-    gray400: "#9ca3af",
-    gray500: "#6b7280",
-    gray700: 'var(--color-text-primary)',
+    gray300: 'var(--color-border-emphasized)',
+    gray500: 'var(--color-text-secondary)',
     gray900: 'var(--color-text-primary)',
-    white: "#ffffff",
-    green: "#22c55e",
-    red500: "#ef4444",
+    card: 'var(--color-background-card)',
+    onAccent: 'var(--color-on-accent)',
 };
 
 function getDateKey(dateStr: string): string {
@@ -536,7 +538,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             style={{
                 display: "flex",
                 height: "calc(100vh - 180px)",
-                background: C.white,
+                background: C.card,
                 borderRadius: 'var(--radius-element)',
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                 border: `1px solid ${C.border}`,
@@ -547,13 +549,15 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             <div style={{ width: "33.3333%", borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column" }}>
                 {/* Header */}
                 <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                    <HStack gap={2} vAlign="center">
                         <Text type="large" weight="semibold">채팅</Text>
-                        <span
-                            style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", background: isConnected ? C.green : C.gray400 }}
-                            title={isConnected ? "실시간 연결됨" : "연결 중..."}
+                        <StatusDot
+                            variant={isConnected ? "success" : "neutral"}
+                            label={isConnected ? "실시간 연결됨" : "연결 중..."}
+                            tooltip={isConnected ? "실시간 연결됨" : "연결 중..."}
+                            isPulsing={isConnected}
                         />
-                    </div>
+                    </HStack>
                     {isAdmin && (
                         <Button label="새 채팅방" variant="primary" size="sm" onClick={() => setShowCreateModal(true)} />
                     )}
@@ -566,72 +570,51 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                             <Spinner size="lg" />
                         </div>
                     ) : rooms.length === 0 ? (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 128, gap: 'var(--spacing-2)' }}>
-                            <svg style={{ width: 40, height: 40, color: C.gray300 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                            <Text type="supporting">채팅방이 없습니다</Text>
+                        <div style={{ padding: 'var(--spacing-6)' }}>
+                            <EmptyState
+                                isCompact
+                                icon={<Icon icon={FiMessageCircle} size="lg" color="tertiary" />}
+                                title="채팅방이 없습니다"
+                            />
                         </div>
                     ) : (
                         rooms.map((room) => {
                             const isSelected = selectedRoom === room.id;
+                            const roomTime = room.lastMessageAt || room.lastMessage?.createdAt;
                             return (
-                                <button
+                                <Item
                                     key={room.id}
                                     onClick={() => { setSelectedRoom(room.id); setShowDrawer(false); }}
-                                    className="carev-chat-room-item"
-                                    style={{
-                                        width: "100%",
-                                        padding: 'var(--spacing-3)',
-                                        borderBottom: `1px solid ${C.border}`,
-                                        borderLeft: isSelected ? `2px solid ${C.accent}` : "2px solid transparent",
-                                        background: isSelected ? C.surface : "transparent",
-                                        textAlign: "left",
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 'var(--spacing-1)' }}>
-                                        <div style={{ flex: 1, minWidth: 0, marginRight: 'var(--spacing-2)' }}>
-                                            <Text type="body" weight="semibold" maxLines={1}>{room.name}</Text>
-                                        </div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1-5)', flexShrink: 0 }}>
-                                            {(room.lastMessageAt || room.lastMessage?.createdAt) && (
+                                    isSelected={isSelected}
+                                    align="start"
+                                    label={room.name}
+                                    labelLines={1}
+                                    description={
+                                        <VStack gap={0.5}>
+                                            <Text type="supporting" size="xsm" maxLines={1}>
+                                                {room.lastMessage
+                                                    ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
+                                                    : "메시지가 없습니다"}
+                                            </Text>
+                                            <Text type="supporting" size="2xs">참여자 {room.participantCount}명</Text>
+                                        </VStack>
+                                    }
+                                    endContent={
+                                        <VStack gap={1} hAlign="end">
+                                            {roomTime && (
                                                 <Text type="supporting" size="2xs">
-                                                    {formatTimestamp(room.lastMessageAt || room.lastMessage!.createdAt)}
+                                                    {formatTimestamp(roomTime)}
                                                 </Text>
                                             )}
                                             {room.unreadCount > 0 && (
-                                                <span
-                                                    style={{
-                                                        background: C.accent,
-                                                        color: C.white,
-                                                        fontSize: 'var(--font-size-xs)',
-                                                        fontWeight: 'var(--font-weight-bold)',
-                                                        minWidth: 18,
-                                                        height: 18,
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        padding: "0 6px",
-                                                        borderRadius: 'var(--radius-full)',
-                                                    }}
-                                                >
-                                                    {room.unreadCount > 99 ? "99+" : room.unreadCount}
-                                                </span>
+                                                <Badge
+                                                    variant="error"
+                                                    label={room.unreadCount > 99 ? "99+" : String(room.unreadCount)}
+                                                />
                                             )}
-                                        </div>
-                                    </div>
-                                    <div style={{ minWidth: 0 }}>
-                                        <Text type="supporting" size="xsm" maxLines={1}>
-                                            {room.lastMessage
-                                                ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
-                                                : "메시지가 없습니다"}
-                                        </Text>
-                                    </div>
-                                    <div style={{ marginTop: 'var(--spacing-0-5)' }}>
-                                        <Text type="supporting" size="2xs">참여자 {room.participantCount}명</Text>
-                                    </div>
-                                </button>
+                                        </VStack>
+                                    }
+                                />
                             );
                         })
                     )}
@@ -674,11 +657,11 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     <Spinner size="lg" />
                                 </div>
                             ) : messages.length === 0 ? (
-                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 'var(--spacing-2)' }}>
-                                    <svg style={{ width: 48, height: 48, color: C.gray300 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
-                                    <Text type="supporting">메시지가 없습니다</Text>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                                    <EmptyState
+                                        icon={<Icon icon={FiMessageCircle} size="lg" color="tertiary" />}
+                                        title="메시지가 없습니다"
+                                    />
                                 </div>
                             ) : (
                                 messages.map((message, index) => {
@@ -689,12 +672,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
 
                                     const dateSeparator = showDateSeparator ? (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "12px 0" }}>
-                                            <div style={{ flex: 1, height: 1, background: C.border }} />
-                                            <Text type="supporting" size="xsm" weight="medium" textWrap="nowrap">
-                                                {formatDateSeparator(message.createdAt)}
-                                            </Text>
-                                            <div style={{ flex: 1, height: 1, background: C.border }} />
+                                        <div style={{ margin: "var(--spacing-3) 0" }}>
+                                            <Divider label={formatDateSeparator(message.createdAt)} />
                                         </div>
                                     ) : null;
 
@@ -702,8 +681,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         return (
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
-                                                <div style={{ display: "flex", justifyContent: "center" }}>
-                                                    <span style={{ fontSize: 'var(--font-size-sm)', color: C.gray400, fontStyle: "italic" }}>{message.content}</span>
+                                                <div style={{ display: "flex", justifyContent: "center", fontStyle: "italic" }}>
+                                                    <Text type="supporting" color="disabled">{message.content}</Text>
                                                 </div>
                                             </Fragment>
                                         );
@@ -713,10 +692,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         return (
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
-                                                <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start" }}>
-                                                    <span style={{ fontSize: 'var(--font-size-sm)', color: C.gray400, fontStyle: "italic", padding: "8px 12px" }}>
+                                                <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start", padding: "var(--spacing-2) var(--spacing-3)", fontStyle: "italic" }}>
+                                                    <Text type="supporting" color="disabled">
                                                         삭제된 메시지입니다
-                                                    </span>
+                                                    </Text>
                                                 </div>
                                             </Fragment>
                                         );
@@ -748,8 +727,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                 position: "relative",
                                                                 padding: "8px 12px",
                                                                 ...(isMyMessage
-                                                                    ? { background: C.accent, color: C.white, borderRadius: "16px 4px 16px 16px" }
-                                                                    : { background: C.white, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: "4px 16px 16px 16px" }),
+                                                                    ? { background: '#0d9488', color: '#ffffff', borderRadius: "16px 4px 16px 16px" }
+                                                                    : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: "4px 16px 16px 16px" }),
                                                             }}
                                                             onTouchStart={() => {
                                                                 longPressTimerRef2.current = setTimeout(() => setContextMenuMessageId(message.id), 500);
@@ -800,7 +779,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                         display: "inline-flex",
                                                                         alignItems: "center",
                                                                         gap: 'var(--spacing-1)',
-                                                                        color: isMyMessage ? C.white : C.accent,
+                                                                        color: isMyMessage ? C.onAccent : C.accent,
                                                                     }}
                                                                 >
                                                                     📎 {message.fileName || message.content}
@@ -822,27 +801,14 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                     {message.reactions && message.reactions.length > 0 && (
                                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 'var(--spacing-1)', marginTop: 'var(--spacing-1)' }}>
                                                             {message.reactions.map((reaction) => (
-                                                                <button
+                                                                <Button
                                                                     key={reaction.emoji}
+                                                                    size="sm"
+                                                                    variant={reaction.myReaction ? "secondary" : "ghost"}
+                                                                    label={`${reaction.emoji} ${reaction.count}`}
+                                                                    tooltip={reaction.userNames?.join(", ")}
                                                                     onClick={() => handleToggleReaction(message.id, reaction.emoji)}
-                                                                    className="carev-chat-reaction"
-                                                                    style={{
-                                                                        display: "inline-flex",
-                                                                        alignItems: "center",
-                                                                        gap: 'var(--spacing-0-5)',
-                                                                        padding: "2px 6px",
-                                                                        borderRadius: 'var(--radius-full)',
-                                                                        fontSize: 'var(--font-size-sm)',
-                                                                        cursor: "pointer",
-                                                                        border: `1px solid ${reaction.myReaction ? C.softBorder : C.border}`,
-                                                                        background: reaction.myReaction ? C.surface : C.white,
-                                                                        color: reaction.myReaction ? C.accentDark : C.gray500,
-                                                                    }}
-                                                                    title={reaction.userNames?.join(", ")}
-                                                                >
-                                                                    <span>{reaction.emoji}</span>
-                                                                    <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{reaction.count}</span>
-                                                                </button>
+                                                                />
                                                             ))}
                                                         </div>
                                                     )}
@@ -850,29 +816,28 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                     {/* 롱프레스 메뉴 */}
                                                     {contextMenuMessageId === message.id && (
                                                         <div style={{ position: "absolute", zIndex: 40, bottom: "100%", marginBottom: 'var(--spacing-1)', ...(isMyMessage ? { right: 0 } : { left: 0 }) }}>
-                                                            <div style={{ background: C.white, borderRadius: 'var(--radius-element)', boxShadow: "0 10px 25px rgba(0,0,0,0.12)", border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                                                                <div style={{ display: "flex", gap: 'var(--spacing-0-5)', padding: "6px 8px", borderBottom: `1px solid ${C.gray100}` }}>
-                                                                    {QUICK_EMOJIS.map((emoji) => (
-                                                                        <button
-                                                                            key={emoji}
-                                                                            onClick={() => handleToggleReaction(message.id, emoji)}
-                                                                            className="carev-chat-emoji-btn"
-                                                                            style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 'var(--radius-inner)', fontSize: 'var(--font-size-lg)', border: "none", background: "transparent", cursor: "pointer" }}
-                                                                        >
-                                                                            {emoji}
-                                                                        </button>
-                                                                    ))}
+                                                            <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: "0 10px 25px rgba(0,0,0,0.12)", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                                                                <div style={{ padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.gray100}` }}>
+                                                                    <HStack gap={0.5}>
+                                                                        {QUICK_EMOJIS.map((emoji) => (
+                                                                            <IconButton
+                                                                                key={emoji}
+                                                                                label={`${emoji} 반응`}
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                icon={<span>{emoji}</span>}
+                                                                                onClick={() => handleToggleReaction(message.id, emoji)}
+                                                                            />
+                                                                        ))}
+                                                                    </HStack>
                                                                 </div>
-                                                                <button
+                                                                <Button
+                                                                    label="답장"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    icon={<Icon icon={FiCornerUpLeft} size="sm" />}
                                                                     onClick={() => { setReplyTo(message); setContextMenuMessageId(null); }}
-                                                                    className="carev-chat-menu-item"
-                                                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "8px 12px", fontSize: 'var(--font-size-base)', color: C.gray700, border: "none", background: "transparent", cursor: "pointer", textAlign: "left" }}
-                                                                >
-                                                                    <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                                                    </svg>
-                                                                    답장
-                                                                </button>
+                                                                />
                                                             </div>
                                                         </div>
                                                     )}
@@ -935,7 +900,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                         {/* Info Drawer */}
                         {showDrawer && (
-                            <div style={{ position: "absolute", inset: 0, background: C.white, zIndex: 20, display: "flex", flexDirection: "column" }}>
+                            <div style={{ position: "absolute", inset: 0, background: C.card, zIndex: 20, display: "flex", flexDirection: "column" }}>
                                 {/* Drawer Header */}
                                 <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <Text type="large" weight="semibold">채팅방 정보</Text>
@@ -960,16 +925,14 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                 <Spinner size="md" />
                                             </div>
                                         ) : participants.length > 0 ? (
-                                            <VStack gap={2}>
+                                            <VStack gap={1}>
                                                 {participants.map((p, i) => (
-                                                    <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "8px 0" }}>
-                                                        <div style={{ width: 32, height: 32, background: C.surface, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                            <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', color: C.accentDark }}>
-                                                                {p.userName?.charAt(0) || "?"}
-                                                            </span>
-                                                        </div>
-                                                        <Text type="body">{p.userName}</Text>
-                                                    </div>
+                                                    <Item
+                                                        key={p.userId || i}
+                                                        density="compact"
+                                                        startContent={<Avatar name={p.userName} size="small" />}
+                                                        label={p.userName}
+                                                    />
                                                 ))}
                                             </VStack>
                                         ) : (
@@ -1014,28 +977,19 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                             </Text>
                                         </div>
                                         {messages.filter(m => m.type === "FILE" && m.fileUrl).length > 0 ? (
-                                            <VStack gap={2}>
+                                            <VStack gap={1}>
                                                 {messages.filter(m => m.type === "FILE" && m.fileUrl).map(m => (
-                                                    <a
+                                                    <Item
                                                         key={m.id}
                                                         href={m.fileUrl!}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="carev-chat-file-link"
-                                                        style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', textDecoration: "none" }}
-                                                    >
-                                                        <div style={{ width: 32, height: 32, background: C.gray100, borderRadius: 'var(--radius-inner)', display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                            <svg style={{ width: 16, height: 16, color: C.gray500 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                                            </svg>
-                                                        </div>
-                                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                                            <Text type="body" size="sm" maxLines={1}>{m.fileName || m.content}</Text>
-                                                            <div>
-                                                                <Text type="supporting" size="2xs">{formatMessageTime(m.createdAt)}</Text>
-                                                            </div>
-                                                        </div>
-                                                    </a>
+                                                        density="compact"
+                                                        startContent={<Icon icon={FiPaperclip} size="sm" color="secondary" />}
+                                                        label={m.fileName || m.content}
+                                                        labelLines={1}
+                                                        description={<Text type="supporting" size="2xs">{formatMessageTime(m.createdAt)}</Text>}
+                                                    />
                                                 ))}
                                             </VStack>
                                         ) : (
@@ -1148,11 +1102,11 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                     }
                     content={
                         <LayoutContent>
-                            <VStack gap={2}>
+                            <VStack gap={3}>
                                 <Text type="body">
                                     <strong>{rooms.find(r => r.id === selectedRoom)?.name}</strong> 채팅방을 삭제하시겠습니까?
                                 </Text>
-                                <span style={{ fontSize: 'var(--font-size-base)', color: C.red500 }}>삭제된 채팅방과 메시지는 복구할 수 없습니다.</span>
+                                <Banner status="warning" title="삭제된 채팅방과 메시지는 복구할 수 없습니다." />
                             </VStack>
                         </LayoutContent>
                     }
