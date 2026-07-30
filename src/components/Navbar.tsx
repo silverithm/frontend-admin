@@ -10,7 +10,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 
 const navLinkStyle: React.CSSProperties = {
-  color: '#c3fae8',
+  color: 'var(--color-text-primary)',
   fontWeight: 'var(--font-weight-medium)',
   textDecoration: 'none',
   transition: 'color var(--duration-fast) var(--ease-standard)',
@@ -46,10 +46,10 @@ const Navbar: React.FC = () => {
         right: 0,
         zIndex: 50,
         transition: 'all var(--duration-medium-min) var(--ease-standard)',
-        background: isScrolled ? 'rgba(15, 23, 42, 0.95)' : 'transparent',
+        background: isScrolled ? 'rgba(255, 255, 255, 0.92)' : 'transparent',
         backdropFilter: isScrolled ? 'blur(12px)' : undefined,
-        boxShadow: isScrolled ? '0 4px 24px rgba(0,0,0,0.2)' : undefined,
-        borderBottom: isScrolled ? '1px solid rgba(15, 118, 110, 0.3)' : undefined,
+        boxShadow: isScrolled ? 'var(--shadow-low)' : undefined,
+        borderBottom: isScrolled ? '1px solid var(--color-border)' : undefined,
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
@@ -57,7 +57,7 @@ const Navbar: React.FC = () => {
           {/* 로고 */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             <Image
-              src="/images/logo-text.png"
+              src="/images/logo-text-dark.png"
               alt="케어브이 로고"
               width={120}
               height={40}
@@ -85,7 +85,7 @@ const Navbar: React.FC = () => {
           <button
             className="carev-nav-mobile-toggle"
             aria-label="메뉴 열기"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c3fae8' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <Icon icon={isMobileMenuOpen ? FiX : FiMenu} size="lg" />
@@ -104,9 +104,9 @@ const Navbar: React.FC = () => {
             transition={{ duration: 0.3 }}
             style={{
               overflow: 'hidden',
-              background: 'rgba(15, 23, 42, 0.95)',
+              background: 'rgba(255, 255, 255, 0.92)',
               backdropFilter: 'blur(12px)',
-              borderBottom: '1px solid rgba(15, 118, 110, 0.3)',
+              borderBottom: '1px solid var(--color-border)',
             }}
           >
             <div style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
@@ -120,7 +120,7 @@ const Navbar: React.FC = () => {
                   {link.label}
                 </a>
               ))}
-              <div style={{ paddingTop: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', borderTop: '1px solid rgba(15, 118, 110, 0.3)' }}>
+              <div style={{ paddingTop: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', borderTop: '1px solid var(--color-border)' }}>
                 <Button
                   label="회원가입"
                   variant="ghost"

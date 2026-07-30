@@ -155,7 +155,7 @@ export default function SeniorAbsenceManagement() {
                               fontSize: 'var(--font-size-sm)',
                               fontWeight: 'var(--font-weight-medium)',
                               backgroundColor: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-muted)',
-                              color: isSelected ? "#ffffff" : 'var(--color-text-primary)',
+                              color: isSelected ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                             }}
                           >
                             {index + 1}

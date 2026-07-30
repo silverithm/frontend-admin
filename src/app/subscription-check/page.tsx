@@ -16,7 +16,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 
-const PAGE_GRADIENT = 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)';
+const PAGE_GRADIENT = 'var(--carev-page-gradient)';
 
 export default function SubscriptionCheckPage() {
   const router = useRouter();
@@ -107,10 +107,9 @@ export default function SubscriptionCheckPage() {
           alignItems: 'center',
           justifyContent: 'center',
           background: PAGE_GRADIENT,
-          color: '#ffffff',
         }}
       >
-        <Spinner size="lg" shade="onMedia" label="구독 정보를 확인하는 중..." />
+        <Spinner size="lg" label="구독 정보를 확인하는 중..." />
       </div>
     );
   }
@@ -122,7 +121,7 @@ export default function SubscriptionCheckPage() {
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
           <HStack hAlign="center">
             <Image
-              src="/images/logo-text.png"
+              src="/images/logo-text-dark.png"
               alt="케어브이 로고"
               width={140}
               height={47}

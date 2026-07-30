@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { VacationFormProps, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
-import { FiBriefcase, FiCalendar, FiClock } from 'react-icons/fi';
+import { VacationFormProps, VacationDuration, VacationKind, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import { FiBriefcase, FiCalendar, FiClock, FiRepeat } from 'react-icons/fi';
 import { useAlert } from './Alert';
 import {
   ALL_ROLE_FILTER,
   getRoleDisplayName,
   getStoredUserRole,
+  normalizeRoleKey,
 } from '@/lib/roleUtils';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
@@ -32,7 +33,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
   const [userName, setUserName] = useState('');
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
-  const [type, setType] = useState<'regular' | 'mandatory'>('regular');
+  const [type, setType] = useState<VacationKind>('regular');
   const [role, setRole] = useState('');
   const [duration, setDuration] = useState<VacationDuration>('FULL_DAY');
   const [errors, setErrors] = useState({
@@ -47,7 +48,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
     const seen = new Set<string>();
 
     const addRole = (value?: string | null) => {
-      const trimmedValue = value?.trim();
+      const trimmedValue = normalizeRoleKey(value);
       if (!trimmedValue || trimmedValue === ALL_ROLE_FILTER || seen.has(trimmedValue)) {
         return;
       }
@@ -154,7 +155,8 @@ const VacationForm: React.FC<VacationFormProps> = ({
             password: password.trim(),
             type,
             role,
-            duration,
+            // 대체휴무는 연차에서 차감되지 않으므로 UNUSED로 저장한다
+            duration: type === 'substitute' ? 'UNUSED' : duration,
             date: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
           })
         });
@@ -218,17 +220,25 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   status={errors.userName ? { type: 'error', message: errors.userName } : undefined}
                 />
 
-                <Selector
-                  label="휴가 기간"
-                  options={VACATION_DURATION_OPTIONS.map((option) => ({
-                    value: option.value,
-                    label: `${option.displayName} · ${option.description} (${option.days}일)`,
-                  }))}
-                  value={duration}
-                  onChange={(value) => setDuration(value as VacationDuration)}
-                  isRequired
-                  isDisabled={isSubmitting}
-                />
+                {type === 'substitute' ? (
+                  <Banner
+                    status="info"
+                    title="대체휴무는 연차에서 차감되지 않습니다"
+                    description="공휴일·휴일 근무에 대한 보상 휴무입니다. 어떤 근무에 대한 대체인지 사유에 남겨주세요."
+                  />
+                ) : (
+                  <Selector
+                    label="휴가 기간"
+                    options={VACATION_DURATION_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: `${option.displayName} · ${option.description} (${option.days}일)`,
+                    }))}
+                    value={duration}
+                    onChange={(value) => setDuration(value as VacationDuration)}
+                    isRequired
+                    isDisabled={isSubmitting}
+                  />
+                )}
 
                 <TextInput
                   label="비밀번호"
@@ -259,9 +269,10 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   options={[
                     { value: 'regular', label: '일반 휴무', icon: FiCalendar },
                     { value: 'mandatory', label: '필수 휴무', icon: FiClock },
+                    { value: 'substitute', label: '대체휴무', icon: FiRepeat },
                   ]}
                   value={type}
-                  onChange={(value) => setType(value as 'regular' | 'mandatory')}
+                  onChange={(value) => setType(value as VacationKind)}
                   isRequired
                   isDisabled={isSubmitting}
                 />

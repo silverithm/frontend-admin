@@ -37,7 +37,7 @@ interface OrganizationProfileData {
 }
 
 const gradientBar =
-  'linear-gradient(90deg, #0f1115 0%, #16181d 55%, #0f1115 100%)';
+  'linear-gradient(90deg, #ffffff 0%, #f7f8fa 55%, #ffffff 100%)';
 
 export default function OrganizationProfilePage() {
   const router = useRouter();
@@ -175,7 +175,7 @@ export default function OrganizationProfilePage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
       {/* 모던 헤더 */}
-      <header style={{ background: gradientBar, boxShadow: '0 10px 30px rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(30,64,175,0.3)' }}>
+      <header style={{ background: gradientBar, boxShadow: 'var(--shadow-low)', borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
           <HStack hAlign="between" vAlign="center">
             <HStack gap={3} vAlign="center">
@@ -185,8 +185,8 @@ export default function OrganizationProfilePage() {
                 width={120}
                 height={40}
               />
-              <div style={{ color: '#ffffff' }}>
-                <Text type="display-3" color="inherit" weight="bold">기관 프로필</Text>
+              <div>
+                <Text type="display-3" color="primary" weight="bold">기관 프로필</Text>
                 <div style={{ color: 'var(--color-text-blue)' }}>
                   <Text type="supporting" color="inherit">기관 정보 관리</Text>
                 </div>

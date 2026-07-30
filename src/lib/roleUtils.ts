@@ -8,8 +8,36 @@ const LEGACY_ROLE_LABELS: Record<string, string> = {
   office: "사무직",
   admin: "관리자",
   employee: "직원",
-  ROLE_EMPLOYEE: "직원",
 };
+
+/**
+ * 백엔드 VacationRequest.normalizeRole과 동일한 규칙.
+ * 휴가 API는 "요양보호사"를 "caregiver"로 정규화해 내려주는 반면 역할(Position) API는 원본 이름을
+ * 그대로 주기 때문에, 같은 역할이 두 항목으로 갈라지지 않도록 한쪽 키로 모은다.
+ */
+const LEGACY_ROLE_ALIASES: Record<string, string> = {
+  CAREGIVER: "caregiver",
+  ROLE_CAREGIVER: "caregiver",
+  요양보호사: "caregiver",
+  OFFICE: "office",
+  ROLE_OFFICE: "office",
+  사무직: "office",
+  ADMIN: "admin",
+  ROLE_ADMIN: "admin",
+  관리자: "admin",
+  EMPLOYEE: "employee",
+  ROLE_EMPLOYEE: "employee",
+  직원: "employee",
+};
+
+export function normalizeRoleKey(value?: string | null) {
+  const trimmedValue = value?.trim() || "";
+  if (!trimmedValue) {
+    return "";
+  }
+
+  return LEGACY_ROLE_ALIASES[trimmedValue.toUpperCase()] || trimmedValue;
+}
 
 const ROLE_BADGE_PALETTE = [
   "bg-blue-50 text-blue-700 border-blue-100",
@@ -34,11 +62,11 @@ export interface RoleLookup {
 }
 
 function normalizeRoleName(value?: string | null) {
-  return value?.trim() || "";
+  return normalizeRoleKey(value);
 }
 
 function shouldIgnoreStoredRole(role: string) {
-  return role === "" || role === "employee" || role === "ROLE_EMPLOYEE";
+  return role === "" || role === "employee";
 }
 
 function addRoleName(roleNames: string[], seen: Set<string>, role: string) {

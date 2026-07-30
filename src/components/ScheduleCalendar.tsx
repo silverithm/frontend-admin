@@ -22,10 +22,11 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { Card } from '@astryxdesign/core/Card';
-import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconTag } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests } from '@/lib/apiService';
-import { Schedule, ScheduleLabel, ScheduleCategory, SCHEDULE_CATEGORIES, LABEL_COLORS } from '@/types/schedule';
+import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconTag, IconCircleCheck } from '@tabler/icons-react';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests } from '@/lib/apiService';
+import { Schedule, ScheduleLabel, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, LABEL_COLORS, getScheduleColor, withAlpha } from '@/types/schedule';
 import { useAlert } from './Alert';
+import { getRoleDisplayName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
 import type { VacationRequest } from '@/types/vacation';
@@ -36,6 +37,34 @@ import DispatchListView from './DispatchListView';
 import SeniorAbsenceManagement from './SeniorAbsenceManagement';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 여러 날 일정을 주 단위로 이어서 표시하기 위한 바 레이아웃 상수
+const BAR_HEIGHT = 16;
+const BAR_GAP = 2;
+const BAR_AREA_TOP = 38; // 셀 패딩 + 날짜 숫자 영역 높이
+const MAX_VISIBLE_LANES = 3;
+const BAR_EDGE_INSET = 3;
+
+// 한 주 안에서 일정이 차지하는 구간
+interface ScheduleBar {
+  schedule: Schedule;
+  startCol: number;
+  endCol: number;
+  continuesBefore: boolean;
+  continuesAfter: boolean;
+  lane: number;
+}
+
+interface WeekBarLayout {
+  bars: ScheduleBar[];
+  hiddenCounts: Record<string, number>;
+}
+
+const EMPTY_CELL_STYLE: CSSProperties = {
+  aspectRatio: '1 / 1',
+  borderBottom: '1px solid var(--color-border)',
+  borderRight: '1px solid var(--color-border)',
+};
 
 const CARD_STYLE: CSSProperties = {
   background: 'var(--color-background-card)',
@@ -132,6 +161,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
   const [fileInputRef] = useState(useRef<HTMLInputElement>(null));
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
 
   // 달력 날짜 계산
   const calendarDays = useMemo(() => {
@@ -144,6 +174,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
     return [...paddedDays, ...days];
   }, [currentDate]);
+
+  // 주 단위로 7칸씩 분할 (마지막 주는 뒤쪽을 null로 채움)
+  const calendarWeeks = useMemo(() => {
+    const weeks: (Date | null)[][] = [];
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      const week = calendarDays.slice(i, i + 7);
+      while (week.length < 7) week.push(null);
+      weeks.push(week);
+    }
+    return weeks;
+  }, [calendarDays]);
 
   // 일정 데이터 로드
   useEffect(() => {
@@ -250,6 +291,103 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       const scheduleEnd = schedule.endDate.split('T')[0];
       return dateKey >= scheduleStart && dateKey <= scheduleEnd;
     });
+  };
+
+  // 주별 일정 바 레이아웃 계산 (여러 날 일정을 하나의 바로 이어서 표시)
+  const weekBarLayouts = useMemo<WeekBarLayout[]>(() => {
+    const rangeOf = (schedule: Schedule) => ({
+      start: schedule.startDate.split('T')[0],
+      end: schedule.endDate.split('T')[0],
+    });
+
+    // 시작일 빠른 순 → 기간 긴 순 → id 순으로 정렬해 주가 바뀌어도 같은 줄을 유지
+    const sorted = [...schedules].sort((a, b) => {
+      const ra = rangeOf(a);
+      const rb = rangeOf(b);
+      if (ra.start !== rb.start) return ra.start < rb.start ? -1 : 1;
+      if (ra.end !== rb.end) return ra.end > rb.end ? -1 : 1;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    return calendarWeeks.map((week) => {
+      const keys = week.map((date) => (date ? format(date, 'yyyy-MM-dd') : null));
+      const bars: ScheduleBar[] = [];
+      const hiddenCounts: Record<string, number> = {};
+      const laneEnds: number[] = [];
+
+      sorted.forEach((schedule) => {
+        const { start, end } = rangeOf(schedule);
+        if (end < start) return;
+
+        let startCol = -1;
+        let endCol = -1;
+        keys.forEach((key, index) => {
+          if (!key || key < start || key > end) return;
+          if (startCol === -1) startCol = index;
+          endCol = index;
+        });
+        if (startCol === -1) return;
+
+        // 이미 놓인 바와 겹치지 않는 첫 번째 줄에 배치
+        let lane = laneEnds.findIndex((laneEnd) => laneEnd < startCol);
+        if (lane === -1) lane = laneEnds.length;
+        laneEnds[lane] = endCol;
+
+        if (lane < MAX_VISIBLE_LANES) {
+          bars.push({
+            schedule,
+            startCol,
+            endCol,
+            continuesBefore: start < keys[startCol]!,
+            continuesAfter: end > keys[endCol]!,
+            lane,
+          });
+        } else {
+          for (let i = startCol; i <= endCol; i++) {
+            const key = keys[i];
+            if (key) hiddenCounts[key] = (hiddenCounts[key] || 0) + 1;
+          }
+        }
+      });
+
+      return { bars, hiddenCounts };
+    });
+  }, [schedules, calendarWeeks]);
+
+  // 이번 달 일정 진행도
+  const monthProgress = useMemo(() => {
+    const total = schedules.length;
+    const done = schedules.filter((s) => s.isCompleted).length;
+    return { total, done, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
+  }, [schedules]);
+
+  // 수정/삭제/수행완료 권한 (관리자 또는 작성자 본인)
+  const canManageSchedule = (schedule: Schedule) =>
+    isAdmin || schedule.authorId === currentUserEmail;
+
+  // 수행완료 토글 (낙관적 업데이트 후 실패 시 롤백)
+  const handleToggleCompletion = async (schedule: Schedule, completed: boolean) => {
+    setTogglingScheduleId(schedule.id);
+    const applyState = (value: boolean) => {
+      setSchedules((prev) => prev.map((s) => (s.id === schedule.id ? { ...s, isCompleted: value } : s)));
+      setSelectedSchedule((prev) => (prev && prev.id === schedule.id ? { ...prev, isCompleted: value } : prev));
+    };
+
+    applyState(completed);
+    try {
+      await updateScheduleCompletion(schedule.id, completed);
+      showAlert({
+        type: 'success',
+        title: completed ? '수행완료' : '완료 해제',
+        message: completed ? '일정을 수행완료로 표시했습니다.' : '수행완료를 해제했습니다.',
+      });
+    } catch (error) {
+      console.error('일정 수행완료 변경 실패:', error);
+      applyState(!completed);
+      showAlert({ type: 'error', title: '변경 실패', message: '수행완료 상태를 변경하지 못했습니다.' });
+    } finally {
+      setTogglingScheduleId(null);
+    }
   };
 
   // 이전/다음 달 이동
@@ -484,10 +622,152 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
     return found?.label || category;
   };
 
+  // 'yyyy-MM-dd' → 'M/d' (타임존 영향 없이 문자열로 변환)
+  const formatMonthDay = (dateString: string) => {
+    const [, month, day] = dateString.split('T')[0].split('-');
+    return `${Number(month)}/${Number(day)}`;
+  };
+
   // 멤버 역할 텍스트
   const getMemberRoleText = (role?: string) => {
     if (!role) return undefined;
-    return role === 'admin' ? '관리자' : role === 'caregiver' ? '요양보호사' : role === 'office' ? '사무직' : role;
+    return getRoleDisplayName(role);
+  };
+
+  // 날짜 숫자 스타일 (오늘 강조 / 주말 색상)
+  const getDayNumStyle = (date: Date): CSSProperties => {
+    const dayOfWeek = date.getDay();
+    if (isToday(date)) {
+      return {
+        background: 'var(--color-background-teal)',
+        color: 'var(--color-text-teal)',
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: '0 auto',
+      };
+    }
+    if (dayOfWeek === 0) return { color: 'var(--color-text-red)' };
+    if (dayOfWeek === 6) return { color: 'var(--color-text-blue)' };
+    return { color: 'var(--color-text-primary)' };
+  };
+
+  // 배차 모드 날짜 셀
+  const renderDispatchDayCell = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const summary = dispatchMonthlySummary.get(dateStr);
+    const statusColors = getDispatchStatusColors(summary);
+    const isCurrentMonth = isSameMonth(date, currentDate);
+    const dayNumStyle = getDayNumStyle(date);
+
+    return (
+      <button
+        key={dateStr}
+        onClick={() => {
+          if (isCurrentMonth) {
+            setDispatchSelectedDate(date);
+            setShowDispatchDayDetail(true);
+          }
+        }}
+        className={isCurrentMonth ? 'carev-schedcal-cell' : undefined}
+        disabled={!isCurrentMonth}
+        style={{
+          aspectRatio: '1 / 1',
+          padding: 'var(--spacing-2)',
+          border: 'none',
+          borderBottom: '1px solid var(--color-border)',
+          borderRight: '1px solid var(--color-border)',
+          position: 'relative',
+          textAlign: 'left',
+          transition: 'background var(--duration-fast)',
+          opacity: !isCurrentMonth ? 0.3 : 1,
+          cursor: isCurrentMonth ? 'pointer' : 'default',
+          background: isCurrentMonth && statusColors.bg ? statusColors.bg : undefined,
+          boxShadow: isToday(date) ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
+        }}
+      >
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <span style={dayNumStyle}>
+            <Text type="label" weight={isToday(date) ? 'bold' : 'semibold'} color="inherit">{format(date, 'd')}</Text>
+          </span>
+          {isCurrentMonth && summary?.isHoliday && (
+            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)' }}>
+              <Text type="supporting" size="4xs" color="inherit" weight="medium">{summary.holidayName}</Text>
+            </div>
+          )}
+          {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
+            <div style={{ marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)' }}>
+              {summary.normalCount > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-green)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-green)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
+                  <Text type="supporting" size="4xs" color="inherit">{summary.normalCount} 정상</Text>
+                </div>
+              )}
+              {summary.substituteCount > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-yellow)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-yellow)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
+                  <Text type="supporting" size="4xs" color="inherit">{summary.substituteCount} 대체</Text>
+                </div>
+              )}
+              {summary.noServiceCount > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-red)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-red)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
+                  <Text type="supporting" size="4xs" color="inherit">{summary.noServiceCount} 미운행</Text>
+                </div>
+              )}
+            </div>
+          )}
+          {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
+            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+              <Text type="supporting" size="4xs" color="inherit">미설정</Text>
+            </div>
+          )}
+        </div>
+      </button>
+    );
+  };
+
+  // 일정 모드 날짜 셀 (일정 바는 주 단위 오버레이에서 렌더링)
+  const renderScheduleDayCell = (date: Date, hiddenCount: number) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const isSelected = selectedDate && isSameDay(date, selectedDate);
+    const dayNumStyle = getDayNumStyle(date);
+
+    return (
+      <button
+        key={dateStr}
+        onClick={() => handleDateClick(date)}
+        className="carev-schedcal-cell"
+        style={{
+          aspectRatio: '1 / 1',
+          padding: 'var(--spacing-2)',
+          border: 'none',
+          borderBottom: '1px solid var(--color-border)',
+          borderRight: '1px solid var(--color-border)',
+          position: 'relative',
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'all var(--duration-fast)',
+          opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
+          background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
+          boxShadow: isSelected ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
+        }}
+      >
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <span style={dayNumStyle}>
+            <Text type="label" weight={isToday(date) ? 'bold' : 'medium'} color="inherit">{format(date, 'd')}</Text>
+          </span>
+        </div>
+        {hiddenCount > 0 && (
+          <div style={{ position: 'absolute', bottom: 'var(--spacing-1)', left: 'var(--spacing-2)', right: 'var(--spacing-2)', color: 'var(--color-text-secondary)' }}>
+            <Text type="supporting" size="4xs" color="inherit" weight="medium">+{hiddenCount}개</Text>
+          </div>
+        )}
+      </button>
+    );
   };
 
   return (
@@ -531,11 +811,30 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             {/* 캘린더 헤더 */}
             <div style={{ padding: 'var(--spacing-6)', borderBottom: '1px solid var(--color-border)' }}>
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-                <HStack gap={4} vAlign="center">
+                <HStack gap={4} vAlign="center" wrap="wrap">
                   <Text type="display-3" as="h2" weight="bold" color="primary">
                     {format(currentDate, 'yyyy년 M월', { locale: ko })}
                   </Text>
                   <Button label="오늘" variant="secondary" size="sm" onClick={goToToday} />
+                  {/* 일정 모드: 이번 달 수행 진행도 */}
+                  {!isDispatchMode && (
+                    <HStack gap={2} vAlign="center">
+                      <Text type="supporting" color="secondary" hasTabularNumbers>
+                        수행완료 {monthProgress.done}/{monthProgress.total}
+                      </Text>
+                      <div
+                        role="progressbar"
+                        aria-label="이번 달 일정 진행도"
+                        aria-valuenow={monthProgress.percent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        style={{ width: 120, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
+                      >
+                        <div style={{ width: `${monthProgress.percent}%`, height: '100%', background: 'var(--color-background-green)', transition: 'width var(--duration-fast) var(--ease-standard)' }} />
+                      </div>
+                      <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{monthProgress.percent}%</Text>
+                    </HStack>
+                  )}
                 </HStack>
                 <HStack gap={2} vAlign="center">
                   {isDispatchMode ? (
@@ -596,6 +895,25 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   </div>
                 </HStack>
               </HStack>
+
+              {/* 일정 모드: 색상 범례 (라벨 + 카테고리 기본색) */}
+              {!isDispatchMode && (
+                <div style={{ marginTop: 'var(--spacing-3)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
+                  {labels.map((label) => (
+                    <HStack key={label.id} gap={1} vAlign="center">
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: label.color }} />
+                      <Text type="supporting" color="secondary">{label.name}</Text>
+                    </HStack>
+                  ))}
+                  {labels.length > 0 && <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />}
+                  {SCHEDULE_CATEGORIES.map((cat) => (
+                    <HStack key={cat.value} gap={1} vAlign="center">
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
+                      <Text type="supporting" color="secondary">{cat.label}</Text>
+                    </HStack>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 요일 헤더 */}
@@ -636,184 +954,86 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-10) 0' }}>
                 <Spinner size="lg" aria-label="달력 불러오는 중" />
               </div>
-            ) : (
+            ) : isDispatchMode ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                {calendarDays.map((date, index) => {
-                  if (!date) {
-                    return (
-                      <div
-                        key={`empty-${index}`}
-                        style={{ aspectRatio: '1 / 1', borderBottom: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)' }}
-                      />
-                    );
-                  }
-
-                  const dayOfWeek = date.getDay();
-                  const dateStr = format(date, 'yyyy-MM-dd');
-
-                  // 배차 모드
-                  if (isDispatchMode) {
-                    const summary = dispatchMonthlySummary.get(dateStr);
-                    const statusColors = getDispatchStatusColors(summary);
-                    const isCurrentMonth = isSameMonth(date, currentDate);
-
-                    const dayNumStyle: CSSProperties = isToday(date)
-                      ? {
-                          background: 'var(--color-background-teal)',
-                          color: '#fff',
-                          width: 28,
-                          height: 28,
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          margin: '0 auto',
-                        }
-                      : dayOfWeek === 0
-                      ? { color: 'var(--color-text-red)' }
-                      : dayOfWeek === 6
-                      ? { color: 'var(--color-text-blue)' }
-                      : { color: 'var(--color-text-primary)' };
-
-                    return (
-                      <button
-                        key={dateStr}
-                        onClick={() => {
-                          if (isCurrentMonth) {
-                            setDispatchSelectedDate(date);
-                            setShowDispatchDayDetail(true);
-                          }
-                        }}
-                        className={isCurrentMonth ? 'carev-schedcal-cell' : undefined}
-                        disabled={!isCurrentMonth}
-                        style={{
-                          aspectRatio: '1 / 1',
-                          padding: 'var(--spacing-2)',
-                          border: 'none',
-                          borderBottom: '1px solid var(--color-border)',
-                          borderRight: '1px solid var(--color-border)',
-                          position: 'relative',
-                          textAlign: 'left',
-                          transition: 'background var(--duration-fast)',
-                          opacity: !isCurrentMonth ? 0.3 : 1,
-                          cursor: isCurrentMonth ? 'pointer' : 'default',
-                          background: isCurrentMonth && statusColors.bg ? statusColors.bg : undefined,
-                          boxShadow: isToday(date) ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
-                        }}
-                      >
-                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                          <span style={dayNumStyle}>
-                            <Text type="label" weight={isToday(date) ? 'bold' : 'semibold'} color="inherit">{format(date, 'd')}</Text>
-                          </span>
-                          {isCurrentMonth && summary?.isHoliday && (
-                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)' }}>
-                              <Text type="supporting" size="4xs" color="inherit" weight="medium">{summary.holidayName}</Text>
-                            </div>
-                          )}
-                          {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
-                            <div style={{ marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)' }}>
-                              {summary.normalCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-green)' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-green)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
-                                  <Text type="supporting" size="4xs" color="inherit">{summary.normalCount} 정상</Text>
-                                </div>
-                              )}
-                              {summary.substituteCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-yellow)' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-yellow)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
-                                  <Text type="supporting" size="4xs" color="inherit">{summary.substituteCount} 대체</Text>
-                                </div>
-                              )}
-                              {summary.noServiceCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-red)' }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-red)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
-                                  <Text type="supporting" size="4xs" color="inherit">{summary.noServiceCount} 미운행</Text>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
-                            <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-                              <Text type="supporting" size="4xs" color="inherit">미설정</Text>
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  }
-
-                  // 일정 모드
-                  const daySchedules = getSchedulesForDate(date);
-                  const isSelected = selectedDate && isSameDay(date, selectedDate);
-
-                  const dayNumStyle: CSSProperties = isToday(date)
-                    ? {
-                        background: 'var(--color-background-teal)',
-                        color: '#fff',
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto',
-                      }
-                    : dayOfWeek === 0
-                    ? { color: 'var(--color-text-red)' }
-                    : dayOfWeek === 6
-                    ? { color: 'var(--color-text-blue)' }
-                    : { color: 'var(--color-text-primary)' };
-
+                {calendarDays.map((date, index) =>
+                  date ? renderDispatchDayCell(date) : <div key={`empty-${index}`} style={EMPTY_CELL_STYLE} />
+                )}
+              </div>
+            ) : (
+              <div>
+                {calendarWeeks.map((week, weekIndex) => {
+                  const layout = weekBarLayouts[weekIndex];
                   return (
-                    <button
-                      key={dateStr}
-                      onClick={() => handleDateClick(date)}
-                      className="carev-schedcal-cell"
-                      style={{
-                        aspectRatio: '1 / 1',
-                        padding: 'var(--spacing-2)',
-                        border: 'none',
-                        borderBottom: '1px solid var(--color-border)',
-                        borderRight: '1px solid var(--color-border)',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all var(--duration-fast)',
-                        opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
-                        background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
-                        boxShadow: isSelected ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
-                      }}
-                    >
-                      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <span style={dayNumStyle}>
-                          <Text type="label" weight={isToday(date) ? 'bold' : 'medium'} color="inherit">{format(date, 'd')}</Text>
-                        </span>
-                        {daySchedules.length > 0 && (
-                          <div style={{ flex: 1, marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)', overflowY: 'auto' }}>
-                            {daySchedules.map((schedule) => (
-                              <div
-                                key={schedule.id}
-                                onClick={(e) => handleScheduleClick(e, schedule)}
-                                title={schedule.title}
-                                style={{
-                                  padding: 'var(--spacing-0-5) var(--spacing-1-5)',
-                                  borderRadius: 'var(--radius-none)',
-                                  color: '#fff',
-                                  backgroundColor: schedule.label?.color || 'var(--color-background-blue)',
-                                  opacity: 0.9,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <Text type="supporting" size="4xs" color="inherit" weight="medium" maxLines={1}>{schedule.title}</Text>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                    <div key={`week-${weekIndex}`} className="carev-schedcal-week">
+                      {week.map((date, dayIndex) =>
+                        date ? (
+                          renderScheduleDayCell(date, layout?.hiddenCounts[format(date, 'yyyy-MM-dd')] || 0)
+                        ) : (
+                          <div key={`empty-${weekIndex}-${dayIndex}`} style={EMPTY_CELL_STYLE} />
+                        )
+                      )}
+                      {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이 */}
+                      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                        {layout?.bars.map((bar) => {
+                          const leftInset = bar.continuesBefore ? 0 : BAR_EDGE_INSET;
+                          const rightInset = bar.continuesAfter ? 0 : BAR_EDGE_INSET;
+                          const spanDays = bar.endCol - bar.startCol + 1;
+                          const startRadius = bar.continuesBefore ? 0 : 3;
+                          const endRadius = bar.continuesAfter ? 0 : 3;
+                          const barColor = getScheduleColor(bar.schedule);
+                          const isDone = !!bar.schedule.isCompleted;
+                          return (
+                            <button
+                              key={`${bar.schedule.id}-${weekIndex}`}
+                              onClick={(e) => handleScheduleClick(e, bar.schedule)}
+                              title={isDone ? `${bar.schedule.title} (수행완료)` : bar.schedule.title}
+                              style={{
+                                position: 'absolute',
+                                top: BAR_AREA_TOP + bar.lane * (BAR_HEIGHT + BAR_GAP),
+                                left: `calc(${(bar.startCol / 7) * 100}% + ${leftInset}px)`,
+                                width: `calc(${(spanDays / 7) * 100}% - ${leftInset + rightInset}px)`,
+                                height: BAR_HEIGHT,
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 var(--spacing-1-5)',
+                                border: isDone ? `1px solid ${barColor}` : 'none',
+                                borderRadius: `${startRadius}px ${endRadius}px ${endRadius}px ${startRadius}px`,
+                                backgroundColor: isDone ? withAlpha(barColor, 0.14) : barColor,
+                                color: isDone ? barColor : '#fff',
+                                opacity: isDone ? 0.85 : 0.9,
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                pointerEvents: 'auto',
+                              }}
+                            >
+                              {bar.continuesBefore && (
+                                <span style={{ flexShrink: 0, marginRight: 'var(--spacing-1)', lineHeight: 1 }}>
+                                  <Text type="supporting" size="4xs" color="inherit" weight="bold">◀</Text>
+                                </span>
+                              )}
+                              {isDone && (
+                                <span style={{ flexShrink: 0, marginRight: 2, display: 'flex', lineHeight: 1 }}>
+                                  <Icon icon={IconCircleCheck} size="xsm" color="inherit" />
+                                </span>
+                              )}
+                              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textDecoration: isDone ? 'line-through' : 'none' }}>
+                                <Text type="supporting" size="4xs" color="inherit" weight="medium" maxLines={1}>
+                                  {bar.schedule.title}
+                                </Text>
+                              </span>
+                              {bar.continuesAfter && (
+                                <span style={{ flexShrink: 0, marginLeft: 'var(--spacing-1)', lineHeight: 1 }}>
+                                  <Text type="supporting" size="4xs" color="inherit" weight="bold">▶</Text>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -839,7 +1059,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       <Text type="display-3" as="h3" weight="bold" color="primary">
                         {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                       </Text>
-                      <Text type="supporting">{getSchedulesForDate(selectedDate).length}개 일정</Text>
+                      <Text type="supporting">
+                        {getSchedulesForDate(selectedDate).length}개 일정 · 완료 {getSchedulesForDate(selectedDate).filter((s) => s.isCompleted).length}개
+                      </Text>
                     </VStack>
                     <Button
                       label="닫기"
@@ -880,16 +1102,24 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           >
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
                               <div
-                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 'var(--spacing-1-5)', flexShrink: 0, backgroundColor: schedule.label?.color || 'var(--color-background-blue)' }}
+                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 'var(--spacing-1-5)', flexShrink: 0, backgroundColor: getScheduleColor(schedule), opacity: schedule.isCompleted ? 0.4 : 1 }}
                               />
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <Text type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>
+                                <div style={{ textDecoration: schedule.isCompleted ? 'line-through' : 'none', opacity: schedule.isCompleted ? 0.6 : 1 }}>
+                                  <Text type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>
+                                </div>
                                 <div style={{ marginTop: 'var(--spacing-1)' }}>
-                                  <HStack gap={1.5} vAlign="center">
+                                  <HStack gap={1.5} vAlign="center" wrap="wrap">
                                     <Badge variant="teal" label={getCategoryText(schedule.category)} />
+                                    {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
                                     <Text type="supporting">
                                       {schedule.isAllDay ? '종일' : `${schedule.startTime || ''} - ${schedule.endTime || ''}`}
                                     </Text>
+                                    {schedule.startDate.split('T')[0] !== schedule.endDate.split('T')[0] && (
+                                      <Text type="supporting" color="secondary">
+                                        {formatMonthDay(schedule.startDate)} ~ {formatMonthDay(schedule.endDate)}
+                                      </Text>
+                                    )}
                                   </HStack>
                                 </div>
                                 {schedule.location && (
@@ -900,8 +1130,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               </div>
                             </div>
                           </button>
-                          {(isAdmin || schedule.authorId === currentUserEmail) && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-1)', marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)' }}>
+                          {canManageSchedule(schedule) && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-1)', marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
+                              <Button
+                                label={schedule.isCompleted ? '완료 해제' : '수행완료'}
+                                variant={schedule.isCompleted ? 'ghost' : 'primary'}
+                                size="sm"
+                                icon={<Icon icon={IconCircleCheck} size="sm" />}
+                                isLoading={togglingScheduleId === schedule.id}
+                                isDisabled={togglingScheduleId === schedule.id}
+                                onClick={() => handleToggleCompletion(schedule, !schedule.isCompleted)}
+                              />
                               <Button label="수정" variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule)} />
                               <Button
                                 label="삭제"
@@ -1181,6 +1420,42 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             content={
               <LayoutContent>
                 <VStack gap={4}>
+                  {/* 수행 상태 */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--spacing-2)',
+                      padding: 'var(--spacing-3)',
+                      borderRadius: 'var(--radius-inner)',
+                      border: `1px solid ${selectedSchedule.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
+                      background: selectedSchedule.isCompleted ? 'var(--color-background-green)' : 'var(--color-background-muted)',
+                    }}
+                  >
+                    <Icon icon={IconCircleCheck} size="md" color={selectedSchedule.isCompleted ? 'success' : 'tertiary'} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Text type="body" weight="medium" color="primary">
+                        {selectedSchedule.isCompleted ? '수행완료' : '진행 예정'}
+                      </Text>
+                      {selectedSchedule.isCompleted && (
+                        <Text type="supporting" color="secondary">
+                          {selectedSchedule.completedByName ? `${selectedSchedule.completedByName} · ` : ''}
+                          {selectedSchedule.completedAt ? format(new Date(selectedSchedule.completedAt), 'yyyy.MM.dd HH:mm') : ''}
+                        </Text>
+                      )}
+                    </div>
+                    {canManageSchedule(selectedSchedule) && (
+                      <Button
+                        label={selectedSchedule.isCompleted ? '완료 해제' : '수행완료 체크'}
+                        variant={selectedSchedule.isCompleted ? 'secondary' : 'primary'}
+                        size="sm"
+                        isLoading={togglingScheduleId === selectedSchedule.id}
+                        isDisabled={togglingScheduleId === selectedSchedule.id}
+                        onClick={() => handleToggleCompletion(selectedSchedule, !selectedSchedule.isCompleted)}
+                      />
+                    )}
+                  </div>
+
                   {/* 날짜/시간 */}
                   <HStack gap={3} vAlign="start">
                     <Icon icon="calendar" size="md" color="tertiary" />

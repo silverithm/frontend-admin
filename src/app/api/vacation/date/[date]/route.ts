@@ -60,7 +60,7 @@ export async function GET(
     
     // role이 'all'이 아닌 경우에만 role 파라미터 추가
     if (role !== 'all') {
-      backendUrl += `&role=${role}`;
+      backendUrl += `&role=${encodeURIComponent(role)}`;
     }
     
     if (nameFilter) {

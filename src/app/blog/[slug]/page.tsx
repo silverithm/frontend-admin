@@ -506,10 +506,10 @@ export default function BlogPostPage() {
 
     if (!post) {
         return (
-            <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)' }}>
+            <main style={{ minHeight: '100vh', color: 'var(--color-text-primary)', background: 'linear-gradient(180deg, #ffffff 0%, #f7f8fa 55%, #ffffff 100%)' }}>
                 <Navbar />
                 <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '128px 16px 0', textAlign: 'center' }}>
-                    <Heading level={1} style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-4)' }}>
+                    <Heading level={1} style={{ color: 'var(--color-text-primary)', fontSize: '2.25rem', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-4)' }}>
                         포스트를 찾을 수 없습니다
                     </Heading>
                     <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.25rem', marginBottom: 'var(--spacing-8)' }}>
@@ -522,7 +522,7 @@ export default function BlogPostPage() {
     }
 
     return (
-        <main style={{ minHeight: '100vh', color: '#ffffff', background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)' }}>
+        <main style={{ minHeight: '100vh', color: 'var(--color-text-primary)', background: 'linear-gradient(180deg, #ffffff 0%, #f7f8fa 55%, #ffffff 100%)' }}>
             <Navbar />
 
             {/* 헤더 */}
@@ -555,7 +555,7 @@ export default function BlogPostPage() {
                                 style={{
                                     fontWeight: 'var(--font-weight-bold)',
                                     fontSize: 'clamp(1.875rem, 4vw, 3rem)',
-                                    background: 'linear-gradient(to right, #ffffff, #a5e3d6)',
+                                    background: 'linear-gradient(to right, #0f172a, #0d9488)',
                                     WebkitBackgroundClip: 'text',
                                     backgroundClip: 'text',
                                     WebkitTextFillColor: 'transparent',
@@ -592,11 +592,11 @@ export default function BlogPostPage() {
                             variant="transparent"
                             padding={8}
                             style={{
-                                background: 'rgba(255, 255, 255, 0.1)',
+                                background: 'var(--color-background-card)',
                                 backdropFilter: 'blur(16px)',
                                 WebkitBackdropFilter: 'blur(16px)',
                                 borderRadius: 'var(--radius-container)',
-                                border: '1px solid rgba(96, 165, 250, 0.2)',
+                                border: '1px solid var(--color-border)',
                             }}
                         >
                             <div
@@ -615,7 +615,7 @@ export default function BlogPostPage() {
                         style={{ marginTop: 'var(--spacing-12)' }}
                     >
                         <VStack gap={5} hAlign="center">
-                            <Heading level={3} style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)' }}>
+                            <Heading level={3} style={{ color: 'var(--color-text-primary)', fontSize: '1.5rem', fontWeight: 'var(--font-weight-bold)' }}>
                                 더 많은 정보가 필요하신가요?
                             </Heading>
                             <Text as="p" style={{ display: 'block', color: 'var(--color-text-blue)', fontSize: '1.125rem' }}>

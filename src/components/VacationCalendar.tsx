@@ -3,7 +3,14 @@ import React, { useState, useEffect, useMemo, useCallback, SetStateAction, useRe
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, addDays, getDay, startOfWeek, endOfWeek, isBefore, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DayInfo, VacationRequest, VacationLimit, VacationData, CalendarProps } from '@/types/vacation';
+import {
+  DayInfo,
+  VacationRequest,
+  VacationLimit,
+  VacationData,
+  CalendarProps,
+  isSubstituteVacation,
+} from '@/types/vacation';
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
@@ -546,25 +553,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     return dates;
   }, [currentDate]);
 
-  // 휴무 유형 한글 변환
-  const getVacationTypeText = (type?: string) => {
-    switch (type) {
-      case 'regular':
-        return '일반 휴무';
-      case 'mandatory':
-        return '필수 휴무';
-      case 'personal':
-        return '개인 휴무';
-      case 'sick':
-        return '병가';
-      case 'emergency':
-        return '긴급 휴무';
-      case 'family':
-        return '가족 돌봄 휴무';
-      default:
-        return type || '일반 휴무';
-    }
-  };
 
   // 휴가 기간을 짧게 표시하는 함수 (동그라미 안에 표시용)
   const getDurationShortText = (duration?: string) => {
@@ -888,7 +876,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-1)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
                     {isCurrentDay ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: 'var(--color-background-teal)', color: '#fff' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)' }}>
                         <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     ) : (
@@ -907,7 +895,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       padding: '2px 6px',
                       borderRadius: 'var(--radius-full)',
                       background: vacationersCount >= maxPeople ? 'var(--color-background-red)' : 'var(--color-background-teal)',
-                      color: vacationersCount >= maxPeople ? '#fff' : 'var(--color-text-teal)',
+                      color: vacationersCount >= maxPeople ? 'var(--color-text-red)' : 'var(--color-text-teal)',
                     }}>
                       {vacationersCount}/{maxPeople}
                     </span>
@@ -971,6 +959,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                 필
                               </span>
                             )}
+                            {isSubstituteVacation(vacation) && (
+                              <span style={circleBadgeStyle('var(--color-icon-teal)', 12)}>
+                                대
+                              </span>
+                            )}
                             {nameFilter === vacation.userName && (
                               <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: 'var(--color-text-teal)' }}>
                                 <Icon icon="check" size="xsm" color="inherit" />
@@ -993,11 +986,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
                   <div style={{ position: 'absolute', bottom: 6, right: 6 }}>
                     {vacationersCount >= maxPeople ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-red)', color: '#fff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-red)', color: 'var(--color-text-red)' }}>
                         <Icon icon={FiAlertCircle} size="xsm" color="inherit" />
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-teal)', color: '#fff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)' }}>
                         <Icon icon="check" size="xsm" color="inherit" />
                       </div>
                     )}
@@ -1060,6 +1053,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           <HStack gap={1.5} vAlign="center">
             <span style={circleBadgeStyle('var(--color-error)', 14)}>필</span>
             <Text type="supporting" color="secondary">필수 휴무</Text>
+          </HStack>
+          <HStack gap={1.5} vAlign="center">
+            <span style={circleBadgeStyle('var(--color-icon-teal)', 14)}>대</span>
+            <Text type="supporting" color="secondary">대체휴무</Text>
           </HStack>
         </HStack>
       </div>

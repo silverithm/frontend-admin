@@ -31,6 +31,8 @@ import {
     VacationLimit,
     VACATION_DURATION_OPTIONS,
     VacationDuration,
+    getVacationTypeLabelOf,
+    isSubstituteVacation,
 } from "@/types/vacation";
 import {
     deleteVacation as apiDeleteVacation,
@@ -416,24 +418,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
         );
     };
 
-    const getVacationTypeText = (type?: string) => {
-        switch (type) {
-            case "regular":
-                return "일반 휴무";
-            case "mandatory":
-                return "필수 휴무";
-            case "personal":
-                return "개인 휴무";
-            case "sick":
-                return "병가";
-            case "emergency":
-                return "긴급 휴무";
-            case "family":
-                return "가족 돌봄 휴무";
-            default:
-                return type || "일반 휴무";
-        }
-    };
+    const getVacationTypeText = getVacationTypeLabelOf;
 
     const getStatusText = (status?: string) => {
         switch (status) {
@@ -648,9 +633,11 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                         variant={
                                                             request.type === "mandatory"
                                                                 ? "orange"
-                                                                : "neutral"
+                                                                : isSubstituteVacation(request)
+                                                                    ? "teal"
+                                                                    : "neutral"
                                                         }
-                                                        label={getVacationTypeText(request.type)}
+                                                        label={getVacationTypeText(request)}
                                                     />
                                                 </TableCell>
                                                 <TableCell>

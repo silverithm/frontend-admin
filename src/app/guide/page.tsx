@@ -12,15 +12,14 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 
 const heroBackground =
-    'linear-gradient(to bottom, #0f1115 0%, #16181d 55%, #0f1115 100%)';
+    'linear-gradient(to bottom, #ffffff 0%, #f7f8fa 55%, #ffffff 100%)';
 
 const panelStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.1)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
+    background: 'var(--color-background-card)',
     borderRadius: 'var(--radius-chat)',
-    border: '1px solid rgba(96,165,250,0.2)',
-    color: '#ffffff',
+    border: '1px solid var(--color-border)',
+    boxShadow: 'var(--shadow-low)',
+    color: 'var(--color-text-primary)',
 };
 
 const numberCircleStyle: React.CSSProperties = {
@@ -34,14 +33,14 @@ const numberCircleStyle: React.CSSProperties = {
     justifyContent: 'center',
     fontSize: 'var(--font-size-xl)',
     fontWeight: 'var(--font-weight-bold)',
-    color: '#ffffff',
+    color: 'var(--color-text-blue)',
 };
 
 export default function GuidePage() {
     const [activeTab, setActiveTab] = useState('admin');
 
     return (
-        <main style={{ minHeight: '100vh', background: heroBackground, color: '#ffffff' }}>
+        <main style={{ minHeight: '100vh', background: heroBackground, color: 'var(--color-text-primary)' }}>
             <Navbar />
 
             {/* 히어로 섹션 */}
@@ -66,7 +65,7 @@ export default function GuidePage() {
                             type="large"
                             color="inherit"
                             justify="center"
-                            style={{ display: 'block', maxWidth: 768, margin: '0 auto', color: 'rgba(219,234,254,0.9)' }}
+                            style={{ display: 'block', maxWidth: 768, margin: '0 auto', color: 'var(--color-text-secondary)' }}
                         >
                             장기요양기관 관리자와 직원을 위한 간단한 사용 방법
                         </Text>
@@ -112,7 +111,7 @@ export default function GuidePage() {
                                         <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)' }}>
                                             1. 회원가입
                                         </Heading>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', marginLeft: 'var(--spacing-4)', color: 'rgba(219,234,254,0.8)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', marginLeft: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
                                             <Text color="inherit">• carev.kr에 접속하여 관리자 로그인 클릭</Text>
                                             <Text color="inherit">• 이메일과 비밀번호로 계정 생성</Text>
                                             <Text color="inherit">• 기관 정보 입력 (기관명, 주소, 연락처)</Text>
@@ -124,7 +123,7 @@ export default function GuidePage() {
                                         <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)' }}>
                                             2. 직원 초대
                                         </Heading>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', marginLeft: 'var(--spacing-4)', color: 'rgba(219,234,254,0.8)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', marginLeft: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
                                             <Text color="inherit">• 직원에게 앱 다운로드 안내</Text>
                                             <Text color="inherit">• 직원이 앱에서 가입 신청</Text>
                                             <Text color="inherit">• 관리자 페이지에서 승인 처리</Text>
@@ -147,7 +146,7 @@ export default function GuidePage() {
                             </Heading>
 
                             <Card padding={8} style={panelStyle}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', color: 'rgba(219,234,254,0.8)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
                                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
                                         <span style={{ marginTop: 'var(--spacing-0-5)' }}><Icon icon="check" color="success" /></span>
                                         <Text color="inherit">직원이 앱에서 가입 신청하면 관리자 페이지에 알림 표시</Text>
@@ -184,7 +183,7 @@ export default function GuidePage() {
                                 padding={8}
                                 style={{
                                     ...panelStyle,
-                                    background: 'linear-gradient(to right, rgba(147,51,234,0.2), rgba(219,39,119,0.2))',
+                                    background: 'linear-gradient(to right, rgba(147,51,234,0.08), rgba(219,39,119,0.08))',
                                     border: '1px solid rgba(192,132,252,0.2)',
                                 }}
                             >
@@ -230,7 +229,7 @@ export default function GuidePage() {
                                         <div style={numberCircleStyle}>1</div>
                                         <div style={{ flex: 1 }}>
                                             <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>휴무 신청 알림</Heading>
-                                            <Text color="inherit" style={{ color: 'rgba(219,234,254,0.7)' }}>직원이 휴무 신청 시 실시간 알림</Text>
+                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>직원이 휴무 신청 시 실시간 알림</Text>
                                         </div>
                                     </div>
 
@@ -238,7 +237,7 @@ export default function GuidePage() {
                                         <div style={numberCircleStyle}>2</div>
                                         <div style={{ flex: 1 }}>
                                             <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>신청 내역 확인</Heading>
-                                            <Text color="inherit" style={{ color: 'rgba(219,234,254,0.7)' }}>날짜와 사유 확인</Text>
+                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>날짜와 사유 확인</Text>
                                         </div>
                                     </div>
 
@@ -246,7 +245,7 @@ export default function GuidePage() {
                                         <div style={numberCircleStyle}>3</div>
                                         <div style={{ flex: 1 }}>
                                             <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>승인/반려 처리</Heading>
-                                            <Text color="inherit" style={{ color: 'rgba(219,234,254,0.7)' }}>간단한 클릭으로 처리</Text>
+                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>간단한 클릭으로 처리</Text>
                                         </div>
                                     </div>
 
@@ -254,7 +253,7 @@ export default function GuidePage() {
                                         <div style={numberCircleStyle}>4</div>
                                         <div style={{ flex: 1 }}>
                                             <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>자동 알림</Heading>
-                                            <Text color="inherit" style={{ color: 'rgba(219,234,254,0.7)' }}>처리 결과 직원 앱으로 전달</Text>
+                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>처리 결과 직원 앱으로 전달</Text>
                                         </div>
                                     </div>
                                 </div>
@@ -292,7 +291,7 @@ export default function GuidePage() {
                                     <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)' }}>
                                         앱 다운로드
                                     </Heading>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', color: 'rgba(219,234,254,0.8)' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', color: 'var(--color-text-secondary)' }}>
                                         <Text color="inherit">1. 스토어에서 &ldquo;케어브이&rdquo; 검색</Text>
                                         <Text color="inherit">2. 앱 다운로드 및 설치</Text>
                                         <Text color="inherit">3. 소속 기관 선택</Text>
@@ -345,7 +344,7 @@ export default function GuidePage() {
                             </Heading>
 
                             <Card padding={8} style={panelStyle}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', color: 'rgba(219,234,254,0.8)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
                                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
                                         <Text color="inherit" style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-green)' }}>1.</Text>
                                         <Text color="inherit">앱 홈 화면에서 오늘의 근무 시간 확인</Text>
@@ -404,19 +403,19 @@ export default function GuidePage() {
                                             처리 상태
                                         </Heading>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                                            <div style={{ padding: 'var(--spacing-3)', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-inner)' }}>
+                                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
                                                 <div style={{ marginBottom: 'var(--spacing-2)' }}>
                                                     <Badge variant="yellow" label="대기중" />
                                                 </div>
                                                 <Text color="inherit" style={{ color: 'var(--color-text-gray)' }}>관리자 검토 중</Text>
                                             </div>
-                                            <div style={{ padding: 'var(--spacing-3)', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-inner)' }}>
+                                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
                                                 <div style={{ marginBottom: 'var(--spacing-2)' }}>
                                                     <Badge variant="green" label="승인" />
                                                 </div>
                                                 <Text color="inherit" style={{ color: 'var(--color-text-gray)' }}>휴무 확정</Text>
                                             </div>
-                                            <div style={{ padding: 'var(--spacing-3)', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-inner)' }}>
+                                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
                                                 <div style={{ marginBottom: 'var(--spacing-2)' }}>
                                                     <Badge variant="red" label="반려" />
                                                 </div>
@@ -433,7 +432,7 @@ export default function GuidePage() {
             )}
 
             {/* 문의 섹션 */}
-            <section style={{ padding: '80px 16px', background: 'rgba(30,41,59,0.5)' }}>
+            <section style={{ padding: '80px 16px', background: 'var(--color-background-muted)' }}>
                 <div style={{ maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiBriefcase, FiPlus, FiEdit2, FiTrash2, FiSearch, FiRefreshCw, FiUsers, FiCheck, FiX } from 'react-icons/fi';
 import { getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberUsers } from '@/lib/apiService';
 import type { Position } from '@/types/position';
+import { getMemberRoleName, getRoleDisplayName } from '@/lib/roleUtils';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -175,14 +176,9 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         setFormDescription('');
     };
 
-    const getRoleLabel = (role: string) => {
-        switch (role) {
-            case 'admin': return '관리자';
-            case 'caregiver': return '요양보호사';
-            case 'office': return '사무직';
-            default: return role;
-        }
-    };
+    // 배정된 역할이 있으면 그것을, 없으면 기존 분류(요양보호사/사무직)를 보여준다
+    const getMemberRoleLabel = (member: Member) =>
+        getRoleDisplayName(getMemberRoleName(member));
 
     const filteredMembers = members.filter(member => {
         const matchesSearch = !searchTerm ||
@@ -425,7 +421,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                 <VStack gap={0.5}>
                                                     <HStack gap={2} vAlign="center">
                                                         <Text weight="medium">{member.name}</Text>
-                                                        <Badge variant="neutral" label={getRoleLabel(member.role)} />
+                                                        <Badge variant="neutral" label={getMemberRoleLabel(member)} />
                                                     </HStack>
                                                     <Text type="supporting" color="secondary">{member.email}</Text>
                                                 </VStack>

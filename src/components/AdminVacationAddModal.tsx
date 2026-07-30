@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import MemberSelector from './MemberSelector';
-import { VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import { VacationDuration, VacationKind, VACATION_DURATION_OPTIONS } from '@/types/vacation';
 import { adminCreateVacationForMember } from '@/lib/apiService';
 import type { Member } from './MemberSelector';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -41,7 +41,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
   const [vacationDate, setVacationDate] = useState(
     selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
   );
-  const [vacationKind, setVacationKind] = useState<'regular' | 'mandatory'>('regular');
+  const [vacationKind, setVacationKind] = useState<VacationKind>('regular');
   const [useAnnualLeave, setUseAnnualLeave] = useState(true);
   const [duration, setDuration] = useState<VacationDuration>('FULL_DAY');
   const [vacationType, setVacationType] = useState<string>('personal');
@@ -57,6 +57,14 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
     { value: 'family', label: '가족 돌봄' },
     { value: 'other', label: '기타' },
   ];
+
+  // 대체휴무는 연차에서 차감되지 않으므로 연차 사용 여부/연차 유형 선택이 없다
+  const isSubstitute = vacationKind === 'substitute';
+  const willUseAnnualLeave = isSubstitute ? false : useAnnualLeave;
+
+  const handleKindChange = (value: string) => {
+    setVacationKind(value as VacationKind);
+  };
 
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
@@ -116,10 +124,10 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
         memberId: parseInt(selectedMember!.id, 10), // Long 타입으로 변환
         date: vacationDate,
         reason: reason.trim() || null,
-        duration: useAnnualLeave ? duration : 'UNUSED',
+        duration: willUseAnnualLeave ? duration : 'UNUSED',
         type: vacationKind,
-        useAnnualLeave,
-        vacationType: !useAnnualLeave ? vacationType : null,
+        useAnnualLeave: willUseAnnualLeave,
+        vacationType: isSubstitute ? 'substitute' : (!willUseAnnualLeave ? vacationType : null),
         reasonRequired: vacationKind === 'mandatory',
       };
 
@@ -228,24 +236,37 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                         label="휴무 종류"
                         layout="fill"
                         value={vacationKind}
-                        onChange={(value) => setVacationKind(value as 'regular' | 'mandatory')}
+                        onChange={handleKindChange}
                       >
                         <SegmentedControlItem value="regular" label="일반 휴무" />
                         <SegmentedControlItem value="mandatory" label="필수 휴무" />
+                        <SegmentedControlItem value="substitute" label="대체휴무" />
                       </SegmentedControl>
                     </VStack>
 
-                    {/* 연차 사용 여부 */}
-                    <Switch
-                      label="연차 사용 여부"
-                      value={useAnnualLeave}
-                      onChange={(checked) => setUseAnnualLeave(checked)}
-                      labelPosition="start"
-                      labelSpacing="spread"
-                    />
+                    {/* 대체휴무 안내 */}
+                    {isSubstitute && (
+                      <Banner
+                        status="info"
+                        container="card"
+                        title="대체휴무는 연차에서 차감되지 않습니다"
+                        description="공휴일·휴일 근무에 대한 보상 휴무로 부여됩니다. 어떤 근무에 대한 대체인지 사유에 남겨두면 이후 확인이 쉽습니다."
+                      />
+                    )}
+
+                    {/* 연차 사용 여부 - 대체휴무는 항상 미차감이라 표시하지 않음 */}
+                    {!isSubstitute && (
+                      <Switch
+                        label="연차 사용 여부"
+                        value={useAnnualLeave}
+                        onChange={(checked) => setUseAnnualLeave(checked)}
+                        labelPosition="start"
+                        labelSpacing="spread"
+                      />
+                    )}
 
                     {/* 연차 유형 - 연차 사용 시만 표시 */}
-                    {useAnnualLeave && (
+                    {willUseAnnualLeave && (
                       <RadioList
                         label="연차 유형"
                         value={duration}
@@ -262,8 +283,8 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </RadioList>
                     )}
 
-                    {/* 휴무 유형 - 연차 미사용 시만 표시 */}
-                    {!useAnnualLeave && (
+                    {/* 휴무 유형 - 연차 미사용 시만 표시 (대체휴무는 유형이 고정) */}
+                    {!willUseAnnualLeave && !isSubstitute && (
                       <Selector
                         label="휴무 유형"
                         value={vacationType}
@@ -281,7 +302,9 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       placeholder={
                         vacationKind === 'mandatory'
                           ? '휴무 사유를 입력해주세요 (필수)'
-                          : '휴무 사유를 입력해주세요 (선택)'
+                          : isSubstitute
+                            ? '대체 근무일을 남겨주세요 (예: 1/1 공휴일 근무 대체)'
+                            : '휴무 사유를 입력해주세요 (선택)'
                       }
                       rows={3}
                     />

@@ -14,12 +14,19 @@ import { Spinner } from '@astryxdesign/core/Spinner';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
-import { VacationDetailsProps, VacationRequest, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import {
+  VacationDetailsProps,
+  VacationRequest,
+  VACATION_DURATION_OPTIONS,
+  getVacationTypeLabelOf,
+  isSubstituteVacation,
+} from '@/types/vacation';
 import VacationForm from './VacationForm';
 import {
   ALL_ROLE_FILTER,
   getRoleDisplayName,
   getVacationRequestRole,
+  normalizeRoleKey,
   type RoleLookup,
 } from '@/lib/roleUtils';
 import { deleteVacation as apiDeleteVacation } from '@/lib/apiService';
@@ -40,7 +47,7 @@ type BadgeColorVariant =
 
 // 직원 유형 뱃지의 Astryx 색상 변형 매핑 (표현용, roleUtils의 색상 의도를 반영)
 const getRoleBadgeVariant = (role?: string | null): BadgeColorVariant => {
-  const normalized = (role ?? '').trim();
+  const normalized = normalizeRoleKey(role);
   if (!normalized) return 'neutral';
   if (normalized === 'admin') return 'purple';
   if (normalized === 'caregiver') return 'blue';
@@ -173,24 +180,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
   };
 
   // 휴무 유형 한글 변환
-  const getVacationTypeText = (type?: string) => {
-    switch (type) {
-      case 'regular':
-        return '일반 휴무';
-      case 'mandatory':
-        return '필수 휴무';
-      case 'personal':
-        return '개인 휴무';
-      case 'sick':
-        return '병가';
-      case 'emergency':
-        return '긴급 휴무';
-      case 'family':
-        return '가족 돌봄 휴무';
-      default:
-        return type || '일반 휴무';
-    }
-  };
+  const getVacationTypeText = getVacationTypeLabelOf;
 
   // 상태 한글 변환
   const getStatusText = (status?: string) => {
@@ -402,9 +392,9 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
 
                                   {/* 휴무 유형 뱃지 */}
                                   <Badge
-                                    variant="neutral"
+                                    variant={isSubstituteVacation(vacation) ? 'teal' : 'neutral'}
                                     icon={<Icon icon="clock" size="sm" />}
-                                    label={getVacationTypeText(vacation.type)}
+                                    label={getVacationTypeText(vacation)}
                                   />
 
                                   {/* 직원 유형 뱃지 */}

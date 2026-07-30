@@ -9,6 +9,7 @@ import {
   buildRoleNames,
   getMemberRoleName,
   getRoleDisplayName,
+  normalizeRoleKey,
   type MemberRoleSource,
 } from "@/lib/roleUtils";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
@@ -61,7 +62,7 @@ function hashRoleName(value: string) {
 }
 
 function getRoleBadgeVariant(role?: string | null): BadgeVariant {
-  const normalizedRole = (role ?? "").trim();
+  const normalizedRole = normalizeRoleKey(role);
 
   if (!normalizedRole) {
     return "neutral";

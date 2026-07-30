@@ -68,8 +68,8 @@ export default function FAQPage() {
         <main
             style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)',
-                color: '#fff',
+                background: 'var(--carev-page-gradient)',
+                color: 'var(--color-text-primary)',
             }}
         >
             <Navbar />
@@ -90,7 +90,7 @@ export default function FAQPage() {
                             style={{
                                 marginBottom: 'var(--spacing-6)',
                                 fontWeight: 'var(--font-weight-bold)',
-                                backgroundImage: 'linear-gradient(to right, #ffffff, #a5e3d6)',
+                                backgroundImage: 'linear-gradient(to right, #0f172a, #0d9488)',
                                 WebkitBackgroundClip: 'text',
                                 backgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
@@ -102,7 +102,7 @@ export default function FAQPage() {
                             type="large"
                             color="inherit"
                             display="block"
-                            style={{ color: 'rgba(219, 234, 254, 0.9)', maxWidth: 768, margin: '0 auto' }}
+                            style={{ color: 'var(--color-text-secondary)', maxWidth: 768, margin: '0 auto' }}
                         >
                             케어브이 사용에 대한 궁금증을 해결해드립니다
                         </Text>
@@ -136,11 +136,10 @@ export default function FAQPage() {
                             >
                                 <div
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.1)',
-                                        backdropFilter: 'blur(16px)',
-                                        WebkitBackdropFilter: 'blur(16px)',
+                                        background: 'var(--color-background-card)',
                                         borderRadius: 'var(--radius-container)',
-                                        border: '1px solid rgba(96, 165, 250, 0.2)',
+                                        border: '1px solid var(--color-border)',
+                                        boxShadow: 'var(--shadow-low)',
                                         overflow: 'hidden',
                                     }}
                                 >
@@ -165,7 +164,7 @@ export default function FAQPage() {
                                                 type="large"
                                                 weight="semibold"
                                                 color="inherit"
-                                                style={{ color: '#fff', paddingRight: 'var(--spacing-4)' }}
+                                                style={{ color: 'var(--color-text-primary)', paddingRight: 'var(--spacing-4)' }}
                                             >
                                                 {item.question}
                                             </Text>
@@ -191,7 +190,7 @@ export default function FAQPage() {
                                             <Text
                                                 color="inherit"
                                                 display="block"
-                                                style={{ color: 'rgba(219, 234, 254, 0.8)', lineHeight: 1.625 }}
+                                                style={{ color: 'var(--color-text-secondary)', lineHeight: 1.625 }}
                                             >
                                                 {item.answer}
                                             </Text>

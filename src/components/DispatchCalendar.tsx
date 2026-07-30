@@ -210,7 +210,7 @@ export default function DispatchCalendar({
                   height: 28,
                   borderRadius: "50%",
                   background: 'var(--color-background-teal)',
-                  color: "#fff",
+                  color: 'var(--color-text-teal)',
                 }
               : !isCurrentMonth
               ? { color: 'var(--color-text-gray)' }

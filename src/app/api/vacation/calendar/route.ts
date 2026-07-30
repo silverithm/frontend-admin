@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
 
     // 백엔드 API URL 구성 (companyId 포함)
-    let backendUrl = `${BACKEND_URL}/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${roleFilter}&companyId=${companyId}`;
+    let backendUrl = `${BACKEND_URL}/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${encodeURIComponent(roleFilter)}&companyId=${companyId}`;
     
     if (nameFilter) {
       backendUrl += `&nameFilter=${encodeURIComponent(nameFilter)}`;

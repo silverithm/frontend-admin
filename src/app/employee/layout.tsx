@@ -45,11 +45,10 @@ export default function EmployeeLayout({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background:
-            'linear-gradient(to bottom, #0f1115, #16181d, #0f1115)',
+          background: 'var(--carev-page-gradient)',
         }}
       >
-        <Spinner size="lg" shade="onMedia" aria-label="Loading" />
+        <Spinner size="lg" aria-label="Loading" />
       </div>
     );
   }

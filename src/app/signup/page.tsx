@@ -200,7 +200,7 @@ export default function SignupPage() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: 'var(--spacing-4)',
-          background: 'linear-gradient(180deg, #0f1115 0%, #16181d 100%)',
+          background: 'var(--carev-page-gradient)',
         }}
       >
         <motion.div

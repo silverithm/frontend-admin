@@ -10,6 +10,8 @@ import {
     VacationLimit,
     VACATION_DURATION_OPTIONS,
     VacationDuration,
+    getVacationTypeLabelOf,
+    isSubstituteVacation,
 } from "@/types/vacation";
 import {
     deleteVacation as apiDeleteVacation,
@@ -50,6 +52,7 @@ import {
     getRoleBadgeClasses,
     getRoleDisplayName,
     getVacationRequestRole,
+    normalizeRoleKey,
     type MemberRoleSource,
 } from "@/lib/roleUtils";
 import { Button } from "@astryxdesign/core/Button";
@@ -348,7 +351,7 @@ export default function AdminPage() {
                 ? (positionsData.positions as Position[])
                 : [];
             limits.forEach((limit: VacationLimit) => {
-                limitsMap[`${limit.date}_${limit.role}`] = limit;
+                limitsMap[`${limit.date}_${normalizeRoleKey(limit.role)}`] = limit;
             });
             setVacationLimits(limitsMap);
             setMembers(membersList);
@@ -965,24 +968,7 @@ export default function AdminPage() {
     };
 
     // 휴무 유형 한글 변환
-    const getVacationTypeText = (type?: string) => {
-        switch (type) {
-            case "regular":
-                return "일반 휴무";
-            case "mandatory":
-                return "필수 휴무";
-            case "personal":
-                return "개인 휴무";
-            case "sick":
-                return "병가";
-            case "emergency":
-                return "긴급 휴무";
-            case "family":
-                return "가족 돌봄 휴무";
-            default:
-                return type || "일반 휴무";
-        }
-    };
+    const getVacationTypeText = getVacationTypeLabelOf;
 
     // 상태 한글 변환
     const getStatusText = (status?: string) => {
@@ -1482,8 +1468,14 @@ export default function AdminPage() {
                                                                     <Badge variant="purple" label={getDurationText(request.duration)} />
                                                                 )}
                                                                 <Badge
-                                                                    variant={request.type === "mandatory" ? "orange" : "neutral"}
-                                                                    label={getVacationTypeText(request.type)}
+                                                                    variant={
+                                                                        request.type === "mandatory"
+                                                                            ? "orange"
+                                                                            : isSubstituteVacation(request)
+                                                                                ? "teal"
+                                                                                : "neutral"
+                                                                    }
+                                                                    label={getVacationTypeText(request)}
                                                                 />
                                                                 <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>

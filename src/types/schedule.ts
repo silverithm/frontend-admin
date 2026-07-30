@@ -56,6 +56,10 @@ export interface Schedule {
   endTime?: string;
   isAllDay: boolean;
   sendNotification: boolean;
+  isCompleted?: boolean;
+  completedAt?: string;
+  completedById?: string;
+  completedByName?: string;
   authorId: string;
   authorName: string;
   participants?: ScheduleParticipant[];
@@ -136,3 +140,38 @@ export const LABEL_COLORS = [
   { value: '#EC4899', label: '분홍' },
   { value: '#6B7280', label: '회색' },
 ];
+
+// 라벨 미지정 일정도 색이 보이도록 카테고리별 기본 색상을 부여한다.
+export const SCHEDULE_CATEGORY_COLORS: Record<ScheduleCategory, string> = {
+  MEETING: '#3B82F6',   // 회의 - 파랑
+  EVENT: '#EC4899',     // 행사 - 분홍
+  TRAINING: '#8B5CF6',  // 교육 - 보라
+  OTHER: '#14B8A6',     // 기타 - 틸
+};
+
+/**
+ * 일정 표시 색상. 라벨 색상이 있으면 그것을, 없으면 카테고리 기본 색상을 쓴다.
+ */
+export function getScheduleColor(schedule: {
+  label?: { color?: string } | null;
+  labelColor?: string;
+  category?: string;
+}): string {
+  const labelColor = schedule.label?.color || schedule.labelColor;
+  if (labelColor) return labelColor;
+  const category = (schedule.category || 'OTHER') as ScheduleCategory;
+  return SCHEDULE_CATEGORY_COLORS[category] || SCHEDULE_CATEGORY_COLORS.OTHER;
+}
+
+/**
+ * 배경색 위에 얹을 반투명 톤(캘린더 칩 배경용).
+ * #RRGGBB만 지원하며 파싱 실패 시 원본 색을 그대로 돌려준다.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

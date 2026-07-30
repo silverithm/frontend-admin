@@ -16,9 +16,18 @@ import { DateInput } from '@astryxdesign/core/DateInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Avatar } from '@astryxdesign/core/Avatar';
+import { Banner } from '@astryxdesign/core/Banner';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { getVacationCalendar, requestVacation, getVacationLimits } from '@/lib/apiService';
-import { DayInfo, VacationRequest, VacationLimit, VacationDuration, VACATION_DURATION_OPTIONS } from '@/types/vacation';
+import {
+  DayInfo,
+  VacationRequest,
+  VacationLimit,
+  VacationDuration,
+  VACATION_DURATION_OPTIONS,
+  isSubstituteVacation,
+} from '@/types/vacation';
+import { getRoleDisplayName } from '@/lib/roleUtils';
 import { useAlert } from './Alert';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -43,6 +52,7 @@ export default function EmployeeCalendar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [requestForm, setRequestForm] = useState({
     date: '',
+    kind: 'regular' as 'regular' | 'substitute',
     duration: 'FULL_DAY' as VacationDuration,
     reason: '',
   });
@@ -140,6 +150,7 @@ export default function EmployeeCalendar() {
     const targetDate = date || selectedDate || new Date();
     setRequestForm({
       date: format(targetDate, 'yyyy-MM-dd'),
+      kind: 'regular',
       duration: 'FULL_DAY',
       reason: '',
     });
@@ -153,12 +164,16 @@ export default function EmployeeCalendar() {
       return;
     }
 
+    const isSubstitute = requestForm.kind === 'substitute';
+
     setIsSubmitting(true);
     try {
       await requestVacation({
         date: requestForm.date,
-        duration: requestForm.duration,
+        // 대체휴무는 연차에서 차감되지 않으므로 UNUSED로 저장한다
+        duration: isSubstitute ? 'UNUSED' : requestForm.duration,
         reason: requestForm.reason || undefined,
+        type: isSubstitute ? 'substitute' : undefined,
       });
 
       showAlert({ type: 'success', title: '신청 완료', message: '휴무 신청이 접수되었습니다.' });
@@ -254,16 +269,7 @@ export default function EmployeeCalendar() {
     return ['FULL_DAY', 'HALF_DAY_AM', 'HALF_DAY_PM'].includes(upper);
   };
 
-  const getRoleText = (role?: string) => {
-    switch (role) {
-      case 'caregiver':
-        return '요양보호사';
-      case 'office':
-        return '사무직';
-      default:
-        return role || '직원';
-    }
-  };
+  const getRoleText = (role?: string) => getRoleDisplayName(role);
 
   // 특정 날짜의 휴무 제한 정보 가져오기
   const getLimitsForDate = (date: Date) => {
@@ -393,7 +399,7 @@ export default function EmployeeCalendar() {
                 const dayNumberStyle: CSSProperties = isToday(date)
                   ? {
                       background: 'var(--color-background-teal)',
-                      color: '#fff',
+                      color: 'var(--color-text-teal)',
                       width: 'var(--spacing-7)',
                       height: 'var(--spacing-7)',
                       borderRadius: '50%',
@@ -462,7 +468,7 @@ export default function EmployeeCalendar() {
                             <div
                               key={vacation.id || i}
                               style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}
-                              title={`${vacation.userName} - ${getDurationText(vacation.duration)} - ${getVacationStatusText(vacation.status)}${vacation.type === 'mandatory' ? ' (필수)' : ''}`}
+                              title={`${vacation.userName} - ${isSubstituteVacation(vacation) ? '대체휴무' : getDurationText(vacation.duration)} - ${getVacationStatusText(vacation.status)}${vacation.type === 'mandatory' ? ' (필수)' : ''}`}
                             >
                               {/* 상태 Badge (상태만 의미색) */}
                               {(() => {
@@ -501,6 +507,9 @@ export default function EmployeeCalendar() {
                                 )}
                                 {vacation.type === 'mandatory' && (
                                   <Text type="supporting" size="4xs" color="secondary">필</Text>
+                                )}
+                                {isSubstituteVacation(vacation) && (
+                                  <Text type="supporting" size="4xs" color="secondary">대</Text>
                                 )}
                               </span>
                             </div>
@@ -594,6 +603,9 @@ export default function EmployeeCalendar() {
                                 {vacation.type === 'mandatory' && (
                                   <Badge variant="neutral" label="필" />
                                 )}
+                                {isSubstituteVacation(vacation) && (
+                                  <Badge variant="teal" label="대체휴무" />
+                                )}
                                 <Text type="supporting">{getRoleText(vacation.role)}</Text>
                               </HStack>
                               <HStack gap={2} vAlign="center" wrap="wrap">
@@ -644,6 +656,10 @@ export default function EmployeeCalendar() {
               <Text type="supporting" weight="semibold" color="secondary">필</Text>
               <Text type="supporting" color="secondary">필수 휴무</Text>
             </HStack>
+            <HStack gap={1.5} vAlign="center">
+              <Text type="supporting" weight="semibold" color="secondary">대</Text>
+              <Text type="supporting" color="secondary">대체휴무</Text>
+            </HStack>
             <div style={{ borderLeft: '1px solid var(--color-border)', height: 'var(--spacing-4)', margin: '0 var(--spacing-2)' }} />
             {/* 상태 (의미색 Badge) */}
             <HStack gap={2} vAlign="center">
@@ -681,18 +697,41 @@ export default function EmployeeCalendar() {
                   onChange={(value) => setRequestForm(prev => ({ ...prev, date: value || '' }))}
                 />
                 <Selector
-                  label="휴무 유형"
+                  label="휴무 종류"
                   isRequired
-                  value={requestForm.duration}
-                  options={VACATION_DURATION_OPTIONS.map((option) => ({ value: option.value, label: option.displayName }))}
-                  onChange={(value) => setRequestForm(prev => ({ ...prev, duration: value as VacationDuration }))}
+                  value={requestForm.kind}
+                  options={[
+                    { value: 'regular', label: '일반 휴무' },
+                    { value: 'substitute', label: '대체휴무' },
+                  ]}
+                  onChange={(value) => setRequestForm(prev => ({ ...prev, kind: value as 'regular' | 'substitute' }))}
                 />
+                {requestForm.kind === 'substitute' ? (
+                  <Banner
+                    status="info"
+                    container="card"
+                    title="대체휴무는 연차에서 차감되지 않습니다"
+                    description="공휴일·휴일 근무에 대한 보상 휴무입니다. 어떤 근무에 대한 대체인지 사유에 남겨주세요."
+                  />
+                ) : (
+                  <Selector
+                    label="휴무 유형"
+                    isRequired
+                    value={requestForm.duration}
+                    options={VACATION_DURATION_OPTIONS.map((option) => ({ value: option.value, label: option.displayName }))}
+                    onChange={(value) => setRequestForm(prev => ({ ...prev, duration: value as VacationDuration }))}
+                  />
+                )}
                 <TextArea
                   label="사유"
                   isOptional
                   value={requestForm.reason}
                   onChange={(value) => setRequestForm(prev => ({ ...prev, reason: value }))}
-                  placeholder="휴무 사유를 입력해주세요"
+                  placeholder={
+                    requestForm.kind === 'substitute'
+                      ? '대체 근무일을 남겨주세요 (예: 1/1 공휴일 근무 대체)'
+                      : '휴무 사유를 입력해주세요'
+                  }
                   rows={3}
                 />
               </VStack>

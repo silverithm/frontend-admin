@@ -209,7 +209,7 @@ export default function LoginPage() {
           justifyContent: 'center',
           padding: 'var(--spacing-4)',
           position: 'relative',
-          background: 'linear-gradient(180deg, #0f1115 0%, #16181d 55%, #0f1115 100%)',
+          background: 'var(--carev-page-gradient)',
         }}
       >
         {/* 뒤로가기 버튼 */}
@@ -228,7 +228,7 @@ export default function LoginPage() {
             {/* 로고 */}
             <HStack hAlign="center">
               <Image
-                src="/images/logo-text.png"
+                src="/images/logo-text-dark.png"
                 alt="케어브이 로고"
                 width={200}
                 height={67}

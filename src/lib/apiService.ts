@@ -297,7 +297,7 @@ export async function getVacationCalendar(startDate: string, endDate: string, ro
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
 
-    let url = `/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${roleFilter}&companyId=${companyId}`;
+    let url = `/api/vacation/calendar?startDate=${startDate}&endDate=${endDate}&roleFilter=${encodeURIComponent(roleFilter)}&companyId=${companyId}`;
     if (nameFilter) {
         url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
     }
@@ -311,7 +311,7 @@ export async function getVacationForDate(date: string, role = ALL_ROLE_FILTER, n
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
 
-    let url = `/api/vacation/date/${date}?role=${role}&companyId=${companyId}`;
+    let url = `/api/vacation/date/${date}?role=${encodeURIComponent(role)}&companyId=${companyId}`;
     if (nameFilter) {
         url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
     }
@@ -382,6 +382,7 @@ export async function requestVacation(data: {
     date: string;
     duration: string;
     reason?: string;
+    type?: string;
 }) {
     const companyId = getCompanyId();
     if (!companyId) {
@@ -402,7 +403,7 @@ export async function requestVacation(data: {
             date: data.date,
             duration: data.duration,
             reason: data.reason || '',
-            type: '휴가',
+            type: data.type || '휴가',
         }),
     });
 }
@@ -413,7 +414,7 @@ export async function adminCreateVacationForMember(data: {
     date: string;
     reason?: string;
     duration: string;
-    type: 'regular' | 'mandatory';
+    type: 'regular' | 'mandatory' | 'substitute';
     useAnnualLeave: boolean;
     vacationType?: string;
     reasonRequired: boolean;
@@ -1515,6 +1516,18 @@ export async function updateSchedule(id: string, data: {
     return fetchWithAuth(`/api/v1/schedules/${id}?companyId=${companyId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
+    });
+}
+
+// 일정 수행완료 상태 변경 (진행도 체크)
+export async function updateScheduleCompletion(id: string, completed: boolean) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${id}/completion?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ completed }),
     });
 }
 
