@@ -170,6 +170,12 @@ html {
 .carev-dash-timeline { transition: background var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-timeline:hover { background: var(--color-background-surface); } }
 
+/* 케어브이 광장 통합 레이아웃: 데스크탑 = 게시판(메인) + 사이드 카드, 모바일 = 세로 스택 */
+.carev-plaza-layout { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
+@media (min-width: 1024px) {
+  .carev-plaza-layout { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+
 /* employee/page 반응형 (Tailwind lg:/sm: 대체, carev-admin-*와 동일 값) */
 .carev-emp-sidebar { display: none; }
 .carev-emp-mobile-header { display: block; }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -13,6 +13,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Spinner } from '@astryxdesign/core/Spinner';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
@@ -28,7 +29,6 @@ import {
   IconFlag,
   IconMessageCircle,
   IconMessages,
-  IconNews,
   IconPencil,
   IconPinned,
   IconPlus,
@@ -39,115 +39,132 @@ import {
 import { FiSearch } from 'react-icons/fi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { BOARD_META, REPORT_REASONS, getBoardMeta, isLoggedIn, type BoardType } from './plazaStore';
 import {
-  BOARD_META,
-  REPORT_REASONS,
-  type BoardType,
-  type PlazaComment,
-  type PlazaPost,
+  type ApiComment,
+  type ApiPostDetail,
+  type ApiPostSummary,
   acceptComment,
   addComment,
   createPost,
   deleteComment,
   deletePost,
-  displayAuthor,
-  getBoardMeta,
-  getCurrentUser,
-  getPost,
-  getPosts,
-  incrementView,
+  fetchPost,
+  fetchPosts,
   reportPost,
   toggleLike,
   updateComment,
   updatePost,
-} from './plazaStore';
-import { getNewsCategoryMeta, type NewsItem } from './newsMock';
+} from './plazaApi';
 import { duration } from '@/theme/motion';
 
 type BoardFilter = 'all' | BoardType;
 type SortKey = 'latest' | 'popular' | 'comments';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ko });
 
-interface PlazaBoardProps {
-  /** 게시판 상단 "오늘의 요양 소식" 스트립에 노출할 뉴스 (없으면 스트립 숨김) */
-  newsItems?: NewsItem[];
-  /** 뉴스 "더보기" 클릭 시 요양 소식 탭으로 전환 */
-  onGoToNews?: () => void;
-}
-
-export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardProps) {
+export default function PlazaBoard() {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
-  const user = getCurrentUser();
 
-  const [version, setVersion] = useState(0); // 스토어 변경 후 리렌더 트리거
-  const refresh = () => setVersion((v) => v + 1);
+  const [posts, setPosts] = useState<ApiPostSummary[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [boardFilter, setBoardFilter] = useState<BoardFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('latest');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(0);
+
+  const [detail, setDetail] = useState<ApiPostDetail | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
 
   // 글 작성/수정 다이얼로그
   const [writeOpen, setWriteOpen] = useState(false);
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [formBoard, setFormBoard] = useState<BoardType>('free');
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formAnonymous, setFormAnonymous] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 신고 다이얼로그
-  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
+  const [reportTargetId, setReportTargetId] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState(REPORT_REASONS[0]);
 
   // 댓글 입력 상태
   const [commentInput, setCommentInput] = useState('');
   const [commentAnonymous, setCommentAnonymous] = useState(false);
-  const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
+  const [replyTargetId, setReplyTargetId] = useState<number | null>(null);
   const [replyInput, setReplyInput] = useState('');
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentText, setEditingCommentText] = useState('');
 
-  const allPosts = useMemo(() => getPosts(), [version]);
+  // 검색 디바운스
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const visiblePosts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const filtered = allPosts.filter((p) => {
-      if (p.isHidden) return false;
-      if (boardFilter !== 'all' && p.board !== boardFilter) return false;
-      if (q && !p.title.toLowerCase().includes(q) && !p.content.toLowerCase().includes(q)) return false;
-      return true;
-    });
-    const sorter: Record<SortKey, (a: PlazaPost, b: PlazaPost) => number> = {
-      latest: (a, b) => b.createdAt.localeCompare(a.createdAt),
-      popular: (a, b) => b.likedBy.length - a.likedBy.length || b.createdAt.localeCompare(a.createdAt),
-      comments: (a, b) => b.comments.length - a.comments.length || b.createdAt.localeCompare(a.createdAt),
-    };
-    return filtered.sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || sorter[sortKey](a, b));
-  }, [allPosts, boardFilter, search, sortKey]);
+  const loadPosts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchPosts({ board: boardFilter, sort: sortKey, search: debouncedSearch || undefined, page, size: PAGE_SIZE });
+      setPosts(data.content ?? []);
+      setTotalPages(Math.max(1, data.totalPages ?? 1));
+    } catch (error) {
+      console.error('[Plaza] 게시글 목록 조회 실패:', error);
+      setPosts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [boardFilter, sortKey, debouncedSearch, page]);
 
-  const totalPages = Math.max(1, Math.ceil(visiblePosts.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagePosts = visiblePosts.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
 
-  const selectedPost = selectedPostId ? getPost(selectedPostId) : undefined;
+  const reloadDetail = async (postId: number) => {
+    try {
+      setDetail(await fetchPost(postId));
+    } catch (error) {
+      console.error('[Plaza] 게시글 조회 실패:', error);
+      showAlert({ type: 'error', title: '조회 실패', message: error instanceof Error ? error.message : '게시글을 불러오지 못했습니다.' });
+      setDetail(null);
+    }
+  };
 
   // ── 액션 ──────────────────────────────────────────────
 
-  const openPost = (post: PlazaPost) => {
-    incrementView(post.id);
-    setSelectedPostId(post.id);
+  /** 쓰기 동작 공통 가드 — 비로그인이면 로그인 안내 후 차단 */
+  const requireLogin = (): boolean => {
+    if (isLoggedIn()) return true;
+    showAlert({ type: 'info', title: '로그인 필요', message: '글쓰기·댓글·좋아요는 케어브이 로그인 후 이용할 수 있어요.' });
+    return false;
+  };
+
+  const openPost = async (post: ApiPostSummary) => {
+    setIsDetailLoading(true);
     setCommentInput('');
     setReplyTargetId(null);
     setEditingCommentId(null);
-    refresh();
+    await reloadDetail(post.id);
+    setIsDetailLoading(false);
+  };
+
+  const closeDetail = () => {
+    setDetail(null);
+    loadPosts();
   };
 
   const openWrite = () => {
+    if (!requireLogin()) return;
     setEditingPostId(null);
     setFormBoard(boardFilter === 'all' ? 'free' : boardFilter);
     setFormTitle('');
@@ -156,7 +173,7 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
     setWriteOpen(true);
   };
 
-  const openEdit = (post: PlazaPost) => {
+  const openEdit = (post: ApiPostDetail) => {
     setEditingPostId(post.id);
     setFormBoard(post.board);
     setFormTitle(post.title);
@@ -165,120 +182,137 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
     setWriteOpen(true);
   };
 
-  const submitPost = () => {
+  const submitPost = async () => {
     if (!formTitle.trim() || !formContent.trim()) {
       showAlert({ type: 'warning', title: '입력 필요', message: '제목과 내용을 입력해주세요.' });
       return;
     }
-    if (editingPostId) {
-      updatePost(editingPostId, { board: formBoard, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
-      showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
-    } else {
-      const post = createPost({ board: formBoard, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
-      showAlert({ type: 'success', title: '등록 완료', message: '게시글이 등록되었습니다.' });
-      setSelectedPostId(post.id);
+    setIsSubmitting(true);
+    try {
+      if (editingPostId) {
+        await updatePost(editingPostId, { board: formBoard, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
+        showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
+        await reloadDetail(editingPostId);
+      } else {
+        const created = await createPost({ board: formBoard, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
+        showAlert({ type: 'success', title: '등록 완료', message: '게시글이 등록되었습니다.' });
+        await reloadDetail(created.id);
+      }
+      setWriteOpen(false);
+      loadPosts();
+    } catch (error) {
+      showAlert({ type: 'error', title: '저장 실패', message: error instanceof Error ? error.message : '게시글 저장에 실패했습니다.' });
+    } finally {
+      setIsSubmitting(false);
     }
-    setWriteOpen(false);
-    refresh();
   };
 
-  const handleDeletePost = async (post: PlazaPost) => {
+  const handleDeletePost = async (post: ApiPostDetail) => {
     const ok = await confirm({ title: '게시글 삭제', message: '이 게시글과 댓글이 모두 삭제됩니다. 삭제할까요?', type: 'danger', confirmText: '삭제' });
     if (!ok) return;
-    deletePost(post.id);
-    setSelectedPostId(null);
-    showAlert({ type: 'success', title: '삭제 완료', message: '게시글이 삭제되었습니다.' });
-    refresh();
-  };
-
-  const handleToggleLike = (post: PlazaPost) => {
-    toggleLike(post.id);
-    refresh();
-  };
-
-  const submitReport = () => {
-    if (!reportTargetId) return;
-    const result = reportPost(reportTargetId, reportReason);
-    setReportTargetId(null);
-    if (result === 'already') {
-      showAlert({ type: 'info', title: '신고 안내', message: '이미 신고한 게시글입니다.' });
-    } else if (result === 'hidden') {
-      showAlert({ type: 'warning', title: '신고 접수', message: '신고가 누적되어 게시글이 숨김 처리되었습니다.' });
-      setSelectedPostId(null);
-    } else {
-      showAlert({ type: 'success', title: '신고 접수', message: '신고가 접수되었습니다. 운영팀이 확인 후 조치합니다.' });
+    try {
+      await deletePost(post.id);
+      showAlert({ type: 'success', title: '삭제 완료', message: '게시글이 삭제되었습니다.' });
+      closeDetail();
+    } catch (error) {
+      showAlert({ type: 'error', title: '삭제 실패', message: error instanceof Error ? error.message : '게시글 삭제에 실패했습니다.' });
     }
-    refresh();
   };
 
-  const submitComment = (parentId: string | null) => {
-    if (!selectedPost) return;
+  const handleToggleLike = async (post: ApiPostDetail) => {
+    if (!requireLogin()) return;
+    try {
+      await toggleLike(post.id);
+      await reloadDetail(post.id);
+    } catch (error) {
+      showAlert({ type: 'error', title: '실패', message: error instanceof Error ? error.message : '좋아요 처리에 실패했습니다.' });
+    }
+  };
+
+  const submitReport = async () => {
+    if (!reportTargetId) return;
+    try {
+      const result = await reportPost(reportTargetId, reportReason);
+      setReportTargetId(null);
+      if (result === 'already') {
+        showAlert({ type: 'info', title: '신고 안내', message: '이미 신고한 게시글입니다.' });
+      } else if (result === 'hidden') {
+        showAlert({ type: 'warning', title: '신고 접수', message: '신고가 누적되어 게시글이 숨김 처리되었습니다.' });
+        closeDetail();
+        return;
+      } else {
+        showAlert({ type: 'success', title: '신고 접수', message: '신고가 접수되었습니다. 운영팀이 확인 후 조치합니다.' });
+      }
+      if (detail) await reloadDetail(detail.id);
+    } catch (error) {
+      setReportTargetId(null);
+      showAlert({ type: 'error', title: '신고 실패', message: error instanceof Error ? error.message : '신고 처리에 실패했습니다.' });
+    }
+  };
+
+  const submitComment = async (parentId: number | null) => {
+    if (!detail) return;
+    if (!requireLogin()) return;
     const content = (parentId ? replyInput : commentInput).trim();
     if (!content) {
       showAlert({ type: 'warning', title: '입력 필요', message: '댓글 내용을 입력해주세요.' });
       return;
     }
-    // 답글 입력에는 익명 옵션 UI가 없으므로 실명 고정
-    addComment(selectedPost.id, content, parentId, parentId ? false : commentAnonymous);
-    if (parentId) {
-      setReplyInput('');
-      setReplyTargetId(null);
-    } else {
-      setCommentInput('');
+    try {
+      // 답글 입력에는 익명 옵션 UI가 없으므로 실명 고정
+      await addComment(detail.id, { parentId, content, isAnonymous: parentId ? false : commentAnonymous });
+      if (parentId) {
+        setReplyInput('');
+        setReplyTargetId(null);
+      } else {
+        setCommentInput('');
+      }
+      await reloadDetail(detail.id);
+    } catch (error) {
+      showAlert({ type: 'error', title: '등록 실패', message: error instanceof Error ? error.message : '댓글 등록에 실패했습니다.' });
     }
-    refresh();
   };
 
-  const submitCommentEdit = (commentId: string) => {
-    if (!selectedPost) return;
-    if (!editingCommentText.trim()) return;
-    updateComment(selectedPost.id, commentId, editingCommentText.trim());
-    setEditingCommentId(null);
-    refresh();
+  const submitCommentEdit = async (commentId: number) => {
+    if (!detail || !editingCommentText.trim()) return;
+    try {
+      await updateComment(commentId, editingCommentText.trim());
+      setEditingCommentId(null);
+      await reloadDetail(detail.id);
+    } catch (error) {
+      showAlert({ type: 'error', title: '수정 실패', message: error instanceof Error ? error.message : '댓글 수정에 실패했습니다.' });
+    }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!selectedPost) return;
+  const handleDeleteComment = async (commentId: number) => {
+    if (!detail) return;
     const ok = await confirm({ title: '댓글 삭제', message: '댓글을 삭제할까요? 답글도 함께 삭제됩니다.', type: 'danger', confirmText: '삭제' });
     if (!ok) return;
-    deleteComment(selectedPost.id, commentId);
-    refresh();
+    try {
+      await deleteComment(commentId);
+      await reloadDetail(detail.id);
+    } catch (error) {
+      showAlert({ type: 'error', title: '삭제 실패', message: error instanceof Error ? error.message : '댓글 삭제에 실패했습니다.' });
+    }
   };
 
-  const handleAccept = async (commentId: string) => {
-    if (!selectedPost) return;
+  const handleAccept = async (commentId: number) => {
+    if (!detail) return;
     const ok = await confirm({ title: '답변 채택', message: '이 답변을 채택할까요? 글당 하나의 답변만 채택됩니다.', confirmText: '채택' });
     if (!ok) return;
-    acceptComment(selectedPost.id, commentId);
-    showAlert({ type: 'success', title: '채택 완료', message: '답변이 채택되었습니다.' });
-    refresh();
+    try {
+      await acceptComment(commentId);
+      showAlert({ type: 'success', title: '채택 완료', message: '답변이 채택되었습니다.' });
+      await reloadDetail(detail.id);
+    } catch (error) {
+      showAlert({ type: 'error', title: '채택 실패', message: error instanceof Error ? error.message : '답변 채택에 실패했습니다.' });
+    }
   };
 
   // ── 렌더 ──────────────────────────────────────────────
 
-  const renderMeta = (post: PlazaPost) => (
-    <HStack gap={3} vAlign="center" wrap="wrap">
-      <Text type="supporting" color="secondary">{displayAuthor(post.isAnonymous, post.companyName, post.authorName)}</Text>
-      <Text type="supporting" color="secondary">{timeAgo(post.createdAt)}{post.updatedAt ? ' (수정됨)' : ''}</Text>
-      <HStack gap={1} vAlign="center">
-        <Icon icon={IconEye} size="xsm" color="secondary" />
-        <Text type="supporting" color="secondary">{post.viewedBy.length}</Text>
-      </HStack>
-      <HStack gap={1} vAlign="center">
-        <Icon icon={IconThumbUp} size="xsm" color="secondary" />
-        <Text type="supporting" color="secondary">{post.likedBy.length}</Text>
-      </HStack>
-      <HStack gap={1} vAlign="center">
-        <Icon icon={IconMessageCircle} size="xsm" color="secondary" />
-        <Text type="supporting" color="secondary">{post.comments.length}</Text>
-      </HStack>
-    </HStack>
-  );
-
-  const renderCommentBody = (comment: PlazaComment, isReply: boolean) => {
-    const isMine = comment.authorId === user.id;
-    const isPostAuthor = selectedPost?.authorId === user.id;
-    const canAccept = !!selectedPost && selectedPost.board === 'qna' && isPostAuthor && !isReply && !comment.isAccepted && comment.authorId !== user.id;
+  const renderCommentBody = (comment: ApiComment, isReply: boolean) => {
+    const canAccept = !!detail && detail.board === 'qna' && detail.isMine && !isReply && !comment.isAccepted && !comment.isMine;
 
     return (
       <div
@@ -295,10 +329,8 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
           <HStack hAlign="between" vAlign="center" wrap="wrap" gap={1}>
             <HStack gap={2} vAlign="center" wrap="wrap">
               {comment.isAccepted && <Badge variant="green" icon={<Icon icon={IconCheck} size="xsm" />} label="채택된 답변" />}
-              <Text type="body" weight="semibold" color="primary">
-                {displayAuthor(comment.isAnonymous, comment.companyName, comment.authorName)}
-              </Text>
-              <Text type="supporting" color="secondary">{timeAgo(comment.createdAt)}{comment.updatedAt ? ' (수정됨)' : ''}</Text>
+              <Text type="body" weight="semibold" color="primary">{comment.displayAuthor}</Text>
+              <Text type="supporting" color="secondary">{timeAgo(comment.createdAt)}</Text>
             </HStack>
             <HStack gap={1} vAlign="center">
               {canAccept && (
@@ -307,7 +339,7 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
               {!isReply && (
                 <Button variant="ghost" size="sm" label="답글" onClick={() => { setReplyTargetId(replyTargetId === comment.id ? null : comment.id); setReplyInput(''); }} />
               )}
-              {isMine && editingCommentId !== comment.id && (
+              {comment.isMine && editingCommentId !== comment.id && (
                 <>
                   <IconButton label="댓글 수정" variant="ghost" size="sm" icon={<Icon icon={IconPencil} size="xsm" color="secondary" />} onClick={() => { setEditingCommentId(comment.id); setEditingCommentText(comment.content); }} />
                   <IconButton label="댓글 삭제" variant="ghost" size="sm" icon={<Icon icon={IconTrash} size="xsm" color="secondary" />} onClick={() => handleDeleteComment(comment.id)} />
@@ -330,7 +362,6 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
             </div>
           )}
 
-          {/* 답글 입력 */}
           {replyTargetId === comment.id && (
             <HStack gap={2} vAlign="center">
               <div style={{ flex: 1 }}>
@@ -344,10 +375,8 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
     );
   };
 
-  const renderDetail = (post: PlazaPost) => {
+  const renderDetail = (post: ApiPostDetail) => {
     const meta = getBoardMeta(post.board);
-    const isMine = post.authorId === user.id;
-    const liked = post.likedBy.includes(user.id);
     const topLevel = post.comments
       .filter((c) => !c.parentId)
       .sort((a, b) => Number(b.isAccepted) - Number(a.isAccepted) || a.createdAt.localeCompare(b.createdAt));
@@ -356,7 +385,7 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
       <motion.div key={`detail-${post.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
         <VStack gap={3}>
           <div>
-            <Button variant="ghost" size="sm" label="목록으로" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={() => { setSelectedPostId(null); refresh(); }} />
+            <Button variant="ghost" size="sm" label="목록으로" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={closeDetail} />
           </div>
 
           <Card padding={6}>
@@ -367,7 +396,14 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
                   <Badge variant={meta.badgeVariant} label={meta.label} />
                   <Heading level={3}>{post.title}</Heading>
                 </HStack>
-                {renderMeta(post)}
+                <HStack gap={3} vAlign="center" wrap="wrap">
+                  <Text type="supporting" color="secondary">{post.displayAuthor}</Text>
+                  <Text type="supporting" color="secondary">{timeAgo(post.createdAt)}</Text>
+                  <HStack gap={1} vAlign="center">
+                    <Icon icon={IconEye} size="xsm" color="secondary" />
+                    <Text type="supporting" color="secondary">{post.viewCount}</Text>
+                  </HStack>
+                </HStack>
               </VStack>
 
               <Divider />
@@ -378,14 +414,14 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
 
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
                 <Button
-                  variant={liked ? 'primary' : 'secondary'}
+                  variant={post.likedByMe ? 'primary' : 'secondary'}
                   size="sm"
-                  label={`좋아요 ${post.likedBy.length}`}
-                  icon={<Icon icon={liked ? IconThumbUpFilled : IconThumbUp} size="sm" />}
+                  label={`좋아요 ${post.likeCount}`}
+                  icon={<Icon icon={post.likedByMe ? IconThumbUpFilled : IconThumbUp} size="sm" />}
                   onClick={() => handleToggleLike(post)}
                 />
                 <HStack gap={1} vAlign="center">
-                  {isMine ? (
+                  {post.isMine ? (
                     <>
                       <Button variant="ghost" size="sm" label="수정" icon={<Icon icon={IconPencil} size="xsm" />} onClick={() => openEdit(post)} />
                       <Button variant="ghost" size="sm" label="삭제" icon={<Icon icon={IconTrash} size="xsm" />} onClick={() => handleDeletePost(post)} />
@@ -394,10 +430,10 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
                     <Button
                       variant="ghost"
                       size="sm"
-                      label={post.reportedBy.includes(user.id) ? '신고됨' : '신고'}
+                      label={post.reportedByMe ? '신고됨' : '신고'}
                       icon={<Icon icon={IconFlag} size="xsm" />}
-                      isDisabled={post.reportedBy.includes(user.id)}
-                      onClick={() => { setReportReason(REPORT_REASONS[0]); setReportTargetId(post.id); }}
+                      isDisabled={post.reportedByMe}
+                      onClick={() => { if (!requireLogin()) return; setReportReason(REPORT_REASONS[0]); setReportTargetId(post.id); }}
                     />
                   )}
                 </HStack>
@@ -453,59 +489,9 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
   const renderList = () => (
     <motion.div key="list" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
       <VStack gap={3}>
-        {/* 오늘의 요양 소식 — 게시판 상단 뉴스 스트립 */}
-        {newsItems.length > 0 && (
-          <Card padding={0}>
-            <div style={{ padding: '12px 16px 4px' }}>
-              <HStack hAlign="between" vAlign="center">
-                <HStack gap={2} vAlign="center">
-                  <Icon icon={IconNews} size="sm" color="secondary" />
-                  <Text type="body" weight="bold" color="primary">오늘의 요양 소식</Text>
-                </HStack>
-                {onGoToNews && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="더보기"
-                    endContent={<Icon icon="chevronRight" size="xsm" />}
-                    onClick={onGoToNews}
-                  />
-                )}
-              </HStack>
-            </div>
-            <div style={{ padding: '0 8px 8px' }}>
-              <VStack gap={0}>
-                {newsItems.slice(0, 3).map((news) => {
-                  const newsMeta = getNewsCategoryMeta(news.category);
-                  return (
-                    <div
-                      key={news.id}
-                      className="carev-dash-row"
-                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
-                      onClick={() => window.open(news.url, '_blank', 'noopener,noreferrer')}
-                    >
-                      <div style={{ flexShrink: 0 }}>
-                        <Badge variant={newsMeta.badgeVariant} label={newsMeta.label} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <Text type="body" weight="medium" color="primary" maxLines={1}>{news.title}</Text>
-                      </div>
-                      <div style={{ flexShrink: 0 }}>
-                        <Text type="supporting" color="secondary">
-                          {news.source} · {formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}
-                        </Text>
-                      </div>
-                    </div>
-                  );
-                })}
-              </VStack>
-            </div>
-          </Card>
-        )}
-
         {/* 툴바 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-          <SegmentedControl value={boardFilter} onChange={(v) => { setBoardFilter(v as BoardFilter); setPage(1); }} label="게시판 선택" size="sm">
+          <SegmentedControl value={boardFilter} onChange={(v) => { setBoardFilter(v as BoardFilter); setPage(0); }} label="게시판 선택" size="sm">
             <SegmentedControlItem value="all" label="전체" />
             {BOARD_META.map((b) => (
               <SegmentedControlItem key={b.value} value={b.value} label={b.label} />
@@ -517,7 +503,7 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
                 label="정렬"
                 isLabelHidden
                 value={sortKey}
-                onChange={(v) => setSortKey((v as SortKey) || 'latest')}
+                onChange={(v) => { setSortKey((v as SortKey) || 'latest'); setPage(0); }}
                 options={[
                   { value: 'latest', label: '최신순' },
                   { value: 'popular', label: '좋아요순' },
@@ -526,7 +512,7 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
               />
             </div>
             <div style={{ width: 220 }}>
-              <TextInput label="검색" isLabelHidden placeholder="제목·내용 검색" startIcon={FiSearch} hasClear value={search} onChange={(v) => { setSearch(v); setPage(1); }} />
+              <TextInput label="검색" isLabelHidden placeholder="제목·내용 검색" startIcon={FiSearch} hasClear value={search} onChange={(v) => setSearch(v)} />
             </div>
             <Button variant="primary" size="md" label="글쓰기" icon={<Icon icon={IconPlus} size="sm" />} onClick={openWrite} />
           </HStack>
@@ -534,20 +520,23 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
 
         {/* 목록 */}
         <Card padding={0}>
-          {pagePosts.length === 0 ? (
+          {isLoading ? (
+            <div style={{ padding: 'var(--spacing-8)', display: 'flex', justifyContent: 'center' }}>
+              <Spinner size="md" label="불러오는 중..." />
+            </div>
+          ) : posts.length === 0 ? (
             <div style={{ padding: 'var(--spacing-8)' }}>
               <EmptyState
                 isCompact
-                title={search ? '검색 결과가 없습니다' : '아직 게시글이 없습니다'}
-                description={search ? '다른 검색어로 시도해보세요.' : '첫 게시글을 작성해보세요.'}
+                title={debouncedSearch ? '검색 결과가 없습니다' : '아직 게시글이 없습니다'}
+                description={debouncedSearch ? '다른 검색어로 시도해보세요.' : '첫 게시글을 작성해보세요.'}
                 icon={<Icon icon={IconMessages} size="lg" color="secondary" />}
               />
             </div>
           ) : (
             <VStack gap={0}>
-              {pagePosts.map((post, idx) => {
+              {posts.map((post, idx) => {
                 const meta = getBoardMeta(post.board);
-                const hasAccepted = post.board === 'qna' && post.comments.some((c) => c.isAccepted);
                 return (
                   <div
                     key={post.id}
@@ -559,18 +548,33 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
                       <HStack gap={2} vAlign="center" wrap="wrap">
                         {post.isPinned && <Icon icon={IconPinned} size="xsm" color="secondary" />}
                         <Badge variant={meta.badgeVariant} label={meta.label} />
-                        {hasAccepted && <Badge variant="green" icon={<Icon icon={IconCheck} size="xsm" />} label="채택 완료" />}
+                        {post.hasAccepted && <Badge variant="green" icon={<Icon icon={IconCheck} size="xsm" />} label="채택 완료" />}
                         <div style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
                           <Text type="body" weight="semibold" color="primary" maxLines={1}>{post.title}</Text>
                         </div>
-                        {post.comments.length > 0 && (
+                        {post.commentCount > 0 && (
                           <span style={{ color: 'var(--color-text-accent)' }}>
-                            <Text type="supporting" weight="bold" color="inherit">[{post.comments.length}]</Text>
+                            <Text type="supporting" weight="bold" color="inherit">[{post.commentCount}]</Text>
                           </span>
                         )}
                       </HStack>
-                      <Text as="p" type="supporting" color="secondary" maxLines={1}>{post.content}</Text>
-                      {renderMeta(post)}
+                      <Text as="p" type="supporting" color="secondary" maxLines={1}>{post.preview}</Text>
+                      <HStack gap={3} vAlign="center" wrap="wrap">
+                        <Text type="supporting" color="secondary">{post.displayAuthor}</Text>
+                        <Text type="supporting" color="secondary">{timeAgo(post.createdAt)}</Text>
+                        <HStack gap={1} vAlign="center">
+                          <Icon icon={IconEye} size="xsm" color="secondary" />
+                          <Text type="supporting" color="secondary">{post.viewCount}</Text>
+                        </HStack>
+                        <HStack gap={1} vAlign="center">
+                          <Icon icon={IconThumbUp} size="xsm" color="secondary" />
+                          <Text type="supporting" color="secondary">{post.likeCount}</Text>
+                        </HStack>
+                        <HStack gap={1} vAlign="center">
+                          <Icon icon={IconMessageCircle} size="xsm" color="secondary" />
+                          <Text type="supporting" color="secondary">{post.commentCount}</Text>
+                        </HStack>
+                      </HStack>
                     </VStack>
                   </div>
                 );
@@ -582,9 +586,9 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
         {/* 페이지네이션 */}
         {totalPages > 1 && (
           <HStack gap={2} hAlign="center" vAlign="center">
-            <Button variant="secondary" size="sm" label="이전" isDisabled={safePage <= 1} onClick={() => setPage(safePage - 1)} />
-            <Text type="supporting" color="secondary" hasTabularNumbers>{safePage} / {totalPages}</Text>
-            <Button variant="secondary" size="sm" label="다음" isDisabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} />
+            <Button variant="secondary" size="sm" label="이전" isDisabled={page <= 0} onClick={() => setPage(page - 1)} />
+            <Text type="supporting" color="secondary" hasTabularNumbers>{page + 1} / {totalPages}</Text>
+            <Button variant="secondary" size="sm" label="다음" isDisabled={page >= totalPages - 1} onClick={() => setPage(page + 1)} />
           </HStack>
         )}
       </VStack>
@@ -597,7 +601,13 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
       <ConfirmContainer />
 
       <AnimatePresence mode="wait">
-        {selectedPost && !selectedPost.isHidden ? renderDetail(selectedPost) : renderList()}
+        {detail ? renderDetail(detail) : isDetailLoading ? (
+          <motion.div key="detail-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div style={{ padding: 'var(--spacing-8)', display: 'flex', justifyContent: 'center' }}>
+              <Spinner size="md" label="불러오는 중..." />
+            </div>
+          </motion.div>
+        ) : renderList()}
       </AnimatePresence>
 
       {/* 글 작성/수정 다이얼로그 */}
@@ -623,7 +633,7 @@ export default function PlazaBoard({ newsItems = [], onGoToNews }: PlazaBoardPro
             <LayoutFooter hasDivider>
               <HStack gap={2} hAlign="end">
                 <Button variant="ghost" label="취소" onClick={() => setWriteOpen(false)} />
-                <Button variant="primary" label={editingPostId ? '수정' : '등록'} onClick={submitPost} />
+                <Button variant="primary" label={editingPostId ? '수정' : '등록'} isLoading={isSubmitting} onClick={submitPost} />
               </HStack>
             </LayoutFooter>
           }

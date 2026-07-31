@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/#features', label: '주요 기능' },
   { href: '/#process', label: '사용 방법' },
   { href: '/#pricing', label: '가격' },
+  { href: '/plaza', label: '광장' },
   { href: '/contact', label: '문의하기' },
 ];
 

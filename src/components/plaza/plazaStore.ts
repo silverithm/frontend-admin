@@ -78,6 +78,12 @@ export interface PlazaUser {
   company: string;
 }
 
+/** 로그인 여부 — 비로그인(공개 페이지)에서는 읽기만 허용하고 쓰기 동작은 로그인 유도 */
+export function isLoggedIn(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem('authToken');
+}
+
 export function getCurrentUser(): PlazaUser {
   if (typeof window === 'undefined') return { id: 'me', name: '나', company: '우리 기관' };
   return {

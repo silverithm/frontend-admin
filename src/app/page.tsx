@@ -197,6 +197,12 @@ export default function LandingPage() {
                                             size="lg"
                                             onClick={() => router.push('/login')}
                                         />
+                                        <Button
+                                            label="광장 둘러보기"
+                                            variant="ghost"
+                                            size="lg"
+                                            onClick={() => router.push('/plaza')}
+                                        />
                                     </HStack>
 
                                     {/* 2. 신뢰 시그널 — CTA 바로 아래에서 망설임을 줄인다 */}
