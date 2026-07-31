@@ -96,7 +96,8 @@ export default function PlazaManagement() {
   return (
     <>
       <AlertContainer />
-      <VStack gap={3}>
+      {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-3)' }}>
         {/* 페이지 헤더 */}
         <VStack gap={0} align="start">
           <Heading level={2}>케어브이 광장</Heading>
@@ -120,9 +121,9 @@ export default function PlazaManagement() {
 
         {/* 카페형 레이아웃: 좌측 네비 + 메인 */}
         <div className="carev-plaza-cafe">
-          {/* 좌측 보드 네비 (데스크탑) */}
+          {/* 좌측 보드 네비 (데스크탑) — 메인과 같은 높이로 세로를 채운다 */}
           <div className="carev-plaza-nav">
-            <Card padding={2}>
+            <Card padding={2} height="100%">
               <VStack gap={1}>
                 <Button
                   label="글쓰기"
@@ -157,7 +158,7 @@ export default function PlazaManagement() {
             {activeMenu === 'library' && <PlazaLibrary variant="full" />}
           </div>
         </div>
-      </VStack>
+      </div>
     </>
   );
 }

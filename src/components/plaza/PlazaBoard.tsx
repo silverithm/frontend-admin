@@ -418,8 +418,9 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
       .sort((a, b) => Number(b.isAccepted) - Number(a.isAccepted) || a.createdAt.localeCompare(b.createdAt));
 
     return (
-      <motion.div key={`detail-${post.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }}>
-        <VStack gap={3}>
+      <motion.div key={`detail-${post.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
+        {/* 글이 짧아도 좌측 패널과 바닥이 맞도록 댓글 카드가 남은 높이를 채운다 (긴 글은 메인 영역이 스크롤) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
           <div>
             <Button variant="ghost" size="sm" label="목록으로" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={closeDetail} />
           </div>
@@ -477,8 +478,9 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
             </VStack>
           </Card>
 
-          {/* 댓글 */}
-          <Card padding={6}>
+          {/* 댓글 — 남은 높이를 채워 좌측 패널과 정렬 (내용이 더 크면 내용 크기 유지) */}
+          <div style={{ flex: '1 0 auto' }}>
+          <Card padding={6} height="100%">
             <VStack gap={3}>
               <Text type="body" weight="bold" color="primary">댓글 {post.comments.length}</Text>
 
@@ -517,7 +519,8 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
               </VStack>
             </VStack>
           </Card>
-        </VStack>
+          </div>
+        </div>
       </motion.div>
     );
   };

@@ -118,11 +118,8 @@ html {
 }
 
 /* 공지사항 목록: 데이터가 적어도 화면을 채우고 목록만 스크롤 */
-.carev-notice-listwrap { display: flex; flex-direction: column; }
-@media (min-width: 1024px) {
-  .carev-notice-listwrap { flex: 1; min-height: 0; }
-  .carev-notice-list { flex: 1; min-height: 0; overflow-y: auto; }
-}
+.carev-notice-listwrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.carev-notice-list { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* AdminDashboard 반응형 + hover (Tailwind 대체) */
 /* 대시보드도 근무조정과 같은 규칙: 데스크탑에서 한 화면을 채우고 패널 안에서만 스크롤 */
@@ -183,7 +180,7 @@ html {
     height: calc(100dvh - var(--carev-plaza-chrome, 200px));
     min-height: 520px;
   }
-  .carev-plaza-nav { display: block; }
+  .carev-plaza-nav { display: block; min-height: 0; }
   .carev-plaza-main { min-height: 0; overflow-y: auto; }
   .carev-plaza-mobiletabs { display: none; }
 }

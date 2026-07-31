@@ -29,7 +29,7 @@ const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix:
 
 function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string; onMore: () => void }) {
   return (
-    <div style={{ padding: '12px 16px 8px' }}>
+    <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-2)' }}>
       <HStack hAlign="between" vAlign="center">
         <HStack gap={2} vAlign="center">
           <Icon icon={icon} size="sm" color="secondary" />
@@ -51,9 +51,9 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
     let cancelled = false;
     (async () => {
       const [popularRes, latestRes, libraryRes] = await Promise.allSettled([
-        fetchPosts({ sort: 'popular', size: 5 }),
-        fetchPosts({ sort: 'latest', size: 8 }),
-        fetchLibraryItems({ size: 5 }),
+        fetchPosts({ sort: 'popular', size: 20 }),
+        fetchPosts({ sort: 'latest', size: 20 }),
+        fetchLibraryItems({ size: 20 }),
       ]);
       if (cancelled) return;
       if (popularRes.status === 'fulfilled') setPopular(popularRes.value.content ?? []);
@@ -99,7 +99,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFlame} title="인기글" onMore={() => onNavigate('all')} />
-            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {popular.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 인기글이 없습니다. 첫 글의 주인공이 되어보세요!</Text>
@@ -115,9 +115,9 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconNews} title="요양 소식" onMore={() => onNavigate('news')} />
-            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <VStack gap={0}>
-                {newsItems.slice(0, 5).map((news) => {
+                {newsItems.map((news) => {
                   const meta = getNewsCategoryMeta(news.category);
                   return (
                     <div
@@ -147,7 +147,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconClock} title="최신글" onMore={() => onNavigate('all')} />
-            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {latest.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 게시글이 없습니다.</Text>
@@ -163,7 +163,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFolder} title="새 자료" onMore={() => onNavigate('library')} />
-            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {library.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 자료가 없습니다. 첫 자료를 올려보세요!</Text>

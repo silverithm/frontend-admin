@@ -272,7 +272,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
         <ConfirmContainer />
         <Card padding={0}>
           <VStack gap={0}>
-            <div style={{ padding: '12px 16px 8px' }}>
+            <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-2)' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
                   <Icon icon={IconFolder} size="sm" color="secondary" />
@@ -284,10 +284,10 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
                 <Button variant="secondary" size="sm" label="올리기" icon={<Icon icon={IconUpload} size="xsm" />} onClick={openUpload} />
               </HStack>
             </div>
-            <div style={{ padding: '0 16px 8px' }}>
+            <div style={{ padding: '0 var(--spacing-4) var(--spacing-2)' }}>
               <TextInput label="자료 검색" isLabelHidden placeholder="자료 검색" startIcon={FiSearch} hasClear value={search} onChange={(v) => setSearch(v)} />
             </div>
-            <div style={{ padding: '0 8px 8px', maxHeight: 400, overflowY: 'auto' }}>
+            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', maxHeight: 400, overflowY: 'auto' }}>
               {isLoading || items.length === 0 ? emptyOrLoading : (
                 <VStack gap={0}>
                   {items.map((item) => {
