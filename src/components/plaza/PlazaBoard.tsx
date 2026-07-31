@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -18,7 +18,6 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -27,7 +26,6 @@ import {
   IconCheck,
   IconEye,
   IconFlag,
-  IconMessageCircle,
   IconMessages,
   IconPencil,
   IconPinned,
@@ -65,7 +63,17 @@ const PAGE_SIZE = 10;
 
 const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ko });
 
-export default function PlazaBoard() {
+interface PlazaBoardProps {
+  /** 표시할 보드 ('all' = 전체글). 카페형 셸(PlazaManagement)의 좌측 네비가 제어한다 */
+  board?: BoardFilter;
+  /** 외부(광장 홈 위젯)에서 특정 글 상세를 열 때 전달 */
+  openPostId?: number | null;
+  onOpenPostConsumed?: () => void;
+  /** 값이 바뀔 때마다 글쓰기 다이얼로그를 연다 */
+  writeSignal?: number;
+}
+
+export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsumed, writeSignal }: PlazaBoardProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
 
@@ -73,7 +81,7 @@ export default function PlazaBoard() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [boardFilter, setBoardFilter] = useState<BoardFilter>('all');
+  const boardFilter = board;
   const [sortKey, setSortKey] = useState<SortKey>('latest');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -111,6 +119,34 @@ export default function PlazaBoard() {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // 보드 전환 시 목록 상태 초기화
+  useEffect(() => {
+    setPage(0);
+    setDetail(null);
+  }, [board]);
+
+  // 광장 홈 등 외부에서 특정 글 열기
+  useEffect(() => {
+    if (!openPostId) return;
+    (async () => {
+      setIsDetailLoading(true);
+      await reloadDetail(openPostId);
+      setIsDetailLoading(false);
+      onOpenPostConsumed?.();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openPostId]);
+
+  // 좌측 네비 글쓰기 버튼 신호
+  const writeSignalRef = useRef(writeSignal ?? 0);
+  useEffect(() => {
+    if (writeSignal !== undefined && writeSignal !== writeSignalRef.current) {
+      writeSignalRef.current = writeSignal;
+      openWrite();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writeSignal]);
 
   const loadPosts = useCallback(async () => {
     setIsLoading(true);
@@ -491,12 +527,9 @@ export default function PlazaBoard() {
       <VStack gap={3}>
         {/* 툴바 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-          <SegmentedControl value={boardFilter} onChange={(v) => { setBoardFilter(v as BoardFilter); setPage(0); }} label="게시판 선택" size="sm">
-            <SegmentedControlItem value="all" label="전체" />
-            {BOARD_META.map((b) => (
-              <SegmentedControlItem key={b.value} value={b.value} label={b.label} />
-            ))}
-          </SegmentedControl>
+          <Text type="body" weight="bold" color="primary">
+            {boardFilter === 'all' ? '전체글' : getBoardMeta(boardFilter).label}
+          </Text>
           <HStack gap={2} vAlign="center" wrap="wrap">
             <div style={{ width: 130 }}>
               <Selector
@@ -541,41 +574,49 @@ export default function PlazaBoard() {
                   <div
                     key={post.id}
                     className="carev-dash-row"
-                    style={{ padding: 'var(--spacing-3) var(--spacing-4)', borderTop: idx === 0 ? 'none' : '1px solid var(--color-border)' }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--spacing-2)',
+                      padding: '9px var(--spacing-3)',
+                      borderTop: idx === 0 ? 'none' : '1px solid var(--color-border)',
+                    }}
                     onClick={() => openPost(post)}
                   >
-                    <VStack gap={1}>
-                      <HStack gap={2} vAlign="center" wrap="wrap">
-                        {post.isPinned && <Icon icon={IconPinned} size="xsm" color="secondary" />}
-                        <Badge variant={meta.badgeVariant} label={meta.label} />
-                        {post.hasAccepted && <Badge variant="green" icon={<Icon icon={IconCheck} size="xsm" />} label="채택 완료" />}
-                        <div style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-                          <Text type="body" weight="semibold" color="primary" maxLines={1}>{post.title}</Text>
+                    {/* 좌측: 말머리 + 제목 + 댓글수 */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                      {post.isPinned && <Icon icon={IconPinned} size="xsm" color="secondary" />}
+                      {boardFilter === 'all' && (
+                        <div style={{ flexShrink: 0 }}>
+                          <Badge variant={meta.badgeVariant} label={meta.label} />
                         </div>
-                        {post.commentCount > 0 && (
-                          <span style={{ color: 'var(--color-text-accent)' }}>
-                            <Text type="supporting" weight="bold" color="inherit">[{post.commentCount}]</Text>
-                          </span>
-                        )}
-                      </HStack>
-                      <Text as="p" type="supporting" color="secondary" maxLines={1}>{post.preview}</Text>
-                      <HStack gap={3} vAlign="center" wrap="wrap">
+                      )}
+                      {post.hasAccepted && <Icon icon={IconCheck} size="xsm" color="success" />}
+                      <div style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                        <Text type="body" weight={post.isPinned ? 'semibold' : 'medium'} color="primary" maxLines={1}>{post.title}</Text>
+                      </div>
+                      {post.commentCount > 0 && (
+                        <span style={{ flexShrink: 0, color: 'var(--color-text-accent)' }}>
+                          <Text type="supporting" weight="bold" color="inherit">[{post.commentCount}]</Text>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 우측: 작성자 · 시간 · 조회 · 추천 */}
+                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+                      <span className="carev-plaza-rowmeta-wide">
                         <Text type="supporting" color="secondary">{post.displayAuthor}</Text>
-                        <Text type="supporting" color="secondary">{timeAgo(post.createdAt)}</Text>
-                        <HStack gap={1} vAlign="center">
-                          <Icon icon={IconEye} size="xsm" color="secondary" />
-                          <Text type="supporting" color="secondary">{post.viewCount}</Text>
-                        </HStack>
-                        <HStack gap={1} vAlign="center">
-                          <Icon icon={IconThumbUp} size="xsm" color="secondary" />
-                          <Text type="supporting" color="secondary">{post.likeCount}</Text>
-                        </HStack>
-                        <HStack gap={1} vAlign="center">
-                          <Icon icon={IconMessageCircle} size="xsm" color="secondary" />
-                          <Text type="supporting" color="secondary">{post.commentCount}</Text>
-                        </HStack>
-                      </HStack>
-                    </VStack>
+                      </span>
+                      <Text type="supporting" color="secondary">{timeAgo(post.createdAt)}</Text>
+                      <span className="carev-plaza-rowmeta-wide" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
+                        <Icon icon={IconEye} size="xsm" color="secondary" />
+                        <Text type="supporting" color="secondary" hasTabularNumbers>{post.viewCount}</Text>
+                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
+                        <Icon icon={IconThumbUp} size="xsm" color="secondary" />
+                        <Text type="supporting" color="secondary" hasTabularNumbers>{post.likeCount}</Text>
+                      </span>
+                    </div>
                   </div>
                 );
               })}

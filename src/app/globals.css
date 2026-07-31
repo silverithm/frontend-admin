@@ -170,10 +170,24 @@ html {
 .carev-dash-timeline { transition: background var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-timeline:hover { background: var(--color-background-surface); } }
 
-/* 케어브이 광장 통합 레이아웃: 데스크탑 = 게시판(메인) + 사이드 카드, 모바일 = 세로 스택 */
-.carev-plaza-layout { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
+/* 케어브이 광장 — 카페형 레이아웃: 좌측 보드 네비(데스크탑) + 메인, 모바일은 상단 가로 탭 */
+.carev-plaza-cafe { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
+.carev-plaza-nav { display: none; }
+.carev-plaza-mobiletabs { display: flex; gap: var(--spacing-1); overflow-x: auto; padding-bottom: var(--spacing-1); }
 @media (min-width: 1024px) {
-  .carev-plaza-layout { grid-template-columns: minmax(0, 1fr) 340px; }
+  .carev-plaza-cafe { grid-template-columns: 200px minmax(0, 1fr); }
+  .carev-plaza-nav { display: block; position: sticky; top: var(--spacing-4); }
+  .carev-plaza-mobiletabs { display: none; }
+}
+/* 광장 홈 위젯 그리드 */
+.carev-plaza-home { display: grid; grid-template-columns: 1fr; gap: var(--spacing-3); align-items: start; }
+@media (min-width: 768px) {
+  .carev-plaza-home { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* 게시글 밀도 리스트 — 좁은 화면에서는 작성자·조회수 숨김 */
+.carev-plaza-rowmeta-wide { display: none; }
+@media (min-width: 640px) {
+  .carev-plaza-rowmeta-wide { display: inline-flex; }
 }
 
 /* employee/page 반응형 (Tailwind lg:/sm: 대체, carev-admin-*와 동일 값) */
@@ -251,14 +265,18 @@ html {
    '펼치기' 상태(carev-vaccal-grid--fit 없음)는 셀 원래 높이를 유지하고 컬럼이 스크롤된다. */
 @media (min-width: 1280px) {
   .carev-admin-work-calendar > .carev-vaccal-card { height: 100%; display: flex; flex-direction: column; }
-  .carev-admin-work-calendar .carev-vaccal-body { flex: 1; min-height: 0; }
+  /* 펼치기 상태에서 셀이 남은 높이를 넘어서면 카드 밖으로 삐져나오지 않도록
+     본문 안에서 스크롤한다. 접힘(--fit)은 애초에 넘치지 않아 스크롤바가 생기지 않는다. */
+  .carev-admin-work-calendar .carev-vaccal-body { flex: 1; min-height: 0; overflow-y: auto; }
   .carev-admin-work-calendar .carev-vaccal-grid--fit { flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
   .carev-admin-work-calendar .carev-vaccal-grid--fit .carev-vaccal-cell { min-height: 0; }
 }
 
-/* 캡처 모드 — 화면에서 눌려 있어도 이미지는 원래 비율로 전체를 담는다 */
-.carev-vaccal-capturing { height: auto !important; }
-.carev-vaccal-capturing .carev-vaccal-body { flex: none !important; min-height: 0 !important; }
+/* 캡처 모드 — 화면에서 눌려 있어도 이미지는 원래 비율로 전체를 담는다.
+   카드에 인라인 overflow:hidden이 걸려 있어 !important로 풀어야 잘리지 않는다. */
+.carev-vaccal-capturing { height: auto !important; overflow: visible !important; }
+/* 캡처 중에는 스크롤을 풀어야 잘리지 않은 전체 달력이 이미지에 담긴다 */
+.carev-vaccal-capturing .carev-vaccal-body { flex: none !important; min-height: 0 !important; overflow: visible !important; }
 .carev-vaccal-capturing .carev-vaccal-grid { flex: none !important; grid-auto-rows: auto !important; }
 .carev-vaccal-capturing .carev-vaccal-cell { min-height: 140px !important; }
 .carev-vaccal-capturing .carev-vaccal-cell-expanded { min-height: 240px !important; }
