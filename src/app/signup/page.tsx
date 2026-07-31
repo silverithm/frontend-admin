@@ -303,7 +303,7 @@ export default function SignupPage() {
                   </HStack>
 
                   {/* 개인정보 수집 및 이용 동의 */}
-                  <Card variant="muted" padding={4}>
+                  <div style={{ background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                     <VStack gap={1.5}>
                       <CheckboxInput
                         label="개인정보 수집 및 이용에 동의합니다"
@@ -320,7 +320,7 @@ export default function SignupPage() {
                         개인정보 수집 및 이용 동의서 보기
                       </Link>
                     </VStack>
-                  </Card>
+                  </div>
 
                   {error && (
                     <Banner status="error" title={error} />

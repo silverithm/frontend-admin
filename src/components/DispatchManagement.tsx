@@ -152,20 +152,20 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
           {/* 통계 요약 */}
           <HStack gap={4}>
             <StackItem size="fill">
-              <Card width="100%" padding={4}>
+              <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                 <VStack gap={1} hAlign="center">
                   <Text size="2xl" weight="bold">{settings.routes.length}</Text>
                   <Text type="supporting">노선</Text>
                 </VStack>
-              </Card>
+              </div>
             </StackItem>
             <StackItem size="fill">
-              <Card width="100%" padding={4}>
+              <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                 <VStack gap={1} hAlign="center">
                   <Text size="2xl" weight="bold">{settings.seniors.length}</Text>
                   <Text type="supporting">어르신</Text>
                 </VStack>
-              </Card>
+              </div>
             </StackItem>
           </HStack>
         </VStack>

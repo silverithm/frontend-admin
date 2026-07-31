@@ -242,7 +242,7 @@ export default function EmployeeNotice() {
 
               {showReaders && (
                 <div style={{ width: '100%' }}>
-                  <Card variant="muted" padding={4}>
+                  <div style={{ background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                     {isLoadingReaders ? (
                       <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-4) 0' }}>
                         <Spinner size="sm" aria-label="불러오는 중" />
@@ -273,7 +273,7 @@ export default function EmployeeNotice() {
                     ) : (
                       <Text type="supporting" justify="center">아직 읽은 사람이 없습니다</Text>
                     )}
-                  </Card>
+                  </div>
                 </div>
               )}
             </VStack>

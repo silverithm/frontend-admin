@@ -295,300 +295,298 @@ export default function OrganizationProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: duration.mediumMax }}
         >
-          <Card padding={8}>
-            <VStack gap={6}>
-              <VStack gap={1}>
-                <Text type="display-3" weight="bold">기관 정보</Text>
-                <Text type="supporting">기관의 기본 정보를 관리할 수 있습니다</Text>
-              </VStack>
+          <VStack gap={6}>
+            <VStack gap={1}>
+              <Text type="display-3" weight="bold">기관 정보</Text>
+              <Text type="supporting">기관의 기본 정보를 관리할 수 있습니다</Text>
+            </VStack>
 
-              {successMessage && (
-                <Banner status="success" title={successMessage} />
-              )}
-              {error && !successMessage && (
-                <Banner status="error" title={error} />
-              )}
+            {successMessage && (
+              <Banner status="success" title={successMessage} />
+            )}
+            {error && !successMessage && (
+              <Banner status="error" title={error} />
+            )}
 
-              {isEditing ? (
-                <form onSubmit={handleSubmit}>
-                  <VStack gap={5}>
-                    <TextInput
-                      label="회사명"
-                      type="text"
-                      htmlName="name"
-                      value={formData?.name || ''}
-                      onChange={(value) => setFormData(formData ? { ...formData, name: value } : formData)}
-                      isRequired
+            {isEditing ? (
+              <form onSubmit={handleSubmit}>
+                <VStack gap={5}>
+                  <TextInput
+                    label="회사명"
+                    type="text"
+                    htmlName="name"
+                    value={formData?.name || ''}
+                    onChange={(value) => setFormData(formData ? { ...formData, name: value } : formData)}
+                    isRequired
+                  />
+                  <TextInput
+                    label="회사 주소"
+                    type="text"
+                    htmlName="address"
+                    value={formData?.address || ''}
+                    onChange={(value) => setFormData(formData ? { ...formData, address: value } : formData)}
+                  />
+                  <TextInput
+                    label="관리자명"
+                    type="text"
+                    htmlName="adminName"
+                    value={formData?.adminName || ''}
+                    onChange={(value) => setFormData(formData ? { ...formData, adminName: value } : formData)}
+                    description="관리자명은 수정할 수 없습니다."
+                    isDisabled
+                  />
+                  <HStack gap={2} hAlign="end">
+                    <Button
+                      label="취소"
+                      variant="secondary"
+                      type="button"
+                      onClick={() => { setIsEditing(false); setError(''); setSuccessMessage(''); setFormData(profile); }}
                     />
-                    <TextInput
-                      label="회사 주소"
-                      type="text"
-                      htmlName="address"
-                      value={formData?.address || ''}
-                      onChange={(value) => setFormData(formData ? { ...formData, address: value } : formData)}
+                    <Button
+                      label="저장"
+                      variant="primary"
+                      type="submit"
+                      isLoading={isLoading}
                     />
-                    <TextInput
-                      label="관리자명"
-                      type="text"
-                      htmlName="adminName"
-                      value={formData?.adminName || ''}
-                      onChange={(value) => setFormData(formData ? { ...formData, adminName: value } : formData)}
-                      description="관리자명은 수정할 수 없습니다."
-                      isDisabled
-                    />
-                    <HStack gap={2} hAlign="end">
+                  </HStack>
+                </VStack>
+              </form>
+            ) : (
+              <VStack gap={8}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                    gap: 'var(--spacing-6)',
+                  }}
+                >
+                  {/* 기관 정보 카드 */}
+                  <Card padding={6}>
+                    <HStack gap={3} vAlign="center">
+                      <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon icon={IconBuilding} size="md" color="accent" />
+                      </div>
+                      <VStack gap={0.5}>
+                        <Text type="supporting">회사명</Text>
+                        <Text type="large" weight="semibold">{profile.name || '정보 없음'}</Text>
+                      </VStack>
+                    </HStack>
+                  </Card>
+
+                  {/* 위치 정보 카드 */}
+                  <Card padding={6}>
+                    <HStack gap={3} vAlign="center">
+                      <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon icon={IconMapPin} size="md" color="secondary" />
+                      </div>
+                      <VStack gap={0.5}>
+                        <Text type="supporting">회사 주소</Text>
+                        <Text type="large" weight="semibold">{profile.address || '정보 없음'}</Text>
+                      </VStack>
+                    </HStack>
+                  </Card>
+
+                  {/* 관리자 정보 카드 */}
+                  <Card padding={6}>
+                    <HStack gap={3} vAlign="center">
+                      <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon icon={IconUser} size="md" color="secondary" />
+                      </div>
+                      <VStack gap={0.5}>
+                        <Text type="supporting">관리자명</Text>
+                        <Text type="large" weight="semibold">{profile.adminName || '정보 없음'}</Text>
+                      </VStack>
+                    </HStack>
+                  </Card>
+                </div>
+
+                {profile.companyCode && (
+                  <Card variant="yellow" padding={6}>
+                    <HStack gap={4} hAlign="between" vAlign="center" wrap="wrap">
+                      <VStack gap={2}>
+                        <Text type="label" weight="medium">직원 회원가입용 회사 코드</Text>
+                        <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', letterSpacing: '0.3em', color: '#451a03' }}>
+                          {profile.companyCode}
+                        </div>
+                        <Text type="supporting">
+                          직원은 앱 회원가입 화면에서 이 코드를 입력하면 기존 회사 선택과 같은 방식으로 가입 요청을 보낼 수 있습니다.
+                        </Text>
+                      </VStack>
                       <Button
-                        label="취소"
-                        variant="secondary"
-                        type="button"
-                        onClick={() => { setIsEditing(false); setError(''); setSuccessMessage(''); setFormData(profile); }}
-                      />
-                      <Button
-                        label="저장"
+                        label="코드 복사"
                         variant="primary"
-                        type="submit"
-                        isLoading={isLoading}
+                        icon={<Icon icon={IconCopy} size="sm" />}
+                        onClick={handleCopyCompanyCode}
                       />
                     </HStack>
-                  </VStack>
-                </form>
-              ) : (
-                <VStack gap={8}>
+                  </Card>
+                )}
+
+                {/* 구독 정보 섹션 */}
+                <VStack gap={6}>
+                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
+                    <Text type="large" weight="semibold">구독 정보</Text>
+                  </div>
+                  <SubscriptionInfo />
+                </VStack>
+
+                {/* 인장/서명 섹션 */}
+                <VStack gap={6}>
+                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
+                    <VStack gap={1}>
+                      <Text type="large" weight="semibold">인장 / 서명</Text>
+                      <Text type="supporting">
+                        기관 직인은 결재 최종 승인 시 공문 발신명의에, 내 서명은 결재란에 자동으로 날인됩니다
+                      </Text>
+                    </VStack>
+                  </div>
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                      gap: 'var(--spacing-6)',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                      gap: 'var(--spacing-4)',
+                      alignItems: 'start',
                     }}
                   >
-                    {/* 기관 정보 카드 */}
+                    {/* 기관 직인 카드 */}
                     <Card padding={6}>
-                      <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon icon={IconBuilding} size="md" color="accent" />
-                        </div>
-                        <VStack gap={0.5}>
-                          <Text type="supporting">회사명</Text>
-                          <Text type="large" weight="semibold">{profile.name || '정보 없음'}</Text>
-                        </VStack>
-                      </HStack>
+                      <VStack gap={4}>
+                        <Text type="body" weight="medium">기관 직인</Text>
+                        {sealUrl ? (
+                          <VStack gap={3}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 140,
+                                height: 140,
+                                border: '1px solid var(--color-border)',
+                                borderRadius: 'var(--radius-inner)',
+                                background: 'var(--color-on-accent)',
+                              }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={sealUrl}
+                                alt="기관 직인"
+                                style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }}
+                              />
+                            </div>
+                            <HStack gap={2}>
+                              <Button
+                                label="삭제"
+                                variant="destructive"
+                                size="sm"
+                                isDisabled={isSealSaving}
+                                onClick={handleDeleteSeal}
+                              />
+                            </HStack>
+                            <Text type="supporting">새 이미지를 등록하면 기존 직인을 대체합니다.</Text>
+                          </VStack>
+                        ) : (
+                          <Banner
+                            status="info"
+                            title="등록된 직인이 없습니다."
+                            description="직인 이미지를 등록하면 승인 완료된 공문에 자동으로 찍힙니다."
+                          />
+                        )}
+                        <FileInput
+                          label="직인 이미지 (PNG/JPG, 배경 투명 권장)"
+                          accept="image/png,image/jpeg"
+                          value={sealFile}
+                          onChange={(files) => {
+                            const file = Array.isArray(files) ? files[0] ?? null : files;
+                            setSealFile(file);
+                          }}
+                        />
+                        <HStack hAlign="end">
+                          <Button
+                            label={isSealSaving ? '등록 중...' : '직인 등록'}
+                            variant="primary"
+                            isLoading={isSealSaving}
+                            isDisabled={isSealSaving || !sealFile}
+                            onClick={handleUploadSeal}
+                          />
+                        </HStack>
+                      </VStack>
                     </Card>
 
-                    {/* 위치 정보 카드 */}
+                    {/* 내 서명 카드 */}
                     <Card padding={6}>
-                      <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon icon={IconMapPin} size="md" color="secondary" />
-                        </div>
-                        <VStack gap={0.5}>
-                          <Text type="supporting">회사 주소</Text>
-                          <Text type="large" weight="semibold">{profile.address || '정보 없음'}</Text>
-                        </VStack>
-                      </HStack>
-                    </Card>
-
-                    {/* 관리자 정보 카드 */}
-                    <Card padding={6}>
-                      <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon icon={IconUser} size="md" color="secondary" />
-                        </div>
-                        <VStack gap={0.5}>
-                          <Text type="supporting">관리자명</Text>
-                          <Text type="large" weight="semibold">{profile.adminName || '정보 없음'}</Text>
-                        </VStack>
-                      </HStack>
+                      <VStack gap={4}>
+                        <Text type="body" weight="medium">내 결재 서명</Text>
+                        <MySignatureCard
+                          onNotification={(message, type) => {
+                            if (type === 'error') {
+                              setError(message);
+                              setSuccessMessage('');
+                            } else {
+                              setSuccessMessage(message);
+                              setError('');
+                            }
+                          }}
+                        />
+                      </VStack>
                     </Card>
                   </div>
-
-                  {profile.companyCode && (
-                    <Card variant="yellow" padding={6}>
-                      <HStack gap={4} hAlign="between" vAlign="center" wrap="wrap">
-                        <VStack gap={2}>
-                          <Text type="label" weight="medium">직원 회원가입용 회사 코드</Text>
-                          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', letterSpacing: '0.3em', color: '#451a03' }}>
-                            {profile.companyCode}
-                          </div>
-                          <Text type="supporting">
-                            직원은 앱 회원가입 화면에서 이 코드를 입력하면 기존 회사 선택과 같은 방식으로 가입 요청을 보낼 수 있습니다.
-                          </Text>
-                        </VStack>
-                        <Button
-                          label="코드 복사"
-                          variant="primary"
-                          icon={<Icon icon={IconCopy} size="sm" />}
-                          onClick={handleCopyCompanyCode}
-                        />
-                      </HStack>
-                    </Card>
-                  )}
-
-                  {/* 구독 정보 섹션 */}
-                  <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
-                      <Text type="large" weight="semibold">구독 정보</Text>
-                    </div>
-                    <SubscriptionInfo />
-                  </VStack>
-
-                  {/* 인장/서명 섹션 */}
-                  <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
-                      <VStack gap={1}>
-                        <Text type="large" weight="semibold">인장 / 서명</Text>
-                        <Text type="supporting">
-                          기관 직인은 결재 최종 승인 시 공문 발신명의에, 내 서명은 결재란에 자동으로 날인됩니다
-                        </Text>
-                      </VStack>
-                    </div>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                        gap: 'var(--spacing-4)',
-                        alignItems: 'start',
-                      }}
-                    >
-                      {/* 기관 직인 카드 */}
-                      <Card padding={6}>
-                        <VStack gap={4}>
-                          <Text type="body" weight="medium">기관 직인</Text>
-                          {sealUrl ? (
-                            <VStack gap={3}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: 140,
-                                  height: 140,
-                                  border: '1px solid var(--color-border)',
-                                  borderRadius: 'var(--radius-inner)',
-                                  background: 'var(--color-on-accent)',
-                                }}
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={sealUrl}
-                                  alt="기관 직인"
-                                  style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }}
-                                />
-                              </div>
-                              <HStack gap={2}>
-                                <Button
-                                  label="삭제"
-                                  variant="destructive"
-                                  size="sm"
-                                  isDisabled={isSealSaving}
-                                  onClick={handleDeleteSeal}
-                                />
-                              </HStack>
-                              <Text type="supporting">새 이미지를 등록하면 기존 직인을 대체합니다.</Text>
-                            </VStack>
-                          ) : (
-                            <Banner
-                              status="info"
-                              title="등록된 직인이 없습니다."
-                              description="직인 이미지를 등록하면 승인 완료된 공문에 자동으로 찍힙니다."
-                            />
-                          )}
-                          <FileInput
-                            label="직인 이미지 (PNG/JPG, 배경 투명 권장)"
-                            accept="image/png,image/jpeg"
-                            value={sealFile}
-                            onChange={(files) => {
-                              const file = Array.isArray(files) ? files[0] ?? null : files;
-                              setSealFile(file);
-                            }}
-                          />
-                          <HStack hAlign="end">
-                            <Button
-                              label={isSealSaving ? '등록 중...' : '직인 등록'}
-                              variant="primary"
-                              isLoading={isSealSaving}
-                              isDisabled={isSealSaving || !sealFile}
-                              onClick={handleUploadSeal}
-                            />
-                          </HStack>
-                        </VStack>
-                      </Card>
-
-                      {/* 내 서명 카드 */}
-                      <Card padding={6}>
-                        <VStack gap={4}>
-                          <Text type="body" weight="medium">내 결재 서명</Text>
-                          <MySignatureCard
-                            onNotification={(message, type) => {
-                              if (type === 'error') {
-                                setError(message);
-                                setSuccessMessage('');
-                              } else {
-                                setSuccessMessage(message);
-                                setError('');
-                              }
-                            }}
-                          />
-                        </VStack>
-                      </Card>
-                    </div>
-                  </VStack>
-
-                  {/* 계정 설정 섹션 */}
-                  <VStack gap={6}>
-                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
-                      <Text type="large" weight="semibold">계정 설정</Text>
-                    </div>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                        gap: 'var(--spacing-4)',
-                      }}
-                    >
-                      <Card variant="blue" padding={6}>
-                        <VStack gap={4}>
-                          <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon icon={IconKey} size="md" color="accent" />
-                            </div>
-                            <VStack gap={0.5}>
-                              <Text type="body" weight="medium">비밀번호 변경</Text>
-                              <Text type="supporting">계정 보안을 위해 주기적으로 변경하세요</Text>
-                            </VStack>
-                          </HStack>
-                          <Button
-                            label="비밀번호 변경하기"
-                            variant="secondary"
-                            onClick={() => setShowPasswordModal(true)}
-                          />
-                        </VStack>
-                      </Card>
-
-                      <Card variant="red" padding={6}>
-                        <VStack gap={4}>
-                          <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon icon={IconTrash} size="md" color="error" />
-                            </div>
-                            <VStack gap={0.5}>
-                              <Text type="body" weight="medium">회원탈퇴</Text>
-                              <Text type="supporting">모든 데이터가 삭제되며 복구할 수 없습니다</Text>
-                            </VStack>
-                          </HStack>
-                          <Button
-                            label="회원탈퇴"
-                            variant="destructive"
-                            onClick={() => setShowDeleteModal(true)}
-                          />
-                        </VStack>
-                      </Card>
-                    </div>
-                  </VStack>
                 </VStack>
-              )}
-            </VStack>
-          </Card>
-        </motion.div>
+
+                {/* 계정 설정 섹션 */}
+                <VStack gap={6}>
+                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
+                    <Text type="large" weight="semibold">계정 설정</Text>
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                      gap: 'var(--spacing-4)',
+                    }}
+                  >
+                    <Card variant="blue" padding={6}>
+                      <VStack gap={4}>
+                        <HStack gap={3} vAlign="center">
+                          <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon icon={IconKey} size="md" color="accent" />
+                          </div>
+                          <VStack gap={0.5}>
+                            <Text type="body" weight="medium">비밀번호 변경</Text>
+                            <Text type="supporting">계정 보안을 위해 주기적으로 변경하세요</Text>
+                          </VStack>
+                        </HStack>
+                        <Button
+                          label="비밀번호 변경하기"
+                          variant="secondary"
+                          onClick={() => setShowPasswordModal(true)}
+                        />
+                      </VStack>
+                    </Card>
+
+                    <Card variant="red" padding={6}>
+                      <VStack gap={4}>
+                        <HStack gap={3} vAlign="center">
+                          <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon icon={IconTrash} size="md" color="error" />
+                          </div>
+                          <VStack gap={0.5}>
+                            <Text type="body" weight="medium">회원탈퇴</Text>
+                            <Text type="supporting">모든 데이터가 삭제되며 복구할 수 없습니다</Text>
+                          </VStack>
+                        </HStack>
+                        <Button
+                          label="회원탈퇴"
+                          variant="destructive"
+                          onClick={() => setShowDeleteModal(true)}
+                        />
+                      </VStack>
+                    </Card>
+                  </div>
+                </VStack>
+              </VStack>
+            )}
+          </VStack>
+      </motion.div>
       </main>
 
       {/* 푸터 */}

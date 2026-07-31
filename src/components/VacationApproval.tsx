@@ -503,7 +503,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
 
                         {/* 일괄 작업 바 */}
                         {isSelectMode && (
-                            <Card variant="teal" padding={2}>
+                            <div style={{ background: 'var(--color-background-teal)', border: '1px solid var(--color-border-teal)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-2)' }}>
                                 <HStack hAlign="between" vAlign="center">
                                     <HStack gap={2} vAlign="center">
                                         <Button
@@ -539,7 +539,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                         />
                                     </HStack>
                                 </HStack>
-                            </Card>
+                            </div>
                         )}
 
                         {isLoadingRequests ? (
@@ -772,7 +772,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                     <Text type="label" color="secondary">
                                         선택된 직원
                                     </Text>
-                                    <Card variant="teal" padding={2}>
+                                    <div style={{ background: 'var(--color-background-teal)', border: '1px solid var(--color-border-teal)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-2)' }}>
                                         <HStack hAlign="between" vAlign="center">
                                             <Text
                                                 type="supporting"
@@ -790,7 +790,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                 onClick={() => setNameFilter(null)}
                                             />
                                         </HStack>
-                                    </Card>
+                                    </div>
                                 </VStack>
                             )}
 

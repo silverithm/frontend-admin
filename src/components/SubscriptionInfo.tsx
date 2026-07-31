@@ -365,7 +365,7 @@ export default function SubscriptionInfo() {
                 <VStack gap={3}>
                   <VStack gap={3}>
                     {paymentFailures.map((failure) => (
-                      <Card key={failure.id} padding={4}>
+                      <div style={{ background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                         <HStack hAlign="between" vAlign="start">
                           <VStack gap={0.5}>
                             <Text weight="medium">
@@ -387,7 +387,7 @@ export default function SubscriptionInfo() {
                             />
                           </VStack>
                         </HStack>
-                      </Card>
+                      </div>
                     ))}
                   </VStack>
 

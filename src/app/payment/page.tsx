@@ -411,7 +411,7 @@ function PaymentPageContent() {
                                 <Heading level={1}>Basic 플랜 결제</Heading>
 
                                 {/* 사용자 정보 표시 */}
-                                <Card variant="muted" width="100%" padding={4}>
+                                <div style={{ width: '100%', background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                                     <VStack gap={2}>
                                         <Text type="label">결제자 정보</Text>
                                         <VStack gap={1}>
@@ -431,10 +431,10 @@ function PaymentPageContent() {
                                             />
                                         )}
                                     </VStack>
-                                </Card>
+                                </div>
 
                                 {/* 플랜 가격 */}
-                                <Card variant="blue" width="100%" padding={4}>
+                                <div style={{ width: '100%', background: 'var(--color-background-blue)', border: '1px solid var(--color-border-blue)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                                     <VStack gap={1}>
                                         <Text type="large" weight="semibold">Basic 플랜</Text>
                                         <HStack gap={1} vAlign="end">
@@ -442,7 +442,7 @@ function PaymentPageContent() {
                                             <Text type="supporting">/월</Text>
                                         </HStack>
                                     </VStack>
-                                </Card>
+                                </div>
 
                                 {/* 플랜 혜택 */}
                                 <VStack gap={3}>
@@ -495,7 +495,7 @@ function PaymentPageContent() {
                                     {/* 약관 내용 */}
                                     {showTerms && (
                                         <div style={{ maxHeight: 256, overflowY: 'auto' }}>
-                                            <Card variant="muted" width="100%" padding={4}>
+                                            <div style={{ width: '100%', background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                                                 <VStack gap={3}>
                                                     <Text type="label">정기 구독 서비스 이용약관</Text>
                                                     <VStack gap={3}>
@@ -540,7 +540,7 @@ function PaymentPageContent() {
                                                         </VStack>
                                                     </VStack>
                                                 </VStack>
-                                            </Card>
+                                            </div>
                                         </div>
                                     )}
                                 </VStack>
