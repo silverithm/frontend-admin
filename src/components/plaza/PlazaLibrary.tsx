@@ -324,11 +324,11 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
 
   // ── 전체 화면 렌더 ────────────────────────────────────
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
       <AlertContainer />
       <ConfirmContainer />
 
-      <VStack gap={3}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
         {/* 툴바 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
           <SegmentedControl value={categoryFilter} onChange={(v) => setCategoryFilter(v as CategoryFilter)} label="자료 카테고리" size="sm">
@@ -345,8 +345,10 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
           </HStack>
         </HStack>
 
-        {/* 자료 목록 */}
-        <Card padding={0}>
+        {/* 자료 목록 — 남은 높이를 채우고 내부 스크롤 */}
+        <div style={{ flex: 1, minHeight: 0 }}>
+        <Card padding={0} height="100%">
+          <div style={{ height: '100%', overflowY: 'auto' }}>
           {isLoading || items.length === 0 ? emptyOrLoading : (
             <VStack gap={0}>
               {items.map((item, idx) => {
@@ -407,8 +409,10 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
               })}
             </VStack>
           )}
+          </div>
         </Card>
-      </VStack>
+        </div>
+      </div>
 
       {dialogs}
     </motion.div>

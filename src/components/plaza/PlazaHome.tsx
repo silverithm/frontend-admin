@@ -10,7 +10,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
-import { IconClock, IconDownload, IconFlame, IconFolder, IconMessageCircle, IconNews, IconPinned } from '@tabler/icons-react';
+import { IconClock, IconDownload, IconFlame, IconFolder, IconNews, IconPinned } from '@tabler/icons-react';
 import type { TablerIcon } from '@tabler/icons-react';
 import { getBoardMeta, getLibraryMeta, formatFileSize } from './plazaStore';
 import { getNewsCategoryMeta, type NewsItem } from './newsMock';
@@ -93,13 +93,13 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
       <div className="carev-plaza-home">
         {/* 인기글 */}
-        <Card padding={0}>
-          <VStack gap={0}>
+        <Card padding={0} height="100%">
+          <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFlame} title="인기글" onMore={() => onNavigate('all')} />
-            <div style={{ padding: '0 8px 8px' }}>
+            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {popular.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 인기글이 없습니다. 첫 글의 주인공이 되어보세요!</Text>
@@ -112,10 +112,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         </Card>
 
         {/* 요양 소식 */}
-        <Card padding={0}>
-          <VStack gap={0}>
+        <Card padding={0} height="100%">
+          <VStack gap={0} height="100%">
             <WidgetHeader icon={IconNews} title="요양 소식" onMore={() => onNavigate('news')} />
-            <div style={{ padding: '0 8px 8px' }}>
+            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <VStack gap={0}>
                 {newsItems.slice(0, 5).map((news) => {
                   const meta = getNewsCategoryMeta(news.category);
@@ -144,10 +144,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         </Card>
 
         {/* 최신글 */}
-        <Card padding={0}>
-          <VStack gap={0}>
+        <Card padding={0} height="100%">
+          <VStack gap={0} height="100%">
             <WidgetHeader icon={IconClock} title="최신글" onMore={() => onNavigate('all')} />
-            <div style={{ padding: '0 8px 8px' }}>
+            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {latest.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 게시글이 없습니다.</Text>
@@ -160,10 +160,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         </Card>
 
         {/* 새 자료 */}
-        <Card padding={0}>
-          <VStack gap={0}>
+        <Card padding={0} height="100%">
+          <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFolder} title="새 자료" onMore={() => onNavigate('library')} />
-            <div style={{ padding: '0 8px 8px' }}>
+            <div style={{ padding: '0 8px 8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {library.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 자료가 없습니다. 첫 자료를 올려보세요!</Text>
@@ -200,14 +200,6 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
             </div>
           </VStack>
         </Card>
-      </div>
-
-      {/* 하단 여백용 카운트 표시 */}
-      <div style={{ marginTop: 'var(--spacing-2)', textAlign: 'center' }}>
-        <HStack gap={1} hAlign="center" vAlign="center">
-          <Icon icon={IconMessageCircle} size="xsm" color="secondary" />
-          <Text type="supporting" color="secondary">전국 요양 현장 선생님들과 함께 만드는 공간입니다</Text>
-        </HStack>
       </div>
     </motion.div>
   );

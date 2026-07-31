@@ -170,19 +170,35 @@ html {
 .carev-dash-timeline { transition: background var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-timeline:hover { background: var(--color-background-surface); } }
 
-/* 케어브이 광장 — 카페형 레이아웃: 좌측 보드 네비(데스크탑) + 메인, 모바일은 상단 가로 탭 */
+/* 케어브이 광장 — 카페형 레이아웃: 좌측 보드 네비(데스크탑) + 메인, 모바일은 상단 가로 탭.
+   데스크탑에서는 대시보드와 같은 규칙으로 화면 높이를 채우고, 넘치는 내용은 블록 안에서만 스크롤 */
 .carev-plaza-cafe { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
 .carev-plaza-nav { display: none; }
 .carev-plaza-mobiletabs { display: flex; gap: var(--spacing-1); overflow-x: auto; padding-bottom: var(--spacing-1); }
 @media (min-width: 1024px) {
-  .carev-plaza-cafe { grid-template-columns: 200px minmax(0, 1fr); }
-  .carev-plaza-nav { display: block; position: sticky; top: var(--spacing-4); }
+  .carev-plaza-cafe {
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+    height: calc(100dvh - var(--carev-plaza-chrome, 200px));
+    min-height: 520px;
+  }
+  .carev-plaza-nav { display: block; }
+  .carev-plaza-main { min-height: 0; overflow-y: auto; }
   .carev-plaza-mobiletabs { display: none; }
 }
-/* 광장 홈 위젯 그리드 */
-.carev-plaza-home { display: grid; grid-template-columns: 1fr; gap: var(--spacing-3); align-items: start; }
+/* 광장 홈 위젯 그리드 — 데스크탑에서 2×2 블록으로 화면을 채운다 */
+.carev-plaza-home { display: grid; grid-template-columns: 1fr; gap: var(--spacing-3); align-items: stretch; }
 @media (min-width: 768px) {
   .carev-plaza-home { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .carev-plaza-home {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    height: 100%;
+    overflow: hidden; /* 등장 애니메이션·서브픽셀 반올림으로 생기는 1~2px 오버플로 스크롤 방지 */
+  }
+  .carev-plaza-home > * { min-height: 0; }
 }
 /* 게시글 밀도 리스트 — 좁은 화면에서는 작성자·조회수 숨김 */
 .carev-plaza-rowmeta-wide { display: none; }

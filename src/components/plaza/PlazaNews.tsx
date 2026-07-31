@@ -27,8 +27,8 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
   );
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
-      <VStack gap={3}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
           <SegmentedControl value={categoryFilter} onChange={(v) => setCategoryFilter(v as CategoryFilter)} label="뉴스 카테고리" size="sm">
             <SegmentedControlItem value="all" label={`전체 (${newsItems.length})`} />
@@ -43,7 +43,9 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
           <Text type="supporting" color="secondary">클릭하면 기사 원문을 새 탭에서 볼 수 있어요</Text>
         </HStack>
 
-        <Card padding={0}>
+        <div style={{ flex: 1, minHeight: 0 }}>
+        <Card padding={0} height="100%">
+          <div style={{ height: '100%', overflowY: 'auto' }}>
           {filteredNews.length === 0 ? (
             <div style={{ padding: 'var(--spacing-8)' }}>
               <EmptyState isCompact title="해당 카테고리의 소식이 없습니다" icon={<Icon icon={IconNews} size="lg" color="secondary" />} />
@@ -81,8 +83,10 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
               })}
             </VStack>
           )}
+          </div>
         </Card>
-      </VStack>
+        </div>
+      </div>
     </motion.div>
   );
 }

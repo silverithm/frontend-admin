@@ -7,7 +7,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack } from '@astryxdesign/core/Stack';
 import {
   IconClipboardList,
   IconFolder,
@@ -98,27 +98,10 @@ export default function PlazaManagement() {
       <AlertContainer />
       <VStack gap={3}>
         {/* 페이지 헤더 */}
-        <HStack gap={3} vAlign="center">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 'var(--radius-element)',
-              background: 'var(--color-background-teal)',
-              color: 'var(--color-text-teal)',
-              flexShrink: 0,
-            }}
-          >
-            <Icon icon={IconUsersGroup} size="md" color="inherit" />
-          </div>
-          <VStack gap={0} align="start">
-            <Heading level={2}>케어브이 광장</Heading>
-            <Text type="supporting" color="secondary">전국 요양 현장의 소식·자료·이야기를 한곳에서</Text>
-          </VStack>
-        </HStack>
+        <VStack gap={0} align="start">
+          <Heading level={2}>케어브이 광장</Heading>
+          <Text type="supporting" color="secondary">전국 요양 현장의 소식·자료·이야기를 한곳에서</Text>
+        </VStack>
 
         {/* 모바일: 상단 가로 스크롤 탭 */}
         <div className="carev-plaza-mobiletabs scrollbar-hide">
@@ -157,8 +140,8 @@ export default function PlazaManagement() {
             </Card>
           </div>
 
-          {/* 메인 */}
-          <div style={{ minWidth: 0 }}>
+          {/* 메인 — 데스크탑에서는 이 영역만 내부 스크롤 */}
+          <div className="carev-plaza-main" style={{ minWidth: 0 }}>
             {activeMenu === 'home' && (
               <PlazaHome newsItems={newsItems} onNavigate={setActiveMenu} onOpenPost={handleOpenPost} />
             )}

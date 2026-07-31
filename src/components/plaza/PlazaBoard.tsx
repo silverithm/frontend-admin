@@ -418,7 +418,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
       .sort((a, b) => Number(b.isAccepted) - Number(a.isAccepted) || a.createdAt.localeCompare(b.createdAt));
 
     return (
-      <motion.div key={`detail-${post.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
+      <motion.div key={`detail-${post.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }}>
         <VStack gap={3}>
           <div>
             <Button variant="ghost" size="sm" label="목록으로" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={closeDetail} />
@@ -523,8 +523,8 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   };
 
   const renderList = () => (
-    <motion.div key="list" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: duration.fast }}>
-      <VStack gap={3}>
+    <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
         {/* 툴바 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
           <Text type="body" weight="bold" color="primary">
@@ -551,8 +551,10 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
           </HStack>
         </HStack>
 
-        {/* 목록 */}
-        <Card padding={0}>
+        {/* 목록 — 남은 높이를 채우고 내부 스크롤 */}
+        <div style={{ flex: 1, minHeight: 0 }}>
+        <Card padding={0} height="100%">
+          <div style={{ height: '100%', overflowY: 'auto' }}>
           {isLoading ? (
             <div style={{ padding: 'var(--spacing-8)', display: 'flex', justifyContent: 'center' }}>
               <Spinner size="md" label="불러오는 중..." />
@@ -622,7 +624,9 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
               })}
             </VStack>
           )}
+          </div>
         </Card>
+        </div>
 
         {/* 페이지네이션 */}
         {totalPages > 1 && (
@@ -632,7 +636,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
             <Button variant="secondary" size="sm" label="다음" isDisabled={page >= totalPages - 1} onClick={() => setPage(page + 1)} />
           </HStack>
         )}
-      </VStack>
+      </div>
     </motion.div>
   );
 
