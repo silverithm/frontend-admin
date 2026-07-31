@@ -24,7 +24,7 @@ import PlazaBoard from './PlazaBoard';
 import PlazaHome, { type PlazaMenu } from './PlazaHome';
 import PlazaLibrary from './PlazaLibrary';
 import PlazaNews from './PlazaNews';
-import { isLoggedIn, type BoardType } from './plazaStore';
+import { isLoggedIn, isDemoMode, type BoardType } from './plazaStore';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -82,6 +82,10 @@ export default function PlazaManagement() {
   const handleWrite = () => {
     if (!isLoggedIn()) {
       showAlert({ type: 'info', title: '로그인 필요', message: '글쓰기는 케어브이 로그인 후 이용할 수 있어요.' });
+      return;
+    }
+    if (isDemoMode()) {
+      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 광장에 참여할 수 없습니다.' });
       return;
     }
     if (!isBoardMenu) {

@@ -136,7 +136,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                 icon={<span aria-hidden>←</span>}
                 onClick={() => {
                   // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
-                  ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
+                  ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition','isDemoMode','demoStartedAt'].forEach(k => localStorage.removeItem(k));
                   window.location.href = 'https://carev.kr';
                 }}
               />
@@ -204,7 +204,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                   size="md"
                   onClick={() => {
                     // 인증 관련 항목만 선택적 삭제 (rememberEmail 등 사용자 설정 유지)
-                    ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition'].forEach(k => localStorage.removeItem(k));
+                    ['authToken','refreshToken','tokenExpirationTime','userName','userEmail','userRole','userId','companyId','companyName','companyAddressName','companyCode','customerKey','organizationName','loginType','lastLoginType','userPosition','isDemoMode','demoStartedAt'].forEach(k => localStorage.removeItem(k));
                     window.location.href = 'https://carev.kr';
                   }}
                 />

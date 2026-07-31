@@ -47,6 +47,7 @@ export default function OrganizationProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<OrganizationProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   // 관리자만 접근 가능
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function OrganizationProfilePage() {
     if (loginType !== 'admin') {
       router.replace('/employee');
     }
+    setIsDemoMode(localStorage.getItem('isDemoMode') === 'true');
   }, [router]);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<OrganizationProfileData | null>(null);
@@ -563,24 +565,32 @@ export default function OrganizationProfilePage() {
                       </VStack>
                     </Card>
 
-                    <Card variant="red" padding={6}>
-                      <VStack gap={4}>
-                        <HStack gap={3} vAlign="center">
-                          <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon icon={IconTrash} size="md" color="error" />
-                          </div>
-                          <VStack gap={0.5}>
-                            <Text type="body" weight="medium">회원탈퇴</Text>
-                            <Text type="supporting">모든 데이터가 삭제되며 복구할 수 없습니다</Text>
-                          </VStack>
-                        </HStack>
-                        <Button
-                          label="회원탈퇴"
-                          variant="destructive"
-                          onClick={() => setShowDeleteModal(true)}
-                        />
-                      </VStack>
-                    </Card>
+                    {isDemoMode ? (
+                      <Banner
+                        status="info"
+                        title="체험 계정은 7일 후 자동 삭제됩니다"
+                        description="별도 탈퇴가 필요하지 않습니다."
+                      />
+                    ) : (
+                      <Card variant="red" padding={6}>
+                        <VStack gap={4}>
+                          <HStack gap={3} vAlign="center">
+                            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Icon icon={IconTrash} size="md" color="error" />
+                            </div>
+                            <VStack gap={0.5}>
+                              <Text type="body" weight="medium">회원탈퇴</Text>
+                              <Text type="supporting">모든 데이터가 삭제되며 복구할 수 없습니다</Text>
+                            </VStack>
+                          </HStack>
+                          <Button
+                            label="회원탈퇴"
+                            variant="destructive"
+                            onClick={() => setShowDeleteModal(true)}
+                          />
+                        </VStack>
+                      </Card>
+                    )}
                   </div>
                 </VStack>
               </VStack>

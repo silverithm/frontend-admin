@@ -15,7 +15,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { signin, memberSignin, findPassword } from '@/lib/apiService';
+import { signin, memberSignin, findPassword, startDemo } from '@/lib/apiService';
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from '@/components/Alert';
 import { LoginType } from '@/types/auth';
@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [findPasswordLoading, setFindPasswordLoading] = useState(false);
   const [findPasswordMessage, setFindPasswordMessage] = useState('');
   const [findPasswordError, setFindPasswordError] = useState('');
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
   useEffect(() => {
     // 컴포넌트 마운트 시 저장된 이메일 불러오기
@@ -67,6 +68,35 @@ export default function LoginPage() {
       } catch (error) {
         console.error('localStorage 삭제 오류:', error);
       }
+    }
+  };
+
+  const handleStartDemo = async () => {
+    setIsDemoLoading(true);
+    try {
+      // 이미 체험 중인 세션이면 재시작 없이 이어서 진입
+      if (localStorage.getItem('isDemoMode') === 'true' && localStorage.getItem('authToken')) {
+        router.push('/admin');
+        return;
+      }
+      await startDemo();
+      router.push('/admin');
+    } catch (error: any) {
+      if (error?.status === 429) {
+        showAlert({
+          type: 'warning',
+          title: '체험 요청이 많습니다',
+          message: '체험 요청이 많습니다. 잠시 후 다시 시도해주세요.',
+        });
+      } else {
+        showAlert({
+          type: 'error',
+          title: '체험 시작 실패',
+          message: '일시적인 오류입니다. 잠시 후 다시 시도하거나 정식 회원가입을 이용해주세요.',
+        });
+      }
+    } finally {
+      setIsDemoLoading(false);
     }
   };
 
@@ -306,6 +336,13 @@ export default function LoginPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => router.push('/')}
+                />
+                <Button
+                  label="체험하기"
+                  variant="ghost"
+                  size="sm"
+                  isLoading={isDemoLoading}
+                  onClick={handleStartDemo}
                 />
               </VStack>
             </VStack>

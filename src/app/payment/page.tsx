@@ -36,6 +36,19 @@ function PaymentPageContent() {
     const [userInfoLoaded, setUserInfoLoaded] = useState(false);
 
     useEffect(() => {
+        // 체험 모드에서는 결제 페이지 진입을 차단하고 안내 후 되돌린다
+        if (localStorage.getItem('isDemoMode') === 'true') {
+            showAlert({
+                type: 'info',
+                title: '체험 모드 안내',
+                message: '체험 모드에서는 결제를 진행할 수 없습니다. 정식 가입 후 이용해주세요.',
+            });
+            router.replace('/admin');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
         // localStorage에서 사용자 정보 가져오기
         const storedCustomerKey = localStorage.getItem('customerKey');
         const userName = localStorage.getItem('userName') || '';

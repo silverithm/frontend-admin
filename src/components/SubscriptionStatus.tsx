@@ -6,6 +6,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { SubscriptionResponseDTO, SubscriptionType, SubscriptionStatus as Status } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
+import { useAlert } from '@/components/Alert';
 
 const dotStyle = (color: string): React.CSSProperties => ({
   display: 'inline-block',
@@ -22,6 +23,7 @@ const StatusDot = ({ color, pulse = false }: { color: string; pulse?: boolean })
 
 export default function SubscriptionStatus() {
   const router = useRouter();
+  const { showAlert, AlertContainer } = useAlert();
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +43,16 @@ export default function SubscriptionStatus() {
   };
 
   const handlePayment = () => {
+    // 체험 모드에서는 결제 페이지로 보내지 않고 정식 가입으로 유도한다
+    if (localStorage.getItem('isDemoMode') === 'true') {
+      showAlert({
+        type: 'info',
+        title: '체험 모드 안내',
+        message: '체험 모드에서는 결제를 진행할 수 없습니다. 정식 가입 후 이용해주세요.',
+      });
+      router.push('/signup');
+      return;
+    }
     router.push('/payment');
   };
 
@@ -56,13 +68,16 @@ export default function SubscriptionStatus() {
 
   if (!subscription) {
     return (
-      <Button
-        variant="destructive"
-        size="sm"
-        icon={<StatusDot color='var(--color-on-accent)' pulse />}
-        label="구독 필요"
-        onClick={handlePayment}
-      />
+      <>
+        <AlertContainer />
+        <Button
+          variant="destructive"
+          size="sm"
+          icon={<StatusDot color='var(--color-on-accent)' pulse />}
+          label="구독 필요"
+          onClick={handlePayment}
+        />
+      </>
     );
   }
 
@@ -71,25 +86,31 @@ export default function SubscriptionStatus() {
 
   if (needsPayment) {
     return (
-      <Button
-        variant="destructive"
-        size="sm"
-        icon={<StatusDot color='var(--color-on-accent)' pulse />}
-        label={subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
-        onClick={handlePayment}
-      />
+      <>
+        <AlertContainer />
+        <Button
+          variant="destructive"
+          size="sm"
+          icon={<StatusDot color='var(--color-on-accent)' pulse />}
+          label={subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
+          onClick={handlePayment}
+        />
+      </>
     );
   }
 
   if (subscription.planName === SubscriptionType.FREE && subscription.status === Status.ACTIVE) {
     return (
-      <Button
-        variant="secondary"
-        size="sm"
-        icon={<StatusDot color='var(--color-warning)' />}
-        label={`무료 체험 ${daysRemaining}일 남음`}
-        onClick={handlePayment}
-      />
+      <>
+        <AlertContainer />
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<StatusDot color='var(--color-warning)' />}
+          label={`무료 체험 ${daysRemaining}일 남음`}
+          onClick={handlePayment}
+        />
+      </>
     );
   }
 
