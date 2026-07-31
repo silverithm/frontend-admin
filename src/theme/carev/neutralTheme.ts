@@ -60,9 +60,11 @@ export const neutralTheme = defineTheme({
   // Typography: Figtree across body, heading, and display sizes (display
   // size tokens inherit from heading.family). Monospace stays as the
   // platform default for code.
-  // Scale: base=14, ratio=1.2. Bold weights on h3/h4 for subsection hierarchy.
+  // Scale: base=13, ratio=1.2. 관리자 화면이 데이터 밀도가 높아 base를 한 단계 낮췄다
+  // (Astryx 원칙: 개별 font-size를 손대지 말고 base/ratio로 전체를 조정).
+  // Bold weights on h3/h4 for subsection hierarchy.
   typography: {
-    scale: {base: 14, ratio: 1.2},
+    scale: {base: 13, ratio: 1.2},
     body: {
       family: 'Figtree',
       fallbacks:
