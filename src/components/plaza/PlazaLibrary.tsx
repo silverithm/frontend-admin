@@ -23,7 +23,7 @@ import { FiSearch } from 'react-icons/fi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { duration } from '@/theme/motion';
-import { LIBRARY_META, REPORT_REASONS, formatFileSize, getLibraryMeta, isLoggedIn, type LibraryCategory } from './plazaStore';
+import { LIBRARY_META, REPORT_REASONS, formatFileSize, getLibraryMeta, isLoggedIn, isDemoMode, type LibraryCategory } from './plazaStore';
 import {
   type ApiLibraryItem,
   deleteLibraryItem,
@@ -95,9 +95,15 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
 
   /** 쓰기 동작 공통 가드 — 비로그인이면 로그인 안내 후 차단 */
   const requireLogin = (): boolean => {
-    if (isLoggedIn()) return true;
-    showAlert({ type: 'info', title: '로그인 필요', message: '자료 업로드·신고는 케어브이 로그인 후 이용할 수 있어요.' });
-    return false;
+    if (!isLoggedIn()) {
+      showAlert({ type: 'info', title: '로그인 필요', message: '자료 업로드·신고는 케어브이 로그인 후 이용할 수 있어요.' });
+      return false;
+    }
+    if (isDemoMode()) {
+      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 광장에 참여할 수 없습니다.' });
+      return false;
+    }
+    return true;
   };
 
   const openUpload = () => {
@@ -346,7 +352,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
         {/* 자료 목록 — 남은 높이를 채우고 내부 스크롤 */}
         <div style={{ flex: 1, minHeight: 0 }}>
         <Card padding={0} height="100%">
-          <div style={{ height: '100%', overflowY: 'auto' }}>
+          <div className="carev-plaza-scroll" style={{ height: '100%', overflowY: 'auto' }}>
           {isLoading || items.length === 0 ? emptyOrLoading : (
             <VStack gap={0}>
               {items.map((item, idx) => {

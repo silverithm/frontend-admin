@@ -45,7 +45,7 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
 
         <div style={{ flex: 1, minHeight: 0 }}>
         <Card padding={0} height="100%">
-          <div style={{ height: '100%', overflowY: 'auto' }}>
+          <div className="carev-plaza-scroll" style={{ height: '100%', overflowY: 'auto' }}>
           {filteredNews.length === 0 ? (
             <div style={{ padding: 'var(--spacing-8)' }}>
               <EmptyState isCompact title="해당 카테고리의 소식이 없습니다" icon={<Icon icon={IconNews} size="lg" color="secondary" />} />

@@ -49,6 +49,16 @@ interface VacationCalendarProps extends CalendarProps {
   isExportingExcel?: boolean;
 }
 
+/**
+ * 접힘(기본) 상태에서 한 셀에 보여줄 휴무 인원 수와 목록 최대 높이.
+ *
+ * 달력 전체 높이는 globals.css의 `.carev-vaccal-grid--fit`이 화면 높이에 맞춰
+ * 주 단위로 나눠 갖는다. 이 값은 그 안에서 한 셀이 몇 명까지 보여줄지만 정한다.
+ * 넘치는 인원은 "+N명 더"로 표시된다.
+ */
+const COLLAPSED_VISIBLE_COUNT = 4;
+const COLLAPSED_LIST_MAX_HEIGHT = 112;
+
 const VacationCalendar: React.FC<VacationCalendarProps> = ({
   onDateSelect,
   onRequestSelect,
@@ -590,9 +600,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const circleBadgeStyle = (bg: string, size: number): React.CSSProperties => ({
     width: size,
     height: size,
-    borderRadius: '50%',
+    borderRadius: 'var(--radius-full)',
     background: bg,
-    color: '#fff',
+    color: 'var(--color-on-accent)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -662,16 +672,21 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       // 현재 보이는 달력 전체를 캡처 (인터랙티브 달력)
       const captureElement = calendarRef.current;
 
-      // html-to-image를 사용하여 캡처
+      // html-to-image는 CSS 변수를 canvas 배경색으로 해석하지 못하므로
+      // 실제로 계산된 색을 읽어서 넘긴다.
+      const computedBg = window.getComputedStyle(card ?? captureElement).backgroundColor;
+      const backgroundColor =
+        computedBg && computedBg !== 'rgba(0, 0, 0, 0)' && computedBg !== 'transparent'
+          ? computedBg
+          : 'var(--color-on-accent)';
+
+      // 크기는 CSS 픽셀(width/height)로 주고 배율은 pixelRatio가 담당한다.
+      // canvasWidth/Height에 직접 2를 곱하면 pixelRatio와 이중으로 적용돼 잘린다.
       const dataUrl = await htmlToImage.toPng(captureElement, {
-        backgroundColor: 'var(--color-background-card)',
+        backgroundColor,
         pixelRatio: 2,
-        canvasWidth: captureElement.offsetWidth * 2,
-        canvasHeight: captureElement.scrollHeight * 2,
-        style: {
-          fontFamily: 'var(--font-family-body)',
-          fontSize: 'var(--font-size-base)',
-        },
+        width: captureElement.scrollWidth,
+        height: captureElement.scrollHeight,
         filter: (node: HTMLElement) => {
           // 버튼과 불필요한 요소 제외
           if (node.tagName === 'BUTTON') {
@@ -903,7 +918,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-1)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
                     {isCurrentDay ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 'var(--radius-full)', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)' }}>
                         <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     ) : (
@@ -930,7 +945,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 </div>
 
                 {isCurrentMonth && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', maxHeight: isExpanded ? 'none' : 112, overflow: isExpanded ? undefined : 'hidden' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', maxHeight: isExpanded ? 'none' : COLLAPSED_LIST_MAX_HEIGHT, overflow: isExpanded ? undefined : 'hidden' }}>
                     {isLoading ? (
                       // 로딩 중일 때 스켈레톤 표시
                       <>
@@ -942,11 +957,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       // 데이터가 있을 때
                       <>
                         {vacations
-                          .slice(0, isExpanded ? vacations.length : 4)
+                          .slice(0, isExpanded ? vacations.length : COLLAPSED_VISIBLE_COUNT)
                           .map((vacation, idx) => (
                         <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
                           <span style={cellStatusPillStyle(vacation.status)}>
-                            <Text type="supporting" size="4xs" color="inherit">{getStatusText(vacation.status)}</Text>
+                            <Text type="supporting" color="inherit">{getStatusText(vacation.status)}</Text>
                           </span>
                           <span
                             style={{
@@ -972,7 +987,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               }
                             }}>
                             <span style={{ minWidth: 0, overflow: 'hidden' }}>
-                              <Text type="supporting" size="4xs" color="inherit" weight={nameFilter === vacation.userName ? 'semibold' : 'normal'} maxLines={1}>
+                              <Text type="supporting" color="inherit" weight={nameFilter === vacation.userName ? 'semibold' : 'normal'} maxLines={1}>
                                 {vacation.userName || `이름 없음`}
                               </Text>
                             </span>
@@ -1000,9 +1015,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
                         </div>
                         ))}
-                        {!isExpanded && vacations.length > 4 && (
+                        {!isExpanded && vacations.length > COLLAPSED_VISIBLE_COUNT && (
                           <div style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-gray)' }}>
-                            <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 4}명 더</Text>
+                            <Text type="supporting" color="inherit" weight="medium">+{vacations.length - COLLAPSED_VISIBLE_COUNT}명 더</Text>
                           </div>
                         )}
                       </>
@@ -1013,11 +1028,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
                   <div style={{ position: 'absolute', bottom: 6, right: 6 }}>
                     {vacationersCount >= maxPeople ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-red)', color: 'var(--color-text-red)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)', color: 'var(--color-text-red)' }}>
                         <Icon icon={FiAlertCircle} size="xsm" color="inherit" />
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: 'var(--radius-full)', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)' }}>
                         <Icon icon="check" size="xsm" color="inherit" />
                       </div>
                     )}
@@ -1040,11 +1055,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         <HStack gap={4} vAlign="center" wrap="wrap">
           {/* 인원 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ width: 12, height: 12, background: 'var(--color-background-teal)', borderRadius: '50%' }} />
+            <span style={{ width: 12, height: 12, background: 'var(--color-background-teal)', borderRadius: 'var(--radius-full)' }} />
             <Text type="supporting" color="secondary">여유</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ width: 12, height: 12, background: 'var(--color-background-red)', borderRadius: '50%' }} />
+            <span style={{ width: 12, height: 12, background: 'var(--color-background-red)', borderRadius: 'var(--radius-full)' }} />
             <Text type="supporting" color="secondary">마감</Text>
           </HStack>
 

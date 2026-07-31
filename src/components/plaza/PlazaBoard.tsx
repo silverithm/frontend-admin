@@ -38,7 +38,7 @@ import {
 import { FiSearch } from 'react-icons/fi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { BOARD_META, REPORT_REASONS, getBoardMeta, isLoggedIn, type BoardType } from './plazaStore';
+import { BOARD_META, REPORT_REASONS, getBoardMeta, isLoggedIn, isDemoMode, type BoardType } from './plazaStore';
 import {
   type ApiComment,
   type ApiPostDetail,
@@ -195,11 +195,17 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
 
   // ── 액션 ──────────────────────────────────────────────
 
-  /** 쓰기 동작 공통 가드 — 비로그인이면 로그인 안내 후 차단 */
+  /** 쓰기 동작 공통 가드 — 비로그인이면 로그인 안내, 체험 모드면 참여 불가 안내 후 차단 */
   const requireLogin = (): boolean => {
-    if (isLoggedIn()) return true;
-    showAlert({ type: 'info', title: '로그인 필요', message: '글쓰기·댓글·좋아요는 케어브이 로그인 후 이용할 수 있어요.' });
-    return false;
+    if (!isLoggedIn()) {
+      showAlert({ type: 'info', title: '로그인 필요', message: '글쓰기·댓글·좋아요는 케어브이 로그인 후 이용할 수 있어요.' });
+      return false;
+    }
+    if (isDemoMode()) {
+      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 광장에 참여할 수 없습니다.' });
+      return false;
+    }
+    return true;
   };
 
   const openPost = async (post: ApiPostSummary) => {
@@ -584,7 +590,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
         {/* 목록 — 남은 높이를 채우고 내부 스크롤 */}
         <div style={{ flex: 1, minHeight: 0 }}>
         <Card padding={0} height="100%">
-          <div style={{ height: '100%', overflowY: 'auto' }}>
+          <div className="carev-plaza-scroll" style={{ height: '100%', overflowY: 'auto' }}>
           {isLoading ? (
             /* 목록이 화면 높이를 채우므로 로딩·빈 상태는 영역 정중앙에 둔다
                (Astryx Center: "Use it for empty states, loading screens") */

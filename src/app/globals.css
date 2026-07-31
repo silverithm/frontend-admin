@@ -194,6 +194,17 @@ html {
   }
   .carev-plaza-home > * { min-height: 0; }
 }
+/* 광장 목록 스크롤 영역.
+   1024px 이상에서는 .carev-plaza-main이 높이를 정해줘 height:100%로 카드 안에서 스크롤된다.
+   그 아래(창을 좁히거나 브라우저 확대)에서는 부모 높이가 auto가 되어 목록이 통째로 펼쳐지고
+   페이지가 세로로 늘어났다(요양 소식 41건 = 1578px). 화면 기준 상한을 둬서 항상 안에서만 스크롤한다. */
+@media (max-width: 1023.98px) {
+  .carev-plaza-scroll {
+    max-height: calc(100dvh - 240px);
+    overflow-y: auto;
+  }
+}
+
 /* 글쓰기 에디터 — 본문 textarea가 남은 높이를 전부 사용 */
 .carev-plaza-editor > * { height: 100%; }
 .carev-plaza-editor textarea { height: 100% !important; resize: none; }
@@ -262,16 +273,30 @@ html {
 }
 
 /* VacationCalendar 셀 반응형 + hover */
-.carev-vaccal-cell { min-height: 60px; transition: background-color var(--duration-fast) var(--ease-standard); }
-.carev-vaccal-cell-expanded { min-height: 80px; transition: background-color var(--duration-fast) var(--ease-standard); }
+/* 셀 높이 = 날짜 줄(약 28px) + 휴무 목록(VacationCalendar의 COLLAPSED_LIST_MAX_HEIGHT).
+   6주치가 노트북 한 화면에 들어와야 하므로 낮췄다.
+   (이전 140px는 6주 × 140 = 840px로 화면을 넘어섰다) */
+.carev-vaccal-cell { min-height: 56px; transition: background-color var(--duration-fast) var(--ease-standard); }
+.carev-vaccal-cell-expanded { min-height: 72px; transition: background-color var(--duration-fast) var(--ease-standard); }
 @media (min-width: 640px) {
-  .carev-vaccal-cell { min-height: 120px; }
-  .carev-vaccal-cell-expanded { min-height: 200px; }
+  .carev-vaccal-cell { min-height: 100px; }
+  .carev-vaccal-cell-expanded { min-height: 150px; }
 }
 @media (min-width: 768px) {
-  .carev-vaccal-cell { min-height: 140px; }
-  .carev-vaccal-cell-expanded { min-height: 240px; }
+  .carev-vaccal-cell { min-height: 112px; }
+  .carev-vaccal-cell-expanded { min-height: 176px; }
 }
+/* 접힘 상태에서는 달력이 화면 높이를 넘지 않게 주 단위로 균등 분배한다.
+   min-height만으로는 6주 × 고정높이가 짧은 화면(노트북)에서 세로로 넘쳤다.
+   넘치는 인원은 셀 안의 "+N명 더"로 이미 드러나므로 눌러도 정보가 사라지지 않는다. */
+@media (min-width: 768px) {
+  .carev-vaccal-grid--fit {
+    grid-auto-rows: minmax(0, 1fr);
+    max-height: calc(100dvh - 280px);
+  }
+  .carev-vaccal-grid--fit .carev-vaccal-cell { min-height: 72px; }
+}
+
 @media (hover: hover) { .carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, var(--color-background-muted)) !important; } }
 
 /* 근무조정 컬럼 안에서는 달력이 남은 높이를 주 단위로 균등 분배해 한 화면에 들어온다.
