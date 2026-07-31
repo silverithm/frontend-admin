@@ -2079,3 +2079,36 @@ export async function deleteChatRoom(roomId: number) {
     });
 }
 
+
+// ================== 공개 문의 접수 ==================
+
+export interface ContactInquiryPayload {
+    name: string;
+    email: string;
+    organization?: string;
+    phone?: string;
+    inquiryType?: string;
+    message: string;
+}
+
+/**
+ * 문의하기·제휴 광고 문의를 서버가 바로 메일로 발송한다.
+ *
+ * 이전에는 `mailto:`로 방문자의 메일 앱을 열어 직접 보내기를 누르게 했다.
+ * 메일 앱이 없으면 아예 접수가 안 되고, 접수 여부도 확인할 수 없었다.
+ * 비로그인 공개 엔드포인트라 인증 헤더를 붙이지 않는다.
+ */
+export async function submitContactInquiry(payload: ContactInquiryPayload): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(
+            data?.message || data?.error || '문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.',
+        );
+    }
+}

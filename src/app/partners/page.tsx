@@ -35,6 +35,7 @@ import {
     getActiveCategories,
 } from '@/lib/partnerAds';
 import { duration } from '@/theme/motion';
+import { submitContactInquiry } from '@/lib/apiService';
 
 const container = (maxWidth = 1152): React.CSSProperties => ({
     width: '100%',
@@ -82,12 +83,13 @@ export default function PartnersPage() {
     const [privacyAgreed, setPrivacyAgreed] = useState(false);
     const [error, setError] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const update = (key: keyof typeof form) => (value: string) =>
         setForm((prev) => ({ ...prev, [key]: value }));
 
     /** 입력값을 담아 메일 작성 창을 연다. (/contact와 동일한 방식) */
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -100,23 +102,29 @@ export default function PartnersPage() {
             return;
         }
 
-        const body = [
-            `기관명: ${form.organization}`,
+        const message = [
             `기관 유형: ${form.organizationType}`,
-            `담당자: ${form.name}`,
-            `이메일: ${form.email}`,
-            `연락처: ${form.phone || '-'}`,
             `홈페이지/블로그: ${form.website || '-'}`,
             '',
             form.message || '(추가 내용 없음)',
         ].join('\n');
 
-        const subject = `[케어브이 광고 문의] ${form.organization}`;
-        window.location.href = `mailto:${PARTNER_INQUIRY_EMAIL}?subject=${encodeURIComponent(
-            subject,
-        )}&body=${encodeURIComponent(body)}`;
-
-        setIsSubmitted(true);
+        setIsSubmitting(true);
+        try {
+            await submitContactInquiry({
+                name: form.name,
+                email: form.email,
+                organization: form.organization,
+                phone: form.phone,
+                inquiryType: '광고 문의',
+                message,
+            });
+            setIsSubmitted(true);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : '문의 접수에 실패했습니다.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -196,9 +204,9 @@ export default function PartnersPage() {
                             <Card padding={8}>
                                 <VStack gap={4} hAlign="center">
                                     <Banner
-                                        status="info"
-                                        title="메일 작성 창이 열렸습니다"
-                                        description={`내용이 채워진 메일을 확인하시고 보내기를 눌러주세요. 창이 열리지 않았다면 ${PARTNER_INQUIRY_EMAIL}으로 보내주시면 됩니다.`}
+                                        status="success"
+                                        title="광고 문의가 접수되었습니다"
+                                        description="확인 후 남겨주신 이메일로 답변드리겠습니다."
                                     />
                                     <HStack gap={2} hAlign="center" wrap="wrap">
                                         <Button
@@ -298,9 +306,11 @@ export default function PartnersPage() {
                                             {error && <Banner status="error" title={error} />}
 
                                             <Button
-                                                label="메일로 광고 문의 보내기"
+                                                label={isSubmitting ? '보내는 중...' : '광고 문의 보내기'}
                                                 variant="primary"
                                                 size="lg"
+                                                isLoading={isSubmitting}
+                                                isDisabled={isSubmitting}
                                                 type="submit"
                                                 style={{ width: '100%' }}
                                             />

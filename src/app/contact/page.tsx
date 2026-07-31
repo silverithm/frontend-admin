@@ -18,6 +18,7 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { Link } from '@astryxdesign/core/Link';
 import Navbar from '@/components/Navbar';
 import { duration } from '@/theme/motion';
+import { submitContactInquiry } from '@/lib/apiService';
 
 const CONTACT_EMAIL = 'ggprgrkjh2@gmail.com';
 
@@ -40,16 +41,13 @@ export default function ContactPage() {
     const [privacyAgreed, setPrivacyAgreed] = useState(false);
     const [error, setError] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const update = (key: keyof typeof form) => (value: string) =>
         setForm((prev) => ({ ...prev, [key]: value }));
 
-    /**
-     * 입력값을 담아 메일 작성 창을 연다.
-     * 서버 발송 설정(SMTP 자격증명) 없이 바로 동작하고, 보낸 메일은
-     * 방문자 본인의 메일함에도 남는다.
-     */
-    const handleSubmit = (e: React.FormEvent) => {
+    /** 서버가 바로 메일로 발송한다. 방문자가 메일 앱에서 다시 보내기를 누를 필요가 없다. */
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -62,22 +60,22 @@ export default function ContactPage() {
             return;
         }
 
-        const body = [
-            `이름: ${form.name}`,
-            `이메일: ${form.email}`,
-            `기관명: ${form.organization || '-'}`,
-            `연락처: ${form.phone || '-'}`,
-            `문의 유형: ${form.inquiryType}`,
-            '',
-            form.message,
-        ].join('\n');
-
-        const subject = `[케어브이 문의] ${form.inquiryType} - ${form.name}`;
-        window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-            subject,
-        )}&body=${encodeURIComponent(body)}`;
-
-        setIsSubmitted(true);
+        setIsSubmitting(true);
+        try {
+            await submitContactInquiry({
+                name: form.name,
+                email: form.email,
+                organization: form.organization,
+                phone: form.phone,
+                inquiryType: form.inquiryType,
+                message: form.message,
+            });
+            setIsSubmitted(true);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : '문의 접수에 실패했습니다.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -105,9 +103,9 @@ export default function ContactPage() {
                                 <Card padding={8}>
                                     <VStack gap={4} hAlign="center">
                                         <Banner
-                                            status="info"
-                                            title="메일 작성 창이 열렸습니다"
-                                            description={`내용이 채워진 메일을 확인하시고 보내기를 눌러주세요. 창이 열리지 않았다면 ${CONTACT_EMAIL}으로 보내주시면 됩니다.`}
+                                            status="success"
+                                            title="문의가 접수되었습니다"
+                                            description="확인 후 남겨주신 이메일로 답변드리겠습니다."
                                         />
                                         <HStack gap={2} hAlign="center" wrap="wrap">
                                             <Button
@@ -194,10 +192,12 @@ export default function ContactPage() {
                                                 {error && <Banner status="error" title={error} />}
 
                                                 <Button
-                                                    label="메일로 문의 보내기"
+                                                    label={isSubmitting ? '보내는 중...' : '문의 보내기'}
                                                     variant="primary"
                                                     size="lg"
                                                     type="submit"
+                                                    isLoading={isSubmitting}
+                                                    isDisabled={isSubmitting}
                                                     style={{ width: '100%' }}
                                                 />
                                             </VStack>
