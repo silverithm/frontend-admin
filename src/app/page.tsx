@@ -31,6 +31,8 @@ import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import Navbar from '@/components/Navbar';
 import PartnerCard from '@/components/partners/PartnerCard';
 import { getFeaturedAds } from '@/lib/partnerAds';
+import { startDemo } from '@/lib/apiService';
+import { useAlert } from '@/components/Alert';
 import { duration } from '@/theme/motion';
 
 /** 랜딩에 노출할 제휴 기관 — 없으면 섹션 자체를 렌더링하지 않는다. */
@@ -248,224 +250,71 @@ function BeforeAfterMock() {
     );
 }
 
-/** 실제 화면 미리보기 1 — 휴무 캘린더 */
-function VacationCalendarMock() {
-    const names = [
-        [null, '김요양', null], [null, null, null], ['이복지', null, null],
-        [null, null, null], [null, '박간호', '최요양'], [null, null, null], [null, null, null],
-    ];
-    return (
-        <div style={mockFrame} aria-hidden="true">
-            <div style={mockTitlebar}>
-                <Text type="supporting" weight="semibold">근무조정 · 2026년 8월</Text>
-            </div>
-            <div style={{ padding: 12, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-                {names.map((col, i) => (
-                    <div
-                        key={i}
-                        style={{
-                            minHeight: 96,
-                            borderRadius: 6,
-                            border: '1px solid var(--color-border)',
-                            background: 'var(--color-background-surface)',
-                            padding: 4,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 3,
-                        }}
-                    >
-                        <span style={{ fontSize: 9, color: 'var(--color-text-secondary)' }}>{i + 10}</span>
-                        {col.map(
-                            (name) =>
-                                name && (
-                                    <span
-                                        key={name}
-                                        style={{
-                                            fontSize: 9,
-                                            lineHeight: '15px',
-                                            padding: '0 4px',
-                                            borderRadius: 4,
-                                            background: 'var(--color-background-teal)',
-                                            color: 'var(--color-text-teal)',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                        }}
-                                    >
-                                        {name} 휴무
-                                    </span>
-                                )
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-/** 실제 화면 미리보기 2 — 전자결재 공문 */
-function ApprovalDocMock() {
-    const stampBox: React.CSSProperties = {
-        flex: 1,
-        border: '1px solid var(--color-border)',
-        textAlign: 'center',
-        padding: '4px 0',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-        alignItems: 'center',
-    };
-    return (
-        <div style={mockFrame} aria-hidden="true">
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ textAlign: 'center', borderBottom: '2px solid var(--color-text-primary)', paddingBottom: 6 }}>
-                    <Text type="body" weight="bold">행복 주간보호센터</Text>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <div>
-                        <Text type="supporting" color="secondary" display="block">제 2026-12 호</Text>
-                        <Text type="supporting" color="secondary" display="block">시행일: 2026. 08. 03.</Text>
-                    </div>
-                    <div style={{ display: 'flex', width: 150 }}>
-                        {[
-                            { role: '기안', done: true },
-                            { role: '검토', done: true },
-                            { role: '결재', done: false },
-                        ].map((s) => (
-                            <div key={s.role} style={stampBox}>
-                                <span style={{ fontSize: 8, color: 'var(--color-text-secondary)' }}>{s.role}</span>
-                                <span
-                                    style={{
-                                        width: 22,
-                                        height: 22,
-                                        borderRadius: '50%',
-                                        border: s.done ? '1.5px solid var(--color-text-teal)' : '1px dashed var(--color-border)',
-                                        color: 'var(--color-text-teal)',
-                                        fontSize: 10,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    {s.done ? '印' : ''}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <Text type="body" weight="semibold" justify="center">연차 휴가 신청서</Text>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {[86, 100, 94, 62].map((w, i) => (
-                        <div key={i} style={{ width: `${w}%`, height: 7, borderRadius: 4, background: 'var(--color-background-muted)' }} />
-                    ))}
-                </div>
-                <div style={{ textAlign: 'center', position: 'relative', paddingTop: 4 }}>
-                    <Text type="body" weight="bold">행복 주간보호센터장</Text>
-                    <span
-                        style={{
-                            position: 'absolute',
-                            right: '18%',
-                            top: -4,
-                            width: 34,
-                            height: 34,
-                            borderRadius: '50%',
-                            border: '2px solid rgba(220, 38, 38, 0.55)',
-                            color: 'rgba(220, 38, 38, 0.65)',
-                            fontSize: 9,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transform: 'rotate(-8deg)',
-                        }}
-                    >
-                        직인
-                    </span>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-/** 실제 화면 미리보기 3 — 직원 앱 (광장·일정) */
-function EmployeeAppMock() {
-    return (
-        <div style={{ display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-            <div
-                style={{
-                    width: 210,
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 24,
-                    background: 'var(--color-background-card)',
-                    boxShadow: 'var(--shadow-low)',
-                    padding: '14px 12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                }}
-            >
-                <div style={{ width: 60, height: 5, borderRadius: 999, background: 'var(--color-background-muted)', alignSelf: 'center' }} />
-                <Text type="supporting" weight="semibold">케어브이 광장</Text>
-                <div style={{ padding: '7px 9px', borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--color-background-surface)' }}>
-                    <Text type="supporting" color="secondary" display="block">요양 뉴스</Text>
-                    <Text type="supporting" display="block" maxLines={2}>
-                        2026년 장기요양기관 평가 지표 개정안 발표
-                    </Text>
-                </div>
-                <div style={{ padding: '7px 9px', borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--color-background-surface)' }}>
-                    <Text type="supporting" color="secondary" display="block">자료실</Text>
-                    <Text type="supporting" display="block">📄 프로그램 운영일지 서식.hwp</Text>
-                </div>
-                <Text type="supporting" weight="semibold">오늘 할 일</Text>
-                {['인지활동 프로그램 준비', '차량 운행 일지 작성'].map((t, i) => (
-                    <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span
-                            style={{
-                                width: 13,
-                                height: 13,
-                                borderRadius: 4,
-                                border: i === 0 ? 'none' : '1.5px solid var(--color-border)',
-                                background: i === 0 ? 'var(--color-background-teal)' : 'transparent',
-                                color: 'var(--color-text-teal)',
-                                fontSize: 9,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            {i === 0 ? '✓' : ''}
-                        </span>
-                        <span style={{ fontSize: 10, color: 'var(--color-text-primary)', textDecoration: i === 0 ? 'line-through' : 'none', opacity: i === 0 ? 0.55 : 1 }}>
-                            {t}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
+/** 실제 화면 미리보기 — 운영 화면 캡처 (시연용 데모 데이터, 가명 처리) */
 const PREVIEWS = [
     {
+        src: '/images/preview-work.jpg',
+        width: 1720,
+        height: 812,
         title: '근무조정 캘린더',
-        description: '역할별 휴무 현황이 달력에 바로 보입니다',
-        mock: <VacationCalendarMock />,
+        description: '역할별 휴무 현황과 승인 흐름이 달력에 바로 보입니다',
+        alt: '근무조정 캘린더 화면 — 날짜별 휴무 인원과 승인 상태, 우측 휴무 신청 목록',
     },
     {
+        src: '/images/preview-approval.jpg',
+        width: 1200,
+        height: 925,
         title: '전자결재 공문',
         description: '결재선 승인마다 서명이, 최종 승인에 직인이 찍힙니다',
-        mock: <ApprovalDocMock />,
+        alt: '전자결재 표준 기안문 — 문서번호, 기안·검토·결재 결재란과 품의 내용 표',
     },
     {
-        title: '직원 전용 앱',
-        description: '광장 뉴스·자료실과 오늘의 할 일까지 앱에서',
-        mock: <EmployeeAppMock />,
+        src: '/images/preview-plaza.jpg',
+        width: 1720,
+        height: 812,
+        title: '케어브이 광장',
+        description: '요양 뉴스·커뮤니티·자료실이 한곳에 모입니다',
+        alt: '케어브이 광장 화면 — 인기글, 요양 소식, 최신글, 자료실 위젯',
     },
 ];
 
 export default function LandingPage() {
     const router = useRouter();
+    const { showAlert, AlertContainer } = useAlert();
+    const [isDemoLoading, setIsDemoLoading] = React.useState(false);
+
+    const handleStartDemo = async () => {
+        setIsDemoLoading(true);
+        try {
+            // 이미 체험 중인 세션이면 재시작 없이 이어서 진입
+            if (localStorage.getItem('isDemoMode') === 'true' && localStorage.getItem('authToken')) {
+                router.push('/admin');
+                return;
+            }
+            await startDemo();
+            router.push('/admin');
+        } catch (error: any) {
+            if (error?.status === 429) {
+                showAlert({
+                    type: 'warning',
+                    title: '체험 요청이 많습니다',
+                    message: '체험 요청이 많습니다. 잠시 후 다시 시도해주세요.',
+                });
+            } else {
+                showAlert({
+                    type: 'error',
+                    title: '체험 시작 실패',
+                    message: '일시적인 오류입니다. 잠시 후 다시 시도하거나 정식 회원가입을 이용해주세요.',
+                });
+            }
+        } finally {
+            setIsDemoLoading(false);
+        }
+    };
 
     return (
         <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+            <AlertContainer />
             <Navbar />
 
             {/* ── 1. 5초 가치 제안 ── */}
@@ -697,7 +546,15 @@ export default function LandingPage() {
                             {PREVIEWS.map((preview) => (
                                 <motion.div key={preview.title} {...fadeUp} style={{ height: '100%' }}>
                                     <VStack gap={3} height="100%">
-                                        {preview.mock}
+                                        <AspectRatio ratio={4 / 3} style={{ ...imageClip, border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-low)' }}>
+                                            <Image
+                                                src={preview.src}
+                                                alt={preview.alt}
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 360px"
+                                                style={{ objectFit: 'cover', objectPosition: 'left top' }}
+                                            />
+                                        </AspectRatio>
                                         <VStack gap={0.5}>
                                             <Text weight="semibold">{preview.title}</Text>
                                             <Text type="supporting" color="secondary">
@@ -825,6 +682,13 @@ export default function LandingPage() {
                                 variant="secondary"
                                 size="lg"
                                 href="/contact"
+                            />
+                            <Button
+                                label="로그인 없이 체험하기"
+                                variant="ghost"
+                                size="lg"
+                                isLoading={isDemoLoading}
+                                onClick={handleStartDemo}
                             />
                         </HStack>
                     </VStack>
