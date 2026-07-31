@@ -358,43 +358,31 @@ html {
 }
 
 /* VacationCalendar 셀 반응형 + hover */
-/* 셀 높이 = 날짜 줄(약 28px) + 휴무 목록(VacationCalendar의 COLLAPSED_LIST_MAX_HEIGHT).
-   6주치가 노트북 한 화면에 들어와야 하므로 낮췄다.
-   (이전 140px는 6주 × 140 = 840px로 화면을 넘어섰다) */
+/* 접힘 상태의 셀은 정사각형으로 둔다. 한 화면에 다 들어오는 것보다
+   날짜 칸이 충분히 커서 휴무자 4명이 그대로 보이는 쪽을 택했다.
+   6주가 화면을 넘으면 달력 컬럼 안에서 스크롤한다(우측 필터는 고정). */
 .carev-vaccal-cell { min-height: 56px; transition: background-color var(--duration-fast) var(--ease-standard); }
 .carev-vaccal-cell-expanded { min-height: 72px; transition: background-color var(--duration-fast) var(--ease-standard); }
 @media (min-width: 640px) {
-  .carev-vaccal-cell { min-height: 100px; }
   .carev-vaccal-cell-expanded { min-height: 150px; }
 }
 @media (min-width: 768px) {
-  .carev-vaccal-cell { min-height: 112px; }
   .carev-vaccal-cell-expanded { min-height: 176px; }
 }
-/* 접힘 상태에서는 달력이 화면 높이를 넘지 않게 주 단위로 균등 분배한다.
-   min-height만으로는 6주 × 고정높이가 짧은 화면(노트북)에서 세로로 넘쳤다.
-   넘치는 인원은 셀 안의 "+N명 더"로 이미 드러나므로 눌러도 정보가 사라지지 않는다. */
-@media (min-width: 768px) {
-  .carev-vaccal-grid--fit {
-    grid-auto-rows: minmax(0, 1fr);
-    max-height: calc(100dvh - 280px);
+@media (min-width: 640px) {
+  /* 정사각형 — 폭이 곧 높이가 된다. 좁아져도 4명 자리는 남도록 하한을 둔다. */
+  .carev-vaccal-grid--fit .carev-vaccal-cell {
+    aspect-ratio: 1 / 1;
+    min-height: 140px;
   }
-  .carev-vaccal-grid--fit .carev-vaccal-cell { min-height: 72px; }
 }
 
 @media (hover: hover) { .carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, var(--color-background-muted)) !important; } }
 
-/* 근무조정 컬럼 안에서는 달력이 남은 높이를 주 단위로 균등 분배해 한 화면에 들어온다.
-   '펼치기' 상태(carev-vaccal-grid--fit 없음)는 셀 원래 높이를 유지하고 컬럼이 스크롤된다. */
+/* 근무조정: 달력은 자기 컬럼 안에서만 스크롤하고, 우측 필터 컬럼은 그대로 머문다.
+   달력이 화면보다 길어도 상관없다 — 날짜 칸 크기를 우선한다. */
 @media (min-width: 1280px) {
-  .carev-admin-work-calendar > .carev-vaccal-card { height: 100%; display: flex; flex-direction: column; }
-  /* 펼치기 상태에서 셀이 남은 높이를 넘어서면 카드 밖으로 삐져나오지 않도록
-     본문 안에서 스크롤한다. 접힘(--fit)은 애초에 넘치지 않아 스크롤바가 생기지 않는다. */
-  .carev-admin-work-calendar .carev-vaccal-body { flex: 1; min-height: 0; overflow-y: auto; }
-  .carev-admin-work-calendar .carev-vaccal-grid--fit { flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
-  /* 셀을 0까지 눌리게 두면 날짜 영역이 너무 좁아진다. 하한을 주고,
-     6주가 남은 높이를 넘으면 달력 컬럼 안에서 스크롤한다. */
-  .carev-admin-work-calendar .carev-vaccal-grid--fit .carev-vaccal-cell { min-height: 96px; }
+  .carev-admin-work-calendar > .carev-vaccal-card { min-height: 100%; }
 }
 
 /* 캡처 모드 — 화면에서 눌려 있어도 이미지는 원래 비율로 전체를 담는다.
