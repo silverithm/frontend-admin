@@ -37,7 +37,7 @@ const CARD_STYLE: CSSProperties = {
   position: "relative",
   background: 'var(--color-background-card)',
   borderRadius: 'var(--radius-element)',
-  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+  boxShadow: 'var(--shadow-low)',
   border: "1px solid var(--color-border)",
   padding: 'var(--spacing-6)',
 };
@@ -173,7 +173,7 @@ export default function DispatchCalendar({
         }}
       >
         {WEEKDAYS.map((day, index) => (
-          <div key={day} style={{ textAlign: "center", padding: "8px 0" }}>
+          <div key={day} style={{ textAlign: "center", padding: "var(--spacing-2) 0" }}>
             <Text type="label" weight="medium" color="inherit">
               <span
                 style={{

@@ -40,7 +40,7 @@ export function FloatingChatRoomList({
             {/* Header */}
             <div
                 style={{
-                    padding: "12px 16px",
+                    padding: "var(--spacing-3) var(--spacing-4)",
                     background: "linear-gradient(to right, #14b8a6, #0d9488)",
                     borderTopLeftRadius: 16,
                     borderTopRightRadius: 16,
@@ -58,7 +58,7 @@ export function FloatingChatRoomList({
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
-                        boxShadow: "0 0 0 2px rgba(255,255,255,0.3)",
+                        boxShadow: 'var(--shadow-inset-hover)',
                         background: isConnected ? 'var(--color-background-green)' : 'var(--color-background-muted)',
                     }}
                 />
@@ -82,7 +82,7 @@ export function FloatingChatRoomList({
                             className="carev-fchatroom-item"
                             style={{
                                 width: "100%",
-                                padding: "12px 16px",
+                                padding: "var(--spacing-3) var(--spacing-4)",
                                 textAlign: "left",
                                 background: "transparent",
                                 border: "none",

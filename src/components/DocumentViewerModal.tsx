@@ -408,7 +408,7 @@ export default function DocumentViewerModal({
                         flexShrink: 0,
                         background: 'var(--color-background-teal)',
                         color: 'var(--color-text-teal)',
-                        padding: '4px 8px',
+                        padding: 'var(--spacing-1) var(--spacing-2)',
                         borderRadius: 'var(--radius-full)',
                       }}
                     >
@@ -497,7 +497,7 @@ export default function DocumentViewerModal({
                       <img
                         src={state.objectUrl}
                         alt={fileName}
-                        style={{ maxWidth: '100%', background: 'var(--color-background-card)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: 'var(--radius-inner)' }}
+                        style={{ maxWidth: '100%', background: 'var(--color-background-card)', boxShadow: 'var(--shadow-med)', borderRadius: 'var(--radius-inner)' }}
                       />
                     </div>
                   )}

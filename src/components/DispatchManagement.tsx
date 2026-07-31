@@ -21,6 +21,7 @@ import DispatchListView from "./DispatchListView";
 import DispatchDayDetail from "./DispatchDayDetail";
 import DispatchSettings from "./DispatchSettings";
 import SeniorAbsenceManagement from "./SeniorAbsenceManagement";
+import { duration } from '@/theme/motion';
 
 interface DispatchManagementProps {
   onNotification: (message: string, type: "success" | "error" | "info") => void;
@@ -196,7 +197,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: duration.fast }}
             >
               <DispatchCalendar
                 currentDate={currentDate}
@@ -213,7 +214,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: duration.fast }}
             >
               <DispatchListView
                 settings={settings}
@@ -229,7 +230,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: duration.fast }}
             >
               <SeniorAbsenceManagement />
             </motion.div>

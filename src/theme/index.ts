@@ -48,11 +48,12 @@ export const tokens = {
     dark: 'linear-gradient(180deg, #1A1F36 0%, #0e1322 100%)',
   },
 
+  // Astryx 모션 토큰(--duration-*, --ease-standard)에 정렬. 상세는 src/theme/motion.ts
   animation: {
-    fast: '150ms',
-    normal: '250ms',
-    slow: '400ms',
-    curve: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    fast: '175ms',
+    normal: '410ms',
+    slow: '975ms',
+    curve: 'cubic-bezier(0.24, 1, 0.4, 1)',
     bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
   },
 } as const;

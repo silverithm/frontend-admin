@@ -34,24 +34,8 @@ export const VACATION_DURATION_OPTIONS: VacationDurationInfo[] = [
 // 휴무 종류 (백엔드 vacation_requests.type 컬럼에 그대로 저장됨)
 export type VacationKind = 'regular' | 'mandatory' | 'substitute';
 
-// 휴무 종류/세부 유형만 뽑아 쓰기 위한 최소 형태 (VacationRequest 및 목록 행 타입 모두 수용)
-export interface VacationTypeSource {
-  type?: string;
-  vacationType?: string;
-}
-
-// 대체휴무 여부 판별. 문자열(type)과 레코드 양쪽을 받는다.
-export const isSubstituteVacation = (target?: string | VacationTypeSource): boolean => {
-  if (!target) {
-    return false;
-  }
-
-  if (typeof target === 'string') {
-    return target === 'substitute';
-  }
-
-  return target.type === 'substitute' || target.vacationType === 'substitute';
-};
+// 대체휴무 여부 판별
+export const isSubstituteVacation = (type?: string): boolean => type === 'substitute';
 
 // 휴무 유형 한글 라벨 (신청 종류 + 연차 미사용 시 세부 유형 모두 처리)
 export const getVacationTypeLabel = (type?: string): string => {
@@ -75,15 +59,6 @@ export const getVacationTypeLabel = (type?: string): string => {
   }
 };
 
-// 레코드 기준 표시 라벨. 연차 미사용 휴무의 세부 유형(병가 등)이 있으면 그쪽을 우선 표시한다.
-export const getVacationTypeLabelOf = (target: VacationTypeSource): string => {
-  if (isSubstituteVacation(target)) {
-    return '대체휴무';
-  }
-
-  return getVacationTypeLabel(target.vacationType || target.type);
-};
-
 export interface VacationRequest {
   id: string;
   userId: string;
@@ -92,7 +67,6 @@ export interface VacationRequest {
   reason?: string;
   status: 'pending' | 'approved' | 'rejected' | 'canceled' | 'unused';
   type: 'regular' | 'mandatory' | 'substitute' | 'sick' | 'other';
-  vacationType?: string; // 연차 미사용 휴무의 세부 유형 (personal, sick, emergency, family, other, substitute)
   role: string;
   duration: VacationDuration; // 휴가 기간 (연차/반차)
   createdAt: string;

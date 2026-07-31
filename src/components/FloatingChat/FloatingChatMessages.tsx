@@ -245,7 +245,7 @@ export function FloatingChatMessages({
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 'var(--spacing-0-5)',
-                            padding: "1px 6px",
+                            padding: "1px var(--spacing-1-5)",
                             borderRadius: 'var(--radius-full)',
                             fontSize: 'var(--font-size-xs)',
                             cursor: "pointer",
@@ -270,7 +270,7 @@ export function FloatingChatMessages({
         return (
             <div
                 style={{
-                    padding: "4px 8px",
+                    padding: "var(--spacing-1) var(--spacing-2)",
                     marginBottom: 'var(--spacing-1)',
                     borderRadius: 'var(--radius-none)',
                     borderLeft: isMyMessage ? "2px solid #5eead4" : `2px solid #9ca3af`,
@@ -295,7 +295,7 @@ export function FloatingChatMessages({
             {/* Header */}
             <div
                 style={{
-                    padding: "10px 12px",
+                    padding: "10px var(--spacing-3)",
                     borderBottom: `1px solid ${C.border}`,
                     display: "flex",
                     alignItems: "center",
@@ -335,7 +335,7 @@ export function FloatingChatMessages({
                 style={{
                     flex: 1,
                     overflowY: "auto",
-                    padding: "8px 12px",
+                    padding: "var(--spacing-2) var(--spacing-3)",
                     display: "flex",
                     flexDirection: "column",
                     gap: 'var(--spacing-2)',
@@ -358,7 +358,7 @@ export function FloatingChatMessages({
                             getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
 
                         const dateSeparator = showDateSeparator ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "12px 0" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "var(--spacing-3) 0" }}>
                                 <div style={{ flex: 1, height: 1, background: C.border }} />
                                 <div style={{ whiteSpace: "nowrap" }}>
                                     <Text type="supporting" color="secondary" weight="medium">
@@ -391,7 +391,7 @@ export function FloatingChatMessages({
                                             fontStyle: "italic",
                                         }}
                                     >
-                                        <div style={{ padding: "4px 8px" }}>
+                                        <div style={{ padding: "var(--spacing-1) var(--spacing-2)" }}>
                                             <Text type="supporting" color="secondary">삭제된 메시지입니다</Text>
                                         </div>
                                     </div>
@@ -434,7 +434,7 @@ export function FloatingChatMessages({
                                             <div
                                                 style={{
                                                     position: "relative",
-                                                    padding: "6px 12px",
+                                                    padding: "var(--spacing-1-5) var(--spacing-3)",
                                                     borderRadius: 'var(--radius-element)',
                                                     borderBottomRightRadius: isMyMessage ? 2 : 12,
                                                     borderBottomLeftRadius: isMyMessage ? 12 : 2,
@@ -506,13 +506,13 @@ export function FloatingChatMessages({
                                                     style={{
                                                         background: 'var(--color-background-card)',
                                                         borderRadius: 'var(--radius-element)',
-                                                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+                                                        boxShadow: 'var(--shadow-med)',
                                                         border: `1px solid ${C.border}`,
                                                         overflow: "hidden",
                                                     }}
                                                 >
                                                     {/* 이모지 바 */}
-                                                    <div style={{ display: "flex", gap: 'var(--spacing-0-5)', padding: "6px 8px", borderBottom: `1px solid ${C.borderLight}` }}>
+                                                    <div style={{ display: "flex", gap: 'var(--spacing-0-5)', padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.borderLight}` }}>
                                                         {QUICK_EMOJIS.map((emoji) => (
                                                             <Button
                                                                 key={emoji}
@@ -551,7 +551,7 @@ export function FloatingChatMessages({
             {replyTo && (
                 <div
                     style={{
-                        padding: "8px 12px",
+                        padding: "var(--spacing-2) var(--spacing-3)",
                         borderTop: `1px solid ${C.borderLight}`,
                         background: C.bgGray50,
                         display: "flex",
@@ -579,7 +579,7 @@ export function FloatingChatMessages({
             )}
 
             {/* Input Area */}
-            <div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div style={{ padding: "var(--spacing-2) var(--spacing-3)", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
                 <div style={{ display: "flex", gap: 'var(--spacing-2)', alignItems: "flex-end" }}>
                     <div style={{ flex: 1 }} onKeyDown={handleKeyDown}>
                         <TextInput
@@ -618,7 +618,7 @@ export function FloatingChatMessages({
                     {/* Drawer Header */}
                     <div
                         style={{
-                            padding: "10px 12px",
+                            padding: "10px var(--spacing-3)",
                             borderBottom: `1px solid ${C.border}`,
                             display: "flex",
                             alignItems: "center",
@@ -646,20 +646,20 @@ export function FloatingChatMessages({
                                 </Text>
                             </div>
                             {isLoadingParticipants ? (
-                                <div style={{ display: "flex", justifyContent: "center", padding: "12px 0" }}>
+                                <div style={{ display: "flex", justifyContent: "center", padding: "var(--spacing-3) 0" }}>
                                     <Spinner size="sm" aria-label="참여자 불러오는 중" />
                                 </div>
                             ) : participants.length > 0 ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                     {participants.map((p, i) => (
-                                        <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "6px 0" }}>
+                                        <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "var(--spacing-1-5) 0" }}>
                                             <Avatar name={p.userName || "?"} size="small" />
                                             <Text type="body" color="primary">{p.userName}</Text>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                <div style={{ textAlign: "center", padding: "var(--spacing-3) 0" }}>
                                     <Text type="supporting" color="secondary">참여자 정보를 불러올 수 없습니다</Text>
                                 </div>
                             )}
@@ -685,7 +685,7 @@ export function FloatingChatMessages({
                                     ))}
                                 </div>
                             ) : (
-                                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                <div style={{ textAlign: "center", padding: "var(--spacing-3) 0" }}>
                                     <Text type="supporting" color="secondary">공유된 사진이 없습니다</Text>
                                 </div>
                             )}
@@ -730,7 +730,7 @@ export function FloatingChatMessages({
                                     ))}
                                 </div>
                             ) : (
-                                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                                <div style={{ textAlign: "center", padding: "var(--spacing-3) 0" }}>
                                     <Text type="supporting" color="secondary">공유된 파일이 없습니다</Text>
                                 </div>
                             )}

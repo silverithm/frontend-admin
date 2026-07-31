@@ -14,7 +14,7 @@ import {
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
-import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus } from 'react-icons/fi';
+import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
@@ -32,6 +32,7 @@ import {
   getVacationRequestRole,
   type RoleLookup,
 } from '@/lib/roleUtils';
+import { duration } from '@/theme/motion';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -44,6 +45,8 @@ interface VacationCalendarProps extends CalendarProps {
   onNameFilterChange?: (name: string | null) => void;
   sortOrder?: 'latest' | 'oldest' | 'vacation-date-asc' | 'vacation-date-desc' | 'name' | 'role';
   memberRoleLookup?: RoleLookup;
+  onExportExcel?: () => void;
+  isExportingExcel?: boolean;
 }
 
 const VacationCalendar: React.FC<VacationCalendarProps> = ({
@@ -59,6 +62,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   onNameFilterChange,
   sortOrder = 'latest',
   memberRoleLookup,
+  onExportExcel,
+  isExportingExcel = false,
 }) => {
   const [calendarData, setCalendarData] = useState<VacationData>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -405,7 +410,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   const fadeInVariants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+    visible: { opacity: 1, y: 0, transition: { duration: duration.mediumMin } }
   };
 
   const getDayVacations = (date: Date): VacationRequest[] => {
@@ -592,7 +597,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    fontSize: size <= 12 ? 8 : 10,
+    fontSize: size <= 12 ? 'var(--font-size-2xs)' : 'var(--font-size-xs)',
     fontWeight: 'var(--font-weight-bold)',
   });
 
@@ -602,7 +607,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       flexShrink: 0,
       whiteSpace: 'nowrap',
       marginRight: 'var(--spacing-1)',
-      padding: '2px 4px',
+      padding: 'var(--spacing-0-5) var(--spacing-1)',
       borderRadius: 'var(--radius-full)',
       fontWeight: 'var(--font-weight-medium)',
     };
@@ -641,21 +646,30 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 캘린더 캡처 기능
   const handleCapture = async () => {
     if (!calendarRef.current || !isExpanded) return;
-    
+
     setIsCapturing(true);
-    
+
+    // 캡처 모드: 달력이 한 화면에 맞춰 눌려 있어도 원래 비율로 펼쳐서 전체를 담는다.
+    // (근무조정 컬럼은 뷰포트 높이에 맞춰 셀을 압축하므로 그대로 캡처하면 잘린다)
+    const card = calendarRef.current.closest('.carev-vaccal-card') as HTMLElement | null;
+    card?.classList.add('carev-vaccal-capturing');
+    // 강제 리플로우로 새 레이아웃을 즉시 반영한 뒤, 페인트 여유를 조금 준다.
+    // (requestAnimationFrame은 탭이 비활성일 때 멈추므로 타이머를 쓴다)
+    void calendarRef.current.offsetHeight;
+    await new Promise<void>((resolve) => setTimeout(resolve, 60));
+
     try {
       // 현재 보이는 달력 전체를 캡처 (인터랙티브 달력)
       const captureElement = calendarRef.current;
-      
+
       // html-to-image를 사용하여 캡처
       const dataUrl = await htmlToImage.toPng(captureElement, {
         backgroundColor: 'var(--color-background-card)',
         pixelRatio: 2,
         canvasWidth: captureElement.offsetWidth * 2,
-        canvasHeight: captureElement.offsetHeight * 2,
+        canvasHeight: captureElement.scrollHeight * 2,
         style: {
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontFamily: 'var(--font-family-body)',
           fontSize: 'var(--font-size-base)',
         },
         filter: (node: HTMLElement) => {
@@ -677,7 +691,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       // 성공 메시지 표시
       const successMessage = document.createElement('div');
       successMessage.textContent = '캡처가 완료되었습니다!';
-      successMessage.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:500;transition:opacity 300ms;';
+      successMessage.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--color-success);color:var(--color-on-success);padding:var(--spacing-3) var(--spacing-6);border-radius:var(--radius-element);box-shadow:var(--shadow-med);z-index:500;transition:opacity var(--duration-medium-min) var(--ease-standard);';
       document.body.appendChild(successMessage);
       
       setTimeout(() => {
@@ -691,7 +705,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       // 실패 메시지 표시
       const errorMessage = document.createElement('div');
       errorMessage.textContent = '캡처에 실패했습니다. 다시 시도해주세요.';
-      errorMessage.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:12px 24px;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:500;transition:opacity 300ms;';
+      errorMessage.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--color-error);color:var(--color-on-error);padding:var(--spacing-3) var(--spacing-6);border-radius:var(--radius-element);box-shadow:var(--shadow-med);z-index:500;transition:opacity var(--duration-medium-min) var(--ease-standard);';
       document.body.appendChild(errorMessage);
       
       setTimeout(() => {
@@ -701,12 +715,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         }, 300);
       }, 3000);
     } finally {
+      card?.classList.remove('carev-vaccal-capturing');
       setIsCapturing(false);
     }
   };
 
   return (
-    <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-element)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+    <div className="carev-vaccal-card" style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-element)', boxShadow: 'var(--shadow-low)', overflow: 'hidden' }}>
       {showMonthError && (
         <div style={{ margin: 'var(--spacing-3)', padding: 'var(--spacing-3)', background: 'var(--color-background-red)', border: '1px solid var(--color-border-red)', borderRadius: 'var(--radius-inner)', color: 'var(--color-text-red)' }}>
           <VStack gap={0.5}>
@@ -717,7 +732,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </VStack>
         </div>
       )}
-      <div ref={calendarRef} style={{ padding: 'var(--spacing-5)', display: 'flex', flexDirection: 'column' }}>
+      <div ref={calendarRef} className="carev-vaccal-body" style={{ padding: 'var(--spacing-5)', display: 'flex', flexDirection: 'column' }}>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%">
           <HStack gap={2} vAlign="center">
             <Icon icon="calendar" size="sm" color="secondary" />
@@ -763,7 +778,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               icon={<Icon icon="chevronRight" size="md" />}
               onClick={nextMonth}
             />
-            <span style={{ width: 1, height: 20, background: 'var(--color-background-muted)', margin: '0 4px' }} />
+            <span style={{ width: 1, height: 20, background: 'var(--color-background-muted)', margin: '0 var(--spacing-1)' }} />
             <Button
               label="데이터 새로고침"
               variant="secondary"
@@ -781,6 +796,17 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   size="sm"
                   onClick={onShowLimitPanel}
                 />
+                {onExportExcel && (
+                  <Button
+                    label={isExportingExcel ? '내보내는 중...' : '엑셀 내보내기'}
+                    variant="secondary"
+                    size="sm"
+                    isLoading={isExportingExcel}
+                    isDisabled={isExportingExcel || isLoading}
+                    icon={<Icon icon={FiDownload} size="sm" />}
+                    onClick={onExportExcel}
+                  />
+                )}
                 <Button
                   label="직원 휴무 추가"
                   variant="primary"
@@ -824,7 +850,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </div>
 
         <motion.div
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px 4px' }}
+          className={isExpanded ? 'carev-vaccal-grid' : 'carev-vaccal-grid carev-vaccal-grid--fit'}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--spacing-1-5) var(--spacing-1)' }}
           initial="hidden"
           animate="visible"
           variants={{
@@ -892,7 +919,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       alignItems: 'center',
                       fontSize: 'var(--font-size-xs)',
                       fontWeight: 'var(--font-weight-semibold)',
-                      padding: '2px 6px',
+                      padding: 'var(--spacing-0-5) var(--spacing-1-5)',
                       borderRadius: 'var(--radius-full)',
                       background: vacationersCount >= maxPeople ? 'var(--color-background-red)' : 'var(--color-background-teal)',
                       color: vacationersCount >= maxPeople ? 'var(--color-text-red)' : 'var(--color-text-teal)',
@@ -925,7 +952,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                             style={{
                               flex: 1,
                               minWidth: 0,
-                              lineHeight: 1.25,
+                              lineHeight: 'var(--text-display-3-leading)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 'var(--spacing-1)',
@@ -959,7 +986,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                 필
                               </span>
                             )}
-                            {isSubstituteVacation(vacation) && (
+                            {isSubstituteVacation(vacation.type) && (
                               <span style={circleBadgeStyle('var(--color-icon-teal)', 12)}>
                                 대
                               </span>
@@ -1006,7 +1033,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </motion.div>
       </div>
 
-      <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', background: 'var(--color-background-card)' }}>
+      <div style={{ padding: '14px var(--spacing-5)', borderTop: '1px solid var(--color-border)', background: 'var(--color-background-card)' }}>
         <div style={{ marginBottom: 'var(--spacing-2)' }}>
           <Text type="supporting" color="secondary" weight="medium">상태 표시</Text>
         </div>
@@ -1026,15 +1053,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
           {/* 승인 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>승인</span>
+            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>승인</span>
             <Text type="supporting" color="secondary">승인됨</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>대기</span>
+            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>대기</span>
             <Text type="supporting" color="secondary">대기중</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: '2px 6px', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>거절</span>
+            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>거절</span>
             <Text type="supporting" color="secondary">거부됨</Text>
           </HStack>
 

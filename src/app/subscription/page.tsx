@@ -129,7 +129,7 @@ export default function SubscriptionPage() {
         style={{
           minHeight: '100vh',
           backgroundColor: 'var(--color-background-muted)',
-          padding: '48px 16px',
+          padding: 'var(--spacing-12) var(--spacing-4)',
         }}
       >
         <div style={{ maxWidth: 768, margin: '0 auto' }}>

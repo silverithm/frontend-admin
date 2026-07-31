@@ -31,7 +31,7 @@ import {
     VacationLimit,
     VACATION_DURATION_OPTIONS,
     VacationDuration,
-    getVacationTypeLabelOf,
+    getVacationTypeLabel,
     isSubstituteVacation,
 } from "@/types/vacation";
 import {
@@ -418,7 +418,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
         );
     };
 
-    const getVacationTypeText = getVacationTypeLabelOf;
+    const getVacationTypeText = getVacationTypeLabel;
 
     const getStatusText = (status?: string) => {
         switch (status) {
@@ -633,11 +633,11 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                         variant={
                                                             request.type === "mandatory"
                                                                 ? "orange"
-                                                                : isSubstituteVacation(request)
+                                                                : isSubstituteVacation(request.type)
                                                                     ? "teal"
                                                                     : "neutral"
                                                         }
-                                                        label={getVacationTypeText(request)}
+                                                        label={getVacationTypeText(request.type)}
                                                     />
                                                 </TableCell>
                                                 <TableCell>

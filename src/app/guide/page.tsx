@@ -1,472 +1,280 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import Navbar from '@/components/Navbar';
-import Link from 'next/link';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
-import { Button } from '@astryxdesign/core/Button';
+import { Grid } from '@astryxdesign/core/Grid';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
+import Navbar from '@/components/Navbar';
+import { duration } from '@/theme/motion';
 
-const heroBackground =
-    'linear-gradient(to bottom, #ffffff 0%, #f7f8fa 55%, #ffffff 100%)';
+interface GuideStep {
+    title: string;
+    items: string[];
+}
 
-const panelStyle: React.CSSProperties = {
-    background: 'var(--color-background-card)',
-    borderRadius: 'var(--radius-chat)',
-    border: '1px solid var(--color-border)',
-    boxShadow: 'var(--shadow-low)',
-    color: 'var(--color-text-primary)',
-};
+interface GuideSection {
+    heading: string;
+    description: string;
+    steps: GuideStep[];
+}
 
-const numberCircleStyle: React.CSSProperties = {
-    width: 48,
-    height: 48,
-    flexShrink: 0,
-    borderRadius: 'var(--radius-full)',
-    background: 'var(--color-background-blue)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 'var(--font-size-xl)',
-    fontWeight: 'var(--font-weight-bold)',
-    color: 'var(--color-text-blue)',
-};
+/**
+ * 메뉴 이름은 관리자 페이지의 실제 탭 이름(근무조정, 월간일정, 공지사항, 채팅, 전자결재,
+ * 회원관리)을 그대로 쓴다. 실재하지 않는 메뉴명을 안내하지 않는다.
+ */
+const ADMIN_GUIDE: GuideSection[] = [
+    {
+        heading: '관리자 시작하기',
+        description: '기관 계정을 만들고 직원을 합류시키는 첫 단계입니다.',
+        steps: [
+            {
+                title: '1. 회원가입',
+                items: [
+                    '웹에서 관리자 회원가입을 시작합니다',
+                    '이메일과 비밀번호(8자 이상)를 입력합니다',
+                    '이름, 기관명, 기관 주소를 입력합니다',
+                    '개인정보 수집 및 이용에 동의하면 가입이 완료됩니다',
+                ],
+            },
+            {
+                title: '2. 직원 합류',
+                items: [
+                    '직원에게 앱 설치를 안내합니다',
+                    '직원이 앱에서 소속 기관을 선택해 가입을 요청합니다',
+                    '관리자 페이지에서 요청을 확인하고 승인합니다',
+                    '승인된 직원은 바로 앱에 로그인할 수 있습니다',
+                ],
+            },
+        ],
+    },
+    {
+        heading: '휴무 요청 처리하기',
+        description: '근무조정 메뉴에서 직원의 휴무 신청을 확인하고 처리합니다.',
+        steps: [
+            {
+                title: '신청 확인과 처리',
+                items: [
+                    '근무조정 메뉴에서 대기 중인 신청을 확인합니다',
+                    '신청한 날짜와 사유를 확인합니다',
+                    '승인 또는 반려를 선택합니다',
+                    '여러 건은 일괄 승인·반려로 한 번에 처리할 수 있습니다',
+                ],
+            },
+            {
+                title: '일정 확인',
+                items: [
+                    '월간일정에서 한 달치 일정을 달력으로 봅니다',
+                    '날짜별 휴무 인원을 확인해 일정이 겹치지 않게 조율합니다',
+                ],
+            },
+        ],
+    },
+    {
+        heading: '그 밖의 메뉴',
+        description: '휴무 관리 외에 기관 운영에 쓰는 메뉴입니다.',
+        steps: [
+            {
+                title: '소통과 문서',
+                items: [
+                    '공지사항 — 구성원 전체에게 알릴 내용을 등록합니다',
+                    '채팅 — 구성원 간 메시지를 주고받습니다',
+                    '전자결재 — 결재선을 지정해 문서 승인을 받습니다',
+                    '회원관리 — 구성원 정보와 가입 요청을 관리합니다',
+                ],
+            },
+        ],
+    },
+];
+
+const EMPLOYEE_GUIDE: GuideSection[] = [
+    {
+        heading: '직원 시작하기',
+        description: '앱을 설치하고 소속 기관에 합류합니다.',
+        steps: [
+            {
+                title: '1. 가입 요청',
+                items: [
+                    'App Store 또는 Google Play에서 케어브이 앱을 설치합니다',
+                    '앱에서 소속 기관을 선택합니다',
+                    '가입 요청을 제출합니다',
+                    '관리자가 승인할 때까지 기다립니다',
+                ],
+            },
+            {
+                title: '2. 로그인',
+                items: [
+                    '관리자 승인이 완료되면 앱에 로그인합니다',
+                    '알림을 허용하면 처리 결과를 놓치지 않습니다',
+                ],
+            },
+        ],
+    },
+    {
+        heading: '휴무 신청하기',
+        description: '앱 또는 웹에서 휴무를 신청하고 결과를 확인합니다.',
+        steps: [
+            {
+                title: '신청 절차',
+                items: [
+                    '휴무 신청 메뉴를 엽니다',
+                    '휴무 유형을 고릅니다 — 연차, 오전 반차, 오후 반차, 필수 휴무',
+                    '날짜를 선택합니다',
+                    '사유를 입력하고 제출합니다',
+                ],
+            },
+            {
+                title: '결과 확인',
+                items: [
+                    '제출한 신청은 관리자가 처리하기 전까지 대기 상태입니다',
+                    '승인되면 일정에 반영됩니다',
+                    '반려된 경우 사유를 확인하고 다시 신청할 수 있습니다',
+                ],
+            },
+        ],
+    },
+    {
+        heading: '일정 확인하기',
+        description: '내 근무와 동료 일정을 확인합니다.',
+        steps: [
+            {
+                title: '캘린더 보기',
+                items: [
+                    '달력에서 내 휴무 일정을 확인합니다',
+                    '같은 기관 구성원의 휴무 일정도 함께 볼 수 있습니다',
+                    '공지사항에서 기관의 알림을 확인합니다',
+                ],
+            },
+        ],
+    },
+];
 
 export default function GuidePage() {
     const [activeTab, setActiveTab] = useState('admin');
+    const sections = activeTab === 'admin' ? ADMIN_GUIDE : EMPLOYEE_GUIDE;
 
     return (
-        <main style={{ minHeight: '100vh', background: heroBackground, color: 'var(--color-text-primary)' }}>
+        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
-            {/* 히어로 섹션 */}
-            <section style={{ position: 'relative', padding: '128px 16px 64px' }}>
-                <div style={{ maxWidth: 1152, margin: '0 auto' }}>
+            {/* 헤더 */}
+            <Section variant="transparent" padding={0} paddingBlock={10}>
+                <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        style={{ textAlign: 'center', marginBottom: 'var(--spacing-12)' }}
+                        transition={{ duration: duration.mediumMax }}
                     >
-                        <Heading
-                            level={1}
-                            type="display-1"
-                            color="inherit"
-                            justify="center"
-                            style={{ marginBottom: 'var(--spacing-6)' }}
-                        >
-                            케어브이 사용 가이드
-                        </Heading>
-                        <Text
-                            type="large"
-                            color="inherit"
-                            justify="center"
-                            style={{ display: 'block', maxWidth: 768, margin: '0 auto', color: 'var(--color-text-secondary)' }}
-                        >
-                            장기요양기관 관리자와 직원을 위한 간단한 사용 방법
-                        </Text>
-                    </motion.div>
-
-                    {/* 탭 선택 */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-12)' }}>
-                        <Button
-                            label="관리자 가이드"
-                            size="lg"
-                            variant={activeTab === 'admin' ? 'primary' : 'secondary'}
-                            onClick={() => setActiveTab('admin')}
-                        />
-                        <Button
-                            label="직원 가이드"
-                            size="lg"
-                            variant={activeTab === 'employee' ? 'primary' : 'secondary'}
-                            onClick={() => setActiveTab('employee')}
-                        />
-                    </div>
-                </div>
-            </section>
-
-            {/* 관리자 가이드 */}
-            {activeTab === 'admin' && (
-                <section style={{ padding: '64px 16px' }}>
-                    <div style={{ maxWidth: 1152, margin: '0 auto' }}>
-                        {/* 시작하기 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                🚀 관리자 시작하기
-                            </Heading>
-
-                            <Card padding={8} style={panelStyle}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-8)' }}>
-                                    <div>
-                                        <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)' }}>
-                                            1. 회원가입
-                                        </Heading>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', marginLeft: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
-                                            <Text color="inherit">• carev.kr에 접속하여 관리자 로그인 클릭</Text>
-                                            <Text color="inherit">• 이메일과 비밀번호로 계정 생성</Text>
-                                            <Text color="inherit">• 기관 정보 입력 (기관명, 주소, 연락처)</Text>
-                                            <Text color="inherit">• 30일 무료 체험 시작</Text>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)' }}>
-                                            2. 직원 초대
-                                        </Heading>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', marginLeft: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
-                                            <Text color="inherit">• 직원에게 앱 다운로드 안내</Text>
-                                            <Text color="inherit">• 직원이 앱에서 가입 신청</Text>
-                                            <Text color="inherit">• 관리자 페이지에서 승인 처리</Text>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-
-                        {/* 직원 관리 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                👥 직원 가입 승인
-                            </Heading>
-
-                            <Card padding={8} style={panelStyle}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <span style={{ marginTop: 'var(--spacing-0-5)' }}><Icon icon="check" color="success" /></span>
-                                        <Text color="inherit">직원이 앱에서 가입 신청하면 관리자 페이지에 알림 표시</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <span style={{ marginTop: 'var(--spacing-0-5)' }}><Icon icon="check" color="success" /></span>
-                                        <Text color="inherit">가입 요청 목록에서 직원 정보 확인</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <span style={{ marginTop: 'var(--spacing-0-5)' }}><Icon icon="check" color="success" /></span>
-                                        <Text color="inherit">승인 버튼 클릭으로 간단하게 처리</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <span style={{ marginTop: 'var(--spacing-0-5)' }}><Icon icon="check" color="success" /></span>
-                                        <Text color="inherit">승인된 직원은 즉시 앱 사용 가능</Text>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-
-                        {/* 근무표 관리 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                📅 근무표 관리
-                            </Heading>
-
-                            <Card
-                                padding={8}
-                                style={{
-                                    ...panelStyle,
-                                    background: 'linear-gradient(to right, rgba(147,51,234,0.08), rgba(219,39,119,0.08))',
-                                    border: '1px solid rgba(192,132,252,0.2)',
-                                }}
-                            >
-                                <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: '#d8b4fe' }}>
-                                    근무표 작성 방법
+                        <VStack gap={5} hAlign="center">
+                            <VStack gap={2} hAlign="center">
+                                <Heading level={1} type="display-1" justify="center">
+                                    케어브이 사용 가이드
                                 </Heading>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', color: 'rgba(243,232,255,0.8)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
-                                        <Text color="inherit" style={{ color: 'var(--color-text-green)' }}>1.</Text>
-                                        <Text color="inherit">근무표 메뉴에서 새 근무표 작성</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
-                                        <Text color="inherit" style={{ color: 'var(--color-text-green)' }}>2.</Text>
-                                        <Text color="inherit">직원별 근무 일정 입력</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
-                                        <Text color="inherit" style={{ color: 'var(--color-text-green)' }}>3.</Text>
-                                        <Text color="inherit">휴무 날짜 설정</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
-                                        <Text color="inherit" style={{ color: 'var(--color-text-green)' }}>4.</Text>
-                                        <Text color="inherit">저장 후 직원에게 자동 알림</Text>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
+                                <Text type="large" color="secondary" justify="center">
+                                    장기요양기관 관리자와 직원을 위한 사용 방법
+                                </Text>
+                            </VStack>
 
-                        {/* 휴무 승인 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                🏖️ 휴무 요청 관리
-                            </Heading>
-
-                            <Card padding={8} style={panelStyle}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-                                        <div style={numberCircleStyle}>1</div>
-                                        <div style={{ flex: 1 }}>
-                                            <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>휴무 신청 알림</Heading>
-                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>직원이 휴무 신청 시 실시간 알림</Text>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-                                        <div style={numberCircleStyle}>2</div>
-                                        <div style={{ flex: 1 }}>
-                                            <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>신청 내역 확인</Heading>
-                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>날짜와 사유 확인</Text>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-                                        <div style={numberCircleStyle}>3</div>
-                                        <div style={{ flex: 1 }}>
-                                            <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>승인/반려 처리</Heading>
-                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>간단한 클릭으로 처리</Text>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-                                        <div style={numberCircleStyle}>4</div>
-                                        <div style={{ flex: 1 }}>
-                                            <Heading level={4} color="inherit" style={{ color: 'var(--color-text-blue)' }}>자동 알림</Heading>
-                                            <Text color="inherit" style={{ color: 'var(--color-text-secondary)' }}>처리 결과 직원 앱으로 전달</Text>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-                    </div>
-                </section>
-            )}
-
-            {/* 직원 가이드 */}
-            {activeTab === 'employee' && (
-                <section style={{ padding: '64px 16px' }}>
-                    <div style={{ maxWidth: 1152, margin: '0 auto' }}>
-                        {/* 앱 설치 및 로그인 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                📱 앱 시작하기
-                            </Heading>
-
-                            <div className="carev-guide-grid-2" style={{ gap: 'var(--spacing-8)' }}>
-                                <Card
-                                    padding={6}
-                                    style={{
-                                        ...panelStyle,
-                                        borderRadius: 'var(--radius-container)',
-                                        background: 'linear-gradient(to bottom right, rgba(37,99,235,0.2), rgba(79,70,229,0.2))',
-                                    }}
-                                >
-                                    <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-blue)' }}>
-                                        앱 다운로드
-                                    </Heading>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', color: 'var(--color-text-secondary)' }}>
-                                        <Text color="inherit">1. 스토어에서 &ldquo;케어브이&rdquo; 검색</Text>
-                                        <Text color="inherit">2. 앱 다운로드 및 설치</Text>
-                                        <Text color="inherit">3. 소속 기관 선택</Text>
-                                        <Text color="inherit">4. 가입 요청 제출</Text>
-                                    </div>
-                                    <div style={{ marginTop: 'var(--spacing-4)' }}>
-                                        <Link href="https://apps.apple.com/kr/app/케어브이/id6747028185" style={{ color: 'var(--color-text-blue)', textDecoration: 'none' }}>
-                                            iOS 다운로드 →
-                                        </Link>
-                                    </div>
-                                </Card>
-
-                                <Card
-                                    padding={6}
-                                    style={{
-                                        ...panelStyle,
-                                        borderRadius: 'var(--radius-container)',
-                                        background: 'linear-gradient(to bottom right, rgba(22,163,74,0.2), rgba(13,148,136,0.2))',
-                                        border: '1px solid rgba(74,222,128,0.2)',
-                                    }}
-                                >
-                                    <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-green)' }}>
-                                        가입 승인 후
-                                    </Heading>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', color: 'rgba(220,252,231,0.8)' }}>
-                                        <Text color="inherit">1. 관리자 승인 완료 알림</Text>
-                                        <Text color="inherit">2. 앱 로그인</Text>
-                                        <Text color="inherit">3. 푸시 알림 허용</Text>
-                                        <Text color="inherit">4. 근무표 확인 시작</Text>
-                                    </div>
-                                    <div style={{ marginTop: 'var(--spacing-4)' }}>
-                                        <Link href="https://play.google.com/store/apps/details?id=com.silverithm.carev.app" style={{ color: 'var(--color-text-green)', textDecoration: 'none' }}>
-                                            Android 다운로드 →
-                                        </Link>
-                                    </div>
-                                </Card>
-                            </div>
-                        </motion.div>
-
-                        {/* 근무 확인 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                📅 근무표 확인
-                            </Heading>
-
-                            <Card padding={8} style={panelStyle}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', color: 'var(--color-text-secondary)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <Text color="inherit" style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-green)' }}>1.</Text>
-                                        <Text color="inherit">앱 홈 화면에서 오늘의 근무 시간 확인</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <Text color="inherit" style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-green)' }}>2.</Text>
-                                        <Text color="inherit">주간/월간 근무 일정 조회</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <Text color="inherit" style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-green)' }}>3.</Text>
-                                        <Text color="inherit">휴무일 및 공휴일 확인</Text>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                                        <Text color="inherit" style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-green)' }}>4.</Text>
-                                        <Text color="inherit">동료들의 근무 일정 확인</Text>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-
-                        {/* 휴무 신청 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6 }}
-                            style={{ marginBottom: 'var(--spacing-12)' }}
-                        >
-                            <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-8)' }}>
-                                🏖️ 휴무 신청
-                            </Heading>
-
-                            <Card
-                                padding={8}
-                                style={{
-                                    ...panelStyle,
-                                    background: 'linear-gradient(to right, rgba(79,70,229,0.2), rgba(147,51,234,0.2))',
-                                    border: '1px solid rgba(129,140,248,0.2)',
-                                }}
+                            <SegmentedControl
+                                value={activeTab}
+                                onChange={(value) => setActiveTab(value)}
+                                label="가이드 종류"
                             >
-                                <div className="carev-guide-grid-2" style={{ gap: 'var(--spacing-8)' }}>
-                                    <div>
-                                        <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: '#a5b4fc' }}>
-                                            신청 방법
-                                        </Heading>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', color: 'rgba(224,231,255,0.8)' }}>
-                                            <Text color="inherit">1. 앱에서 휴무 신청 메뉴 선택</Text>
-                                            <Text color="inherit">2. 휴무 유형 선택 (연차, 반차 등)</Text>
-                                            <Text color="inherit">3. 희망 날짜 선택</Text>
-                                            <Text color="inherit">4. 사유 입력</Text>
-                                            <Text color="inherit">5. 신청 제출</Text>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Heading level={3} color="inherit" style={{ marginBottom: 'var(--spacing-4)', color: '#d8b4fe' }}>
-                                            처리 상태
-                                        </Heading>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
-                                                <div style={{ marginBottom: 'var(--spacing-2)' }}>
-                                                    <Badge variant="yellow" label="대기중" />
-                                                </div>
-                                                <Text color="inherit" style={{ color: 'var(--color-text-gray)' }}>관리자 검토 중</Text>
-                                            </div>
-                                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
-                                                <div style={{ marginBottom: 'var(--spacing-2)' }}>
-                                                    <Badge variant="green" label="승인" />
-                                                </div>
-                                                <Text color="inherit" style={{ color: 'var(--color-text-gray)' }}>휴무 확정</Text>
-                                            </div>
-                                            <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)' }}>
-                                                <div style={{ marginBottom: 'var(--spacing-2)' }}>
-                                                    <Badge variant="red" label="반려" />
-                                                </div>
-                                                <Text color="inherit" style={{ color: 'var(--color-text-gray)' }}>사유 확인 후 재신청</Text>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-
-                    </div>
-                </section>
-            )}
-
-            {/* 문의 섹션 */}
-            <section style={{ padding: '80px 16px', background: 'var(--color-background-muted)' }}>
-                <div style={{ maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
-                        style={{
-                            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-                            borderRadius: 'var(--radius-chat)',
-                            padding: 'var(--spacing-12)',
-                        }}
-                    >
-                        <Heading level={2} color="inherit" justify="center" style={{ marginBottom: 'var(--spacing-4)' }}>
-                            더 궁금한 점이 있으신가요?
-                        </Heading>
-                        <Text
-                            type="large"
-                            color="inherit"
-                            justify="center"
-                            style={{ display: 'block', marginBottom: 'var(--spacing-8)', color: 'var(--color-text-blue)' }}
-                        >
-                            케어브이 전문가가 직접 도와드립니다
-                        </Text>
-                        <div className="carev-guide-cta-actions">
-                            <Link href="/faq">
-                                <Button label="자주 묻는 질문" variant="secondary" size="lg" />
-                            </Link>
-                            <a href="mailto:ggprgrkjh@naver.com" style={{ textDecoration: 'none' }}>
-                                <Button label="이메일 문의" variant="ghost" size="lg" />
-                            </a>
-                        </div>
+                                <SegmentedControlItem value="admin" label="관리자 가이드" />
+                                <SegmentedControlItem value="employee" label="직원 가이드" />
+                            </SegmentedControl>
+                        </VStack>
                     </motion.div>
                 </div>
-            </section>
+            </Section>
+
+            {/* 본문 */}
+            <Section variant="transparent" padding={0} paddingBlock={4}>
+                <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
+                    <VStack gap={10}>
+                        {sections.map((section, sectionIndex) => (
+                            <motion.div
+                                key={`${activeTab}-${section.heading}`}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: '-80px' }}
+                                transition={{ duration: duration.medium, delay: sectionIndex * 0.05 }}
+                            >
+                                <VStack gap={5}>
+                                    <VStack gap={2}>
+                                        <HStack gap={2} vAlign="center" wrap="wrap">
+                                            <Heading level={2} type="display-2">
+                                                {section.heading}
+                                            </Heading>
+                                            <Badge
+                                                variant="teal"
+                                                label={activeTab === 'admin' ? '관리자' : '직원'}
+                                            />
+                                        </HStack>
+                                        <Text color="secondary">{section.description}</Text>
+                                    </VStack>
+
+                                    <Grid columns={{ minWidth: 320, repeat: 'fit' }} gap={5}>
+                                        {section.steps.map((step) => (
+                                            <Card key={step.title} padding={6} height="100%">
+                                                <VStack gap={4}>
+                                                    <Heading level={3} type="display-3">
+                                                        {step.title}
+                                                    </Heading>
+                                                    <VStack gap={3}>
+                                                        {step.items.map((item) => (
+                                                            <HStack key={item} gap={2} vAlign="start">
+                                                                <span style={{ paddingTop: 2 }}>
+                                                                    <Icon icon="check" size="sm" color="accent" />
+                                                                </span>
+                                                                <Text color="secondary">{item}</Text>
+                                                            </HStack>
+                                                        ))}
+                                                    </VStack>
+                                                </VStack>
+                                            </Card>
+                                        ))}
+                                    </Grid>
+                                </VStack>
+                            </motion.div>
+                        ))}
+                    </VStack>
+                </div>
+            </Section>
+
+            {/* CTA */}
+            <Section variant="transparent" padding={0} paddingBlock={10}>
+                <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
+                    <Card padding={8} variant="teal">
+                        <VStack gap={4} hAlign="center">
+                            <VStack gap={2} hAlign="center">
+                                <Heading level={2} type="display-2" justify="center">
+                                    아직 궁금한 점이 있으신가요?
+                                </Heading>
+                                <Text color="secondary" justify="center">
+                                    자주 묻는 질문을 확인하거나 이메일로 문의해주세요
+                                </Text>
+                            </VStack>
+                            <HStack gap={3} hAlign="center" wrap="wrap">
+                                <Button label="자주 묻는 질문" href="/faq" variant="primary" size="lg" />
+                                <Button
+                                    label="문의하기"
+                                    href="/contact"
+                                    variant="secondary"
+                                    size="lg"
+                                />
+                            </HStack>
+                        </VStack>
+                    </Card>
+                </div>
+            </Section>
         </main>
     );
 }

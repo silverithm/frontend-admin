@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, type CSSProperties } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday } from 'date-fns';
+import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { Text } from '@astryxdesign/core/Text';
@@ -31,6 +31,9 @@ import {
   IconChevronRight,
   IconX,
   IconCircleCheckFilled,
+  IconChecklist,
+  IconUserCheck,
+  IconNews,
   type TablerIcon,
 } from '@tabler/icons-react';
 import {
@@ -45,8 +48,13 @@ import {
   getEmployeeAttendanceSummary,
   getElderAttendanceSummary,
   updateScheduleCompletion,
+  getMyScheduleTasks,
+  updateScheduleTaskCompletion,
 } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
+import type { ScheduleTask } from '@/types/schedule';
+import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
+import { duration } from '@/theme/motion';
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
@@ -151,6 +159,19 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
+  const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
+  const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadNews().then((items) => {
+      if (!cancelled) setNewsItems(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -398,6 +419,40 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     return { total, done, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
   }, [monthlySchedules]);
 
+  // 내 할 일 로드 (이번 달 기준)
+  useEffect(() => {
+    const loadMyTasks = async () => {
+      try {
+        const monthStartStr = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+        const monthEndStr = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+        const data = await getMyScheduleTasks(monthStartStr, monthEndStr);
+        const list = Array.isArray(data) ? data : (data?.tasks || []);
+        setMyTasks(list as ScheduleTask[]);
+      } catch (error) {
+        console.error('[Dashboard] 내 할 일 로드 실패:', error);
+        setMyTasks([]);
+      }
+    };
+    loadMyTasks();
+  }, []);
+
+  // 내 할 일 완료 토글 (낙관적 업데이트 후 실패 시 롤백)
+  const handleToggleMyTask = async (task: ScheduleTask, completed: boolean) => {
+    setTaskBusyId(task.id);
+    const apply = (value: boolean) =>
+      setMyTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, isCompleted: value } : t)));
+
+    apply(completed);
+    try {
+      await updateScheduleTaskCompletion(String(task.scheduleId), task.id, completed);
+    } catch (error) {
+      console.error('[Dashboard] 할 일 완료 변경 실패:', error);
+      apply(!completed);
+    } finally {
+      setTaskBusyId(null);
+    }
+  };
+
   const getCategoryLabel = (category?: string) =>
     SCHEDULE_CATEGORIES.find((c) => c.value === category)?.label || category || '';
 
@@ -452,7 +507,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
+      <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ height: 56 }} />
         <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
           {[...Array(6)].map((_, i) => (
@@ -569,12 +624,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   });
 
   return (
-    <div style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
+    <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
       {/* 1. Header Bar */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
+        transition={{ duration: duration.fastMax }}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <HStack gap={2} vAlign="center">
@@ -597,7 +652,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             key={card.label}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.02 + idx * 0.02 }}
+            transition={{ duration: duration.fast, delay: 0.02 + idx * 0.02 }}
           >
             <ClickableCard label={card.label} onClick={() => onTabChange(card.tab)} padding={2} height="100%">
               <HStack gap={2} vAlign="center">
@@ -626,14 +681,92 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.15 }}
+        transition={{ duration: duration.mediumMin, delay: 0.15 }}
         className="carev-dash-panels"
-        style={{ display: 'grid', gap: 'var(--spacing-3)' }}
+        style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1, minHeight: 0 }}
       >
+        {/* 내 할 일 — 담당자로 지정된 업무를 여기서 바로 완료 처리한다 */}
+        {myTasks.length > 0 && (
+          <div className="carev-dash-panel-full">
+            <Card padding={0} height="100%">
+              <VStack gap={0} height="100%">
+                <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
+                  <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+                    <HStack gap={2} vAlign="center">
+                      <div style={{ ...iconBox('var(--color-background-blue)'), color: 'var(--color-text-blue)' }}>
+                        <Icon icon={IconChecklist} size="sm" color="inherit" />
+                      </div>
+                      <VStack gap={0} align="start">
+                        <Text type="body" weight="bold" color="primary">내 할 일</Text>
+                        <Text type="supporting" color="secondary">
+                          {format(new Date(), 'M월', { locale: ko })} · 미완료 {myTasks.filter((t) => !t.isCompleted).length}건 / 전체 {myTasks.length}건
+                        </Text>
+                      </VStack>
+                    </HStack>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      label="월간일정 열기"
+                      endContent={<Icon icon={IconChevronRight} size="xsm" />}
+                      onClick={() => onTabChange('schedule')}
+                    />
+                  </HStack>
+                </div>
+
+                <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                  <VStack gap={1}>
+                    {[...myTasks]
+                      .sort((a, b) => Number(a.isCompleted) - Number(b.isCompleted))
+                      .map((task) => (
+                        <div
+                          key={task.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--spacing-2)',
+                            padding: 'var(--spacing-2)',
+                            borderRadius: 'var(--radius-element)',
+                            border: `1px solid ${task.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
+                            background: task.isCompleted ? 'var(--color-background-green)' : undefined,
+                          }}
+                        >
+                          <Icon
+                            icon={IconUserCheck}
+                            size="sm"
+                            color={task.isCompleted ? 'success' : 'secondary'}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none', opacity: task.isCompleted ? 0.65 : 1 }}>
+                              <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{task.content}</Text>
+                            </div>
+                            <Text as="p" type="supporting" color="secondary" maxLines={1}>
+                              {task.scheduleTitle || ''}
+                              {task.scheduleStartDate ? ` · ${format(new Date(task.scheduleStartDate), 'M.d')}` : ''}
+                            </Text>
+                          </div>
+                          <div style={{ flexShrink: 0 }}>
+                            <Button
+                              label={task.isCompleted ? '완료 해제' : '완료'}
+                              variant={task.isCompleted ? 'ghost' : 'primary'}
+                              size="sm"
+                              isLoading={taskBusyId === task.id}
+                              isDisabled={taskBusyId === task.id}
+                              onClick={() => handleToggleMyTask(task, !task.isCompleted)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                  </VStack>
+                </div>
+              </VStack>
+            </Card>
+          </div>
+        )}
+
         {/* Top-Left: 공지사항 — 3개가 보이는 높이, 나머지는 스크롤 */}
-        <Card padding={0} height={252}>
+        <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
-            <div style={{ padding: '16px 16px 8px' }}>
+            <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
                   <div style={{ ...iconBox('var(--color-background-yellow)'), color: 'var(--color-text-yellow)' }}>
@@ -654,7 +787,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               </HStack>
             </div>
 
-            <div style={{ padding: '0 16px 16px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
               {notices.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <EmptyState
@@ -691,9 +824,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </Card>
 
         {/* Top-Right: 전자결재 — 3개가 보이는 높이, 나머지는 스크롤 */}
-        <Card padding={0} height={252}>
+        <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
-            <div style={{ padding: '16px 16px 8px' }}>
+            <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
                   <div style={{ ...iconBox('var(--color-background-purple)'), color: 'var(--color-text-purple)' }}>
@@ -714,7 +847,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               </HStack>
             </div>
 
-            <div style={{ padding: '0 16px 16px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
               {approvalRequests.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <EmptyState
@@ -752,11 +885,65 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           </VStack>
         </Card>
 
+        {/* 요양 소식 — 데스크탑 와이드에선 3번째 열, 그 외엔 전체 폭 */}
+        <div className="carev-dash-panel-news">
+          <Card padding={0} height="100%">
+            <VStack gap={0} height="100%">
+              <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
+                <HStack hAlign="between" vAlign="center">
+                  <HStack gap={2} vAlign="center">
+                    <div style={{ ...iconBox('var(--color-background-teal)'), color: 'var(--color-text-teal)' }}>
+                      <Icon icon={IconNews} size="sm" color="inherit" />
+                    </div>
+                    <VStack gap={0} align="start">
+                      <Text type="body" weight="bold" color="primary">요양 소식</Text>
+                      <Text type="supporting" color="secondary">오늘의 업계 뉴스</Text>
+                    </VStack>
+                  </HStack>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    label="전체보기"
+                    endContent={<Icon icon={IconChevronRight} size="xsm" />}
+                    onClick={() => onTabChange('plaza')}
+                  />
+                </HStack>
+              </div>
+
+              <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                <VStack gap={1}>
+                  {newsItems.slice(0, 5).map((news) => {
+                    const meta = getNewsCategoryMeta(news.category);
+                    return (
+                      <div
+                        key={news.id}
+                        className="carev-dash-row"
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
+                        onClick={() => window.open(news.url, '_blank', 'noopener,noreferrer')}
+                      >
+                        <div style={{ flexShrink: 0 }}>
+                          <Badge variant={meta.badgeVariant} label={meta.label} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{news.title}</Text>
+                          <Text type="supporting" color="secondary">
+                            {news.source} · {formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}
+                          </Text>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </VStack>
+              </div>
+            </VStack>
+          </Card>
+        </div>
+
         {/* Bottom: 월간일정 (하단 전체 폭) */}
         <div className="carev-dash-panel-full">
-          <Card padding={0} height="100%" minHeight={620}>
+          <Card padding={0} height="100%">
             <VStack gap={0} height="100%">
-              <div style={{ padding: '12px 16px 8px' }}>
+              <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-2)' }}>
                 <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
                   <HStack gap={2} vAlign="center">
                     <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)' }}>
@@ -811,7 +998,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               </div>
 
-              <div style={{ padding: '0 16px 12px', flex: 1, minHeight: 0 }}>
+              <div style={{ padding: '0 var(--spacing-4) var(--spacing-3)', flex: 1, minHeight: 0 }}>
                 <div
                   style={{ display: 'grid', height: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', gridTemplateRows: `auto repeat(${monthlyCalendarDays.weeksCount}, minmax(0, 1fr))` }}
                 >
@@ -871,7 +1058,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                 />
                               ))}
                               {scheduleCount > 3 && (
-                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', lineHeight: 1, color: 'var(--color-text-gray)' }}>+{scheduleCount - 3}</span>
+                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', lineHeight: 'var(--text-display-1-leading)', color: 'var(--color-text-gray)' }}>+{scheduleCount - 3}</span>
                               )}
                             </div>
                             {/* 데스크탑: 일정 제목 칩 표시 (라벨/카테고리 색상) */}
@@ -886,12 +1073,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: 2,
+                                      gap: 'var(--spacing-0-5)',
                                       overflow: 'hidden',
                                       borderRadius: 'var(--radius-inner)',
                                       background: withAlpha(color, done ? 0.08 : 0.16),
                                       borderLeft: `3px solid ${color}`,
-                                      padding: '1px 4px',
+                                      padding: '1px var(--spacing-1)',
                                       fontSize: 'var(--font-size-xs)',
                                       fontWeight: 'var(--font-weight-medium)',
                                       lineHeight: '16px',
@@ -905,7 +1092,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                 );
                               })}
                               {scheduleCount > maxChips && (
-                                <span style={{ padding: '0 4px', fontSize: 'var(--font-size-2xs)', fontWeight: 'var(--font-weight-semibold)', lineHeight: '12px', color: 'var(--color-text-gray)' }}>
+                                <span style={{ padding: '0 var(--spacing-1)', fontSize: 'var(--font-size-2xs)', fontWeight: 'var(--font-weight-semibold)', lineHeight: '12px', color: 'var(--color-text-gray)' }}>
                                   +{scheduleCount - maxChips}개 더보기
                                 </span>
                               )}
@@ -929,11 +1116,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
+            transition={{ duration: duration.fast }}
+            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: '16px 24px', color: '#fff' }}>
+            <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: 'var(--spacing-4) var(--spacing-6)', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text type="large" weight="bold" color="inherit">
                   {isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
@@ -954,9 +1141,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               </div>
             </div>
 
-            <div style={{ padding: '16px 24px', maxHeight: '50vh', overflowY: 'auto' }}>
+            <div style={{ padding: 'var(--spacing-4) var(--spacing-6)', maxHeight: '50vh', overflowY: 'auto' }}>
               {selectedSchedules.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-3)', padding: '32px 0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-3)', padding: 'var(--spacing-8) 0' }}>
                   <EmptyState
                     isCompact
                     title={`${format(selectedDate, 'M월 d일')} 일정이 없습니다`}
@@ -969,7 +1156,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <div
                       key={schedule.id}
                       className="carev-dash-timeline"
-                      style={{ display: 'flex', gap: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', padding: '0 8px', margin: '0 -8px' }}
+                      style={{ display: 'flex', gap: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', padding: '0 var(--spacing-2)', margin: '0 calc(var(--spacing-2) * -1)' }}
                       onClick={() => {
                         setShowDaySchedules(false);
                         setSelectedSchedule(schedule);
@@ -978,7 +1165,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                         <div style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: getScheduleColor(schedule), boxShadow: `0 0 0 4px ${withAlpha(getScheduleColor(schedule), 0.15)}`, flexShrink: 0, marginTop: 'var(--spacing-1-5)', opacity: schedule.isCompleted ? 0.4 : 1 }} />
                         {idx < selectedSchedules.length - 1 && (
-                          <div style={{ width: 2, flex: 1, background: 'var(--color-background-muted)', margin: '4px 0' }} />
+                          <div style={{ width: 2, flex: 1, background: 'var(--color-background-muted)', margin: 'var(--spacing-1) 0' }} />
                         )}
                       </div>
                       <div style={{ paddingBottom: 'var(--spacing-4)', flex: 1, minWidth: 0 }}>
@@ -1017,7 +1204,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               )}
             </div>
 
-            <div style={{ padding: '12px 24px', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: 'var(--spacing-3) var(--spacing-6)', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Button
                 label="월간일정 전체보기"
                 variant="ghost"
@@ -1044,12 +1231,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
+            transition={{ duration: duration.fast }}
+            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
-            <div style={{ background: `linear-gradient(90deg, ${getScheduleColor(selectedSchedule)}, ${withAlpha(getScheduleColor(selectedSchedule), 0.75)})`, padding: '16px 24px', color: '#fff' }}>
+            <div style={{ background: `linear-gradient(90deg, ${getScheduleColor(selectedSchedule)}, ${withAlpha(getScheduleColor(selectedSchedule), 0.75)})`, padding: 'var(--spacing-4) var(--spacing-6)', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                   {selectedSchedule.category && (
@@ -1077,7 +1264,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
 
             {/* 내용 */}
-            <div style={{ padding: '16px 24px' }}>
+            <div style={{ padding: 'var(--spacing-4) var(--spacing-6)' }}>
               <VStack gap={4} align="stretch">
                 {/* 날짜 */}
                 <HStack gap={3} vAlign="start">
@@ -1157,7 +1344,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
 
             {/* 하단 */}
-            <div style={{ padding: '12px 24px', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+            <div style={{ padding: 'var(--spacing-3) var(--spacing-6)', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-2)' }}>
               {selectedSchedule.isCompleted && selectedSchedule.completedByName ? (
                 <Text type="supporting" color="secondary">{selectedSchedule.completedByName} 완료</Text>
               ) : <div />}

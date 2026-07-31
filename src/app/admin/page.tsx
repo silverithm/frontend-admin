@@ -10,7 +10,7 @@ import {
     VacationLimit,
     VACATION_DURATION_OPTIONS,
     VacationDuration,
-    getVacationTypeLabelOf,
+    getVacationTypeLabel,
     isSubstituteVacation,
 } from "@/types/vacation";
 import {
@@ -37,6 +37,7 @@ import ApprovalManagement from "@/components/ApprovalManagement";
 import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
 import EmployeeApproval from "@/components/EmployeeApproval";
 import NoticeManagement from "@/components/NoticeManagement";
+import PlazaManagement from "@/components/plaza/PlazaManagement";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
 import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
@@ -55,10 +56,15 @@ import {
     normalizeRoleKey,
     type MemberRoleSource,
 } from "@/lib/roleUtils";
+import { exportWorkScheduleExcel } from "@/lib/workScheduleExcel";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Selector } from "@astryxdesign/core/Selector";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Banner } from "@astryxdesign/core/Banner";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
@@ -79,7 +85,10 @@ import {
     IconCheck,
     IconTrash,
     IconAlertTriangle,
+    IconUsersGroup,
 } from "@tabler/icons-react";
+import { duration } from '@/theme/motion';
+import { Link } from '@astryxdesign/core/Link';
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -96,7 +105,7 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
     return "neutral";
 };
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza";
 type ApprovalSubTab = "management" | "templates" | "submit";
 type ScheduleMode = "schedule" | "dispatch";
 export default function AdminPage() {
@@ -139,6 +148,7 @@ export default function AdminPage() {
         "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name" | "role"
     >("latest");
     const [members, setMembers] = useState<MemberRoleSource[]>([]);
+    const [isExportingExcel, setIsExportingExcel] = useState(false);
     const [positions, setPositions] = useState<Position[]>([]);
 
     // 다중 선택 관련 상태
@@ -541,6 +551,33 @@ export default function AdminPage() {
     const handleCloseDetails = () => {
         setShowDetails(false);
         document.body.style.overflow = "";
+    };
+
+    // 근무조정 근무표 → 직원근무일정 엑셀 내보내기 (현재 보고 있는 달 기준)
+    const handleExportWorkScheduleExcel = async () => {
+        if (members.length === 0) {
+            showNotification("내보낼 직원이 없습니다.", "error");
+            return;
+        }
+
+        setIsExportingExcel(true);
+        try {
+            const rowCount = await exportWorkScheduleExcel({
+                targetMonth: currentDate,
+                members,
+                vacations: allRequests,
+            });
+
+            showNotification(
+                `${format(currentDate, "yyyy년 MM월", { locale: ko })} 근무일정 ${rowCount}건을 내보냈습니다.`,
+                "success"
+            );
+        } catch (error) {
+            console.error("근무일정 엑셀 내보내기 실패:", error);
+            showNotification("엑셀 내보내기에 실패했습니다.", "error");
+        } finally {
+            setIsExportingExcel(false);
+        }
     };
 
     const handleShowLimitPanel = () => {
@@ -968,7 +1005,7 @@ export default function AdminPage() {
     };
 
     // 휴무 유형 한글 변환
-    const getVacationTypeText = getVacationTypeLabelOf;
+    const getVacationTypeText = getVacationTypeLabel;
 
     // 상태 한글 변환
     const getStatusText = (status?: string) => {
@@ -1014,15 +1051,16 @@ export default function AdminPage() {
         { key: "schedule", label: "월간일정", icon: IconCalendar },
         { key: "approval", label: "전자결재", icon: IconFileText },
         { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
+        { key: "plaza", label: "광장", icon: IconUsersGroup, isNew: true },
         ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
-    ] as { key: string; label: string; icon: IconType; badge?: number }[]);
+    ] as { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[]);
 
     return (
         <div style={{ display: "flex", minHeight: "100vh", background: 'var(--color-background-muted)' }}>
             {/* 사이드바 (데스크탑) */}
             <aside className="carev-admin-sidebar" style={{ flexDirection: "column", width: 224, background: 'var(--color-background-card)', borderRight: "1px solid var(--color-border)", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 30 }}>
                 {/* 로고 */}
-                <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "0 24px", height: 64, borderBottom: "1px solid var(--color-border)", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "0 var(--spacing-6)", height: 64, borderBottom: "1px solid var(--color-border)", flexShrink: 0 }}>
                     <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 'var(--radius-inner)' }} />
                     <div>
                         <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
@@ -1031,7 +1069,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* 네비게이션 */}
-                <nav style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
+                <nav style={{ flex: 1, overflowY: "auto", padding: "var(--spacing-4) var(--spacing-3)", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                     <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
                     {navItems.map((tab) => (
                         <div key={tab.key}>
@@ -1041,7 +1079,7 @@ export default function AdminPage() {
                                 size="md"
                                 onClick={() => setActiveMainTab(tab.key as MainTab)}
                                 icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? "accent" : "primary"} />}
-                                endContent={tab.badge ? <Badge variant="error" label={tab.badge} /> : undefined}
+                                endContent={tab.badge ? <Badge variant="error" label={tab.badge} /> : tab.isNew ? <Badge variant="teal" label="NEW" /> : undefined}
                                 style={{ width: "100%", justifyContent: "flex-start" }}
                             />
                             {/* 전자결재 서브탭 */}
@@ -1068,16 +1106,16 @@ export default function AdminPage() {
                 </nav>
 
                 {/* 사이드바 하단 */}
-                <div style={{ borderTop: "1px solid var(--color-border)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
-                    <div style={{ padding: "0 12px" }}><SubscriptionStatus /></div>
+                <div style={{ borderTop: "1px solid var(--color-border)", padding: "var(--spacing-3) 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
+                    <div style={{ padding: "0 var(--spacing-3)" }}><SubscriptionStatus /></div>
                     <Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                     <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                 </div>
             </aside>
 
             {/* 모바일 헤더 (lg 미만) */}
-            <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: "1px solid var(--color-border)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 52 }}>
+            <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: "1px solid var(--color-border)", boxShadow: 'var(--shadow-low)' }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 var(--spacing-4)", height: 52 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                         <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 'var(--radius-inner)' }} />
                         <div>
@@ -1090,10 +1128,11 @@ export default function AdminPage() {
                         <IconButton label="로그아웃" variant="ghost" size="sm" tooltip="로그아웃" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} />
                     </div>
                 </div>
-                <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 8px", marginBottom: -1 }}>
+                <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 var(--spacing-2)", marginBottom: -1 }}>
                     {([
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
+                        { key: "plaza", label: "광장" },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
                         <Button
@@ -1148,7 +1187,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
+                            transition={{duration: duration.fast}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <AdminDashboard onTabChange={(tab) => {
@@ -1164,7 +1203,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
+                            transition={{duration: duration.fast}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <NoticeManagement isAdmin={isAdmin} />
@@ -1175,7 +1214,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
+                            transition={{duration: duration.fast}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <ChatManagement onNotification={showNotification} />
@@ -1186,7 +1225,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.3}}
+                            transition={{duration: duration.mediumMin}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <ScheduleCalendar isAdmin={isAdmin} mode={scheduleMode} onNotification={showNotification} />
@@ -1197,7 +1236,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
+                            transition={{duration: duration.fast}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             {approvalSubTab === "management" && isAdmin ? (
@@ -1208,19 +1247,30 @@ export default function AdminPage() {
                                 <EmployeeApproval />
                             )}
                         </motion.div>
+                    ) : activeMainTab === "plaza" ? (
+                        <motion.div
+                            key="plaza"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: duration.fast}}
+                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                        >
+                            <PlazaManagement />
+                        </motion.div>
                     ) : activeMainTab === "work" ? (
                         <motion.div
                             key="work"
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
+                            transition={{duration: duration.fast}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="carev-admin-work-layout">
-                                {/* 캘린더 영역 */}
-                                <div className="carev-admin-work-calendar" style={{ background: 'var(--color-background-card)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-inner)', boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", height: "fit-content" }}>
+                                {/* 캘린더 영역 — VacationCalendar가 자체 카드를 렌더링하므로 래퍼는 컬럼 역할만 (카드 중첩 금지) */}
+                                <div className="carev-admin-work-calendar">
                                     <VacationCalendar
                                         currentDate={currentDate}
                                         setCurrentDate={setCurrentDate}
@@ -1232,16 +1282,33 @@ export default function AdminPage() {
                                         onNameFilterChange={setNameFilter}
                                         sortOrder={sortOrder}
                                         memberRoleLookup={memberRoleLookup}
+                                        onExportExcel={handleExportWorkScheduleExcel}
+                                        isExportingExcel={isExportingExcel}
                                     />
                                 </div>
 
                                 {/* 필터 및 휴무 목록 사이드바 */}
-                                <div className="carev-admin-work-side" style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-4)' }}>
-                                    {/* 필터 패널 */}
-                                    <div style={{ background: 'var(--color-background-card)', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)" }}>
-                                        <div style={{ marginBottom: 'var(--spacing-3)' }}><Text type="body" weight="medium" color="primary">필터</Text></div>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-3)' }}>
-                                            {/* 상태 필터 */}
+                                <div className="carev-admin-work-side">
+                                    {/* 필터 패널 — 역할이 늘어나도 높이가 고정되도록 검색 + 드롭다운 구성 */}
+                                    <Card padding={3} style={{ flexShrink: 0 }}>
+                                        <VStack gap={3}>
+                                            <HStack hAlign="between" vAlign="center">
+                                                <Text type="body" weight="medium" color="primary">필터</Text>
+                                                <Button label="초기화" variant="ghost" size="sm" onClick={resetFilter} />
+                                            </HStack>
+
+                                            {/* 직원 검색 — 이름으로 바로 필터 */}
+                                            <TextInput
+                                                label="직원 검색"
+                                                isLabelHidden
+                                                placeholder="직원 이름 검색"
+                                                value={nameFilter ?? ""}
+                                                onChange={(value) => setNameFilter(value.trim() ? value : null)}
+                                                startIcon="search"
+                                                hasClear
+                                            />
+
+                                            {/* 상태 — 한눈에 토글 */}
                                             <div>
                                                 <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">상태</Text></div>
                                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 'var(--spacing-1)' }}>
@@ -1261,74 +1328,39 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 역할 필터 */}
-                                            <div>
-                                                <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">역할</Text></div>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
-                                                    {[ALL_ROLE_FILTER, ...availableRoles].map((role) => {
-                                                        const active = roleFilter === role;
-                                                        return (
-                                                        <Button
-                                                            key={role}
-                                                            label={role === ALL_ROLE_FILTER ? "전체" : getRoleDisplayName(role)}
-                                                            variant={active ? "primary" : "ghost"}
-                                                            size="sm"
-                                                            onClick={() => setRoleFilter(role)}
-                                                            style={{ width: "100%", justifyContent: "flex-start" }}
-                                                        />
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
+                                            {/* 역할 — 직무 수가 많아져도 한 줄 유지 */}
+                                            <Selector
+                                                label="역할"
+                                                width="100%"
+                                                value={roleFilter}
+                                                options={[
+                                                    { value: ALL_ROLE_FILTER, label: `전체 역할 (${availableRoles.length})` },
+                                                    ...availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) })),
+                                                ]}
+                                                onChange={(value) => setRoleFilter(value || ALL_ROLE_FILTER)}
+                                            />
 
-                                            {/* 정렬 옵션 */}
-                                            <div>
-                                                <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">정렬</Text></div>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
-                                                    {([["latest", "최신순"], ["name", "이름순"], ["role", "직무순"]] as const).map(([order, label]) => {
-                                                        const active = sortOrder === order;
-                                                        return (
-                                                        <Button
-                                                            key={order}
-                                                            label={label}
-                                                            variant={active ? "primary" : "ghost"}
-                                                            size="sm"
-                                                            onClick={() => setSortOrder(order)}
-                                                            style={{ width: "100%", justifyContent: "flex-start" }}
-                                                        />
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
+                                            {/* 정렬 — 드롭다운이라 옵션을 더 제공할 수 있음 */}
+                                            <Selector
+                                                label="정렬"
+                                                width="100%"
+                                                value={sortOrder}
+                                                options={[
+                                                    { value: "latest", label: "최신 신청순" },
+                                                    { value: "oldest", label: "오래된 신청순" },
+                                                    { value: "vacation-date-asc", label: "휴무일 빠른순" },
+                                                    { value: "vacation-date-desc", label: "휴무일 늦은순" },
+                                                    { value: "name", label: "이름순" },
+                                                    { value: "role", label: "직무순" },
+                                                ]}
+                                                onChange={(value) => setSortOrder((value || "latest") as typeof sortOrder)}
+                                            />
+                                        </VStack>
+                                    </Card>
 
-                                            {/* 이름 필터 표시 */}
-                                            {nameFilter && (
-                                                <div>
-                                                    <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">선택된 직원</Text></div>
-                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: 'var(--color-background-teal)', border: "1px solid var(--color-border-teal)", borderRadius: 'var(--radius-inner)', padding: "4px 8px" }}>
-                                                        <Text type="supporting" weight="medium" color="accent">{nameFilter}</Text>
-                                                        <IconButton
-                                                            label="필터 해제"
-                                                            tooltip="필터 해제"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setNameFilter(null)}
-                                                            icon={<Icon icon={IconX} size="xsm" color="accent" />}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* 필터 초기화 */}
-                                            <div style={{ marginTop: 'var(--spacing-2)' }}>
-                                                <Button label="초기화" variant="secondary" size="sm" onClick={resetFilter} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 휴무 목록 */}
-                                    <div style={{ flexGrow: 1, background: 'var(--color-background-card)', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: "1px solid var(--color-border)", overflow: "auto" }}>
-                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                                    {/* 휴무 목록 — 카드는 컬럼 잔여 높이를 채우고, 목록만 내부 스크롤 */}
+                                    <Card padding={3} style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                                        <div style={{ marginBottom: 'var(--spacing-3)', flexShrink: 0 }}>
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                 <Text type="body" weight="medium" color="primary">
                                                     {selectedDate
@@ -1399,9 +1431,11 @@ export default function AdminPage() {
                                                 <Spinner size="md" />
                                             </div>
                                         ) : filteredRequests.length === 0 ? (
-                                            <EmptyState isCompact title="조건에 맞는 휴무 요청이 없습니다." />
+                                            <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <EmptyState isCompact title="조건에 맞는 휴무 요청이 없습니다." />
+                                            </div>
                                         ) : (
-                                            <ul style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-2)', maxHeight: "100vh", overflowY: "auto", paddingRight: 'var(--spacing-1)', listStyle: "none", margin: 'var(--spacing-0)' }}>
+                                            <ul style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 'var(--spacing-2)', overflowY: "auto", paddingRight: 'var(--spacing-1)', listStyle: "none", margin: 'var(--spacing-0)' }}>
                                                 {filteredRequests.map((request) => {
                                                     const resolvedRole = getVacationRequestRole(
                                                         request,
@@ -1430,7 +1464,7 @@ export default function AdminPage() {
                                                                 <div>
                                                                     <div
                                                                         style={{
-                                                                            fontWeight: nameFilter === request.userName ? 700 : 500,
+                                                                            fontWeight: nameFilter === request.userName ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
                                                                             fontSize: 'var(--font-size-sm)',
                                                                             cursor: "pointer",
                                                                             transition: 'color var(--duration-fast) var(--ease-standard)',
@@ -1471,11 +1505,11 @@ export default function AdminPage() {
                                                                     variant={
                                                                         request.type === "mandatory"
                                                                             ? "orange"
-                                                                            : isSubstituteVacation(request)
+                                                                            : isSubstituteVacation(request.type)
                                                                                 ? "teal"
                                                                                 : "neutral"
                                                                     }
-                                                                    label={getVacationTypeText(request)}
+                                                                    label={getVacationTypeText(request.type)}
                                                                 />
                                                                 <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>
@@ -1521,7 +1555,7 @@ export default function AdminPage() {
                                                 })}
                                             </ul>
                                         )}
-                                    </div>
+                                    </Card>
                                 </div>
                             </div>
                         </motion.div>
@@ -1531,7 +1565,7 @@ export default function AdminPage() {
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
-                            transition={{duration: 0.2}}
+                            transition={{duration: duration.fast}}
                             style={{ flex: 1, display: "flex", flexDirection: "column" }}
                         >
                             <UserManagement
@@ -1625,7 +1659,7 @@ export default function AdminPage() {
                                 animate={{scale: 1}}
                                 exit={{scale: 0.95}}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ background: 'var(--color-background-card)', borderRadius: 'var(--radius-inner)', boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)", padding: 'var(--spacing-6)', width: "100%", maxWidth: 384 }}
+                                style={{ background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', padding: 'var(--spacing-6)', width: "100%", maxWidth: 384 }}
                             >
                                 <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 'var(--spacing-4)' }}>
                                     <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }}>
@@ -1666,7 +1700,7 @@ export default function AdminPage() {
 
             {/* 푸터 */}
             <footer style={{ borderTop: "1px solid var(--color-border)", background: 'var(--color-background-muted)' }}>
-                <div style={{ maxWidth: 1600, margin: "0 auto", padding: "16px 24px" }}>
+                <div style={{ maxWidth: 1600, margin: "0 auto", padding: "var(--spacing-4) var(--spacing-6)" }}>
                     <div className="carev-admin-footer-row">
                         <div className="carev-admin-footer-meta" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>
                             <span>&copy; 2025 케어브이 (silverithm) 대표: 김준형</span>
@@ -1676,27 +1710,27 @@ export default function AdminPage() {
                             <span>서울특별시 신림동 1547-10</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)' }}>
-                            <a
+                            <Link
                                 href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}
                             >
                                 개인정보처리방침
-                            </a>
+                            </Link>
                             <span style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <a
+                            <Link
                                 href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}
                             >
                                 이용약관
-                            </a>
+                            </Link>
                             <span style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <a href="mailto:ggprgrkjh@naver.com" style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}>
-                                ggprgrkjh@naver.com
-                            </a>
+                            <Link href="mailto:ggprgrkjh2@gmail.com" style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}>
+                                ggprgrkjh2@gmail.com
+                            </Link>
                         </div>
                     </div>
                 </div>

@@ -34,6 +34,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { duration } from '@/theme/motion';
 
 interface User {
   id: string;
@@ -519,13 +520,38 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         hasClear
                       />
                     </StackItem>
+                    <Button
+                      label={isDownloadingExcel ? '내려받는 중...' : '엑셀 다운로드'}
+                      variant="secondary"
+                      icon={<Icon icon={FiDownload} size="sm" />}
+                      onClick={handleDownloadElderlyExcel}
+                      isLoading={isDownloadingExcel}
+                      isDisabled={isDownloadingExcel || isUploadingExcel}
+                    />
                     {isAdmin && (
-                      <Button
-                        label="어르신 추가"
-                        variant="primary"
-                        icon={<Icon icon={FiPlus} size="sm" />}
-                        onClick={openAddSeniorModal}
-                      />
+                      <>
+                        <Button
+                          label={isUploadingExcel ? '등록 중...' : '엑셀 업로드'}
+                          variant="secondary"
+                          icon={<Icon icon={FiUpload} size="sm" />}
+                          onClick={() => elderlyExcelInputRef.current?.click()}
+                          isLoading={isUploadingExcel}
+                          isDisabled={isDownloadingExcel || isUploadingExcel}
+                        />
+                        <input
+                          ref={elderlyExcelInputRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          style={{ display: 'none' }}
+                          onChange={handleUploadElderlyExcel}
+                        />
+                        <Button
+                          label="어르신 추가"
+                          variant="primary"
+                          icon={<Icon icon={FiPlus} size="sm" />}
+                          onClick={openAddSeniorModal}
+                        />
+                      </>
                     )}
                   </HStack>
                 ) : (
@@ -584,7 +610,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                 >
                   {filteredSeniors.length === 0 ? (
                     <EmptyState
@@ -646,7 +672,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                 >
                   <PositionManagement
                     organizationName={organizationName}
@@ -660,7 +686,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                 >
                   {filteredPendingUsers.length === 0 ? (
                     <EmptyState
@@ -728,7 +754,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                 >
                   {filteredMembers.length === 0 ? (
                     <EmptyState

@@ -11,6 +11,7 @@ import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
 import { FloatingChatRoomList } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
+import { duration } from '@/theme/motion';
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
@@ -314,7 +315,7 @@ export function FloatingChat() {
                         initial={{ opacity: 0, y: 16, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        transition={{ duration: duration.fast, ease: "easeOut" }}
                         style={{ position: "absolute", bottom: 64, right: 0 }}
                     >
                         <Card
@@ -323,7 +324,7 @@ export function FloatingChat() {
                                 width: 380,
                                 height: 550,
                                 borderRadius: 'var(--radius-container)',
-                                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                                boxShadow: 'var(--shadow-high)',
                                 overflow: "hidden",
                                 display: "flex",
                                 flexDirection: "column",
@@ -336,7 +337,7 @@ export function FloatingChat() {
                                         initial={{ x: -20, opacity: 0 }}
                                         animate={{ x: 0, opacity: 1 }}
                                         exit={{ x: -20, opacity: 0 }}
-                                        transition={{ duration: 0.15 }}
+                                        transition={{ duration: duration.fastMin }}
                                         style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
                                     >
                                         <FloatingChatRoomList
@@ -352,7 +353,7 @@ export function FloatingChat() {
                                         initial={{ x: 20, opacity: 0 }}
                                         animate={{ x: 0, opacity: 1 }}
                                         exit={{ x: 20, opacity: 0 }}
-                                        transition={{ duration: 0.15 }}
+                                        transition={{ duration: duration.fastMin }}
                                         style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
                                     >
                                         <FloatingChatMessages
@@ -391,7 +392,7 @@ export function FloatingChat() {
                         borderRadius: "50%",
                         background: '#0d9488',
                         color: "#fff",
-                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)",
+                        boxShadow: 'var(--shadow-med)',
                         transition: 'background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard)',
                     }}
                     icon={
@@ -402,7 +403,7 @@ export function FloatingChat() {
                                     initial={{ rotate: -90, opacity: 0 }}
                                     animate={{ rotate: 0, opacity: 1 }}
                                     exit={{ rotate: 90, opacity: 0 }}
-                                    transition={{ duration: 0.15 }}
+                                    transition={{ duration: duration.fastMin }}
                                     style={{ width: 24, height: 24, color: "#fff" }}
                                     fill="none"
                                     stroke="currentColor"
@@ -416,7 +417,7 @@ export function FloatingChat() {
                                     initial={{ rotate: 90, opacity: 0 }}
                                     animate={{ rotate: 0, opacity: 1 }}
                                     exit={{ rotate: -90, opacity: 0 }}
-                                    transition={{ duration: 0.15 }}
+                                    transition={{ duration: duration.fastMin }}
                                     style={{ width: 24, height: 24, color: "#fff" }}
                                     fill="none"
                                     stroke="currentColor"
@@ -434,7 +435,7 @@ export function FloatingChat() {
                     <motion.div
                         style={{ position: "absolute", top: -4, right: -4, pointerEvents: "none" }}
                         animate={{ scale: [1, 1.12, 1] }}
-                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                        transition={{ duration: duration.slowMax, repeat: Infinity, ease: "easeInOut" }}
                     >
                         <Badge variant="error" label={totalUnread > 99 ? "99+" : totalUnread} />
                     </motion.div>

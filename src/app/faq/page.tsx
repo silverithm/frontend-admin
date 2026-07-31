@@ -1,12 +1,18 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useState } from 'react';
-import Navbar from '@/components/Navbar';
-import { Text, Heading } from '@astryxdesign/core/Text';
+import { motion } from 'framer-motion';
+import { Section } from '@astryxdesign/core/Section';
+import { Card } from '@astryxdesign/core/Card';
+import { Collapsible, CollapsibleGroup } from '@astryxdesign/core/Collapsible';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
-import { Icon } from '@astryxdesign/core/Icon';
-import { HStack, VStack } from '@astryxdesign/core/Stack';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import Navbar from '@/components/Navbar';
+import { duration } from '@/theme/motion';
 
 interface FAQItem {
     question: string;
@@ -14,244 +20,174 @@ interface FAQItem {
     category: string;
 }
 
+const CATEGORIES = [
+    { id: 'all', name: '전체' },
+    { id: 'start', name: '시작하기' },
+    { id: 'vacation', name: '휴무 관리' },
+    { id: 'pricing', name: '요금·결제' },
+];
+
+/**
+ * 답변은 실제 구현으로 확인된 내용만 담는다.
+ * 보관 기간·백업 주기·상담 운영시간처럼 근거를 확인하지 못한 약속은 싣지 않는다.
+ */
+const FAQ_DATA: FAQItem[] = [
+    {
+        question: '관리자와 직원은 각각 어떻게 가입하나요?',
+        answer:
+            '먼저 기관 관리자가 웹에서 기관 정보(기관명, 주소, 담당자)를 입력해 회원가입합니다. 이후 직원이 모바일 앱에서 소속 기관을 선택해 가입을 요청하면, 관리자가 관리자 페이지에서 요청을 확인하고 승인합니다. 승인된 직원은 바로 앱에 로그인할 수 있습니다.',
+        category: 'start',
+    },
+    {
+        question: '모바일에서도 사용할 수 있나요?',
+        answer:
+            'iOS와 Android 앱을 제공합니다. App Store와 Google Play에서 내려받을 수 있고, 모바일 웹브라우저에서도 이용할 수 있습니다.',
+        category: 'start',
+    },
+    {
+        question: '휴무 신청은 어떻게 하나요?',
+        answer:
+            '직원이 앱 또는 웹의 휴무 신청 메뉴에서 신청합니다. 휴무 유형은 연차, 오전 반차, 오후 반차, 필수 휴무 중에서 선택하고 날짜와 사유를 입력합니다. 관리자가 승인하면 일정에 반영됩니다.',
+        category: 'vacation',
+    },
+    {
+        question: '관리자는 휴무 요청을 어디서 처리하나요?',
+        answer:
+            '관리자 페이지의 근무조정 메뉴에서 신청 내역을 확인하고 승인 또는 반려할 수 있습니다. 여러 건을 한 번에 처리하는 일괄 승인·반려도 지원합니다.',
+        category: 'vacation',
+    },
+    {
+        question: '동료의 휴무 일정도 볼 수 있나요?',
+        answer:
+            '휴무 캘린더에서 같은 기관 구성원의 휴무 일정을 함께 확인할 수 있습니다. 날짜별 휴무 인원을 볼 수 있어 일정이 겹치지 않게 조율하는 데 활용할 수 있습니다.',
+        category: 'vacation',
+    },
+    {
+        question: '무료로 먼저 사용해볼 수 있나요?',
+        answer:
+            '30일 무료 체험을 제공합니다. 결제 수단을 등록하지 않아도 바로 시작할 수 있고, 체험 기간이 끝나면 Basic 플랜으로 전환해 계속 이용할 수 있습니다.',
+        category: 'pricing',
+    },
+    {
+        question: '결제는 어떻게 이뤄지나요?',
+        answer:
+            '토스페이먼츠를 통해 결제되며 월간 또는 연간 주기를 선택할 수 있습니다. 구독은 해지하지 않으면 주기에 맞춰 자동 갱신됩니다.',
+        category: 'pricing',
+    },
+    {
+        question: '문의는 어디로 하나요?',
+        answer: '홈페이지의 문의하기에서 남겨주시거나, ggprgrkjh2@gmail.com으로 메일을 보내주시면 확인 후 답변드립니다.',
+        category: 'start',
+    },
+];
+
 export default function FAQPage() {
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-    const categories = [
-        { id: 'all', name: '전체' },
-        { id: 'service', name: '서비스 이용' },
-        { id: 'schedule', name: '근무표 관리' },
-        { id: 'vacation', name: '휴무 관리' },
-        { id: 'pricing', name: '요금제' },
-        { id: 'tech', name: '기술 지원' },
-    ];
-
-    const faqData: FAQItem[] = [
-        {
-            question: "모바일에서도 사용할 수 있나요?",
-            answer: "물론입니다! iOS와 Android 전용 앱을 제공하며, 앱스토어와 구글 플레이에서 '케어브이'로 검색하여 다운로드할 수 있습니다. 모바일 웹브라우저에서도 완벽하게 동작하므로 앱 설치 없이도 사용 가능합니다.",
-            category: "service"
-        },
-        {
-            question: "근무표는 얼마나 미리 작성할 수 있나요?",
-            answer: "최대 3개월 후까지 근무표를 미리 작성할 수 있습니다. 월간, 주간, 일간 단위로 유연하게 작성 가능하며, 작성한 근무표는 언제든지 수정할 수 있습니다. 과거 근무표는 2년간 보관되어 언제든 조회 가능합니다.",
-            category: "schedule"
-        },
-        {
-            question: "휴무 신청은 어떻게 하나요?",
-            answer: "직원은 모바일 앱이나 웹에서 '휴무 신청' 메뉴를 통해 간단히 신청할 수 있습니다. 연차, 반차 등 다양한 휴무 유형을 선택할 수 있으며, 관리자가 승인하면 자동으로 근무표에 반영됩니다. 팀 캘린더에서 동료들의 휴무 일정도 확인 가능합니다.",
-            category: "vacation"
-        },
-        {
-            question: "데이터는 안전하게 보관되나요?",
-            answer: "모든 데이터는 클라우드에 암호화되어 안전하게 저장됩니다. 매일 자동 백업되며, SSL 보안 프로토콜을 사용하여 모든 통신이 암호화됩니다.",
-            category: "tech"
-        },
-        {
-            question: "무료 체험 기간이 있나요?",
-            answer: "프리미엄 기능은 30일 무료 체험이 가능합니다. 신용카드 등록 없이 바로 시작할 수 있으며, 체험 기간 종료 후 자동 결제되지 않으니 안심하고 사용해보세요.",
-            category: "pricing"
-        },
-        {
-            question: "고객 지원은 어떻게 받나요?",
-            answer: "평일 09:00-18:00 실시간 채팅 상담을 제공하며, ggprgrkjh@naver.com로 이메일 문의도 가능합니다. 프리미엄 고객에게는 전담 매니저와 우선 지원 서비스를 제공합니다. 자세한 사용 가이드와 동영상 튜토리얼도 준비되어 있습니다.",
-            category: "service"
-        }
-    ];
-
-    const filteredFAQ = selectedCategory === 'all'
-        ? faqData
-        : faqData.filter(item => item.category === selectedCategory);
+    const filteredFAQ =
+        selectedCategory === 'all'
+            ? FAQ_DATA
+            : FAQ_DATA.filter((item) => item.category === selectedCategory);
 
     return (
-        <main
-            style={{
-                minHeight: '100vh',
-                background: 'var(--carev-page-gradient)',
-                color: 'var(--color-text-primary)',
-            }}
-        >
+        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
-            {/* 헤더 섹션 */}
-            <section style={{ position: 'relative', padding: '128px 16px 64px' }}>
-                <div style={{ maxWidth: 1152, margin: '0 auto' }}>
+            {/* 헤더 */}
+            <Section variant="transparent" padding={0} paddingBlock={10}>
+                <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        style={{ textAlign: 'center', marginBottom: 'var(--spacing-12)' }}
+                        transition={{ duration: duration.mediumMax }}
                     >
-                        <Heading
-                            level={1}
-                            type="display-1"
-                            color="inherit"
-                            style={{
-                                marginBottom: 'var(--spacing-6)',
-                                fontWeight: 'var(--font-weight-bold)',
-                                backgroundImage: 'linear-gradient(to right, #0f172a, #0d9488)',
-                                WebkitBackgroundClip: 'text',
-                                backgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                            }}
-                        >
-                            자주 묻는 질문
-                        </Heading>
-                        <Text
-                            type="large"
-                            color="inherit"
-                            display="block"
-                            style={{ color: 'var(--color-text-secondary)', maxWidth: 768, margin: '0 auto' }}
-                        >
-                            케어브이 사용에 대한 궁금증을 해결해드립니다
-                        </Text>
-                    </motion.div>
+                        <VStack gap={5} hAlign="center">
+                            <VStack gap={2} hAlign="center">
+                                <Heading level={1} type="display-1" justify="center">
+                                    자주 묻는 질문
+                                </Heading>
+                                <Text type="large" color="secondary" justify="center">
+                                    케어브이 사용에 대한 궁금증을 해결해드립니다
+                                </Text>
+                            </VStack>
 
-                    {/* 카테고리 필터 */}
-                    <HStack wrap="wrap" hAlign="center" gap={3}>
-                        {categories.map((category) => (
-                            <Button
-                                key={category.id}
-                                label={category.name}
-                                onClick={() => setSelectedCategory(category.id)}
-                                variant={selectedCategory === category.id ? 'primary' : 'secondary'}
-                            />
-                        ))}
-                    </HStack>
-                </div>
-            </section>
-
-            {/* FAQ 리스트 */}
-            <section style={{ padding: '64px 16px' }}>
-                <div style={{ maxWidth: 896, margin: '0 auto' }}>
-                    <VStack gap={4}>
-                        {filteredFAQ.map((item, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.5, delay: index * 0.05 }}
+                            <SegmentedControl
+                                value={selectedCategory}
+                                onChange={(value) => setSelectedCategory(value)}
+                                label="질문 분류"
                             >
-                                <div
-                                    style={{
-                                        background: 'var(--color-background-card)',
-                                        borderRadius: 'var(--radius-container)',
-                                        border: '1px solid var(--color-border)',
-                                        boxShadow: 'var(--shadow-low)',
-                                        overflow: 'hidden',
-                                    }}
-                                >
-                                    <button
-                                        className="carev-faq-trigger"
-                                        style={{
-                                            width: '100%',
-                                            padding: '20px 24px',
-                                            textAlign: 'left',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            background: 'transparent',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            color: 'inherit',
-                                        }}
-                                        onClick={() => setActiveIndex(activeIndex === index ? null : index)}
-                                    >
-                                        <div style={{ flex: 1 }}>
-                                            <Text
-                                                type="large"
-                                                weight="semibold"
-                                                color="inherit"
-                                                style={{ color: 'var(--color-text-primary)', paddingRight: 'var(--spacing-4)' }}
-                                            >
-                                                {item.question}
-                                            </Text>
-                                        </div>
-                                        <span
-                                            style={{
-                                                display: 'inline-flex',
-                                                color: 'var(--color-text-blue)',
-                                                transform: activeIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
-                                                transition: 'transform var(--duration-fast) var(--ease-standard)',
-                                            }}
-                                        >
-                                            <Icon icon="chevronDown" size="md" color="inherit" />
-                                        </span>
-                                    </button>
-                                    {activeIndex === index && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            transition={{ duration: 0.3 }}
-                                            style={{ padding: '0 24px 20px' }}
-                                        >
-                                            <Text
-                                                color="inherit"
-                                                display="block"
-                                                style={{ color: 'var(--color-text-secondary)', lineHeight: 1.625 }}
-                                            >
-                                                {item.answer}
-                                            </Text>
-                                        </motion.div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        ))}
-                    </VStack>
-                </div>
-            </section>
-
-            {/* CTA 섹션 */}
-            <section style={{ padding: '80px 16px' }}>
-                <div style={{ maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
-                        style={{
-                            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-                            borderRadius: 'var(--radius-chat)',
-                            padding: 'var(--spacing-12)',
-                        }}
-                    >
-                        <Heading
-                            level={2}
-                            type="display-2"
-                            color="inherit"
-                            style={{ marginBottom: 'var(--spacing-4)', fontWeight: 'var(--font-weight-bold)', color: '#fff' }}
-                        >
-                            더 궁금하신 점이 있으신가요?
-                        </Heading>
-                        <Text
-                            type="large"
-                            color="inherit"
-                            display="block"
-                            style={{ marginBottom: 'var(--spacing-8)', color: 'rgba(219, 234, 254, 1)' }}
-                        >
-                            고객센터에서 친절하게 답변해드립니다
-                        </Text>
-                        <HStack wrap="wrap" hAlign="center" gap={4}>
-                            <Button
-                                label="이메일 문의하기"
-                                href="mailto:ggprgrkjh@naver.com"
-                                variant="secondary"
-                                size="lg"
-                            />
-                            <Button
-                                label="카카오톡 실시간 상담"
-                                href="https://open.kakao.com/o/gvK6Okag"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                variant="ghost"
-                                size="lg"
-                            />
-                        </HStack>
+                                {CATEGORIES.map((category) => (
+                                    <SegmentedControlItem
+                                        key={category.id}
+                                        value={category.id}
+                                        label={category.name}
+                                    />
+                                ))}
+                            </SegmentedControl>
+                        </VStack>
                     </motion.div>
                 </div>
-            </section>
+            </Section>
+
+            {/* 목록 */}
+            <Section variant="transparent" padding={0} paddingBlock={6}>
+                <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
+                    {filteredFAQ.length === 0 ? (
+                        <EmptyState
+                            title="해당 분류의 질문이 없습니다"
+                            description="다른 분류를 선택해보세요."
+                        />
+                    ) : (
+                        <CollapsibleGroup type="single">
+                            <VStack gap={2}>
+                                {filteredFAQ.map((item) => (
+                                    <Section key={item.question}>
+                                        <Collapsible
+                                            value={item.question}
+                                            defaultIsOpen={false}
+                                            trigger={item.question}
+                                        >
+                                            <Text color="secondary">{item.answer}</Text>
+                                        </Collapsible>
+                                    </Section>
+                                ))}
+                            </VStack>
+                        </CollapsibleGroup>
+                    )}
+                </div>
+            </Section>
+
+            {/* 문의 CTA */}
+            <Section variant="transparent" padding={0} paddingBlock={10}>
+                <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
+                    <Card padding={8} variant="teal">
+                        <VStack gap={4} hAlign="center">
+                            <VStack gap={2} hAlign="center">
+                                <Heading level={2} type="display-2" justify="center">
+                                    더 궁금하신 점이 있으신가요?
+                                </Heading>
+                                <Text color="secondary" justify="center">
+                                    이메일로 문의를 보내주시면 확인 후 답변드립니다
+                                </Text>
+                            </VStack>
+                            <HStack gap={3} hAlign="center" wrap="wrap">
+                                <Button
+                                    label="문의하기"
+                                    href="/contact"
+                                    variant="primary"
+                                    size="lg"
+                                />
+                                <Button
+                                    label="사용 가이드 보기"
+                                    href="/guide"
+                                    variant="secondary"
+                                    size="lg"
+                                />
+                            </HStack>
+                        </VStack>
+                    </Card>
+                </div>
+            </Section>
         </main>
     );
 }

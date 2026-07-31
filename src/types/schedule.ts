@@ -40,6 +40,31 @@ export interface ScheduleAttachment {
   createdAt: string;
 }
 
+// 일정에 딸린 할 일 (담당자별 업무)
+// 참석자(ScheduleParticipant)와는 다른 개념이다.
+//   참석자 = 그 일정에 참여하는 사람
+//   할 일  = 그 일정에서 실제로 수행할 업무와 담당자
+export interface ScheduleTask {
+  id: string;
+  scheduleId: string;
+  content: string;
+  /** 담당자 member id. 없으면 미지정 */
+  assigneeMemberId?: number | null;
+  assigneeName?: string | null;
+  isCompleted: boolean;
+  completedAt?: string;
+  completedById?: string;
+  completedByName?: string;
+  createdById?: string;
+  createdByName?: string;
+  sortOrder?: number;
+  createdAt?: string;
+  /** '내 할 일' 조회 시에만 채워진다 */
+  scheduleTitle?: string;
+  scheduleStartDate?: string;
+  scheduleEndDate?: string;
+}
+
 // 일정 메인 타입
 export interface Schedule {
   id: string;
@@ -63,6 +88,10 @@ export interface Schedule {
   authorId: string;
   authorName: string;
   participants?: ScheduleParticipant[];
+  tasks?: ScheduleTask[];
+  /** 할 일 총 개수 / 완료 개수 (서버 계산값) */
+  taskTotal?: number;
+  taskCompleted?: number;
   attachments?: ScheduleAttachment[];
   createdAt: string;
   updatedAt: string;

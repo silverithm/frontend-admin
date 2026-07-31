@@ -537,10 +537,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         <div
             style={{
                 display: "flex",
-                height: "calc(100vh - 180px)",
+                height: "calc(100dvh - var(--carev-shell-chrome))",
                 background: C.card,
                 borderRadius: 'var(--radius-element)',
-                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                boxShadow: 'var(--shadow-low)',
                 border: `1px solid ${C.border}`,
                 overflow: "hidden",
             }}
@@ -725,7 +725,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                         <div
                                                             style={{
                                                                 position: "relative",
-                                                                padding: "8px 12px",
+                                                                padding: "var(--spacing-2) var(--spacing-3)",
                                                                 ...(isMyMessage
                                                                     ? { background: '#0d9488', color: '#ffffff', borderRadius: "16px 4px 16px 16px" }
                                                                     : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: "4px 16px 16px 16px" }),
@@ -746,7 +746,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                 <div
                                                                     style={{
                                                                         fontSize: 'var(--font-size-sm)',
-                                                                        padding: "4px 8px",
+                                                                        padding: "var(--spacing-1) var(--spacing-2)",
                                                                         marginBottom: 'var(--spacing-1-5)',
                                                                         borderRadius: 'var(--radius-inner)',
                                                                         borderLeft: isMyMessage ? "2px solid rgba(255,255,255,0.6)" : `2px solid ${C.gray300}`,
@@ -785,7 +785,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                     📎 {message.fileName || message.content}
                                                                 </a>
                                                             ) : (
-                                                                <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
+                                                                <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
                                                                     {message.content}
                                                                 </span>
                                                             )}
@@ -816,7 +816,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                     {/* 롱프레스 메뉴 */}
                                                     {contextMenuMessageId === message.id && (
                                                         <div style={{ position: "absolute", zIndex: 40, bottom: "100%", marginBottom: 'var(--spacing-1)', ...(isMyMessage ? { right: 0 } : { left: 0 }) }}>
-                                                            <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: "0 10px 25px rgba(0,0,0,0.12)", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                                                            <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: 'var(--shadow-high)', border: `1px solid ${C.border}`, overflow: "hidden" }}>
                                                                 <div style={{ padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.gray100}` }}>
                                                                     <HStack gap={0.5}>
                                                                         {QUICK_EMOJIS.map((emoji) => (
@@ -852,7 +852,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                         {/* 답글 미리보기 바 */}
                         {replyTo && (
-                            <div style={{ padding: "8px 16px", borderTop: `1px solid ${C.border}`, background: C.bgGray, display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                            <div style={{ padding: "var(--spacing-2) var(--spacing-4)", borderTop: `1px solid ${C.border}`, background: C.bgGray, display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                                 <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 'var(--spacing-2)' }}>
                                     <div>
                                         <Text type="supporting" size="xsm" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
@@ -921,7 +921,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                             </Text>
                                         </div>
                                         {isLoadingParticipants ? (
-                                            <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+                                            <div style={{ display: "flex", justifyContent: "center", padding: "var(--spacing-4) 0" }}>
                                                 <Spinner size="md" />
                                             </div>
                                         ) : participants.length > 0 ? (
@@ -936,7 +936,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                 ))}
                                             </VStack>
                                         ) : (
-                                            <div style={{ textAlign: "center", padding: "16px 0" }}>
+                                            <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
                                                 <Text type="supporting">참여자 정보를 불러올 수 없습니다</Text>
                                             </div>
                                         )}
@@ -963,7 +963,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div style={{ textAlign: "center", padding: "16px 0" }}>
+                                            <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
                                                 <Text type="supporting">공유된 사진이 없습니다</Text>
                                             </div>
                                         )}
@@ -993,7 +993,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                 ))}
                                             </VStack>
                                         ) : (
-                                            <div style={{ textAlign: "center", padding: "16px 0" }}>
+                                            <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
                                                 <Text type="supporting">공유된 파일이 없습니다</Text>
                                             </div>
                                         )}

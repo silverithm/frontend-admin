@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@astryxdesign/core/Card';
+import { Section } from '@astryxdesign/core/Section';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
@@ -201,119 +202,116 @@ export default function LoginPage() {
   return (
     <>
       <AlertContainer />
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 'var(--spacing-4)',
-          position: 'relative',
-          background: 'var(--carev-page-gradient)',
-        }}
-      >
-        {/* 뒤로가기 버튼 */}
-        <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 10 }}>
-          <Button
-            label="메인으로"
-            variant="ghost"
-            size="sm"
-            icon={<span aria-hidden>←</span>}
-            onClick={() => router.push('/')}
-          />
-        </div>
-
-        <Card width="100%" maxWidth={420} padding={6}>
-          <VStack gap={5}>
-            {/* 로고 */}
-            <HStack hAlign="center">
-              <Image
-                src="/images/logo-text-dark.png"
-                alt="케어브이 로고"
-                width={200}
-                height={67}
-                priority
-              />
-            </HStack>
-
-            {/* 로그인 타입 토글 */}
-            <VStack gap={2}>
-              <SegmentedControl
-                value={loginType}
-                onChange={(value) => setLoginType(value as LoginType)}
-                label="로그인 유형"
-                layout="fill"
-              >
-                <SegmentedControlItem value="admin" label="관리자" />
-                <SegmentedControlItem value="employee" label="직원" />
-              </SegmentedControl>
-              <Text type="supporting" justify="center">
-                {loginType === 'admin'
-                  ? '센터 관리자 계정으로 로그인합니다'
-                  : '직원 계정으로 로그인합니다'}
-              </Text>
-            </VStack>
-
-            {/* 로그인 폼 */}
-            <form onSubmit={handleSubmit}>
-              <VStack gap={4}>
-                <TextInput
-                  label="이메일"
-                  type="email"
-                  value={formData.email}
-                  onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
-                  placeholder="이메일 주소 입력"
-                  htmlName="email"
-                  isRequired
+      <Section variant="muted" padding={6}>
+        <div style={{ minHeight: 'calc(100vh - 2 * var(--spacing-6))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 420 }}>
+            <VStack gap={5}>
+              {/* 브랜드 — 카드 밖 상단 (login-card 템플릿 패턴) */}
+              <VStack gap={2} hAlign="center">
+                <Image
+                  src="/images/logo-text-dark.png"
+                  alt="케어브이"
+                  width={168}
+                  height={56}
+                  priority
                 />
+                <Text type="supporting" color="secondary" justify="center">
+                  장기요양기관 근무 관리 솔루션
+                </Text>
+              </VStack>
 
-                <TextInput
-                  label="비밀번호"
-                  type="password"
-                  value={formData.password}
-                  onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
-                  placeholder="비밀번호 입력"
-                  htmlName="password"
-                  isRequired
-                />
+              <Card padding={6}>
+                <VStack gap={5}>
+                  {/* 로그인 타입 토글 */}
+                  <VStack gap={2}>
+                    <SegmentedControl
+                      value={loginType}
+                      onChange={(value) => setLoginType(value as LoginType)}
+                      label="로그인 유형"
+                      layout="fill"
+                    >
+                      <SegmentedControlItem value="admin" label="관리자" />
+                      <SegmentedControlItem value="employee" label="직원" />
+                    </SegmentedControl>
+                    <Text type="supporting" color="secondary" justify="center">
+                      {loginType === 'admin'
+                        ? '센터 관리자 계정으로 로그인합니다'
+                        : '직원 계정으로 로그인합니다'}
+                    </Text>
+                  </VStack>
 
-                <HStack hAlign="between" vAlign="center">
-                  <CheckboxInput
-                    label="이메일 저장"
-                    value={rememberEmail}
-                    onChange={handleRememberChange}
-                    size="sm"
-                  />
-                  <Button
-                    label="비밀번호 찾기"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowFindPassword(true)}
-                  />
+                  {/* 로그인 폼 */}
+                  <form onSubmit={handleSubmit}>
+                    <VStack gap={4}>
+                      <TextInput
+                        label="이메일"
+                        type="email"
+                        value={formData.email}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
+                        placeholder="이메일 주소 입력"
+                        htmlName="email"
+                        isRequired
+                      />
+
+                      <TextInput
+                        label="비밀번호"
+                        type="password"
+                        value={formData.password}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, password: value }))}
+                        placeholder="비밀번호 입력"
+                        htmlName="password"
+                        isRequired
+                      />
+
+                      <HStack hAlign="between" vAlign="center">
+                        <CheckboxInput
+                          label="이메일 저장"
+                          value={rememberEmail}
+                          onChange={handleRememberChange}
+                          size="sm"
+                        />
+                        <Button
+                          label="비밀번호 찾기"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowFindPassword(true)}
+                        />
+                      </HStack>
+
+                      {error && (
+                        <Banner status="error" title={error} />
+                      )}
+
+                      <Button
+                        label={loginType === 'admin' ? '관리자 로그인' : '직원 로그인'}
+                        variant="primary"
+                        size="lg"
+                        type="submit"
+                        isLoading={isLoading}
+                        style={{ width: '100%' }}
+                      />
+                    </VStack>
+                  </form>
+                </VStack>
+              </Card>
+
+              {/* 하단 보조 링크 */}
+              <VStack gap={2} hAlign="center">
+                <HStack gap={1} hAlign="center" vAlign="center">
+                  <Text type="supporting" color="secondary">계정이 없으신가요?</Text>
+                  <Link href="/signup">회원가입</Link>
                 </HStack>
-
-                {error && (
-                  <Banner status="error" title={error} />
-                )}
-
                 <Button
-                  label={loginType === 'admin' ? '관리자 로그인' : '직원 로그인'}
-                  variant="primary"
-                  size="lg"
-                  type="submit"
-                  isLoading={isLoading}
+                  label="메인으로"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/')}
                 />
               </VStack>
-            </form>
-
-            {/* 회원가입 안내 */}
-            <HStack gap={1} hAlign="center" vAlign="center">
-              <Text type="supporting">계정이 없으신가요?</Text>
-              <Link href="/signup">회원가입</Link>
-            </HStack>
-          </VStack>
-        </Card>
-      </div>
+            </VStack>
+          </div>
+        </div>
+      </Section>
 
       {/* 비밀번호 찾기 모달 */}
       <Dialog

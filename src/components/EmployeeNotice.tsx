@@ -229,7 +229,7 @@ export default function EmployeeNotice() {
           </div>
 
           {/* 읽은 사람 섹션 */}
-          <div style={{ padding: '0 24px 16px' }}>
+          <div style={{ padding: '0 var(--spacing-6) var(--spacing-4)' }}>
             <VStack gap={3} align="start">
               <Button
                 label={`읽은 사람 보기${readers.length > 0 ? ` (${readers.length}명)` : ''}`}
@@ -244,7 +244,7 @@ export default function EmployeeNotice() {
                 <div style={{ width: '100%' }}>
                   <Card variant="muted" padding={4}>
                     {isLoadingReaders ? (
-                      <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-4) 0' }}>
                         <Spinner size="sm" aria-label="불러오는 중" />
                       </div>
                     ) : readers.length > 0 ? (
@@ -256,7 +256,7 @@ export default function EmployeeNotice() {
                               display: 'flex',
                               alignItems: 'center',
                               gap: 'var(--spacing-2)',
-                              padding: '6px 12px',
+                              padding: 'var(--spacing-1-5) var(--spacing-3)',
                               background: 'var(--color-background-card)',
                               border: '1px solid var(--color-border)',
                               borderRadius: 'var(--radius-full)',
@@ -319,7 +319,7 @@ export default function EmployeeNotice() {
 
               {/* 댓글 목록 */}
               {isLoadingComments ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-8) 0', width: '100%' }}>
                   <Spinner size="md" aria-label="불러오는 중" />
                 </div>
               ) : comments.length > 0 ? (
@@ -420,7 +420,7 @@ export default function EmployeeNotice() {
           ))}
         </div>
       ) : (
-        <div style={{ padding: '48px 24px' }}>
+        <div style={{ padding: 'var(--spacing-12) var(--spacing-6)' }}>
           <EmptyState
             icon={<Icon icon={FiBell} size="lg" />}
             title="공지사항이 없습니다"

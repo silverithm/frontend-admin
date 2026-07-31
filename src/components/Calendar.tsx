@@ -15,7 +15,7 @@ const CARD_STYLE: CSSProperties = {
   background: 'var(--color-background-card)',
   border: '1px solid var(--color-border)',
   borderRadius: 'var(--radius-element)',
-  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+  boxShadow: 'var(--shadow-low)',
   overflow: 'hidden',
 };
 
@@ -197,7 +197,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                           width: 28,
                           height: 28,
                           borderRadius: '50%',
-                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                          boxShadow: 'var(--shadow-low)',
                         }
                       : !isCurrentMonth
                       ? { color: 'inherit' }
@@ -243,11 +243,11 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                                 justifyContent: 'center',
                                 minWidth: 20,
                                 height: 20,
-                                padding: '0 6px',
+                                padding: '0 var(--spacing-1-5)',
                                 borderRadius: 'var(--radius-full)',
                                 background: 'var(--color-background-red)',
                                 color: 'var(--color-text-red)',
-                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                boxShadow: 'var(--shadow-low)',
                               }}
                             >
                               <Text type="supporting" size="2xs" weight="semibold" color="inherit">{dayInfo.vacationCount}</Text>
@@ -257,12 +257,12 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
 
                         {/* 휴가 표시 */}
                         {dayInfo.vacationCount > 0 && isCurrentMonth && (
-                          <div style={{ marginTop: 'var(--spacing-1)', padding: '0 4px' }}>
+                          <div style={{ marginTop: 'var(--spacing-1)', padding: '0 var(--spacing-1)' }}>
                             {dayInfo.vacations.slice(0, 2).map((vacation: VacationRequest, idx: number) => (
                               <div
                                 key={idx}
                                 style={{
-                                  margin: '2px 0',
+                                  margin: 'var(--spacing-0-5) 0',
                                   padding: 'var(--spacing-1)',
                                   borderRadius: 'var(--radius-none)',
                                   background: 'var(--color-background-red)',

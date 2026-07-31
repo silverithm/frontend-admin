@@ -155,8 +155,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
             password: password.trim(),
             type,
             role,
-            // 대체휴무는 연차에서 차감되지 않으므로 UNUSED로 저장한다
-            duration: type === 'substitute' ? 'UNUSED' : duration,
+            duration,
             date: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
           })
         });
@@ -220,25 +219,17 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   status={errors.userName ? { type: 'error', message: errors.userName } : undefined}
                 />
 
-                {type === 'substitute' ? (
-                  <Banner
-                    status="info"
-                    title="대체휴무는 연차에서 차감되지 않습니다"
-                    description="공휴일·휴일 근무에 대한 보상 휴무입니다. 어떤 근무에 대한 대체인지 사유에 남겨주세요."
-                  />
-                ) : (
-                  <Selector
-                    label="휴가 기간"
-                    options={VACATION_DURATION_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: `${option.displayName} · ${option.description} (${option.days}일)`,
-                    }))}
-                    value={duration}
-                    onChange={(value) => setDuration(value as VacationDuration)}
-                    isRequired
-                    isDisabled={isSubmitting}
-                  />
-                )}
+                <Selector
+                  label="휴가 기간"
+                  options={VACATION_DURATION_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: `${option.displayName} · ${option.description} (${option.days}일)`,
+                  }))}
+                  value={duration}
+                  onChange={(value) => setDuration(value as VacationDuration)}
+                  isRequired
+                  isDisabled={isSubmitting}
+                />
 
                 <TextInput
                   label="비밀번호"

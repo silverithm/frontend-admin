@@ -9,6 +9,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { getNotices } from '@/lib/apiService';
 import { Notice } from '@/types/notice';
 import { tokens } from '@/theme';
+import { duration } from '@/theme/motion';
 
 interface NoticeRollingBannerProps {
   onNoticeClick: () => void;
@@ -122,13 +123,13 @@ export default function NoticeRollingBanner({
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.4, ease: 'easeInOut' }}
+          transition={{ duration: duration.medium, ease: 'easeInOut' }}
           style={{
             position: 'absolute',
             inset: 0,
             display: 'flex',
             alignItems: 'center',
-            padding: '0 24px',
+            padding: '0 var(--spacing-6)',
           }}
         >
           <HStack
@@ -148,7 +149,7 @@ export default function NoticeRollingBanner({
             {/* Badge */}
             <div style={{
               ...getBadgeStyle(),
-              padding: '2px 8px',
+              padding: 'var(--spacing-0-5) var(--spacing-2)',
               borderRadius: 'var(--radius-none)',
               whiteSpace: 'nowrap',
               flexShrink: 0,

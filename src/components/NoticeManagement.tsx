@@ -319,7 +319,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
 
       {viewMode === 'list' ? (
         /* === 목록 뷰 === */
-        <VStack gap={4} align="start" width="100%">
+        <VStack gap={4} align="start" width="100%" height="100%">
           {/* 헤더 */}
           <HStack gap={3} hAlign="between" vAlign="center" width="100%">
             <VStack gap={0.5} align="start">
@@ -350,8 +350,8 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
           </HStack>
 
           {/* 카드: 탭 + 검색 + 목록 */}
-          <div style={{ width: '100%' }}>
-            <Card padding={0}>
+          <div className="carev-notice-listwrap" style={{ width: '100%' }}>
+            <Card padding={0} height="100%">
               {/* 탭 */}
               <div style={{ padding: 'var(--spacing-4)' }}>
                 <SegmentedControl
@@ -382,8 +382,8 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
 
               <Divider />
 
-              {/* 목록 */}
-              <div style={{ padding: 'var(--spacing-5)' }}>
+              {/* 목록 — 남은 높이를 채우고 목록만 스크롤 */}
+              <div className="carev-notice-list" style={{ padding: 'var(--spacing-5)' }}>
                 {notices.length > 0 ? (
                   <VStack gap={2} align="start" width="100%">
                     {notices.map((n) => (
@@ -426,7 +426,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                     ))}
                   </VStack>
                 ) : (
-                  <VStack gap={4} align="center" width="100%">
+                  <VStack gap={4} align="center" width="100%" height="100%" justify="center">
                     <div style={{ width: '100%' }}>
                       <EmptyState
                         icon={<Icon icon={FiBell} size="lg" />}

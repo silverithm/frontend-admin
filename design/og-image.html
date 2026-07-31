@@ -1,0 +1,232 @@
+<!doctype html>
+<!--
+  케어브이 OG 이미지 원본 (1200x630)
+  렌더링:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+      --window-size=1200,630 --screenshot=public/images/og-carev.png \
+      design/og-image.html
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, sans-serif;
+    background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1200px; height: 630px;
+    background:
+      radial-gradient(900px 520px at 88% 112%, rgba(32, 201, 151, 0.20) 0%, rgba(32, 201, 151, 0) 62%),
+      radial-gradient(620px 420px at 4% -12%, rgba(96, 165, 250, 0.13) 0%, rgba(96, 165, 250, 0) 60%),
+      linear-gradient(160deg, #ffffff 0%, #f6faf9 58%, #eef7f4 100%);
+    overflow: hidden;
+  }
+
+  /* 배경 격자 — 근무표(달력)를 은유 */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(15, 118, 110, 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 118, 110, 0.055) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: linear-gradient(105deg, #000 0%, rgba(0,0,0,0.35) 55%, transparent 88%);
+    -webkit-mask-image: linear-gradient(105deg, #000 0%, rgba(0,0,0,0.35) 55%, transparent 88%);
+  }
+
+  /* 브랜드 액센트 바 */
+  .accent-bar {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 12px;
+    background: linear-gradient(180deg, #34d399 0%, #20c997 48%, #14b8a6 100%);
+  }
+
+  .stage {
+    position: relative;
+    display: flex; align-items: center; gap: 56px;
+    height: 100%;
+    padding: 0 60px 0 76px;
+  }
+
+  /* ── 좌측: 카피 ── */
+  .copy { width: 604px; display: flex; flex-direction: column; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    align-self: flex-start;
+    padding: 9px 16px 9px 13px;
+    border: 1px solid rgba(20, 184, 166, 0.28);
+    background: rgba(255, 255, 255, 0.78);
+    border-radius: 999px;
+    font-size: 19px; font-weight: 600; letter-spacing: -0.01em;
+    color: #0f766e;
+  }
+  .eyebrow .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #20c997;
+    box-shadow: 0 0 0 4px rgba(32, 201, 151, 0.18);
+  }
+
+  h1 {
+    margin-top: 26px;
+    font-size: 68px; line-height: 1.16; letter-spacing: -0.035em;
+    font-weight: 800; color: #0b1f1c;
+  }
+  h1 .hl {
+    background: linear-gradient(100deg, #10b981 0%, #14b8a6 55%, #0ea5a4 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .sub {
+    margin-top: 22px;
+    font-size: 25px; line-height: 1.5; letter-spacing: -0.02em;
+    font-weight: 500; color: #46615c;
+  }
+
+  .chips { margin-top: 30px; display: flex; gap: 10px; }
+  .chip {
+    padding: 9px 15px; border-radius: 10px;
+    font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+    color: #0f766e;
+    background: rgba(32, 201, 151, 0.10);
+    border: 1px solid rgba(32, 201, 151, 0.20);
+  }
+
+  .brand {
+    margin-top: 44px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .mark {
+    width: 58px; height: 58px; border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 118, 110, 0.12);
+    box-shadow: 0 6px 18px rgba(13, 148, 136, 0.14);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mark img { width: 172px; height: 172px; object-fit: contain; }
+  .brand-name { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: #0b1f1c; }
+  .brand-url {
+    margin-left: 4px; padding-left: 15px;
+    border-left: 1px solid rgba(15, 118, 110, 0.20);
+    font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: #4b6b66;
+  }
+
+  /* ── 우측: 미니 근무표 카드 ── */
+  .card {
+    width: 352px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 118, 110, 0.10);
+    border-radius: 22px;
+    box-shadow: 0 26px 54px rgba(12, 74, 68, 0.16), 0 3px 10px rgba(12, 74, 68, 0.06);
+    padding: 22px 22px 24px;
+    transform: rotate(-1.6deg);
+  }
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #0b1f1c; }
+  .card-badge {
+    font-size: 14px; font-weight: 700; color: #0f766e;
+    background: rgba(32, 201, 151, 0.13); border-radius: 999px; padding: 5px 11px;
+  }
+
+  .dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 8px; }
+  .dow span { text-align: center; font-size: 13px; font-weight: 700; color: #93a7a3; }
+  .dow span.sun { color: #e26d6d; }
+  .dow span.sat { color: #6d92e2; }
+
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .day {
+    height: 42px; border-radius: 9px;
+    background: #f5f9f8;
+    display: flex; flex-direction: column; align-items: center; padding-top: 5px; gap: 3px;
+  }
+  .day .n { font-size: 13px; font-weight: 700; color: #5d726e; line-height: 1; }
+  .day.today { background: #10b981; }
+  .day.today .n { color: #ffffff; }
+  .day .bar { width: 22px; height: 4px; border-radius: 2px; }
+  .b-teal { background: #14b8a6; }
+  .b-blue { background: #3b82f6; }
+  .b-violet { background: #8b5cf6; }
+  .b-pink { background: #ec4899; }
+  .b-white { background: rgba(255,255,255,0.85); }
+
+  .progress { margin-top: 18px; }
+  .progress-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .progress-label { font-size: 14px; font-weight: 700; color: #46615c; }
+  .progress-value { font-size: 14px; font-weight: 800; color: #0f766e; }
+  .track { height: 8px; border-radius: 999px; background: #eaf1ef; overflow: hidden; }
+  .fill { height: 100%; width: 72%; border-radius: 999px; background: linear-gradient(90deg, #34d399, #14b8a6); }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="grid"></div>
+    <div class="accent-bar"></div>
+
+    <div class="stage">
+      <div class="copy">
+        <div class="eyebrow"><span class="dot"></span>주간보호센터 · 장기요양기관</div>
+
+        <h1>근무표 작성,<br /><span class="hl">5분이면 끝납니다</span></h1>
+
+        <p class="sub">휴무 신청과 승인, 월간 일정까지<br />요양기관 인력관리를 한곳에서.</p>
+
+        <div class="chips">
+          <span class="chip">근무표</span>
+          <span class="chip">휴무관리</span>
+          <span class="chip">전자결재</span>
+          <span class="chip">월간일정</span>
+        </div>
+
+        <div class="brand">
+          <span class="mark"><img src="../public/images/logo.png" alt="" /></span>
+          <span class="brand-name">케어브이</span>
+          <span class="brand-url">carev.kr</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">이번 달 근무표</span>
+          <span class="card-badge">자동 배정</span>
+        </div>
+
+        <div class="dow">
+          <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+        </div>
+
+        <div class="days">
+          <div class="day"><span class="n">1</span></div>
+          <div class="day"><span class="n">2</span><span class="bar b-teal"></span></div>
+          <div class="day"><span class="n">3</span><span class="bar b-blue"></span></div>
+          <div class="day"><span class="n">4</span></div>
+          <div class="day"><span class="n">5</span><span class="bar b-violet"></span></div>
+          <div class="day"><span class="n">6</span><span class="bar b-teal"></span></div>
+          <div class="day"><span class="n">7</span></div>
+
+          <div class="day"><span class="n">8</span><span class="bar b-pink"></span></div>
+          <div class="day"><span class="n">9</span></div>
+          <div class="day today"><span class="n">10</span><span class="bar b-white"></span></div>
+          <div class="day"><span class="n">11</span><span class="bar b-teal"></span></div>
+          <div class="day"><span class="n">12</span></div>
+          <div class="day"><span class="n">13</span><span class="bar b-blue"></span></div>
+          <div class="day"><span class="n">14</span></div>
+        </div>
+
+        <div class="progress">
+          <div class="progress-row">
+            <span class="progress-label">일정 수행완료</span>
+            <span class="progress-value">18/25 · 72%</span>
+          </div>
+          <div class="track"><div class="fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

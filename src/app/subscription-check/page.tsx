@@ -15,6 +15,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
+import { duration } from '@/theme/motion';
 
 const PAGE_GRADIENT = 'var(--carev-page-gradient)';
 
@@ -118,7 +119,7 @@ export default function SubscriptionCheckPage() {
     <div style={{ minHeight: '100vh', background: PAGE_GRADIENT }}>
       {/* 헤더 */}
       <header style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.2)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'var(--spacing-6) var(--spacing-4)' }}>
           <HStack hAlign="center">
             <Image
               src="/images/logo-text-dark.png"
@@ -135,7 +136,7 @@ export default function SubscriptionCheckPage() {
         style={{
           maxWidth: 896,
           margin: '0 auto',
-          padding: '64px 16px',
+          padding: '64px var(--spacing-4)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -146,7 +147,7 @@ export default function SubscriptionCheckPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: duration.mediumMax }}
             style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
           >
             <Card width="100%" maxWidth={640} padding={6}>
@@ -197,7 +198,7 @@ export default function SubscriptionCheckPage() {
 
                 <div style={{ borderTop: '1px solid #f1f3f5', paddingTop: 'var(--spacing-4)' }}>
                   <Text type="supporting" justify="center">
-                    문의: ggprgrkjh@naver.com | 고객센터: 1234-5678
+                    문의: ggprgrkjh2@gmail.com | 전화: 010-4549-2094
                   </Text>
                 </div>
               </VStack>
@@ -210,7 +211,7 @@ export default function SubscriptionCheckPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: duration.mediumMax }}
             style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
           >
             <Card width="100%" maxWidth={640} padding={6}>
@@ -295,7 +296,7 @@ export default function SubscriptionCheckPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: duration.mediumMax }}
             style={{ width: '100%' }}
           >
             <VStack gap={6}>
@@ -329,7 +330,7 @@ export default function SubscriptionCheckPage() {
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 }}
+                  transition={{ duration: duration.mediumMax, delay: 0.1 }}
                   style={{ display: 'flex' }}
                 >
                   <Card width="100%" padding={6}>
@@ -386,7 +387,7 @@ export default function SubscriptionCheckPage() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
+                  transition={{ duration: duration.mediumMax, delay: 0.2 }}
                   style={{ display: 'flex' }}
                 >
                   <Card width="100%" padding={6}>

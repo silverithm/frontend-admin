@@ -78,6 +78,31 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // 로그인 이후에만 의미가 있는 화면은 검색결과에 노출되지 않도록 한다.
+      // robots.txt의 Disallow는 크롤링만 막을 뿐, 외부 링크로 발견되면 URL이 색인될 수 있다.
+      ...['/admin', '/employee', '/payment', '/subscription', '/subscription-check', '/dev-sched-preview'].flatMap(
+        (path) => [
+          {
+            source: path,
+            headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+          },
+          {
+            source: `${path}/:path*`,
+            headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+          },
+        ]
+      ),
+    ];
+  },
+  async redirects() {
+    return [
+      // www는 같은 사이트를 그대로 서빙해 중복 문서가 된다. 대표 호스트로 통합.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.carev.kr' }],
+        destination: 'https://carev.kr/:path*',
+        permanent: true,
+      },
     ];
   },
 };

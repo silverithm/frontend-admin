@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Banner } from '@astryxdesign/core/Banner';
+import { duration as motionDuration } from '@/theme/motion';
 
 // Astryx Dialog는 네이티브 <dialog> top layer를 사용하므로 z-index로는 알림을
 // 다이얼로그 위에 올릴 수 없다. Popover API로 알림도 top layer에 올린다
@@ -40,7 +41,7 @@ function TopLayerPopover({ children }: { children: React.ReactNode }) {
         transform: 'translateX(-50%)',
         margin: 0,
         border: 0,
-        padding: '0 16px',
+        padding: '0 var(--spacing-4)',
         background: 'transparent',
         overflow: 'visible',
         width: '100%',
@@ -85,7 +86,7 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
             initial={{ opacity: 0, y: -50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: motionDuration.mediumMin, ease: 'easeOut' }}
           >
             <Banner
               status={type}

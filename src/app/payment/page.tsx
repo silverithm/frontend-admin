@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState, useCallback} from 'react';
+import {useEffect, useState, useCallback, Suspense} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {loadTossPayments} from '@tosspayments/payment-sdk';
 import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
@@ -19,7 +19,7 @@ import { Divider } from '@astryxdesign/core/Divider';
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
 
-export default function PaymentPage() {
+function PaymentPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showAlert, AlertContainer } = useAlert();
@@ -401,7 +401,7 @@ export default function PaymentPage() {
                 style={{
                     minHeight: '100vh',
                     background: 'var(--color-background-muted)',
-                    padding: '48px 16px',
+                    padding: 'var(--spacing-12) var(--spacing-4)',
                 }}
             >
                 <div style={{ maxWidth: 448, margin: '0 auto' }}>
@@ -572,5 +572,14 @@ export default function PaymentPage() {
                 </div>
             </div>
         </>
+    );
+}
+
+// useSearchParams()는 Suspense 경계가 필요하다 (정적 프리렌더 시 CSR bailout).
+export default function PaymentPage() {
+    return (
+        <Suspense fallback={null}>
+            <PaymentPageContent />
+        </Suspense>
     );
 }

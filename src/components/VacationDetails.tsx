@@ -18,7 +18,7 @@ import {
   VacationDetailsProps,
   VacationRequest,
   VACATION_DURATION_OPTIONS,
-  getVacationTypeLabelOf,
+  getVacationTypeLabel,
   isSubstituteVacation,
 } from '@/types/vacation';
 import VacationForm from './VacationForm';
@@ -180,7 +180,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
   };
 
   // 휴무 유형 한글 변환
-  const getVacationTypeText = getVacationTypeLabelOf;
+  const getVacationTypeText = getVacationTypeLabel;
 
   // 상태 한글 변환
   const getStatusText = (status?: string) => {
@@ -230,7 +230,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
           borderRadius: 'var(--radius-container)',
           overflow: 'hidden',
           background: 'var(--color-background-card)',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          boxShadow: 'var(--shadow-high)',
         }}
       >
         {isLoading ? (
@@ -392,9 +392,9 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
 
                                   {/* 휴무 유형 뱃지 */}
                                   <Badge
-                                    variant={isSubstituteVacation(vacation) ? 'teal' : 'neutral'}
+                                    variant={isSubstituteVacation(vacation.type) ? 'teal' : 'neutral'}
                                     icon={<Icon icon="clock" size="sm" />}
-                                    label={getVacationTypeText(vacation)}
+                                    label={getVacationTypeText(vacation.type)}
                                   />
 
                                   {/* 직원 유형 뱃지 */}

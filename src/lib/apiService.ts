@@ -1102,6 +1102,15 @@ export async function getNotices(filter?: {
     return fetchWithAuth(url);
 }
 
+// 요양 소식(뉴스) 목록 조회 — 케어브이 광장
+export async function getNews(params?: { category?: string; page?: number; size?: number }) {
+    const query = new URLSearchParams();
+    if (params?.category && params.category !== 'all') query.set('category', params.category);
+    query.set('page', String(params?.page ?? 0));
+    query.set('size', String(params?.size ?? 20));
+    return fetchWithAuth(`/api/v1/news?${query.toString()}`);
+}
+
 // 공지사항 목록 조회 (직원 - 게시된 것만)
 export async function getPublishedNotices() {
     const companyId = getCompanyId();
@@ -1630,6 +1639,87 @@ export async function updateScheduleCompletion(id: string, completed: boolean) {
     });
 }
 
+// ---------- 일정 할 일(담당자 업무) ----------
+
+// 할 일 목록 조회
+export async function getScheduleTasks(scheduleId: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${scheduleId}/tasks?companyId=${companyId}`);
+}
+
+// 할 일 추가 (기관 구성원 누구나)
+export async function createScheduleTask(
+    scheduleId: string,
+    data: { content: string; assigneeMemberId?: number | null }
+) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${scheduleId}/tasks?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 할 일 내용·담당자 수정
+export async function updateScheduleTask(
+    scheduleId: string,
+    taskId: string,
+    data: { content?: string; assigneeMemberId?: number | null }
+) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${scheduleId}/tasks/${taskId}?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 할 일 수행완료 토글 (담당자 본인 또는 관리자)
+export async function updateScheduleTaskCompletion(
+    scheduleId: string,
+    taskId: string,
+    completed: boolean
+) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(
+        `/api/v1/schedules/${scheduleId}/tasks/${taskId}/completion?companyId=${companyId}`,
+        { method: 'PUT', body: JSON.stringify({ completed }) }
+    );
+}
+
+// 할 일 삭제
+export async function deleteScheduleTask(scheduleId: string, taskId: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedules/${scheduleId}/tasks/${taskId}?companyId=${companyId}`, {
+        method: 'DELETE',
+    });
+}
+
+// 내 할 일 목록 (대시보드 위젯 / 내 업무 필터)
+export async function getMyScheduleTasks(startDate?: string, endDate?: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    let url = `/api/v1/schedules/my-tasks?companyId=${companyId}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    return fetchWithAuth(url);
+}
+
 // 일정 삭제
 export async function deleteSchedule(id: string) {
     const companyId = getCompanyId();
@@ -1921,4 +2011,69 @@ export async function deleteChatRoom(roomId: number) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}`, {
         method: 'DELETE',
     });
+}
+
+// ================== 어르신 명단 엑셀 API ==================
+// 성명·자택주소가 포함되므로 인증 필수이며, 서버가 소속 기관 범위로만 응답한다.
+// 브라우저 링크 이동으로는 Authorization 헤더를 실을 수 없어 fetch → Blob 방식으로 내려받는다.
+
+/** 인증 헤더를 실어 파일을 받아 브라우저에 저장시킨다. */
+async function downloadFileWithAuth(url: string, fallbackFileName: string): Promise<void> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!response.ok) {
+        const message = await response.json().catch(() => null);
+        throw new Error(message?.error || message?.message || `다운로드에 실패했습니다. (${response.status})`);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = fallbackFileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
+/** 인증 헤더를 실어 엑셀 파일을 업로드한다. */
+async function uploadExcelWithAuth(url: string, file: File): Promise<void> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const message = await response.json().catch(() => null);
+        throw new Error(message?.error || message?.message || `업로드에 실패했습니다. (${response.status})`);
+    }
+}
+
+/** 어르신 명단 엑셀 내려받기 */
+export async function downloadElderlyExcel(): Promise<void> {
+    const stamp = new Date().toISOString().slice(0, 10);
+    await downloadFileWithAuth('/api/v1/employee/downloadElderlyExcel', `어르신_명단_${stamp}.xlsx`);
+}
+
+/**
+ * 어르신 명단 엑셀 일괄 등록/수정.
+ * 아이디 열이 0이면 신규 등록, 그 외에는 해당 어르신을 수정한다(타 기관 아이디는 서버가 거부).
+ */
+export async function uploadElderlyExcel(file: File): Promise<void> {
+    await uploadExcelWithAuth('/api/v1/employee/uploadElderlyExcel', file);
 }

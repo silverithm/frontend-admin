@@ -22,6 +22,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
+import { duration } from '@/theme/motion';
 
 interface Member {
     id: string;
@@ -238,7 +239,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.15 }}
+                        transition={{ duration: duration.fastMin }}
                     >
                         <VStack gap={4}>
                             {/* 추가 버튼 */}
@@ -375,7 +376,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.15 }}
+                        transition={{ duration: duration.fastMin }}
                     >
                         <VStack gap={4}>
                             {/* 검색 및 필터 */}

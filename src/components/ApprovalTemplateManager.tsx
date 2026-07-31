@@ -385,7 +385,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
               </Table>
             </div>
           ) : (
-            <div style={{ padding: '80px 24px' }}>
+            <div style={{ padding: '80px var(--spacing-6)' }}>
               <VStack gap={2} hAlign="center">
                 <FiFileText size={48} style={{ color: 'var(--color-icon-tertiary, #cbd5e1)' }} />
                 <Text type="large" color="secondary">등록된 양식이 없습니다</Text>
@@ -456,6 +456,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                     <FormSchemaBuilder
                       initialSchema={formSchema}
                       onSchemaChange={(schema) => setFormSchema(schema)}
+                      templateName={uploadForm.name}
                     />
                   </VStack>
                 )}

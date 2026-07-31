@@ -1,148 +1,69 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX } from 'react-icons/fi';
+import { TopNav, TopNavHeading, TopNavItem } from '@astryxdesign/core/TopNav';
 import { Button } from '@astryxdesign/core/Button';
-import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Stack';
 
-const navLinkStyle: React.CSSProperties = {
-  color: 'var(--color-text-primary)',
-  fontWeight: 'var(--font-weight-medium)',
-  textDecoration: 'none',
-  transition: 'color var(--duration-fast) var(--ease-standard)',
-};
+const navLinks = [
+  { href: '/#features', label: '주요 기능' },
+  { href: '/#process', label: '사용 방법' },
+  { href: '/#pricing', label: '가격' },
+  { href: '/contact', label: '문의하기' },
+];
 
+/**
+ * 공개 페이지 공통 상단 네비게이션.
+ * Astryx TopNav 기반. 앵커 링크는 데스크톱에서만 노출하고(carev-nav-desktop),
+ * 모바일에서는 CTA만 남긴다.
+ */
 const Navbar: React.FC = () => {
   const router = useRouter();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const navLinks = [
-    { href: '#features', label: '주요 기능' },
-    { href: '#process', label: '사용 방법' },
-    { href: '#pricing', label: '가격' },
-    { href: '#contact', label: '문의하기' },
-  ];
 
   return (
-    <nav
+    <div
       style={{
-        position: 'fixed',
+        position: 'sticky',
         top: 0,
-        left: 0,
-        right: 0,
         zIndex: 50,
-        transition: 'all var(--duration-medium-min) var(--ease-standard)',
-        background: isScrolled ? 'rgba(255, 255, 255, 0.92)' : 'transparent',
-        backdropFilter: isScrolled ? 'blur(12px)' : undefined,
-        boxShadow: isScrolled ? 'var(--shadow-low)' : undefined,
-        borderBottom: isScrolled ? '1px solid var(--color-border)' : undefined,
+        background: 'var(--color-background-surface)',
+        borderBottom: '1px solid var(--color-border)',
       }}
     >
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-          {/* 로고 */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-            <Image
-              src="/images/logo-text-dark.png"
-              alt="케어브이 로고"
-              width={120}
-              height={40}
-            />
-          </Link>
-
-          {/* 데스크톱 네비게이션 */}
-          <div className="carev-nav-desktop" style={{ alignItems: 'center', gap: 'var(--spacing-8)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-6)' }}>
-              {navLinks.map((link) => (
-                <a key={link.href} href={link.href} style={navLinkStyle}>
-                  {link.label}
-                </a>
-              ))}
-            </div>
-
-            {/* CTA 버튼들 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-              <Button label="회원가입" variant="ghost" onClick={() => router.push('/signup')} />
-              <Button label="로그인" variant="primary" onClick={() => router.push('/login')} />
-            </div>
-          </div>
-
-          {/* 모바일 메뉴 버튼 */}
-          <button
-            className="carev-nav-mobile-toggle"
-            aria-label="메뉴 열기"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <Icon icon={isMobileMenuOpen ? FiX : FiMenu} size="lg" />
-          </button>
-        </div>
-      </div>
-
-      {/* 모바일 메뉴 */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            className="carev-nav-mobile-menu"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              overflow: 'hidden',
-              background: 'rgba(255, 255, 255, 0.92)',
-              backdropFilter: 'blur(12px)',
-              borderBottom: '1px solid var(--color-border)',
-            }}
-          >
-            <div style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  style={{ ...navLinkStyle, display: 'block', padding: '8px 0' }}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </a>
-              ))}
-              <div style={{ paddingTop: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', borderTop: '1px solid var(--color-border)' }}>
-                <Button
-                  label="회원가입"
-                  variant="ghost"
-                  onClick={() => {
-                    router.push('/signup');
-                    setIsMobileMenuOpen(false);
-                  }}
-                />
-                <Button
-                  label="로그인"
-                  variant="primary"
-                  onClick={() => {
-                    router.push('/login');
-                    setIsMobileMenuOpen(false);
-                  }}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+      <TopNav
+        label="주 메뉴"
+        heading={
+          <TopNavHeading
+            heading="케어브이"
+            headingHref="/"
+            logo={
+              <Image
+                src="/images/logo.png"
+                alt=""
+                width={28}
+                height={28}
+                priority
+              />
+            }
+          />
+        }
+        startContent={
+          <span className="carev-nav-desktop" style={{ gap: 'var(--spacing-1)' }}>
+            {navLinks.map((link) => (
+              <TopNavItem key={link.href} label={link.label} href={link.href} />
+            ))}
+          </span>
+        }
+        endContent={
+          <HStack gap={2} vAlign="center">
+            <Button label="회원가입" variant="ghost" size="sm" onClick={() => router.push('/signup')} />
+            <Button label="로그인" variant="primary" size="sm" onClick={() => router.push('/login')} />
+          </HStack>
+        }
+      />
+    </div>
   );
 };
 

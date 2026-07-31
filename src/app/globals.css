@@ -11,6 +11,11 @@
   --foreground: #171717;
   /* 공개/마케팅 페이지 공용 라이트 배경 그라데이션 */
   --carev-page-gradient: linear-gradient(180deg, #ffffff 0%, #f7f8fa 55%, #ffffff 100%);
+  /* 관리자/직원 셸에서 콘텐츠 위·아래로 빠지는 높이 (롤링 배너 + main 패딩).
+     한 화면에 채워야 하는 영역은 calc(100dvh - var(--carev-shell-chrome))를 쓴다. */
+  --carev-shell-chrome: 88px;
+  /* 대시보드 상단 요약 카드(공지/전자결재/소식) 높이 */
+  --carev-dash-toprow: 200px;
 }
 
 html {
@@ -88,13 +93,20 @@ html {
   .carev-admin-content { margin-left: 224px; }
   .carev-admin-rolling { margin-top: 0; }
 }
+/* 근무조정: 데스크탑에서 캘린더와 사이드바가 같은 높이로 한 화면에 들어가고,
+   넘치는 내용은 각 컬럼 안에서만 스크롤한다. */
 .carev-admin-work-layout { display: flex; flex-direction: column; gap: var(--spacing-6); }
-.carev-admin-work-calendar { width: 100%; }
-.carev-admin-work-side { width: 100%; }
+.carev-admin-work-calendar { width: 100%; min-width: 0; }
+.carev-admin-work-side { width: 100%; display: flex; flex-direction: column; gap: var(--spacing-4); }
 @media (min-width: 1280px) {
-  .carev-admin-work-layout { flex-direction: row; }
-  .carev-admin-work-calendar { width: 80%; }
-  .carev-admin-work-side { width: 20%; }
+  .carev-admin-work-layout {
+    flex-direction: row;
+    align-items: stretch;
+    height: calc(100dvh - var(--carev-shell-chrome));
+    min-height: 560px;
+  }
+  .carev-admin-work-calendar { width: 80%; min-height: 0; overflow-y: auto; }
+  .carev-admin-work-side { width: 20%; min-height: 0; }
 }
 .carev-admin-footer-row { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-2); }
 .carev-admin-footer-meta { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
@@ -105,19 +117,39 @@ html {
   .carev-admin-footer-sep { display: inline; }
 }
 
+/* 공지사항 목록: 데이터가 적어도 화면을 채우고 목록만 스크롤 */
+.carev-notice-listwrap { display: flex; flex-direction: column; }
+@media (min-width: 1024px) {
+  .carev-notice-listwrap { flex: 1; min-height: 0; }
+  .carev-notice-list { flex: 1; min-height: 0; overflow-y: auto; }
+}
+
 /* AdminDashboard 반응형 + hover (Tailwind 대체) */
+/* 대시보드도 근무조정과 같은 규칙: 데스크탑에서 한 화면을 채우고 패널 안에서만 스크롤 */
+@media (min-width: 1024px) {
+  .carev-dash-root { max-height: calc(100dvh - var(--carev-shell-chrome)); }
+}
 .carev-dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 640px)  { .carev-dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .carev-dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .carev-dash-stats-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .carev-dash-panels { grid-template-columns: 1fr; }
+/* 상단 요약 카드 높이 — 월간일정에 남은 높이를 몰아주기 위해 컴팩트하게 */
 @media (min-width: 1024px) {
-  .carev-dash-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .carev-dash-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, var(--carev-dash-toprow)) minmax(0, 1fr);
+  }
   .carev-dash-panel-full { grid-column: 1 / -1; }
   .carev-dash-panel-news { grid-column: 1 / -1; }
+  /* 트랙(1fr)보다 큰 콘텐츠가 그리드를 밀어내지 않도록 */
+  .carev-dash-panels > * { min-height: 0; }
 }
 @media (min-width: 1440px) {
-  .carev-dash-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .carev-dash-panels {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: var(--carev-dash-toprow) minmax(0, 1fr);
+  }
   .carev-dash-panel-news { grid-column: auto; }
 }
 .carev-dash-clock { display: none; }
@@ -209,14 +241,45 @@ html {
 }
 @media (hover: hover) { .carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, var(--color-background-muted)) !important; } }
 
-/* ScheduleCalendar 반응형 2단 + hover */
+/* 근무조정 컬럼 안에서는 달력이 남은 높이를 주 단위로 균등 분배해 한 화면에 들어온다.
+   '펼치기' 상태(carev-vaccal-grid--fit 없음)는 셀 원래 높이를 유지하고 컬럼이 스크롤된다. */
+@media (min-width: 1280px) {
+  .carev-admin-work-calendar > .carev-vaccal-card { height: 100%; display: flex; flex-direction: column; }
+  .carev-admin-work-calendar .carev-vaccal-body { flex: 1; min-height: 0; }
+  .carev-admin-work-calendar .carev-vaccal-grid--fit { flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+  .carev-admin-work-calendar .carev-vaccal-grid--fit .carev-vaccal-cell { min-height: 0; }
+}
+
+/* 캡처 모드 — 화면에서 눌려 있어도 이미지는 원래 비율로 전체를 담는다 */
+.carev-vaccal-capturing { height: auto !important; }
+.carev-vaccal-capturing .carev-vaccal-body { flex: none !important; min-height: 0 !important; }
+.carev-vaccal-capturing .carev-vaccal-grid { flex: none !important; grid-auto-rows: auto !important; }
+.carev-vaccal-capturing .carev-vaccal-cell { min-height: 140px !important; }
+.carev-vaccal-capturing .carev-vaccal-cell-expanded { min-height: 240px !important; }
+
+/* ScheduleCalendar 반응형 2단 + hover
+   근무조정(.carev-admin-work-layout)과 같은 규칙: 데스크탑에서 두 컬럼이 같은 높이로
+   한 화면을 채우고, 넘치는 내용은 각 컬럼 안에서만 스크롤한다. */
 .carev-schedcal-layout { display: flex; flex-direction: column; gap: var(--spacing-6); }
-.carev-schedcal-main { width: 100%; transition: all var(--duration-medium-min) var(--ease-standard); }
+.carev-schedcal-main { width: 100%; min-width: 0; transition: all var(--duration-medium-min) var(--ease-standard); }
 .carev-schedcal-detail { width: 100%; }
 @media (min-width: 1280px) {
-  .carev-schedcal-layout { flex-direction: row; }
+  .carev-schedcal-layout {
+    flex-direction: row;
+    align-items: stretch;
+    height: calc(100dvh - var(--carev-shell-chrome));
+    min-height: 560px;
+  }
+  .carev-schedcal-main { min-height: 0; }
   .carev-schedcal-main--narrow { width: 75%; }
-  .carev-schedcal-detail { width: 25%; }
+  .carev-schedcal-detail { width: 25%; min-height: 0; }
+  /* 카드는 컬럼을 꽉 채우고, 헤더·요일행은 고정. 날짜 그리드는 남은 높이를
+     주 단위로 균등 분배해 한 화면에 6주가 모두 들어오게 한다. */
+  .carev-schedcal-card { height: 100%; display: flex; flex-direction: column; }
+  .carev-schedcal-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .carev-schedcal-scroll > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .carev-schedcal-week { flex: 1; min-height: 0; }
+  .carev-schedcal-cell { aspect-ratio: auto; min-height: 0; }
 }
 .carev-schedcal-week { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); }
 /* 여러 날 일정 바(최대 3줄) + "+N개" 표시가 들어갈 최소 높이 확보 */

@@ -250,7 +250,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
         {/* 헤더 */}
         <div style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ maxWidth: 896, margin: '0 auto', padding: '16px 24px' }}>
+          <div style={{ maxWidth: 896, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
             <HStack hAlign="between" vAlign="center">
               <HStack gap={4} vAlign="center">
                 <Button
@@ -291,7 +291,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
 
         {/* 탭 */}
         <div style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)' }}>
-          <div style={{ maxWidth: 896, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ maxWidth: 896, margin: '0 auto', padding: '0 var(--spacing-6)' }}>
             <TabList value={activeTab} onChange={(value) => setActiveTab(value as TabType)}>
               <Tab value="content" label="내용" />
               <Tab value="comments" label={`댓글 (${comments.length})`} />
@@ -301,7 +301,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* 본문 */}
-        <div style={{ maxWidth: 896, margin: '0 auto', padding: '32px 24px' }}>
+        <div style={{ maxWidth: 896, margin: '0 auto', padding: 'var(--spacing-8) var(--spacing-6)' }}>
           {activeTab === 'content' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               {isEditing ? (
@@ -425,7 +425,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                         ))}
                       </div>
                     ) : (
-                      <div style={{ padding: '48px 24px' }}>
+                      <div style={{ padding: 'var(--spacing-12) var(--spacing-6)' }}>
                         <EmptyState icon={<Icon icon={FiMessageSquare} size="lg" />} title="아직 댓글이 없습니다" />
                       </div>
                     )}
@@ -460,7 +460,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                     ))}
                   </div>
                 ) : (
-                  <div style={{ padding: '48px 24px' }}>
+                  <div style={{ padding: 'var(--spacing-12) var(--spacing-6)' }}>
                     <EmptyState icon={<Icon icon={FiEye} size="lg" />} title="아직 읽은 사람이 없습니다" />
                   </div>
                 )}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Card } from '@astryxdesign/core/Card';
+import { Section } from '@astryxdesign/core/Section';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Banner } from '@astryxdesign/core/Banner';
@@ -11,6 +12,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import { register } from '@/lib/apiService';
+import { duration } from '@/theme/motion';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -74,20 +76,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--spacing-4)',
-        background: 'var(--carev-page-gradient)',
-      }}
-    >
+    <Section variant="muted" padding={6}>
+      <div style={{ minHeight: 'calc(100vh - 2 * var(--spacing-6))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: duration.mediumMax }}
         style={{ width: '100%', maxWidth: 448 }}
       >
         <Card width="100%" padding={6}>
@@ -189,6 +183,7 @@ export default function RegisterPage() {
           </VStack>
         </Card>
       </motion.div>
-    </div>
+      </div>
+    </Section>
   );
 }

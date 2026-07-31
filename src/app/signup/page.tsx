@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Card } from '@astryxdesign/core/Card';
+import { Section } from '@astryxdesign/core/Section';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
@@ -14,6 +15,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import { signup } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
+import { duration } from '@/theme/motion';
 
 // 다음 주소 API 타입 정의
 declare global {
@@ -193,43 +195,36 @@ export default function SignupPage() {
   return (
     <>
       <AlertContainer />
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 'var(--spacing-4)',
-          background: 'var(--carev-page-gradient)',
-        }}
-      >
+      <Section variant="muted" padding={6}>
+        <div style={{ minHeight: 'calc(100vh - 2 * var(--spacing-6))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: duration.mediumMax }}
           style={{ width: '100%', maxWidth: 448 }}
         >
-          <Card width="100%" padding={6}>
+          <VStack gap={5}>
+            {/* 브랜드 — 카드 밖 상단 */}
+            <VStack gap={2} hAlign="center">
+              <Image
+                src="/images/logo-text-dark.png"
+                alt="케어브이"
+                width={168}
+                height={56}
+                priority
+              />
+            </VStack>
+
+            <Card width="100%" padding={6}>
             <VStack gap={5}>
               {/* 헤더 */}
-              <VStack gap={3} hAlign="center">
-                <HStack hAlign="center">
-                  <Image
-                    src="/images/logo.png"
-                    alt="케어베케이션 로고"
-                    width={200}
-                    height={67}
-                    priority
-                  />
-                </HStack>
-                <VStack gap={1} hAlign="center">
+              <VStack gap={1} hAlign="center">
                   <Text type="display-3" weight="bold" justify="center">
                     관리자 회원가입
                   </Text>
-                  <Text type="supporting" justify="center">
+                  <Text type="supporting" color="secondary" justify="center">
                     케어브이 서비스를 시작해보세요
                   </Text>
-                </VStack>
               </VStack>
 
               {/* 회원가입 폼 */}
@@ -337,22 +332,25 @@ export default function SignupPage() {
                     size="lg"
                     type="submit"
                     isLoading={isLoading}
+                    style={{ width: '100%' }}
                   />
                 </VStack>
               </form>
-
-              {/* 하단 링크 */}
-              <VStack gap={2} hAlign="center">
-                <HStack gap={1} hAlign="center" vAlign="center">
-                  <Text type="supporting">이미 계정이 있으신가요?</Text>
-                  <Link href="/login">로그인</Link>
-                </HStack>
-                <Link href="/">메인 페이지로 돌아가기</Link>
-              </VStack>
             </VStack>
-          </Card>
+            </Card>
+
+            {/* 하단 보조 링크 — 카드 밖 */}
+            <VStack gap={2} hAlign="center">
+              <HStack gap={1} hAlign="center" vAlign="center">
+                <Text type="supporting" color="secondary">이미 계정이 있으신가요?</Text>
+                <Link href="/login">로그인</Link>
+              </HStack>
+              <Link href="/">메인 페이지로 돌아가기</Link>
+            </VStack>
+          </VStack>
         </motion.div>
-      </div>
+        </div>
+      </Section>
     </>
   );
 }

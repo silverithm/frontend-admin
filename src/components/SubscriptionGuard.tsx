@@ -22,21 +22,28 @@ const PROTECTED_PATHS = [
   '/admin'
 ];
 
+const isProtectedPath = (pathname: string | null) =>
+  !!pathname && PROTECTED_PATHS.some(path => pathname.startsWith(path));
+
 export default function SubscriptionGuard({ children }: SubscriptionGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { showAlert, AlertContainer } = useAlert();
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
-  const [loading, setLoading] = useState(true);
+  // 보호 경로가 아니면 처음부터 로딩 상태가 아니어야 한다.
+  // useEffect는 서버 렌더링에서 실행되지 않으므로, 초기값을 true로 두면
+  // 홈/블로그/FAQ 등 공개 페이지의 SSR HTML이 스피너만 담긴 채 크롤러에 노출된다.
+  const [loading, setLoading] = useState(() => isProtectedPath(pathname));
   const [showBlockModal, setShowBlockModal] = useState(false);
 
   useEffect(() => {
     // 보호된 페이지(/admin)가 아니면 구독 확인하지 않음
-    if (!PROTECTED_PATHS.some(path => pathname.startsWith(path))) {
+    if (!isProtectedPath(pathname)) {
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     checkSubscription();
   }, [pathname]);
 

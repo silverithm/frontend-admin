@@ -97,7 +97,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
             <VStack gap={4}>
               {/* 통계 요약 */}
               {holidayInfo.isHoliday ? (
-                <div style={{ padding: "24px 0", textAlign: "center" }}>
+                <div style={{ padding: "var(--spacing-6) 0", textAlign: "center" }}>
                   <VStack gap={2} hAlign="center">
                     <Icon icon={IconMoon} size="lg" color="secondary" />
                     <Text type="large" weight="medium">
@@ -162,7 +162,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
 
               {/* 배차 목록 */}
               {dispatch.routeDispatches.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                <div style={{ textAlign: "center", padding: "var(--spacing-12) 0" }}>
                   <Text type="body" color="secondary">
                     등록된 노선이 없습니다.
                   </Text>
@@ -260,7 +260,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                                             display: "inline-flex",
                                             alignItems: "center",
                                             gap: 'var(--spacing-1-5)',
-                                            padding: "4px 8px",
+                                            padding: "var(--spacing-1) var(--spacing-2)",
                                             background: 'var(--color-background-muted)',
                                             color: 'var(--color-text-gray)',
                                             borderRadius: 'var(--radius-inner)',
@@ -295,7 +295,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
                               </div>
                             </VStack>
                           ) : (
-                            <div style={{ textAlign: "center", padding: "8px 0", color: 'var(--color-text-red)' }}>
+                            <div style={{ textAlign: "center", padding: "var(--spacing-2) 0", color: 'var(--color-text-red)' }}>
                               <Text type="body" weight="medium" color="inherit">
                                 {routeDispatch.reason || "운행 불가"}
                               </Text>

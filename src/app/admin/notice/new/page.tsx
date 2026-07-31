@@ -95,7 +95,7 @@ export default function NewNoticePage() {
             style={{
               maxWidth: 896,
               margin: '0 auto',
-              padding: '16px 24px',
+              padding: 'var(--spacing-4) var(--spacing-6)',
             }}
           >
             <HStack hAlign="between" vAlign="center" gap={4}>
@@ -128,7 +128,7 @@ export default function NewNoticePage() {
           style={{
             maxWidth: 896,
             margin: '0 auto',
-            padding: '32px 24px',
+            padding: 'var(--spacing-8) var(--spacing-6)',
           }}
         >
           <motion.div

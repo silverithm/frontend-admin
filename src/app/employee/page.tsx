@@ -13,6 +13,7 @@ import ScheduleCalendar from '@/components/ScheduleCalendar';
 import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
 import AdminDashboard from '@/components/AdminDashboard';
+import PlazaManagement from '@/components/plaza/PlazaManagement';
 import ApprovalManagement from '@/components/ApprovalManagement';
 import ApprovalTemplateManager from '@/components/ApprovalTemplateManager';
 import UserManagement from '@/components/UserManagement';
@@ -36,9 +37,12 @@ import {
   IconUsers,
   IconLogout,
   IconUser,
+  IconUsersGroup,
 } from '@tabler/icons-react';
+import { duration } from '@/theme/motion';
+import { Link } from '@astryxdesign/core/Link';
 
-type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members';
+type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza';
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
 type ScheduleSubTab = 'schedule' | 'dispatch';
 
@@ -132,6 +136,7 @@ export default function EmployeePage() {
     { key: 'schedule', label: '월간일정', icon: IconCalendar },
     { key: 'approval', label: '전자결재', icon: IconFileText },
     { key: 'work', label: '근무조정', icon: IconCalendarStats },
+    { key: 'plaza', label: '광장', icon: IconUsersGroup },
     // 권한이 있는 경우에만 회원관리 탭 표시
     ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
       { key: 'members', label: '회원관리', icon: IconUsers },
@@ -145,7 +150,7 @@ export default function EmployeePage() {
         {/* 사이드바 (데스크탑) */}
         <aside className="carev-emp-sidebar" style={{ flexDirection: 'column', width: 224, background: 'var(--color-background-card)', borderRight: '1px solid var(--color-border)', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 30 }}>
           {/* 로고 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', padding: '0 24px', height: 64, borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', padding: '0 var(--spacing-6)', height: 64, borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
             <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 'var(--radius-inner)' }} />
             <div>
               <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
@@ -154,7 +159,7 @@ export default function EmployeePage() {
           </div>
 
           {/* 네비게이션 */}
-          <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+          <nav style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
             <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
             {TABS.map((tab) => (
               <div key={tab.key}>
@@ -171,8 +176,8 @@ export default function EmployeePage() {
           </nav>
 
           {/* 사이드바 하단 */}
-          <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flexShrink: 0 }}>
-            <div style={{ padding: '8px 12px' }}>
+          <div style={{ borderTop: '1px solid var(--color-border)', padding: 'var(--spacing-3) 0', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flexShrink: 0 }}>
+            <div style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                 <Icon icon={IconUser} size="sm" color="secondary" />
                 <div style={{ minWidth: 0 }}>
@@ -193,8 +198,8 @@ export default function EmployeePage() {
         </aside>
 
         {/* 모바일 헤더 (lg 미만) */}
-        <header className="carev-emp-mobile-header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 52 }}>
+        <header className="carev-emp-mobile-header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', boxShadow: 'var(--shadow-low)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 var(--spacing-4)', height: 52 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
               <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 'var(--radius-inner)' }} />
               <div>
@@ -213,7 +218,7 @@ export default function EmployeePage() {
               />
             </div>
           </div>
-          <nav className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', padding: '0 8px', marginBottom: -1 }}>
+          <nav className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', padding: '0 var(--spacing-2)', marginBottom: -1 }}>
             {TABS.map((tab) => (
               <Button
                 key={tab.key}
@@ -239,7 +244,7 @@ export default function EmployeePage() {
           </div>
 
           {/* 메인 콘텐츠 */}
-          <main style={{ flexGrow: 1, width: '100%', padding: '16px 12px', display: 'flex', flexDirection: 'column' }}>
+          <main style={{ flexGrow: 1, width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
             {/* 알림 메시지 */}
             <AnimatePresence>
               {notification.show && (
@@ -267,7 +272,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} />
@@ -278,7 +283,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <NoticeManagement isAdmin={hasPermission('NOTICE_MANAGE')} />
@@ -289,7 +294,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} />
@@ -300,7 +305,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: duration.mediumMin }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 배차관리 권한이 있으면 서브탭 표시 */}
@@ -332,7 +337,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 결재 관리/양식 관리 권한이 있으면 서브탭 표시 */}
@@ -370,13 +375,24 @@ export default function EmployeePage() {
                     <ApprovalTemplateManager />
                   ) : null}
                 </motion.div>
+              ) : activeMainTab === 'plaza' ? (
+                <motion.div
+                  key="plaza"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: duration.fast }}
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                >
+                  <PlazaManagement />
+                </motion.div>
               ) : activeMainTab === 'work' ? (
                 <motion.div
                   key="work"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <EmployeeCalendar />
@@ -387,7 +403,7 @@ export default function EmployeePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <UserManagement
@@ -401,7 +417,7 @@ export default function EmployeePage() {
 
           {/* 푸터 */}
           <footer style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
-            <div style={{ maxWidth: 1600, margin: '0 auto', padding: '16px 24px' }}>
+            <div style={{ maxWidth: 1600, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
               <div className="carev-emp-footer-row">
                 <div className="carev-emp-footer-meta">
                   <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 (silverithm) 대표: 김준형</Text>
@@ -411,27 +427,27 @@ export default function EmployeePage() {
                   <Text as="span" type="supporting" color="secondary">서울특별시 신림동 1547-10</Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-                  <a
+                  <Link
                     href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}
                   >
                     개인정보처리방침
-                  </a>
+                  </Link>
                   <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <a
+                  <Link
                     href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}
                   >
                     이용약관
-                  </a>
+                  </Link>
                   <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <a href="mailto:ggprgrkjh@naver.com" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}>
-                    ggprgrkjh@naver.com
-                  </a>
+                  <Link href="mailto:ggprgrkjh2@gmail.com" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}>
+                    ggprgrkjh2@gmail.com
+                  </Link>
                 </div>
               </div>
             </div>

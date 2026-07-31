@@ -7,8 +7,11 @@ import { formPresets } from '@/lib/formTemplatePresets';
 import FieldTypeSelector from './FieldTypeSelector';
 import FormFieldEditor from './FormFieldEditor';
 import FormPreview from './FormPreview';
+import OfficialDocument from './OfficialDocument';
+import { ApprovalRequest } from '@/types/approval';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -35,9 +38,85 @@ import { duration } from '@/theme/motion';
 interface FormSchemaBuilderProps {
   initialSchema?: FormSchema;
   onSchemaChange: (schema: FormSchema) => void;
+  /** 공문 미리보기의 양식명/제목에 사용 (선택) */
+  templateName?: string;
 }
 
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+/** 스키마 필드별 예시 값으로 공문 미리보기용 가짜 기안을 만든다 */
+function buildSampleApproval(schema: FormSchema, templateName?: string): ApprovalRequest {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const inTwoDays = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+
+  const formData: Record<string, any> = {};
+  for (const field of schema.fields) {
+    switch (field.type) {
+      case 'section':
+        break;
+      case 'textarea':
+        formData[field.id] = '예시 내용입니다.\n실제 기안 시 작성한 내용이 이 위치에 표시됩니다.';
+        break;
+      case 'number':
+        formData[field.id] = 3;
+        break;
+      case 'date':
+        formData[field.id] = nowIso;
+        break;
+      case 'dateRange':
+        formData[field.id] = { start: nowIso, end: inTwoDays };
+        break;
+      case 'select':
+      case 'radio':
+        formData[field.id] = field.options?.[0]?.value ?? '예시';
+        break;
+      case 'checkbox':
+        formData[field.id] = field.options?.length ? [field.options[0].value] : [];
+        break;
+      case 'file':
+        formData[field.id] = { fileName: '첨부파일_예시.pdf' };
+        break;
+      default:
+        formData[field.id] = `${field.label} 예시`;
+    }
+  }
+
+  return {
+    id: 'preview',
+    templateId: 'preview',
+    templateName: templateName || '양식 미리보기',
+    title: templateName ? `(예시) ${templateName}` : '(예시) 기안 제목',
+    formData,
+    requesterId: 'preview',
+    requesterName: '홍길동',
+    status: 'PENDING',
+    createdAt: nowIso,
+    hasApprovalLine: true,
+    docNumberDisplay: '제 2026-0 호',
+    approvalLine: [
+      {
+        id: 1,
+        stepOrder: 1,
+        approverType: 'MEMBER',
+        approverId: 'preview-1',
+        approverName: '김검토',
+        roleLabel: 'REVIEWER',
+        status: 'APPROVED',
+        processedAt: nowIso,
+      },
+      {
+        id: 2,
+        stepOrder: 2,
+        approverType: 'ADMIN',
+        approverId: 'preview-2',
+        approverName: '박원장',
+        roleLabel: 'FINAL',
+        status: 'PENDING',
+      },
+    ],
+  };
+}
 
 const FIELD_TYPE_ICONS: Record<FieldType, React.ReactNode> = {
   text: <IconLetterCase size={14} stroke={1.5} />,
@@ -92,11 +171,12 @@ const DEFAULT_FIELD_BY_TYPE: Record<FieldType, Partial<FormFieldSchema>> = {
 
 const EMPTY_SCHEMA: FormSchema = { version: 1, fields: [] };
 
-export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: FormSchemaBuilderProps) {
+export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templateName }: FormSchemaBuilderProps) {
   const [schema, setSchema] = useState<FormSchema>(initialSchema ?? EMPTY_SCHEMA);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [showFieldTypeSelector, setShowFieldTypeSelector] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'document' | 'form'>('document');
   const [showPresetMenu, setShowPresetMenu] = useState(false);
 
   useEffect(() => {
@@ -431,25 +511,53 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
         )}
       </AnimatePresence>
 
-      {/* 미리보기 모달 */}
+      {/* 미리보기 모달 — 공문(기본) / 입력 양식 전환 */}
       <Dialog
         isOpen={showPreview}
         onOpenChange={(open) => { if (!open) setShowPreview(false); }}
         purpose="info"
-        width={672}
-        maxHeight="85vh"
+        width={previewMode === 'document' ? 880 : 672}
+        maxHeight="90vh"
       >
         <Layout
           header={
             <DialogHeader
               title="양식 미리보기"
-              subtitle="실제 입력 양식과 유사한 형태로 표시됩니다"
+              subtitle={previewMode === 'document'
+                ? '결재 완료 시 공문(표준 기안문) 형태 예시입니다'
+                : '직원이 작성하는 입력 양식 형태입니다'}
               onOpenChange={(open) => { if (!open) setShowPreview(false); }}
             />
           }
           content={
             <LayoutContent>
-              <FormPreview schema={schema} />
+              <VStack gap={4}>
+                <SegmentedControl
+                  value={previewMode}
+                  onChange={(value) => setPreviewMode(value as 'document' | 'form')}
+                  label="미리보기 형태"
+                >
+                  <SegmentedControlItem value="document" label="공문 미리보기" />
+                  <SegmentedControlItem value="form" label="입력 양식" />
+                </SegmentedControl>
+
+                {previewMode === 'document' ? (
+                  <div style={{ background: 'var(--color-background-muted)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-inner)', overflowX: 'auto' }}>
+                    <OfficialDocument
+                      approval={buildSampleApproval(schema, templateName)}
+                      schema={schema}
+                      companyName={
+                        typeof window !== 'undefined'
+                          ? localStorage.getItem('companyName') || localStorage.getItem('organizationName') || '기관명'
+                          : '기관명'
+                      }
+                      showPrintButton={false}
+                    />
+                  </div>
+                ) : (
+                  <FormPreview schema={schema} />
+                )}
+              </VStack>
             </LayoutContent>
           }
           footer={
