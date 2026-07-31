@@ -591,18 +591,18 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     labelLines={1}
                                     description={
                                         <VStack gap={0.5}>
-                                            <Text type="supporting" size="xsm" maxLines={1}>
+                                            <Text type="supporting" maxLines={1}>
                                                 {room.lastMessage
                                                     ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
                                                     : "메시지가 없습니다"}
                                             </Text>
-                                            <Text type="supporting" size="2xs">참여자 {room.participantCount}명</Text>
+                                            <Text type="supporting">참여자 {room.participantCount}명</Text>
                                         </VStack>
                                     }
                                     endContent={
                                         <VStack gap={1} hAlign="end">
                                             {roomTime && (
-                                                <Text type="supporting" size="2xs">
+                                                <Text type="supporting">
                                                     {formatTimestamp(roomTime)}
                                                 </Text>
                                             )}
@@ -632,7 +632,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
                                 </Text>
                                 <div>
-                                    <Text type="supporting" size="xsm">
+                                    <Text type="supporting">
                                         참여자 {rooms.find(r => r.id === selectedRoom)?.participantCount || 0}명
                                     </Text>
                                 </div>
@@ -708,17 +708,17 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                 <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isMyMessage ? "flex-end" : "flex-start" }}>
                                                     {!isMyMessage && (
                                                         <div style={{ marginBottom: 'var(--spacing-1)' }}>
-                                                            <Text type="supporting" size="xsm" weight="medium" color="primary">
+                                                            <Text type="supporting" weight="medium" color="primary">
                                                                 {message.senderName}
                                                             </Text>
                                                             {message.senderPosition && (
-                                                                <Text type="supporting" size="xsm"> ({message.senderPosition})</Text>
+                                                                <Text type="supporting"> ({message.senderPosition})</Text>
                                                             )}
                                                         </div>
                                                     )}
                                                     <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
                                                         {isMyMessage && (
-                                                            <Text type="supporting" size="2xs">
+                                                            <Text type="supporting">
                                                                 {formatMessageTime(message.createdAt)}
                                                             </Text>
                                                         )}
@@ -791,7 +791,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                             )}
                                                         </div>
                                                         {!isMyMessage && (
-                                                            <Text type="supporting" size="2xs">
+                                                            <Text type="supporting">
                                                                 {formatMessageTime(message.createdAt)}
                                                             </Text>
                                                         )}
@@ -855,10 +855,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                             <div style={{ padding: "var(--spacing-2) var(--spacing-4)", borderTop: `1px solid ${C.border}`, background: C.bgGray, display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                                 <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 'var(--spacing-2)' }}>
                                     <div>
-                                        <Text type="supporting" size="xsm" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
+                                        <Text type="supporting" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
                                     </div>
                                     <div>
-                                        <Text type="supporting" size="xsm" maxLines={1}>
+                                        <Text type="supporting" maxLines={1}>
                                             {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
                                         </Text>
                                     </div>
@@ -988,7 +988,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                         startContent={<Icon icon={FiPaperclip} size="sm" color="secondary" />}
                                                         label={m.fileName || m.content}
                                                         labelLines={1}
-                                                        description={<Text type="supporting" size="2xs">{formatMessageTime(m.createdAt)}</Text>}
+                                                        description={<Text type="supporting">{formatMessageTime(m.createdAt)}</Text>}
                                                     />
                                                 ))}
                                             </VStack>

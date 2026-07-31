@@ -154,7 +154,7 @@ export default function NoticeRollingBanner({
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}>
-              <Text type="label" size="2xs" weight="semibold" color="inherit" textWrap="nowrap">
+              <Text type="label" weight="semibold" color="inherit" textWrap="nowrap">
                 {getBadgeLabel()}
               </Text>
             </div>

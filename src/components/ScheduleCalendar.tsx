@@ -8,7 +8,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -857,7 +857,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
           </span>
           {isCurrentMonth && summary?.isHoliday && (
             <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)' }}>
-              <Text type="supporting" size="4xs" color="inherit" weight="medium">{summary.holidayName}</Text>
+              <Text type="supporting" color="inherit" weight="medium">{summary.holidayName}</Text>
             </div>
           )}
           {isCurrentMonth && summary && !summary.isHoliday && summary.totalRoutes > 0 && (
@@ -865,26 +865,26 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
               {summary.normalCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-green)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-green)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
-                  <Text type="supporting" size="4xs" color="inherit">{summary.normalCount} 정상</Text>
+                  <Text type="supporting" color="inherit">{summary.normalCount} 정상</Text>
                 </div>
               )}
               {summary.substituteCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-yellow)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-yellow)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
-                  <Text type="supporting" size="4xs" color="inherit">{summary.substituteCount} 대체</Text>
+                  <Text type="supporting" color="inherit">{summary.substituteCount} 대체</Text>
                 </div>
               )}
               {summary.noServiceCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-red)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
-                  <Text type="supporting" size="4xs" color="inherit">{summary.noServiceCount} 미운행</Text>
+                  <Text type="supporting" color="inherit">{summary.noServiceCount} 미운행</Text>
                 </div>
               )}
             </div>
           )}
           {isCurrentMonth && !summary?.isHoliday && (!summary || summary.totalRoutes === 0) && (
             <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-              <Text type="supporting" size="4xs" color="inherit">미설정</Text>
+              <Text type="supporting" color="inherit">미설정</Text>
             </div>
           )}
         </div>
@@ -925,7 +925,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
         </div>
         {hiddenCount > 0 && (
           <div style={{ position: 'absolute', bottom: 'var(--spacing-1)', left: 'var(--spacing-2)', right: 'var(--spacing-2)', color: 'var(--color-text-secondary)' }}>
-            <Text type="supporting" size="4xs" color="inherit" weight="medium">+{hiddenCount}개</Text>
+            <Text type="supporting" color="inherit" weight="medium">+{hiddenCount}개</Text>
           </div>
         )}
       </button>
@@ -1123,9 +1123,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             {/* 캘린더 그리드 */}
             <div className="carev-schedcal-scroll">
             {isLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-10) 0' }}>
-                <Spinner size="lg" aria-label="달력 불러오는 중" />
-              </div>
+              <Loading label="달력을 불러오는 중..." />
             ) : isDispatchMode ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
                 {calendarDays.map((date, index) =>
@@ -1183,7 +1181,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             >
                               {bar.continuesBefore && (
                                 <span style={{ flexShrink: 0, marginRight: 'var(--spacing-1)', lineHeight: 'var(--text-display-1-leading)' }}>
-                                  <Text type="supporting" size="4xs" color="inherit" weight="bold">◀</Text>
+                                  <Text type="supporting" color="inherit" weight="bold">◀</Text>
                                 </span>
                               )}
                               {isDone && (
@@ -1192,13 +1190,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                 </span>
                               )}
                               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textDecoration: isDone ? 'line-through' : 'none' }}>
-                                <Text type="supporting" size="4xs" color="inherit" weight="medium" maxLines={1}>
+                                <Text type="supporting" color="inherit" weight="medium" maxLines={1}>
                                   {bar.schedule.title}
                                 </Text>
                               </span>
                               {bar.continuesAfter && (
                                 <span style={{ flexShrink: 0, marginLeft: 'var(--spacing-1)', lineHeight: 'var(--text-display-1-leading)' }}>
-                                  <Text type="supporting" size="4xs" color="inherit" weight="bold">▶</Text>
+                                  <Text type="supporting" color="inherit" weight="bold">▶</Text>
                                 </span>
                               )}
                             </button>

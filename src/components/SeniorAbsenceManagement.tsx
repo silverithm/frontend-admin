@@ -192,7 +192,7 @@ export default function SeniorAbsenceManagement() {
               <div style={{ marginBottom: 'var(--spacing-6)' }}>
                 <HStack gap={0} hAlign="between" vAlign="center">
                   <VStack gap={0.5} vAlign="start">
-                    <Text type="large" weight="bold" size="xl">{selectedSenior.name}</Text>
+                    <Text type="large" weight="bold">{selectedSenior.name}</Text>
                     <Text type="supporting" color="secondary">
                       결석 일수: <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-red)' }}>{selectedSeniorAbsenceDates.size}일</span>
                     </Text>

@@ -9,7 +9,7 @@ import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading } from "@/components/Loading";
 import { IconCalendar, IconList, IconUsers, IconSettings } from "@tabler/icons-react";
 import { useDispatchStore } from "@/lib/dispatchStore";
 import type { DailyDispatch, DispatchDaySummary } from "@/types/dispatch";
@@ -107,9 +107,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
   if (!isHydrated) {
     return (
-      <HStack width="100%" height={256} hAlign="center" vAlign="center">
-        <Spinner size="lg" aria-label="불러오는 중" />
-      </HStack>
+      <Loading label="배차 정보를 불러오는 중..." />
     );
   }
 
@@ -154,7 +152,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
             <StackItem size="fill">
               <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                 <VStack gap={1} hAlign="center">
-                  <Text size="2xl" weight="bold">{settings.routes.length}</Text>
+                  <Text type="display-3" weight="bold">{settings.routes.length}</Text>
                   <Text type="supporting">노선</Text>
                 </VStack>
               </div>
@@ -162,7 +160,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
             <StackItem size="fill">
               <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                 <VStack gap={1} hAlign="center">
-                  <Text size="2xl" weight="bold">{settings.seniors.length}</Text>
+                  <Text type="display-3" weight="bold">{settings.seniors.length}</Text>
                   <Text type="supporting">어르신</Text>
                 </VStack>
               </div>

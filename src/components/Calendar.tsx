@@ -250,7 +250,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                                 boxShadow: 'var(--shadow-low)',
                               }}
                             >
-                              <Text type="supporting" size="2xs" weight="semibold" color="inherit">{dayInfo.vacationCount}</Text>
+                              <Text type="supporting" weight="semibold" color="inherit">{dayInfo.vacationCount}</Text>
                             </div>
                           )}
                         </div>
@@ -269,14 +269,14 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                                   color: 'var(--color-text-red)',
                                 }}
                               >
-                                <Text type="supporting" size="2xs" weight="medium" color="inherit" maxLines={1}>
+                                <Text type="supporting" weight="medium" color="inherit" maxLines={1}>
                                   {vacation.userName}
                                 </Text>
                               </div>
                             ))}
                             {dayInfo.vacationCount > 2 && (
                               <div style={{ marginTop: 'var(--spacing-1)', color: 'var(--color-text-gray)' }}>
-                                <Text type="supporting" size="2xs" weight="medium" color="inherit">
+                                <Text type="supporting" weight="medium" color="inherit">
                                   +{dayInfo.vacationCount - 2}명
                                 </Text>
                               </div>
@@ -319,11 +319,11 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1-5)' }}>
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 'var(--radius-full)', background: 'var(--color-background-teal)' }} />
-          <Text type="supporting" size="2xs" color="secondary">오늘</Text>
+          <Text type="supporting" color="secondary">오늘</Text>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1-5)' }}>
           <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }} />
-          <Text type="supporting" size="2xs" color="secondary">휴가신청</Text>
+          <Text type="supporting" color="secondary">휴가신청</Text>
         </div>
       </div>
     </div>

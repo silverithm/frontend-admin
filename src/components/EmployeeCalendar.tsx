@@ -8,7 +8,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -363,9 +363,7 @@ export default function EmployeeCalendar() {
 
           {/* 캘린더 그리드 */}
           {isLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-10) 0' }}>
-              <Spinner size="lg" aria-label="달력 불러오는 중" />
-            </div>
+            <Loading label="달력을 불러오는 중..." />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
               {calendarDays.map((date, index) => {
@@ -443,7 +441,7 @@ export default function EmployeeCalendar() {
                           const isFull = currentCount >= maxPeople;
                           return (
                             <div style={{ padding: '0 var(--spacing-1)', color: isFull ? 'var(--color-text-red)' : 'var(--color-text-primary)' }}>
-                              <Text type="supporting" size="4xs" color="inherit">{currentCount}/{maxPeople}명</Text>
+                              <Text type="supporting" color="inherit">{currentCount}/{maxPeople}명</Text>
                             </div>
                           );
                         }
@@ -488,7 +486,6 @@ export default function EmployeeCalendar() {
                                 <span style={{ minWidth: 0, overflow: 'hidden' }}>
                                   <Text
                                     type="supporting"
-                                    size="4xs"
                                     color="inherit"
                                     weight={vacation.userName === userName ? 'semibold' : 'normal'}
                                     maxLines={1}
@@ -497,22 +494,22 @@ export default function EmployeeCalendar() {
                                   </Text>
                                 </span>
                                 {isValidDuration(vacation.duration) && (
-                                  <Text type="supporting" size="4xs" color="secondary">
+                                  <Text type="supporting" color="secondary">
                                     {getDurationShortText(vacation.duration)}
                                   </Text>
                                 )}
                                 {vacation.type === 'mandatory' && (
-                                  <Text type="supporting" size="4xs" color="secondary">필</Text>
+                                  <Text type="supporting" color="secondary">필</Text>
                                 )}
                                 {isSubstituteVacation(vacation.type) && (
-                                  <Text type="supporting" size="4xs" color="secondary">대</Text>
+                                  <Text type="supporting" color="secondary">대</Text>
                                 )}
                               </span>
                             </div>
                           ))}
                           {!isExpanded && vacations.length > 3 && (
                             <div style={{ marginTop: 'var(--spacing-0-5)', color: 'var(--color-text-secondary)' }}>
-                              <Text type="supporting" size="4xs" color="inherit" weight="medium">+{vacations.length - 3}명 더</Text>
+                              <Text type="supporting" color="inherit" weight="medium">+{vacations.length - 3}명 더</Text>
                             </div>
                           )}
                         </div>
