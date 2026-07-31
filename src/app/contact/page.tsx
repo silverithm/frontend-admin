@@ -20,6 +20,7 @@ import { Link } from '@astryxdesign/core/Link';
 import Navbar from '@/components/Navbar';
 import { duration } from '@/theme/motion';
 import { submitContactInquiry } from '@/lib/apiService';
+import InquirySubmittedDialog from '@/components/InquirySubmittedDialog';
 
 const CONTACT_EMAIL = 'ggprgrkjh2@gmail.com';
 
@@ -100,25 +101,6 @@ export default function ContactPage() {
                                 </Text>
                             </VStack>
 
-                            {isSubmitted ? (
-                                <Card padding={8}>
-                                    <VStack gap={4} hAlign="center">
-                                        <Banner
-                                            status="success"
-                                            title="문의가 접수되었습니다"
-                                            description="확인 후 남겨주신 이메일로 답변드리겠습니다."
-                                        />
-                                        <HStack gap={2} hAlign="center" wrap="wrap">
-                                            <Button
-                                                label="다시 작성하기"
-                                                variant="secondary"
-                                                onClick={() => setIsSubmitted(false)}
-                                            />
-                                            <Button label="홈으로" variant="ghost" href="/" />
-                                        </HStack>
-                                    </VStack>
-                                </Card>
-                            ) : (
                                 <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={6}>
                                     <Card padding={6}>
                                         <form onSubmit={handleSubmit}>
@@ -246,11 +228,22 @@ export default function ContactPage() {
                                         </StackItem>
                                     </VStack>
                                 </Grid>
-                            )}
                         </VStack>
                     </motion.div>
                 </div>
             </Section>
+
+            {/* 접수 완료 — 폼 자리를 배너로 바꾸는 대신 화면 위에 모달로 알린다 */}
+            <InquirySubmittedDialog
+                isOpen={isSubmitted}
+                title="문의가 접수되었습니다"
+                description="확인 후 남겨주신 이메일로 답변드리겠습니다."
+                onWriteAgain={() => {
+                    setIsSubmitted(false);
+                    setForm({ name: '', email: '', organization: '', phone: '', inquiryType: '도입 문의', message: '' });
+                    setPrivacyAgreed(false);
+                }}
+            />
         </main>
     );
 }

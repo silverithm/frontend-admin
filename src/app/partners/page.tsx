@@ -36,6 +36,7 @@ import {
 } from '@/lib/partnerAds';
 import { duration } from '@/theme/motion';
 import { submitContactInquiry } from '@/lib/apiService';
+import InquirySubmittedDialog from '@/components/InquirySubmittedDialog';
 
 const container = (maxWidth = 1152): React.CSSProperties => ({
     width: '100%',
@@ -200,27 +201,8 @@ export default function PartnersPage() {
                             </Text>
                         </VStack>
 
-                        {isSubmitted ? (
-                            <Card padding={8}>
-                                <VStack gap={4} hAlign="center">
-                                    <Banner
-                                        status="success"
-                                        title="광고 문의가 접수되었습니다"
-                                        description="확인 후 남겨주신 이메일로 답변드리겠습니다."
-                                    />
-                                    <HStack gap={2} hAlign="center" wrap="wrap">
-                                        <Button
-                                            label="다시 작성하기"
-                                            variant="secondary"
-                                            onClick={() => setIsSubmitted(false)}
-                                        />
-                                        <Button label="홈으로" variant="ghost" href="/" />
-                                    </HStack>
-                                </VStack>
-                            </Card>
-                        ) : (
-                            // 폼과 안내를 세로로 쌓는다. 좌우 2단으로 두면 폼이 훨씬 길어
-                            // 오른쪽 컬럼 아래가 크게 비어 보인다.
+                        {/* 폼과 안내를 세로로 쌓는다. 좌우 2단으로 두면 폼이 훨씬 길어
+                            오른쪽 컬럼 아래가 크게 비어 보인다. */}
                             <VStack gap={6}>
                                 <Card padding={6}>
                                     <form onSubmit={handleSubmit}>
@@ -376,10 +358,21 @@ export default function PartnersPage() {
                                     </Card>
                                 </Grid>
                             </VStack>
-                        )}
                     </VStack>
                 </div>
             </Section>
+
+            {/* 접수 완료 — 폼 자리를 배너로 바꾸는 대신 화면 위에 모달로 알린다 */}
+            <InquirySubmittedDialog
+                isOpen={isSubmitted}
+                title="광고 문의가 접수되었습니다"
+                description="확인 후 남겨주신 이메일로 답변드리겠습니다."
+                onWriteAgain={() => {
+                    setIsSubmitted(false);
+                    setForm({ organization: '', organizationType: '', name: '', email: '', phone: '', website: '', message: '' });
+                    setPrivacyAgreed(false);
+                }}
+            />
         </main>
     );
 }
