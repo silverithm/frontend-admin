@@ -1,6 +1,8 @@
 'use client';
 
 import { FieldType } from '@/types/formSchema';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -48,46 +50,24 @@ const FIELD_TYPE_OPTIONS: FieldTypeOption[] = [
 
 export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelectorProps) {
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--spacing-4)',
-        background: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 50,
-      }}
+    // Dialog가 backdrop·ESC·포커스 트랩을 처리한다
+    <Dialog
+      isOpen
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      purpose="form"
+      width={400}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: 384,
-          padding: 'var(--spacing-5)',
-          background: 'var(--color-background-card)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-container)',
-          boxShadow: 'var(--shadow-high)',
-        }}
-      >
-        <HStack hAlign="between" vAlign="center">
-          <Text type="large" weight="semibold">필드 유형 선택</Text>
-          <IconButton
-            label="닫기"
-            variant="ghost"
-            size="sm"
-            icon={<Icon icon="close" size="sm" />}
-            onClick={onClose}
+      <Layout
+        header={
+          <DialogHeader
+            title="필드 유형 선택"
+            onOpenChange={(open) => { if (!open) onClose(); }}
           />
-        </HStack>
-
+        }
+        content={
+          <LayoutContent>
         <div
           style={{
-            marginTop: 'var(--spacing-4)',
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: 'var(--spacing-2)',
@@ -120,7 +100,9 @@ export default function FieldTypeSelector({ onSelect, onClose }: FieldTypeSelect
             </button>
           ))}
         </div>
-      </div>
-    </div>
+          </LayoutContent>
+        }
+      />
+    </Dialog>
   );
 }

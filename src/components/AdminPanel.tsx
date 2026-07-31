@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { VacationLimit, DayInfo } from "@/types/vacation";
 import type { Position } from "@/types/position";
 import {
@@ -216,45 +218,43 @@ const AdminPanel = ({
     }));
 
   return (
-    <Card
-      width="100%"
-      maxWidth={768}
-      padding={6}
-      style={{ maxHeight: "90vh", overflow: "auto" }}
+    // Dialog가 backdrop·ESC·포커스 트랩을 처리한다. 호출부에서 오버레이를 만들지 않는다.
+    <Dialog
+      isOpen
+      onOpenChange={(open) => { if (!open && !isBusy) onClose(); }}
+      purpose="form"
+      width={768}
     >
+      <Layout
+        header={
+          <DialogHeader
+            title="휴가 제한 설정"
+            onOpenChange={(open) => { if (!open && !isBusy) onClose(); }}
+          />
+        }
+        content={
+          <LayoutContent>
       <VStack gap={4}>
-        {/* 헤더 */}
-        <VStack gap={4}>
-          <HStack hAlign="between" vAlign="center">
-            <HStack gap={3} vAlign="center">
-              <IconButton
-                label="이전 달"
-                icon={<Icon icon="chevronLeft" />}
-                variant="secondary"
-                onClick={() => setPanelDate((prev) => subMonths(prev, 1))}
-                isDisabled={isBusy}
-              />
-              <Heading level={2}>
-                {format(panelDate, "yyyy년 MM월", { locale: ko })} 휴가 제한 설정
-              </Heading>
-              <IconButton
-                label="다음 달"
-                icon={<Icon icon="chevronRight" />}
-                variant="secondary"
-                onClick={() => setPanelDate((prev) => addMonths(prev, 1))}
-                isDisabled={isBusy}
-              />
-            </HStack>
-            <IconButton
-              label="닫기"
-              icon={<Icon icon="close" />}
-              variant="ghost"
-              onClick={onClose}
-              isDisabled={isBusy}
-            />
-          </HStack>
-          <Divider />
-        </VStack>
+        {/* 월 이동 */}
+        <HStack gap={3} vAlign="center" hAlign="center">
+          <IconButton
+            label="이전 달"
+            icon={<Icon icon="chevronLeft" />}
+            variant="secondary"
+            onClick={() => setPanelDate((prev) => subMonths(prev, 1))}
+            isDisabled={isBusy}
+          />
+          <Heading level={2}>
+            {format(panelDate, "yyyy년 MM월", { locale: ko })}
+          </Heading>
+          <IconButton
+            label="다음 달"
+            icon={<Icon icon="chevronRight" />}
+            variant="secondary"
+            onClick={() => setPanelDate((prev) => addMonths(prev, 1))}
+            isDisabled={isBusy}
+          />
+        </HStack>
 
         {error && <Banner status="error" title={error} />}
         {message && message.type === "success" && (
@@ -340,24 +340,30 @@ const AdminPanel = ({
           )}
         </div>
 
-        {/* 푸터 */}
-        <HStack gap={2} hAlign="end">
-          <Button
-            label="취소"
-            variant="secondary"
-            onClick={onClose}
-            isDisabled={isBusy}
-          />
-          <Button
-            label="저장"
-            variant="primary"
-            onClick={saveChanges}
-            isLoading={isBusy}
-            isDisabled={isBusy || availableRoles.length === 0}
-          />
-        </HStack>
       </VStack>
-    </Card>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label="취소"
+                variant="secondary"
+                onClick={onClose}
+                isDisabled={isBusy}
+              />
+              <Button
+                label="저장"
+                variant="primary"
+                onClick={saveChanges}
+                isLoading={isBusy}
+                isDisabled={isBusy || availableRoles.length === 0}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 };
 

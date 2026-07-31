@@ -1600,20 +1600,6 @@ export default function AdminPage() {
                 <>
                 <AnimatePresence>
                     {showDetails && selectedDate && (
-                        <motion.div
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 'var(--spacing-4)', background: "rgba(0,0,0,0.5)" }}
-                            onClick={handleCloseDetails}
-                        >
-                            <motion.div
-                                initial={{scale: 0.95}}
-                                animate={{scale: 1}}
-                                exit={{scale: 0.95}}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ width: "100%", maxWidth: 448 }}
-                            >
                                 <VacationDetails
                                     date={selectedDate}
                                     vacations={dateVacations}
@@ -1633,33 +1619,16 @@ export default function AdminPage() {
                                     roleOptions={availableRoles}
                                     memberRoleLookup={memberRoleLookup}
                                 />
-                            </motion.div>
-                        </motion.div>
                     )}
 
                     {showLimitPanel && (
-                        <motion.div
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            style={{ position: "fixed", inset: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", padding: 'var(--spacing-4)', background: "rgba(0,0,0,0.5)" }}
-                            onClick={handleCloseLimitPanel}
-                        >
-                            <motion.div
-                                initial={{scale: 0.95}}
-                                animate={{scale: 1}}
-                                exit={{scale: 0.95}}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <AdminPanel
-                                    currentDate={currentDate}
-                                    onClose={handleCloseLimitPanel}
-                                    onUpdateSuccess={fetchMonthData}
-                                    vacationLimits={vacationLimits}
-                                    vacationDays={vacationDays}
-                                />
-                            </motion.div>
-                        </motion.div>
+                        <AdminPanel
+                            currentDate={currentDate}
+                            onClose={handleCloseLimitPanel}
+                            onUpdateSuccess={fetchMonthData}
+                            vacationLimits={vacationLimits}
+                            vacationDays={vacationDays}
+                        />
                     )}
 
                 </AnimatePresence>

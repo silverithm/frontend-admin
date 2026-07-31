@@ -1127,39 +1127,23 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
       </motion.div>
 
-      {/* 날짜별 일정 목록 팝업 */}
-      {showDaySchedules && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-4)' }} onClick={() => setShowDaySchedules(false)}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }} />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: duration.fast }}
-            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: 'var(--spacing-4) var(--spacing-6)', color: 'var(--color-on-accent)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text type="large" weight="bold" color="inherit">
-                  {isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
-                </Text>
-                <IconButton
-                  label="닫기"
-                  variant="ghost"
-                  size="sm"
-                  icon={<Icon icon={IconX} size="md" color="inherit" />}
-                  onClick={() => setShowDaySchedules(false)}
-                  style={{ color: 'var(--color-on-accent)' }}
-                />
-              </div>
-              <div style={{ marginTop: 'var(--spacing-1)' }}>
-                <Text type="supporting" color="inherit">
-                  총 {selectedSchedules.length}개의 일정 · 완료 {selectedSchedules.filter((s) => s.isCompleted).length}개
-                </Text>
-              </div>
-            </div>
-
-            <div style={{ padding: 'var(--spacing-4) var(--spacing-6)', maxHeight: '50vh', overflowY: 'auto' }}>
+      {/* 날짜별 일정 목록 */}
+      <Dialog
+        isOpen={showDaySchedules}
+        onOpenChange={(open) => { if (!open) setShowDaySchedules(false); }}
+        purpose="info"
+        width={480}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title={isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
+              subtitle={`총 ${selectedSchedules.length}개의 일정 · 완료 ${selectedSchedules.filter((s) => s.isCompleted).length}개`}
+              onOpenChange={(open) => { if (!open) setShowDaySchedules(false); }}
+            />
+          }
+          content={
+            <LayoutContent>
               {selectedSchedules.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-3)', padding: 'var(--spacing-8) 0' }}>
                   <EmptyState
@@ -1226,26 +1210,29 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   ))}
                 </VStack>
               )}
-            </div>
-
-            <div style={{ padding: 'var(--spacing-3) var(--spacing-6)', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Button
-                label="월간일정 전체보기"
-                variant="ghost"
-                onClick={() => {
-                  setShowDaySchedules(false);
-                  onTabChange('schedule');
-                }}
-              />
-              <Button
-                label="닫기"
-                variant="secondary"
-                onClick={() => setShowDaySchedules(false)}
-              />
-            </div>
-          </motion.div>
-        </div>
-      )}
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="between" vAlign="center">
+                <Button
+                  label="월간일정 전체보기"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowDaySchedules(false);
+                    onTabChange('schedule');
+                  }}
+                />
+                <Button
+                  label="닫기"
+                  variant="secondary"
+                  onClick={() => setShowDaySchedules(false)}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
 
       {/* 일정 상세 — 월간일정(ScheduleCalendar)과 같은 Astryx Dialog를 쓴다.
           Dialog가 backdrop·ESC·포커스 트랩·애니메이션을 자체 처리한다. */}

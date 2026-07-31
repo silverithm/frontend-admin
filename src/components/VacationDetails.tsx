@@ -220,31 +220,15 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        style={{
-          width: '100%',
-          maxWidth: 448,
-          borderRadius: 'var(--radius-container)',
-          overflow: 'hidden',
-          background: 'var(--color-background-card)',
-          boxShadow: 'var(--shadow-high)',
-        }}
+      {/* Dialog가 backdrop·ESC·포커스 트랩을 처리한다. 호출부에서 오버레이를 만들지 않는다. */}
+      <Dialog
+        isOpen
+        onOpenChange={(open) => { if (!open) onClose(); }}
+        purpose="form"
+        width={480}
       >
         {isLoading ? (
-          <div
-            style={{
-              minHeight: 200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--spacing-8)',
-            }}
-          >
-            <Loading label="휴무 정보를 불러오는 중..." />
-          </div>
+          <Loading label="휴무 정보를 불러오는 중..." />
         ) : showForm ? (
           <VacationForm
             initialDate={date}
@@ -256,70 +240,16 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
             roleOptions={roleOptions}
           />
         ) : (
-          <>
-            {/* 헤더 (브랜드 그라데이션) */}
-            <div
-              style={{
-                padding: 'var(--spacing-6)',
-                background: 'linear-gradient(to right, #14b8a6, #0d9488)',
-                color: 'var(--color-on-accent)',
-              }}
-            >
-              <HStack hAlign="between" vAlign="center">
-                <HStack gap={2} vAlign="center">
-                  <span
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.2)',
-                      padding: 'var(--spacing-2)',
-                      borderRadius: 'var(--radius-inner)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <FiCalendar size={18} />
-                  </span>
-                  <Text type="large" weight="bold" color="inherit">휴무 상세 정보</Text>
-                </HStack>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="닫기"
-                  className="carev-vacdetails-icon-btn"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    padding: 'var(--spacing-2)',
-                    borderRadius: 'var(--radius-full)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <FiX size={20} />
-                </button>
-              </HStack>
-
-              <div
-                style={{
-                  marginTop: 'var(--spacing-5)',
-                  padding: 'var(--spacing-4)',
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: 'var(--radius-inner)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  textAlign: 'center',
-                }}
-              >
-                <Text type="large" weight="medium" color="inherit">
-                  {date && format(date, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })}
-                </Text>
-              </div>
-            </div>
-
-            {/* 본문 */}
-            <div style={{ padding: 'var(--spacing-6)' }}>
+          <Layout
+            header={
+              <DialogHeader
+                title="휴무 상세 정보"
+                subtitle={date ? format(date, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko }) : undefined}
+                onOpenChange={(open) => { if (!open) onClose(); }}
+              />
+            }
+            content={
+              <LayoutContent>
               <VStack gap={5}>
                 <HStack hAlign="between" vAlign="center">
                   <HStack gap={2} vAlign="center">
@@ -453,10 +383,11 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                   />
                 )}
               </VStack>
-            </div>
-          </>
+              </LayoutContent>
+            }
+          />
         )}
-      </motion.div>
+      </Dialog>
 
       {/* 삭제 확인 모달 */}
       <Dialog
