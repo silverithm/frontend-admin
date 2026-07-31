@@ -9,6 +9,8 @@ import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Center } from '@astryxdesign/core/Center';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { IconClock, IconDownload, IconFlame, IconFolder, IconNews, IconPinned } from '@tabler/icons-react';
 import type { TablerIcon } from '@tabler/icons-react';
@@ -49,7 +51,8 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    // 콜드스타트 등으로 첫 요청이 실패하면 "글이 없다"로 오인되지 않도록 잠시 후 1회 재시도
+    const load = async (attempt: number) => {
       const [popularRes, latestRes, libraryRes] = await Promise.allSettled([
         fetchPosts({ sort: 'popular', size: 20 }),
         fetchPosts({ sort: 'latest', size: 20 }),
@@ -59,7 +62,15 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
       if (popularRes.status === 'fulfilled') setPopular(popularRes.value.content ?? []);
       if (latestRes.status === 'fulfilled') setLatest(latestRes.value.content ?? []);
       if (libraryRes.status === 'fulfilled') setLibrary(libraryRes.value.content ?? []);
-    })();
+
+      const anyFailed = [popularRes, latestRes, libraryRes].some((r) => r.status === 'rejected');
+      if (anyFailed && attempt < 1) {
+        setTimeout(() => {
+          if (!cancelled) load(attempt + 1);
+        }, 2000);
+      }
+    };
+    load(0);
     return () => {
       cancelled = true;
     };
@@ -149,9 +160,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
             <WidgetHeader icon={IconClock} title="최신글" onMore={() => onNavigate('all')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {latest.length === 0 ? (
-                <div style={{ padding: 'var(--spacing-3)' }}>
-                  <Text type="supporting" color="secondary">아직 게시글이 없습니다.</Text>
-                </div>
+                /* 위젯은 공간이 좁아 isCompact를 쓰고, 남는 높이 안에서 가운데 정렬한다 */
+                <Center height="100%">
+                  <EmptyState isCompact title="아직 게시글이 없습니다" />
+                </Center>
               ) : (
                 <VStack gap={0}>{latest.map(renderPostRow)}</VStack>
               )}
