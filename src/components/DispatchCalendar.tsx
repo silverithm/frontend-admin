@@ -133,7 +133,7 @@ export default function DispatchCalendar({
                     display: "inline-block",
                     width: 12,
                     height: 12,
-                    borderRadius: "50%",
+                    borderRadius: 'var(--radius-full)',
                     background: item.color,
                   }}
                 />
@@ -208,7 +208,7 @@ export default function DispatchCalendar({
               ? {
                   width: 28,
                   height: 28,
-                  borderRadius: "50%",
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--color-background-teal)',
                   color: 'var(--color-text-teal)',
                 }
@@ -238,7 +238,7 @@ export default function DispatchCalendar({
                 background: isCurrentMonth ? statusColors.bg : 'var(--color-background-muted)',
                 border: `1px solid ${isCurrentMonth ? statusColors.border : "var(--color-border)"}`,
                 boxShadow: isToday
-                  ? "0 0 0 1px #fff, 0 0 0 3px #2dd4bf"
+                  ? '0 0 0 1px var(--color-on-accent), 0 0 0 3px var(--color-border-teal)'
                   : undefined,
                 cursor: isCurrentMonth ? "pointer" : "default",
                 opacity: isCurrentMonth ? 1 : 0.5,
@@ -309,7 +309,7 @@ const dotStyle = (bg: string): CSSProperties => ({
   display: "inline-block",
   width: 8,
   height: 8,
-  borderRadius: "50%",
+  borderRadius: 'var(--radius-full)',
   background: bg,
   flexShrink: 0,
 });

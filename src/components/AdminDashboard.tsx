@@ -1077,14 +1077,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                       gap: 'var(--spacing-0-5)',
                                       flexShrink: 0,
                                       overflow: 'hidden',
-                                      borderRadius: 3,
+                                      borderRadius: 'var(--radius-inner)',
                                       border: done ? `1px solid ${color}` : 'none',
                                       background: done ? withAlpha(color, 0.14) : color,
                                       padding: '1px var(--spacing-1)',
                                       fontSize: 'var(--font-size-xs)',
                                       fontWeight: 'var(--font-weight-medium)',
                                       lineHeight: '16px',
-                                      color: done ? color : '#fff',
+                                      color: done ? color : 'var(--color-on-accent)',
                                       opacity: done ? 0.85 : 0.9,
                                     }}
                                   >
@@ -1117,7 +1117,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: 'var(--spacing-4) var(--spacing-6)', color: '#fff' }}>
+            <div style={{ background: 'linear-gradient(90deg, #10b981, #14b8a6)', padding: 'var(--spacing-4) var(--spacing-6)', color: 'var(--color-on-accent)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text type="large" weight="bold" color="inherit">
                   {isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
@@ -1128,7 +1128,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   size="sm"
                   icon={<Icon icon={IconX} size="md" color="inherit" />}
                   onClick={() => setShowDaySchedules(false)}
-                  style={{ color: '#fff' }}
+                  style={{ color: 'var(--color-on-accent)' }}
                 />
               </div>
               <div style={{ marginTop: 'var(--spacing-1)' }}>
@@ -1233,7 +1233,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
-            <div style={{ background: `linear-gradient(90deg, ${getScheduleColor(selectedSchedule)}, ${withAlpha(getScheduleColor(selectedSchedule), 0.75)})`, padding: 'var(--spacing-4) var(--spacing-6)', color: '#fff' }}>
+            <div style={{ background: `linear-gradient(90deg, ${getScheduleColor(selectedSchedule)}, ${withAlpha(getScheduleColor(selectedSchedule), 0.75)})`, padding: 'var(--spacing-4) var(--spacing-6)', color: 'var(--color-on-accent)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                   {selectedSchedule.category && (
@@ -1252,7 +1252,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   size="sm"
                   icon={<Icon icon={IconX} size="md" color="inherit" />}
                   onClick={() => setSelectedSchedule(null)}
-                  style={{ color: '#fff' }}
+                  style={{ color: 'var(--color-on-accent)' }}
                 />
               </div>
               <div style={{ marginTop: 'var(--spacing-2)' }}>

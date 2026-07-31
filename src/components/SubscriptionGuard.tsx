@@ -150,7 +150,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                   height: 48,
                   borderRadius: 'var(--radius-full)',
                   backgroundColor: 'var(--color-background-red)',
-                  border: '1px solid #fecaca',
+                  border: '1px solid var(--color-border-red)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -172,7 +172,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
                 style={{
                   width: '100%',
                   backgroundColor: 'var(--color-background-teal)',
-                  border: '1px solid #96f2d7',
+                  border: '1px solid var(--color-border-teal)',
                   borderRadius: 'var(--radius-element)',
                   padding: 'var(--spacing-4)',
                 }}

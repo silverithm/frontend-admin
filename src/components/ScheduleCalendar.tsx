@@ -79,7 +79,7 @@ const CARD_STYLE: CSSProperties = {
 const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   width: 28,
   height: 28,
-  borderRadius: '50%',
+  borderRadius: 'var(--radius-full)',
   padding: 'var(--spacing-0)',
   cursor: 'pointer',
   border: selected ? '2px solid var(--color-border-emphasized)' : '2px solid transparent',
@@ -805,7 +805,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
         color: 'var(--color-text-teal)',
         width: 28,
         height: 28,
-        borderRadius: '50%',
+        borderRadius: 'var(--radius-full)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -864,19 +864,19 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             <div style={{ marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)' }}>
               {summary.normalCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-green)' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-green)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-green)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
                   <Text type="supporting" size="4xs" color="inherit">{summary.normalCount} 정상</Text>
                 </div>
               )}
               {summary.substituteCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-yellow)' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-yellow)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-yellow)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
                   <Text type="supporting" size="4xs" color="inherit">{summary.substituteCount} 대체</Text>
                 </div>
               )}
               {summary.noServiceCount > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-red)' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-background-red)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)', marginRight: 'var(--spacing-1)', flexShrink: 0 }} />
                   <Text type="supporting" size="4xs" color="inherit">{summary.noServiceCount} 미운행</Text>
                 </div>
               )}
@@ -1013,19 +1013,19 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       {/* 배차 범례 */}
                       <HStack gap={3} vAlign="center">
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-green)' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-green)' }} />
                           <Text type="supporting" color="secondary">정상</Text>
                         </HStack>
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-yellow)' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-yellow)' }} />
                           <Text type="supporting" color="secondary">대체</Text>
                         </HStack>
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-red)' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }} />
                           <Text type="supporting" color="secondary">운행없음</Text>
                         </HStack>
                         <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-background-muted)' }} />
+                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)' }} />
                           <Text type="supporting" color="secondary">휴일</Text>
                         </HStack>
                       </HStack>
@@ -1072,14 +1072,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 <div style={{ marginTop: 'var(--spacing-3)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
                   {labels.map((label) => (
                     <HStack key={label.id} gap={1} vAlign="center">
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: label.color }} />
+                      <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: label.color }} />
                       <Text type="supporting" color="secondary">{label.name}</Text>
                     </HStack>
                   ))}
                   {labels.length > 0 && <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />}
                   {SCHEDULE_CATEGORIES.map((cat) => (
                     <HStack key={cat.value} gap={1} vAlign="center">
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
+                      <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
                       <Text type="supporting" color="secondary">{cat.label}</Text>
                     </HStack>
                   ))}
@@ -1151,8 +1151,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           const leftInset = bar.continuesBefore ? 0 : BAR_EDGE_INSET;
                           const rightInset = bar.continuesAfter ? 0 : BAR_EDGE_INSET;
                           const spanDays = bar.endCol - bar.startCol + 1;
-                          const startRadius = bar.continuesBefore ? 0 : 3;
-                          const endRadius = bar.continuesAfter ? 0 : 3;
+                          const startRadius = bar.continuesBefore ? '0' : 'var(--radius-inner)';
+                          const endRadius = bar.continuesAfter ? '0' : 'var(--radius-inner)';
                           const barColor = getScheduleColor(bar.schedule);
                           const isDone = !!bar.schedule.isCompleted;
                           return (
@@ -1170,9 +1170,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                 alignItems: 'center',
                                 padding: '0 var(--spacing-1-5)',
                                 border: isDone ? `1px solid ${barColor}` : 'none',
-                                borderRadius: `${startRadius}px ${endRadius}px ${endRadius}px ${startRadius}px`,
+                                borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
                                 backgroundColor: isDone ? withAlpha(barColor, 0.14) : barColor,
-                                color: isDone ? barColor : '#fff',
+                                color: isDone ? barColor : 'var(--color-on-accent)',
                                 opacity: isDone ? 0.85 : 0.9,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
@@ -1275,7 +1275,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           >
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
                               <div
-                                style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 'var(--spacing-1-5)', flexShrink: 0, backgroundColor: getScheduleColor(schedule), opacity: schedule.isCompleted ? 0.4 : 1 }}
+                                style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', marginTop: 'var(--spacing-1-5)', flexShrink: 0, backgroundColor: getScheduleColor(schedule), opacity: schedule.isCompleted ? 0.4 : 1 }}
                               />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ textDecoration: schedule.isCompleted ? 'line-through' : 'none', opacity: schedule.isCompleted ? 0.6 : 1 }}>
@@ -1420,7 +1420,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                     {formData.labelId && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginTop: 'var(--spacing-1-5)' }}>
                         <span
-                          style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: labels.find(l => String(l.id) === String(formData.labelId))?.color }}
+                          style={{ width: 12, height: 12, borderRadius: 'var(--radius-full)', backgroundColor: labels.find(l => String(l.id) === String(formData.labelId))?.color }}
                         />
                         <Text type="supporting" color="secondary">
                           {labels.find(l => String(l.id) === String(formData.labelId))?.name}
@@ -2090,7 +2090,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                             <Card variant="muted" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
                               <HStack hAlign="between" vAlign="center">
                                 <HStack gap={3} vAlign="center">
-                                  <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, backgroundColor: label.color }} />
+                                  <span style={{ width: 16, height: 16, borderRadius: 'var(--radius-full)', flexShrink: 0, backgroundColor: label.color }} />
                                   <Text type="body" weight="medium">{label.name}</Text>
                                 </HStack>
                                 <HStack gap={1}>

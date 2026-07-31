@@ -249,9 +249,9 @@ html {
 @media (hover: hover) { .carev-seniorabs-day:hover { background-color: var(--color-background-surface); border-color: var(--color-border); } }
 
 /* VacationDetails 아이콘 버튼 hover */
-.carev-vacdetails-icon-btn { transition: color 0.15s, background 0.15s; }
+.carev-vacdetails-icon-btn { transition: color var(--duration-fast-min) var(--ease-standard), background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-vacdetails-icon-btn:hover { color: var(--color-on-dark); background: rgba(255,255,255,0.1); } }
-.carev-vacdetails-delete-btn { transition: color 0.15s, background 0.15s; }
+.carev-vacdetails-delete-btn { transition: color var(--duration-fast-min) var(--ease-standard), background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-vacdetails-delete-btn:hover { color: var(--color-error); background: var(--color-background-red); } }
 
 /* VacationApproval 반응형 2단 */

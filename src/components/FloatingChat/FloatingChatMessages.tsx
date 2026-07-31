@@ -441,7 +441,7 @@ export function FloatingChatMessages({
                                                     whiteSpace: "pre-wrap",
                                                     wordBreak: "break-word",
                                                     background: isMyMessage ? C.bubbleMine : C.bubbleOther,
-                                                    color: isMyMessage ? "#ffffff" : 'var(--color-text-primary)',
+                                                    color: isMyMessage ? 'var(--color-on-accent)' : 'var(--color-text-primary)',
                                                 }}
                                                 onTouchStart={() => handleTouchStart(message.id)}
                                                 onTouchEnd={handleTouchEnd}
@@ -471,7 +471,7 @@ export function FloatingChatMessages({
                                                             alignItems: "center",
                                                             gap: 'var(--spacing-1)',
                                                             textDecoration: "underline",
-                                                            color: isMyMessage ? "#ffffff" : C.accent,
+                                                            color: isMyMessage ? 'var(--color-on-accent)' : C.accent,
                                                         }}
                                                     >
                                                         <Icon icon={FiPaperclip} size="xsm" color="inherit" />

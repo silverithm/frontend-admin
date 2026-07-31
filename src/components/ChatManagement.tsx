@@ -727,8 +727,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                 position: "relative",
                                                                 padding: "var(--spacing-2) var(--spacing-3)",
                                                                 ...(isMyMessage
-                                                                    ? { background: '#0d9488', color: '#ffffff', borderRadius: "16px 4px 16px 16px" }
-                                                                    : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: "4px 16px 16px 16px" }),
+                                                                    ? { background: '#0d9488', color: 'var(--color-on-accent)', borderRadius: 'var(--radius-container) var(--radius-inner) var(--radius-container) var(--radius-container)' }
+                                                                    : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: 'var(--radius-inner) var(--radius-container) var(--radius-container) var(--radius-container)' }),
                                                             }}
                                                             onTouchStart={() => {
                                                                 longPressTimerRef2.current = setTimeout(() => setContextMenuMessageId(message.id), 500);

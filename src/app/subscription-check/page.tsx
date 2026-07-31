@@ -160,7 +160,7 @@ export default function SubscriptionCheckPage() {
                       height: 64,
                       borderRadius: 'var(--radius-container)',
                       backgroundColor: 'var(--color-background-red)',
-                      border: '1px solid #fecaca',
+                      border: '1px solid var(--color-border-red)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -196,7 +196,7 @@ export default function SubscriptionCheckPage() {
                   />
                 </HStack>
 
-                <div style={{ borderTop: '1px solid #f1f3f5', paddingTop: 'var(--spacing-4)' }}>
+                <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-4)' }}>
                   <Text type="supporting" justify="center">
                     문의: ggprgrkjh2@gmail.com | 전화: 010-4549-2094
                   </Text>
@@ -224,7 +224,7 @@ export default function SubscriptionCheckPage() {
                       height: 64,
                       borderRadius: 'var(--radius-container)',
                       backgroundColor: 'var(--color-background-red)',
-                      border: '1px solid #fecaca',
+                      border: '1px solid var(--color-border-red)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -342,7 +342,7 @@ export default function SubscriptionCheckPage() {
                             height: 64,
                             borderRadius: 'var(--radius-container)',
                             backgroundColor: 'var(--color-background-teal)',
-                            border: '1px solid #96f2d7',
+                            border: '1px solid var(--color-border-teal)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -403,7 +403,7 @@ export default function SubscriptionCheckPage() {
                             height: 64,
                             borderRadius: 'var(--radius-container)',
                             backgroundColor: 'var(--color-background-blue)',
-                            border: '1px solid #a5d8ff',
+                            border: '1px solid var(--color-border-blue)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

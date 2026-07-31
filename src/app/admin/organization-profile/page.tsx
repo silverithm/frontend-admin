@@ -464,7 +464,7 @@ export default function OrganizationProfilePage() {
                                   height: 140,
                                   border: '1px solid var(--color-border)',
                                   borderRadius: 'var(--radius-inner)',
-                                  background: '#ffffff',
+                                  background: 'var(--color-on-accent)',
                                 }}
                               >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}

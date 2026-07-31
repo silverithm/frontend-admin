@@ -138,7 +138,7 @@ export default function SeniorAbsenceManagement() {
                         transition: 'all var(--duration-fast-min) var(--ease-standard)',
                         cursor: "pointer",
                         textAlign: "left",
-                        border: isSelected ? "2px solid #14b8a6" : "1px solid #e5e7eb",
+                        border: isSelected ? '2px solid var(--color-border-teal)' : "1px solid #e5e7eb",
                         backgroundColor: isSelected ? 'var(--color-background-teal)' : undefined,
                       }}
                     >

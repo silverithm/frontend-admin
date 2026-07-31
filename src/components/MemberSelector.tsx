@@ -240,8 +240,8 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                     cursor: "pointer",
                     transition: 'all var(--duration-fast-min) var(--ease-standard)',
                     border: isSelected
-                      ? "1px solid #14b8a6"
-                      : "1px solid #e5e7eb",
+                      ? '1px solid var(--color-border-teal)'
+                      : '1px solid var(--color-border)',
                     background: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-card)',
                   }}
                 >

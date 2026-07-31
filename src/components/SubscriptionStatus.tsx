@@ -59,7 +59,7 @@ export default function SubscriptionStatus() {
       <Button
         variant="destructive"
         size="sm"
-        icon={<StatusDot color="#ffffff" pulse />}
+        icon={<StatusDot color='var(--color-on-accent)' pulse />}
         label="구독 필요"
         onClick={handlePayment}
       />
@@ -74,7 +74,7 @@ export default function SubscriptionStatus() {
       <Button
         variant="destructive"
         size="sm"
-        icon={<StatusDot color="#ffffff" pulse />}
+        icon={<StatusDot color='var(--color-on-accent)' pulse />}
         label={subscription.planName === SubscriptionType.FREE ? '무료 체험 종료' : '구독 만료'}
         onClick={handlePayment}
       />

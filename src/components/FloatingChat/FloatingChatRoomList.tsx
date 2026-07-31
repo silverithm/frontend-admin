@@ -48,7 +48,7 @@ export function FloatingChatRoomList({
                     alignItems: "center",
                     gap: 'var(--spacing-2)',
                     flexShrink: 0,
-                    color: "#ffffff",
+                    color: 'var(--color-on-accent)',
                 }}
             >
                 <Text type="body" weight="semibold" color="inherit">채팅</Text>
@@ -57,7 +57,7 @@ export function FloatingChatRoomList({
                     style={{
                         width: 8,
                         height: 8,
-                        borderRadius: "50%",
+                        borderRadius: 'var(--radius-full)',
                         boxShadow: 'var(--shadow-inset-hover)',
                         background: isConnected ? 'var(--color-background-green)' : 'var(--color-background-muted)',
                     }}

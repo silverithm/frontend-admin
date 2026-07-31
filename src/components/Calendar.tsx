@@ -82,7 +82,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
       <div
         style={{
           background: 'linear-gradient(to right, #14b8a6, #0d9488)',
-          color: '#fff',
+          color: 'var(--color-on-accent)',
           padding: 'var(--spacing-6)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -100,9 +100,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
             width: 40,
             height: 40,
             border: 'none',
-            borderRadius: '50%',
+            borderRadius: 'var(--radius-full)',
             background: 'rgba(255, 255, 255, 0.2)',
-            color: '#fff',
+            color: 'var(--color-on-accent)',
             cursor: 'pointer',
           }}
         >
@@ -122,9 +122,9 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
             width: 40,
             height: 40,
             border: 'none',
-            borderRadius: '50%',
+            borderRadius: 'var(--radius-full)',
             background: 'rgba(255, 255, 255, 0.2)',
-            color: '#fff',
+            color: 'var(--color-on-accent)',
             cursor: 'pointer',
           }}
         >
@@ -196,7 +196,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                           color: 'var(--color-text-teal)',
                           width: 28,
                           height: 28,
-                          borderRadius: '50%',
+                          borderRadius: 'var(--radius-full)',
                           boxShadow: 'var(--shadow-low)',
                         }
                       : !isCurrentMonth
@@ -291,7 +291,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                           style={{
                             position: 'absolute',
                             inset: 0,
-                            border: '2px solid #14b8a6',
+                            border: '2px solid var(--color-border-teal)',
                             borderRadius: 'var(--radius-none)',
                             pointerEvents: 'none',
                           }}
@@ -318,11 +318,11 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1-5)' }}>
-          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--color-background-teal)' }} />
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 'var(--radius-full)', background: 'var(--color-background-teal)' }} />
           <Text type="supporting" size="2xs" color="secondary">오늘</Text>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1-5)' }}>
-          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--color-background-red)' }} />
+          <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }} />
           <Text type="supporting" size="2xs" color="secondary">휴가신청</Text>
         </div>
       </div>

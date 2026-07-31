@@ -389,9 +389,9 @@ export function FloatingChat() {
                         height: 56,
                         minWidth: 56,
                         padding: 'var(--spacing-0)',
-                        borderRadius: "50%",
-                        background: '#0d9488',
-                        color: "#fff",
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--color-border-teal)',
+                        color: 'var(--color-on-accent)',
                         boxShadow: 'var(--shadow-med)',
                         transition: 'background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard)',
                     }}
@@ -404,7 +404,7 @@ export function FloatingChat() {
                                     animate={{ rotate: 0, opacity: 1 }}
                                     exit={{ rotate: 90, opacity: 0 }}
                                     transition={{ duration: duration.fastMin }}
-                                    style={{ width: 24, height: 24, color: "#fff" }}
+                                    style={{ width: 24, height: 24, color: 'var(--color-on-accent)' }}
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -418,7 +418,7 @@ export function FloatingChat() {
                                     animate={{ rotate: 0, opacity: 1 }}
                                     exit={{ rotate: -90, opacity: 0 }}
                                     transition={{ duration: duration.fastMin }}
-                                    style={{ width: 24, height: 24, color: "#fff" }}
+                                    style={{ width: 24, height: 24, color: 'var(--color-on-accent)' }}
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"

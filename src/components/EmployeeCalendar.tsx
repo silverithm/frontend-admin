@@ -398,7 +398,7 @@ export default function EmployeeCalendar() {
                       color: 'var(--color-text-teal)',
                       width: 'var(--spacing-7)',
                       height: 'var(--spacing-7)',
-                      borderRadius: '50%',
+                      borderRadius: 'var(--radius-full)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

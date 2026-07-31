@@ -262,7 +262,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
               style={{
                 padding: 'var(--spacing-6)',
                 background: 'linear-gradient(to right, #14b8a6, #0d9488)',
-                color: '#ffffff',
+                color: 'var(--color-on-accent)',
               }}
             >
               <HStack hAlign="between" vAlign="center">
@@ -292,7 +292,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                     cursor: 'pointer',
                     color: 'rgba(255, 255, 255, 0.8)',
                     padding: 'var(--spacing-2)',
-                    borderRadius: '50%',
+                    borderRadius: 'var(--radius-full)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -373,7 +373,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                         cursor: 'pointer',
                                         color: 'var(--color-text-gray)',
                                         padding: 'var(--spacing-1-5)',
-                                        borderRadius: '50%',
+                                        borderRadius: 'var(--radius-full)',
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -484,7 +484,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                     style={{
                       background: 'var(--color-background-red)',
                       padding: 'var(--spacing-2)',
-                      borderRadius: '50%',
+                      borderRadius: 'var(--radius-full)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
