@@ -105,6 +105,8 @@ const handleLogout = () => {
     localStorage.removeItem('loginType');
     localStorage.removeItem('lastLoginType');
     localStorage.removeItem('userPosition');
+    localStorage.removeItem('isDemoMode');
+    localStorage.removeItem('demoStartedAt');
 
     // 로그인 페이지로 리다이렉트
     if (typeof window !== 'undefined') {
@@ -504,6 +506,43 @@ export async function login(email: string, password: string) {
 
 // ================== 새로운 사용자 인증 API ==================
 
+// signin()/startDemo() 공통 응답 형태 (데모 응답은 role 필드가 없을 수 있음)
+type AuthSessionResponse = SigninResponseDTO & { role?: string; userEmail?: string };
+
+// 로그인/체험 시작 성공 시 인증 세션 정보를 로컬 스토리지에 저장하는 공통 헬퍼
+// (signin()의 기존 저장 로직을 그대로 옮긴 것 — 키/값 동작은 동일하게 유지)
+function storeAuthSession(data: AuthSessionResponse, options: { email?: string; isDemo?: boolean } = {}): void {
+    // JWT 토큰 저장
+    localStorage.setItem('authToken', data.tokenInfo.accessToken);
+    localStorage.setItem('refreshToken', data.tokenInfo.refreshToken);
+    localStorage.setItem('tokenExpirationTime', data.tokenInfo.accessTokenExpirationTime?.toString() || '');
+
+    // 사용자 정보 저장
+    localStorage.setItem('userName', data.userName || '');
+    localStorage.setItem('userEmail', data.userEmail || options.email || ''); // 백엔드에서 userEmail을 반환하거나 입력한 email 사용
+    localStorage.setItem('userId', data.userId?.toString() || '');
+    localStorage.setItem('companyName', data.companyName || '');
+    localStorage.setItem('companyAddressName', data.companyAddressName || '');
+    localStorage.setItem('companyCode', data.companyCode || '');
+    localStorage.setItem('customerKey', data.customerKey || '');
+
+    // companyId 저장 (필수값)
+    localStorage.setItem('companyId', data.companyId!.toString());
+
+    // 역할 정보 (데모 응답에는 role이 없을 수 있어 기본값 처리)
+    localStorage.setItem('userRole', data.role || 'ROLE_ADMIN');
+    localStorage.setItem('loginType', 'admin');
+
+    if (options.isDemo) {
+        localStorage.setItem('isDemoMode', 'true');
+        localStorage.setItem('demoStartedAt', Date.now().toString());
+    } else {
+        // 정식 로그인은 이전 세션의 데모 플래그를 지운다
+        localStorage.removeItem('isDemoMode');
+        localStorage.removeItem('demoStartedAt');
+    }
+}
+
 // 사용자 로그인 (새로운 API)
 export async function signin(email: string, password: string): Promise<SigninResponseDTO> {
     try {
@@ -530,28 +569,13 @@ export async function signin(email: string, password: string): Promise<SigninRes
 
         // 로그인 성공 시 JWT 토큰과 사용자 정보 저장
         if (data && data.tokenInfo) {
-            // JWT 토큰 저장
-            localStorage.setItem('authToken', data.tokenInfo.accessToken);
-            localStorage.setItem('refreshToken', data.tokenInfo.refreshToken);
-            localStorage.setItem('tokenExpirationTime', data.tokenInfo.accessTokenExpirationTime?.toString() || '');
-
             // companyId 필수 검증
             if (!data.companyId) {
                 console.error('백엔드 응답에 companyId가 없습니다:', data);
                 throw new Error('로그인 응답에 회사 ID가 포함되어 있지 않습니다. 관리자에게 문의하세요.');
             }
 
-            // 사용자 정보 저장
-            localStorage.setItem('userName', data.userName || '');
-            localStorage.setItem('userEmail', data.userEmail || email); // 백엔드에서 userEmail을 반환하거나 입력한 email 사용
-            localStorage.setItem('userId', data.userId?.toString() || '');
-            localStorage.setItem('companyName', data.companyName || '');
-            localStorage.setItem('companyAddressName', data.companyAddressName || '');
-            localStorage.setItem('companyCode', data.companyCode || '');
-            localStorage.setItem('customerKey', data.customerKey || '');
-
-            // companyId 저장 (필수값)
-            localStorage.setItem('companyId', data.companyId.toString());
+            storeAuthSession(data, { email });
         } else {
             console.error('로그인 응답에 토큰 정보가 없습니다:', data);
             throw new Error('로그인 응답에 토큰 정보가 없습니다.');
@@ -560,6 +584,42 @@ export async function signin(email: string, password: string): Promise<SigninRes
         return data;
     } catch (error) {
         console.error('signin 함수 오류:', error);
+        throw error;
+    }
+}
+
+// 체험(데모) 시작 - 인증 불필요, signin과 동일한 응답 형태(SigninResponseDTO)를 받는다
+export async function startDemo(): Promise<SigninResponseDTO> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/demo/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'ngrok-skip-browser-warning': 'true', // ngrok 브라우저 경고 우회
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            console.error('체험 시작 오류 응답:', errorData);
+            const error = new Error(errorData?.error || `체험 시작 실패: ${response.status} ${response.statusText}`) as Error & { status?: number };
+            error.status = response.status;
+            throw error;
+        }
+
+        const data = await response.json();
+
+        if (!data || !data.tokenInfo) {
+            console.error('체험 시작 응답에 토큰 정보가 없습니다:', data);
+            throw new Error('체험 시작 응답에 토큰 정보가 없습니다.');
+        }
+
+        storeAuthSession(data, { isDemo: true });
+
+        return data;
+    } catch (error) {
+        console.error('startDemo 함수 오류:', error);
         throw error;
     }
 }
@@ -700,6 +760,8 @@ export async function deleteAdminUser(): Promise<string> {
         localStorage.removeItem('companyName');
         localStorage.removeItem('companyAddressName');
         localStorage.removeItem('companyCode');
+        localStorage.removeItem('isDemoMode');
+        localStorage.removeItem('demoStartedAt');
 
         return 'success';
     } catch (error) {
@@ -745,6 +807,8 @@ export async function logout() {
         localStorage.removeItem('loginType');
         localStorage.removeItem('lastLoginType');
         localStorage.removeItem('userPosition');
+        localStorage.removeItem('isDemoMode');
+        localStorage.removeItem('demoStartedAt');
     }
 }
 
