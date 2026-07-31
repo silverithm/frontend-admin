@@ -211,7 +211,9 @@ export default function PartnersPage() {
                                 </VStack>
                             </Card>
                         ) : (
-                            <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={6} align="start">
+                            // 폼과 안내를 세로로 쌓는다. 좌우 2단으로 두면 폼이 훨씬 길어
+                            // 오른쪽 컬럼 아래가 크게 비어 보인다.
+                            <VStack gap={6}>
                                 <Card padding={6}>
                                     <form onSubmit={handleSubmit}>
                                         <VStack gap={4}>
@@ -303,8 +305,8 @@ export default function PartnersPage() {
                                     </form>
                                 </Card>
 
-                                <VStack gap={4}>
-                                    <Card padding={5}>
+                                <Grid columns={{ minWidth: 240, repeat: 'fit', max: 3 }} gap={4} align="stretch">
+                                    <Card padding={5} height="100%">
                                         <VStack gap={3}>
                                             <Heading level={3} type="display-3">
                                                 이렇게 소개됩니다
@@ -323,7 +325,7 @@ export default function PartnersPage() {
                                         </VStack>
                                     </Card>
 
-                                    <Card padding={5}>
+                                    <Card padding={5} height="100%">
                                         <VStack gap={2}>
                                             <Heading level={3} type="display-3">
                                                 바로 연락하기
@@ -345,9 +347,11 @@ export default function PartnersPage() {
                                         </VStack>
                                     </Card>
 
-                                    <Card padding={5} variant="muted">
+                                    <Card padding={5} variant="muted" height="100%">
                                         <VStack gap={2}>
-                                            <Text weight="semibold">제품 문의를 찾으셨나요?</Text>
+                                            <Heading level={3} type="display-3">
+                                                제품 문의를 찾으셨나요?
+                                            </Heading>
                                             <Text type="supporting" color="secondary">
                                                 도입·기능·요금 문의는 문의하기에서 남겨주세요.
                                             </Text>
@@ -357,8 +361,8 @@ export default function PartnersPage() {
                                             </HStack>
                                         </VStack>
                                     </Card>
-                                </VStack>
-                            </Grid>
+                                </Grid>
+                            </VStack>
                         )}
                     </VStack>
                 </div>
