@@ -5,6 +5,9 @@
  * - 시트명 Sheet1, 1행 헤더 24개, 2행은 빈 행, 3행부터 (직원 × 날짜) 한 줄
  * - 모든 셀은 텍스트 서식(@) / Arial 10pt
  * - 시스템에 없는 항목(생년월일·근무시간·휴게시간·휴가코드 등)은 빈 문자열로 둔다
+ *
+ * 휴무 판정: 일요일(정기 휴무) 또는 승인된 휴무 신청이 있는 날.
+ * 토요일은 근무일이다.
  */
 
 import { format, getDaysInMonth } from 'date-fns';
@@ -39,6 +42,15 @@ export const WORK_SCHEDULE_HEADERS = [
 ] as const;
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** 일요일 인덱스 (Date#getDay 기준) */
+const SUNDAY = 0;
+
+/**
+ * 기관 정기 휴무일 판정.
+ * 일요일은 근무 편성과 무관하게 무조건 휴무다. (토요일은 근무일)
+ */
+const isRegularDayOff = (date: Date) => date.getDay() === SUNDAY;
 
 export interface WorkScheduleMember {
   id?: string | number | null;
@@ -117,6 +129,8 @@ export function buildWorkScheduleRows({
       const date = new Date(year, month, day);
       const dateKey = format(date, 'yyyy-MM-dd');
       const vacation = vacationIndex.get(`${name}|${dateKey}`);
+      // 일요일은 정기 휴무이므로 휴무 신청 여부와 무관하게 휴무로 본다
+      const dayOff = isRegularDayOff(date) || Boolean(vacation);
 
       rows.push([
         name,                                   // A 성명
@@ -142,7 +156,7 @@ export function buildWorkScheduleRows({
         '',                                     // U 휴일근무시간
         '',                                     // V 근무상세구분
         '',                                     // W 근무상세내용
-        vacation ? '휴무' : '근무',              // X 근무휴일상세여부
+        dayOff ? '휴무' : '근무',                // X 근무휴일상세여부
       ]);
     }
   });
