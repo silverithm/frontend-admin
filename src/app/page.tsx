@@ -270,11 +270,11 @@ const PREVIEWS = [
     },
     {
         src: '/images/preview-plaza.jpg',
-        width: 1720,
-        height: 812,
+        width: 1400,
+        height: 1110,
         title: '케어브이 광장',
         description: '요양 뉴스·커뮤니티·자료실이 한곳에 모입니다',
-        alt: '케어브이 광장 화면 — 인기글, 요양 소식, 최신글, 자료실 위젯',
+        alt: '케어브이 광장 커뮤니티 위젯 — 인기글, 요양 소식, 최신글, 새 자료 목록',
     },
 ];
 
@@ -569,6 +569,38 @@ export default function LandingPage() {
                 </div>
             </Section>
 
+            {/* ── 함께하고 있는 기관 ── */}
+            {FEATURED_PARTNERS.length > 0 && (
+                <Section variant="transparent" padding={0} paddingBlock={10}>
+                    <div style={container()}>
+                        <VStack gap={6}>
+                            <VStack gap={2} hAlign="center">
+                                <Heading level={2} type="display-2" justify="center" textWrap="balance">
+                                    함께하고 있는 기관
+                                </Heading>
+                                <Text type="large" color="secondary" justify="center" textWrap="balance">
+                                    현장에서 어르신을 돌보는 기관들을 소개합니다
+                                </Text>
+                            </VStack>
+
+                            {/* 기관이 적을 때 카드가 왼쪽에 치우치지 않도록 폭을 좁혀 가운데 정렬한다. */}
+                            <div style={container(partnerGridMaxWidth(FEATURED_PARTNERS.length))}>
+                                <Grid columns={{ minWidth: 280, repeat: 'fit', max: 3 }} gap={4} align="start">
+                                    {FEATURED_PARTNERS.map((ad) => (
+                                        <PartnerCard key={ad.id} ad={ad} variant="compact" />
+                                    ))}
+                                </Grid>
+                            </div>
+
+                            <HStack gap={3} wrap="wrap" hAlign="center">
+                                <Button label="기관 전체 보기" variant="secondary" href="/partners" />
+                                <Button label="광고 문의하기" variant="ghost" href="/partners#inquiry" />
+                            </HStack>
+                        </VStack>
+                    </div>
+                </Section>
+            )}
+
             {/* ── 8. 요금제 ── */}
             <Section id="pricing" variant="muted" padding={0} paddingBlock={10}>
                 <div style={container(880)}>
@@ -624,38 +656,6 @@ export default function LandingPage() {
                     </VStack>
                 </div>
             </Section>
-
-            {/* ── 함께하고 있는 기관 ── */}
-            {FEATURED_PARTNERS.length > 0 && (
-                <Section variant="transparent" padding={0} paddingBlock={10}>
-                    <div style={container()}>
-                        <VStack gap={6}>
-                            <VStack gap={2} hAlign="center">
-                                <Heading level={2} type="display-2" justify="center" textWrap="balance">
-                                    함께하고 있는 기관
-                                </Heading>
-                                <Text type="large" color="secondary" justify="center" textWrap="balance">
-                                    현장에서 어르신을 돌보는 기관들을 소개합니다
-                                </Text>
-                            </VStack>
-
-                            {/* 기관이 적을 때 카드가 왼쪽에 치우치지 않도록 폭을 좁혀 가운데 정렬한다. */}
-                            <div style={container(partnerGridMaxWidth(FEATURED_PARTNERS.length))}>
-                                <Grid columns={{ minWidth: 280, repeat: 'fit', max: 3 }} gap={4} align="start">
-                                    {FEATURED_PARTNERS.map((ad) => (
-                                        <PartnerCard key={ad.id} ad={ad} variant="compact" />
-                                    ))}
-                                </Grid>
-                            </div>
-
-                            <HStack gap={3} wrap="wrap" hAlign="center">
-                                <Button label="기관 전체 보기" variant="secondary" href="/partners" />
-                                <Button label="광고 문의하기" variant="ghost" href="/partners#inquiry" />
-                            </HStack>
-                        </VStack>
-                    </div>
-                </Section>
-            )}
 
             {/* ── 9. 리스크 완화 + 최종 CTA ── */}
             <Section variant="transparent" padding={0} paddingBlock={10}>
