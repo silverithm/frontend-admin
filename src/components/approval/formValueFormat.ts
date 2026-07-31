@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FormFieldSchema } from '@/types/formSchema';
+import { getFieldSpan } from '@/lib/formSchemaLogic';
 
 /**
  * 폼 필드 값을 순수 문자열로 포맷한다 (공문 본문 표 등 텍스트 렌더링용).
@@ -64,6 +65,27 @@ export function formatFieldValueText(
       return value?.fileName || value?.name || String(value);
     }
 
+    case 'computed': {
+      const num = Number(value);
+      if (isNaN(num)) return String(value);
+      const formatted = new Intl.NumberFormat('ko-KR').format(num);
+      return field.computed?.unit ? `${formatted} ${field.computed.unit}` : formatted;
+    }
+
+    case 'repeater': {
+      const rows: any[] = Array.isArray(value) ? value : [];
+      if (rows.length === 0) return '-';
+      const cols = field.repeater?.fields ?? [];
+      return rows
+        .map((row, i) => {
+          const cells = cols
+            .map((col) => `${col.label}: ${formatFieldValueText(col, row ?? {})}`)
+            .join(', ');
+          return `${i + 1}) ${cells}`;
+        })
+        .join('\n');
+    }
+
     default:
       return String(value);
   }
@@ -92,35 +114,41 @@ export function resolveFieldValue(field: FormFieldSchema, formData: Record<strin
 export function groupFieldsIntoRows(fields: FormFieldSchema[]): FormFieldSchema[][] {
   const rows: FormFieldSchema[][] = [];
   let currentRow: FormFieldSchema[] = [];
+  let usedSpan = 0;
+
+  const flush = () => {
+    if (currentRow.length > 0) {
+      rows.push([...currentRow]);
+      currentRow = [];
+      usedSpan = 0;
+    }
+  };
 
   for (const field of fields) {
-    if (field.type === 'section') {
-      if (currentRow.length > 0) {
-        rows.push([...currentRow]);
-        currentRow = [];
-      }
+    // 구분선과 반복 항목은 항상 한 줄을 통째로 쓴다
+    if (field.type === 'section' || field.type === 'repeater') {
+      flush();
       rows.push([field]);
       continue;
     }
 
-    if (field.width === 'half') {
-      currentRow.push(field);
-      if (currentRow.length === 2) {
-        rows.push([...currentRow]);
-        currentRow = [];
-      }
-    } else {
-      if (currentRow.length > 0) {
-        rows.push([...currentRow]);
-        currentRow = [];
-      }
+    const span = getFieldSpan(field.width);
+    if (span >= 12) {
+      flush();
       rows.push([field]);
+      continue;
+    }
+
+    if (usedSpan + span > 12) {
+      flush();
+    }
+    currentRow.push(field);
+    usedSpan += span;
+    if (usedSpan >= 12) {
+      flush();
     }
   }
 
-  if (currentRow.length > 0) {
-    rows.push([...currentRow]);
-  }
-
+  flush();
   return rows;
 }

@@ -1,7 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { FormSchema, FormFieldSchema } from '@/types/formSchema';
+import { useMemo, useState } from 'react';
+import { FormSchema, FormFieldSchema, AGGREGATE_LABEL } from '@/types/formSchema';
+import {
+  FormValues,
+  getFieldSpan,
+  isFieldVisible,
+  computeFieldValue,
+  withComputedValues,
+  createEmptyRow,
+  validateForm,
+} from '@/lib/formSchemaLogic';
 import { Grid, GridSpan } from '@astryxdesign/core/Grid';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
@@ -16,35 +25,181 @@ import { DateInput } from '@astryxdesign/core/DateInput';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Divider } from '@astryxdesign/core/Divider';
 import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconPlus, IconTrash, IconCalculator } from '@tabler/icons-react';
 
 interface FormRendererProps {
   schema: FormSchema;
-  initialValues?: Record<string, any>;
-  onSubmit: (formData: Record<string, any>) => void;
+  initialValues?: FormValues;
+  onSubmit: (formData: FormValues) => void;
   readOnly?: boolean;
   submitLabel?: string;
 }
 
-function FieldRenderer({
+/** 단일 입력 컨트롤 (그리드 래핑 없이 컨트롤만) — 반복 행 안에서도 재사용한다 */
+function FieldControl({
   field,
   value,
   error,
   readOnly,
   onChange,
+  compact = false,
 }: {
   field: FormFieldSchema;
   value: any;
   error?: string;
   readOnly: boolean;
-  onChange: (fieldId: string, val: any) => void;
+  onChange: (val: any) => void;
+  compact?: boolean;
 }) {
-  const { id, type, label, placeholder, required, description, options, validation } = field;
-  const span = field.width === 'half' ? 1 : 2;
-
+  const { type, label, placeholder, required, description, options, validation } = field;
   const displayLabel = label || '(레이블 없음)';
   const statusProp = error ? ({ type: 'error' as const, message: error }) : undefined;
+  const labelHidden = compact;
 
-  // 그룹형 필드(체크박스 그룹, 날짜 범위)용 레이블 노드
+  if (type === 'textarea') {
+    return (
+      <TextArea
+        label={displayLabel}
+        isLabelHidden={labelHidden}
+        isRequired={required}
+        isDisabled={readOnly}
+        description={compact ? undefined : description}
+        placeholder={placeholder}
+        rows={compact ? 2 : 3}
+        value={value ?? ''}
+        onChange={onChange}
+        status={statusProp}
+      />
+    );
+  }
+
+  if (type === 'select') {
+    return (
+      <Selector
+        label={displayLabel}
+        isLabelHidden={labelHidden}
+        isRequired={required}
+        isDisabled={readOnly}
+        description={compact ? undefined : description}
+        width="100%"
+        placeholder={placeholder || '선택하세요'}
+        options={(options ?? []).map((opt) => ({ value: opt.value, label: opt.label }))}
+        value={value ?? ''}
+        onChange={onChange}
+        status={statusProp}
+      />
+    );
+  }
+
+  if (type === 'radio') {
+    return (
+      <RadioList
+        label={displayLabel}
+        isLabelHidden={labelHidden}
+        isRequired={required}
+        isDisabled={readOnly}
+        description={compact ? undefined : description}
+        orientation="horizontal"
+        value={value ?? ''}
+        onChange={onChange}
+        status={statusProp}
+      >
+        {(options ?? []).map((opt) => (
+          <RadioListItem key={opt.value} label={opt.label} value={opt.value} />
+        ))}
+      </RadioList>
+    );
+  }
+
+  if (type === 'file') {
+    const fileValue: File | null = value instanceof File ? value : null;
+    return (
+      <FileInput
+        label={displayLabel}
+        isLabelHidden={labelHidden}
+        isRequired={required}
+        isDisabled={readOnly}
+        description={compact ? undefined : description}
+        mode="dropzone"
+        placeholder={placeholder || '클릭하여 파일 첨부'}
+        value={fileValue}
+        onChange={(f) => { if (f) onChange(f as File); }}
+        status={statusProp}
+      />
+    );
+  }
+
+  if (type === 'date') {
+    return (
+      <DateInput
+        label={displayLabel}
+        isLabelHidden={labelHidden}
+        isRequired={required}
+        isDisabled={readOnly}
+        description={compact ? undefined : description}
+        placeholder={placeholder}
+        value={value || undefined}
+        onChange={(val) => onChange(val ?? '')}
+        status={statusProp}
+      />
+    );
+  }
+
+  if (type === 'number') {
+    return (
+      <NumberInput
+        label={displayLabel}
+        isLabelHidden={labelHidden}
+        isRequired={required}
+        isDisabled={readOnly}
+        description={compact ? undefined : description}
+        placeholder={placeholder}
+        min={validation?.min}
+        max={validation?.max}
+        value={value === '' || value === undefined || value === null ? undefined : Number(value)}
+        onChange={(val) => onChange(val === undefined || val === null ? '' : String(val))}
+        status={statusProp}
+      />
+    );
+  }
+
+  return (
+    <TextInput
+      label={displayLabel}
+      isLabelHidden={labelHidden}
+      type="text"
+      isRequired={required}
+      isDisabled={readOnly}
+      description={compact ? undefined : description}
+      placeholder={placeholder}
+      value={value ?? ''}
+      onChange={onChange}
+      status={statusProp}
+    />
+  );
+}
+
+function FieldRenderer({
+  field,
+  values,
+  errors,
+  readOnly,
+  onChange,
+  onRowsChange,
+}: {
+  field: FormFieldSchema;
+  values: FormValues;
+  errors: Record<string, string>;
+  readOnly: boolean;
+  onChange: (key: string, val: any) => void;
+  onRowsChange: (fieldId: string, rows: any[]) => void;
+}) {
+  const { id, type, label, required, description } = field;
+  const span = getFieldSpan(field.width);
+  const displayLabel = label || '(레이블 없음)';
+  const error = type === 'dateRange' ? errors[`${id}_start`] || errors[`${id}_end`] : errors[id];
+
   const groupLabelNode = (
     <Text type="label" weight="medium">
       {displayLabel}
@@ -58,84 +213,155 @@ function FieldRenderer({
 
   if (type === 'section') {
     return (
-      <GridSpan columns={2}>
+      <GridSpan columns={12}>
         <Divider label={label} />
       </GridSpan>
     );
   }
 
-  if (type === 'textarea') {
+  // 계산 필드 — 사용자가 입력하지 않고 자동으로 채워진다
+  if (type === 'computed') {
+    const result = computeFieldValue(field.computed, values);
+    const opLabel = AGGREGATE_LABEL[field.computed?.operation ?? 'sum'];
     return (
       <GridSpan columns={span}>
-        <TextArea
-          label={displayLabel}
-          isRequired={required}
-          isDisabled={readOnly}
-          description={description}
-          placeholder={placeholder}
-          rows={3}
-          value={value ?? ''}
-          onChange={(val) => onChange(id, val)}
-          status={statusProp}
-        />
+        <VStack gap={1.5} vAlign="start">
+          {groupLabelNode}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-2)',
+              width: '100%',
+              padding: 'var(--spacing-3)',
+              borderRadius: 'var(--radius-inner)',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-background-muted)',
+            }}
+          >
+            <Icon icon={IconCalculator} size="sm" color="tertiary" />
+            <Text type="body" weight="bold" color="primary" hasTabularNumbers>
+              {result === null ? '-' : result.toLocaleString('ko-KR')}
+            </Text>
+            {field.computed?.unit && <Text type="supporting" color="secondary">{field.computed.unit}</Text>}
+            <div style={{ marginLeft: 'auto' }}>
+              <Text type="supporting" color="secondary">{opLabel} 자동 계산</Text>
+            </div>
+          </div>
+          {description && <Text type="supporting">{description}</Text>}
+        </VStack>
       </GridSpan>
     );
   }
 
-  if (type === 'select') {
-    return (
-      <GridSpan columns={span}>
-        <Selector
-          label={displayLabel}
-          isRequired={required}
-          isDisabled={readOnly}
-          description={description}
-          placeholder={placeholder || '선택하세요'}
-          options={(options ?? []).map((opt) => ({ value: opt.value, label: opt.label }))}
-          value={value ?? ''}
-          onChange={(val) => onChange(id, val)}
-          status={statusProp}
-        />
-      </GridSpan>
-    );
-  }
+  // 반복 그룹 — 행을 늘려가며 입력한다
+  if (type === 'repeater') {
+    const rows: any[] = Array.isArray(values[id]) ? values[id] : [];
+    const subFields = field.repeater?.fields ?? [];
+    const maxRows = field.repeater?.maxRows;
+    const canAdd = !readOnly && (maxRows === undefined || rows.length < maxRows);
+    const minRows = field.repeater?.minRows ?? 0;
 
-  if (type === 'radio') {
     return (
-      <GridSpan columns={span}>
-        <RadioList
-          label={displayLabel}
-          isRequired={required}
-          isDisabled={readOnly}
-          description={description}
-          orientation="horizontal"
-          value={value ?? ''}
-          onChange={(val) => onChange(id, val)}
-          status={statusProp}
-        >
-          {(options ?? []).map((opt) => (
-            <RadioListItem key={opt.value} label={opt.label} value={opt.value} />
+      <GridSpan columns={12}>
+        <VStack gap={2} vAlign="start">
+          <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+            {groupLabelNode}
+            <Text type="supporting" color="secondary">{rows.length}개 항목</Text>
+          </HStack>
+          {description && <Text type="supporting">{description}</Text>}
+
+          {rows.length === 0 && (
+            <Text type="supporting" color="secondary">아직 추가된 항목이 없습니다.</Text>
+          )}
+
+          {rows.map((row, rowIndex) => (
+            <div
+              key={rowIndex}
+              style={{
+                width: '100%',
+                padding: 'var(--spacing-3)',
+                borderRadius: 'var(--radius-inner)',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-background-card)',
+              }}
+            >
+              <HStack gap={2} vAlign="start">
+                <div style={{ flexShrink: 0, paddingTop: 'var(--spacing-2)', minWidth: 24 }}>
+                  <Text type="supporting" color="secondary" hasTabularNumbers>{rowIndex + 1}</Text>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Grid columns={12} gap={2}>
+                    {subFields.map((sub) => (
+                      <GridSpan key={sub.id} columns={getFieldSpan(sub.width)}>
+                        <VStack gap={1}>
+                          {rowIndex === 0 && (
+                            <Text type="supporting" weight="medium" color="secondary">
+                              {sub.label}
+                              {sub.required && (
+                                <span style={{ color: 'var(--color-text-red)', marginLeft: 2 }} aria-hidden>*</span>
+                              )}
+                            </Text>
+                          )}
+                          <FieldControl
+                            field={sub}
+                            value={row?.[sub.id]}
+                            error={errors[`${id}.${rowIndex}.${sub.id}`]}
+                            readOnly={readOnly}
+                            compact
+                            onChange={(val) => {
+                              const next = rows.map((r, i) => (i === rowIndex ? { ...r, [sub.id]: val } : r));
+                              onRowsChange(id, next);
+                            }}
+                          />
+                        </VStack>
+                      </GridSpan>
+                    ))}
+                  </Grid>
+                </div>
+                {!readOnly && rows.length > minRows && (
+                  <div style={{ flexShrink: 0, paddingTop: rowIndex === 0 ? 'var(--spacing-5)' : 0 }}>
+                    <Button
+                      label="행 삭제"
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      icon={<Icon icon={IconTrash} size="sm" />}
+                      onClick={() => onRowsChange(id, rows.filter((_, i) => i !== rowIndex))}
+                    />
+                  </div>
+                )}
+              </HStack>
+            </div>
           ))}
-        </RadioList>
+
+          {error && <FieldStatus type="error" message={error} variant="detached" />}
+
+          {canAdd && (
+            <Button
+              label={field.repeater?.addLabel || '행 추가'}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={IconPlus} size="sm" />}
+              onClick={() => onRowsChange(id, [...rows, createEmptyRow(field)])}
+            />
+          )}
+        </VStack>
       </GridSpan>
     );
   }
 
   if (type === 'checkbox') {
-    const checkedValues: string[] = Array.isArray(value) ? value : [];
+    const checkedValues: string[] = Array.isArray(values[id]) ? values[id] : [];
     const handleCheckbox = (optValue: string, checked: boolean) => {
-      if (checked) {
-        onChange(id, [...checkedValues, optValue]);
-      } else {
-        onChange(id, checkedValues.filter((v) => v !== optValue));
-      }
+      onChange(id, checked ? [...checkedValues, optValue] : checkedValues.filter((v) => v !== optValue));
     };
     return (
       <GridSpan columns={span}>
         <VStack gap={1.5} vAlign="start">
           {groupLabelNode}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
-            {(options ?? []).map((opt) => (
+            {(field.options ?? []).map((opt) => (
               <CheckboxInput
                 key={opt.value}
                 label={opt.label}
@@ -153,27 +379,6 @@ function FieldRenderer({
     );
   }
 
-  if (type === 'file') {
-    const fileValue: File | null = value instanceof File ? value : null;
-    return (
-      <GridSpan columns={span}>
-        <FileInput
-          label={displayLabel}
-          isRequired={required}
-          isDisabled={readOnly}
-          description={description}
-          mode="dropzone"
-          placeholder={placeholder || '클릭하여 파일 첨부'}
-          value={fileValue}
-          onChange={(f) => {
-            if (f) onChange(id, f as File);
-          }}
-          status={statusProp}
-        />
-      </GridSpan>
-    );
-  }
-
   if (type === 'dateRange') {
     const startKey = `${id}_start`;
     const endKey = `${id}_end`;
@@ -186,7 +391,7 @@ function FieldRenderer({
               label="시작일"
               isLabelHidden
               isDisabled={readOnly}
-              value={value?.[startKey] || undefined}
+              value={values[startKey] || undefined}
               onChange={(val) => onChange(startKey, val ?? '')}
             />
             <Text type="supporting">~</Text>
@@ -194,7 +399,7 @@ function FieldRenderer({
               label="종료일"
               isLabelHidden
               isDisabled={readOnly}
-              value={value?.[endKey] || undefined}
+              value={values[endKey] || undefined}
               onChange={(val) => onChange(endKey, val ?? '')}
             />
           </HStack>
@@ -205,55 +410,14 @@ function FieldRenderer({
     );
   }
 
-  if (type === 'date') {
-    return (
-      <GridSpan columns={span}>
-        <DateInput
-          label={displayLabel}
-          isRequired={required}
-          isDisabled={readOnly}
-          description={description}
-          placeholder={placeholder}
-          value={value || undefined}
-          onChange={(val) => onChange(id, val ?? '')}
-          status={statusProp}
-        />
-      </GridSpan>
-    );
-  }
-
-  if (type === 'number') {
-    return (
-      <GridSpan columns={span}>
-        <NumberInput
-          label={displayLabel}
-          isRequired={required}
-          isDisabled={readOnly}
-          description={description}
-          placeholder={placeholder}
-          min={validation?.min}
-          max={validation?.max}
-          value={value === '' || value === undefined || value === null ? undefined : Number(value)}
-          onChange={(val) => onChange(id, val === undefined || val === null ? '' : String(val))}
-          status={statusProp}
-        />
-      </GridSpan>
-    );
-  }
-
-  // text
   return (
     <GridSpan columns={span}>
-      <TextInput
-        label={displayLabel}
-        type="text"
-        isRequired={required}
-        isDisabled={readOnly}
-        description={description}
-        placeholder={placeholder}
-        value={value ?? ''}
+      <FieldControl
+        field={field}
+        value={values[id]}
+        error={error}
+        readOnly={readOnly}
         onChange={(val) => onChange(id, val)}
-        status={statusProp}
       />
     </GridSpan>
   );
@@ -266,27 +430,35 @@ export default function FormRenderer({
   readOnly = false,
   submitLabel = '제출',
 }: FormRendererProps) {
-  // For dateRange fields, values are stored as flat keys: {fieldId}_start, {fieldId}_end
-  const buildInitialValues = (): Record<string, any> => {
-    const vals: Record<string, any> = { ...initialValues };
+  const buildInitialValues = (): FormValues => {
+    const vals: FormValues = { ...initialValues };
     schema.fields.forEach((field) => {
-      if (field.type === 'section') return;
+      if (field.type === 'section' || field.type === 'computed') return;
+
       if (field.type === 'dateRange') {
         const startKey = `${field.id}_start`;
         const endKey = `${field.id}_end`;
         if (!(startKey in vals)) vals[startKey] = field.defaultValue?.start ?? '';
         if (!(endKey in vals)) vals[endKey] = field.defaultValue?.end ?? '';
-      } else {
-        if (!(field.id in vals)) {
-          vals[field.id] =
-            field.type === 'checkbox' ? (field.defaultValue ?? []) : (field.defaultValue ?? '');
+        return;
+      }
+
+      if (field.type === 'repeater') {
+        if (!Array.isArray(vals[field.id])) {
+          const minRows = field.repeater?.minRows ?? 1;
+          vals[field.id] = Array.from({ length: Math.max(minRows, 0) }, () => createEmptyRow(field));
         }
+        return;
+      }
+
+      if (!(field.id in vals)) {
+        vals[field.id] = field.type === 'checkbox' ? (field.defaultValue ?? []) : (field.defaultValue ?? '');
       }
     });
     return vals;
   };
 
-  const [formValues, setFormValues] = useState<Record<string, any>>(buildInitialValues);
+  const [formValues, setFormValues] = useState<FormValues>(buildInitialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (key: string, val: any) => {
@@ -299,107 +471,52 @@ export default function FormRenderer({
     });
   };
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    schema.fields.forEach((field) => {
-      if (field.type === 'section') return;
-
-      if (field.type === 'dateRange') {
-        const startKey = `${field.id}_start`;
-        const endKey = `${field.id}_end`;
-        if (field.required) {
-          if (!formValues[startKey]) newErrors[startKey] = '시작일을 선택해주세요.';
-          if (!formValues[endKey]) newErrors[endKey] = '종료일을 선택해주세요.';
-        }
-        return;
-      }
-
-      const val = formValues[field.id];
-      const isEmpty =
-        val === '' ||
-        val === undefined ||
-        val === null ||
-        (Array.isArray(val) && val.length === 0) ||
-        (val instanceof File === false && field.type === 'file' && !val);
-
-      if (field.required && isEmpty) {
-        newErrors[field.id] = `${field.label}을(를) 입력해주세요.`;
-        return;
-      }
-
-      if (field.type === 'number' && val !== '' && val !== undefined && val !== null) {
-        const num = Number(val);
-        if (field.validation?.min !== undefined && num < field.validation.min) {
-          newErrors[field.id] = `최솟값은 ${field.validation.min}입니다.`;
-        } else if (field.validation?.max !== undefined && num > field.validation.max) {
-          newErrors[field.id] = `최댓값은 ${field.validation.max}입니다.`;
-        }
-      }
-
-      if (
-        (field.type === 'text' || field.type === 'textarea') &&
-        typeof val === 'string' &&
-        val.length > 0
-      ) {
-        if (field.validation?.minLength !== undefined && val.length < field.validation.minLength) {
-          newErrors[field.id] = `최소 ${field.validation.minLength}자 이상 입력해주세요.`;
-        } else if (
-          field.validation?.maxLength !== undefined &&
-          val.length > field.validation.maxLength
-        ) {
-          newErrors[field.id] = `최대 ${field.validation.maxLength}자까지 입력 가능합니다.`;
-        }
-      }
+  const handleRowsChange = (fieldId: string, rows: any[]) => {
+    setFormValues((prev) => ({ ...prev, [fieldId]: rows }));
+    setErrors((prev) => {
+      // 해당 반복 그룹의 오류는 값이 바뀌면 초기화한다
+      const next: Record<string, string> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        if (k !== fieldId && !k.startsWith(`${fieldId}.`)) next[k] = v;
+      });
+      return next;
     });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
+
+  // 조건부 표시 규칙에 따라 지금 보여줄 필드
+  const visibleFields = useMemo(
+    () => schema.fields.filter((field) => isFieldVisible(field, formValues)),
+    [schema.fields, formValues]
+  );
 
   const handleSubmit = () => {
-    if (!validate()) return;
-    onSubmit(formValues);
-  };
-
-  const getFieldValue = (field: FormFieldSchema): any => {
-    if (field.type === 'dateRange') {
-      return {
-        [`${field.id}_start`]: formValues[`${field.id}_start`],
-        [`${field.id}_end`]: formValues[`${field.id}_end`],
-      };
-    }
-    return formValues[field.id];
-  };
-
-  const getFieldError = (field: FormFieldSchema): string | undefined => {
-    if (field.type === 'dateRange') {
-      return errors[`${field.id}_start`] || errors[`${field.id}_end`];
-    }
-    return errors[field.id];
+    const newErrors = validateForm(schema, formValues);
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+    // 계산 결과를 제출 시점 값으로 함께 저장한다
+    onSubmit(withComputedValues(schema, formValues));
   };
 
   if (schema.fields.length === 0) {
     return (
       <div style={{ padding: 'var(--spacing-10) 0', textAlign: 'center' }}>
-        <Text type="body" color="secondary">
-          표시할 필드가 없습니다.
-        </Text>
+        <Text type="body" color="secondary">표시할 필드가 없습니다.</Text>
       </div>
     );
   }
 
   return (
     <VStack gap={6}>
-      <Grid columns={2} gap={4}>
-        {schema.fields.map((field) => (
+      <Grid columns={12} gap={4}>
+        {visibleFields.map((field) => (
           <FieldRenderer
             key={field.id}
             field={field}
-            value={getFieldValue(field)}
-            error={getFieldError(field)}
+            values={formValues}
+            errors={errors}
             readOnly={readOnly}
             onChange={handleChange}
+            onRowsChange={handleRowsChange}
           />
         ))}
       </Grid>

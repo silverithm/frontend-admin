@@ -6,6 +6,7 @@ import { FormSchema, FormFieldSchema, FieldType } from '@/types/formSchema';
 import { formPresets } from '@/lib/formTemplatePresets';
 import FieldTypeSelector from './FieldTypeSelector';
 import FormFieldEditor from './FormFieldEditor';
+import { getFieldSpan } from '@/lib/formSchemaLogic';
 import FormPreview from './FormPreview';
 import OfficialDocument from './OfficialDocument';
 import { ApprovalRequest } from '@/types/approval';
@@ -32,6 +33,10 @@ import {
   IconPaperclip,
   IconSeparator,
   IconX,
+  IconCalculator,
+  IconTable,
+  IconGripVertical,
+  IconCopy,
 } from '@tabler/icons-react';
 import { duration } from '@/theme/motion';
 
@@ -129,6 +134,8 @@ const FIELD_TYPE_ICONS: Record<FieldType, React.ReactNode> = {
   checkbox: <IconSquareCheck size={14} stroke={1.5} />,
   file: <IconPaperclip size={14} stroke={1.5} />,
   section: <IconSeparator size={14} stroke={1.5} />,
+  computed: <IconCalculator size={14} stroke={1.5} />,
+  repeater: <IconTable size={14} stroke={1.5} />,
 };
 
 const DEFAULT_FIELD_BY_TYPE: Record<FieldType, Partial<FormFieldSchema>> = {
@@ -167,6 +174,26 @@ const DEFAULT_FIELD_BY_TYPE: Record<FieldType, Partial<FormFieldSchema>> = {
   },
   file: { label: '파일 첨부', width: 'full', required: false },
   section: { label: '구분선', required: false },
+  computed: {
+    label: '합계',
+    width: 'half',
+    required: false,
+    computed: { operation: 'sum', sourceFieldIds: [] },
+  },
+  repeater: {
+    label: '항목 목록',
+    width: 'full',
+    required: false,
+    repeater: {
+      minRows: 1,
+      addLabel: '행 추가',
+      fields: [
+        { id: 'col-name', type: 'text', label: '항목', required: true, width: 'half' },
+        { id: 'col-qty', type: 'number', label: '수량', required: false, width: 'quarter' },
+        { id: 'col-amount', type: 'number', label: '금액', required: false, width: 'quarter' },
+      ],
+    },
+  },
 };
 
 const EMPTY_SCHEMA: FormSchema = { version: 1, fields: [] };
@@ -178,6 +205,8 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'document' | 'form'>('document');
   const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     onSchemaChange(schema);
@@ -197,6 +226,13 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
       width: defaults.width ?? 'full',
       placeholder: defaults.placeholder,
       options: defaults.options ? defaults.options.map((o) => ({ ...o, value: genId() })) : undefined,
+      computed: defaults.computed ? { ...defaults.computed } : undefined,
+      repeater: defaults.repeater
+        ? {
+            ...defaults.repeater,
+            fields: (defaults.repeater.fields ?? []).map((f) => ({ ...f, id: genId() })),
+          }
+        : undefined,
     };
     const updated: FormSchema = {
       ...schema,
@@ -208,6 +244,39 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
 
   const updateField = (updated: FormFieldSchema) => {
     const fields = schema.fields.map((f) => (f.id === updated.id ? updated : f));
+    updateSchema({ ...schema, fields });
+  };
+
+  // 같은 설정의 필드를 하나 더 만든다 (반복 입력 항목 만들 때 유용)
+  const duplicateField = (id: string) => {
+    const index = schema.fields.findIndex((f) => f.id === id);
+    if (index === -1) return;
+    const source = schema.fields[index];
+    const copy: FormFieldSchema = {
+      ...source,
+      id: genId(),
+      label: `${source.label} 사본`,
+      options: source.options?.map((o) => ({ ...o })),
+      computed: source.computed ? { ...source.computed } : undefined,
+      repeater: source.repeater
+        ? { ...source.repeater, fields: source.repeater.fields.map((f) => ({ ...f, id: genId() })) }
+        : undefined,
+    };
+    const fields = [...schema.fields];
+    fields.splice(index + 1, 0, copy);
+    updateSchema({ ...schema, fields });
+    setSelectedFieldId(copy.id);
+  };
+
+  // 드래그로 순서 바꾸기 — 놓은 위치 앞에 끼워 넣는다
+  const reorderField = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const fields = [...schema.fields];
+    const fromIndex = fields.findIndex((f) => f.id === fromId);
+    const toIndex = fields.findIndex((f) => f.id === toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [moved] = fields.splice(fromIndex, 1);
+    fields.splice(toIndex, 0, moved);
     updateSchema({ ...schema, fields });
   };
 
@@ -295,29 +364,68 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                   </VStack>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1-5)' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                    gap: 'var(--spacing-1-5)',
+                    alignItems: 'start',
+                  }}
+                >
                   {schema.fields.map((field, index) => {
                     const isSelected = selectedFieldId === field.id;
+                    const isDragging = draggingFieldId === field.id;
+                    const isDropTarget = dropTargetId === field.id && draggingFieldId !== field.id;
                     return (
                       <motion.div
                         key={field.id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: duration.fastMin }}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggingFieldId(field.id);
+                          (e as unknown as React.DragEvent).dataTransfer?.setData('text/plain', field.id);
+                        }}
+                        onDragEnd={() => { setDraggingFieldId(null); setDropTargetId(null); }}
+                        onDragOver={(e) => { e.preventDefault(); setDropTargetId(field.id); }}
+                        onDragLeave={() => setDropTargetId((prev) => (prev === field.id ? null : prev))}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const fromId = (e as unknown as React.DragEvent).dataTransfer?.getData('text/plain') || draggingFieldId;
+                          if (fromId) reorderField(fromId, field.id);
+                          setDraggingFieldId(null);
+                          setDropTargetId(null);
+                        }}
                         onClick={() => setSelectedFieldId(field.id)}
                         className={isSelected ? undefined : 'carev-formbuilder-field-item'}
                         style={{
+                          gridColumn: `span ${getFieldSpan(field.width)}`,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 'var(--spacing-2)',
-                          padding: '10px var(--spacing-3)',
+                          gap: 'var(--spacing-1-5)',
+                          padding: 'var(--spacing-2) var(--spacing-2)',
                           borderRadius: 'var(--radius-element)',
-                          border: `1px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                          border: `1px solid ${
+                            isDropTarget
+                              ? 'var(--color-accent)'
+                              : isSelected
+                                ? 'var(--color-accent)'
+                                : 'var(--color-border)'
+                          }`,
+                          boxShadow: isDropTarget ? 'inset 3px 0 0 0 var(--color-accent)' : undefined,
                           background: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-card)',
-                          cursor: 'pointer',
-                          transition: 'all var(--duration-fast-min) var(--ease-standard)',
+                          opacity: isDragging ? 0.45 : 1,
+                          cursor: 'grab',
+                          transition: 'border-color var(--duration-fast-min) var(--ease-standard), background var(--duration-fast-min) var(--ease-standard)',
                         }}
                       >
+                        <span
+                          style={{ flexShrink: 0, display: 'inline-flex', color: 'var(--color-icon-tertiary)' }}
+                          aria-hidden
+                        >
+                          <IconGripVertical size={14} stroke={1.5} />
+                        </span>
                         <span
                           style={{
                             flexShrink: 0,
@@ -328,14 +436,15 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                           {FIELD_TYPE_ICONS[field.type]}
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text type="body" weight="medium" maxLines={1} color={isSelected ? 'accent' : 'primary'}>
+                          <Text type="supporting" weight="medium" maxLines={1} color={isSelected ? 'accent' : 'primary'}>
                             {field.label || '(레이블 없음)'}
+                            {field.required && (
+                              <span style={{ color: 'var(--color-text-red)', marginLeft: 2 }} aria-hidden>*</span>
+                            )}
                           </Text>
-                          {field.required && (
-                            <div style={{ color: 'var(--color-text-red)' }}>
-                              <Text type="supporting" color="inherit">필수</Text>
-                            </div>
-                          )}
+                          {field.visibleWhen?.conditions?.length ? (
+                            <Text type="supporting" color="secondary" maxLines={1}>조건부 표시</Text>
+                          ) : null}
                         </div>
                         <HStack gap={0.5} vAlign="center">
                           <IconButton
@@ -353,6 +462,13 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                             icon={<Icon icon={IconChevronDown} size="sm" />}
                             isDisabled={index === schema.fields.length - 1}
                             onClick={(e) => { e.stopPropagation(); moveField(field.id, 'down'); }}
+                          />
+                          <IconButton
+                            label="필드 복제"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={IconCopy} size="sm" />}
+                            onClick={(e) => { e.stopPropagation(); duplicateField(field.id); }}
                           />
                           <IconButton
                             label="필드 삭제"
@@ -402,6 +518,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
               {selectedField ? (
                 <FormFieldEditor
                   field={selectedField}
+                  schema={schema}
                   onChange={updateField}
                 />
               ) : (
