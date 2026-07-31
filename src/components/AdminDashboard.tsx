@@ -160,6 +160,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [employeeAttendance, setEmployeeAttendance] = useState({ total: 0, present: 0, absent: 0, vacation: 0 });
   const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
@@ -178,6 +179,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCurrentUserEmail(localStorage.getItem('userEmail') || '');
+      // 직원 로그인 시 userId에 member id가 저장된다 (담당자 매칭용)
+      const storedMemberId = Number(localStorage.getItem('userId'));
+      setCurrentMemberId(Number.isFinite(storedMemberId) && storedMemberId > 0 ? storedMemberId : null);
     }
   }, []);
 
@@ -458,8 +462,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const getCategoryLabel = (category?: string) =>
     SCHEDULE_CATEGORIES.find((c) => c.value === category)?.label || category || '';
 
-  const canToggleCompletion = (schedule: ScheduleItem) =>
+  // 수정/삭제 권한 (관리자 또는 작성자 본인)
+  const canManageSchedule = (schedule: ScheduleItem) =>
     isAdmin || (!!schedule.authorId && schedule.authorId === currentUserEmail);
+
+  // 수행완료 권한: 담당자가 지정된 일정은 담당자 본인만, 미지정 일정은 관리자/작성자
+  // (월간일정 화면 ScheduleCalendar와 동일한 규칙)
+  const canToggleCompletion = (schedule: ScheduleItem) =>
+    schedule.managerId != null
+      ? Number(schedule.managerId) === currentMemberId
+      : canManageSchedule(schedule);
 
   // 수행완료 토글 (낙관적 업데이트 후 실패 시 롤백)
   const handleToggleCompletion = async (schedule: ScheduleItem, completed: boolean) => {
@@ -1357,6 +1369,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div style={{ padding: 'var(--spacing-3) var(--spacing-6)', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-2)' }}>
               {selectedSchedule.isCompleted && selectedSchedule.completedByName ? (
                 <Text type="supporting" color="secondary">{selectedSchedule.completedByName} 완료</Text>
+              ) : !selectedSchedule.isCompleted &&
+                selectedSchedule.managerId != null &&
+                !canToggleCompletion(selectedSchedule) ? (
+                // 담당자가 있는 일정은 본인만 완료 처리한다 — 버튼이 없는 이유를 알려준다
+                <Text type="supporting" color="secondary">
+                  담당자{selectedSchedule.managerName ? `(${selectedSchedule.managerName})` : ''}만 완료 처리할 수 있습니다
+                </Text>
               ) : <div />}
               <HStack gap={2} vAlign="center">
                 {canToggleCompletion(selectedSchedule) && (
