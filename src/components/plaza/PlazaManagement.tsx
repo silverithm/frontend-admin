@@ -7,7 +7,8 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
-import { VStack } from '@astryxdesign/core/Stack';
+import { Badge } from '@astryxdesign/core/Badge';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 import {
   IconClipboardList,
   IconFolder,
@@ -15,6 +16,7 @@ import {
   IconMessages,
   IconNews,
   IconPencilPlus,
+  IconShieldCheck,
   IconStar,
   IconUsersGroup,
   type TablerIcon,
@@ -25,6 +27,7 @@ import PlazaHome, { type PlazaMenu } from './PlazaHome';
 import PlazaLibrary from './PlazaLibrary';
 import PlazaNews from './PlazaNews';
 import { isLoggedIn, isDemoMode, type BoardType } from './plazaStore';
+import { fetchPlazaRole } from './plazaApi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -55,6 +58,18 @@ export default function PlazaManagement() {
   const [openPostId, setOpenPostId] = useState<number | null>(null);
   const [pendingWrite, setPendingWrite] = useState(false);
   const [boardDirty, setBoardDirty] = useState(false);
+  // 광장 운영자 여부 — 헤더 배지 표시용 (권한 판정은 서버가 한다)
+  const [isPlazaAdmin, setIsPlazaAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPlazaRole().then((role) => {
+      if (!cancelled) setIsPlazaAdmin(role.isAdmin);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,11 +132,20 @@ export default function PlazaManagement() {
       <ConfirmContainer />
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-        {/* 페이지 헤더 */}
-        <VStack gap={0} align="start">
-          <Heading level={2}>케어브이 광장</Heading>
-          <Text type="supporting" color="secondary">전국 요양 현장의 소식·자료·이야기를 한곳에서</Text>
-        </VStack>
+        {/* 페이지 헤더 — 운영자에게는 우측에 권한 표시 */}
+        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+          <VStack gap={0} align="start">
+            <Heading level={2}>케어브이 광장</Heading>
+            <Text type="supporting" color="secondary">전국 요양 현장의 소식·자료·이야기를 한곳에서</Text>
+          </VStack>
+          {isPlazaAdmin && (
+            <Badge
+              variant="teal"
+              icon={<Icon icon={IconShieldCheck} size="xsm" />}
+              label="광장 운영자"
+            />
+          )}
+        </HStack>
 
         {/* 모바일: 상단 가로 스크롤 탭 */}
         <div className="carev-plaza-mobiletabs scrollbar-hide">

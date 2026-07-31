@@ -11,6 +11,8 @@ export interface ApiPostSummary {
   displayAuthor: string;
   isAnonymous: boolean;
   isPinned: boolean;
+  /** 광장 운영자가 관리자 모드로 쓴 [운영] 공지 */
+  isOfficial: boolean;
   isMine: boolean;
   viewCount: number;
   likeCount: number;
@@ -41,6 +43,8 @@ export interface ApiPostDetail {
   displayAuthor: string;
   isAnonymous: boolean;
   isPinned: boolean;
+  /** 광장 운영자가 관리자 모드로 쓴 [운영] 공지 */
+  isOfficial: boolean;
   isMine: boolean;
   viewCount: number;
   likeCount: number;
@@ -95,6 +99,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+// ── 내 광장 권한 ────────────────────────────────────────
+
+/**
+ * 로그인 사용자가 광장 운영자인지 확인한다.
+ * 비로그인이어도 200으로 { isAdmin: false }가 오므로 분기 없이 호출할 수 있다.
+ * 실패해도 화면이 깨지지 않도록 false로 떨어뜨린다.
+ */
+export async function fetchPlazaRole(): Promise<{ isAdmin: boolean }> {
+  try {
+    return await request<{ isAdmin: boolean }>('me');
+  } catch {
+    return { isAdmin: false };
+  }
+}
+
 // ── 게시글 ──────────────────────────────────────────────
 
 export async function fetchPosts(params: {
@@ -117,7 +136,15 @@ export async function fetchPost(id: number): Promise<ApiPostDetail> {
   return request(`posts/${id}`);
 }
 
-export async function createPost(input: { board: BoardType; title: string; content: string; isAnonymous: boolean }): Promise<{ id: number }> {
+/** isOfficial/isPinned는 광장 운영자만 반영된다 (서버에서 검증) */
+export async function createPost(input: {
+  board: BoardType;
+  title: string;
+  content: string;
+  isAnonymous: boolean;
+  isOfficial?: boolean;
+  isPinned?: boolean;
+}): Promise<{ id: number }> {
   return request('posts', { method: 'POST', body: JSON.stringify({ ...input, ...authorInfo() }) });
 }
 

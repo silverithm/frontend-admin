@@ -12,6 +12,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Banner } from '@astryxdesign/core/Banner';
 import { Center } from '@astryxdesign/core/Center';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Loading } from '@/components/Loading';
@@ -48,6 +49,7 @@ import {
   createPost,
   deleteComment,
   deletePost,
+  fetchPlazaRole,
   fetchPost,
   fetchPosts,
   reportPost,
@@ -102,6 +104,21 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const [formContent, setFormContent] = useState('');
   const [formAnonymous, setFormAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 광장 운영자 여부 — [운영] 공지 작성과 타인 글 삭제 권한 (서버가 최종 판정)
+  const [isPlazaAdmin, setIsPlazaAdmin] = useState(false);
+  const [formOfficial, setFormOfficial] = useState(false);
+  const [formPinned, setFormPinned] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPlazaRole().then((role) => {
+      if (!cancelled) setIsPlazaAdmin(role.isAdmin);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /** 작성 시작 시점의 값 — 이탈 확인(dirty) 판단 기준 */
   const [writeOrigin, setWriteOrigin] = useState<{ board: BoardType; title: string; content: string; anonymous: boolean } | null>(null);
@@ -229,6 +246,8 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setFormTitle('');
     setFormContent('');
     setFormAnonymous(false);
+    setFormOfficial(false);
+    setFormPinned(false);
     setWriteOrigin({ board: boardFilter === 'all' ? 'free' : boardFilter, title: '', content: '', anonymous: false });
     setIsWriting(true);
   };
@@ -239,6 +258,8 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setFormTitle(post.title);
     setFormContent(post.content);
     setFormAnonymous(post.isAnonymous);
+    setFormOfficial(post.isOfficial);
+    setFormPinned(post.isPinned);
     setWriteOrigin({ board: post.board, title: post.title, content: post.content, anonymous: post.isAnonymous });
     setIsWriting(true);
   };
@@ -263,7 +284,15 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
         showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
         await reloadDetail(editingPostId);
       } else {
-        const created = await createPost({ board: formBoard, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
+        const created = await createPost({
+          board: formBoard,
+          title: formTitle.trim(),
+          content: formContent.trim(),
+          isAnonymous: formAnonymous,
+          // 운영자가 아니면 서버가 무시한다
+          isOfficial: isPlazaAdmin && formOfficial,
+          isPinned: isPlazaAdmin && formPinned,
+        });
         showAlert({ type: 'success', title: '등록 완료', message: '게시글이 등록되었습니다.' });
         await reloadDetail(created.id);
       }
@@ -277,7 +306,14 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   };
 
   const handleDeletePost = async (post: ApiPostDetail) => {
-    const ok = await confirm({ title: '게시글 삭제', message: '이 게시글과 댓글이 모두 삭제됩니다. 삭제할까요?', type: 'danger', confirmText: '삭제' });
+    const ok = await confirm({
+      title: '게시글 삭제',
+      message: post.isMine
+        ? '이 게시글과 댓글이 모두 삭제됩니다. 삭제할까요?'
+        : `운영자 권한으로 다른 사용자의 글을 삭제합니다.\n"${post.title}"과 댓글이 모두 삭제됩니다. 삭제할까요?`,
+      type: 'danger',
+      confirmText: '삭제',
+    });
     if (!ok) return;
     try {
       await deletePost(post.id);
@@ -463,6 +499,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
               <VStack gap={2}>
                 <HStack gap={2} vAlign="center" wrap="wrap">
                   {post.isPinned && <Badge variant="neutral" icon={<Icon icon={IconPinned} size="xsm" />} label="고정" />}
+                  {post.isOfficial && <Badge variant="teal" label="운영" />}
                   <Badge variant={meta.badgeVariant} label={meta.label} />
                   <Heading level={3}>{post.title}</Heading>
                 </HStack>
@@ -497,14 +534,26 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
                       <Button variant="ghost" size="sm" label="삭제" icon={<Icon icon={IconTrash} size="xsm" />} onClick={() => handleDeletePost(post)} />
                     </>
                   ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      label={post.reportedByMe ? '신고됨' : '신고'}
-                      icon={<Icon icon={IconFlag} size="xsm" />}
-                      isDisabled={post.reportedByMe}
-                      onClick={() => { if (!requireLogin()) return; setReportReason(REPORT_REASONS[0]); setReportTargetId(post.id); }}
-                    />
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        label={post.reportedByMe ? '신고됨' : '신고'}
+                        icon={<Icon icon={IconFlag} size="xsm" />}
+                        isDisabled={post.reportedByMe}
+                        onClick={() => { if (!requireLogin()) return; setReportReason(REPORT_REASONS[0]); setReportTargetId(post.id); }}
+                      />
+                      {/* 운영자는 관리 목적으로 다른 사람 글도 삭제할 수 있다 */}
+                      {isPlazaAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          label="삭제"
+                          icon={<Icon icon={IconTrash} size="xsm" />}
+                          onClick={() => handleDeletePost(post)}
+                        />
+                      )}
+                    </>
                   )}
                 </HStack>
               </HStack>
@@ -642,6 +691,11 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
                     {/* 좌측: 말머리 + 제목 + 댓글수 */}
                     <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                       {post.isPinned && <Icon icon={IconPinned} size="xsm" color="secondary" />}
+                      {post.isOfficial && (
+                        <div style={{ flexShrink: 0 }}>
+                          <Badge variant="teal" label="운영" />
+                        </div>
+                      )}
                       {boardFilter === 'all' && (
                         <div style={{ flexShrink: 0 }}>
                           <Badge variant={meta.badgeVariant} label={meta.label} />
@@ -719,8 +773,38 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
                     options={BOARD_META.map((b) => ({ value: b.value, label: b.label }))}
                   />
                 </div>
-                <CheckboxInput label="익명으로 작성 (기관명·이름 숨김)" value={formAnonymous} onChange={(checked) => setFormAnonymous(checked)} />
+                <HStack gap={4} vAlign="center" wrap="wrap">
+                  {/* 운영자에게만 보이는 관리자 모드 — 켜면 '케어브이 운영팀' 이름으로 [운영] 공지가 된다 */}
+                  {isPlazaAdmin && (
+                    <>
+                      <CheckboxInput
+                        label="관리자 모드 ([운영] 공지)"
+                        value={formOfficial}
+                        onChange={(checked) => {
+                          setFormOfficial(checked);
+                          if (checked) setFormAnonymous(false);
+                        }}
+                      />
+                      {formOfficial && (
+                        <CheckboxInput label="상단 고정" value={formPinned} onChange={(checked) => setFormPinned(checked)} />
+                      )}
+                    </>
+                  )}
+                  {/* 운영 공지는 작성자를 운영팀으로 표시하므로 익명 선택이 의미 없다 */}
+                  {!formOfficial && (
+                    <CheckboxInput label="익명으로 작성 (기관명·이름 숨김)" value={formAnonymous} onChange={(checked) => setFormAnonymous(checked)} />
+                  )}
+                </HStack>
               </HStack>
+
+              {isPlazaAdmin && formOfficial && (
+                <Banner
+                  status="info"
+                  container="card"
+                  title="관리자 모드로 작성 중입니다"
+                  description="작성자가 '케어브이 운영팀'으로 표시되고 [운영] 뱃지가 붙습니다."
+                />
+              )}
 
               <TextInput label="제목" isLabelHidden placeholder="제목을 입력하세요" value={formTitle} onChange={(v) => setFormTitle(v)} />
 
