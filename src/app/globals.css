@@ -288,22 +288,16 @@ html {
 .carev-schedcal-main { width: 100%; min-width: 0; transition: all var(--duration-medium-min) var(--ease-standard); }
 .carev-schedcal-detail { width: 100%; }
 @media (min-width: 1280px) {
+  /* 달력을 한 화면 높이에 욱여넣지 않는다 — 셀은 최소 높이(120px)를 지키고
+     일정이 많은 달은 카드가 자연스럽게 길어져 페이지 전체가 스크롤된다.
+     날짜 상세(우측 25%) 컬럼은 달력 높이만큼 늘어나고 내부 목록만 스크롤. */
   .carev-schedcal-layout {
     flex-direction: row;
     align-items: stretch;
-    height: calc(100dvh - var(--carev-shell-chrome));
-    min-height: 560px;
   }
-  .carev-schedcal-main { min-height: 0; }
   .carev-schedcal-main--narrow { width: 75%; }
-  .carev-schedcal-detail { width: 25%; min-height: 0; }
-  /* 카드는 컬럼을 꽉 채우고, 헤더·요일행은 고정. 날짜 그리드는 남은 높이를
-     주 단위로 균등 분배해 한 화면에 6주가 모두 들어오게 한다. */
-  .carev-schedcal-card { height: 100%; display: flex; flex-direction: column; }
-  .carev-schedcal-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-  .carev-schedcal-scroll > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .carev-schedcal-week { flex: 1; min-height: 0; }
-  .carev-schedcal-cell { aspect-ratio: auto; min-height: 0; }
+  .carev-schedcal-detail { width: 25%; min-width: 0; }
+  .carev-schedcal-card { display: flex; flex-direction: column; }
 }
 .carev-schedcal-week { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); }
 /* 여러 날 일정 바(최대 3줄) + "+N개" 표시가 들어갈 최소 높이 확보 */
