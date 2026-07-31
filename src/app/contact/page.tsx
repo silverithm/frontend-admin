@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
 import { Grid } from '@astryxdesign/core/Grid';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { Center } from '@astryxdesign/core/Center';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
@@ -118,7 +119,7 @@ export default function ContactPage() {
                                     </VStack>
                                 </Card>
                             ) : (
-                                <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={6} align="start">
+                                <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={6}>
                                     <Card padding={6}>
                                         <form onSubmit={handleSubmit}>
                                             <VStack gap={4}>
@@ -204,7 +205,9 @@ export default function ContactPage() {
                                         </form>
                                     </Card>
 
-                                    <VStack gap={4}>
+                                    {/* Grid의 align 기본값(stretch)으로 우측 컬럼이 폼과 같은 높이가 되고,
+                                        안내 카드가 남은 높이를 채운다. start로 두면 아래가 크게 빈다. */}
+                                    <VStack gap={4} height="100%">
                                         <Card padding={5}>
                                             <VStack gap={2}>
                                                 <Heading level={2} type="display-3">
@@ -227,15 +230,20 @@ export default function ContactPage() {
                                             </VStack>
                                         </Card>
 
-                                        <Card padding={5} variant="muted">
-                                            <VStack gap={2}>
-                                                <Text weight="semibold">먼저 확인해보세요</Text>
-                                                <HStack gap={3} wrap="wrap">
-                                                    <Link href="/faq">자주 묻는 질문</Link>
-                                                    <Link href="/guide">사용 가이드</Link>
-                                                </HStack>
-                                            </VStack>
-                                        </Card>
+                                        {/* 남은 높이를 이 카드가 차지하고, 내용은 가로·세로 가운데에 둔다 */}
+                                        <StackItem size="fill">
+                                            <Card padding={5} variant="muted" height="100%">
+                                                <Center axis="both" width="100%" height="100%">
+                                                    <VStack gap={3} hAlign="center">
+                                                        <Text weight="semibold" justify="center">먼저 확인해보세요</Text>
+                                                        <HStack gap={3} wrap="wrap" hAlign="center">
+                                                            <Link href="/faq">자주 묻는 질문</Link>
+                                                            <Link href="/guide">사용 가이드</Link>
+                                                        </HStack>
+                                                    </VStack>
+                                                </Center>
+                                            </Card>
+                                        </StackItem>
                                     </VStack>
                                 </Grid>
                             )}
