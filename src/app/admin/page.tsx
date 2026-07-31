@@ -90,6 +90,8 @@ import {
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
+import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -1595,6 +1597,7 @@ export default function AdminPage() {
 
             {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}
             {activeMainTab === "work" && (
+                <>
                 <AnimatePresence>
                     {showDetails && selectedDate && (
                         <motion.div
@@ -1659,57 +1662,60 @@ export default function AdminPage() {
                         </motion.div>
                     )}
 
-                    {/* 삭제 확인 모달 */}
-                    {showDeleteConfirm && selectedDeleteVacation && (
-                        <motion.div
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 'var(--spacing-4)', background: "rgba(0,0,0,0.5)" }}
-                            onClick={cancelDelete}
-                        >
-                            <motion.div
-                                initial={{scale: 0.95}}
-                                animate={{scale: 1}}
-                                exit={{scale: 0.95}}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', padding: 'var(--spacing-6)', width: "100%", maxWidth: 384 }}
-                            >
-                                <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 'var(--spacing-4)' }}>
-                                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }}>
-                                        <Icon icon={IconAlertTriangle} size="lg" color="error" />
-                                    </div>
-                                    <div style={{ marginLeft: 'var(--spacing-4)' }}>
-                                        <Text type="large" weight="medium" color="primary">휴무 삭제 확인</Text>
-                                        <div style={{ marginTop: 'var(--spacing-2)' }}>
+                </AnimatePresence>
+
+                {/* 삭제 확인 — Astryx Dialog(purpose="required")가 backdrop·ESC·포커스 트랩을 처리한다 */}
+                <Dialog
+                    isOpen={showDeleteConfirm && !!selectedDeleteVacation}
+                    onOpenChange={(open) => { if (!open) cancelDelete(); }}
+                    purpose="required"
+                    width={420}
+                >
+                    {selectedDeleteVacation && (
+                        <Layout
+                            header={
+                                <DialogHeader
+                                    title="휴무 삭제 확인"
+                                    onOpenChange={(open) => { if (!open) cancelDelete(); }}
+                                />
+                            }
+                            content={
+                                <LayoutContent>
+                                    <HStack gap={4} vAlign="start">
+                                        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", height: 48, width: 48, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }}>
+                                            <Icon icon={IconAlertTriangle} size="lg" color="error" />
+                                        </div>
+                                        <VStack gap={1} align="start">
                                             <Text type="body" color="secondary">
                                                 <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.userName}</Text>님의 <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.date}</Text> 휴무를 정말 삭제하시겠습니까?
                                             </Text>
-                                        </div>
-                                        <div style={{ marginTop: 'var(--spacing-1)' }}>
                                             <Text type="supporting" color="secondary">이 작업은 되돌릴 수 없습니다.</Text>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: "flex", justifyContent: "flex-end", gap: 'var(--spacing-3)' }}>
-                                    <Button
-                                        label="취소"
-                                        variant="secondary"
-                                        onClick={cancelDelete}
-                                        isDisabled={isProcessing}
-                                    />
-                                    <Button
-                                        label={isProcessing ? '삭제 중...' : '삭제하기'}
-                                        variant="destructive"
-                                        onClick={confirmDelete}
-                                        isLoading={isProcessing}
-                                    />
-                                </div>
-                            </motion.div>
-                        </motion.div>
+                                        </VStack>
+                                    </HStack>
+                                </LayoutContent>
+                            }
+                            footer={
+                                <LayoutFooter hasDivider>
+                                    <HStack gap={2} hAlign="end">
+                                        <Button
+                                            label="취소"
+                                            variant="secondary"
+                                            onClick={cancelDelete}
+                                            isDisabled={isProcessing}
+                                        />
+                                        <Button
+                                            label={isProcessing ? '삭제 중...' : '삭제하기'}
+                                            variant="destructive"
+                                            onClick={confirmDelete}
+                                            isLoading={isProcessing}
+                                        />
+                                    </HStack>
+                                </LayoutFooter>
+                            }
+                        />
                     )}
-                </AnimatePresence>
+                </Dialog>
+                </>
             )}
 
             {/* 푸터 */}

@@ -55,6 +55,8 @@ import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedu
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
 import { duration } from '@/theme/motion';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
@@ -1245,49 +1247,33 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
       )}
 
-      {/* 일정 상세 모달 */}
-      {selectedSchedule && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-4)' }} onClick={() => setSelectedSchedule(null)}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }} />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: duration.fast }}
-            style={{ position: 'relative', background: 'var(--color-background-card)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)', width: '100%', maxWidth: 448, overflow: 'hidden' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* 헤더 */}
-            <div style={{ background: `linear-gradient(90deg, ${getScheduleColor(selectedSchedule)}, ${withAlpha(getScheduleColor(selectedSchedule), 0.75)})`, padding: 'var(--spacing-4) var(--spacing-6)', color: 'var(--color-on-accent)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-                  {selectedSchedule.category && (
-                    <Badge variant="neutral" label={getCategoryLabel(selectedSchedule.category)} />
-                  )}
-                  {selectedSchedule.isAllDay && (
-                    <Badge variant="neutral" label="종일" />
-                  )}
-                  {selectedSchedule.isCompleted && (
-                    <Badge variant="green" label="수행완료" />
-                  )}
-                </div>
-                <IconButton
-                  label="닫기"
-                  variant="ghost"
-                  size="sm"
-                  icon={<Icon icon={IconX} size="md" color="inherit" />}
-                  onClick={() => setSelectedSchedule(null)}
-                  style={{ color: 'var(--color-on-accent)' }}
-                />
-              </div>
-              <div style={{ marginTop: 'var(--spacing-2)' }}>
-                <Text type="large" weight="bold" color="inherit">{selectedSchedule.title}</Text>
-              </div>
-            </div>
-
-            {/* 내용 */}
-            <div style={{ padding: 'var(--spacing-4) var(--spacing-6)' }}>
+      {/* 일정 상세 — 월간일정(ScheduleCalendar)과 같은 Astryx Dialog를 쓴다.
+          Dialog가 backdrop·ESC·포커스 트랩·애니메이션을 자체 처리한다. */}
+      <Dialog
+        isOpen={!!selectedSchedule}
+        onOpenChange={(open) => { if (!open) setSelectedSchedule(null); }}
+        purpose="info"
+        width={520}
+      >
+        {selectedSchedule && (
+          <Layout
+            header={
+              <DialogHeader
+                title={selectedSchedule.title}
+                subtitle={selectedSchedule.category ? getCategoryLabel(selectedSchedule.category) : undefined}
+                onOpenChange={(open) => { if (!open) setSelectedSchedule(null); }}
+              />
+            }
+            content={
+              <LayoutContent>
               <VStack gap={4} align="stretch">
+                {/* 상태 배지 */}
+                {(selectedSchedule.isAllDay || selectedSchedule.isCompleted) && (
+                  <HStack gap={2} vAlign="center" wrap="wrap">
+                    {selectedSchedule.isAllDay && <Badge variant="neutral" label="종일" />}
+                    {selectedSchedule.isCompleted && <Badge variant="green" label="수행완료" />}
+                  </HStack>
+                )}
                 {/* 날짜 */}
                 <HStack gap={3} vAlign="start">
                   <div style={{ ...iconBox('var(--color-background-teal)'), color: 'var(--color-text-teal)', marginTop: 'var(--spacing-0-5)' }}>
@@ -1376,10 +1362,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   </HStack>
                 )}
               </VStack>
-            </div>
-
-            {/* 하단 */}
-            <div style={{ padding: 'var(--spacing-3) var(--spacing-6)', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="between" vAlign="center">
               {selectedSchedule.isCompleted && selectedSchedule.completedByName ? (
                 <Text type="supporting" color="secondary">{selectedSchedule.completedByName} 완료</Text>
               ) : !selectedSchedule.isCompleted && hasTasks(selectedSchedule) ? (
@@ -1412,10 +1399,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   onClick={() => setSelectedSchedule(null)}
                 />
               </HStack>
-            </div>
-          </motion.div>
-        </div>
-      )}
+              </HStack>
+              </LayoutFooter>
+            }
+          />
+        )}
+      </Dialog>
     </div>
   );
 }
