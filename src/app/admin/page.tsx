@@ -38,6 +38,7 @@ import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
 import EmployeeApproval from "@/components/EmployeeApproval";
 import NoticeManagement from "@/components/NoticeManagement";
 import PlazaManagement from "@/components/plaza/PlazaManagement";
+import ExternalLinksNav from "@/components/ExternalLinksNav";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
 import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
@@ -162,6 +163,7 @@ export default function AdminPage() {
     const [isClient, setIsClient] = useState(false);
     const [loginType, setLoginType] = useState<string>('admin');
     const isAdmin = loginType === 'admin';
+    const [isDemoMode, setIsDemoMode] = useState(false);
 
     const memberRoleLookup = useMemo(
         () => buildMemberRoleLookup(members),
@@ -182,6 +184,7 @@ export default function AdminPage() {
     // 클라이언트 사이드에서만 실행되도록 하는 useEffect
     useEffect(() => {
         setIsClient(true);
+        setIsDemoMode(localStorage.getItem('isDemoMode') === 'true');
     }, []);
 
     useEffect(() => {
@@ -1107,6 +1110,7 @@ export default function AdminPage() {
 
                 {/* 사이드바 하단 */}
                 <div style={{ borderTop: "1px solid var(--color-border)", padding: "var(--spacing-3) 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
+                    <ExternalLinksNav />
                     <div style={{ padding: "0 var(--spacing-3)" }}><SubscriptionStatus /></div>
                     <Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                     <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
@@ -1149,6 +1153,18 @@ export default function AdminPage() {
 
             {/* 메인 콘텐츠 영역 */}
             <div className="carev-admin-content" style={{ flex: 1, display: "flex", flexDirection: "column", height: "100dvh", minHeight: 0 }}>
+            {/* 체험 모드 안내 배너 */}
+            {isDemoMode && (
+                <div className="carev-admin-rolling">
+                    <Banner
+                        status="warning"
+                        container="section"
+                        title="체험 모드"
+                        description="예시 데이터로 둘러보는 중입니다. 데이터는 7일 후 자동 삭제되며, 직원 앱 연동·푸시 알림은 체험판에서 동작하지 않습니다. 정식 가입 시 모든 기능을 이용할 수 있습니다."
+                        endContent={<Button label="정식 가입하기" variant="primary" size="sm" onClick={() => router.push('/signup')} />}
+                    />
+                </div>
+            )}
             {/* 공지사항 롤링 배너 */}
             <div className="carev-admin-rolling">
             <NoticeRollingBanner

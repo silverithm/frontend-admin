@@ -14,6 +14,7 @@ import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
 import AdminDashboard from '@/components/AdminDashboard';
 import PlazaManagement from '@/components/plaza/PlazaManagement';
+import ExternalLinksNav from '@/components/ExternalLinksNav';
 import ApprovalManagement from '@/components/ApprovalManagement';
 import ApprovalTemplateManager from '@/components/ApprovalTemplateManager';
 import UserManagement from '@/components/UserManagement';
@@ -175,6 +176,7 @@ export default function EmployeePage() {
 
           {/* 사이드바 하단 */}
           <div style={{ borderTop: '1px solid var(--color-border)', padding: 'var(--spacing-3) 0', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flexShrink: 0 }}>
+            <ExternalLinksNav />
             <div style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                 <Icon icon={IconUser} size="sm" color="secondary" />
