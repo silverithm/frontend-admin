@@ -114,6 +114,31 @@ export async function fetchPlazaRole(): Promise<{ isAdmin: boolean }> {
   }
 }
 
+// ── 시스템 공지 ─────────────────────────────────────────
+
+export interface ApiOfficialNotice {
+  id: number;
+  board: BoardType;
+  title: string;
+  displayAuthor: string;
+  isPinned: boolean;
+  createdAt: string;
+}
+
+/**
+ * 광장에 올라온 [운영] 시스템 공지.
+ * 관리자 대시보드 공지 위젯이 기관 공지와 함께 보여준다.
+ * 실패해도 대시보드가 깨지지 않도록 빈 배열로 떨어뜨린다.
+ */
+export async function fetchOfficialNotices(size = 5): Promise<ApiOfficialNotice[]> {
+  try {
+    const data = await request<{ notices: ApiOfficialNotice[] }>(`notices?size=${size}`);
+    return Array.isArray(data.notices) ? data.notices : [];
+  } catch {
+    return [];
+  }
+}
+
 // ── 게시글 ──────────────────────────────────────────────
 
 export async function fetchPosts(params: {

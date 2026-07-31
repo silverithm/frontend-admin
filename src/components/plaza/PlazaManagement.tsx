@@ -71,6 +71,16 @@ export default function PlazaManagement() {
     };
   }, []);
 
+  // 외부 링크(/plaza?post=123)로 들어오면 해당 글을 바로 연다.
+  // useSearchParams는 Suspense 경계를 요구하므로 마운트 후 location에서 직접 읽는다.
+  useEffect(() => {
+    const postId = Number(new URLSearchParams(window.location.search).get('post'));
+    if (Number.isFinite(postId) && postId > 0) {
+      setActiveMenu('all');
+      setOpenPostId(postId);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     loadNews().then((items) => {

@@ -54,6 +54,7 @@ import {
 import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
+import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
 import { duration } from '@/theme/motion';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -170,6 +171,18 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
+  // 케어브이 시스템 공지 — 광장에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
+  const [officialNotices, setOfficialNotices] = useState<ApiOfficialNotice[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchOfficialNotices(3).then((items) => {
+      if (!cancelled) setOfficialNotices(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -797,7 +810,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   </div>
                   <VStack gap={0} align="start">
                     <Text type="body" weight="bold" color="primary">공지사항</Text>
-                    <Text type="supporting" color="secondary">{notices.length}개</Text>
+                    <Text type="supporting" color="secondary">{notices.length + officialNotices.length}개</Text>
                   </VStack>
                 </HStack>
                 <Button
@@ -811,7 +824,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
 
             <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-              {notices.length === 0 ? (
+              {notices.length === 0 && officialNotices.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <EmptyState
                     isCompact
@@ -821,6 +834,25 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               ) : (
                 <VStack gap={1}>
+                  {/* 케어브이 시스템 공지 — 광장 [운영] 글. 클릭하면 광장에서 전문을 본다 */}
+                  {officialNotices.map((notice) => (
+                    <div
+                      key={`official-${notice.id}`}
+                      className="carev-dash-row"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
+                      onClick={() => window.open(`/plaza?post=${notice.id}`, '_blank', 'noopener')}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <HStack gap={2} vAlign="center">
+                          <Badge variant="teal" label="운영" />
+                          <Text type="body" weight="medium" color="primary" maxLines={1}>{notice.title}</Text>
+                        </HStack>
+                        <Text type="supporting" color="secondary">
+                          {notice.displayAuthor} · {notice.createdAt ? format(new Date(notice.createdAt), 'M.d') : ''}
+                        </Text>
+                      </div>
+                    </div>
+                  ))}
                   {notices.slice(0, 5).map((notice) => (
                     <div
                       key={notice.id}
