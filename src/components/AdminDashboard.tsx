@@ -112,6 +112,9 @@ interface ScheduleItem {
   authorName?: string;
   managerId?: number | null;
   managerName?: string | null;
+  /** 일정에 등록된 할 일 수 / 그중 완료된 수 */
+  taskTotal?: number;
+  taskCompleted?: number;
   participants?: { id: number; memberName: string; userName?: string; status?: string }[];
 }
 
@@ -472,6 +475,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     schedule.managerId != null
       ? Number(schedule.managerId) === currentMemberId
       : canManageSchedule(schedule);
+
+  // 할 일이 등록된 일정은 일정 자체를 직접 완료 처리하지 않는다.
+  // 담당자들이 할 일을 모두 체크하면 완료된다 (서버 로직과 동일).
+  const hasTasks = (schedule: ScheduleItem) => (schedule.taskTotal || 0) > 0;
 
   // 수행완료 토글 (낙관적 업데이트 후 실패 시 롤백)
   const handleToggleCompletion = async (schedule: ScheduleItem, completed: boolean) => {
@@ -1184,6 +1191,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           </Text>
                           {schedule.category && <Badge variant="neutral" label={getCategoryLabel(schedule.category)} />}
                           {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
+                          {hasTasks(schedule) && !schedule.isCompleted && (
+                            <Badge
+                              variant="blue"
+                              label={`할 일 ${schedule.taskCompleted || 0}/${schedule.taskTotal}`}
+                            />
+                          )}
                         </div>
                         <div style={{ marginTop: 'var(--spacing-0-5)', textDecoration: schedule.isCompleted ? 'line-through' : 'none', opacity: schedule.isCompleted ? 0.6 : 1 }}>
                           <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{schedule.title}</Text>
@@ -1193,7 +1206,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         )}
                       </div>
                       <div style={{ flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                        {canToggleCompletion(schedule) && (
+                        {!hasTasks(schedule) && canToggleCompletion(schedule) && (
                           <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex' }}>
                             <Button
                               variant={schedule.isCompleted ? 'secondary' : 'primary'}
@@ -1369,6 +1382,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             <div style={{ padding: 'var(--spacing-3) var(--spacing-6)', background: 'var(--color-background-muted)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-2)' }}>
               {selectedSchedule.isCompleted && selectedSchedule.completedByName ? (
                 <Text type="supporting" color="secondary">{selectedSchedule.completedByName} 완료</Text>
+              ) : !selectedSchedule.isCompleted && hasTasks(selectedSchedule) ? (
+                // 할 일이 있는 일정은 할 일을 모두 체크해야 완료된다
+                <Text type="supporting" color="secondary">
+                  할 일 {selectedSchedule.taskCompleted || 0}/{selectedSchedule.taskTotal} 완료 · 담당자가 모두 체크하면 완료됩니다
+                </Text>
               ) : !selectedSchedule.isCompleted &&
                 selectedSchedule.managerId != null &&
                 !canToggleCompletion(selectedSchedule) ? (
@@ -1378,7 +1396,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </Text>
               ) : <div />}
               <HStack gap={2} vAlign="center">
-                {canToggleCompletion(selectedSchedule) && (
+                {!hasTasks(selectedSchedule) && canToggleCompletion(selectedSchedule) && (
                   <Button
                     label={selectedSchedule.isCompleted ? '완료 해제' : '수행완료'}
                     variant={selectedSchedule.isCompleted ? 'ghost' : 'primary'}

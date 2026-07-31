@@ -217,55 +217,58 @@ export default function PartnersPage() {
                                 <Card padding={6}>
                                     <form onSubmit={handleSubmit}>
                                         <VStack gap={4}>
-                                            <TextInput
-                                                label="기관명"
-                                                type="text"
-                                                value={form.organization}
-                                                onChange={update('organization')}
-                                                placeholder="예: OO재활어르신학교"
-                                                htmlName="organization"
-                                                isRequired
-                                            />
-                                            <Selector
-                                                label="기관 유형"
-                                                options={ORGANIZATION_TYPE_OPTIONS}
-                                                value={form.organizationType}
-                                                onChange={update('organizationType')}
-                                            />
-                                            <TextInput
-                                                label="담당자 이름"
-                                                type="text"
-                                                value={form.name}
-                                                onChange={update('name')}
-                                                placeholder="담당자 이름"
-                                                htmlName="name"
-                                                isRequired
-                                            />
-                                            <TextInput
-                                                label="이메일"
-                                                type="email"
-                                                value={form.email}
-                                                onChange={update('email')}
-                                                placeholder="답변받으실 이메일"
-                                                htmlName="email"
-                                                isRequired
-                                            />
-                                            <TextInput
-                                                label="연락처"
-                                                type="text"
-                                                value={form.phone}
-                                                onChange={update('phone')}
-                                                placeholder="010-0000-0000"
-                                                htmlName="phone"
-                                            />
-                                            <TextInput
-                                                label="홈페이지 · 블로그 주소"
-                                                type="text"
-                                                value={form.website}
-                                                onChange={update('website')}
-                                                placeholder="https://blog.naver.com/..."
-                                                htmlName="website"
-                                            />
+                                            {/* 짧은 입력은 2열로 묶는다. 좁은 화면에서는 자동으로 1열로 내려간다. */}
+                                            <Grid columns={{ minWidth: 240, repeat: 'fit', max: 2 }} gap={4}>
+                                                <TextInput
+                                                    label="기관명"
+                                                    type="text"
+                                                    value={form.organization}
+                                                    onChange={update('organization')}
+                                                    placeholder="예: OO재활어르신학교"
+                                                    htmlName="organization"
+                                                    isRequired
+                                                />
+                                                <Selector
+                                                    label="기관 유형"
+                                                    options={ORGANIZATION_TYPE_OPTIONS}
+                                                    value={form.organizationType}
+                                                    onChange={update('organizationType')}
+                                                />
+                                                <TextInput
+                                                    label="담당자 이름"
+                                                    type="text"
+                                                    value={form.name}
+                                                    onChange={update('name')}
+                                                    placeholder="담당자 이름"
+                                                    htmlName="name"
+                                                    isRequired
+                                                />
+                                                <TextInput
+                                                    label="이메일"
+                                                    type="email"
+                                                    value={form.email}
+                                                    onChange={update('email')}
+                                                    placeholder="답변받으실 이메일"
+                                                    htmlName="email"
+                                                    isRequired
+                                                />
+                                                <TextInput
+                                                    label="연락처"
+                                                    type="text"
+                                                    value={form.phone}
+                                                    onChange={update('phone')}
+                                                    placeholder="010-0000-0000"
+                                                    htmlName="phone"
+                                                />
+                                                <TextInput
+                                                    label="홈페이지 · 블로그 주소"
+                                                    type="text"
+                                                    value={form.website}
+                                                    onChange={update('website')}
+                                                    placeholder="https://blog.naver.com/..."
+                                                    htmlName="website"
+                                                />
+                                            </Grid>
                                             <TextArea
                                                 label="소개하고 싶은 내용"
                                                 value={form.message}

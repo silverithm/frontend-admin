@@ -404,6 +404,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       ? Number(schedule.managerId) === currentMemberId
       : canManageSchedule(schedule);
 
+  // 할 일이 등록된 일정은 일정 자체를 직접 완료 처리하지 않는다.
+  // 담당자들이 할 일을 모두 체크하면 완료된다 (서버 로직과 동일).
+  // 목록에서는 taskTotal, 상세에서는 불러온 tasks 배열로 판단한다.
+  const hasTasks = (schedule: Schedule) =>
+    (schedule.tasks?.length ?? schedule.taskTotal ?? 0) > 0;
+
   // 수행완료 토글 (낙관적 업데이트 후 실패 시 롤백)
   const handleToggleCompletion = async (schedule: Schedule, completed: boolean) => {
     setTogglingScheduleId(schedule.id);
@@ -1307,9 +1313,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               </div>
                             </div>
                           </button>
-                          {(canToggleCompletion(schedule) || canManageSchedule(schedule)) && (
+                          {((!hasTasks(schedule) && canToggleCompletion(schedule)) || canManageSchedule(schedule)) && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-1)', marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
-                              {canToggleCompletion(schedule) && (
+                              {!hasTasks(schedule) && canToggleCompletion(schedule) && (
                                 <Button
                                   label={schedule.isCompleted ? '완료 해제' : '수행완료'}
                                   variant={schedule.isCompleted ? 'ghost' : 'primary'}
@@ -1643,7 +1649,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       )}
                     </div>
                     {/* 할 일이 있으면 완료는 할 일 진행에 따라 자동으로 결정된다 */}
-                    {(selectedSchedule.tasks?.length || 0) === 0 && canToggleCompletion(selectedSchedule) && (
+                    {!hasTasks(selectedSchedule) && canToggleCompletion(selectedSchedule) && (
                       <Button
                         label={selectedSchedule.isCompleted ? '완료 해제' : '수행완료 체크'}
                         variant={selectedSchedule.isCompleted ? 'secondary' : 'primary'}
