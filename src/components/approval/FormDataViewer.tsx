@@ -9,6 +9,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
+import { groupFieldsIntoRows } from './formValueFormat';
 
 function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -104,47 +105,8 @@ function FieldCell({ field, value }: { field: FormFieldSchema; value: any }) {
 }
 
 function SchemaViewer({ formData, schema }: { formData: Record<string, any>; schema: FormSchema }) {
-  const fields = schema.fields.filter((f) => f.type !== 'section');
-  const sections = schema.fields.filter((f) => f.type === 'section');
-
-  // Group fields into rows respecting half/full width
-  const renderFields = () => {
-    const rows: FormFieldSchema[][] = [];
-    let currentRow: FormFieldSchema[] = [];
-
-    for (const field of schema.fields) {
-      if (field.type === 'section') {
-        if (currentRow.length > 0) {
-          rows.push([...currentRow]);
-          currentRow = [];
-        }
-        rows.push([field]);
-        continue;
-      }
-
-      if (field.width === 'half') {
-        currentRow.push(field);
-        if (currentRow.length === 2) {
-          rows.push([...currentRow]);
-          currentRow = [];
-        }
-      } else {
-        if (currentRow.length > 0) {
-          rows.push([...currentRow]);
-          currentRow = [];
-        }
-        rows.push([field]);
-      }
-    }
-
-    if (currentRow.length > 0) {
-      rows.push([...currentRow]);
-    }
-
-    return rows;
-  };
-
-  const rows = renderFields();
+  // half/full 폭을 고려한 행 그룹핑 (공용 유틸 — OfficialDocument와 동일 규칙)
+  const rows = groupFieldsIntoRows(schema.fields);
 
   return (
     <VStack gap={3}>

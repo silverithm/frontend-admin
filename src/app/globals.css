@@ -1,7 +1,8 @@
 /* Astryx 디자인 시스템 (Tailwind 제거 완료 — reset.css 단독 체제) */
 @import "@astryxdesign/core/reset.css";
 @import "@astryxdesign/core/astryx.css";
-@import "@astryxdesign/theme-neutral/theme.css";
+/* 케어브이 브랜드 테마 (astryx theme build 산출물, src/theme/carev/neutralTheme.ts 소스) */
+@import "../theme/carev/neutral.css";
 
 /* 전역 라이트 모드 고정 (Astryx light-dark() 토큰이 라이트값으로 해석되도록) */
 :root {
@@ -19,7 +20,9 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-family-body);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -40,15 +43,20 @@ html {
 
 /* 포커스 링 스타일 통일 */
 *:focus-visible {
-  outline: 2px solid #14b886;
+  outline: 2px solid var(--color-border-teal);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-inner);
 }
 
-/* 최소 글꼴 크기 보장 */
-@media screen and (max-width: 480px) {
-  * {
-    font-size-adjust: 0.5;
+/* 동작 줄이기 설정 존중 (Astryx 모션 원칙) — framer-motion은 MotionConfig에서 처리 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -62,15 +70,17 @@ html {
 }
 
 /* MemberSelector 리스트 아이템 hover (Tailwind hover: 대체) */
-.carev-member-item:hover {
-  border-color: var(--color-border) !important;
-  background: var(--color-background-muted) !important;
+@media (hover: hover) {
+  .carev-member-item:hover {
+    border-color: var(--color-border) !important;
+    background: var(--color-background-muted) !important;
+  }
 }
 
 /* admin/page 반응형 (Tailwind lg:/xl:/sm: 대체) */
 .carev-admin-sidebar { display: none; }
 .carev-admin-mobile-header { display: block; }
-.carev-admin-content { margin-left: 0; }
+.carev-admin-content { margin-left: 0; min-width: 0; }
 .carev-admin-rolling { margin-top: 88px; }
 @media (min-width: 1024px) {
   .carev-admin-sidebar { display: flex; }
@@ -78,7 +88,7 @@ html {
   .carev-admin-content { margin-left: 224px; }
   .carev-admin-rolling { margin-top: 0; }
 }
-.carev-admin-work-layout { display: flex; flex-direction: column; gap: 24px; }
+.carev-admin-work-layout { display: flex; flex-direction: column; gap: var(--spacing-6); }
 .carev-admin-work-calendar { width: 100%; }
 .carev-admin-work-side { width: 100%; }
 @media (min-width: 1280px) {
@@ -86,12 +96,12 @@ html {
   .carev-admin-work-calendar { width: 80%; }
   .carev-admin-work-side { width: 20%; }
 }
-.carev-admin-footer-row { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.carev-admin-footer-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.carev-admin-footer-row { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-2); }
+.carev-admin-footer-meta { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
 .carev-admin-footer-sep { display: none; }
 @media (min-width: 640px) {
   .carev-admin-footer-row { flex-direction: row; justify-content: space-between; }
-  .carev-admin-footer-meta { flex-direction: row; gap: 12px; }
+  .carev-admin-footer-meta { flex-direction: row; gap: var(--spacing-3); }
   .carev-admin-footer-sep { display: inline; }
 }
 
@@ -103,7 +113,12 @@ html {
 .carev-dash-panels { grid-template-columns: 1fr; }
 @media (min-width: 1024px) {
   .carev-dash-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .carev-dash-panel-full { grid-column: span 2; }
+  .carev-dash-panel-full { grid-column: 1 / -1; }
+  .carev-dash-panel-news { grid-column: 1 / -1; }
+}
+@media (min-width: 1440px) {
+  .carev-dash-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .carev-dash-panel-news { grid-column: auto; }
 }
 .carev-dash-clock { display: none; }
 @media (min-width: 640px) { .carev-dash-clock { display: block; } }
@@ -114,19 +129,19 @@ html {
   .carev-dash-cal-chips { display: flex; }
 }
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
-.carev-dash-viewall:hover { opacity: 0.7; }
+@media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }
 .carev-dash-row { transition: background var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
-.carev-dash-row:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-dash-row:hover { background: var(--color-background-muted); } }
 .carev-dash-cal-cell { transition: background var(--duration-fast-min) var(--ease-standard), border-color var(--duration-fast-min) var(--ease-standard); }
-.carev-dash-cal-cell-today:hover { background: var(--color-background-surface) !important; }
-.carev-dash-cal-cell-day:hover   { border-color: var(--color-border) !important; background: var(--color-background-muted) !important; }
+@media (hover: hover) { .carev-dash-cal-cell-today:hover { background: var(--color-background-surface) !important; } }
+@media (hover: hover) { .carev-dash-cal-cell-day:hover   { border-color: var(--color-border) !important; background: var(--color-background-muted) !important; } }
 .carev-dash-timeline { transition: background var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
-.carev-dash-timeline:hover { background: var(--color-background-surface); }
+@media (hover: hover) { .carev-dash-timeline:hover { background: var(--color-background-surface); } }
 
 /* employee/page 반응형 (Tailwind lg:/sm: 대체, carev-admin-*와 동일 값) */
 .carev-emp-sidebar { display: none; }
 .carev-emp-mobile-header { display: block; }
-.carev-emp-content { margin-left: 0; }
+.carev-emp-content { margin-left: 0; min-width: 0; }
 .carev-emp-rolling { margin-top: 88px; }
 @media (min-width: 1024px) {
   .carev-emp-sidebar { display: flex; }
@@ -134,42 +149,42 @@ html {
   .carev-emp-content { margin-left: 224px; }
   .carev-emp-rolling { margin-top: 0; }
 }
-.carev-emp-footer-row { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.carev-emp-footer-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.carev-emp-footer-row { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-2); }
+.carev-emp-footer-meta { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
 .carev-emp-footer-sep { display: none; }
 @media (min-width: 640px) {
   .carev-emp-footer-row { flex-direction: row; justify-content: space-between; }
-  .carev-emp-footer-meta { flex-direction: row; gap: 12px; }
+  .carev-emp-footer-meta { flex-direction: row; gap: var(--spacing-3); }
   .carev-emp-footer-sep { display: inline; }
 }
 
 /* EmployeeNotice / EmployeeCalendar hover (Tailwind hover: 대체) */
 .carev-empnotice-item { transition: background-color var(--duration-fast) var(--ease-standard); }
-.carev-empnotice-item:hover { background-color: var(--color-background-muted); }
-.carev-empcal-cell:hover { background-color: var(--color-background-surface); }
+@media (hover: hover) { .carev-empnotice-item:hover { background-color: var(--color-background-muted); } }
+@media (hover: hover) { .carev-empcal-cell:hover { background-color: var(--color-background-surface); } }
 
 /* ── Phase 5: 일정/휴가 도메인 ── */
 
 /* Calendar */
 .carev-cal-cell { min-height: 90px; }
 @media (min-width: 768px) { .carev-cal-cell { min-height: 100px; } }
-.carev-cal-daycell:hover { background: var(--color-background-surface); }
+@media (hover: hover) { .carev-cal-daycell:hover { background: var(--color-background-surface); } }
 .carev-cal-navbtn { transition: background var(--duration-fast); }
-.carev-cal-navbtn:hover { background: rgba(255, 255, 255, 0.3); }
+@media (hover: hover) { .carev-cal-navbtn:hover { background: rgba(255, 255, 255, 0.3); } }
 
 /* SeniorAbsenceManagement hover */
 .carev-seniorabs-row { background-color: var(--color-background-muted); }
-.carev-seniorabs-row:hover { background-color: var(--color-background-muted); }
-.carev-seniorabs-day-absent { background-color: #ef4444; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-.carev-seniorabs-day-absent:hover { background-color: #dc2626; }
+@media (hover: hover) { .carev-seniorabs-row:hover { background-color: var(--color-background-muted); } }
+.carev-seniorabs-day-absent { background-color: var(--color-error); color: var(--color-on-error); box-shadow: var(--shadow-med); }
+@media (hover: hover) { .carev-seniorabs-day-absent:hover { background-color: var(--color-icon-red); } }
 .carev-seniorabs-day { background-color: var(--color-background-muted); border: 1px solid var(--color-border); }
-.carev-seniorabs-day:hover { background-color: var(--color-background-surface); border-color: var(--color-border); }
+@media (hover: hover) { .carev-seniorabs-day:hover { background-color: var(--color-background-surface); border-color: var(--color-border); } }
 
 /* VacationDetails 아이콘 버튼 hover */
 .carev-vacdetails-icon-btn { transition: color 0.15s, background 0.15s; }
-.carev-vacdetails-icon-btn:hover { color: #ffffff; background: rgba(255,255,255,0.1); }
+@media (hover: hover) { .carev-vacdetails-icon-btn:hover { color: var(--color-on-dark); background: rgba(255,255,255,0.1); } }
 .carev-vacdetails-delete-btn { transition: color 0.15s, background 0.15s; }
-.carev-vacdetails-delete-btn:hover { color: #ef4444; background: #fef2f2; }
+@media (hover: hover) { .carev-vacdetails-delete-btn:hover { color: var(--color-error); background: var(--color-background-red); } }
 
 /* VacationApproval 반응형 2단 */
 .carev-vacapproval-layout { display: flex; flex-direction: column; gap: var(--spacing-4); }
@@ -192,10 +207,10 @@ html {
   .carev-vaccal-cell { min-height: 140px; }
   .carev-vaccal-cell-expanded { min-height: 240px; }
 }
-.carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, #f3f4f6) !important; }
+@media (hover: hover) { .carev-vaccal-hover:hover { background-color: var(--carev-cell-hover, var(--color-background-muted)) !important; } }
 
 /* ScheduleCalendar 반응형 2단 + hover */
-.carev-schedcal-layout { display: flex; flex-direction: column; gap: 24px; }
+.carev-schedcal-layout { display: flex; flex-direction: column; gap: var(--spacing-6); }
 .carev-schedcal-main { width: 100%; transition: all var(--duration-medium-min) var(--ease-standard); }
 .carev-schedcal-detail { width: 100%; }
 @media (min-width: 1280px) {
@@ -207,36 +222,38 @@ html {
 /* 여러 날 일정 바(최대 3줄) + "+N개" 표시가 들어갈 최소 높이 확보 */
 .carev-schedcal-cell { min-height: 108px; }
 @media (min-width: 768px) { .carev-schedcal-cell { min-height: 120px; } }
-.carev-schedcal-cell:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-schedcal-cell:hover { background: var(--color-background-muted); } }
 .carev-schedcal-list-item { transition: all var(--duration-fast-min) var(--ease-standard); }
-.carev-schedcal-list-item:hover { background: var(--color-background-surface); border-color: var(--color-border); }
+@media (hover: hover) { .carev-schedcal-list-item:hover { background: var(--color-background-surface); border-color: var(--color-border); } }
 .carev-schedcal-attach { transition: background var(--duration-fast-min) var(--ease-standard); }
-.carev-schedcal-attach:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-schedcal-attach:hover { background: var(--color-background-muted); } }
 
 /* Phase 6: 전자결재 - FormSchemaBuilder hover */
-.carev-formbuilder-field-item:hover { border-color: var(--color-border-emphasized); background: var(--color-background-muted); }
-.carev-formbuilder-preset-item:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-formbuilder-field-item:hover { border-color: var(--color-border-emphasized); background: var(--color-background-muted); } }
+@media (hover: hover) { .carev-formbuilder-preset-item:hover { background: var(--color-background-muted); } }
 
 /* Phase 7: 채팅 도메인 hover */
-.carev-fchat-fab:hover {
-  background: #0d9488 !important;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important;
+@media (hover: hover) {
+  .carev-fchat-fab:hover {
+    background: #0d9488 !important;
+    box-shadow: var(--shadow-high) !important;
+  }
 }
 .carev-chat-room-item { transition: background var(--duration-fast-min) var(--ease-standard); }
-.carev-chat-room-item:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-chat-room-item:hover { background: var(--color-background-muted); } }
 .carev-chat-reaction { transition: background var(--duration-fast-min) var(--ease-standard); }
-.carev-chat-reaction:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-chat-reaction:hover { background: var(--color-background-muted); } }
 .carev-chat-emoji-btn { transition: background var(--duration-fast-min) var(--ease-standard); }
-.carev-chat-emoji-btn:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-chat-emoji-btn:hover { background: var(--color-background-muted); } }
 .carev-chat-menu-item { transition: background var(--duration-fast-min) var(--ease-standard); }
-.carev-chat-menu-item:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-chat-menu-item:hover { background: var(--color-background-muted); } }
 .carev-chat-file-link { transition: background var(--duration-fast-min) var(--ease-standard); }
-.carev-chat-file-link:hover { background: var(--color-background-muted); }
+@media (hover: hover) { .carev-chat-file-link:hover { background: var(--color-background-muted); } }
 .carev-chat-photo { transition: opacity var(--duration-fast-min) var(--ease-standard); }
-.carev-chat-photo:hover { opacity: 0.8; }
+@media (hover: hover) { .carev-chat-photo:hover { opacity: 0.8; } }
 
 /* Phase 8: 디스패치 - DispatchDayDetail 정보 그리드 반응형 */
-.carev-dispatch-day-info-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.carev-dispatch-day-info-grid { display: grid; grid-template-columns: 1fr; gap: var(--spacing-2); }
 @media (min-width: 768px) { .carev-dispatch-day-info-grid { grid-template-columns: 1fr 1fr; } }
 
 /* ── Phase 10: 공개/마케팅 페이지 ── */
@@ -244,42 +261,42 @@ html {
 /* guide 반응형 */
 .carev-guide-grid-2 { display: grid; grid-template-columns: 1fr; }
 @media (min-width: 768px) { .carev-guide-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.carev-guide-cta-actions { display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.carev-guide-cta-actions { display: flex; flex-direction: column; gap: var(--spacing-4); justify-content: center; }
 @media (min-width: 640px) { .carev-guide-cta-actions { flex-direction: row; } }
 
 /* faq 아코디언 hover */
-.carev-faq-trigger:hover { background: rgba(0, 0, 0, 0.03); }
+@media (hover: hover) { .carev-faq-trigger:hover { background: rgba(0, 0, 0, 0.03); } }
 
 /* landing 스텝 연결선 (데스크탑만) */
 .carev-landing-step-connector { display: none; }
 @media (min-width: 1024px) { .carev-landing-step-connector { display: block; } }
 
 /* blog/[slug] 마크다운 prose (dangerouslySetInnerHTML 출력용) */
-.carev-blogpost-prose { color: #374151; max-width: none; }
+.carev-blogpost-prose { color: var(--color-text-secondary); max-width: none; line-height: var(--text-supporting-leading); }
 .carev-blogpost-prose h1,
 .carev-blogpost-prose h2,
 .carev-blogpost-prose h3,
-.carev-blogpost-prose h4 { color: #111827; font-weight: 700; }
-.carev-blogpost-prose h1 { font-size: 2.25rem; margin-top: 2rem; margin-bottom: 1rem; }
-.carev-blogpost-prose h2 { font-size: 1.875rem; margin-top: 2rem; margin-bottom: 1rem; }
-.carev-blogpost-prose h3 { font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #1d4ed8; }
-.carev-blogpost-prose h4 { font-size: 1.125rem; margin-top: 1rem; margin-bottom: 0.5rem; color: #2563eb; }
-.carev-blogpost-prose p { color: #374151; line-height: 1.625; margin-bottom: 1rem; }
-.carev-blogpost-prose strong { color: #111827; font-weight: 600; }
-.carev-blogpost-prose ul { color: #374151; margin-top: 1rem; margin-bottom: 1rem; padding-left: 1.5rem; list-style: disc; }
-.carev-blogpost-prose li { margin-top: 0.25rem; margin-bottom: 0.25rem; }
-.carev-blogpost-prose li::marker { color: #2563eb; }
-.carev-blogpost-prose code { color: #1d4ed8; background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 0.375rem; }
-.carev-blogpost-prose pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; overflow-x: auto; }
-.carev-blogpost-prose blockquote { border-left: 4px solid #2563eb; background: rgba(37, 99, 235, 0.06); padding: 0.5rem 1rem; margin: 1rem 0; }
-.carev-blogpost-prose a { color: #2563eb; text-decoration: none; }
-.carev-blogpost-prose a:hover { color: #1d4ed8; }
+.carev-blogpost-prose h4 { color: var(--color-text-primary); font-weight: var(--font-weight-bold); }
+.carev-blogpost-prose h1 { font-size: var(--font-size-4xl); line-height: var(--text-display-2-leading); margin-top: var(--spacing-8); margin-bottom: var(--spacing-4); }
+.carev-blogpost-prose h2 { font-size: var(--font-size-3xl); line-height: var(--text-display-3-leading); margin-top: var(--spacing-8); margin-bottom: var(--spacing-4); }
+.carev-blogpost-prose h3 { font-size: var(--font-size-xl); line-height: var(--text-heading-2-leading); margin-top: var(--spacing-6); margin-bottom: var(--spacing-3); color: var(--color-text-blue); }
+.carev-blogpost-prose h4 { font-size: var(--font-size-lg); line-height: var(--text-heading-3-leading); margin-top: var(--spacing-4); margin-bottom: var(--spacing-2); color: var(--color-text-accent); }
+.carev-blogpost-prose p { color: var(--color-text-secondary); line-height: var(--text-supporting-leading); margin-bottom: var(--spacing-4); }
+.carev-blogpost-prose strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.carev-blogpost-prose ul { color: var(--color-text-secondary); margin-top: var(--spacing-4); margin-bottom: var(--spacing-4); padding-left: var(--spacing-6); list-style: disc; }
+.carev-blogpost-prose li { margin-top: var(--spacing-1); margin-bottom: var(--spacing-1); }
+.carev-blogpost-prose li::marker { color: var(--color-text-accent); }
+.carev-blogpost-prose code { font-family: var(--font-family-code); font-size: var(--text-code-size); color: var(--color-text-blue); background: var(--color-background-muted); padding: var(--spacing-1) var(--spacing-2); border-radius: var(--radius-inner); }
+.carev-blogpost-prose pre { background: var(--color-background-muted); border: 1px solid var(--color-border); border-radius: var(--radius-element); padding: var(--spacing-4); overflow-x: auto; }
+.carev-blogpost-prose blockquote { border-left: 4px solid var(--color-border-blue); background: var(--color-background-blue); padding: var(--spacing-2) var(--spacing-4); margin: var(--spacing-4) 0; }
+.carev-blogpost-prose a { color: var(--color-text-accent); text-decoration: none; }
+@media (hover: hover) { .carev-blogpost-prose a:hover { color: var(--color-text-blue); } }
 
 /* ── Phase 11: 누락 파일 정리 ── */
 
 /* FloatingChatRoomList / FieldTypeSelector hover */
-.carev-fchatroom-item:hover { background-color: var(--color-background-muted); }
-.carev-fieldtype-option:hover { border-color: var(--color-border-teal); background: var(--color-background-teal); color: var(--color-text-accent); }
+@media (hover: hover) { .carev-fchatroom-item:hover { background-color: var(--color-background-muted); } }
+@media (hover: hover) { .carev-fieldtype-option:hover { border-color: var(--color-border-teal); background: var(--color-background-teal); color: var(--color-text-accent); } }
 
 /* SubscriptionStatus 상태 점 pulse */
 @keyframes carev-substatus-pulse {
@@ -291,18 +308,18 @@ html {
 /* CalendarSkeleton 반응형 */
 .carev-calskel-root { width: 100%; }
 .carev-calskel-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--color-border); }
-.carev-calskel-weekday { padding: 2px 0; text-align: center; font-weight: 500; font-size: 8px; }
-.carev-calskel-grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: 4px; row-gap: 12px; margin-top: 8px; }
-.carev-calskel-cell { height: 60px; padding: 4px; }
-.carev-calskel-footer { margin-top: 24px; padding: 16px; border-top: 1px solid #f3f4f6; }
-.carev-calskel-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+.carev-calskel-weekday { padding: var(--spacing-0-5) 0; text-align: center; font-weight: var(--font-weight-medium); font-size: var(--font-size-2xs); }
+.carev-calskel-grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: var(--spacing-1); row-gap: var(--spacing-3); margin-top: var(--spacing-2); }
+.carev-calskel-cell { height: 60px; padding: var(--spacing-1); }
+.carev-calskel-footer { margin-top: var(--spacing-6); padding: var(--spacing-4); border-top: 1px solid var(--color-border); }
+.carev-calskel-legend { display: flex; flex-wrap: wrap; gap: var(--spacing-4); margin-top: var(--spacing-3); }
 @media (min-width: 640px) {
-  .carev-calskel-weekday { padding: 8px 0; font-size: 14px; }
-  .carev-calskel-grid { column-gap: 16px; row-gap: 20px; }
-  .carev-calskel-cell { height: 120px; padding: 12px; }
+  .carev-calskel-weekday { padding: var(--spacing-2) 0; font-size: var(--font-size-base); }
+  .carev-calskel-grid { column-gap: var(--spacing-4); row-gap: var(--spacing-5); }
+  .carev-calskel-cell { height: 120px; padding: var(--spacing-3); }
 }
 @media (min-width: 768px) {
-  .carev-calskel-grid { column-gap: 20px; row-gap: 24px; }
+  .carev-calskel-grid { column-gap: var(--spacing-5); row-gap: var(--spacing-6); }
   .carev-calskel-cell { height: 140px; }
 }
 
@@ -348,4 +365,118 @@ html {
     rgba(0, 0, 0, 0) 100%
   );
   animation: shimmer 1.5s infinite;
+}
+
+/* ================== 전자결재 공문(표준 기안문) ================== */
+.carev-doc-page {
+  width: 794px; /* A4 210mm @96dpi */
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 48px 44px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: var(--shadow-low);
+  border-radius: var(--radius-inner);
+  box-sizing: border-box;
+}
+.carev-doc-letterhead {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #111827;
+  margin-bottom: 16px;
+}
+.carev-doc-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.carev-doc-meta { font-size: 12px; line-height: 1.9; color: #374151; }
+.carev-doc-approval-table { border-collapse: collapse; margin-left: auto; }
+.carev-doc-approval-table th,
+.carev-doc-approval-table td {
+  border: 1px solid #111827;
+  width: 72px;
+  min-width: 72px;
+  text-align: center;
+  font-size: 11px;
+  padding: 2px 4px;
+  vertical-align: middle;
+}
+.carev-doc-approval-table th { background: #f3f4f6; height: 24px; font-weight: 600; }
+.carev-doc-approval-cell { height: 52px; }
+.carev-doc-approval-cell--rejected { background: #fee2e2; color: #b91c1c; font-weight: 700; }
+.carev-doc-signature-img { width: 44px; height: 44px; object-fit: contain; display: inline-block; }
+.carev-doc-approval-name { height: 30px; font-size: 10px; line-height: 1.3; }
+.carev-doc-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 28px 0 24px;
+  word-break: keep-all;
+}
+.carev-doc-fields-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.carev-doc-fields-table td {
+  border: 1px solid #9ca3af;
+  padding: 8px 10px;
+  font-size: 13px;
+  vertical-align: top;
+  word-break: break-word;
+}
+.carev-doc-field-label { background: #f3f4f6; width: 18%; font-weight: 600; text-align: center; }
+.carev-doc-field-value { white-space: pre-wrap; }
+.carev-doc-section-row { background: #e5e7eb; font-weight: 700; text-align: center; letter-spacing: 0.15em; }
+.carev-doc-body-note { font-size: 13px; line-height: 1.8; color: #374151; margin-bottom: 20px; }
+.carev-doc-sender { text-align: center; margin-top: 56px; }
+.carev-doc-sender-name-wrap { position: relative; display: inline-block; }
+.carev-doc-sender-name { font-size: 20px; font-weight: 700; letter-spacing: 0.25em; }
+.carev-doc-seal-img {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  top: -22px;
+  left: calc(100% - 26px);
+  opacity: 0.92;
+  object-fit: contain;
+}
+.carev-doc-attachments {
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid #d1d5db;
+  font-size: 13px;
+  color: #374151;
+}
+.carev-doc-reject-banner {
+  margin: 16px 0;
+  padding: 10px 14px;
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+  border-radius: var(--radius-inner);
+}
+
+@media print {
+  .carev-doc-noprint,
+  .carev-admin-sidebar,
+  .carev-admin-mobile-header,
+  .carev-emp-sidebar,
+  .carev-emp-mobile-header {
+    display: none !important;
+  }
+  body, html { background: #ffffff !important; }
+  .carev-doc-page {
+    box-shadow: none;
+    border-radius: 0;
+    width: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .carev-doc-reject-banner { border-radius: 0; }
+  @page { size: A4; margin: 15mm; }
 }

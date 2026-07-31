@@ -25,12 +25,16 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId } from '@/lib/apiService';
-import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
+import { ApprovalRequest, ApprovalStatus, ApproverCandidate } from '@/types/approval';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormRenderer from './approval/FormRenderer';
+import ApprovalLineSelector from './approval/ApprovalLineSelector';
+import OfficialDocument from './approval/OfficialDocument';
+import MySignatureCard from './approval/MySignatureCard';
 import DocumentViewerModal from './DocumentViewerModal';
+import { duration } from '@/theme/motion';
 
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -53,6 +57,8 @@ export default function EmployeeApproval() {
     file: null as File | null,
   });
   const [formData, setFormData] = useState<Record<string, any> | null>(null);
+  const [approvalLine, setApprovalLine] = useState<ApproverCandidate[]>([]);
+  const [showSignatureManager, setShowSignatureManager] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부,
@@ -67,11 +73,29 @@ export default function EmployeeApproval() {
   } | null>(null);
 
   const [userId, setUserId] = useState('');
+  const [companyName, setCompanyName] = useState('');
 
   // 클라이언트에서만 userId를 설정 (SSR 하이드레이션 불일치 방지)
   useEffect(() => {
     setUserId(getApprovalRequesterId());
+    setCompanyName(
+      localStorage.getItem('companyName') || localStorage.getItem('organizationName') || ''
+    );
   }, []);
+
+  // 상세 공문 렌더용 폼 스키마 (선택된 기안의 양식)
+  const selectedApprovalSchema = (() => {
+    if (!selectedApproval) return undefined;
+    const template = templates.find(t => String(t.id) === String(selectedApproval.templateId));
+    if (!template?.formSchema) return undefined;
+    try {
+      return typeof template.formSchema === 'string'
+        ? JSON.parse(template.formSchema)
+        : template.formSchema;
+    } catch {
+      return undefined;
+    }
+  })();
 
   // 데이터 로드
   useEffect(() => {
@@ -362,6 +386,10 @@ export default function EmployeeApproval() {
       showAlert({ type: 'error', title: '입력 오류', message: '작성한 양식 파일을 첨부해주세요.' });
       return;
     }
+    if (approvalLine.length === 0) {
+      showAlert({ type: 'error', title: '입력 오류', message: '결재선을 1명 이상 지정해주세요.' });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -383,6 +411,7 @@ export default function EmployeeApproval() {
           attachmentFileName: uploadResult.fileName,
           attachmentFileSize: uploadResult.fileSize,
         } : {}),
+        approvalLine: buildApprovalLinePayload(),
       });
 
       showAlert({
@@ -391,9 +420,7 @@ export default function EmployeeApproval() {
         message: '결재 요청이 성공적으로 제출되었습니다.',
       });
 
-      setShowNewApproval(false);
-      setApprovalForm({ templateId: '', title: '', file: null });
-      setFormData(null);
+      closeNewApprovalModal();
       loadApprovals();
       setActiveTab('my-approvals');
     } catch (error) {
@@ -425,6 +452,10 @@ export default function EmployeeApproval() {
       showAlert({ type: 'error', title: '입력 오류', message: '혼합 양식은 파일 첨부도 필요합니다.' });
       return;
     }
+    if (approvalLine.length === 0) {
+      showAlert({ type: 'error', title: '입력 오류', message: '결재선을 1명 이상 지정해주세요.' });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -446,6 +477,7 @@ export default function EmployeeApproval() {
           attachmentFileName: uploadResult.fileName,
           attachmentFileSize: uploadResult.fileSize,
         } : {}),
+        approvalLine: buildApprovalLinePayload(),
       });
 
       showAlert({
@@ -454,9 +486,7 @@ export default function EmployeeApproval() {
         message: '결재 요청이 성공적으로 제출되었습니다.',
       });
 
-      setShowNewApproval(false);
-      setApprovalForm({ templateId: '', title: '', file: null });
-      setFormData(null);
+      closeNewApprovalModal();
       loadApprovals();
       setActiveTab('my-approvals');
     } catch (error) {
@@ -506,7 +536,15 @@ export default function EmployeeApproval() {
     setShowNewApproval(false);
     setApprovalForm({ templateId: '', title: '', file: null });
     setFormData(null);
+    setApprovalLine([]);
   };
+
+  // 결재선을 생성 payload 형태로 변환
+  const buildApprovalLinePayload = () =>
+    approvalLine.map((approver) => ({
+      approverType: approver.approverType,
+      approverId: approver.approverId,
+    }));
 
   const selectedTemplateInfo = templates.find(t => String(t.id) === approvalForm.templateId);
 
@@ -536,12 +574,20 @@ export default function EmployeeApproval() {
             <Heading level={2}>전자결재</Heading>
             <Text type="supporting" color="secondary">양식 다운로드 및 결재 신청</Text>
           </VStack>
-          <Button
-            label="새 기안 작성"
-            variant="primary"
-            icon={<Icon icon={FiPlus} />}
-            onClick={() => setShowNewApproval(true)}
-          />
+          <HStack gap={2}>
+            <Button
+              label="서명 관리"
+              variant="secondary"
+              icon={<Icon icon={FiEdit3} />}
+              onClick={() => setShowSignatureManager(true)}
+            />
+            <Button
+              label="새 기안 작성"
+              variant="primary"
+              icon={<Icon icon={FiPlus} />}
+              onClick={() => setShowNewApproval(true)}
+            />
+          </HStack>
         </HStack>
 
         {/* 탭 */}
@@ -649,7 +695,7 @@ export default function EmployeeApproval() {
                     key={approval.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: duration.fast }}
                   >
                     <ClickableCard label={approval.title} onClick={() => setSelectedApproval(approval)}>
                       <HStack hAlign="between" vAlign="center" gap={4}>
@@ -728,6 +774,9 @@ export default function EmployeeApproval() {
                   onChange={(value) => setApprovalForm(prev => ({ ...prev, title: value }))}
                   placeholder="예: 2026년 1월 휴가 신청"
                 />
+
+                {/* 결재선 지정 */}
+                <ApprovalLineSelector value={approvalLine} onChange={setApprovalLine} />
 
                 {/* templateType에 따른 분기 */}
                 {(!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
@@ -813,6 +862,7 @@ export default function EmployeeApproval() {
                       isSubmitting ||
                       !approvalForm.templateId ||
                       !approvalForm.title.trim() ||
+                      approvalLine.length === 0 ||
                       ((!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && !approvalForm.file) ||
                       (selectedTemplateInfo?.templateType === 'hybrid' && (!formData || !approvalForm.file))
                     }
@@ -825,12 +875,12 @@ export default function EmployeeApproval() {
         />
       </Dialog>
 
-      {/* 결재 상세 모달 */}
+      {/* 결재 상세 모달 — 공문(표준 기안문) 뷰 */}
       <Dialog
         isOpen={!!selectedApproval}
         onOpenChange={(open) => { if (!open) setSelectedApproval(null); }}
         purpose="info"
-        width={520}
+        width={880}
       >
         {selectedApproval && (
           <Layout
@@ -849,111 +899,56 @@ export default function EmployeeApproval() {
                     <Text type="supporting" color="secondary">{selectedApproval.templateName}</Text>
                   </HStack>
 
-                  {/* 기안 정보 */}
-                  <HStack gap={3} vAlign="stretch">
-                    <div style={{ flex: 1 }}>
-                      <Card variant="muted" padding={3} width="100%">
-                        <VStack gap={1}>
-                          <Text type="supporting" color="secondary">기안일시</Text>
-                          <Text weight="medium" color="primary">
-                            {format(new Date(selectedApproval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                          </Text>
-                        </VStack>
-                      </Card>
-                    </div>
-                    {selectedApproval.processedAt && (
-                      <div style={{ flex: 1 }}>
-                        <Card variant="muted" padding={3} width="100%">
-                          <VStack gap={1}>
-                            <Text type="supporting" color="secondary">처리일시</Text>
-                            <Text weight="medium" color="primary">
-                              {format(new Date(selectedApproval.processedAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                            </Text>
-                          </VStack>
-                        </Card>
-                      </div>
-                    )}
-                  </HStack>
-
-                  {/* 첨부파일 - 단일 필드 (백엔드 구조에 맞춤) */}
-                  {selectedApproval.attachmentUrl && (
-                    <VStack gap={2}>
-                      <Text type="label" weight="medium" color="primary">첨부파일</Text>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'stretch',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-inner)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <div
-                          onClick={() => {
-                            // 내가 올린 기안의 한글 첨부는 상태와 무관하게 바로 편집 모드로 열어
-                            // Ctrl+S/저장이 서버에 반영되게 한다
-                            const editable = isHwpFile(selectedApproval.attachmentFileName);
-                            setViewer({
-                              fileUrl: selectedApproval.attachmentUrl!,
-                              fileName: selectedApproval.attachmentFileName || '첨부파일',
-                              ...(editable ? { authoring: true, approvalId: String(selectedApproval.id) } : {}),
-                            });
-                          }}
-                          style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'var(--spacing-3)',
-                            padding: 'var(--spacing-3)',
-                            cursor: 'pointer',
-                            minWidth: 0,
-                          }}
-                        >
-                          <Icon icon={FiEye} color="secondary" />
-                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            <Text color="primary">{selectedApproval.attachmentFileName || '첨부파일'}</Text>
-                          </span>
-                          <Text type="supporting" color="secondary">
-                            {formatFileSize(selectedApproval.attachmentFileSize || 0)}
-                          </Text>
-                        </div>
-                        {isHwpFile(selectedApproval.attachmentFileName) && (
-                          <div style={{ borderLeft: '1px solid var(--color-border)', display: 'flex', alignItems: 'center' }}>
-                            <IconButton
-                              label="첨부파일 웹에서 수정"
-                              tooltip="웹에서 수정"
-                              variant="ghost"
-                              icon={<Icon icon={FiEdit3} />}
-                              onClick={() => setViewer({
+                  {/* 공문 본문 */}
+                  <div style={{ background: 'var(--color-background-muted)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-inner)', overflowX: 'auto' }}>
+                    <OfficialDocument
+                      approval={selectedApproval}
+                      schema={selectedApprovalSchema}
+                      companyName={companyName}
+                      onOpenAttachment={
+                        selectedApproval.attachmentUrl
+                          ? () => {
+                              // 내가 올린 기안의 한글 첨부는 편집 모드로 열어 Ctrl+S/저장이 서버에 반영되게 한다
+                              const editable = isHwpFile(selectedApproval.attachmentFileName);
+                              setViewer({
                                 fileUrl: selectedApproval.attachmentUrl!,
                                 fileName: selectedApproval.attachmentFileName || '첨부파일',
-                                authoring: true,
-                                approvalId: String(selectedApproval.id),
-                              })}
-                            />
-                          </div>
-                        )}
-                        <div style={{ borderLeft: '1px solid var(--color-border)', display: 'flex', alignItems: 'center' }}>
-                          <IconButton
-                            label="첨부파일 다운로드"
-                            tooltip="다운로드"
-                            variant="ghost"
-                            icon={<Icon icon={FiDownload} />}
-                            onClick={() => handleDownloadAttachment(selectedApproval.attachmentUrl!, selectedApproval.attachmentFileName || '첨부파일')}
-                          />
-                        </div>
-                      </div>
-                      {isHwpFile(selectedApproval.attachmentFileName) && (
-                        <Text type="supporting" color="secondary">
-                          클릭하면 웹에서 바로 수정할 수 있고, 저장(Ctrl+S)하면 결재 문서에 반영됩니다
-                        </Text>
-                      )}
-                    </VStack>
-                  )}
+                                ...(editable ? { authoring: true, approvalId: String(selectedApproval.id) } : {}),
+                              });
+                            }
+                          : undefined
+                      }
+                    />
+                  </div>
 
-                  {/* 반려 사유 */}
-                  {selectedApproval.status === 'REJECTED' && selectedApproval.rejectReason && (
-                    <Banner status="error" title="반려 사유" description={selectedApproval.rejectReason} />
+                  {/* 첨부 다운로드/수정 보조 액션 */}
+                  {selectedApproval.attachmentUrl && (
+                    <HStack gap={2} vAlign="center" hAlign="end">
+                      <Text type="supporting" color="secondary">
+                        {selectedApproval.attachmentFileName || '첨부파일'} ({formatFileSize(selectedApproval.attachmentFileSize || 0)})
+                      </Text>
+                      {isHwpFile(selectedApproval.attachmentFileName) && (
+                        <IconButton
+                          label="첨부파일 웹에서 수정"
+                          tooltip="웹에서 수정"
+                          variant="ghost"
+                          icon={<Icon icon={FiEdit3} />}
+                          onClick={() => setViewer({
+                            fileUrl: selectedApproval.attachmentUrl!,
+                            fileName: selectedApproval.attachmentFileName || '첨부파일',
+                            authoring: true,
+                            approvalId: String(selectedApproval.id),
+                          })}
+                        />
+                      )}
+                      <IconButton
+                        label="첨부파일 다운로드"
+                        tooltip="다운로드"
+                        variant="ghost"
+                        icon={<Icon icon={FiDownload} />}
+                        onClick={() => handleDownloadAttachment(selectedApproval.attachmentUrl!, selectedApproval.attachmentFileName || '첨부파일')}
+                      />
+                    </HStack>
                   )}
                 </VStack>
               </LayoutContent>
@@ -978,6 +973,39 @@ export default function EmployeeApproval() {
             }
           />
         )}
+      </Dialog>
+
+      {/* 내 서명 관리 모달 */}
+      <Dialog
+        isOpen={showSignatureManager}
+        onOpenChange={(open) => { if (!open) setShowSignatureManager(false); }}
+        purpose="form"
+        width={440}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title="내 결재 서명"
+              onOpenChange={(open) => { if (!open) setShowSignatureManager(false); }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <MySignatureCard
+                onNotification={(message, type) =>
+                  showAlert({ type: type === 'info' ? 'success' : type, title: '서명', message })
+                }
+              />
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="닫기" variant="secondary" onClick={() => setShowSignatureManager(false)} />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
       </Dialog>
 
       {/* 문서 뷰어 / 웹 작성 모달 */}

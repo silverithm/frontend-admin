@@ -85,6 +85,12 @@ export async function PUT(
 
     if (action === 'reject') {
       backendBody = JSON.stringify(await request.json());
+    } else if (action === 'approve') {
+      // 승인 body는 선택 (서명 base64) — 없으면 그대로 body 없이 전달
+      const rawBody = await request.text().catch(() => '');
+      if (rawBody && rawBody.trim()) {
+        backendBody = rawBody;
+      }
     }
 
     const backendResponse = await fetch(backendUrl, {

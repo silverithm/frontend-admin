@@ -23,12 +23,14 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, cancelApprovalRequest } from '@/lib/apiService';
+import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
 import { useConfirm } from './ConfirmDialog';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
 import ApprovalDetail from './ApprovalDetail';
+import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
 import { useAlert } from './Alert';
+import { duration } from '@/theme/motion';
 
 type TabType = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -54,6 +56,30 @@ export default function ApprovalManagement() {
   const [userName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '');
 
   const [stats, setStats] = useState({ all: 0, pending: 0, approved: 0, rejected: 0 });
+
+  // 결재선 차례 판단용 내 결재자 ID (admin_<id> 또는 memberId)
+  const [myApproverId, setMyApproverId] = useState('');
+  // 목록 퀵 승인 대상 (서명 다이얼로그)
+  const [quickApproveTarget, setQuickApproveTarget] = useState<ApprovalRequest | null>(null);
+
+  useEffect(() => {
+    setMyApproverId(getApprovalRequesterId());
+  }, []);
+
+  // 결재선이 있으면 내 차례일 때만, 없으면(legacy) 기존처럼 처리 가능
+  const isActionable = (approval: ApprovalRequest) => {
+    if (approval.status !== 'PENDING') return false;
+    if (!approval.approvalLine || approval.approvalLine.length === 0) return true;
+    const currentStep = approval.approvalLine.find((step) => step.status === 'PENDING');
+    return !!currentStep && currentStep.approverId === myApproverId;
+  };
+
+  // 결재선 진행 배지 텍스트 (결재선 없으면 null)
+  const getLineProgress = (approval: ApprovalRequest) => {
+    if (!approval.approvalLine || approval.approvalLine.length === 0) return null;
+    const approved = approval.approvalLine.filter((step) => step.status === 'APPROVED').length;
+    return `결재 ${approved}/${approval.approvalLine.length}`;
+  };
 
   useEffect(() => {
     loadApprovals();
@@ -106,11 +132,11 @@ export default function ApprovalManagement() {
   };
 
   const handleSelectAll = () => {
-    const pendingApprovals = approvals.filter(a => a.status === 'PENDING');
-    if (selectedIds.size === pendingApprovals.length) {
+    const actionableApprovals = approvals.filter(isActionable);
+    if (selectedIds.size === actionableApprovals.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(pendingApprovals.map(a => a.id)));
+      setSelectedIds(new Set(actionableApprovals.map(a => a.id)));
     }
   };
 
@@ -124,16 +150,18 @@ export default function ApprovalManagement() {
     setSelectedIds(newSelected);
   };
 
-  const handleApprove = async (id: string | number) => {
+  const handleApprove = async (id: string | number, options?: { signatureBase64?: string }) => {
     setIsProcessing(true);
     try {
-      await approveApprovalRequest(String(id));
+      await approveApprovalRequest(String(id), options);
       showAlert({ type: 'success', title: '승인 완료', message: '결재가 승인되었습니다.' });
       loadApprovals();
       setSelectedApproval(null);
+      setQuickApproveTarget(null);
     } catch (error) {
       console.error('승인 실패:', error);
-      showAlert({ type: 'error', title: '승인 실패', message: '결재 승인에 실패했습니다.' });
+      const message = error instanceof Error && error.message ? error.message : '결재 승인에 실패했습니다.';
+      showAlert({ type: 'error', title: '승인 실패', message });
     } finally {
       setIsProcessing(false);
     }
@@ -247,8 +275,6 @@ export default function ApprovalManagement() {
     }
   };
 
-  const pendingApprovals = approvals.filter(a => a.status === 'PENDING');
-
   if (isLoading) {
     return (
       <VStack vAlign="center" hAlign="center" height={256}>
@@ -357,12 +383,15 @@ export default function ApprovalManagement() {
         {/* 결재 목록 */}
         {approvals.length > 0 ? (
           <VStack gap={3}>
-            {/* 전체 선택 체크박스 (진행중 탭에서만) */}
-            {activeTab === 'pending' && pendingApprovals.length > 0 && (
+            {/* 전체 선택 체크박스 (진행중 탭, 처리 가능한 건만) */}
+            {activeTab === 'pending' && approvals.filter(isActionable).length > 0 && (
               <HStack vAlign="center">
                 <CheckboxInput
                   label="전체 선택"
-                  value={pendingApprovals.length > 0 && selectedIds.size === pendingApprovals.length}
+                  value={
+                    approvals.filter(isActionable).length > 0 &&
+                    selectedIds.size === approvals.filter(isActionable).length
+                  }
                   onChange={handleSelectAll}
                 />
               </HStack>
@@ -375,12 +404,12 @@ export default function ApprovalManagement() {
                   key={approval.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: duration.fast }}
                 >
                   <Card>
                     <HStack hAlign="between" vAlign="center" gap={4}>
                       <HStack gap={3} vAlign="start">
-                        {approval.status === 'PENDING' && (
+                        {approval.status === 'PENDING' && isActionable(approval) && (
                           <div style={{ paddingTop: 'var(--spacing-1)', flexShrink: 0 }}>
                             <CheckboxInput
                               label="선택"
@@ -395,6 +424,9 @@ export default function ApprovalManagement() {
                           <HStack gap={2} vAlign="center">
                             <Text weight="bold" color="primary">{approval.title}</Text>
                             <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                            {getLineProgress(approval) && (
+                              <Badge variant="neutral" label={getLineProgress(approval)!} />
+                            )}
                           </HStack>
                           <VStack gap={0.5}>
                             <HStack gap={1} vAlign="center">
@@ -429,15 +461,15 @@ export default function ApprovalManagement() {
                               variant="primary"
                               size="sm"
                               icon={<Icon icon={FiCheck} />}
-                              isDisabled={isProcessing}
-                              onClick={() => handleApprove(approval.id)}
+                              isDisabled={isProcessing || !isActionable(approval)}
+                              onClick={() => setQuickApproveTarget(approval)}
                             />
                             <Button
                               label="반려"
                               variant="destructive"
                               size="sm"
                               icon={<Icon icon={FiX} />}
-                              isDisabled={isProcessing}
+                              isDisabled={isProcessing || !isActionable(approval)}
                               onClick={() => handleOpenDetail(approval)}
                             />
                           </>
@@ -477,9 +509,22 @@ export default function ApprovalManagement() {
             onDelete={handleDelete}
             onClose={() => { setSelectedApproval(null); setSelectedTemplateSchema(undefined); }}
             templateSchema={selectedTemplateSchema}
+            isProcessing={isProcessing}
           />
         )}
       </AnimatePresence>
+
+      {/* 목록 퀵 승인 — 서명 확인 */}
+      <SignatureConfirmDialog
+        isOpen={!!quickApproveTarget}
+        isProcessing={isProcessing}
+        onClose={() => setQuickApproveTarget(null)}
+        onConfirm={(signatureBase64) => {
+          if (quickApproveTarget) {
+            handleApprove(quickApproveTarget.id, signatureBase64 ? { signatureBase64 } : undefined);
+          }
+        }}
+      />
 
       {/* 일괄 반려 모달 */}
       <Dialog

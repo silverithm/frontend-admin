@@ -30,6 +30,7 @@ import {
   IconSeparator,
   IconX,
 } from '@tabler/icons-react';
+import { duration } from '@/theme/motion';
 
 interface FormSchemaBuilderProps {
   initialSchema?: FormSchema;
@@ -186,7 +187,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
           >
             <div
               style={{
-                padding: '12px 16px',
+                padding: 'var(--spacing-3) var(--spacing-4)',
                 borderBottom: '1px solid var(--color-border)',
                 background: 'var(--color-background-muted)',
               }}
@@ -205,7 +206,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '48px 0',
+                    padding: 'var(--spacing-12) 0',
                   }}
                 >
                   <VStack gap={3} hAlign="center">
@@ -222,14 +223,14 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                         key={field.id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.15 }}
+                        transition={{ duration: duration.fastMin }}
                         onClick={() => setSelectedFieldId(field.id)}
                         className={isSelected ? undefined : 'carev-formbuilder-field-item'}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: 'var(--spacing-2)',
-                          padding: '10px 12px',
+                          padding: '10px var(--spacing-3)',
                           borderRadius: 'var(--radius-element)',
                           border: `1px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border)'}`,
                           background: isSelected ? 'var(--color-background-teal)' : 'var(--color-background-card)',
@@ -310,7 +311,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
           >
             <div
               style={{
-                padding: '12px 16px',
+                padding: 'var(--spacing-3) var(--spacing-4)',
                 borderBottom: '1px solid var(--color-border)',
                 background: 'var(--color-background-muted)',
               }}
@@ -330,7 +331,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '32px 0',
+                    padding: 'var(--spacing-8) 0',
                   }}
                 >
                   <VStack gap={3} hAlign="center">
@@ -362,7 +363,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                   initial={{ opacity: 0, y: -4, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                  transition={{ duration: 0.1 }}
+                  transition={{ duration: duration.fastMin }}
                   style={{
                     position: 'absolute',
                     bottom: '100%',
@@ -386,7 +387,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange }: For
                         display: 'block',
                         width: '100%',
                         textAlign: 'left',
-                        padding: '10px 12px',
+                        padding: '10px var(--spacing-3)',
                         background: 'transparent',
                         border: 'none',
                         borderBottom:

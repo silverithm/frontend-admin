@@ -22,8 +22,12 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { getOrganizationProfile, updateOrganizationProfile, deleteAdminUser, changePassword } from '@/lib/apiService';
+import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal } from '@/lib/apiService';
+import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
+import MySignatureCard from '@/components/approval/MySignatureCard';
+import { duration } from '@/theme/motion';
+import { Link } from '@astryxdesign/core/Link';
 
 interface OrganizationProfileData {
   name: string;
@@ -67,6 +71,11 @@ export default function OrganizationProfilePage() {
   const [passwordError, setPasswordError] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // 기관 직인
+  const [sealUrl, setSealUrl] = useState<string | null>(null);
+  const [sealFile, setSealFile] = useState<File | null>(null);
+  const [isSealSaving, setIsSealSaving] = useState(false);
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -74,21 +83,37 @@ export default function OrganizationProfilePage() {
   const fetchProfile = async () => {
     setIsLoading(true);
     try {
-      // localStorage에서 회사 정보 가져오기
-      const companyName = localStorage.getItem('companyName') || '';
-      const companyAddressName = localStorage.getItem('companyAddressName') || '';
-      const companyCode = localStorage.getItem('companyCode') || '';
-      const userName = localStorage.getItem('userName') || '';
+      // 운영 API에서 회사 정보 조회 (실패 시 localStorage 폴백)
+      let profileData: OrganizationProfileData;
+      try {
+        const info = await getUserInfo();
+        profileData = {
+          name: info.companyName || '',
+          address: info.companyAddressName || '',
+          contactEmail: '',
+          contactPhone: '',
+          companyCode: info.companyCode || '',
+          companyAddressName: info.companyAddressName || '',
+          adminName: info.userName || '',
+        };
+        setSealUrl(info.companySealUrl || null);
 
-      const profileData: OrganizationProfileData = {
-        name: companyName,
-        address: companyAddressName,
-        contactEmail: '', // 현재 API에서 제공되지 않음
-        contactPhone: '', // 현재 API에서 제공되지 않음
-        companyCode,
-        companyAddressName,
-        adminName: userName
-      };
+        // 다른 화면들이 참조하는 localStorage 동기화
+        if (info.companyName) localStorage.setItem('companyName', info.companyName);
+        if (info.companyAddressName) localStorage.setItem('companyAddressName', info.companyAddressName);
+        if (info.companyCode) localStorage.setItem('companyCode', info.companyCode);
+      } catch (apiError) {
+        console.warn('회사 정보 API 조회 실패, localStorage 사용:', apiError);
+        profileData = {
+          name: localStorage.getItem('companyName') || '',
+          address: localStorage.getItem('companyAddressName') || '',
+          contactEmail: '',
+          contactPhone: '',
+          companyCode: localStorage.getItem('companyCode') || '',
+          companyAddressName: localStorage.getItem('companyAddressName') || '',
+          adminName: localStorage.getItem('userName') || '',
+        };
+      }
 
       setProfile(profileData);
       setFormData(profileData);
@@ -102,16 +127,18 @@ export default function OrganizationProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData) return;
+    if (!formData || !profile) return;
     setIsLoading(true);
     setError('');
     setSuccessMessage('');
     try {
-      // localStorage 업데이트 (실제 백엔드 API가 없으므로)
-      if (formData.name) {
+      // 변경된 항목만 실제 백엔드에 반영
+      if (formData.name && formData.name !== profile.name) {
+        await updateCompanyName(formData.name);
         localStorage.setItem('companyName', formData.name);
       }
-      if (formData.address) {
+      if (formData.address && formData.address !== profile.address) {
+        await updateCompanyAddress(formData.address);
         localStorage.setItem('companyAddressName', formData.address);
       }
 
@@ -119,10 +146,69 @@ export default function OrganizationProfilePage() {
       setIsEditing(false);
       setSuccessMessage('회사 정보가 성공적으로 업데이트되었습니다.');
     } catch (err) {
-      setError('회사 정보 업데이트에 실패했습니다.');
+      setError(err instanceof Error && err.message ? err.message : '회사 정보 업데이트에 실패했습니다.');
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 이미지 파일 → PNG data URL (JPG도 PNG로 재인코딩)
+  const imageFileToPngDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const image = new window.Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(url);
+          reject(new Error('이미지 처리에 실패했습니다.'));
+          return;
+        }
+        ctx.drawImage(image, 0, 0);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('이미지를 불러올 수 없습니다.'));
+      };
+      image.src = url;
+    });
+
+  const handleUploadSeal = async () => {
+    if (!sealFile) return;
+    setIsSealSaving(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      const dataUrl = await imageFileToPngDataUrl(sealFile);
+      const response = await uploadCompanySeal(dataUrl);
+      setSealUrl(response?.sealUrl || null);
+      setSealFile(null);
+      setSuccessMessage('기관 직인이 등록되었습니다. 결재 최종 승인 시 자동으로 날인됩니다.');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : '직인 등록에 실패했습니다.');
+    } finally {
+      setIsSealSaving(false);
+    }
+  };
+
+  const handleDeleteSeal = async () => {
+    setIsSealSaving(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      await deleteCompanySeal();
+      setSealUrl(null);
+      setSuccessMessage('기관 직인이 삭제되었습니다.');
+    } catch (err) {
+      setError('직인 삭제에 실패했습니다.');
+    } finally {
+      setIsSealSaving(false);
     }
   };
 
@@ -176,7 +262,7 @@ export default function OrganizationProfilePage() {
     <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
       {/* 모던 헤더 */}
       <header style={{ background: gradientBar, boxShadow: 'var(--shadow-low)', borderBottom: '1px solid var(--color-border)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'var(--spacing-6) var(--spacing-4)' }}>
           <HStack hAlign="between" vAlign="center">
             <HStack gap={3} vAlign="center">
               <Image
@@ -207,7 +293,7 @@ export default function OrganizationProfilePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: duration.mediumMax }}
         >
           <Card padding={8}>
             <VStack gap={6}>
@@ -345,6 +431,108 @@ export default function OrganizationProfilePage() {
                     <SubscriptionInfo />
                   </VStack>
 
+                  {/* 인장/서명 섹션 */}
+                  <VStack gap={6}>
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
+                      <VStack gap={1}>
+                        <Text type="large" weight="semibold">인장 / 서명</Text>
+                        <Text type="supporting">
+                          기관 직인은 결재 최종 승인 시 공문 발신명의에, 내 서명은 결재란에 자동으로 날인됩니다
+                        </Text>
+                      </VStack>
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                        gap: 'var(--spacing-4)',
+                        alignItems: 'start',
+                      }}
+                    >
+                      {/* 기관 직인 카드 */}
+                      <Card padding={6}>
+                        <VStack gap={4}>
+                          <Text type="body" weight="medium">기관 직인</Text>
+                          {sealUrl ? (
+                            <VStack gap={3}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 140,
+                                  height: 140,
+                                  border: '1px solid var(--color-border)',
+                                  borderRadius: 'var(--radius-inner)',
+                                  background: '#ffffff',
+                                }}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={sealUrl}
+                                  alt="기관 직인"
+                                  style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }}
+                                />
+                              </div>
+                              <HStack gap={2}>
+                                <Button
+                                  label="삭제"
+                                  variant="destructive"
+                                  size="sm"
+                                  isDisabled={isSealSaving}
+                                  onClick={handleDeleteSeal}
+                                />
+                              </HStack>
+                              <Text type="supporting">새 이미지를 등록하면 기존 직인을 대체합니다.</Text>
+                            </VStack>
+                          ) : (
+                            <Banner
+                              status="info"
+                              title="등록된 직인이 없습니다."
+                              description="직인 이미지를 등록하면 승인 완료된 공문에 자동으로 찍힙니다."
+                            />
+                          )}
+                          <FileInput
+                            label="직인 이미지 (PNG/JPG, 배경 투명 권장)"
+                            accept="image/png,image/jpeg"
+                            value={sealFile}
+                            onChange={(files) => {
+                              const file = Array.isArray(files) ? files[0] ?? null : files;
+                              setSealFile(file);
+                            }}
+                          />
+                          <HStack hAlign="end">
+                            <Button
+                              label={isSealSaving ? '등록 중...' : '직인 등록'}
+                              variant="primary"
+                              isLoading={isSealSaving}
+                              isDisabled={isSealSaving || !sealFile}
+                              onClick={handleUploadSeal}
+                            />
+                          </HStack>
+                        </VStack>
+                      </Card>
+
+                      {/* 내 서명 카드 */}
+                      <Card padding={6}>
+                        <VStack gap={4}>
+                          <Text type="body" weight="medium">내 결재 서명</Text>
+                          <MySignatureCard
+                            onNotification={(message, type) => {
+                              if (type === 'error') {
+                                setError(message);
+                                setSuccessMessage('');
+                              } else {
+                                setSuccessMessage(message);
+                                setError('');
+                              }
+                            }}
+                          />
+                        </VStack>
+                      </Card>
+                    </div>
+                  </VStack>
+
                   {/* 계정 설정 섹션 */}
                   <VStack gap={6}>
                     <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
@@ -405,7 +593,7 @@ export default function OrganizationProfilePage() {
 
       {/* 푸터 */}
       <footer style={{ background: gradientBar, boxShadow: '0 -10px 30px rgba(0,0,0,0.25)', borderTop: '1px solid rgba(30,64,175,0.3)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '40px 16px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'var(--spacing-10) var(--spacing-4)' }}>
           <HStack hAlign="between" vAlign="center" wrap="wrap" gap={6}>
             <VStack gap={4}>
               <Image
@@ -415,23 +603,23 @@ export default function OrganizationProfilePage() {
                 height={47}
               />
               <HStack gap={2} vAlign="center">
-                <a
+                <Link
                   href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'rgba(147,197,253,0.7)', textDecoration: 'none', fontSize: 'var(--font-size-base)' }}
                 >
                   개인정보처리방침
-                </a>
+                </Link>
                 <span style={{ color: 'rgba(147,197,253,0.5)' }}>|</span>
-                <a
+                <Link
                   href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'rgba(147,197,253,0.7)', textDecoration: 'none', fontSize: 'var(--font-size-base)' }}
                 >
                   이용약관
-                </a>
+                </Link>
               </HStack>
             </VStack>
             <div style={{ color: 'rgba(191,219,254,0.7)' }}>

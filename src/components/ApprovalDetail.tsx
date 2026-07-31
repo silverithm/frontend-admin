@@ -1,33 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
-import { FiCheck, FiXCircle, FiDownload, FiEye } from 'react-icons/fi';
+import { FiCheck, FiXCircle, FiDownload } from 'react-icons/fi';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Card } from '@astryxdesign/core/Card';
 import { Banner } from '@astryxdesign/core/Banner';
-import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Divider } from '@astryxdesign/core/Divider';
 import { TextArea } from '@astryxdesign/core/TextArea';
-import FormDataViewer from './approval/FormDataViewer';
+import { getApprovalRequesterId } from '@/lib/apiService';
+import OfficialDocument from './approval/OfficialDocument';
+import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
 import DocumentViewerModal from './DocumentViewerModal';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, options?: { signatureBase64?: string }) => void;
   onReject: (id: string, reason: string) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
   templateSchema?: FormSchema;
+  isProcessing?: boolean;
 }
 
 export default function ApprovalDetail({
@@ -37,10 +37,21 @@ export default function ApprovalDetail({
   onDelete,
   onClose,
   templateSchema,
+  isProcessing = false,
 }: ApprovalDetailProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
+  const [showSignatureConfirm, setShowSignatureConfirm] = useState(false);
+  const [myApproverId, setMyApproverId] = useState('');
+  const [companyName, setCompanyName] = useState('');
+
+  useEffect(() => {
+    setMyApproverId(getApprovalRequesterId());
+    setCompanyName(
+      localStorage.getItem('companyName') || localStorage.getItem('organizationName') || ''
+    );
+  }, []);
 
   const getStatusVariant = (
     status: ApprovalStatus
@@ -66,6 +77,14 @@ export default function ApprovalDetail({
     }
   };
 
+  // 결재선 차례 판단: 결재선 없는 legacy 문서는 서버 인가에 맡기고 기존처럼 노출
+  const hasLine = !!approval.approvalLine && approval.approvalLine.length > 0;
+  const currentStep = hasLine
+    ? approval.approvalLine!.find((step) => step.status === 'PENDING')
+    : undefined;
+  const isMyTurn = !hasLine || (currentStep ? currentStep.approverId === myApproverId : false);
+  const canAct = approval.status === 'PENDING' && isMyTurn;
+
   const handleReject = () => {
     if (!rejectReason.trim()) return;
     onReject(approval.id, rejectReason);
@@ -84,7 +103,6 @@ export default function ApprovalDetail({
   // 첨부파일 다운로드
   const handleDownloadAttachment = async (fileUrl: string, fileName: string) => {
     try {
-      // S3 URL인 경우 상대 경로로 변환
       const relativePath = extractRelativePath(fileUrl);
 
       const downloadUrl = `/api/v1/files/download?path=${encodeURIComponent(relativePath)}&fileName=${encodeURIComponent(fileName)}`;
@@ -118,8 +136,8 @@ export default function ApprovalDetail({
         isOpen
         onOpenChange={(open) => { if (!open) onClose(); }}
         purpose="form"
-        width={520}
-        maxHeight="90vh"
+        width={880}
+        maxHeight="92vh"
       >
         <Layout
           header={
@@ -137,107 +155,50 @@ export default function ApprovalDetail({
           }
           content={
             <LayoutContent>
-              <VStack gap={5}>
-                {/* 기안 정보 */}
-                <VStack gap={3}>
-                  <HStack gap={3}>
-                    <StackItem size="fill">
-                      <Card variant="muted" padding={3}>
-                        <VStack gap={1}>
-                          <Text type="supporting">기안자</Text>
-                          <Text type="body" weight="semibold">{approval.requesterName}</Text>
-                        </VStack>
-                      </Card>
-                    </StackItem>
-                    <StackItem size="fill">
-                      <Card variant="muted" padding={3}>
-                        <VStack gap={1}>
-                          <Text type="supporting">기안일시</Text>
-                          <Text type="body" weight="semibold">
-                            {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                          </Text>
-                        </VStack>
-                      </Card>
-                    </StackItem>
-                  </HStack>
-                  {approval.processedAt && (
-                    <HStack gap={3}>
-                      <StackItem size="fill">
-                        <Card variant="muted" padding={3}>
-                          <VStack gap={1}>
-                            <Text type="supporting">처리자</Text>
-                            <Text type="body" weight="semibold">{approval.processedByName || '-'}</Text>
-                          </VStack>
-                        </Card>
-                      </StackItem>
-                      <StackItem size="fill">
-                        <Card variant="muted" padding={3}>
-                          <VStack gap={1}>
-                            <Text type="supporting">처리일시</Text>
-                            <Text type="body" weight="semibold">
-                              {format(new Date(approval.processedAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                            </Text>
-                          </VStack>
-                        </Card>
-                      </StackItem>
-                    </HStack>
-                  )}
-                </VStack>
-
-                {/* 기안 내용 */}
-                {approval.formData && Object.keys(approval.formData).length > 0 && (
-                  <VStack gap={2}>
-                    <Text type="label" weight="semibold">기안 내용</Text>
-                    <Divider />
-                    <FormDataViewer
-                      formData={approval.formData}
-                      schema={templateSchema}
-                    />
-                  </VStack>
-                )}
-
-                {/* 첨부파일 - 단일 필드 (백엔드 구조에 맞춤) */}
-                {approval.attachmentUrl && (
-                  <VStack gap={2}>
-                    <Text type="label" weight="semibold">첨부파일</Text>
-                    <Divider />
-                    <Card variant="muted" padding={2}>
-                      <HStack gap={2} vAlign="center">
-                        <StackItem size="fill">
-                          <Button
-                            label={approval.attachmentFileName || '첨부파일'}
-                            variant="ghost"
-                            size="sm"
-                            icon={<Icon icon={FiEye} size="sm" color="accent" />}
-                            onClick={() => setShowAttachmentViewer(true)}
-                          />
-                        </StackItem>
-                        <Text type="supporting">
-                          {((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB
-                        </Text>
-                        <Button
-                          label="첨부파일 다운로드"
-                          isIconOnly
-                          variant="ghost"
-                          size="sm"
-                          icon={<Icon icon={FiDownload} size="sm" />}
-                          onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
-                        />
-                      </HStack>
-                    </Card>
-                    <Text type="supporting">파일명을 클릭하면 다운로드 없이 바로 볼 수 있습니다</Text>
-                  </VStack>
-                )}
-
-                {/* 반려 사유 */}
-                {approval.status === 'REJECTED' && approval.rejectReason && (
+              <VStack gap={4}>
+                {/* 결재 차례 안내 */}
+                {approval.status === 'PENDING' && hasLine && !isMyTurn && currentStep && (
                   <Banner
-                    status="error"
-                    title="반려 사유"
-                    description={
-                      <span style={{ whiteSpace: 'pre-wrap' }}>{approval.rejectReason}</span>
+                    status="info"
+                    title={`현재 ${currentStep.approverName}님의 결재 차례입니다.`}
+                    description="본인 차례가 되면 승인/반려 버튼이 활성화됩니다."
+                  />
+                )}
+
+                {/* 공문 본문 */}
+                <div
+                  style={{
+                    background: 'var(--color-background-muted)',
+                    padding: 'var(--spacing-4)',
+                    borderRadius: 'var(--radius-inner)',
+                    overflowX: 'auto',
+                  }}
+                >
+                  <OfficialDocument
+                    approval={approval}
+                    schema={templateSchema}
+                    companyName={companyName}
+                    onOpenAttachment={
+                      approval.attachmentUrl ? () => setShowAttachmentViewer(true) : undefined
                     }
                   />
+                </div>
+
+                {/* 첨부 다운로드 보조 액션 */}
+                {approval.attachmentUrl && (
+                  <HStack gap={2} vAlign="center" hAlign="end">
+                    <Text type="supporting" color="secondary">
+                      {approval.attachmentFileName || '첨부파일'} ({((approval.attachmentFileSize || 0) / 1024).toFixed(1)}KB)
+                    </Text>
+                    <Button
+                      label="첨부파일 다운로드"
+                      isIconOnly
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon icon={FiDownload} size="sm" />}
+                      onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
+                    />
+                  </HStack>
                 )}
 
                 {/* 반려 사유 입력 폼 */}
@@ -267,7 +228,7 @@ export default function ApprovalDetail({
                           <Button
                             label="반려 확정"
                             variant="destructive"
-                            isDisabled={!rejectReason.trim()}
+                            isDisabled={!rejectReason.trim() || isProcessing}
                             onClick={handleReject}
                           />
                         </HStack>
@@ -286,13 +247,15 @@ export default function ApprovalDetail({
                     label="반려"
                     variant="secondary"
                     icon={<Icon icon={FiXCircle} size="sm" />}
+                    isDisabled={!canAct || isProcessing}
                     onClick={() => setShowRejectForm(true)}
                   />
                   <Button
                     label="승인"
                     variant="primary"
                     icon={<Icon icon={FiCheck} size="sm" />}
-                    onClick={() => onApprove(approval.id)}
+                    isDisabled={!canAct || isProcessing}
+                    onClick={() => setShowSignatureConfirm(true)}
                   />
                 </HStack>
               ) : (
@@ -319,6 +282,17 @@ export default function ApprovalDetail({
           }
         />
       </Dialog>
+
+      {/* 승인 서명 확인 */}
+      <SignatureConfirmDialog
+        isOpen={showSignatureConfirm}
+        isProcessing={isProcessing}
+        onClose={() => setShowSignatureConfirm(false)}
+        onConfirm={(signatureBase64) => {
+          setShowSignatureConfirm(false);
+          onApprove(approval.id, signatureBase64 ? { signatureBase64 } : undefined);
+        }}
+      />
 
       {/* 첨부파일 문서 뷰어 */}
       {showAttachmentViewer && approval.attachmentUrl && (

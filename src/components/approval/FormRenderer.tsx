@@ -381,7 +381,7 @@ export default function FormRenderer({
 
   if (schema.fields.length === 0) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center' }}>
+      <div style={{ padding: 'var(--spacing-10) 0', textAlign: 'center' }}>
         <Text type="body" color="secondary">
           표시할 필드가 없습니다.
         </Text>

@@ -1357,6 +1357,7 @@ export async function createApprovalRequest(data: {
     attachmentUrl?: string;
     attachmentFileName?: string;
     attachmentFileSize?: number;
+    approvalLine?: Array<{ approverType: 'ADMIN' | 'MEMBER'; approverId: number }>;
 }) {
     const companyId = getCompanyId();
     const requesterId = getApprovalRequesterId();
@@ -1378,14 +1379,112 @@ export async function createApprovalRequest(data: {
     });
 }
 
-// 결재 승인 (관리자)
-export async function approveApprovalRequest(id: string) {
+// 결재 승인 — options.signatureBase64가 있으면 즉석 서명, 없으면 등록 서명 자동 사용
+export async function approveApprovalRequest(id: string, options?: { signatureBase64?: string }) {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
 
     return fetchWithAuth(`/api/v1/approvals/${id}?action=approve&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
         method: 'PUT',
+        ...(options?.signatureBase64
+            ? { body: JSON.stringify({ signatureBase64: options.signatureBase64 }) }
+            : {}),
     });
+}
+
+// 결재선 지정 가능 결재자 후보 목록 (회사 관리자 + 결재 권한 보유 직원)
+export async function getApproverCandidates() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/approvals/approver-candidates?companyId=${companyId}`);
+}
+
+// 로그인 관리자 + 회사 정보 조회 (직인 URL 포함)
+export async function getUserInfo() {
+    return fetchWithAuth('/api/v1/users/info');
+}
+
+// 공용 파일 업로드 헬퍼 (컴포넌트별 중복 제거용)
+export async function uploadFileToServer(
+    file: File | Blob,
+    options: { category?: string; fileName?: string } = {}
+): Promise<{ filePath: string; fileName: string; fileSize: number }> {
+    const formData = new FormData();
+    if (options.fileName) {
+        formData.append('file', file, options.fileName);
+    } else {
+        formData.append('file', file);
+    }
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const response = await fetch(`/api/v1/files/upload?category=${options.category ?? 'attachments'}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || '파일 업로드 실패');
+    }
+
+    const result = await response.json();
+    return {
+        filePath: result.filePath,
+        fileName: result.fileName,
+        fileSize: result.fileSize,
+    };
+}
+
+// ================== 결재 서명/기관 직인 API ==================
+
+// 내 결재 서명 조회 ({ signatureUrl: string | null })
+export async function getMySignature() {
+    return fetchWithAuth('/api/v1/signatures/me');
+}
+
+// 내 결재 서명 등록 (base64 PNG — data URL 허용)
+export async function registerMySignature(imageBase64: string) {
+    return fetchWithAuth('/api/v1/signatures', {
+        method: 'POST',
+        body: JSON.stringify({ imageBase64 }),
+    });
+}
+
+// 내 결재 서명 삭제
+export async function deleteMySignature() {
+    return fetchWithAuth('/api/v1/signatures', { method: 'DELETE' });
+}
+
+// 기관명 변경 (관리자 전용)
+export async function updateCompanyName(companyName: string) {
+    return fetchWithAuth('/api/v1/users/company-name', {
+        method: 'PUT',
+        body: JSON.stringify({ companyName }),
+    });
+}
+
+// 기관 주소 변경 (관리자 전용, 백엔드에서 지오코딩)
+export async function updateCompanyAddress(companyAddress: string) {
+    return fetchWithAuth('/api/v1/users/company-address', {
+        method: 'PUT',
+        body: JSON.stringify({ companyAddress }),
+    });
+}
+
+// 기관 직인 등록 (관리자 전용, base64 PNG)
+export async function uploadCompanySeal(imageBase64: string) {
+    return fetchWithAuth('/api/v1/users/company-seal', {
+        method: 'PUT',
+        body: JSON.stringify({ imageBase64 }),
+    });
+}
+
+// 기관 직인 삭제 (관리자 전용)
+export async function deleteCompanySeal() {
+    return fetchWithAuth('/api/v1/users/company-seal', { method: 'DELETE' });
 }
 
 // 결재 반려 (관리자)
