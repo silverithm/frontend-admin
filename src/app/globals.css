@@ -11,8 +11,8 @@
   --foreground: #171717;
   /* 공개/마케팅 페이지 공용 라이트 배경 그라데이션 */
   --carev-page-gradient: linear-gradient(180deg, #ffffff 0%, #f7f8fa 55%, #ffffff 100%);
-  /* 관리자/직원 셸에서 콘텐츠 위·아래로 빠지는 높이 (롤링 배너 + main 패딩).
-     한 화면에 채워야 하는 영역은 calc(100dvh - var(--carev-shell-chrome))를 쓴다. */
+  /* 관리자/직원 셸은 확정 높이(100dvh)를 갖고, 그 안에서 flex로 높이를 분배한다.
+     한 화면을 채워야 하는 영역은 flex: 1 + min-height: 0 을 쓴다 (뷰포트 계산식 금지). */
   --carev-shell-chrome: 88px;
   /* 대시보드 상단 요약 카드(공지/전자결재/소식) 높이 */
   --carev-dash-toprow: 200px;
@@ -102,7 +102,7 @@ html {
   .carev-admin-work-layout {
     flex-direction: row;
     align-items: stretch;
-    height: calc(100dvh - var(--carev-shell-chrome));
+    flex: 1;
     min-height: 560px;
   }
   .carev-admin-work-calendar { width: 80%; min-height: 0; overflow-y: auto; }
@@ -122,10 +122,7 @@ html {
 .carev-notice-list { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* AdminDashboard 반응형 + hover (Tailwind 대체) */
-/* 대시보드도 근무조정과 같은 규칙: 데스크탑에서 한 화면을 채우고 패널 안에서만 스크롤 */
-@media (min-width: 1024px) {
-  .carev-dash-root { max-height: calc(100dvh - var(--carev-shell-chrome)); }
-}
+/* 대시보드도 근무조정과 같은 규칙: 셸이 확정 높이를 주므로 flex로 채운다 */
 .carev-dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 640px)  { .carev-dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .carev-dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
@@ -177,7 +174,7 @@ html {
     grid-template-columns: 200px minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     align-items: stretch;
-    height: calc(100dvh - var(--carev-plaza-chrome, 200px));
+    flex: 1;
     min-height: 520px;
   }
   .carev-plaza-nav { display: block; min-height: 0; }
@@ -197,6 +194,9 @@ html {
   }
   .carev-plaza-home > * { min-height: 0; }
 }
+/* 글쓰기 에디터 — 본문 textarea가 남은 높이를 전부 사용 */
+.carev-plaza-editor > * { height: 100%; }
+.carev-plaza-editor textarea { height: 100% !important; resize: none; }
 /* 게시글 밀도 리스트 — 좁은 화면에서는 작성자·조회수 숨김 */
 .carev-plaza-rowmeta-wide { display: none; }
 @media (min-width: 640px) {

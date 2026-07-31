@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -12,8 +12,9 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Center } from '@astryxdesign/core/Center';
 import { Divider } from '@astryxdesign/core/Divider';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
@@ -69,11 +70,12 @@ interface PlazaBoardProps {
   /** 외부(광장 홈 위젯)에서 특정 글 상세를 열 때 전달 */
   openPostId?: number | null;
   onOpenPostConsumed?: () => void;
-  /** 값이 바뀔 때마다 글쓰기 다이얼로그를 연다 */
-  writeSignal?: number;
+  /** true가 전달되면 글쓰기 에디터를 열고 onWriteRequestConsumed로 소비를 알린다 (마운트 직후에도 동작) */
+  writeRequested?: boolean;
+  onWriteRequestConsumed?: () => void;
 }
 
-export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsumed, writeSignal }: PlazaBoardProps) {
+export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsumed, writeRequested, onWriteRequestConsumed }: PlazaBoardProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
 
@@ -91,7 +93,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
   // 글 작성/수정 다이얼로그
-  const [writeOpen, setWriteOpen] = useState(false);
+  const [isWriting, setIsWriting] = useState(false); // 게시판식 전체 화면 글쓰기 모드
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [formBoard, setFormBoard] = useState<BoardType>('free');
   const [formTitle, setFormTitle] = useState('');
@@ -138,15 +140,14 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openPostId]);
 
-  // 좌측 네비 글쓰기 버튼 신호
-  const writeSignalRef = useRef(writeSignal ?? 0);
+  // 좌측 네비/모바일 탭의 글쓰기 요청 — 홈에서 눌러 보드로 전환되며 새로 마운트된 직후에도 동작
   useEffect(() => {
-    if (writeSignal !== undefined && writeSignal !== writeSignalRef.current) {
-      writeSignalRef.current = writeSignal;
+    if (writeRequested) {
       openWrite();
+      onWriteRequestConsumed?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [writeSignal]);
+  }, [writeRequested]);
 
   const loadPosts = useCallback(async () => {
     setIsLoading(true);
@@ -206,7 +207,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setFormTitle('');
     setFormContent('');
     setFormAnonymous(false);
-    setWriteOpen(true);
+    setIsWriting(true);
   };
 
   const openEdit = (post: ApiPostDetail) => {
@@ -215,7 +216,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setFormTitle(post.title);
     setFormContent(post.content);
     setFormAnonymous(post.isAnonymous);
-    setWriteOpen(true);
+    setIsWriting(true);
   };
 
   const submitPost = async () => {
@@ -234,7 +235,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
         showAlert({ type: 'success', title: '등록 완료', message: '게시글이 등록되었습니다.' });
         await reloadDetail(created.id);
       }
-      setWriteOpen(false);
+      setIsWriting(false);
       loadPosts();
     } catch (error) {
       showAlert({ type: 'error', title: '저장 실패', message: error instanceof Error ? error.message : '게시글 저장에 실패했습니다.' });
@@ -559,18 +560,36 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
         <Card padding={0} height="100%">
           <div style={{ height: '100%', overflowY: 'auto' }}>
           {isLoading ? (
-            <div style={{ padding: 'var(--spacing-8)', display: 'flex', justifyContent: 'center' }}>
-              <Spinner size="md" label="불러오는 중..." />
-            </div>
+            /* 목록이 화면 높이를 채우므로 로딩·빈 상태는 영역 정중앙에 둔다
+               (Astryx Center: "Use it for empty states, loading screens") */
+            <Loading height="100%" label="게시글을 불러오는 중..." />
           ) : posts.length === 0 ? (
-            <div style={{ padding: 'var(--spacing-8)' }}>
-              <EmptyState
-                isCompact
-                title={debouncedSearch ? '검색 결과가 없습니다' : '아직 게시글이 없습니다'}
-                description={debouncedSearch ? '다른 검색어로 시도해보세요.' : '첫 게시글을 작성해보세요.'}
-                icon={<Icon icon={IconMessages} size="lg" color="secondary" />}
-              />
-            </div>
+            <Center height="100%">
+              <div style={{ padding: 'var(--spacing-8)' }}>
+                <EmptyState
+                  title={debouncedSearch ? '검색 결과가 없습니다' : '아직 게시글이 없습니다'}
+                  description={
+                    debouncedSearch
+                      ? `'${debouncedSearch}'와 일치하는 글을 찾지 못했습니다. 다른 검색어로 시도해보세요.`
+                      : '첫 게시글을 작성해 이야기를 시작해보세요.'
+                  }
+                  icon={<Icon icon={IconMessages} size="lg" color="secondary" />}
+                  actions={
+                    debouncedSearch ? (
+                      <Button variant="secondary" size="md" label="검색 지우기" onClick={() => setSearch('')} />
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        label="글쓰기"
+                        icon={<Icon icon={IconPlus} size="sm" />}
+                        onClick={openWrite}
+                      />
+                    )
+                  }
+                />
+              </div>
+            </Center>
           ) : (
             <VStack gap={0}>
               {posts.map((post, idx) => {
@@ -643,50 +662,65 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     </motion.div>
   );
 
+  /** 게시판식 전체 화면 글쓰기 — 다이얼로그 대신 본문 영역 전체를 차지하는 에디터 */
+  const renderWrite = () => (
+    <motion.div key="write" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
+        {/* 상단 바: 취소 · 제목 · 등록 */}
+        <HStack hAlign="between" vAlign="center">
+          <Button variant="ghost" size="sm" label="취소" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={() => setIsWriting(false)} />
+          <Text type="body" weight="bold" color="primary">{editingPostId ? '게시글 수정' : '글쓰기'}</Text>
+          <Button variant="primary" size="sm" label={editingPostId ? '수정 완료' : '등록'} isLoading={isSubmitting} onClick={submitPost} />
+        </HStack>
+
+        {/* 에디터 — 남은 높이를 전부 차지 */}
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Card padding={6} height="100%">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', height: '100%' }}>
+              <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+                <div style={{ width: 160 }}>
+                  <Selector
+                    label="게시판"
+                    isLabelHidden
+                    value={formBoard}
+                    onChange={(v) => setFormBoard((v as BoardType) || 'free')}
+                    options={BOARD_META.map((b) => ({ value: b.value, label: b.label }))}
+                  />
+                </div>
+                <CheckboxInput label="익명으로 작성 (기관명·이름 숨김)" value={formAnonymous} onChange={(checked) => setFormAnonymous(checked)} />
+              </HStack>
+
+              <TextInput label="제목" isLabelHidden placeholder="제목을 입력하세요" value={formTitle} onChange={(v) => setFormTitle(v)} />
+
+              <div className="carev-plaza-editor" style={{ flex: 1, minHeight: 0 }}>
+                <TextArea
+                  label="내용"
+                  isLabelHidden
+                  placeholder={'내용을 입력하세요.\n\n· 현장 경험과 노하우는 다른 선생님들에게 큰 도움이 됩니다.\n· 개인정보(어르신 실명·연락처 등)는 올리지 말아주세요.'}
+                  value={formContent}
+                  onChange={(v) => setFormContent(v)}
+                  rows={14}
+                />
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   return (
     <>
       <AlertContainer />
       <ConfirmContainer />
 
       <AnimatePresence mode="wait">
-        {detail ? renderDetail(detail) : isDetailLoading ? (
+        {isWriting ? renderWrite() : detail ? renderDetail(detail) : isDetailLoading ? (
           <motion.div key="detail-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div style={{ padding: 'var(--spacing-8)', display: 'flex', justifyContent: 'center' }}>
-              <Spinner size="md" label="불러오는 중..." />
-            </div>
+            <Loading size="inline" label="게시글을 불러오는 중..." />
           </motion.div>
         ) : renderList()}
       </AnimatePresence>
-
-      {/* 글 작성/수정 다이얼로그 */}
-      <Dialog isOpen={writeOpen} onOpenChange={(o) => { if (!o) setWriteOpen(false); }} purpose="form" width={560}>
-        <Layout
-          header={<DialogHeader title={editingPostId ? '게시글 수정' : '글쓰기'} onOpenChange={(o) => { if (!o) setWriteOpen(false); }} />}
-          content={
-            <LayoutContent>
-              <VStack gap={4}>
-                <Selector
-                  label="게시판"
-                  value={formBoard}
-                  onChange={(v) => setFormBoard((v as BoardType) || 'free')}
-                  options={BOARD_META.map((b) => ({ value: b.value, label: b.label }))}
-                />
-                <TextInput label="제목" placeholder="제목을 입력하세요" value={formTitle} onChange={(v) => setFormTitle(v)} />
-                <TextArea label="내용" placeholder="내용을 입력하세요" value={formContent} onChange={(v) => setFormContent(v)} rows={8} />
-                <CheckboxInput label="익명으로 작성 (기관명·이름 숨김)" value={formAnonymous} onChange={(checked) => setFormAnonymous(checked)} />
-              </VStack>
-            </LayoutContent>
-          }
-          footer={
-            <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="end">
-                <Button variant="ghost" label="취소" onClick={() => setWriteOpen(false)} />
-                <Button variant="primary" label={editingPostId ? '수정' : '등록'} isLoading={isSubmitting} onClick={submitPost} />
-              </HStack>
-            </LayoutFooter>
-          }
-        />
-      </Dialog>
 
       {/* 신고 다이얼로그 */}
       <Dialog isOpen={!!reportTargetId} onOpenChange={(o) => { if (!o) setReportTargetId(null); }} purpose="form" width={420}>

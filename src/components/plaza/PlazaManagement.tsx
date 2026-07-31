@@ -51,7 +51,7 @@ export default function PlazaManagement() {
   const [activeMenu, setActiveMenu] = useState<PlazaMenu>('home');
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
   const [openPostId, setOpenPostId] = useState<number | null>(null);
-  const [writeSignal, setWriteSignal] = useState(0);
+  const [pendingWrite, setPendingWrite] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +73,7 @@ export default function PlazaManagement() {
     if (!isBoardMenu) {
       setActiveMenu('all');
     }
-    setWriteSignal((v) => v + 1);
+    setPendingWrite(true);
   };
 
   const handleOpenPost = (postId: number) => {
@@ -151,7 +151,8 @@ export default function PlazaManagement() {
                 board={activeMenu as 'all' | BoardType}
                 openPostId={openPostId}
                 onOpenPostConsumed={() => setOpenPostId(null)}
-                writeSignal={writeSignal}
+                writeRequested={pendingWrite}
+                onWriteRequestConsumed={() => setPendingWrite(false)}
               />
             )}
             {activeMenu === 'news' && <PlazaNews newsItems={newsItems} />}

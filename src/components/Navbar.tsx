@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { TopNav, TopNavHeading, TopNavItem } from '@astryxdesign/core/TopNav';
@@ -22,6 +22,17 @@ const navLinks = [
  */
 const Navbar: React.FC = () => {
   const router = useRouter();
+  // 로그인 상태 반영 — SSR/첫 렌더에서는 비로그인으로 두고 마운트 후 확인 (하이드레이션 안전)
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [workspacePath, setWorkspacePath] = useState('/admin');
+
+  useEffect(() => {
+    const hasToken = !!localStorage.getItem('authToken');
+    setLoggedIn(hasToken);
+    if (hasToken) {
+      setWorkspacePath(localStorage.getItem('loginType') === 'employee' ? '/employee' : '/admin');
+    }
+  }, []);
 
   return (
     <div
@@ -58,10 +69,14 @@ const Navbar: React.FC = () => {
           </span>
         }
         endContent={
-          <HStack gap={2} vAlign="center">
-            <Button label="회원가입" variant="ghost" size="sm" onClick={() => router.push('/signup')} />
-            <Button label="로그인" variant="primary" size="sm" onClick={() => router.push('/login')} />
-          </HStack>
+          loggedIn ? (
+            <Button label="내 케어브이" variant="primary" size="sm" onClick={() => router.push(workspacePath)} />
+          ) : (
+            <HStack gap={2} vAlign="center">
+              <Button label="회원가입" variant="ghost" size="sm" onClick={() => router.push('/signup')} />
+              <Button label="로그인" variant="primary" size="sm" onClick={() => router.push('/login')} />
+            </HStack>
+          )
         }
       />
     </div>
