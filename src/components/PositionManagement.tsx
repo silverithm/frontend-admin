@@ -14,7 +14,7 @@ import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -197,9 +197,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
     if (isLoading) {
         return (
-            <HStack hAlign="center" vAlign="center" style={{ height: 256 }}>
-                <Spinner size="md" />
-            </HStack>
+            <Loading label="직책 목록을 불러오는 중..." />
         );
     }
 

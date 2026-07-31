@@ -19,7 +19,7 @@ import { motion } from "framer-motion";
 import { Button } from "@astryxdesign/core/Button";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading } from "@/components/Loading";
 import { HStack } from "@astryxdesign/core/Stack";
 import type { DispatchDaySummary } from "@/types/dispatch";
 
@@ -159,7 +159,7 @@ export default function DispatchCalendar({
             borderRadius: 'var(--radius-element)',
           }}
         >
-          <Spinner size="lg" aria-label="달력 불러오는 중" />
+          <Loading label="달력을 불러오는 중..." />
         </div>
       )}
 

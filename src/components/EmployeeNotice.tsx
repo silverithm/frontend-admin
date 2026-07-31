@@ -13,7 +13,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Avatar } from '@astryxdesign/core/Avatar';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -179,9 +179,7 @@ export default function EmployeeNotice() {
   if (isLoading) {
     return (
       <Card padding={0}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px 0' }}>
-          <Spinner size="lg" aria-label="불러오는 중" />
-        </div>
+        <Loading label="공지사항을 불러오는 중..." />
       </Card>
     );
   }
@@ -244,9 +242,7 @@ export default function EmployeeNotice() {
                 <div style={{ width: '100%' }}>
                   <div style={{ background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                     {isLoadingReaders ? (
-                      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-4) 0' }}>
-                        <Spinner size="sm" aria-label="불러오는 중" />
-                      </div>
+                      <Loading size="inline" label="읽은 사람을 불러오는 중..." />
                     ) : readers.length > 0 ? (
                       <HStack gap={2} wrap="wrap">
                         {readers.map((reader) => (
@@ -319,9 +315,7 @@ export default function EmployeeNotice() {
 
               {/* 댓글 목록 */}
               {isLoadingComments ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-8) 0', width: '100%' }}>
-                  <Spinner size="md" aria-label="불러오는 중" />
-                </div>
+                <Loading size="inline" label="댓글을 불러오는 중..." />
               ) : comments.length > 0 ? (
                 <VStack gap={4} align="start" width="100%">
                   {comments.map((comment) => (

@@ -8,7 +8,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -537,7 +537,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         <div
             style={{
                 display: "flex",
-                height: "calc(100dvh - var(--carev-shell-chrome))",
+                flex: 1,
+                minHeight: 0,
                 background: C.card,
                 borderRadius: 'var(--radius-element)',
                 boxShadow: 'var(--shadow-low)',
@@ -566,9 +567,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                 {/* Room List */}
                 <div style={{ flex: 1, overflowY: "auto" }}>
                     {isLoadingRooms ? (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 128 }}>
-                            <Spinner size="lg" />
-                        </div>
+                        <Loading size="inline" height={128} label="채팅방을 불러오는 중..." />
                     ) : rooms.length === 0 ? (
                         <div style={{ padding: 'var(--spacing-6)' }}>
                             <EmptyState
@@ -653,9 +652,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         {/* Messages */}
                         <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray }}>
                             {isLoadingMessages ? (
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                                    <Spinner size="lg" />
-                                </div>
+                                <Loading height="100%" label="메시지를 불러오는 중..." />
                             ) : messages.length === 0 ? (
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                                     <EmptyState
@@ -921,9 +918,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                             </Text>
                                         </div>
                                         {isLoadingParticipants ? (
-                                            <div style={{ display: "flex", justifyContent: "center", padding: "var(--spacing-4) 0" }}>
-                                                <Spinner size="md" />
-                                            </div>
+                                            <Loading size="inline" label="참여자를 불러오는 중..." />
                                         ) : participants.length > 0 ? (
                                             <VStack gap={1}>
                                                 {participants.map((p, i) => (

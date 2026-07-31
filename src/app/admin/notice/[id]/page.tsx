@@ -17,7 +17,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Avatar } from '@astryxdesign/core/Avatar';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
 import { TabList, Tab } from '@astryxdesign/core/TabList';
@@ -226,8 +226,8 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Spinner size="lg" aria-label="불러오는 중" />
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
+        <Loading size="page" height="100vh" label="공지사항을 불러오는 중..." />
       </div>
     );
   }

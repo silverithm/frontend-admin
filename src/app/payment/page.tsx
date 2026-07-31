@@ -15,6 +15,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text, Heading } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Loading } from '@/components/Loading';
 
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
@@ -578,7 +579,7 @@ function PaymentPageContent() {
 // useSearchParams()는 Suspense 경계가 필요하다 (정적 프리렌더 시 CSR bailout).
 export default function PaymentPage() {
     return (
-        <Suspense fallback={null}>
+        <Suspense fallback={<Loading size="page" height="100vh" label="결제 화면을 준비하는 중..." />}>
             <PaymentPageContent />
         </Suspense>
     );

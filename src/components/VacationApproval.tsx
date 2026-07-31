@@ -24,7 +24,7 @@ import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading } from "@/components/Loading";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import {
     VacationRequest,
@@ -543,9 +543,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                         )}
 
                         {isLoadingRequests ? (
-                            <HStack hAlign="center" vAlign="center">
-                                <Spinner label="불러오는 중..." />
-                            </HStack>
+                            <Loading size="inline" label="휴무 신청을 불러오는 중..." />
                         ) : filteredRequests.length === 0 ? (
                             <EmptyState
                                 title="조건에 맞는 휴무 요청이 없습니다."

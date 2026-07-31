@@ -13,7 +13,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
@@ -141,9 +141,7 @@ export default function SubscriptionInfo() {
   if (loading) {
     return (
       <Card padding={5}>
-        <HStack hAlign="center" style={{ padding: 'var(--spacing-6) 0' }}>
-          <Spinner size="md" label="로딩 중..." />
-        </HStack>
+        <Loading size="inline" label="구독 정보를 불러오는 중..." />
       </Card>
     );
   }
@@ -365,7 +363,7 @@ export default function SubscriptionInfo() {
                 <VStack gap={3}>
                   <VStack gap={3}>
                     {paymentFailures.map((failure) => (
-                      <div style={{ background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
+                      <div key={failure.id} style={{ background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                         <HStack hAlign="between" vAlign="start">
                           <VStack gap={0.5}>
                             <Text weight="medium">

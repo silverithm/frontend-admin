@@ -6,7 +6,7 @@ import { SubscriptionResponseDTO } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from './Alert';
 import { Agentation } from 'agentation';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
@@ -107,7 +107,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
           justifyContent: 'center',
         }}
       >
-        <Spinner size="md" label="로딩 중..." />
+        <Loading size="page" height="100vh" label="구독 상태를 확인하는 중..." />
       </div>
     );
   }

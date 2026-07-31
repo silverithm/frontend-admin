@@ -5,7 +5,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Banner } from '@astryxdesign/core/Banner';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Text } from '@astryxdesign/core/Text';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { getMySignature, registerMySignature, deleteMySignature } from '@/lib/apiService';
@@ -124,9 +124,7 @@ export default function MySignatureCard({ onNotification }: MySignatureCardProps
 
   if (isLoading) {
     return (
-      <HStack hAlign="center" style={{ padding: 'var(--spacing-4)' }}>
-        <Spinner size="sm" />
-      </HStack>
+      <Loading size="inline" label="서명을 불러오는 중..." />
     );
   }
 
@@ -145,7 +143,7 @@ export default function MySignatureCard({ onNotification }: MySignatureCardProps
               height: 100,
               border: '1px solid var(--color-border)',
               borderRadius: 'var(--radius-inner)',
-              background: '#ffffff',
+              background: 'var(--color-on-accent)',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}

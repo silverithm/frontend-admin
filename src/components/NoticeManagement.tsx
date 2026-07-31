@@ -18,7 +18,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Avatar } from '@astryxdesign/core/Avatar';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
@@ -305,9 +305,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
   if (isLoading && notices.length === 0 && viewMode === 'list') {
     return (
       <Card padding={0}>
-        <Center height="200px">
-          <Spinner size="lg" aria-label="불러오는 중" />
-        </Center>
+        <Loading label="공지사항을 불러오는 중..." />
       </Card>
     );
   }
@@ -319,7 +317,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
 
       {viewMode === 'list' ? (
         /* === 목록 뷰 === */
-        <VStack gap={4} align="start" width="100%" height="100%">
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-4)', width: '100%' }}>
           {/* 헤더 */}
           <HStack gap={3} hAlign="between" vAlign="center" width="100%">
             <VStack gap={0.5} align="start">
@@ -447,7 +445,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
               </div>
             </Card>
           </div>
-        </VStack>
+        </div>
       ) : (
         /* === 상세 뷰 === */
         <Card padding={0}>
@@ -484,9 +482,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
           {/* 상세 본문 */}
           <div style={{ padding: 'var(--spacing-5)' }}>
             {isLoadingDetail ? (
-              <Center height="160px">
-                <Spinner size="lg" aria-label="불러오는 중" />
-              </Center>
+              <Loading size="inline" height={160} label="공지 내용을 불러오는 중..." />
             ) : notice ? (
               isEditing ? (
                 /* 수정 모드 */

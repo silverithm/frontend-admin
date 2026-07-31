@@ -19,7 +19,7 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { Button } from "@astryxdesign/core/Button";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading } from "@/components/Loading";
 
 export interface Member extends MemberRoleSource {
   id: string;
@@ -163,9 +163,7 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
 
   if (isLoading) {
     return (
-      <VStack vAlign="center" hAlign="center" height={256}>
-        <Spinner size="lg" label="직원 목록을 불러오는 중..." />
-      </VStack>
+      <Loading label="직원 목록을 불러오는 중..." />
     );
   }
 

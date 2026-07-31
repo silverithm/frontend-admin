@@ -6,7 +6,7 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Text } from '@astryxdesign/core/Text';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { getMySignature } from '@/lib/apiService';
@@ -93,9 +93,7 @@ export default function SignatureConfirmDialog({
         content={
           <LayoutContent>
             {isLoading ? (
-              <HStack hAlign="center" style={{ padding: 'var(--spacing-5)' }}>
-                <Spinner size="sm" />
-              </HStack>
+              <Loading size="inline" label="서명을 불러오는 중..." />
             ) : (
               <VStack gap={3}>
                 <Text type="supporting" color="secondary">
@@ -128,7 +126,7 @@ export default function SignatureConfirmDialog({
                       height: 120,
                       border: '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-inner)',
-                      background: '#ffffff',
+                      background: 'var(--color-on-accent)',
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

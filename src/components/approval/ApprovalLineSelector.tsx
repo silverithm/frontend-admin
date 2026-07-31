@@ -5,10 +5,10 @@ import { FiChevronDown, FiChevronUp, FiSearch, FiX } from 'react-icons/fi';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { IconButton } from '@astryxdesign/core/IconButton';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Text } from '@astryxdesign/core/Text';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack } from '@astryxdesign/core/Stack';
 import { getApproverCandidates } from '@/lib/apiService';
 import { ApproverCandidate } from '@/types/approval';
 
@@ -151,9 +151,7 @@ export default function ApprovalLineSelector({ value, onChange }: ApprovalLineSe
 
       {/* 후보 목록 */}
       {isLoading ? (
-        <HStack hAlign="center" style={{ padding: 'var(--spacing-3)' }}>
-          <Spinner size="sm" />
-        </HStack>
+        <Loading size="inline" label="결재자 후보를 불러오는 중..." />
       ) : loadError ? (
         <Banner status="error" title="결재자 목록을 불러오지 못했습니다." />
       ) : (

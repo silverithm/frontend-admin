@@ -21,7 +21,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
 import { useConfirm } from './ConfirmDialog';
@@ -277,9 +277,7 @@ export default function ApprovalManagement() {
 
   if (isLoading) {
     return (
-      <VStack vAlign="center" hAlign="center" height={256}>
-        <Spinner label="결재 목록을 불러오는 중..." />
-      </VStack>
+      <Loading label="결재 목록을 불러오는 중..." />
     );
   }
 
@@ -287,7 +285,8 @@ export default function ApprovalManagement() {
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <VStack gap={5}>
+      {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-5)' }}>
         {/* 헤더 */}
         <HStack hAlign="between" vAlign="center">
           <VStack gap={1}>
@@ -491,13 +490,15 @@ export default function ApprovalManagement() {
             })}
           </VStack>
         ) : (
-          <EmptyState
-            icon={<Icon icon={FiFileText} size="lg" />}
-            title="결재 요청이 없습니다"
-            description="조건에 맞는 결재 요청이 없습니다."
-          />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <EmptyState
+              icon={<Icon icon={FiFileText} size="lg" />}
+              title="결재 요청이 없습니다"
+              description="조건에 맞는 결재 요청이 없습니다."
+            />
+          </div>
         )}
-      </VStack>
+      </div>
 
       {/* 결재 상세 모달 */}
       <AnimatePresence>

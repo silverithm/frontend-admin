@@ -2,7 +2,7 @@
 
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading } from "@/components/Loading";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { FiMessageCircle } from "react-icons/fi";
@@ -67,9 +67,7 @@ export function FloatingChatRoomList({
             {/* Room List */}
             <div style={{ flex: 1, overflowY: "auto" }}>
                 {isLoadingRooms ? (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 160 }}>
-                        <Spinner aria-label="채팅방 불러오는 중" />
-                    </div>
+                    <Loading size="inline" height={160} label="채팅방을 불러오는 중..." />
                 ) : rooms.length === 0 ? (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 160 }}>
                         <EmptyState icon={<Icon icon={FiMessageCircle} size="lg" />} title="채팅방이 없습니다" isCompact />

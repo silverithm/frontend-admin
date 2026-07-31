@@ -7,7 +7,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading } from "@/components/Loading";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction } from '@/lib/apiService';
 
@@ -342,9 +342,7 @@ export function FloatingChatMessages({
                 }}
             >
                 {isLoadingMessages ? (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                        <Spinner aria-label="메시지 불러오는 중" />
-                    </div>
+                    <Loading height="100%" label="메시지를 불러오는 중..." />
                 ) : messages.length === 0 ? (
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                         <Text type="body" color="secondary">메시지가 없습니다</Text>
@@ -646,9 +644,7 @@ export function FloatingChatMessages({
                                 </Text>
                             </div>
                             {isLoadingParticipants ? (
-                                <div style={{ display: "flex", justifyContent: "center", padding: "var(--spacing-3) 0" }}>
-                                    <Spinner size="sm" aria-label="참여자 불러오는 중" />
-                                </div>
+                                <Loading size="inline" label="참여자를 불러오는 중..." />
                             ) : participants.length > 0 ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                     {participants.map((p, i) => (

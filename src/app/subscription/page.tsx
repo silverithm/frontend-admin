@@ -12,7 +12,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
@@ -73,15 +73,8 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Spinner size="md" label="로딩 중..." />
+      <div style={{ minHeight: '100vh' }}>
+        <Loading size="page" height="100vh" label="구독 정보를 불러오는 중..." />
       </div>
     );
   }

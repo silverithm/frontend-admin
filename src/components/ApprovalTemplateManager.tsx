@@ -14,7 +14,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -287,9 +287,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
         {/* 템플릿 목록 */}
         <Card padding={0}>
           {isLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-              <Spinner size="lg" label="불러오는 중..." />
-            </div>
+            <Loading label="양식을 불러오는 중..." />
           ) : templates.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
               <Table hasHover dividers="rows">

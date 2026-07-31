@@ -23,7 +23,7 @@ import type { Permission } from '@/types/auth';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Icon } from '@astryxdesign/core/Icon';
 import type { IconType } from '@astryxdesign/core/Icon';
@@ -121,10 +121,8 @@ export default function EmployeePage() {
 
   if (!isClient) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background-card)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-          <Spinner size="md" label="로딩 중..." />
-        </div>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-card)' }}>
+        <Loading size="page" height="100vh" label="화면을 준비하는 중..." />
       </div>
     );
   }
@@ -233,7 +231,7 @@ export default function EmployeePage() {
         </header>
 
         {/* 메인 콘텐츠 영역 */}
-        <div className="carev-emp-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <div className="carev-emp-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100dvh', minHeight: 0 }}>
           {/* 공지사항 롤링 배너 */}
           <div className="carev-emp-rolling">
             <NoticeRollingBanner
@@ -244,7 +242,7 @@ export default function EmployeePage() {
           </div>
 
           {/* 메인 콘텐츠 */}
-          <main style={{ flexGrow: 1, width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
+          <main style={{ flexGrow: 1, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
             {/* 알림 메시지 */}
             <AnimatePresence>
               {notification.show && (

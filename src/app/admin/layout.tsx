@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 
 export default function AdminLayout({
   children,
@@ -34,16 +34,8 @@ export default function AdminLayout({
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'var(--color-background-muted)',
-        }}
-      >
-        <Spinner size="lg" aria-label="Loading" />
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-background-muted)' }}>
+        <Loading size="page" height="100vh" label="관리자 화면을 준비하는 중..." />
       </div>
     );
   }

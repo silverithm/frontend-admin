@@ -10,7 +10,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
@@ -250,9 +250,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
   );
 
   const emptyOrLoading = isLoading ? (
-    <div style={{ padding: 'var(--spacing-6)', display: 'flex', justifyContent: 'center' }}>
-      <Spinner size="sm" label="불러오는 중..." />
-    </div>
+    <Loading size="inline" label="자료를 불러오는 중..." />
   ) : (
     <div style={{ padding: isCompact ? 'var(--spacing-4)' : 'var(--spacing-8)' }}>
       <EmptyState

@@ -10,7 +10,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -243,7 +243,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
               padding: 'var(--spacing-8)',
             }}
           >
-            <Spinner size="lg" label="로딩 중..." />
+            <Loading label="휴무 정보를 불러오는 중..." />
           </div>
         ) : showForm ? (
           <VacationForm

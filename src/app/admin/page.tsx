@@ -65,7 +65,7 @@ import { Card } from "@astryxdesign/core/Card";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Loading, LoadingOverlay } from "@/components/Loading";
 import { Banner } from "@astryxdesign/core/Banner";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -1038,7 +1038,7 @@ export default function AdminPage() {
                         height={48}
                         style={{ marginBottom: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                     />
-                    <Spinner size="md" label={!isClient ? "준비 중..." : "불러오는 중..."} />
+                    <Loading size="inline" label={!isClient ? "준비 중..." : "불러오는 중..."} />
                 </div>
             </div>
         );
@@ -1148,7 +1148,7 @@ export default function AdminPage() {
             </header>
 
             {/* 메인 콘텐츠 영역 */}
-            <div className="carev-admin-content" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+            <div className="carev-admin-content" style={{ flex: 1, display: "flex", flexDirection: "column", height: "100dvh", minHeight: 0 }}>
             {/* 공지사항 롤링 배너 */}
             <div className="carev-admin-rolling">
             <NoticeRollingBanner
@@ -1159,7 +1159,7 @@ export default function AdminPage() {
             </div>
 
             {/* 메인 콘텐츠 */}
-            <main style={{ flexGrow: 1, width: "100%", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
+            <main style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", width: "100%", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
                 {/* 알림 메시지 */}
                 <AnimatePresence>
                     {notification.show && (
@@ -1427,9 +1427,7 @@ export default function AdminPage() {
                                         )}
 
                                         {isLoadingRequests ? (
-                                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 128 }}>
-                                                <Spinner size="md" />
-                                            </div>
+                                            <Loading size="inline" height={128} label="휴무 신청을 불러오는 중..." />
                                         ) : filteredRequests.length === 0 ? (
                                             <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                 <EmptyState isCompact title="조건에 맞는 휴무 요청이 없습니다." />
@@ -1742,11 +1740,7 @@ export default function AdminPage() {
 
             {/* 로딩 오버레이 */}
             {isProcessing && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(255,255,255,0.4)" }}>
-                    <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                        <Spinner size="lg" />
-                    </div>
-                </div>
+                <LoadingOverlay label="처리 중..." />
             )}
         </div>
     );

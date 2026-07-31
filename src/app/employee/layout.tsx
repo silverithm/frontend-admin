@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 
 export default function EmployeeLayout({
   children,
@@ -39,16 +39,8 @@ export default function EmployeeLayout({
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--carev-page-gradient)',
-        }}
-      >
-        <Spinner size="lg" aria-label="Loading" />
+      <div style={{ minHeight: '100vh', background: 'var(--carev-page-gradient)' }}>
+        <Loading size="page" height="100vh" label="화면을 준비하는 중..." />
       </div>
     );
   }

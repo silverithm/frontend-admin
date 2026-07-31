@@ -22,7 +22,7 @@ import { FileInput } from '@astryxdesign/core/FileInput';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus, ApproverCandidate } from '@/types/approval';
@@ -567,7 +567,8 @@ export default function EmployeeApproval() {
     <>
       <AlertContainer />
       <ConfirmContainer />
-      <VStack gap={5}>
+      {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-5)' }}>
         {/* 헤더 */}
         <HStack hAlign="between" vAlign="center">
           <VStack gap={1}>
@@ -685,9 +686,7 @@ export default function EmployeeApproval() {
 
             {/* 결재 목록 */}
             {isLoading ? (
-              <Center height={256}>
-                <Spinner label="결재 목록을 불러오는 중..." />
-              </Center>
+              <Loading label="결재 목록을 불러오는 중..." />
             ) : filteredApprovals.length > 0 ? (
               <VStack gap={3}>
                 {filteredApprovals.map((approval) => (
@@ -724,7 +723,7 @@ export default function EmployeeApproval() {
             )}
           </>
         )}
-      </VStack>
+      </div>
 
       {/* 새 기안 작성 모달 */}
       <Dialog

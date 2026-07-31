@@ -6,7 +6,7 @@ import { Dialog } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutHeader } from '@astryxdesign/core/Layout';
 import { Button } from '@astryxdesign/core/Button';
 import { Banner } from '@astryxdesign/core/Banner';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -478,9 +478,7 @@ export default function DocumentViewerModal({
                   />
 
                   {state.kind === 'loading' && (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Spinner size="lg" label={state.message || '문서를 불러오는 중...'} />
-                    </div>
+                    <Loading height="100%" label={state.message || '문서를 불러오는 중...'} />
                   )}
 
                   {state.kind === 'pdf' && (

@@ -10,7 +10,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
@@ -101,16 +101,8 @@ export default function SubscriptionCheckPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: PAGE_GRADIENT,
-        }}
-      >
-        <Spinner size="lg" label="구독 정보를 확인하는 중..." />
+      <div style={{ minHeight: '100vh', background: PAGE_GRADIENT }}>
+        <Loading size="page" height="100vh" label="구독 정보를 확인하는 중..." />
       </div>
     );
   }
