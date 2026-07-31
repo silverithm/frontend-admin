@@ -215,7 +215,7 @@ function DashboardPreview() {
                 src="/images/dashboard-preview.jpg"
                 alt="케어브이 관리자 대시보드 실제 화면 — 출근·휴무 현황, 공지사항, 전자결재, 요양 소식, 월간일정이 한 화면에 보인다"
                 width={1720}
-                height={940}
+                height={812}
                 sizes="(max-width: 1024px) 100vw, 960px"
                 style={{ width: '100%', height: 'auto', display: 'block' }}
                 priority
