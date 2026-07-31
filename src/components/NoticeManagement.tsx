@@ -35,6 +35,7 @@ import {
   deleteNoticeComment,
   getNoticeReaders,
 } from '@/lib/apiService';
+import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
 import { Notice, NoticeComment, NoticeReader, NoticePriority, NoticeStatus } from '@/types/notice';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
@@ -83,6 +84,19 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
   const [stats, setStats] = useState<NoticeStats>({ total: 0, published: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // 케어브이 시스템 공지 — 광장에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
+  const [officialNotices, setOfficialNotices] = useState<ApiOfficialNotice[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchOfficialNotices(5).then((items) => {
+      if (!cancelled) setOfficialNotices(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 상세 상태
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -382,8 +396,40 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
 
               {/* 목록 — 남은 높이를 채우고 목록만 스크롤 */}
               <div className="carev-notice-list" style={{ padding: 'var(--spacing-5)' }}>
-                {notices.length > 0 ? (
+                {notices.length > 0 || officialNotices.length > 0 ? (
                   <VStack gap={2} align="start" width="100%">
+                    {/* 케어브이 시스템 공지 — 광장 [운영] 글. 클릭하면 광장에서 전문을 본다 */}
+                    {officialNotices.map((n) => (
+                      <div
+                        key={`official-${n.id}`}
+                        onClick={() => window.open(`/plaza?post=${n.id}`, '_blank', 'noopener')}
+                        style={{
+                          width: '100%',
+                          padding: 'var(--spacing-4)',
+                          border: '1px solid var(--color-border-teal)',
+                          borderRadius: 'var(--radius-element)',
+                          cursor: 'pointer',
+                          background: 'var(--color-background-teal)',
+                        }}
+                      >
+                        <HStack gap={3} vAlign="start">
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <VStack gap={2} align="start">
+                              <HStack gap={2} vAlign="center" wrap="wrap">
+                                <Badge variant="teal" label="운영" />
+                                <Heading level={4} maxLines={1}>{n.title}</Heading>
+                              </HStack>
+                              <HStack gap={3} vAlign="center" wrap="wrap">
+                                <Text type="supporting">{n.displayAuthor}</Text>
+                                <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                <Text type="supporting">광장에서 보기</Text>
+                              </HStack>
+                            </VStack>
+                          </div>
+                          <Icon icon="chevronRight" size="md" color="tertiary" />
+                        </HStack>
+                      </div>
+                    ))}
                     {notices.map((n) => (
                       <motion.div
                         key={n.id}
