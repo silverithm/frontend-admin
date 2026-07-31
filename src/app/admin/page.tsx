@@ -1206,7 +1206,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <AdminDashboard onTabChange={(tab) => {
                                 setActiveMainTab(tab as MainTab);
@@ -1222,7 +1222,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <NoticeManagement isAdmin={isAdmin} />
                         </motion.div>
@@ -1233,7 +1233,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <ChatManagement onNotification={showNotification} />
                         </motion.div>
@@ -1244,7 +1244,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.mediumMin}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <ScheduleCalendar isAdmin={isAdmin} mode={scheduleMode} onNotification={showNotification} />
                         </motion.div>
@@ -1255,7 +1255,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {approvalSubTab === "management" && isAdmin ? (
                                 <ApprovalManagement />
@@ -1272,7 +1272,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <PlazaManagement />
                         </motion.div>
@@ -1283,7 +1283,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="carev-admin-work-layout">
@@ -1582,7 +1582,7 @@ export default function AdminPage() {
                             animate={{opacity: 1, y: 0}}
                             exit={{opacity: 0, y: -20}}
                             transition={{duration: duration.fast}}
-                            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <UserManagement
                                 organizationName={companyName || undefined}
