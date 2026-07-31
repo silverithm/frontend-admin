@@ -208,6 +208,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
         const client = new Client({
             webSocketFactory: () => new SockJS(`${BACKEND_WS_URL}/ws/chat`),
+            // 서버 WS 인터셉터가 CONNECT 프레임의 Authorization 헤더를 요구한다
+            connectHeaders: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` },
             reconnectDelay: 5000,
             heartbeatIncoming: 10000,
             heartbeatOutgoing: 10000,
