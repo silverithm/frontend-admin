@@ -298,22 +298,26 @@ export default function LandingPage() {
                         </VStack>
 
                         <VStack gap={0}>
+                            {/* Section이 divider를 full-bleed로 빼려고 음수 마진을 쓰기 때문에
+                                motion.div로 감싸면 마진 병합으로 래퍼 높이가 무너져 항목이 겹친다.
+                                → Section을 바깥(flex item)에 두고 안쪽 내용만 애니메이션한다. */}
                             {FEATURES.map((feature, index) => (
-                                <motion.div key={feature.title} {...fadeUp}>
-                                    <Section
-                                        variant="transparent"
-                                        padding={0}
-                                        paddingBlock={5}
-                                        dividers={index === 0 ? ['top', 'bottom'] : ['bottom']}
-                                    >
+                                <Section
+                                    key={feature.title}
+                                    variant="transparent"
+                                    padding={0}
+                                    paddingBlock={5}
+                                    dividers={index === 0 ? ['top', 'bottom'] : ['bottom']}
+                                >
+                                    <motion.div {...fadeUp}>
                                         <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={4}>
                                             <Heading level={3} type="display-3">
                                                 {feature.title}
                                             </Heading>
                                             <Text color="secondary">{feature.description}</Text>
                                         </Grid>
-                                    </Section>
-                                </motion.div>
+                                    </motion.div>
+                                </Section>
                             ))}
                         </VStack>
                     </VStack>
