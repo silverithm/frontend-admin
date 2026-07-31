@@ -185,141 +185,27 @@ const mockTitlebar: React.CSSProperties = {
     background: 'var(--color-background-muted)',
 };
 
-function MockDot({ color }: { color: string }) {
-    return <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />;
-}
-
-function MockChip({ label, value }: { label: string; value: string }) {
+/** 히어로: 실제 관리자 대시보드 캡처 (시연 데이터, 기관명은 가명) */
+function DashboardPreview() {
     return (
-        <div
-            style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-inner)',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-background-surface)',
-            }}
-        >
-            <Text type="supporting" color="secondary" display="block">{label}</Text>
-            <Text type="body" weight="bold" display="block">{value}</Text>
-        </div>
-    );
-}
-
-/** 히어로: 관리자 대시보드 모형 — 근무·일정·결재·소통이 한 화면에 모이는 인상을 준다 */
-function DashboardMock() {
-    const days = ['월', '화', '수', '목', '금', '토', '일'];
-    const cellBase: React.CSSProperties = {
-        minHeight: 44,
-        borderRadius: 6,
-        border: '1px solid var(--color-border)',
-        background: 'var(--color-background-surface)',
-        padding: 4,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-    };
-    const pill = (bg: string, color: string): React.CSSProperties => ({
-        fontSize: 9,
-        lineHeight: '14px',
-        padding: '0 5px',
-        borderRadius: 999,
-        background: bg,
-        color,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        alignSelf: 'flex-start',
-    });
-    const cells: Array<React.ReactNode[]> = [
-        [], [<span key="a" style={pill('var(--color-background-teal)', 'var(--color-text-teal)')}>휴무 2</span>], [],
-        [<span key="b" style={pill('var(--color-background-blue)', 'var(--color-text-blue)')}>일정</span>], [],
-        [<span key="c" style={pill('var(--color-background-yellow)', 'var(--color-text-yellow)')}>대체</span>], [],
-        [], [], [<span key="d" style={pill('var(--color-background-teal)', 'var(--color-text-teal)')}>휴무 1</span>],
-        [<span key="e" style={pill('var(--color-background-blue)', 'var(--color-text-blue)')}>평가준비</span>], [], [], [],
-    ];
-    const approvals = [
-        { title: '연차 휴가 신청서', state: '결재 대기', tone: 'yellow' },
-        { title: '프로그램 운영 품의', state: '승인 완료', tone: 'teal' },
-        { title: '비품 구매 기안', state: '검토 중', tone: 'blue' },
-    ];
-    return (
-        <div style={{ ...mockFrame, maxWidth: 860, marginInline: 'auto', width: '100%' }} aria-hidden="true">
+        <div style={{ ...mockFrame, maxWidth: 960, marginInline: 'auto', width: '100%' }}>
             <div style={mockTitlebar}>
-                <MockDot color="#f87171" /><MockDot color="#fbbf24" /><MockDot color="#34d399" />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171', display: 'inline-block' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', display: 'inline-block' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399', display: 'inline-block' }} />
                 <span style={{ marginLeft: 8 }}>
                     <Text type="supporting" color="secondary">carev.kr — 관리자 대시보드</Text>
                 </span>
             </div>
-            <div style={{ padding: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ flex: '2 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <MockChip label="오늘 근무" value="21명" />
-                        <MockChip label="오늘 휴무" value="3명" />
-                        <MockChip label="결재 대기" value="2건" />
-                        <MockChip label="이달 일정" value="12건" />
-                    </div>
-                    <div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
-                            {days.map((d) => (
-                                <div key={d} style={{ textAlign: 'center' }}>
-                                    <Text type="supporting" color="secondary">{d}</Text>
-                                </div>
-                            ))}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-                            {cells.map((content, i) => (
-                                <div key={i} style={cellBase}>
-                                    <span style={{ fontSize: 9, color: 'var(--color-text-secondary)' }}>{i + 2}</span>
-                                    {content}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                <div style={{ flex: '1 1 220px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <Text type="supporting" weight="semibold" color="secondary">전자결재</Text>
-                    {approvals.map((a) => (
-                        <div
-                            key={a.title}
-                            style={{
-                                padding: '8px 10px',
-                                borderRadius: 'var(--radius-inner)',
-                                border: '1px solid var(--color-border)',
-                                background: 'var(--color-background-surface)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: 8,
-                            }}
-                        >
-                            <Text type="supporting" maxLines={1}>{a.title}</Text>
-                            <span
-                                style={{
-                                    fontSize: 9,
-                                    lineHeight: '16px',
-                                    padding: '0 6px',
-                                    borderRadius: 999,
-                                    whiteSpace: 'nowrap',
-                                    background: `var(--color-background-${a.tone})`,
-                                    color: `var(--color-text-${a.tone})`,
-                                }}
-                            >
-                                {a.state}
-                            </span>
-                        </div>
-                    ))}
-                    <Text type="supporting" weight="semibold" color="secondary">채팅</Text>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ alignSelf: 'flex-start', maxWidth: '85%', padding: '5px 9px', borderRadius: 10, background: 'var(--color-background-muted)', fontSize: 10, color: 'var(--color-text-primary)' }}>
-                            원장님, 금요일 프로그램 자료 올렸습니다!
-                        </span>
-                        <span style={{ alignSelf: 'flex-end', maxWidth: '85%', padding: '5px 9px', borderRadius: 10, background: 'var(--color-background-teal)', fontSize: 10, color: 'var(--color-text-teal)' }}>
-                            확인했어요. 수고했습니다 👍
-                        </span>
-                    </div>
-                </div>
-            </div>
+            <Image
+                src="/images/dashboard-preview.jpg"
+                alt="케어브이 관리자 대시보드 실제 화면 — 출근·휴무 현황, 공지사항, 전자결재, 요양 소식, 월간일정이 한 화면에 보인다"
+                width={1720}
+                height={940}
+                sizes="(max-width: 1024px) 100vw, 960px"
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+                priority
+            />
         </div>
     );
 }
@@ -635,7 +521,7 @@ export default function LandingPage() {
                                 </VStack>
                             </VStack>
 
-                            <DashboardMock />
+                            <DashboardPreview />
                         </VStack>
                     </motion.div>
                 </div>
