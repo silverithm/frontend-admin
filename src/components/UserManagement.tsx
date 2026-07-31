@@ -25,7 +25,7 @@ import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Table } from '@astryxdesign/core/Table';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from '@/components/Loading';
 import { Divider } from '@astryxdesign/core/Divider';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
@@ -461,14 +461,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
 
   if (isLoading) {
     return (
-      <HStack height={256} hAlign="center" vAlign="center">
-        <Spinner label="사용자 목록을 불러오는 중..." />
-      </HStack>
+      <Loading label="사용자 목록을 불러오는 중..." />
     );
   }
 
   return (
-    <VStack gap={4}>
+    // 셸이 flex 컬럼으로 감싸주므로 flex:1로 남은 높이를 모두 차지한다.
+    // (내용이 적어도 카드 골격이 화면을 채워야 한다)
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-4)' }}>
       {/* 헤더 */}
       <HStack hAlign="between" vAlign="center">
         <VStack gap={0}>
@@ -484,9 +484,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
         />
       </HStack>
 
-      {/* 탭 + 필터 + 콘텐츠 카드 */}
-      <Card width="100%" padding={0}>
-        <VStack gap={0}>
+      {/* 탭 + 필터 + 콘텐츠 카드 — 남은 높이를 모두 채운다 */}
+      <Card width="100%" padding={0} height="100%">
+        <VStack gap={0} height="100%">
           {/* 탭 네비게이션 */}
           <HStack style={{ padding: 'var(--spacing-4)', overflowX: 'auto' }}>
             <SegmentedControl
@@ -576,8 +576,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             </>
           )}
 
-          {/* 컨텐츠 영역 */}
-          <VStack style={{ padding: 'var(--spacing-6)' }}>
+          {/* 컨텐츠 영역 — 남은 높이를 채우고 여기서만 스크롤한다 */}
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--spacing-6)', display: 'flex', flexDirection: 'column' }}>
             <AnimatePresence mode="wait">
               {activeTab === 'seniors' ? (
                 <motion.div
@@ -586,21 +586,24 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {filteredSeniors.length === 0 ? (
-                    <EmptyState
-                      icon={<Icon icon={FiHeart} size="lg" color="disabled" />}
-                      title="등록된 어르신이 없습니다"
-                      description="어르신을 추가하여 관리를 시작하세요."
-                      actions={isAdmin ? (
-                        <Button
-                          label="어르신 추가"
-                          variant="primary"
-                          icon={<Icon icon={FiPlus} size="sm" />}
-                          onClick={openAddSeniorModal}
-                        />
-                      ) : undefined}
-                    />
+                    <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <EmptyState
+                        icon={<Icon icon={FiHeart} size="lg" color="disabled" />}
+                        title="등록된 어르신이 없습니다"
+                        description="어르신을 추가하여 관리를 시작하세요."
+                        actions={isAdmin ? (
+                          <Button
+                            label="어르신 추가"
+                            variant="primary"
+                            icon={<Icon icon={FiPlus} size="sm" />}
+                            onClick={openAddSeniorModal}
+                          />
+                        ) : undefined}
+                      />
+                    </div>
                   ) : (
                     <Table
                       data={filteredSeniors as SeniorRow[]}
@@ -648,6 +651,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <PositionManagement
                     organizationName={organizationName}
@@ -662,13 +666,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {filteredPendingUsers.length === 0 ? (
-                    <EmptyState
-                      icon={<Icon icon={FiUserPlus} size="lg" color="disabled" />}
-                      title="가입 신청이 없습니다"
-                      description="현재 승인 대기 중인 사용자가 없습니다."
-                    />
+                    <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <EmptyState
+                        icon={<Icon icon={FiUserPlus} size="lg" color="disabled" />}
+                        title="가입 신청이 없습니다"
+                        description="현재 승인 대기 중인 사용자가 없습니다."
+                      />
+                    </div>
                   ) : (
                     <Table
                       data={filteredPendingUsers as UserRow[]}
@@ -730,13 +737,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {filteredMembers.length === 0 ? (
-                    <EmptyState
-                      icon={<Icon icon={FiUsers} size="lg" color="disabled" />}
-                      title="회원이 없습니다"
-                      description="현재 등록된 회원이 없습니다."
-                    />
+                    <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <EmptyState
+                        icon={<Icon icon={FiUsers} size="lg" color="disabled" />}
+                        title="회원이 없습니다"
+                        description="현재 등록된 회원이 없습니다."
+                      />
+                    </div>
                   ) : (
                     <Table
                       data={filteredMembers as UserRow[]}
@@ -835,7 +845,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 </motion.div>
               )}
             </AnimatePresence>
-          </VStack>
+          </div>
         </VStack>
       </Card>
 
@@ -1109,7 +1119,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   <Text type="supporting">{permissionUser.name}님의 관리 권한</Text>
                   {permissionLoading ? (
                     <HStack gap={2} vAlign="center" hAlign="center">
-                      <Spinner size="sm" label="권한 정보 로딩 중..." />
+                      <Loading size="inline" label="권한 정보를 불러오는 중..." />
                     </HStack>
                   ) : (
                     <VStack gap={3}>
@@ -1148,7 +1158,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           />
         </Dialog>
       )}
-    </VStack>
+    </div>
   );
 };
 

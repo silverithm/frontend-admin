@@ -205,9 +205,72 @@ html {
   }
 }
 
+/* 입력 컨트롤이 남은 높이를 전부 채우도록 하는 공용 규칙.
+   Astryx 입력은 astryx-field(라벨·상태 래퍼) > astryx-textarea(입력 컨테이너) > textarea
+   3단 구조라, 중간 단을 늘려주지 않으면 textarea의 height:100%가 해석되지 않아
+   내용 영역이 위쪽에만 붙는다. 세 단을 모두 flex로 이어준다. */
+.carev-fill-input {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.carev-fill-input > .astryx-field {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.carev-fill-input > .astryx-field > div {
+  /* Field는 status가 attached일 때 children을 무명 div로 한 번 더 감싼다.
+     이 단을 늘려주지 않으면 아래 입력 컨테이너가 내용 높이에 머문다. */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.carev-fill-input .astryx-textarea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.carev-fill-input textarea {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  resize: none;
+}
+
 /* 글쓰기 에디터 — 본문 textarea가 남은 높이를 전부 사용 */
-.carev-plaza-editor > * { height: 100%; }
-.carev-plaza-editor textarea { height: 100% !important; resize: none; }
+.carev-plaza-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.carev-plaza-editor > .astryx-field {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.carev-plaza-editor > .astryx-field > div {
+  /* Field는 status가 attached일 때 children을 무명 div로 한 번 더 감싼다.
+     이 단을 늘려주지 않으면 아래 입력 컨테이너가 내용 높이에 머문다. */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.carev-plaza-editor .astryx-textarea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.carev-plaza-editor textarea {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  resize: none;
+}
 /* 게시글 밀도 리스트 — 좁은 화면에서는 작성자·조회수 숨김 */
 .carev-plaza-rowmeta-wide { display: none; }
 @media (min-width: 640px) {
