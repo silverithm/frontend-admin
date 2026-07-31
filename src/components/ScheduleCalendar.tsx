@@ -394,9 +394,15 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
     return { total, done, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
   }, [schedules]);
 
-  // 수정/삭제/수행완료 권한 (관리자 또는 작성자 본인)
+  // 수정/삭제 권한 (관리자 또는 작성자 본인)
   const canManageSchedule = (schedule: Schedule) =>
     isAdmin || schedule.authorId === currentUserEmail;
+
+  // 수행완료 권한: 담당자가 지정된 일정은 담당자 본인만, 미지정 일정은 관리자/작성자
+  const canToggleCompletion = (schedule: Schedule) =>
+    schedule.managerId != null
+      ? Number(schedule.managerId) === currentMemberId
+      : canManageSchedule(schedule);
 
   // 수행완료 토글 (낙관적 업데이트 후 실패 시 롤백)
   const handleToggleCompletion = async (schedule: Schedule, completed: boolean) => {
@@ -441,9 +447,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
   const currentTasks = (): ScheduleTask[] => selectedSchedule?.tasks || [];
 
-  // 담당자 본인 또는 관리자만 체크할 수 있다. 담당자 미지정 항목은 누구나 가능.
+  // 담당자가 지정된 할 일은 담당자 본인만 체크할 수 있다. 미지정 항목은 누구나 가능.
   const canCompleteTask = (task: ScheduleTask) =>
-    isAdmin || task.assigneeMemberId == null || Number(task.assigneeMemberId) === currentMemberId;
+    task.assigneeMemberId == null || Number(task.assigneeMemberId) === currentMemberId;
 
   // 내용 수정/삭제는 관리자, 일정 작성자, 항목 등록자, 담당자 본인
   const canEditTask = (task: ScheduleTask) =>
@@ -968,7 +974,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             <div style={{ padding: 'var(--spacing-6)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
                 <HStack gap={4} vAlign="center" wrap="wrap">
-                  <Text type="display-3" as="h2" weight="bold" color="primary">
+                  <Text type="large" as="h2" weight="bold" color="primary">
                     {format(currentDate, 'yyyy년 M월', { locale: ko })}
                   </Text>
                   <Button label="오늘" variant="secondary" size="sm" onClick={goToToday} />
@@ -1223,7 +1229,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                 <div style={{ padding: 'var(--spacing-5)', borderBottom: '1px solid var(--color-border)' }}>
                   <HStack hAlign="between" vAlign="start">
                     <VStack gap={1}>
-                      <Text type="display-3" as="h3" weight="bold" color="primary">
+                      <Text type="large" as="h3" weight="bold" color="primary">
                         {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                       </Text>
                       <Text type="supporting">
@@ -1303,27 +1309,33 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               </div>
                             </div>
                           </button>
-                          {canManageSchedule(schedule) && (
+                          {(canToggleCompletion(schedule) || canManageSchedule(schedule)) && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-1)', marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
-                              <Button
-                                label={schedule.isCompleted ? '완료 해제' : '수행완료'}
-                                variant={schedule.isCompleted ? 'ghost' : 'primary'}
-                                size="sm"
-                                icon={<Icon icon={IconCircleCheck} size="sm" />}
-                                isLoading={togglingScheduleId === schedule.id}
-                                isDisabled={togglingScheduleId === schedule.id}
-                                onClick={() => handleToggleCompletion(schedule, !schedule.isCompleted)}
-                              />
-                              <Button label="수정" variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule)} />
-                              <Button
-                                label="삭제"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedSchedule(schedule);
-                                  setShowDeleteConfirm(true);
-                                }}
-                              />
+                              {canToggleCompletion(schedule) && (
+                                <Button
+                                  label={schedule.isCompleted ? '완료 해제' : '수행완료'}
+                                  variant={schedule.isCompleted ? 'ghost' : 'primary'}
+                                  size="sm"
+                                  icon={<Icon icon={IconCircleCheck} size="sm" />}
+                                  isLoading={togglingScheduleId === schedule.id}
+                                  isDisabled={togglingScheduleId === schedule.id}
+                                  onClick={() => handleToggleCompletion(schedule, !schedule.isCompleted)}
+                                />
+                              )}
+                              {canManageSchedule(schedule) && (
+                                <>
+                                  <Button label="수정" variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule)} />
+                                  <Button
+                                    label="삭제"
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedSchedule(schedule);
+                                      setShowDeleteConfirm(true);
+                                    }}
+                                  />
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1620,6 +1632,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       <Text type="body" weight="medium" color="primary">
                         {selectedSchedule.isCompleted ? '수행완료' : '진행 예정'}
                       </Text>
+                      {!selectedSchedule.isCompleted && selectedSchedule.managerId != null && !canToggleCompletion(selectedSchedule) && (
+                        <Text type="supporting" color="secondary">
+                          담당자{selectedSchedule.managerName ? `(${selectedSchedule.managerName})` : ''}만 완료 처리할 수 있습니다
+                        </Text>
+                      )}
                       {selectedSchedule.isCompleted && (
                         <Text type="supporting" color="secondary">
                           {selectedSchedule.completedByName ? `${selectedSchedule.completedByName} · ` : ''}
@@ -1628,7 +1645,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                       )}
                     </div>
                     {/* 할 일이 있으면 완료는 할 일 진행에 따라 자동으로 결정된다 */}
-                    {(selectedSchedule.tasks?.length || 0) === 0 && canManageSchedule(selectedSchedule) && (
+                    {(selectedSchedule.tasks?.length || 0) === 0 && canToggleCompletion(selectedSchedule) && (
                       <Button
                         label={selectedSchedule.isCompleted ? '완료 해제' : '수행완료 체크'}
                         variant={selectedSchedule.isCompleted ? 'secondary' : 'primary'}
