@@ -129,9 +129,15 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
             <WidgetHeader icon={IconFlame} title="인기글" onMore={() => onNavigate('all')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(4) : popular.length === 0 ? (
-                <div style={{ padding: 'var(--spacing-3)' }}>
-                  <Text type="supporting" color="secondary">아직 인기글이 없습니다. 첫 글의 주인공이 되어보세요!</Text>
-                </div>
+                /* 위젯 높이 안에서 가로·세로 가운데 정렬 (위에 붙지 않게) */
+                <Center height="100%">
+                  <EmptyState
+                    isCompact
+                    title="아직 인기글이 없습니다"
+                    description="첫 글의 주인공이 되어보세요!"
+                    icon={<Icon icon={IconFlame} size="lg" color="secondary" />}
+                  />
+                </Center>
               ) : (
                 <VStack gap={0}>{popular.map(renderPostRow)}</VStack>
               )}
@@ -194,9 +200,15 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
             <WidgetHeader icon={IconFolder} title="새 자료" onMore={() => onNavigate('library')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(4) : library.length === 0 ? (
-                <div style={{ padding: 'var(--spacing-3)' }}>
-                  <Text type="supporting" color="secondary">아직 자료가 없습니다. 첫 자료를 올려보세요!</Text>
-                </div>
+                /* 위젯 높이 안에서 가로·세로 가운데 정렬 (위에 붙지 않게) */
+                <Center height="100%">
+                  <EmptyState
+                    isCompact
+                    title="아직 자료가 없습니다"
+                    description="첫 자료를 올려보세요!"
+                    icon={<Icon icon={IconFolder} size="lg" color="secondary" />}
+                  />
+                </Center>
               ) : (
                 <VStack gap={0}>
                   {library.map((item) => {

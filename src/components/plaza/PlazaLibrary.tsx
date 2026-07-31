@@ -10,6 +10,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Center } from '@astryxdesign/core/Center';
 import { Loading } from '@/components/Loading';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
@@ -255,16 +256,22 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
     </>
   );
 
-  const emptyOrLoading = isLoading ? (
-    <Loading size="inline" label="자료를 불러오는 중..." />
-  ) : (
-    <div style={{ padding: isCompact ? 'var(--spacing-4)' : 'var(--spacing-8)' }}>
-      <EmptyState
-        isCompact
-        title={debouncedSearch ? '검색 결과가 없습니다' : '등록된 자료가 없습니다'}
-        description={debouncedSearch ? '다른 검색어로 시도해보세요.' : '첫 자료를 올려보세요.'}
-        icon={<Icon icon={IconFolder} size="lg" color="secondary" />}
-      />
+  /* 목록이 비어도 영역 안에서 가로·세로 가운데에 놓는다 (위에 붙지 않게).
+     컴팩트 위젯은 부모 높이가 확정되지 않으므로 최소 높이를 줘서 가운데를 잡는다. */
+  const emptyOrLoading = (
+    <div style={{ height: '100%', minHeight: isCompact ? 180 : 240, padding: 'var(--spacing-4)' }}>
+      <Center height="100%">
+        {isLoading ? (
+          <Loading size="inline" label="자료를 불러오는 중..." />
+        ) : (
+          <EmptyState
+            isCompact
+            title={debouncedSearch ? '검색 결과가 없습니다' : '등록된 자료가 없습니다'}
+            description={debouncedSearch ? '다른 검색어로 시도해보세요.' : '첫 자료를 올려보세요.'}
+            icon={<Icon icon={IconFolder} size="lg" color="secondary" />}
+          />
+        )}
+      </Center>
     </div>
   );
 
