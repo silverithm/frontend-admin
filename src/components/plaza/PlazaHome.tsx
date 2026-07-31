@@ -7,6 +7,7 @@ import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -48,6 +49,8 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
   const [popular, setPopular] = useState<ApiPostSummary[]>([]);
   const [latest, setLatest] = useState<ApiPostSummary[]>([]);
   const [library, setLibrary] = useState<ApiLibraryItem[]>([]);
+  // 받아오는 동안 "글이 없습니다"가 먼저 보이지 않도록 스켈레톤을 띄운다
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,17 +67,31 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
       if (libraryRes.status === 'fulfilled') setLibrary(libraryRes.value.content ?? []);
 
       const anyFailed = [popularRes, latestRes, libraryRes].some((r) => r.status === 'rejected');
+      // 재시도가 남아 있으면 스켈레톤을 유지한다 (빈 상태로 깜빡이지 않게)
       if (anyFailed && attempt < 1) {
         setTimeout(() => {
           if (!cancelled) load(attempt + 1);
         }, 2000);
+        return;
       }
+      setIsLoading(false);
     };
     load(0);
     return () => {
       cancelled = true;
     };
   }, []);
+
+  /** 목록 자리를 채우는 행 스켈레톤 — 실제 행과 같은 높이(약 28px)로 레이아웃 흔들림을 줄인다 */
+  const renderRowSkeletons = (count: number) => (
+    <VStack gap={0}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} style={{ padding: 'var(--spacing-1) var(--spacing-2)' }}>
+          <Skeleton height={20} index={i} />
+        </div>
+      ))}
+    </VStack>
+  );
 
   const renderPostRow = (post: ApiPostSummary) => {
     const meta = getBoardMeta(post.board);
@@ -111,7 +128,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFlame} title="인기글" onMore={() => onNavigate('all')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              {popular.length === 0 ? (
+              {isLoading ? renderRowSkeletons(4) : popular.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 인기글이 없습니다. 첫 글의 주인공이 되어보세요!</Text>
                 </div>
@@ -159,7 +176,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconClock} title="최신글" onMore={() => onNavigate('all')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              {latest.length === 0 ? (
+              {isLoading ? renderRowSkeletons(6) : latest.length === 0 ? (
                 /* 위젯은 공간이 좁아 isCompact를 쓰고, 남는 높이 안에서 가운데 정렬한다 */
                 <Center height="100%">
                   <EmptyState isCompact title="아직 게시글이 없습니다" />
@@ -176,7 +193,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFolder} title="새 자료" onMore={() => onNavigate('library')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              {library.length === 0 ? (
+              {isLoading ? renderRowSkeletons(4) : library.length === 0 ? (
                 <div style={{ padding: 'var(--spacing-3)' }}>
                   <Text type="supporting" color="secondary">아직 자료가 없습니다. 첫 자료를 올려보세요!</Text>
                 </div>
