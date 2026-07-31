@@ -398,10 +398,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
   const canManageSchedule = (schedule: Schedule) =>
     isAdmin || schedule.authorId === currentUserEmail;
 
-  // 수행완료 권한: 담당자가 지정된 일정은 담당자 본인만, 미지정 일정은 관리자/작성자
+  // 수행완료 권한: 담당자가 지정된 일정은 담당자 본인 또는 관리자(대행), 미지정 일정은 관리자/작성자
   const canToggleCompletion = (schedule: Schedule) =>
     schedule.managerId != null
-      ? Number(schedule.managerId) === currentMemberId
+      ? isAdmin || Number(schedule.managerId) === currentMemberId
       : canManageSchedule(schedule);
 
   // 할 일이 등록된 일정은 일정 자체를 직접 완료 처리하지 않는다.
@@ -453,9 +453,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
 
   const currentTasks = (): ScheduleTask[] => selectedSchedule?.tasks || [];
 
-  // 담당자가 지정된 할 일은 담당자 본인만 체크할 수 있다. 미지정 항목은 누구나 가능.
+  // 담당자가 지정된 할 일은 담당자 본인 또는 관리자(대행)가 체크할 수 있다. 미지정 항목은 누구나 가능.
   const canCompleteTask = (task: ScheduleTask) =>
-    task.assigneeMemberId == null || Number(task.assigneeMemberId) === currentMemberId;
+    isAdmin || task.assigneeMemberId == null || Number(task.assigneeMemberId) === currentMemberId;
 
   // 내용 수정/삭제는 관리자, 일정 작성자, 항목 등록자, 담당자 본인
   const canEditTask = (task: ScheduleTask) =>
