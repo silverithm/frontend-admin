@@ -84,6 +84,12 @@ export function isLoggedIn(): boolean {
   return !!localStorage.getItem('authToken');
 }
 
+/** 체험(데모) 모드 여부 — 체험 계정은 광장 읽기는 되지만 쓰기(글쓰기·댓글·좋아요·신고 등)는 막는다 */
+export function isDemoMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('isDemoMode') === 'true';
+}
+
 export function getCurrentUser(): PlazaUser {
   if (typeof window === 'undefined') return { id: 'me', name: '나', company: '우리 기관' };
   return {
