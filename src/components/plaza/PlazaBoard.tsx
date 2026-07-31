@@ -73,9 +73,11 @@ interface PlazaBoardProps {
   /** true가 전달되면 글쓰기 에디터를 열고 onWriteRequestConsumed로 소비를 알린다 (마운트 직후에도 동작) */
   writeRequested?: boolean;
   onWriteRequestConsumed?: () => void;
+  /** 작성 중(내용 변경 있음) 여부를 부모에 알림 — 메뉴 이동 시 이탈 확인용 */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsumed, writeRequested, onWriteRequestConsumed }: PlazaBoardProps) {
+export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsumed, writeRequested, onWriteRequestConsumed, onDirtyChange }: PlazaBoardProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
 
@@ -100,6 +102,19 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const [formContent, setFormContent] = useState('');
   const [formAnonymous, setFormAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /** 작성 시작 시점의 값 — 이탈 확인(dirty) 판단 기준 */
+  const [writeOrigin, setWriteOrigin] = useState<{ board: BoardType; title: string; content: string; anonymous: boolean } | null>(null);
+  const isWriteDirty = isWriting && !!writeOrigin && (
+    formTitle !== writeOrigin.title || formContent !== writeOrigin.content
+    || formBoard !== writeOrigin.board || formAnonymous !== writeOrigin.anonymous
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(isWriteDirty);
+    return () => onDirtyChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWriteDirty]);
 
   // 신고 다이얼로그
   const [reportTargetId, setReportTargetId] = useState<number | null>(null);
@@ -126,6 +141,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   useEffect(() => {
     setPage(0);
     setDetail(null);
+    setIsWriting(false);
   }, [board]);
 
   // 광장 홈 등 외부에서 특정 글 열기
@@ -207,6 +223,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setFormTitle('');
     setFormContent('');
     setFormAnonymous(false);
+    setWriteOrigin({ board: boardFilter === 'all' ? 'free' : boardFilter, title: '', content: '', anonymous: false });
     setIsWriting(true);
   };
 
@@ -216,7 +233,16 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setFormTitle(post.title);
     setFormContent(post.content);
     setFormAnonymous(post.isAnonymous);
+    setWriteOrigin({ board: post.board, title: post.title, content: post.content, anonymous: post.isAnonymous });
     setIsWriting(true);
+  };
+
+  const cancelWrite = async () => {
+    if (isWriteDirty) {
+      const ok = await confirm({ title: '작성 취소', message: '작성 중인 내용이 사라집니다. 나갈까요?', type: 'warning', confirmText: '나가기' });
+      if (!ok) return;
+    }
+    setIsWriting(false);
   };
 
   const submitPost = async () => {
@@ -668,7 +694,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
         {/* 상단 바: 취소 · 제목 · 등록 */}
         <HStack hAlign="between" vAlign="center">
-          <Button variant="ghost" size="sm" label="취소" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={() => setIsWriting(false)} />
+          <Button variant="ghost" size="sm" label="취소" icon={<Icon icon={IconArrowLeft} size="sm" />} onClick={cancelWrite} />
           <Text type="body" weight="bold" color="primary">{editingPostId ? '게시글 수정' : '글쓰기'}</Text>
           <Button variant="primary" size="sm" label={editingPostId ? '수정 완료' : '등록'} isLoading={isSubmitting} onClick={submitPost} />
         </HStack>

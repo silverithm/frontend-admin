@@ -26,6 +26,7 @@ import PlazaLibrary from './PlazaLibrary';
 import PlazaNews from './PlazaNews';
 import { isLoggedIn, type BoardType } from './plazaStore';
 import { useAlert } from '@/components/Alert';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 const BOARD_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
   { key: 'home', label: '광장 홈', icon: IconHome2 },
@@ -48,10 +49,12 @@ const BOARD_KEYS: PlazaMenu[] = ['all', 'qna', 'review', 'free'];
  */
 export default function PlazaManagement() {
   const { showAlert, AlertContainer } = useAlert();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [activeMenu, setActiveMenu] = useState<PlazaMenu>('home');
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
   const [openPostId, setOpenPostId] = useState<number | null>(null);
   const [pendingWrite, setPendingWrite] = useState(false);
+  const [boardDirty, setBoardDirty] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +67,17 @@ export default function PlazaManagement() {
   }, []);
 
   const isBoardMenu = BOARD_KEYS.includes(activeMenu);
+
+  /** 메뉴 이동 — 작성 중인 글이 있으면 이탈 확인 */
+  const navigateTo = async (menu: PlazaMenu) => {
+    if (menu === activeMenu) return;
+    if (boardDirty) {
+      const ok = await confirm({ title: '작성 취소', message: '작성 중인 내용이 사라집니다. 이동할까요?', type: 'warning', confirmText: '이동' });
+      if (!ok) return;
+      setBoardDirty(false);
+    }
+    setActiveMenu(menu);
+  };
 
   const handleWrite = () => {
     if (!isLoggedIn()) {
@@ -88,7 +102,7 @@ export default function PlazaManagement() {
       variant={activeMenu === menu.key ? 'secondary' : 'ghost'}
       size="md"
       icon={<Icon icon={menu.icon} size="sm" color={activeMenu === menu.key ? 'accent' : 'secondary'} />}
-      onClick={() => setActiveMenu(menu.key)}
+      onClick={() => navigateTo(menu.key)}
       style={{ width: '100%', justifyContent: 'flex-start' }}
     />
   );
@@ -96,6 +110,7 @@ export default function PlazaManagement() {
   return (
     <>
       <AlertContainer />
+      <ConfirmContainer />
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-3)' }}>
         {/* 페이지 헤더 */}
@@ -112,7 +127,7 @@ export default function PlazaManagement() {
               label={menu.label}
               variant={activeMenu === menu.key ? 'secondary' : 'ghost'}
               size="sm"
-              onClick={() => setActiveMenu(menu.key)}
+              onClick={() => navigateTo(menu.key)}
               style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
             />
           ))}
@@ -144,7 +159,7 @@ export default function PlazaManagement() {
           {/* 메인 — 데스크탑에서는 이 영역만 내부 스크롤 */}
           <div className="carev-plaza-main" style={{ minWidth: 0 }}>
             {activeMenu === 'home' && (
-              <PlazaHome newsItems={newsItems} onNavigate={setActiveMenu} onOpenPost={handleOpenPost} />
+              <PlazaHome newsItems={newsItems} onNavigate={navigateTo} onOpenPost={handleOpenPost} />
             )}
             {isBoardMenu && (
               <PlazaBoard
@@ -153,6 +168,7 @@ export default function PlazaManagement() {
                 onOpenPostConsumed={() => setOpenPostId(null)}
                 writeRequested={pendingWrite}
                 onWriteRequestConsumed={() => setPendingWrite(false)}
+                onDirtyChange={setBoardDirty}
               />
             )}
             {activeMenu === 'news' && <PlazaNews newsItems={newsItems} />}
