@@ -36,6 +36,8 @@ export interface PartnerAd {
     description: string;
     /** 지역 (선택) */
     region?: string;
+    /** 상담 문의 전화번호 (선택) */
+    phone?: string;
     /** 바로가기 링크 — 블로그, 홈페이지 등 */
     href: string;
     /** 링크 버튼에 표시할 문구 */
@@ -57,11 +59,14 @@ export const PARTNER_ADS: PartnerAd[] = [
         id: 'soopsok',
         name: '숲속재활어르신학교',
         category: 'rehab',
-        tagline: '어르신 재활 프로그램을 운영하는 케어브이 제휴 기관',
+        tagline: '어르신 한분 한분의 이야기를 가슴에 새기겠습니다',
         description:
-            '어르신 재활과 기능회복을 위한 프로그램을 운영합니다. 진행 중인 프로그램과 현장 소식은 네이버 블로그에서 확인하실 수 있습니다.',
+            '경남 진주 주약동에 자리한 어르신 재활 기관입니다. 진행 중인 프로그램과 현장 소식은 네이버 블로그에서 확인하실 수 있습니다.',
+        region: '경남 진주',
+        phone: '055-761-4111',
         href: 'https://blog.naver.com/soopsok4111',
         linkLabel: '네이버 블로그에서 보기',
+        imageSrc: '/images/partners/soopsok.jpeg',
         accent: { from: '#2F7A5B', to: '#7BC5A0' },
         initial: '숲속',
         tags: ['재활', '기능회복', '어르신 프로그램'],

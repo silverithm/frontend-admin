@@ -9,7 +9,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
-import { FiArrowUpRight } from 'react-icons/fi';
+import { FiArrowUpRight, FiPhone } from 'react-icons/fi';
 import type { PartnerAd } from '@/lib/partnerAds';
 
 const thumbClip: React.CSSProperties = {
@@ -41,13 +41,16 @@ const PartnerCard: React.FC<{ ad: PartnerAd; variant?: 'full' | 'compact' }> = (
             <VStack gap={isCompact ? 3 : 4}>
                 <AspectRatio ratio={isCompact ? 16 / 9 : 3 / 2} style={thumbClip}>
                     {ad.imageSrc ? (
-                        <Image
-                            src={ad.imageSrc}
-                            alt={`${ad.name} 대표 이미지`}
-                            fill
-                            style={{ objectFit: 'cover' }}
-                            sizes="(max-width: 768px) 100vw, 360px"
-                        />
+                        // next/image의 fill은 부모가 positioned여야 하므로 래퍼로 감싼다.
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                            <Image
+                                src={ad.imageSrc}
+                                alt={`${ad.name} 대표 이미지`}
+                                fill
+                                style={{ objectFit: 'cover' }}
+                                sizes="(max-width: 768px) 100vw, 360px"
+                            />
+                        </div>
                     ) : (
                         // 대표 이미지가 아직 없는 기관 — 이니셜 썸네일(장식용)
                         <div
@@ -83,6 +86,21 @@ const PartnerCard: React.FC<{ ad: PartnerAd; variant?: 'full' | 'compact' }> = (
                     </Text>
 
                     {!isCompact && <Text type="body">{ad.description}</Text>}
+
+                    {ad.phone && (
+                        // 카드 전체가 블로그 링크이므로, 전화는 중첩 링크로 따로 건다.
+                        <HStack gap={1.5} vAlign="center">
+                            <Icon icon={FiPhone} size="xsm" color="secondary" />
+                            <a
+                                href={`tel:${ad.phone}`}
+                                style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}
+                            >
+                                <Text type="supporting" color="inherit">
+                                    상담문의 {ad.phone}
+                                </Text>
+                            </a>
+                        </HStack>
+                    )}
                 </VStack>
 
                 {!isCompact && ad.tags.length > 0 && (
