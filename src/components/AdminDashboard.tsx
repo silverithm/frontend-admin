@@ -1008,8 +1008,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
                   {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
-                    const maxChips = 3;
-
                     return (
                       <button
                         key={date.toISOString()}
@@ -1063,29 +1061,31 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                 <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', lineHeight: 'var(--text-display-1-leading)', color: 'var(--color-text-gray)' }}>+{scheduleCount - 3}</span>
                               )}
                             </div>
-                            {/* 데스크탑: 일정 제목 칩 표시 (라벨/카테고리 색상) */}
-                            <div className="carev-dash-cal-chips" style={{ minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-0-5)', overflow: 'hidden' }}>
-                              {daySchedules.slice(0, maxChips).map((schedule, i) => {
+                            {/* 데스크탑: 일정 제목 칩 — 월간일정 탭의 바와 동일한 색 처리(꽉 찬 색 / 완료는 연한 배경).
+                                개수 제한 없이 모두 펼치고, 셀보다 많으면 셀 안에서 스크롤한다. */}
+                            <div className="carev-dash-cal-chips" style={{ minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-0-5)', overflowY: 'auto' }}>
+                              {daySchedules.map((schedule, i) => {
                                 const color = getScheduleColor(schedule);
                                 const done = !!schedule.isCompleted;
                                 return (
                                   <span
                                     key={`${schedule.id}-${i}`}
-                                    title={schedule.title}
+                                    title={done ? `${schedule.title} (수행완료)` : schedule.title}
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: 'var(--spacing-0-5)',
+                                      flexShrink: 0,
                                       overflow: 'hidden',
-                                      borderRadius: 'var(--radius-inner)',
-                                      background: withAlpha(color, done ? 0.08 : 0.16),
-                                      borderLeft: `3px solid ${color}`,
+                                      borderRadius: 3,
+                                      border: done ? `1px solid ${color}` : 'none',
+                                      background: done ? withAlpha(color, 0.14) : color,
                                       padding: '1px var(--spacing-1)',
                                       fontSize: 'var(--font-size-xs)',
                                       fontWeight: 'var(--font-weight-medium)',
                                       lineHeight: '16px',
-                                      color,
-                                      opacity: done ? 0.6 : 1,
+                                      color: done ? color : '#fff',
+                                      opacity: done ? 0.85 : 0.9,
                                     }}
                                   >
                                     {done && <Icon icon={IconCircleCheckFilled} size="xsm" color="inherit" />}
@@ -1093,11 +1093,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                   </span>
                                 );
                               })}
-                              {scheduleCount > maxChips && (
-                                <span style={{ padding: '0 var(--spacing-1)', fontSize: 'var(--font-size-2xs)', fontWeight: 'var(--font-weight-semibold)', lineHeight: '12px', color: 'var(--color-text-gray)' }}>
-                                  +{scheduleCount - maxChips}개 더보기
-                                </span>
-                              )}
                             </div>
                           </>
                         )}
