@@ -520,38 +520,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         hasClear
                       />
                     </StackItem>
-                    <Button
-                      label={isDownloadingExcel ? '내려받는 중...' : '엑셀 다운로드'}
-                      variant="secondary"
-                      icon={<Icon icon={FiDownload} size="sm" />}
-                      onClick={handleDownloadElderlyExcel}
-                      isLoading={isDownloadingExcel}
-                      isDisabled={isDownloadingExcel || isUploadingExcel}
-                    />
                     {isAdmin && (
-                      <>
-                        <Button
-                          label={isUploadingExcel ? '등록 중...' : '엑셀 업로드'}
-                          variant="secondary"
-                          icon={<Icon icon={FiUpload} size="sm" />}
-                          onClick={() => elderlyExcelInputRef.current?.click()}
-                          isLoading={isUploadingExcel}
-                          isDisabled={isDownloadingExcel || isUploadingExcel}
-                        />
-                        <input
-                          ref={elderlyExcelInputRef}
-                          type="file"
-                          accept=".xlsx,.xls"
-                          style={{ display: 'none' }}
-                          onChange={handleUploadElderlyExcel}
-                        />
-                        <Button
-                          label="어르신 추가"
-                          variant="primary"
-                          icon={<Icon icon={FiPlus} size="sm" />}
-                          onClick={openAddSeniorModal}
-                        />
-                      </>
+                      <Button
+                        label="어르신 추가"
+                        variant="primary"
+                        icon={<Icon icon={FiPlus} size="sm" />}
+                        onClick={openAddSeniorModal}
+                      />
                     )}
                   </HStack>
                 ) : (
