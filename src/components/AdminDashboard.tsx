@@ -34,6 +34,9 @@ import {
   IconChecklist,
   IconUserCheck,
   IconNews,
+  IconPencil,
+  IconTrash,
+  IconPlus,
   type TablerIcon,
 } from '@tabler/icons-react';
 import {
@@ -50,6 +53,10 @@ import {
   updateScheduleCompletion,
   getMyScheduleTasks,
   updateScheduleTaskCompletion,
+  getScheduleTasks,
+  createScheduleTask,
+  updateScheduleTask,
+  deleteScheduleTask,
 } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
 import type { ScheduleTask } from '@/types/schedule';
@@ -58,6 +65,8 @@ import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza
 import { duration } from '@/theme/motion';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Selector } from '@astryxdesign/core/Selector';
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
@@ -132,6 +141,8 @@ interface VacationCalendarItem {
 }
 
 interface MemberItem {
+  id?: number;
+  name?: string;
   status?: string;
 }
 
@@ -162,6 +173,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
   const [showDaySchedules, setShowDaySchedules] = useState(false);
+  // 일정 상세 모달의 할 일 관리 (월간일정 탭과 동일한 UX)
+  const [detailTasks, setDetailTasks] = useState<ScheduleTask[] | null>(null);
+  const [newTaskContent, setNewTaskContent] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTaskForm, setEditTaskForm] = useState({ content: '', assigneeMemberId: '' });
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const [elderCount, setElderCount] = useState(0);
   const [employeeAttendance, setEmployeeAttendance] = useState({ total: 0, present: 0, absent: 0, vacation: 0 });
   const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
@@ -511,6 +529,127 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       applyState(!completed);
     } finally {
       setTogglingScheduleId(null);
+    }
+  };
+
+  // ==================== 일정 상세 모달: 할 일 (월간일정 탭과 동일한 규칙) ====================
+
+  const selectedScheduleId = selectedSchedule?.id ?? null;
+
+  // 모달이 열리면 할 일 목록을 로드하고, 닫히면 입력 상태를 정리한다
+  useEffect(() => {
+    if (!selectedScheduleId) {
+      setDetailTasks(null);
+      setEditingTaskId(null);
+      setNewTaskContent('');
+      setNewTaskAssignee('');
+      return;
+    }
+    let cancelled = false;
+    getScheduleTasks(selectedScheduleId)
+      .then((res) => {
+        if (!cancelled) setDetailTasks(((res?.tasks || []) as ScheduleTask[]));
+      })
+      .catch((error) => {
+        console.error('[Dashboard] 할 일 목록 로드 실패:', error);
+        if (!cancelled) setDetailTasks([]);
+      });
+    return () => { cancelled = true; };
+  }, [selectedScheduleId]);
+
+  // 할 일 변경을 상세 모달·달력 위젯의 집계(taskTotal/완료 여부)에 함께 반영
+  const applyDetailTasks = (scheduleId: string, tasks: ScheduleTask[]) => {
+    setDetailTasks(tasks);
+    const done = tasks.filter((t) => t.isCompleted).length;
+    const patch = (s: ScheduleItem): ScheduleItem => ({
+      ...s,
+      taskTotal: tasks.length,
+      taskCompleted: done,
+      isCompleted: tasks.length > 0 ? done === tasks.length : s.isCompleted,
+    });
+    setMonthlySchedules((prev) => prev.map((s) => (s.id === scheduleId ? patch(s) : s)));
+    setSelectedSchedule((prev) => (prev && prev.id === scheduleId ? patch(prev) : prev));
+  };
+
+  // 담당자가 지정된 할 일은 담당자 본인만 체크할 수 있다. 미지정 항목은 누구나 가능.
+  const canCompleteTask = (task: ScheduleTask) =>
+    task.assigneeMemberId == null || Number(task.assigneeMemberId) === currentMemberId;
+
+  // 내용 수정/삭제는 관리자, 일정 작성자, 항목 등록자, 담당자 본인
+  const canEditTask = (task: ScheduleTask) =>
+    isAdmin ||
+    task.createdById === currentUserEmail ||
+    selectedSchedule?.authorId === currentUserEmail ||
+    (task.assigneeMemberId != null && Number(task.assigneeMemberId) === currentMemberId);
+
+  const handleAddDetailTask = async () => {
+    if (!selectedSchedule || !newTaskContent.trim()) return;
+    setIsAddingTask(true);
+    try {
+      const res = await createScheduleTask(selectedSchedule.id, {
+        content: newTaskContent.trim(),
+        assigneeMemberId: newTaskAssignee ? Number(newTaskAssignee) : null,
+      });
+      const created: ScheduleTask | undefined = res?.task;
+      if (created) applyDetailTasks(selectedSchedule.id, [...(detailTasks || []), created]);
+      setNewTaskContent('');
+      setNewTaskAssignee('');
+    } catch (error) {
+      console.error('[Dashboard] 할 일 추가 실패:', error);
+    } finally {
+      setIsAddingTask(false);
+    }
+  };
+
+  const handleToggleDetailTask = async (task: ScheduleTask, completed: boolean) => {
+    if (!selectedSchedule) return;
+    setTaskBusyId(task.id);
+    const before = detailTasks || [];
+    applyDetailTasks(selectedSchedule.id, before.map((t) => (t.id === task.id ? { ...t, isCompleted: completed } : t)));
+    try {
+      const res = await updateScheduleTaskCompletion(selectedSchedule.id, task.id, completed);
+      const updated: ScheduleTask | undefined = res?.task;
+      if (updated) {
+        applyDetailTasks(selectedSchedule.id, before.map((t) => (t.id === task.id ? updated : t)));
+      }
+    } catch (error) {
+      console.error('[Dashboard] 할 일 완료 변경 실패:', error);
+      applyDetailTasks(selectedSchedule.id, before);
+    } finally {
+      setTaskBusyId(null);
+    }
+  };
+
+  const handleUpdateDetailTask = async () => {
+    if (!selectedSchedule || !editingTaskId || !editTaskForm.content.trim()) return;
+    setTaskBusyId(editingTaskId);
+    try {
+      const res = await updateScheduleTask(selectedSchedule.id, editingTaskId, {
+        content: editTaskForm.content.trim(),
+        assigneeMemberId: editTaskForm.assigneeMemberId ? Number(editTaskForm.assigneeMemberId) : null,
+      });
+      const updated: ScheduleTask | undefined = res?.task;
+      if (updated) {
+        applyDetailTasks(selectedSchedule.id, (detailTasks || []).map((t) => (t.id === editingTaskId ? updated : t)));
+      }
+      setEditingTaskId(null);
+    } catch (error) {
+      console.error('[Dashboard] 할 일 수정 실패:', error);
+    } finally {
+      setTaskBusyId(null);
+    }
+  };
+
+  const handleDeleteDetailTask = async (task: ScheduleTask) => {
+    if (!selectedSchedule) return;
+    setTaskBusyId(task.id);
+    try {
+      await deleteScheduleTask(selectedSchedule.id, task.id);
+      applyDetailTasks(selectedSchedule.id, (detailTasks || []).filter((t) => t.id !== task.id));
+    } catch (error) {
+      console.error('[Dashboard] 할 일 삭제 실패:', error);
+    } finally {
+      setTaskBusyId(null);
     }
   };
 
@@ -1272,7 +1411,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         isOpen={!!selectedSchedule}
         onOpenChange={(open) => { if (!open) setSelectedSchedule(null); }}
         purpose="info"
-        width={520}
+        width={640}
       >
         {selectedSchedule && (
           <Layout
@@ -1287,12 +1426,247 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               <LayoutContent>
               <VStack gap={4} align="stretch">
                 {/* 상태 배지 */}
-                {(selectedSchedule.isAllDay || selectedSchedule.isCompleted) && (
+                {selectedSchedule.isAllDay && (
                   <HStack gap={2} vAlign="center" wrap="wrap">
-                    {selectedSchedule.isAllDay && <Badge variant="neutral" label="종일" />}
-                    {selectedSchedule.isCompleted && <Badge variant="green" label="수행완료" />}
+                    <Badge variant="neutral" label="종일" />
                   </HStack>
                 )}
+
+                {/* 수행 상태 — 월간일정 탭 상세 모달과 동일 */}
+                {(() => {
+                  const liveTasks = detailTasks || [];
+                  const liveHasTasks = detailTasks ? liveTasks.length > 0 : hasTasks(selectedSchedule);
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--spacing-2)',
+                        padding: 'var(--spacing-3)',
+                        borderRadius: 'var(--radius-inner)',
+                        border: `1px solid ${selectedSchedule.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
+                        background: selectedSchedule.isCompleted ? 'var(--color-background-green)' : 'var(--color-background-muted)',
+                      }}
+                    >
+                      <Icon icon={IconCircleCheck} size="md" color={selectedSchedule.isCompleted ? 'success' : 'tertiary'} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Text type="body" weight="medium" color="primary">
+                          {selectedSchedule.isCompleted ? '수행완료' : '진행 예정'}
+                        </Text>
+                        {selectedSchedule.isCompleted && selectedSchedule.completedByName && (
+                          <Text type="supporting" color="secondary">{selectedSchedule.completedByName} 완료</Text>
+                        )}
+                        {!selectedSchedule.isCompleted && liveHasTasks && (
+                          <Text type="supporting" color="secondary">
+                            담당자가 할 일을 모두 체크하면 완료됩니다
+                          </Text>
+                        )}
+                        {!selectedSchedule.isCompleted && !liveHasTasks && selectedSchedule.managerId != null && !canToggleCompletion(selectedSchedule) && (
+                          <Text type="supporting" color="secondary">
+                            담당자{selectedSchedule.managerName ? `(${selectedSchedule.managerName})` : ''}만 완료 처리할 수 있습니다
+                          </Text>
+                        )}
+                      </div>
+                      {!liveHasTasks && canToggleCompletion(selectedSchedule) && (
+                        <Button
+                          label={selectedSchedule.isCompleted ? '완료 해제' : '수행완료 체크'}
+                          variant={selectedSchedule.isCompleted ? 'secondary' : 'primary'}
+                          size="sm"
+                          isLoading={togglingScheduleId === selectedSchedule.id}
+                          isDisabled={togglingScheduleId === selectedSchedule.id}
+                          onClick={() => handleToggleCompletion(selectedSchedule, !selectedSchedule.isCompleted)}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 할 일 (담당자별 업무) — 월간일정 탭과 동일 */}
+                {(() => {
+                  const tasks = detailTasks || [];
+                  const done = tasks.filter((t) => t.isCompleted).length;
+                  const percent = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
+                  const assigneeOptions = [
+                    { value: '', label: '담당자 미지정' },
+                    ...members
+                      .filter((m) => m.id != null && m.name)
+                      .map((m) => ({ value: String(m.id), label: m.name as string })),
+                  ];
+
+                  return (
+                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
+                      <VStack gap={3}>
+                        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+                          <HStack gap={2} vAlign="center">
+                            <Icon icon={IconChecklist} size="md" color="tertiary" />
+                            <Text type="label" weight="medium">할 일</Text>
+                          </HStack>
+                          {tasks.length > 0 && (
+                            <HStack gap={2} vAlign="center">
+                              <Text type="supporting" color="secondary" hasTabularNumbers>
+                                진행 {done}/{tasks.length}
+                              </Text>
+                              <div
+                                role="progressbar"
+                                aria-label="할 일 진행도"
+                                aria-valuenow={percent}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                style={{ width: 100, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
+                              >
+                                <div style={{ width: `${percent}%`, height: '100%', background: 'var(--color-background-green)', transition: 'width var(--duration-fast) var(--ease-standard)' }} />
+                              </div>
+                              <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{percent}%</Text>
+                            </HStack>
+                          )}
+                        </HStack>
+
+                        {detailTasks === null ? (
+                          <Text type="supporting" color="secondary">할 일을 불러오는 중...</Text>
+                        ) : tasks.length === 0 ? (
+                          <Text type="supporting" color="secondary">
+                            아직 등록된 할 일이 없습니다. 이 일정에서 해야 할 업무와 담당자를 추가해보세요.
+                          </Text>
+                        ) : null}
+
+                        {tasks.map((task) => (
+                          <div
+                            key={task.id}
+                            style={{
+                              padding: 'var(--spacing-3)',
+                              borderRadius: 'var(--radius-inner)',
+                              border: `1px solid ${task.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
+                              background: task.isCompleted ? 'var(--color-background-green)' : 'var(--color-background-card)',
+                            }}
+                          >
+                            {editingTaskId === task.id ? (
+                              <VStack gap={2}>
+                                <TextInput
+                                  label="할 일 내용"
+                                  isLabelHidden
+                                  value={editTaskForm.content}
+                                  onChange={(value) => setEditTaskForm((prev) => ({ ...prev, content: value }))}
+                                  placeholder="할 일 내용"
+                                />
+                                <Selector
+                                  label="담당자"
+                                  isLabelHidden
+                                  width="100%"
+                                  value={editTaskForm.assigneeMemberId}
+                                  options={assigneeOptions}
+                                  onChange={(value) => setEditTaskForm((prev) => ({ ...prev, assigneeMemberId: value ?? '' }))}
+                                />
+                                <HStack gap={2} hAlign="end">
+                                  <Button label="취소" variant="ghost" size="sm" onClick={() => setEditingTaskId(null)} />
+                                  <Button
+                                    label="저장"
+                                    variant="primary"
+                                    size="sm"
+                                    isLoading={taskBusyId === task.id}
+                                    isDisabled={taskBusyId === task.id || !editTaskForm.content.trim()}
+                                    onClick={handleUpdateDetailTask}
+                                  />
+                                </HStack>
+                              </VStack>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none', opacity: task.isCompleted ? 0.65 : 1 }}>
+                                    <Text type="body" weight="medium" color="primary">{task.content}</Text>
+                                  </div>
+                                  <div style={{ marginTop: 'var(--spacing-1)' }}>
+                                    <HStack gap={1.5} vAlign="center" wrap="wrap">
+                                      {task.assigneeName ? (
+                                        <Badge variant="blue" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
+                                      ) : (
+                                        <Badge variant="neutral" label="담당자 미지정" />
+                                      )}
+                                      {task.isCompleted && task.completedAt && (
+                                        <Text type="supporting" color="secondary">
+                                          {task.completedByName ? `${task.completedByName} · ` : ''}
+                                          {format(new Date(task.completedAt), 'MM.dd HH:mm')}
+                                        </Text>
+                                      )}
+                                    </HStack>
+                                  </div>
+                                </div>
+                                <HStack gap={1} vAlign="center">
+                                  {canCompleteTask(task) && (
+                                    <Button
+                                      label={task.isCompleted ? '완료 해제' : '완료'}
+                                      variant={task.isCompleted ? 'ghost' : 'primary'}
+                                      size="sm"
+                                      isLoading={taskBusyId === task.id}
+                                      isDisabled={taskBusyId === task.id}
+                                      onClick={() => handleToggleDetailTask(task, !task.isCompleted)}
+                                    />
+                                  )}
+                                  {canEditTask(task) && (
+                                    <>
+                                      <Button
+                                        label="할 일 수정"
+                                        variant="ghost"
+                                        size="sm"
+                                        isIconOnly
+                                        icon={<Icon icon={IconPencil} size="sm" />}
+                                        onClick={() => {
+                                          setEditingTaskId(task.id);
+                                          setEditTaskForm({
+                                            content: task.content,
+                                            assigneeMemberId: task.assigneeMemberId ? String(task.assigneeMemberId) : '',
+                                          });
+                                        }}
+                                      />
+                                      <Button
+                                        label="할 일 삭제"
+                                        variant="ghost"
+                                        size="sm"
+                                        isIconOnly
+                                        icon={<Icon icon={IconTrash} size="sm" />}
+                                        isDisabled={taskBusyId === task.id}
+                                        onClick={() => handleDeleteDetailTask(task)}
+                                      />
+                                    </>
+                                  )}
+                                </HStack>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* 할 일 추가 — 기관 구성원 누구나 */}
+                        <div style={{ padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
+                          <VStack gap={2}>
+                            <TextInput
+                              label="할 일 추가"
+                              value={newTaskContent}
+                              onChange={setNewTaskContent}
+                              placeholder="예) 소방점검표 작성"
+                            />
+                            <Selector
+                              label="담당자"
+                              width="100%"
+                              value={newTaskAssignee}
+                              options={assigneeOptions}
+                              onChange={(value) => setNewTaskAssignee(value ?? '')}
+                            />
+                            <HStack hAlign="end">
+                              <Button
+                                label="할 일 추가"
+                                variant="secondary"
+                                size="sm"
+                                icon={<Icon icon={IconPlus} size="sm" />}
+                                isLoading={isAddingTask}
+                                isDisabled={isAddingTask || !newTaskContent.trim()}
+                                onClick={handleAddDetailTask}
+                              />
+                            </HStack>
+                          </VStack>
+                        </div>
+                      </VStack>
+                    </div>
+                  );
+                })()}
                 {/* 날짜 */}
                 <HStack gap={3} vAlign="start">
                   <div style={{ ...iconBox('var(--color-background-teal)'), color: 'var(--color-text-teal)', marginTop: 'var(--spacing-0-5)' }}>
@@ -1385,39 +1759,17 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             }
             footer={
               <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="between" vAlign="center">
-              {selectedSchedule.isCompleted && selectedSchedule.completedByName ? (
-                <Text type="supporting" color="secondary">{selectedSchedule.completedByName} 완료</Text>
-              ) : !selectedSchedule.isCompleted && hasTasks(selectedSchedule) ? (
-                // 할 일이 있는 일정은 할 일을 모두 체크해야 완료된다
-                <Text type="supporting" color="secondary">
-                  할 일 {selectedSchedule.taskCompleted || 0}/{selectedSchedule.taskTotal} 완료 · 담당자가 모두 체크하면 완료됩니다
-                </Text>
-              ) : !selectedSchedule.isCompleted &&
-                selectedSchedule.managerId != null &&
-                !canToggleCompletion(selectedSchedule) ? (
-                // 담당자가 있는 일정은 본인만 완료 처리한다 — 버튼이 없는 이유를 알려준다
-                <Text type="supporting" color="secondary">
-                  담당자{selectedSchedule.managerName ? `(${selectedSchedule.managerName})` : ''}만 완료 처리할 수 있습니다
-                </Text>
-              ) : <div />}
-              <HStack gap={2} vAlign="center">
-                {!hasTasks(selectedSchedule) && canToggleCompletion(selectedSchedule) && (
-                  <Button
-                    label={selectedSchedule.isCompleted ? '완료 해제' : '수행완료'}
-                    variant={selectedSchedule.isCompleted ? 'ghost' : 'primary'}
-                    icon={<Icon icon={IconCircleCheck} size="sm" />}
-                    isLoading={togglingScheduleId === selectedSchedule.id}
-                    isDisabled={togglingScheduleId === selectedSchedule.id}
-                    onClick={() => handleToggleCompletion(selectedSchedule, !selectedSchedule.isCompleted)}
-                  />
-                )}
+              <HStack gap={2} hAlign="end" vAlign="center">
+                <Button
+                  label="월간일정에서 보기"
+                  variant="ghost"
+                  onClick={() => { setSelectedSchedule(null); onTabChange('schedule'); }}
+                />
                 <Button
                   label="닫기"
                   variant="secondary"
                   onClick={() => setSelectedSchedule(null)}
                 />
-              </HStack>
               </HStack>
               </LayoutFooter>
             }
