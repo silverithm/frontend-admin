@@ -110,6 +110,8 @@ interface ScheduleItem {
   completedByName?: string;
   authorId?: string;
   authorName?: string;
+  managerId?: number | null;
+  managerName?: string | null;
   participants?: { id: number; memberName: string; userName?: string; status?: string }[];
 }
 
@@ -1320,6 +1322,19 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <VStack gap={0} align="start">
                       <Text type="supporting" weight="medium" color="secondary">설명</Text>
                       <Text type="body" color="primary"><span style={{ whiteSpace: 'pre-wrap' }}>{selectedSchedule.description || selectedSchedule.content}</span></Text>
+                    </VStack>
+                  </HStack>
+                )}
+
+                {/* 담당자 — 참석자와 구분 표시 */}
+                {selectedSchedule.managerName && (
+                  <HStack gap={3} vAlign="start">
+                    <div style={{ ...iconBox('var(--color-background-teal)'), color: 'var(--color-text-teal)', marginTop: 'var(--spacing-0-5)' }}>
+                      <Icon icon={IconUsers} size="sm" color="inherit" />
+                    </div>
+                    <VStack gap={1} align="start">
+                      <Text type="supporting" weight="medium" color="secondary">담당자</Text>
+                      <Badge variant="teal" label={selectedSchedule.managerName} />
                     </VStack>
                   </HStack>
                 )}

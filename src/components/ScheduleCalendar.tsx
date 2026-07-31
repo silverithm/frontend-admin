@@ -108,6 +108,8 @@ interface ScheduleFormData {
   isAllDay: boolean;
   sendNotification: boolean;
   participantIds: string[];
+  /** 담당자 member id ('' = 미지정) */
+  managerId: string;
 }
 
 export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', onNotification }: ScheduleCalendarProps) {
@@ -150,6 +152,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
     isAllDay: false,
     sendNotification: false,
     participantIds: [],
+    managerId: '',
   });
 
   const [labelForm, setLabelForm] = useState({
@@ -575,6 +578,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       isAllDay: false,
       sendNotification: false,
       participantIds: [],
+      managerId: '',
     });
     setAttachments([]);
     setShowCreateModal(true);
@@ -602,6 +606,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
         isAllDay: formData.isAllDay,
         sendNotification: formData.sendNotification,
         participantIds: formData.participantIds.length > 0 ? formData.participantIds : undefined,
+        managerId: formData.managerId ? Number(formData.managerId) : null,
       });
 
       showAlert({ type: 'success', title: '생성 완료', message: '일정이 등록되었습니다.' });
@@ -634,6 +639,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
       isAllDay: target.isAllDay,
       sendNotification: target.sendNotification,
       participantIds: target.participants?.map(p => p.userId) || [],
+      managerId: target.managerId ? String(target.managerId) : '',
     });
     setShowDetailModal(false);
     setShowCreateModal(true);
@@ -662,6 +668,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
         isAllDay: formData.isAllDay,
         sendNotification: formData.sendNotification,
         participantIds: formData.participantIds.length > 0 ? formData.participantIds : undefined,
+        managerId: formData.managerId ? Number(formData.managerId) : null,
       });
 
       showAlert({ type: 'success', title: '수정 완료', message: '일정이 수정되었습니다.' });
@@ -1468,6 +1475,16 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                   onChange={(checked) => setFormData(prev => ({ ...prev, sendNotification: checked }))}
                 />
 
+                {/* 담당자 지정 */}
+                <Selector
+                  label="담당자"
+                  placeholder="담당자 미지정"
+                  hasClear
+                  value={formData.managerId || null}
+                  onChange={(value) => setFormData(prev => ({ ...prev, managerId: value || '' }))}
+                  options={members.map((m) => ({ value: String(m.id), label: `${m.name}${getMemberRoleText(m.role) ? ` (${getMemberRoleText(m.role)})` : ''}` }))}
+                />
+
                 {/* 참석자 선택 */}
                 <VStack gap={2}>
                   <Text type="label" weight="medium">참석자</Text>
@@ -1874,11 +1891,26 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                     </div>
                   )}
 
+                  {/* 담당자 — 참석자와 구분 표시 */}
+                  {selectedSchedule.managerName && (
+                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
+                      <VStack gap={2}>
+                        <Text type="label" weight="medium">담당자</Text>
+                        <div style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-teal)' }}>
+                          <HStack gap={2} vAlign="center">
+                            <Badge variant="teal" label="담당" />
+                            <Text type="supporting" color="primary" weight="semibold">{selectedSchedule.managerName}</Text>
+                          </HStack>
+                        </div>
+                      </VStack>
+                    </div>
+                  )}
+
                   {/* 참석자 */}
                   {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
                     <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                       <VStack gap={2}>
-                        <Text type="label" weight="medium">참석자</Text>
+                        <Text type="label" weight="medium">참석자 {selectedSchedule.participants.length}명</Text>
                         {selectedSchedule.participants.map((participant) => (
                           <div key={participant.id} style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
                             <Text type="supporting" color="primary">{(participant as any).memberName || participant.userName || '참석자'}</Text>

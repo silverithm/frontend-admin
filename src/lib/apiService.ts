@@ -1578,6 +1578,7 @@ export async function createSchedule(data: {
     isAllDay: boolean;
     sendNotification: boolean;
     participantIds?: string[];
+    managerId?: string | number | null;
     attachments?: {
         fileName: string;
         fileUrl: string;
@@ -1610,6 +1611,7 @@ export async function updateSchedule(id: string, data: {
     isAllDay?: boolean;
     sendNotification?: boolean;
     participantIds?: string[];
+    managerId?: string | number | null;
     attachments?: {
         fileName: string;
         fileUrl: string;

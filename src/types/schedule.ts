@@ -87,6 +87,9 @@ export interface Schedule {
   completedByName?: string;
   authorId: string;
   authorName: string;
+  /** 담당자 (참석자와 구분되는 단일 지정, 미지정 가능) */
+  managerId?: number | null;
+  managerName?: string | null;
   participants?: ScheduleParticipant[];
   tasks?: ScheduleTask[];
   /** 할 일 총 개수 / 완료 개수 (서버 계산값) */
