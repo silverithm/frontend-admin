@@ -62,8 +62,11 @@ const Navbar: React.FC = () => {
 
   useEffect(() => {
     const hasToken = !!localStorage.getItem('authToken');
-    setLoggedIn(hasToken);
-    if (hasToken) {
+    // 체험판도 authToken을 남기지만 "내 계정"이 아니다. 체험 세션을 로그인으로 보면
+    // 체험을 한 번 눌렀다 나온 방문자에게 계속 "내 케어브이"만 보여 가입·로그인 길이 막힌다.
+    const isDemo = localStorage.getItem('isDemoMode') === 'true';
+    setLoggedIn(hasToken && !isDemo);
+    if (hasToken && !isDemo) {
       setWorkspacePath(localStorage.getItem('loginType') === 'employee' ? '/employee' : '/admin');
     }
   }, []);

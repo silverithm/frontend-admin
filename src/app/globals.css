@@ -164,6 +164,25 @@ html {
 .carev-dash-timeline { transition: background var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-timeline:hover { background: var(--color-background-surface); } }
 
+/* 사이드바 연계기관 링크 — 외부 주소라 앵커지만 메뉴 버튼과 같은 상자로 보이게 한다.
+   좌우 여백 12px + 안쪽 패딩 12px이라야 아이콘이 메뉴 아이콘과 같은 x에 온다 */
+.carev-sidenav-extlink {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 0 var(--spacing-3);
+  padding: 0 var(--spacing-3);
+  border-radius: var(--radius-element);
+  text-decoration: none;
+}
+/* hover는 ghost Button과 동일하게 --color-overlay-hover 오버레이로 (색을 직접 칠하면 테마가 바뀔 때 어긋난다) */
+@media (hover: hover) {
+  .carev-sidenav-extlink:hover {
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+    text-decoration: none;
+  }
+}
+
 /* 케어브이 광장 — 카페형 레이아웃: 좌측 보드 네비(데스크탑) + 메인, 모바일은 상단 가로 탭.
    데스크탑에서는 대시보드와 같은 규칙으로 화면 높이를 채우고, 넘치는 내용은 블록 안에서만 스크롤 */
 .carev-plaza-cafe { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
