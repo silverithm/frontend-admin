@@ -27,7 +27,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
 import { AspectRatio } from '@astryxdesign/core/AspectRatio';
-import { FiArrowRight, FiCheck, FiDatabase, FiLock, FiRefreshCw, FiShield } from 'react-icons/fi';
+import { FiArrowRight, FiCheck, FiFileText, FiLock, FiRefreshCw, FiShield } from 'react-icons/fi';
 import Navbar from '@/components/Navbar';
 import PartnerCard from '@/components/partners/PartnerCard';
 import { getFeaturedAds } from '@/lib/partnerAds';
@@ -64,31 +64,31 @@ const TRUST_SIGNALS = [
     '결제 수단 등록 없이 30일 무료',
 ];
 
-/** 데이터 보안 — 실제 운영 중인 장치만 적는다 (과장 금지) */
+/** 데이터 보안 — 실제 운영 중인 장치만 적는다 (과장 금지, 당연한 것은 뺀다) */
 const SECURITY_POINTS = [
     {
         icon: FiShield,
         title: '기관 간 완전 격리',
         description:
-            '모든 데이터는 기관 단위로 분리 저장되고, 서버가 모든 요청마다 소속 기관을 검증합니다. 다른 기관의 데이터에는 접근 자체가 차단됩니다.',
+            '모든 데이터는 기관 단위로 분리 저장되고, 서버가 모든 요청마다 요청자의 소속 기관을 대조해 검증합니다. 다른 기관의 데이터에는 접근 자체가 차단됩니다.',
     },
     {
         icon: FiLock,
-        title: '전 구간 암호화',
+        title: '민감 정보 이중 암호화',
         description:
-            '웹과 앱의 모든 통신은 HTTPS(TLS 1.2 이상)로 암호화됩니다. 비밀번호는 복호화가 불가능한 단방향 방식으로만 저장해 운영자도 볼 수 없습니다.',
+            '비밀번호는 복호화가 불가능한 단방향 방식으로 저장해 운영자도 볼 수 없고, 결제 키 같은 민감한 값은 별도 암호화 키로 한 번 더 암호화합니다. 서명·직인·첨부 파일은 외부 접근이 차단된 비공개 저장소에 보관합니다.',
     },
     {
-        icon: FiDatabase,
-        title: '결제 정보 미보관',
+        icon: FiFileText,
+        title: '모든 변경 이력 기록',
         description:
-            '카드번호는 케어브이 서버에 저장되지 않습니다. 결제는 토스페이먼츠가 처리하고, 결제 식별 키는 암호화해 보관합니다.',
+            '누가 언제 어떤 작업을 했는지 서버에 자동으로 기록됩니다. 이상 징후나 분쟁이 생겨도 감사 기록으로 추적할 수 있습니다.',
     },
     {
         icon: FiRefreshCw,
         title: '매일 자동 백업 · 침입 방어',
         description:
-            '기관 데이터는 매일 자동으로 백업됩니다. 로그인 시도 제한 등 무단 접근 방어 장치가 상시 동작하고, 서버 상태를 24시간 모니터링합니다.',
+            '기관 데이터는 매일 자동 백업되어 서버와 분리된 외부 저장소에 보관됩니다. 로그인 연속 실패 차단 등 무단 접근 방어와 24시간 서버 모니터링이 상시 동작합니다.',
     },
 ];
 
@@ -694,7 +694,7 @@ export default function LandingPage() {
                                 &ldquo;우리 기관 데이터는 안전한가요?&rdquo;
                             </Heading>
                             <Text type="large" color="secondary" justify="center" textWrap="balance">
-                                가장 많이 받는 질문입니다. 카카오 출신 개발자가 대형 IT 기업의 보안 기준으로
+                                가장 많이 받는 질문입니다. 네카라쿠배 IT 기업 출신 개발자가 엔터프라이즈 보안 기준으로
                                 직접 만들고 운영합니다.
                             </Text>
                         </VStack>
