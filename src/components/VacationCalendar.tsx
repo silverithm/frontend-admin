@@ -826,6 +826,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 )}
                 <Button
                   label="직원 휴무 추가"
+                  data-tour="action-add-vacation"
                   variant="primary"
                   size="sm"
                   icon={<Icon icon={FiUserPlus} size="sm" />}

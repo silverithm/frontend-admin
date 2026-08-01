@@ -684,7 +684,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     return (
       <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ height: 56 }} />
-        <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
+        <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} data-tour="dash-stats" style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} height={96} radius={3} index={i} />
           ))}

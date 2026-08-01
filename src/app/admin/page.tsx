@@ -1130,7 +1130,7 @@ export default function AdminPage() {
                 <div style={{ borderTop: "1px solid var(--color-border)", padding: "var(--spacing-3) 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
                     <ExternalLinksNav />
                     <div style={{ padding: "0 var(--spacing-3)" }}><SubscriptionStatus /></div>
-                    <Button label="사용법 보기" variant="ghost" size="sm" onClick={() => setShowTour(true)} icon={<Icon icon={IconHelp} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
+                    <span data-tour="sidebar-help"><Button label="사용법 보기" variant="ghost" size="sm" onClick={() => setShowTour(true)} icon={<Icon icon={IconHelp} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} /></span>
                     <Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                     <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                 </div>
@@ -1323,7 +1323,7 @@ export default function AdminPage() {
                                 </div>
 
                                 {/* 필터 및 휴무 목록 사이드바 */}
-                                <div className="carev-admin-work-side">
+                                <div className="carev-admin-work-side" data-tour="work-side">
                                     {/* 필터 패널 — 역할이 늘어나도 높이가 고정되도록 검색 + 드롭다운 구성 */}
                                     <Card padding={3} style={{ flexShrink: 0 }}>
                                         <VStack gap={3}>

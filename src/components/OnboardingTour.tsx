@@ -134,7 +134,17 @@ export default function OnboardingTour({
 
   const body = (
     <VStack gap={2} align="start">
-      <Text type="supporting" color="accent" weight="semibold">{progress}</Text>
+      <VStack gap={1} align="stretch" width="100%">
+        <Text type="supporting" color="accent" weight="semibold">{progress}</Text>
+        {/* 남은 분량이 보이면 끝까지 볼지 판단하기 쉽다 */}
+        <div style={{ height: 3, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}>
+          <motion.div
+            animate={{ width: `${((index + 1) / steps.length) * 100}%` }}
+            transition={{ duration: duration.medium, ease: easeStandard }}
+            style={{ height: '100%', background: 'var(--color-icon-teal)' }}
+          />
+        </div>
+      </VStack>
       <Heading level={2} type="display-3">{step.title}</Heading>
       <Text type="body" color="secondary">
         <span style={{ whiteSpace: 'pre-line' }}>{step.description}</span>
