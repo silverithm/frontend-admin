@@ -27,6 +27,8 @@ const SPOTLIGHT_PAD = 8;
 const PANEL_ZONE = 260;
 
 interface Box { top: number; left: number; width: number; height: number }
+/** 어느 단계에서 잰 값인지 함께 들고 다녀야 늦게 도착한 측정이 다음 단계를 덮어쓰지 않는다 */
+interface Measured extends Box { forIndex: number }
 
 /**
  * 첫 방문 안내 투어.
@@ -48,7 +50,7 @@ export default function OnboardingTour({
   const steps = useMemo(() => visibleSteps(isAdmin), [isAdmin]);
 
   const [index, setIndex] = useState(0);
-  const [box, setBox] = useState<Box | null>(null);
+  const [measured, setMeasured] = useState<Measured | null>(null);
   const targetRef = useRef<HTMLElement | null>(null);
 
   // 부모가 인라인 함수를 넘겨도 효과가 재실행되지 않도록 ref로 고정한다
@@ -61,13 +63,16 @@ export default function OnboardingTour({
   const stepTarget = step?.target;
   const stepTab = step?.tab;
 
+  // 항상 "지금 몇 번째 단계인지"를 함께 기록한다
+  const indexRef = useRef(0);
   const measure = useCallback(() => {
     const el = targetRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
     // 화면 밖으로 밀린 대상은 스포트라이트를 그리지 않는다(엉뚱한 곳이 밝아지는 것 방지)
-    if (r.width === 0 || r.height === 0) { setBox(null); return; }
-    setBox({
+    if (r.width === 0 || r.height === 0) return;
+    setMeasured({
+      forIndex: indexRef.current,
       top: r.top - SPOTLIGHT_PAD,
       left: r.left - SPOTLIGHT_PAD,
       width: r.width + SPOTLIGHT_PAD * 2,
@@ -78,7 +83,7 @@ export default function OnboardingTour({
   const finish = useCallback(() => {
     markTourSeen(userKey);
     setIndex(0);
-    setBox(null);
+    setMeasured(null);
     targetRef.current = null;
     onFinish();
   }, [onFinish, userKey]);
@@ -99,14 +104,16 @@ export default function OnboardingTour({
 
     if (stepTab) navigateRef.current(stepTab);
 
+    indexRef.current = index;
+
     if (!stepTarget) {
       targetRef.current = null;
-      setBox(null);
+      setMeasured(null);
       return;
     }
 
     // 이전 단계의 스포트라이트를 그대로 두면 엉뚱한 곳이 밝은 채로 남는다
-    setBox(null);
+    setMeasured(null);
     targetRef.current = null;
 
     const lockOn = (el: HTMLElement) => {
@@ -115,12 +122,12 @@ export default function OnboardingTour({
       // smooth로 스크롤하면 이동 중 좌표를 재게 되어 스포트라이트가 어긋난다.
       // 즉시 스크롤한 뒤 다음 프레임에 측정한다.
       el.scrollIntoView({ block: 'center', behavior: 'auto' });
-      requestAnimationFrame(() => {
-        if (cancelled) return;
-        measure();
-        // 이미지·폰트 로딩으로 레이아웃이 조금 더 움직일 수 있어 잠시 뒤 한 번 더 잡는다
-        settleTimer = window.setTimeout(() => { if (!cancelled) measure(); }, 300);
-      });
+      // 즉시 한 번 잡는다. rAF에만 맡기면 탭이 백그라운드로 내려가 rAF가 멈춘 동안
+      // 스포트라이트가 영영 안 뜬다.
+      measure();
+      // 다음 프레임과 잠시 뒤에 다시 잡아 스크롤·폰트 로딩으로 인한 오차를 보정한다
+      requestAnimationFrame(() => { if (!cancelled) measure(); });
+      settleTimer = window.setTimeout(() => { if (!cancelled) measure(); }, 300);
     };
 
     const found = document.querySelector<HTMLElement>(`[data-tour="${stepTarget}"]`);
@@ -139,14 +146,23 @@ export default function OnboardingTour({
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
+    // MutationObserver가 놓치는 경우(속성만 바뀌며 나타나는 등)를 대비한 보조 확인.
+    // rAF는 탭이 백그라운드면 멈추므로 타이머로 돌린다.
+    const poll = window.setInterval(() => {
+      if (cancelled || targetRef.current) return;
+      const el = document.querySelector<HTMLElement>(`[data-tour="${stepTarget}"]`);
+      if (el) { window.clearInterval(poll); observer?.disconnect(); lockOn(el); }
+    }, 150);
+
     const giveUp = window.setTimeout(() => {
       observer?.disconnect();
-      if (!cancelled && !targetRef.current) setBox(null);
+      if (!cancelled && !targetRef.current) setMeasured(null);
     }, TARGET_TIMEOUT_MS);
 
     return () => {
       cancelled = true;
       observer?.disconnect();
+      window.clearInterval(poll);
       window.clearTimeout(giveUp);
       window.clearTimeout(settleTimer);
     };
@@ -175,6 +191,9 @@ export default function OnboardingTour({
   }, [isOpen, finish, goNext, goPrev]);
 
   if (!isOpen || !step) return null;
+
+  // 다른 단계에서 잰 값은 버린다 (늦게 도착한 측정이 한 단계 뒤처져 보이던 원인)
+  const box = measured && measured.forIndex === index ? measured : null;
 
   // 대상이 화면 아래쪽이면 안내판과 겹친다 — 그럴 땐 안내판을 위로 올린다
   const viewportH = typeof window !== 'undefined' ? window.innerHeight : 0;
