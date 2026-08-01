@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useMemo} from "react";
+import {useState, useEffect, useMemo, useCallback } from "react";
 import {useRouter} from "next/navigation";
 import {format, addMonths, subMonths, isSameDay} from "date-fns";
 import {ko} from "date-fns/locale";
@@ -118,6 +118,8 @@ export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
     const [showTour, setShowTour] = useState(false);
+    // 인라인 함수를 넘기면 투어 쪽 효과가 매 렌더 재실행되어 대상 탐색이 취소된다
+    const handleTourNavigate = useCallback((tab: string) => setActiveMainTab(tab as MainTab), []);
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("submit");
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -1708,7 +1710,7 @@ export default function AdminPage() {
                 isOpen={showTour}
                 isAdmin={isAdmin}
                 userKey={typeof window !== 'undefined' ? (localStorage.getItem('userId') || localStorage.getItem('userEmail')) : null}
-                onNavigate={(tab) => setActiveMainTab(tab as MainTab)}
+                onNavigate={handleTourNavigate}
                 onFinish={() => setShowTour(false)}
             />
 
