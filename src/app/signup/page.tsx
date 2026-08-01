@@ -17,10 +17,8 @@ import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import {
     signup,
-    getPublicCompanies,
-    getPublicPositions,
+    getPublicPositionsByCompanyCode,
     submitMemberJoinRequest,
-    type PublicCompany,
     type PublicPosition,
 } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
@@ -51,39 +49,39 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
-  // ── 직원 가입 (소속 기관에 가입 요청 → 관리자 승인) ──
+  // ── 직원 가입 (기관 코드로 소속 기관에 가입 요청 → 관리자 승인) ──
   const [employeeForm, setEmployeeForm] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     phoneNumber: '',
-    companyId: '',
+    companyCode: '',
     positionId: '',
     fallbackRole: 'CAREGIVER',
   });
-  const [companies, setCompanies] = useState<PublicCompany[]>([]);
   const [positions, setPositions] = useState<PublicPosition[]>([]);
-  const [isCompaniesLoading, setIsCompaniesLoading] = useState(false);
+  const [codeStatus, setCodeStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
 
-  // 직원 탭 첫 진입 시 기관 목록 로드
-  useEffect(() => {
-    if (signupType !== 'employee' || companies.length > 0) return;
-    setIsCompaniesLoading(true);
-    getPublicCompanies()
-      .then(setCompanies)
-      .catch(() => setError('기관 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'))
-      .finally(() => setIsCompaniesLoading(false));
-  }, [signupType, companies.length]);
+  // 기관 프로필에서 발급된 코드와 동일한 정규화 (대문자·영숫자만)
+  const normalizeCompanyCode = (raw: string) => raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-  // 기관 선택 시 해당 기관 직책 목록 로드
-  const handleCompanySelect = (companyId: string) => {
-    setEmployeeForm((prev) => ({ ...prev, companyId, positionId: '' }));
-    setPositions([]);
-    if (companyId) {
-      getPublicPositions(Number(companyId))
-        .then(setPositions)
-        .catch(() => setPositions([]));
+  // 기관 코드 확인 — 유효하면 해당 기관 직책 목록을 불러온다
+  const handleCompanyCodeCheck = async () => {
+    const code = normalizeCompanyCode(employeeForm.companyCode);
+    if (!code) {
+      setError('기관 코드를 입력해주세요.');
+      return;
+    }
+    setError('');
+    setCodeStatus('checking');
+    try {
+      const loaded = await getPublicPositionsByCompanyCode(code);
+      setPositions(loaded);
+      setCodeStatus('valid');
+    } catch {
+      setPositions([]);
+      setCodeStatus('invalid');
     }
   };
 
@@ -189,8 +187,12 @@ export default function SignupPage() {
   };
 
   const validateEmployeeForm = () => {
-    if (!employeeForm.companyId) {
-      setError('소속 기관을 선택해주세요.');
+    if (!normalizeCompanyCode(employeeForm.companyCode)) {
+      setError('기관 코드를 입력해주세요.');
+      return false;
+    }
+    if (codeStatus === 'invalid') {
+      setError('유효하지 않은 기관 코드입니다. 기관 관리자에게 코드를 확인해주세요.');
       return false;
     }
     if (!employeeForm.name) {
@@ -233,7 +235,7 @@ export default function SignupPage() {
         role: (selectedPosition?.memberRole || employeeForm.fallbackRole).toUpperCase(),
         position: selectedPosition?.name,
         positionId: selectedPosition?.id,
-        companyId: Number(employeeForm.companyId),
+        companyCode: normalizeCompanyCode(employeeForm.companyCode),
       });
 
       showAlert({
@@ -339,30 +341,56 @@ export default function SignupPage() {
               </VStack>
 
               {/* 가입 유형 선택 */}
-              <SegmentedControl
-                label="가입 유형"
-                value={signupType}
-                onChange={(value) => { setSignupType(value as SignupType); setError(''); }}
-              >
-                <SegmentedControlItem value="admin" label="기관 관리자" />
-                <SegmentedControlItem value="employee" label="직원" />
-              </SegmentedControl>
+              <HStack hAlign="center">
+                <SegmentedControl
+                  label="가입 유형"
+                  value={signupType}
+                  onChange={(value) => { setSignupType(value as SignupType); setError(''); }}
+                >
+                  <SegmentedControlItem value="admin" label="기관 관리자" />
+                  <SegmentedControlItem value="employee" label="직원" />
+                </SegmentedControl>
+              </HStack>
 
               {/* 직원 가입 폼 */}
               {signupType === 'employee' && (
               <form onSubmit={handleEmployeeSubmit}>
                 <VStack gap={4}>
-                  <Selector
-                    label="소속 기관"
-                    value={employeeForm.companyId}
-                    onChange={(value) => handleCompanySelect(value ?? '')}
-                    options={companies.map((c) => ({
-                      value: String(c.id),
-                      label: c.addressName ? `${c.name} (${c.addressName})` : c.name,
-                    }))}
-                    placeholder={isCompaniesLoading ? '기관 목록을 불러오는 중...' : '기관을 선택하세요'}
-                    isRequired
-                  />
+                  <HStack gap={2} vAlign="end">
+                    <div style={{ flex: 1 }}>
+                      <TextInput
+                        label="기관 코드"
+                        type="text"
+                        value={employeeForm.companyCode}
+                        onChange={(value) => {
+                          setEmployeeForm((prev) => ({ ...prev, companyCode: value, positionId: '' }));
+                          setCodeStatus('idle');
+                          setPositions([]);
+                        }}
+                        placeholder="기관에서 발급한 코드를 입력하세요"
+                        htmlName="companyCode"
+                        isRequired
+                        status={
+                          codeStatus === 'invalid'
+                            ? { type: 'error', message: '유효하지 않은 기관 코드입니다.' }
+                            : codeStatus === 'valid'
+                              ? { type: 'success', message: '기관 코드가 확인되었습니다.' }
+                              : undefined
+                        }
+                      />
+                    </div>
+                    <Button
+                      label="코드 확인"
+                      variant="secondary"
+                      size="md"
+                      type="button"
+                      isLoading={codeStatus === 'checking'}
+                      onClick={handleCompanyCodeCheck}
+                    />
+                  </HStack>
+                  <Text type="supporting" color="secondary">
+                    기관 코드는 기관 관리자가 케어브이의 기관 프로필에서 확인할 수 있습니다.
+                  </Text>
 
                   {positions.length > 0 ? (
                     <Selector

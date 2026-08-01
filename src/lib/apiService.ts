@@ -627,27 +627,10 @@ export async function startDemo(): Promise<SigninResponseDTO> {
 // ==================== 직원 웹 가입 (관리자 승인 대기) ====================
 // 아래 세 API는 모두 permitAll — 인증 API와 같은 직접 fetch 패턴을 쓴다.
 
-export interface PublicCompany {
-    id: number;
-    name: string;
-    addressName?: string;
-}
-
 export interface PublicPosition {
     id: number;
     name: string;
     memberRole?: string;
-}
-
-export async function getPublicCompanies(): Promise<PublicCompany[]> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/members/companies`, {
-        headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-    });
-    if (!response.ok) {
-        throw new Error(`기관 목록 조회 실패: ${response.status}`);
-    }
-    const data = await response.json();
-    return Array.isArray(data) ? data : (data.companies || []);
 }
 
 export async function getPublicPositions(companyId: number): Promise<PublicPosition[]> {
@@ -656,6 +639,21 @@ export async function getPublicPositions(companyId: number): Promise<PublicPosit
     });
     if (!response.ok) {
         throw new Error(`직책 목록 조회 실패: ${response.status}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.positions || []);
+}
+
+/** 기관 코드 검증 겸 직책 목록 조회 — 코드가 유효하지 않으면 throw */
+export async function getPublicPositionsByCompanyCode(companyCode: string): Promise<PublicPosition[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/api/v1/positions?companyCode=${encodeURIComponent(companyCode)}`,
+        { headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' } },
+    );
+    if (!response.ok) {
+        const error = new Error('기관 코드를 확인해주세요.') as Error & { status?: number };
+        error.status = response.status;
+        throw error;
     }
     const data = await response.json();
     return Array.isArray(data) ? data : (data.positions || []);
@@ -670,7 +668,8 @@ export interface MemberJoinRequestPayload {
     role: string;          // CAREGIVER | OFFICE
     position?: string;     // 직책 표시명
     positionId?: number;
-    companyId: number;
+    companyId?: number;
+    companyCode?: string;  // 기관 프로필에서 발급된 코드
 }
 
 export async function submitMemberJoinRequest(payload: MemberJoinRequestPayload): Promise<{ id: number; status?: string }> {
