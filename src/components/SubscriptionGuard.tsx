@@ -35,6 +35,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
   // 홈/블로그/FAQ 등 공개 페이지의 SSR HTML이 스피너만 담긴 채 크롤러에 노출된다.
   const [loading, setLoading] = useState(() => isProtectedPath(pathname));
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     // 보호된 페이지(/admin)가 아니면 구독 확인하지 않음
@@ -125,6 +126,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
           padding: 'var(--spacing-4)',
         }}
       >
+        <AlertContainer />
         <Card width="100%" maxWidth={448} padding={6}>
           <div style={{ position: 'relative', paddingTop: 'var(--spacing-10)' }}>
             {/* 좌측 상단 뒤로가기 버튼 */}
@@ -188,9 +190,38 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
 
               {/* 액션 버튼 (VStack 기본 cross-axis stretch로 전체 너비) */}
               <VStack gap={3} width="100%">
+                {/* 유료 구독 이력이 있으면(카드가 등록돼 있을 가능성) 등록된 카드로 바로 재결제 */}
+                {subscription?.planName !== 'FREE' && (
+                  <Button
+                    label="등록된 카드로 바로 결제"
+                    variant="primary"
+                    size="lg"
+                    isLoading={isRetrying}
+                    isDisabled={isRetrying}
+                    onClick={async () => {
+                      setIsRetrying(true);
+                      try {
+                        await subscriptionService.retryPayment();
+                        showAlert({ type: 'success', title: '결제 완료', message: '구독이 다시 활성화되었습니다.' });
+                        setShowBlockModal(false);
+                        setLoading(true);
+                        checkSubscription();
+                      } catch (error: any) {
+                        showAlert({
+                          type: 'error',
+                          title: '재결제 실패',
+                          message: `${error.message || '결제에 실패했습니다.'} 카드 등록부터 다시 시도하려면 결제하기를 눌러주세요.`,
+                          duration: 7000,
+                        });
+                      } finally {
+                        setIsRetrying(false);
+                      }
+                    }}
+                  />
+                )}
                 <Button
                   label="결제하기"
-                  variant="primary"
+                  variant={subscription?.planName !== 'FREE' ? 'secondary' : 'primary'}
                   size="lg"
                   onClick={() => {
                     setShowBlockModal(false);

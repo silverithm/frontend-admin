@@ -114,6 +114,42 @@ export const subscriptionService = {
     return response.json();
   },
 
+  // 결제 실패 후 즉시 재결제 (다음날 자동결제를 기다리지 않는 수동 경로)
+  async retryPayment(): Promise<SubscriptionResponseDTO> {
+    const token = localStorage.getItem('authToken');
+
+    const response = await fetch('/api/v1/subscriptions/retry-payment', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = '재결제에 실패했습니다';
+      let errorData: any = {};
+
+      try {
+        errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status} error`;
+      }
+
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = errorData;
+      throw error;
+    }
+
+    return response.json();
+  },
+
   // 구독 활성화
   async activateSubscription(): Promise<SubscriptionResponseDTO> {
     const token = localStorage.getItem('authToken');

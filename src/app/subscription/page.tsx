@@ -215,6 +215,31 @@ export default function SubscriptionPage() {
                     </VStack>
                   )}
 
+                  {/* 취소된 구독 — 종료일 전이면 다시 활성화 가능 (조직정보 탭과 동일 동작) */}
+                  {subscription.status === SubscriptionStatus.CANCELLED && !needsPayment && (
+                    <VStack gap={3}>
+                      <Banner
+                        status="warning"
+                        title="구독이 취소되었습니다."
+                        description={`${new Date(subscription.endDate).toLocaleDateString('ko-KR')}까지 이용할 수 있으며, 이후 자동 결제되지 않습니다. 계속 이용하시려면 구독을 다시 활성화해주세요.`}
+                      />
+                      <Button
+                        label="구독 다시 활성화"
+                        variant="primary"
+                        size="lg"
+                        onClick={async () => {
+                          try {
+                            await subscriptionService.activateSubscription();
+                            showAlert({ type: 'success', title: '활성화 완료', message: '구독이 다시 활성화되었습니다. 종료일에 자동 결제됩니다.' });
+                            await fetchSubscription();
+                          } catch (e: any) {
+                            showAlert({ type: 'error', title: '활성화 실패', message: e.message || '구독 활성화에 실패했습니다.' });
+                          }
+                        }}
+                      />
+                    </VStack>
+                  )}
+
                   {/* 유료 구독 중인 경우 */}
                   {subscription.planName === SubscriptionType.BASIC &&
                    subscription.status === SubscriptionStatus.ACTIVE && (
