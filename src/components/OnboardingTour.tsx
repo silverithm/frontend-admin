@@ -101,6 +101,7 @@ export default function OnboardingTour({
     let cancelled = false;
     let observer: MutationObserver | null = null;
     let settleTimer: number | undefined;
+    let sizeObserver: ResizeObserver | null = null;
 
     if (stepTab) navigateRef.current(stepTab);
 
@@ -128,12 +129,21 @@ export default function OnboardingTour({
       // 다음 프레임과 잠시 뒤에 다시 잡아 스크롤·폰트 로딩으로 인한 오차를 보정한다
       requestAnimationFrame(() => { if (!cancelled) measure(); });
       settleTimer = window.setTimeout(() => { if (!cancelled) measure(); }, 300);
+      // 대상이 DOM에는 있지만 데이터 로딩 중이라 크기가 0인 경우가 있다 (대시보드 위젯 등).
+      // 300ms 안에 안 그려지면 스포트라이트가 영영 안 뜨던 원인 — 크기가 잡히거나
+      // 바뀔 때마다 다시 재서, 로딩이 늦어도 콘텐츠가 그려지는 순간 따라잡는다.
+      sizeObserver = new ResizeObserver(() => { if (!cancelled) measure(); });
+      sizeObserver.observe(el);
     };
 
     const found = document.querySelector<HTMLElement>(`[data-tour="${stepTarget}"]`);
     if (found) {
       lockOn(found);
-      return () => { cancelled = true; window.clearTimeout(settleTimer); };
+      return () => {
+        cancelled = true;
+        window.clearTimeout(settleTimer);
+        sizeObserver?.disconnect();
+      };
     }
 
     // 탭 전환·데이터 로딩으로 아직 없을 수 있다. DOM이 바뀔 때마다 다시 찾는다.
@@ -162,6 +172,7 @@ export default function OnboardingTour({
     return () => {
       cancelled = true;
       observer?.disconnect();
+      sizeObserver?.disconnect();
       window.clearInterval(poll);
       window.clearTimeout(giveUp);
       window.clearTimeout(settleTimer);
