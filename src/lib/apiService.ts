@@ -644,11 +644,15 @@ export async function getPublicPositions(companyId: number): Promise<PublicPosit
     return Array.isArray(data) ? data : (data.positions || []);
 }
 
-/** 기관 코드 검증 겸 직책 목록 조회 — 코드가 유효하지 않으면 throw */
+/**
+ * 기관 코드 검증 겸 직책 목록 조회 — 코드가 유효하지 않으면 throw.
+ * 백엔드 직접 호출 시 PositionController의 수동 CORS 헤더와 Spring CORS 필터가
+ * 중복되어 브라우저가 거부하므로, 같은 도메인의 Next 프록시를 경유한다.
+ */
 export async function getPublicPositionsByCompanyCode(companyCode: string): Promise<PublicPosition[]> {
     const response = await fetch(
-        `${API_BASE_URL}/api/v1/positions?companyCode=${encodeURIComponent(companyCode)}`,
-        { headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' } },
+        `/api/v1/positions?companyCode=${encodeURIComponent(companyCode)}`,
+        { headers: { 'Accept': 'application/json' } },
     );
     if (!response.ok) {
         const error = new Error('기관 코드를 확인해주세요.') as Error & { status?: number };

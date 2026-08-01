@@ -19,9 +19,11 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const companyId = url.searchParams.get('companyId');
+    const companyCode = url.searchParams.get('companyCode');
 
-    if (!companyId) {
-      return NextResponse.json({ error: 'companyId 파라미터가 필요합니다.' }, { status: 400, headers });
+    // 직원 가입(비로그인)은 기관 코드로, 로그인 후 화면은 companyId로 조회한다
+    if (!companyId && !companyCode) {
+      return NextResponse.json({ error: 'companyId 또는 companyCode 파라미터가 필요합니다.' }, { status: 400, headers });
     }
 
     const authHeader = request.headers.get('authorization');
@@ -33,8 +35,11 @@ export async function GET(request: NextRequest) {
     };
     if (token) backendHeaders['Authorization'] = `Bearer ${token}`;
 
+    const query = companyId
+      ? `companyId=${companyId}`
+      : `companyCode=${encodeURIComponent(companyCode as string)}`;
     const backendResponse = await fetch(
-      `${BACKEND_URL}/api/v1/positions?companyId=${companyId}`,
+      `${BACKEND_URL}/api/v1/positions?${query}`,
       { method: 'GET', headers: backendHeaders }
     );
 
