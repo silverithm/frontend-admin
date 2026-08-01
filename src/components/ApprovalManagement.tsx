@@ -42,6 +42,7 @@ export default function ApprovalManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedApproval, setSelectedApproval] = useState<ApprovalRequest | null>(null);
   const [selectedTemplateSchema, setSelectedTemplateSchema] = useState<FormSchema | undefined>(undefined);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState({
@@ -114,15 +115,20 @@ export default function ApprovalManagement() {
   const handleOpenDetail = async (approval: ApprovalRequest) => {
     setSelectedApproval(approval);
     setSelectedTemplateSchema(undefined);
+    setSelectedTemplateType(undefined);
 
     if (approval.templateId) {
       try {
         const template = await getApprovalTemplateById(approval.templateId);
-        if (template && template.formSchema) {
-          const schema: FormSchema = typeof template.formSchema === 'string'
-            ? JSON.parse(template.formSchema)
-            : template.formSchema;
-          setSelectedTemplateSchema(schema);
+        if (template) {
+          // HWP 파일 양식(file)과 폼 양식(form)의 상세보기가 다르다
+          setSelectedTemplateType(template.templateType);
+          if (template.formSchema) {
+            const schema: FormSchema = typeof template.formSchema === 'string'
+              ? JSON.parse(template.formSchema)
+              : template.formSchema;
+            setSelectedTemplateSchema(schema);
+          }
         }
       } catch (error) {
         // templateId가 없거나 조회 실패 시 schema 없이 진행
@@ -508,8 +514,9 @@ export default function ApprovalManagement() {
             onApprove={handleApprove}
             onReject={handleReject}
             onDelete={handleDelete}
-            onClose={() => { setSelectedApproval(null); setSelectedTemplateSchema(undefined); }}
+            onClose={() => { setSelectedApproval(null); setSelectedTemplateSchema(undefined); setSelectedTemplateType(undefined); }}
             templateSchema={selectedTemplateSchema}
+            templateType={selectedTemplateType}
             isProcessing={isProcessing}
           />
         )}

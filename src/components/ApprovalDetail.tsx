@@ -27,6 +27,7 @@ interface ApprovalDetailProps {
   onDelete?: (id: string) => void;
   onClose: () => void;
   templateSchema?: FormSchema;
+  templateType?: string;
   isProcessing?: boolean;
 }
 
@@ -37,6 +38,7 @@ export default function ApprovalDetail({
   onDelete,
   onClose,
   templateSchema,
+  templateType,
   isProcessing = false,
 }: ApprovalDetailProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -76,6 +78,14 @@ export default function ApprovalDetail({
       default: return status;
     }
   };
+
+  // HWP 파일 양식으로 작성된 문서는 공문 프레임이 아니라 작성된 문서 파일 자체가 본문이다.
+  // 템플릿이 삭제돼 타입을 알 수 없으면 "폼 데이터 없음 + 첨부 존재"를 같은 신호로 본다.
+  const isFileDocument =
+    templateType === 'file' ||
+    (!templateSchema
+      && (!approval.formData || Object.keys(approval.formData).length === 0)
+      && !!approval.attachmentUrl);
 
   // 결재선 차례 판단: 결재선 없는 legacy 문서는 서버 인가에 맡기고 기존처럼 노출
   const hasLine = !!approval.approvalLine && approval.approvalLine.length > 0;
@@ -165,24 +175,46 @@ export default function ApprovalDetail({
                   />
                 )}
 
-                {/* 공문 본문 */}
-                <div
-                  style={{
-                    background: 'var(--color-background-muted)',
-                    padding: 'var(--spacing-4)',
-                    borderRadius: 'var(--radius-inner)',
-                    overflowX: 'auto',
-                  }}
-                >
-                  <OfficialDocument
-                    approval={approval}
-                    schema={templateSchema}
-                    companyName={companyName}
-                    onOpenAttachment={
-                      approval.attachmentUrl ? () => setShowAttachmentViewer(true) : undefined
-                    }
-                  />
-                </div>
+                {/* 본문 — HWP 양식 문서는 작성된 파일이 본문이므로 공문 프레임 대신 문서 뷰어로 안내 */}
+                {isFileDocument ? (
+                  <Card variant="muted" padding={5}>
+                    <VStack gap={3} hAlign="center">
+                      <Text weight="semibold">HWP 양식으로 작성된 문서입니다</Text>
+                      <Text type="supporting" color="secondary" justify="center">
+                        {approval.templateName} · {approval.requesterName} 작성
+                      </Text>
+                      {approval.attachmentUrl ? (
+                        <Button
+                          label="문서 열어보기"
+                          variant="primary"
+                          onClick={() => setShowAttachmentViewer(true)}
+                        />
+                      ) : (
+                        <Text type="supporting" color="secondary">
+                          작성된 문서 파일을 찾을 수 없습니다.
+                        </Text>
+                      )}
+                    </VStack>
+                  </Card>
+                ) : (
+                  <div
+                    style={{
+                      background: 'var(--color-background-muted)',
+                      padding: 'var(--spacing-4)',
+                      borderRadius: 'var(--radius-inner)',
+                      overflowX: 'auto',
+                    }}
+                  >
+                    <OfficialDocument
+                      approval={approval}
+                      schema={templateSchema}
+                      companyName={companyName}
+                      onOpenAttachment={
+                        approval.attachmentUrl ? () => setShowAttachmentViewer(true) : undefined
+                      }
+                    />
+                  </div>
+                )}
 
                 {/* 첨부 다운로드 보조 액션 */}
                 {approval.attachmentUrl && (
