@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
@@ -55,6 +55,25 @@ export default function ApprovalDetail({
     );
   }, []);
 
+  // HWP 파일 양식으로 작성된 문서는 공문 프레임이 아니라 작성된 문서 파일 자체가 본문이다.
+  // 템플릿이 삭제돼 타입을 알 수 없으면 "폼 데이터 없음 + 첨부 존재"를 같은 신호로 본다.
+  const isFileDocument =
+    templateType === 'file' ||
+    (!templateSchema
+      && (!approval.formData || Object.keys(approval.formData).length === 0)
+      && !!approval.attachmentUrl);
+
+  // HWP 양식 문서는 작성된 문서가 본문이므로 상세를 열자마자 뷰어를 바로 띄운다.
+  // templateType은 상세 오픈 후 비동기로 도착하므로 값이 확정되는 시점에 1회만 연다.
+  const autoOpenedViewerRef = useRef(false);
+  useEffect(() => {
+    if (isFileDocument && approval.attachmentUrl && !autoOpenedViewerRef.current) {
+      autoOpenedViewerRef.current = true;
+      setShowAttachmentViewer(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFileDocument, approval.attachmentUrl]);
+
   const getStatusVariant = (
     status: ApprovalStatus
   ): 'success' | 'warning' | 'error' | 'neutral' => {
@@ -78,14 +97,6 @@ export default function ApprovalDetail({
       default: return status;
     }
   };
-
-  // HWP 파일 양식으로 작성된 문서는 공문 프레임이 아니라 작성된 문서 파일 자체가 본문이다.
-  // 템플릿이 삭제돼 타입을 알 수 없으면 "폼 데이터 없음 + 첨부 존재"를 같은 신호로 본다.
-  const isFileDocument =
-    templateType === 'file' ||
-    (!templateSchema
-      && (!approval.formData || Object.keys(approval.formData).length === 0)
-      && !!approval.attachmentUrl);
 
   // 결재선 차례 판단: 결재선 없는 legacy 문서는 서버 인가에 맡기고 기존처럼 노출
   const hasLine = !!approval.approvalLine && approval.approvalLine.length > 0;

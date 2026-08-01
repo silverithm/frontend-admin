@@ -760,6 +760,16 @@ export default function EmployeeApproval() {
                   onChange={(value) => {
                     setApprovalForm(prev => ({ ...prev, templateId: value, file: null }));
                     setFormData(null);
+                    // HWP 파일 양식을 고르면 웹 에디터를 바로 띄운다 (다운로드 없이 즉시 작성)
+                    const picked = templates.find(t => String(t.id) === value);
+                    if (picked && (picked.templateType === 'file' || !picked.templateType)
+                        && picked.fileUrl && isHwpFile(picked.fileName)) {
+                      setViewer({
+                        fileUrl: picked.fileUrl,
+                        fileName: picked.fileName,
+                        authoring: true,
+                      });
+                    }
                   }}
                   description={selectedTemplateInfo?.description}
                 />

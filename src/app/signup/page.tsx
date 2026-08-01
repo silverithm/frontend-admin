@@ -12,6 +12,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { Banner } from '@astryxdesign/core/Banner';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Selector } from '@astryxdesign/core/Selector';
+import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
@@ -62,6 +63,7 @@ export default function SignupPage() {
   });
   const [positions, setPositions] = useState<PublicPosition[]>([]);
   const [codeStatus, setCodeStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [employeeSubmitted, setEmployeeSubmitted] = useState(false);
 
   // 기관 프로필에서 발급된 코드와 동일한 정규화 (대문자·영숫자만)
   const normalizeCompanyCode = (raw: string) => raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -238,12 +240,8 @@ export default function SignupPage() {
         companyCode: normalizeCompanyCode(employeeForm.companyCode),
       });
 
-      showAlert({
-        type: 'success',
-        title: '가입 요청 완료',
-        message: '기관 관리자가 승인하면 로그인할 수 있습니다. 승인 후 직원 로그인으로 접속해주세요.',
-      });
-      router.push('/login');
+      // 바로 이동하지 않고 완료 화면을 보여준다 — 승인 대기 안내를 명확히 전달
+      setEmployeeSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : '가입 요청 중 오류가 발생했습니다.');
     } finally {
@@ -352,8 +350,34 @@ export default function SignupPage() {
                 </SegmentedControl>
               </HStack>
 
+              {/* 직원 가입 요청 완료 — 승인 대기 안내 */}
+              {signupType === 'employee' && employeeSubmitted && (
+                <VStack gap={4} hAlign="center">
+                  <Icon icon="success" size="lg" color="success" />
+                  <VStack gap={2} hAlign="center">
+                    <Text type="display-3" weight="bold" justify="center">
+                      가입 요청이 접수되었습니다
+                    </Text>
+                    <Text color="secondary" justify="center">
+                      기관 관리자가 요청을 확인하고 승인하면 로그인할 수 있습니다.
+                    </Text>
+                    <Text type="supporting" color="secondary" justify="center">
+                      승인이 완료될 때까지 기다려주세요. 급하다면 기관 관리자에게 승인을 요청해주세요.
+                      승인 후에는 로그인 화면의 &lsquo;직원&rsquo; 탭에서 이메일로 로그인합니다.
+                    </Text>
+                  </VStack>
+                  <Button
+                    label="로그인 화면으로"
+                    variant="primary"
+                    size="lg"
+                    onClick={() => router.push('/login')}
+                    style={{ width: '100%' }}
+                  />
+                </VStack>
+              )}
+
               {/* 직원 가입 폼 */}
-              {signupType === 'employee' && (
+              {signupType === 'employee' && !employeeSubmitted && (
               <form onSubmit={handleEmployeeSubmit}>
                 <VStack gap={4}>
                   <HStack gap={2} vAlign="end">
