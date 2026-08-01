@@ -624,6 +624,74 @@ export async function startDemo(): Promise<SigninResponseDTO> {
     }
 }
 
+// ==================== 직원 웹 가입 (관리자 승인 대기) ====================
+// 아래 세 API는 모두 permitAll — 인증 API와 같은 직접 fetch 패턴을 쓴다.
+
+export interface PublicCompany {
+    id: number;
+    name: string;
+    addressName?: string;
+}
+
+export interface PublicPosition {
+    id: number;
+    name: string;
+    memberRole?: string;
+}
+
+export async function getPublicCompanies(): Promise<PublicCompany[]> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/members/companies`, {
+        headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+    });
+    if (!response.ok) {
+        throw new Error(`기관 목록 조회 실패: ${response.status}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.companies || []);
+}
+
+export async function getPublicPositions(companyId: number): Promise<PublicPosition[]> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/positions?companyId=${companyId}`, {
+        headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+    });
+    if (!response.ok) {
+        throw new Error(`직책 목록 조회 실패: ${response.status}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.positions || []);
+}
+
+export interface MemberJoinRequestPayload {
+    username: string;
+    password: string;
+    name: string;
+    email: string;
+    phoneNumber?: string;
+    role: string;          // CAREGIVER | OFFICE
+    position?: string;     // 직책 표시명
+    positionId?: number;
+    companyId: number;
+}
+
+export async function submitMemberJoinRequest(payload: MemberJoinRequestPayload): Promise<{ id: number; status?: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/members/join-request`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+        },
+        body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+        const error = new Error(data?.error || `가입 요청 실패: ${response.status}`) as Error & { status?: number };
+        error.status = response.status;
+        throw error;
+    }
+    return data;
+}
+
 // 직원 로그인 (Member Sign In)
 export async function memberSignin(email: string, password: string): Promise<MemberSigninResponseDTO> {
     try {

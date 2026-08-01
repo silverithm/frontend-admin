@@ -10,10 +10,19 @@ import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { Banner } from '@astryxdesign/core/Banner';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
-import { signup } from '@/lib/apiService';
+import {
+    signup,
+    getPublicCompanies,
+    getPublicPositions,
+    submitMemberJoinRequest,
+    type PublicCompany,
+    type PublicPosition,
+} from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import { duration } from '@/theme/motion';
 
@@ -24,9 +33,12 @@ declare global {
   }
 }
 
+type SignupType = 'admin' | 'employee';
+
 export default function SignupPage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
+  const [signupType, setSignupType] = useState<SignupType>('admin');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -38,6 +50,42 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
+
+  // ── 직원 가입 (소속 기관에 가입 요청 → 관리자 승인) ──
+  const [employeeForm, setEmployeeForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phoneNumber: '',
+    companyId: '',
+    positionId: '',
+    fallbackRole: 'CAREGIVER',
+  });
+  const [companies, setCompanies] = useState<PublicCompany[]>([]);
+  const [positions, setPositions] = useState<PublicPosition[]>([]);
+  const [isCompaniesLoading, setIsCompaniesLoading] = useState(false);
+
+  // 직원 탭 첫 진입 시 기관 목록 로드
+  useEffect(() => {
+    if (signupType !== 'employee' || companies.length > 0) return;
+    setIsCompaniesLoading(true);
+    getPublicCompanies()
+      .then(setCompanies)
+      .catch(() => setError('기관 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'))
+      .finally(() => setIsCompaniesLoading(false));
+  }, [signupType, companies.length]);
+
+  // 기관 선택 시 해당 기관 직책 목록 로드
+  const handleCompanySelect = (companyId: string) => {
+    setEmployeeForm((prev) => ({ ...prev, companyId, positionId: '' }));
+    setPositions([]);
+    if (companyId) {
+      getPublicPositions(Number(companyId))
+        .then(setPositions)
+        .catch(() => setPositions([]));
+    }
+  };
 
   // 다음 주소 API 스크립트 로드
   useEffect(() => {
@@ -140,6 +188,67 @@ export default function SignupPage() {
     return true;
   };
 
+  const validateEmployeeForm = () => {
+    if (!employeeForm.companyId) {
+      setError('소속 기관을 선택해주세요.');
+      return false;
+    }
+    if (!employeeForm.name) {
+      setError('이름을 입력해주세요.');
+      return false;
+    }
+    if (!employeeForm.email || !isValidEmail(employeeForm.email)) {
+      setError('올바른 이메일을 입력해주세요.');
+      return false;
+    }
+    if (!employeeForm.password || employeeForm.password.length < 8) {
+      setError('비밀번호는 최소 8자 이상이어야 합니다.');
+      return false;
+    }
+    if (employeeForm.password !== employeeForm.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return false;
+    }
+    if (!privacyAgreed) {
+      setError('개인정보 수집 및 이용에 동의해주세요.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleEmployeeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!validateEmployeeForm()) return;
+
+    setIsLoading(true);
+    try {
+      const selectedPosition = positions.find((p) => String(p.id) === employeeForm.positionId);
+      await submitMemberJoinRequest({
+        username: employeeForm.email,   // 직원 로그인 아이디는 이메일 (앱 가입과 동일)
+        password: employeeForm.password,
+        name: employeeForm.name,
+        email: employeeForm.email,
+        phoneNumber: employeeForm.phoneNumber || undefined,
+        role: (selectedPosition?.memberRole || employeeForm.fallbackRole).toUpperCase(),
+        position: selectedPosition?.name,
+        positionId: selectedPosition?.id,
+        companyId: Number(employeeForm.companyId),
+      });
+
+      showAlert({
+        type: 'success',
+        title: '가입 요청 완료',
+        message: '기관 관리자가 승인하면 로그인할 수 있습니다. 승인 후 직원 로그인으로 접속해주세요.',
+      });
+      router.push('/login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '가입 요청 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -220,14 +329,150 @@ export default function SignupPage() {
               {/* 헤더 */}
               <VStack gap={1} hAlign="center">
                   <Text type="display-3" weight="bold" justify="center">
-                    관리자 회원가입
+                    {signupType === 'admin' ? '관리자 회원가입' : '직원 회원가입'}
                   </Text>
                   <Text type="supporting" color="secondary" justify="center">
-                    케어브이 서비스를 시작해보세요
+                    {signupType === 'admin'
+                      ? '케어브이 서비스를 시작해보세요'
+                      : '소속 기관에 가입을 요청하고, 관리자 승인 후 이용할 수 있어요'}
                   </Text>
               </VStack>
 
-              {/* 회원가입 폼 */}
+              {/* 가입 유형 선택 */}
+              <SegmentedControl
+                label="가입 유형"
+                value={signupType}
+                onChange={(value) => { setSignupType(value as SignupType); setError(''); }}
+              >
+                <SegmentedControlItem value="admin" label="기관 관리자" />
+                <SegmentedControlItem value="employee" label="직원" />
+              </SegmentedControl>
+
+              {/* 직원 가입 폼 */}
+              {signupType === 'employee' && (
+              <form onSubmit={handleEmployeeSubmit}>
+                <VStack gap={4}>
+                  <Selector
+                    label="소속 기관"
+                    value={employeeForm.companyId}
+                    onChange={(value) => handleCompanySelect(value ?? '')}
+                    options={companies.map((c) => ({
+                      value: String(c.id),
+                      label: c.addressName ? `${c.name} (${c.addressName})` : c.name,
+                    }))}
+                    placeholder={isCompaniesLoading ? '기관 목록을 불러오는 중...' : '기관을 선택하세요'}
+                    isRequired
+                  />
+
+                  {positions.length > 0 ? (
+                    <Selector
+                      label="직책"
+                      value={employeeForm.positionId}
+                      onChange={(value) => setEmployeeForm((prev) => ({ ...prev, positionId: value ?? '' }))}
+                      options={positions.map((p) => ({ value: String(p.id), label: p.name }))}
+                      placeholder="직책을 선택하세요 (선택)"
+                      hasClear
+                    />
+                  ) : (
+                    <Selector
+                      label="역할"
+                      value={employeeForm.fallbackRole}
+                      onChange={(value) => setEmployeeForm((prev) => ({ ...prev, fallbackRole: value ?? 'CAREGIVER' }))}
+                      options={[
+                        { value: 'CAREGIVER', label: '요양보호사' },
+                        { value: 'OFFICE', label: '사무직' },
+                      ]}
+                      isRequired
+                    />
+                  )}
+
+                  <TextInput
+                    label="이름"
+                    type="text"
+                    value={employeeForm.name}
+                    onChange={(value) => setEmployeeForm((prev) => ({ ...prev, name: value }))}
+                    placeholder="홍길동"
+                    htmlName="employeeName"
+                    isRequired
+                  />
+
+                  <TextInput
+                    label="이메일 (로그인 아이디)"
+                    type="email"
+                    value={employeeForm.email}
+                    onChange={(value) => setEmployeeForm((prev) => ({ ...prev, email: value }))}
+                    placeholder="example@email.com"
+                    htmlName="employeeEmail"
+                    isRequired
+                  />
+
+                  <TextInput
+                    label="비밀번호"
+                    type="password"
+                    value={employeeForm.password}
+                    onChange={(value) => setEmployeeForm((prev) => ({ ...prev, password: value }))}
+                    placeholder="8자 이상의 비밀번호"
+                    htmlName="employeePassword"
+                    isRequired
+                  />
+
+                  <TextInput
+                    label="비밀번호 확인"
+                    type="password"
+                    value={employeeForm.confirmPassword}
+                    onChange={(value) => setEmployeeForm((prev) => ({ ...prev, confirmPassword: value }))}
+                    placeholder="비밀번호를 다시 입력하세요"
+                    htmlName="employeeConfirmPassword"
+                    isRequired
+                  />
+
+                  <TextInput
+                    label="전화번호 (선택)"
+                    type="text"
+                    value={employeeForm.phoneNumber}
+                    onChange={(value) => setEmployeeForm((prev) => ({ ...prev, phoneNumber: value }))}
+                    placeholder="010-0000-0000"
+                    htmlName="employeePhone"
+                  />
+
+                  {/* 개인정보 수집 및 이용 동의 */}
+                  <div style={{ background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
+                    <VStack gap={1.5}>
+                      <CheckboxInput
+                        label="개인정보 수집 및 이용에 동의합니다"
+                        value={privacyAgreed}
+                        onChange={(checked) => setPrivacyAgreed(checked)}
+                        size="sm"
+                        isRequired
+                      />
+                      <Link
+                        href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/consent/1.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        개인정보 수집 및 이용 동의서 보기
+                      </Link>
+                    </VStack>
+                  </div>
+
+                  {error && (
+                    <Banner status="error" title={error} />
+                  )}
+
+                  <Button
+                    label="가입 요청하기"
+                    variant="primary"
+                    size="lg"
+                    type="submit"
+                    isLoading={isLoading}
+                    style={{ width: '100%' }}
+                  />
+                </VStack>
+              </form>
+              )}
+
+              {/* 관리자 회원가입 폼 */}
+              {signupType === 'admin' && (
               <form onSubmit={handleSubmit}>
                 <VStack gap={4}>
                   <TextInput
@@ -336,6 +581,7 @@ export default function SignupPage() {
                   />
                 </VStack>
               </form>
+              )}
             </VStack>
             </Card>
 
