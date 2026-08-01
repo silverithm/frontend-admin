@@ -87,11 +87,14 @@ import {
     IconTrash,
     IconAlertTriangle,
     IconUsersGroup,
+    IconHelp,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
+import OnboardingTour from "@/components/OnboardingTour";
+import { hasSeenTour } from "@/lib/onboarding";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -114,6 +117,7 @@ type ScheduleMode = "schedule" | "dispatch";
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
+    const [showTour, setShowTour] = useState(false);
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("submit");
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -184,6 +188,18 @@ export default function AdminPage() {
     );
 
     // 클라이언트 사이드에서만 실행되도록 하는 useEffect
+    // 첫 방문이면 사용법 안내를 띄운다 (완료 여부는 브라우저에 계정별로 저장)
+    useEffect(() => {
+        const userKey = typeof window !== 'undefined'
+            ? (localStorage.getItem('userId') || localStorage.getItem('userEmail'))
+            : null;
+        if (!hasSeenTour(userKey)) {
+            // 화면이 다 그려진 뒤에 띄워야 대상 요소를 찾을 수 있다
+            const timer = setTimeout(() => setShowTour(true), 600);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
     useEffect(() => {
         setIsClient(true);
         setIsDemoMode(localStorage.getItem('isDemoMode') === 'true');
@@ -1077,7 +1093,7 @@ export default function AdminPage() {
                 <nav style={{ flex: 1, overflowY: "auto", padding: "var(--spacing-4) var(--spacing-3)", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                     <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
                     {navItems.map((tab) => (
-                        <div key={tab.key}>
+                        <div key={tab.key} data-tour={`nav-${tab.key}`}>
                             <Button
                                 label={tab.label}
                                 variant={activeMainTab === tab.key ? "secondary" : "ghost"}
@@ -1114,6 +1130,7 @@ export default function AdminPage() {
                 <div style={{ borderTop: "1px solid var(--color-border)", padding: "var(--spacing-3) 0", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)', flexShrink: 0 }}>
                     <ExternalLinksNav />
                     <div style={{ padding: "0 var(--spacing-3)" }}><SubscriptionStatus /></div>
+                    <Button label="사용법 보기" variant="ghost" size="sm" onClick={() => setShowTour(true)} icon={<Icon icon={IconHelp} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                     <Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                     <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                 </div>
@@ -1686,6 +1703,14 @@ export default function AdminPage() {
                 </Dialog>
                 </>
             )}
+
+            <OnboardingTour
+                isOpen={showTour}
+                isAdmin={isAdmin}
+                userKey={typeof window !== 'undefined' ? (localStorage.getItem('userId') || localStorage.getItem('userEmail')) : null}
+                onNavigate={(tab) => setActiveMainTab(tab as MainTab)}
+                onFinish={() => setShowTour(false)}
+            />
 
             {/* 푸터 */}
             <footer style={{ borderTop: "1px solid var(--color-border)", background: 'var(--color-background-muted)' }}>

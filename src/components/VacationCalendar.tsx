@@ -807,6 +807,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               <>
                 <Button
                   label="휴무 제한 설정"
+                  data-tour="action-vacation-limit"
                   variant="secondary"
                   size="sm"
                   onClick={onShowLimitPanel}
@@ -814,6 +815,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 {onExportExcel && (
                   <Button
                     label={isExportingExcel ? '내보내는 중...' : '엑셀 내보내기'}
+                  data-tour="action-export-excel"
                     variant="secondary"
                     size="sm"
                     isLoading={isExportingExcel}
