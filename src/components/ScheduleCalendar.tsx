@@ -1162,6 +1162,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                           return (
                             <button
                               key={`${bar.schedule.id}-${weekIndex}`}
+                              className="carev-schedcal-bar"
                               onClick={(e) => handleScheduleClick(e, bar.schedule)}
                               title={isDone ? `${bar.schedule.title} (수행완료)` : bar.schedule.title}
                               style={{
