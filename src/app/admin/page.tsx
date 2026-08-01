@@ -1131,7 +1131,7 @@ export default function AdminPage() {
                     <ExternalLinksNav />
                     <div style={{ padding: "0 var(--spacing-3)" }}><SubscriptionStatus /></div>
                     <span data-tour="sidebar-help"><Button label="사용법 보기" variant="ghost" size="sm" onClick={() => setShowTour(true)} icon={<Icon icon={IconHelp} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} /></span>
-                    <Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
+                    <span data-tour="sidebar-profile"><Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} /></span>
                     <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                 </div>
             </aside>
