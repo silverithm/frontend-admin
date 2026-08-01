@@ -9,6 +9,7 @@ import { HStack } from '@astryxdesign/core/Stack';
 import { ApprovalRequest, ApprovalStep } from '@/types/approval';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
 import { formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
+import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 
 interface OfficialDocumentProps {
   approval: ApprovalRequest;
@@ -199,11 +200,11 @@ function DocumentFallbackTable({ formData }: { formData: Record<string, any> }) 
   return (
     <table className="carev-doc-fields-table">
       <tbody>
-        {Object.entries(formData).map(([key, value]) => (
+        {sortFormEntries(formData).map(([key, value]) => (
           <tr key={key}>
-            <td className="carev-doc-field-label">{key}</td>
+            <td className="carev-doc-field-label">{getFieldLabel(key)}</td>
             <td className="carev-doc-field-value" colSpan={3}>
-              {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-')}
+              {getValueLabel(key, value)}
             </td>
           </tr>
         ))}

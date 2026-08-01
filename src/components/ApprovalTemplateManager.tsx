@@ -73,8 +73,9 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     }
   };
 
-  // 파일 크기 포맷
-  const formatFileSize = (bytes: number) => {
+  // 파일 크기 포맷 — 온라인 폼 양식은 크기가 없으므로 빈 문자열로 둔다
+  const formatFileSize = (bytes?: number | null) => {
+    if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return '';
     if (bytes < 1024) return `${bytes}B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
@@ -312,7 +313,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                         <Text type="supporting">{template.description}</Text>
                       </TableCell>
                       <TableCell>
-                        <HStack hAlign="center">
+                        <HStack>
                           {template.templateType === 'form' ? (
                             <Badge variant="teal" label="온라인 폼" />
                           ) : template.templateType === 'hybrid' ? (
@@ -323,16 +324,27 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                         </HStack>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={<Icon icon={FiDownload} size="sm" />}
-                          label={`${template.fileName} (${formatFileSize(template.fileSize)})`}
-                          onClick={() => handleDownload(template)}
-                        />
+                        {/* 온라인 폼 양식은 첨부 파일이 없다 — 다운로드 버튼 대신 상태를 알린다 */}
+                        {template.fileName ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={FiDownload} size="sm" />}
+                            label={
+                              formatFileSize(template.fileSize)
+                                ? `${template.fileName} (${formatFileSize(template.fileSize)})`
+                                : template.fileName
+                            }
+                            onClick={() => handleDownload(template)}
+                          />
+                        ) : (
+                          <Text type="supporting" color="secondary">
+                            {template.templateType === 'form' ? '파일 없음 (온라인 폼)' : '파일 없음'}
+                          </Text>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <HStack hAlign="center">
+                        <HStack>
                           {isAdmin ? (
                             <Button
                               variant={template.isActive ? 'secondary' : 'ghost'}
@@ -349,7 +361,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                         </HStack>
                       </TableCell>
                       <TableCell>
-                        <HStack hAlign="center">
+                        <HStack>
                           <Text type="supporting">
                             {format(new Date(template.updatedAt), 'MM.dd HH:mm', { locale: ko })}
                           </Text>
@@ -357,7 +369,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       </TableCell>
                       {isAdmin && (
                         <TableCell>
-                          <HStack gap={1} hAlign="center">
+                          <HStack gap={1}>
                             <IconButton
                               variant="ghost"
                               size="sm"

@@ -10,6 +10,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
 import { groupFieldsIntoRows } from './formValueFormat';
+import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 
 function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -153,17 +154,18 @@ function SchemaViewer({ formData, schema }: { formData: Record<string, any>; sch
   );
 }
 
+/** 스키마 없이 저장된 formData 표시 (양식 삭제 등) — 내부 키 대신 한글 라벨로 보여준다 */
 function FallbackViewer({ formData }: { formData: Record<string, any> }) {
   return (
     <VStack gap={3}>
-      {Object.entries(formData).map(([key, value]) => (
+      {sortFormEntries(formData).map(([key, value]) => (
         <Card key={key} variant="muted" padding={3} width="100%">
           <VStack gap={1}>
             <Text type="supporting" weight="semibold">
-              {key}
+              {getFieldLabel(key)}
             </Text>
             <Text as="p" type="body" style={{ whiteSpace: 'pre-wrap' }}>
-              {value as string}
+              {getValueLabel(key, value)}
             </Text>
           </VStack>
         </Card>
