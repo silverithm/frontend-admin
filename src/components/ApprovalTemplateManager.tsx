@@ -485,6 +485,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       style={{ display: 'none' }}
                     />
                     <div
+                      className="carev-upload-dropzone"
                       onClick={() => fileInputRef.current?.click()}
                       style={{
                         width: '100%',

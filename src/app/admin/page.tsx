@@ -1498,6 +1498,7 @@ export default function AdminPage() {
                                                                 )}
                                                                 <div>
                                                                     <div
+                                                                        className="carev-name-filter"
                                                                         style={{
                                                                             fontWeight: nameFilter === request.userName ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
                                                                             fontSize: 'var(--font-size-sm)',

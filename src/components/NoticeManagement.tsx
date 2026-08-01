@@ -402,6 +402,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                     {officialNotices.map((n) => (
                       <div
                         key={`official-${n.id}`}
+                        className="carev-notice-item"
                         onClick={() => window.open(`/plaza?post=${n.id}`, '_blank', 'noopener')}
                         style={{
                           width: '100%',
@@ -433,6 +434,7 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                     {notices.map((n) => (
                       <motion.div
                         key={n.id}
+                        className="carev-notice-item"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         onClick={() => handleSelectNotice(n.id)}

@@ -762,6 +762,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
 
                                                             {message.type === "IMAGE" && message.fileUrl ? (
                                                                 <img
+                                                                    className="carev-chat-image"
                                                                     src={message.fileUrl}
                                                                     alt={message.fileName || "이미지"}
                                                                     style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)', cursor: "pointer" }}

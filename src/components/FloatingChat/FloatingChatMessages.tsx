@@ -239,6 +239,7 @@ export function FloatingChatMessages({
                 {message.reactions.map((reaction) => (
                     <button
                         key={reaction.emoji}
+                        className="carev-reaction-badge"
                         onClick={() => handleToggleReaction(message.id, reaction.emoji)}
                         title={reaction.userNames?.join(", ")}
                         style={{
@@ -454,6 +455,7 @@ export function FloatingChatMessages({
 
                                                 {message.type === "IMAGE" && message.fileUrl ? (
                                                     <img
+                                                        className="carev-chat-image"
                                                         src={message.fileUrl}
                                                         alt={message.fileName || "이미지"}
                                                         style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', cursor: "pointer", display: "block" }}
@@ -673,6 +675,7 @@ export function FloatingChatMessages({
                                     {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
                                         <img
                                             key={m.id}
+                                            className="carev-chat-image"
                                             src={m.fileUrl!}
                                             alt={m.fileName || "사진"}
                                             style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)', cursor: "pointer" }}

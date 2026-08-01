@@ -418,6 +418,23 @@ html {
 @media (min-width: 768px) { .carev-schedcal-cell { min-height: 120px; } }
 @media (hover: hover) { .carev-schedcal-cell:hover { background: var(--color-background-muted); box-shadow: var(--shadow-inset-hover); } }
 
+/* ── 공용 클릭 피드백 — 화면 곳곳의 비-Astryx 클릭 요소용 (Astryx 표준 토큰) ── */
+/* 이름 클릭 필터 (휴가 승인 목록·테이블의 직원 이름) */
+.carev-name-filter { cursor: pointer; }
+@media (hover: hover) { .carev-name-filter:hover { text-decoration: underline; text-underline-offset: 2px; } }
+/* 카드형 목록 항목 (공지 관리 목록 등) */
+.carev-notice-item { transition: box-shadow var(--duration-fast-min) var(--ease-standard); }
+@media (hover: hover) { .carev-notice-item:hover { box-shadow: var(--shadow-inset-hover); } }
+/* 채팅 이미지 (클릭하면 원본 열기) */
+.carev-chat-image { transition: filter var(--duration-fast-min) var(--ease-standard); }
+@media (hover: hover) { .carev-chat-image:hover { filter: brightness(0.9); } }
+/* 리액션 이모지 배지 */
+.carev-reaction-badge { transition: box-shadow var(--duration-fast-min) var(--ease-standard) !important; }
+@media (hover: hover) { .carev-reaction-badge:hover { box-shadow: var(--shadow-inset-hover); } }
+/* 파일 업로드 드롭존 */
+.carev-upload-dropzone { transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
+@media (hover: hover) { .carev-upload-dropzone:hover { background: var(--color-background-muted); box-shadow: var(--shadow-inset-hover); } }
+
 /* 일정 바 — 호버 시 또렷해지고 살짝 떠서 "클릭 가능"을 드러낸다 (Astryx 모션·그림자 토큰) */
 .carev-schedcal-bar { transition: opacity var(--duration-fast-min) var(--ease-standard), filter var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) {

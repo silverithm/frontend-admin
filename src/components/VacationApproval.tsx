@@ -585,6 +585,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                 )}
                                                 <TableCell>
                                                     <span
+                                                        className="carev-name-filter"
                                                         onClick={() =>
                                                             setNameFilter(
                                                                 nameFilter === request.userName
