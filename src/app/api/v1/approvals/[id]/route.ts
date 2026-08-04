@@ -80,7 +80,9 @@ export async function PUT(
     };
     if (token) backendHeaders['Authorization'] = `Bearer ${token}`;
 
-    let backendUrl = `${BACKEND_URL}/api/v1/approvals/${id}/${action}?processedBy=${processedBy}&processedByName=${encodeURIComponent(processedByName)}`;
+    // force=true: 관리자 직권 승인/반려 (전결) — 백엔드가 관리자 여부를 재검증한다
+    const force = url.searchParams.get('force') === 'true';
+    let backendUrl = `${BACKEND_URL}/api/v1/approvals/${id}/${action}?processedBy=${processedBy}&processedByName=${encodeURIComponent(processedByName)}${force ? '&force=true' : ''}`;
     let backendBody = undefined;
 
     if (action === 'reject') {

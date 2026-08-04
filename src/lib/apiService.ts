@@ -1526,11 +1526,12 @@ export async function createApprovalRequest(data: {
 }
 
 // 결재 승인 — options.signatureBase64가 있으면 즉석 서명, 없으면 등록 서명 자동 사용
-export async function approveApprovalRequest(id: string, options?: { signatureBase64?: string }) {
+export async function approveApprovalRequest(id: string, options?: { signatureBase64?: string; force?: boolean }) {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
 
-    return fetchWithAuth(`/api/v1/approvals/${id}?action=approve&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
+    // force: 관리자 직권 승인(전결) — 남은 검토 단계를 건너뛰고 즉시 최종 승인
+    return fetchWithAuth(`/api/v1/approvals/${id}?action=approve&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}${options?.force ? '&force=true' : ''}`, {
         method: 'PUT',
         ...(options?.signatureBase64
             ? { body: JSON.stringify({ signatureBase64: options.signatureBase64 }) }
@@ -1634,11 +1635,12 @@ export async function deleteCompanySeal() {
 }
 
 // 결재 반려 (관리자)
-export async function rejectApprovalRequest(id: string, reason: string) {
+export async function rejectApprovalRequest(id: string, reason: string, options?: { force?: boolean }) {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
 
-    return fetchWithAuth(`/api/v1/approvals/${id}?action=reject&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}`, {
+    // force: 관리자 직권 반려 — 현재 결재 차례와 무관하게 반려
+    return fetchWithAuth(`/api/v1/approvals/${id}?action=reject&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}${options?.force ? '&force=true' : ''}`, {
         method: 'PUT',
         body: JSON.stringify({ reason }),
     });

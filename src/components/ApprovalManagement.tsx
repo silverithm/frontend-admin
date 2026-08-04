@@ -159,7 +159,7 @@ export default function ApprovalManagement() {
     setSelectedIds(newSelected);
   };
 
-  const handleApprove = async (id: string | number, options?: { signatureBase64?: string }) => {
+  const handleApprove = async (id: string | number, options?: { signatureBase64?: string; force?: boolean }) => {
     setIsProcessing(true);
     try {
       await approveApprovalRequest(String(id), options);
@@ -176,14 +176,14 @@ export default function ApprovalManagement() {
     }
   };
 
-  const handleReject = async (id: string | number, reason: string) => {
+  const handleReject = async (id: string | number, reason: string, options?: { force?: boolean }) => {
     if (!reason.trim()) {
       showAlert({ type: 'warning', title: '사유 필요', message: '반려 사유를 입력해주세요.' });
       return;
     }
     setIsProcessing(true);
     try {
-      await rejectApprovalRequest(String(id), reason);
+      await rejectApprovalRequest(String(id), reason, options);
       showAlert({ type: 'success', title: '반려 완료', message: '결재가 반려되었습니다.' });
       loadApprovals();
       setSelectedApproval(null);
@@ -464,20 +464,21 @@ export default function ApprovalManagement() {
                         />
                         {approval.status === 'PENDING' && (
                           <>
+                            {/* 내 차례가 아니어도 관리자는 직권 승인(전결)·직권 반려 가능 */}
                             <Button
-                              label="승인"
+                              label={isActionable(approval) ? '승인' : '직권 승인'}
                               variant="primary"
                               size="sm"
                               icon={<Icon icon={FiCheck} />}
-                              isDisabled={isProcessing || !isActionable(approval)}
+                              isDisabled={isProcessing}
                               onClick={() => setQuickApproveTarget(approval)}
                             />
                             <Button
-                              label="반려"
+                              label={isActionable(approval) ? '반려' : '직권 반려'}
                               variant="destructive"
                               size="sm"
                               icon={<Icon icon={FiX} />}
-                              isDisabled={isProcessing || !isActionable(approval)}
+                              isDisabled={isProcessing}
                               onClick={() => handleOpenDetail(approval)}
                             />
                           </>
@@ -532,7 +533,11 @@ export default function ApprovalManagement() {
         onClose={() => setQuickApproveTarget(null)}
         onConfirm={(signatureBase64) => {
           if (quickApproveTarget) {
-            handleApprove(quickApproveTarget.id, signatureBase64 ? { signatureBase64 } : undefined);
+            handleApprove(quickApproveTarget.id, {
+              ...(signatureBase64 ? { signatureBase64 } : {}),
+              // 내 차례가 아닌 건은 관리자 직권 승인(전결)으로 처리
+              ...(isActionable(quickApproveTarget) ? {} : { force: true }),
+            });
           }
         }}
       />

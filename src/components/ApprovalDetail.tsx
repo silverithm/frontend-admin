@@ -22,8 +22,8 @@ import DocumentViewerModal from './DocumentViewerModal';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
-  onApprove: (id: string, options?: { signatureBase64?: string }) => void;
-  onReject: (id: string, reason: string) => void;
+  onApprove: (id: string, options?: { signatureBase64?: string; force?: boolean }) => void;
+  onReject: (id: string, reason: string, options?: { force?: boolean }) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
   templateSchema?: FormSchema;
@@ -105,10 +105,12 @@ export default function ApprovalDetail({
     : undefined;
   const isMyTurn = !hasLine || (currentStep ? currentStep.approverId === myApproverId : false);
   const canAct = approval.status === 'PENDING' && isMyTurn;
+  // 관리자 직권 처리(전결): 이 화면은 기관 관리자 전용이므로 내 차례가 아니어도 강제 처리 가능 (백엔드가 관리자 여부 재검증)
+  const isForceMode = approval.status === 'PENDING' && hasLine && !isMyTurn;
 
   const handleReject = () => {
     if (!rejectReason.trim()) return;
-    onReject(approval.id, rejectReason);
+    onReject(approval.id, rejectReason, isForceMode ? { force: true } : undefined);
   };
 
   // S3 URL에서 상대 경로 추출 (carev/ 이후 부분)
@@ -182,7 +184,7 @@ export default function ApprovalDetail({
                   <Banner
                     status="info"
                     title={`현재 ${currentStep.approverName}님의 결재 차례입니다.`}
-                    description="본인 차례가 되면 승인/반려 버튼이 활성화됩니다."
+                    description="관리자는 직권 승인(전결)으로 남은 검토 단계를 건너뛰고 즉시 처리할 수 있습니다."
                   />
                 )}
 
@@ -287,17 +289,17 @@ export default function ApprovalDetail({
               {approval.status === 'PENDING' && !showRejectForm ? (
                 <HStack gap={2} hAlign="end">
                   <Button
-                    label="반려"
+                    label={isForceMode ? '직권 반려' : '반려'}
                     variant="secondary"
                     icon={<Icon icon={FiXCircle} size="sm" />}
-                    isDisabled={!canAct || isProcessing}
+                    isDisabled={(!canAct && !isForceMode) || isProcessing}
                     onClick={() => setShowRejectForm(true)}
                   />
                   <Button
-                    label="승인"
+                    label={isForceMode ? '직권 승인 (전결)' : '승인'}
                     variant="primary"
                     icon={<Icon icon={FiCheck} size="sm" />}
-                    isDisabled={!canAct || isProcessing}
+                    isDisabled={(!canAct && !isForceMode) || isProcessing}
                     onClick={() => setShowSignatureConfirm(true)}
                   />
                 </HStack>
@@ -333,7 +335,10 @@ export default function ApprovalDetail({
         onClose={() => setShowSignatureConfirm(false)}
         onConfirm={(signatureBase64) => {
           setShowSignatureConfirm(false);
-          onApprove(approval.id, signatureBase64 ? { signatureBase64 } : undefined);
+          onApprove(approval.id, {
+            ...(signatureBase64 ? { signatureBase64 } : {}),
+            ...(isForceMode ? { force: true } : {}),
+          });
         }}
       />
 

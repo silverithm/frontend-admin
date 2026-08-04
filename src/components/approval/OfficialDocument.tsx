@@ -28,7 +28,7 @@ interface ApprovalBoxCell {
   name: string;
   signatureUrl?: string;
   processedAt?: string;
-  status: 'APPROVED' | 'REJECTED' | 'PENDING' | 'WAITING';
+  status: 'APPROVED' | 'REJECTED' | 'PENDING' | 'WAITING' | 'SKIPPED';
 }
 
 function stepRoleText(step: ApprovalStep): string {
@@ -57,6 +57,7 @@ function buildApprovalBoxes(approval: ApprovalRequest): ApprovalBoxCell[] {
         status:
           step.status === 'APPROVED' ? 'APPROVED'
           : step.status === 'REJECTED' ? 'REJECTED'
+          : step.status === 'SKIPPED' ? 'SKIPPED'
           : currentPending && step.stepOrder === currentPending.stepOrder ? 'PENDING'
           : 'WAITING',
       });
@@ -291,6 +292,9 @@ export default function OfficialDocument({
                       />
                     ) : box.status === 'APPROVED' && box.name ? (
                       box.label === '기안' ? box.name : `${box.name} (인)`
+                    ) : box.status === 'SKIPPED' ? (
+                      // 관리자 직권 승인(전결)으로 건너뛴 단계
+                      '전결'
                     ) : box.status === 'PENDING' ? (
                       '결재중'
                     ) : (
