@@ -46,6 +46,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   const [defaultLine, setDefaultLine] = useState<ApproverCandidate[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** 상태 토글 버튼에 마우스를 올린 행 — 라벨을 '누르면 될 결과'로 바꿔 보여준다 */
+  const [hoveredToggleId, setHoveredToggleId] = useState<string | number | null>(null);
 
   // 템플릿 로드
   useEffect(() => {
@@ -360,12 +362,30 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       <TableCell>
                         <HStack>
                           {isAdmin ? (
-                            <Button
-                              variant={template.isActive ? 'secondary' : 'ghost'}
-                              size="sm"
-                              label={template.isActive ? '활성화' : '비활성화'}
-                              onClick={() => handleToggleActive(template.id)}
-                            />
+                            // 평소엔 현재 상태를, 마우스를 올리면 누르면 될 결과를 보여준다
+                            // (버튼 라벨이 상태인지 동작인지 헷갈리지 않게)
+                            <span
+                              onMouseEnter={() => setHoveredToggleId(template.id)}
+                              onMouseLeave={() => setHoveredToggleId(null)}
+                              onFocus={() => setHoveredToggleId(template.id)}
+                              onBlur={() => setHoveredToggleId(null)}
+                              style={{ display: 'inline-flex' }}
+                            >
+                              <Button
+                                variant={
+                                  hoveredToggleId === template.id
+                                    ? (template.isActive ? 'destructive' : 'primary')
+                                    : (template.isActive ? 'secondary' : 'ghost')
+                                }
+                                size="sm"
+                                label={
+                                  hoveredToggleId === template.id
+                                    ? (template.isActive ? '비활성화하기' : '활성화하기')
+                                    : (template.isActive ? '활성화' : '비활성화')
+                                }
+                                onClick={() => handleToggleActive(template.id)}
+                              />
+                            </span>
                           ) : (
                             <Badge
                               variant={template.isActive ? 'success' : 'neutral'}
