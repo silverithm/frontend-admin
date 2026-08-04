@@ -14,6 +14,7 @@ import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
 import AdminDashboard from '@/components/AdminDashboard';
 import PlazaManagement from '@/components/plaza/PlazaManagement';
+import VoiceBoxEmployee from '@/components/VoiceBoxEmployee';
 import ExternalLinksNav from '@/components/ExternalLinksNav';
 import ApprovalManagement from '@/components/ApprovalManagement';
 import ApprovalTemplateManager from '@/components/ApprovalTemplateManager';
@@ -39,11 +40,12 @@ import {
   IconLogout,
   IconUser,
   IconUsersGroup,
+  IconMailbox,
 } from '@tabler/icons-react';
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
 
-type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza';
+type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza' | 'voice';
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
 type ScheduleSubTab = 'schedule' | 'dispatch';
 
@@ -136,6 +138,7 @@ export default function EmployeePage() {
     { key: 'approval', label: '전자결재', icon: IconFileText },
     { key: 'work', label: '근무조정', icon: IconCalendarStats },
     { key: 'plaza', label: '커뮤니티', icon: IconUsersGroup },
+    { key: 'voice', label: '고충·건의', icon: IconMailbox },
     // 권한이 있는 경우에만 회원관리 탭 표시
     ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
       { key: 'members', label: '회원관리', icon: IconUsers },
@@ -385,6 +388,17 @@ export default function EmployeePage() {
                   style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
                   <PlazaManagement />
+                </motion.div>
+              ) : activeMainTab === 'voice' ? (
+                <motion.div
+                  key="voice"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: duration.fast }}
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                >
+                  <VoiceBoxEmployee />
                 </motion.div>
               ) : activeMainTab === 'work' ? (
                 <motion.div

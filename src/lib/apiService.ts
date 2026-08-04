@@ -1539,6 +1539,46 @@ export async function approveApprovalRequest(id: string, options?: { signatureBa
     });
 }
 
+// ── 고충·신고 + 건의함 (VoiceBox) ─────────────────────────
+export type VoiceMessageItem = {
+    id: number;
+    type: 'GRIEVANCE' | 'SUGGESTION';
+    title: string;
+    content: string;
+    isAnonymous: boolean;
+    authorName: string;
+    status: 'RECEIVED' | 'IN_REVIEW' | 'RESOLVED' | 'ON_HOLD';
+    adminReply: string | null;
+    repliedAt: string | null;
+    createdAt: string | null;
+};
+
+export async function createVoiceMessage(input: {
+    type: 'GRIEVANCE' | 'SUGGESTION';
+    title: string;
+    content: string;
+    isAnonymous: boolean;
+}) {
+    return fetchWithAuth('/api/v1/voice-box', {
+        method: 'POST',
+        body: JSON.stringify(input),
+    });
+}
+
+// scope=admin은 기관 관리자만 (직원은 403), mine은 본인 제출 내역
+export async function getVoiceMessages(scope: 'admin' | 'mine', type?: 'GRIEVANCE' | 'SUGGESTION') {
+    const query = new URLSearchParams({ scope });
+    if (type) query.set('type', type);
+    return fetchWithAuth(`/api/v1/voice-box?${query.toString()}`);
+}
+
+export async function updateVoiceMessage(id: number, input: { status?: string; adminReply?: string }) {
+    return fetchWithAuth(`/api/v1/voice-box/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+    });
+}
+
 // 결재선 지정 가능 결재자 후보 목록 (회사 관리자 + 결재 권한 보유 직원)
 export async function getApproverCandidates() {
     const companyId = getCompanyId();

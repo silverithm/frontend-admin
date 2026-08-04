@@ -38,6 +38,7 @@ import ApprovalTemplateManager from "@/components/ApprovalTemplateManager";
 import EmployeeApproval from "@/components/EmployeeApproval";
 import NoticeManagement from "@/components/NoticeManagement";
 import PlazaManagement from "@/components/plaza/PlazaManagement";
+import VoiceBoxAdmin from "@/components/VoiceBoxAdmin";
 import ExternalLinksNav from "@/components/ExternalLinksNav";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
@@ -87,6 +88,7 @@ import {
     IconTrash,
     IconAlertTriangle,
     IconUsersGroup,
+    IconMailbox,
     IconHelp,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
@@ -111,7 +113,7 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
     return "neutral";
 };
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice";
 type ApprovalSubTab = "management" | "templates" | "submit";
 type ScheduleMode = "schedule" | "dispatch";
 export default function AdminPage() {
@@ -1084,6 +1086,7 @@ export default function AdminPage() {
         { key: "approval", label: "전자결재", icon: IconFileText },
         { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
         { key: "plaza", label: "커뮤니티", icon: IconUsersGroup, isNew: true },
+        { key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true },
         ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
     ] as { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[]);
 
@@ -1166,7 +1169,7 @@ export default function AdminPage() {
                     {([
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
-                        { key: "plaza", label: "커뮤니티" },
+                        { key: "plaza", label: "커뮤니티" }, { key: "voice", label: "고충·건의" },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
                         <Button
@@ -1303,6 +1306,17 @@ export default function AdminPage() {
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <PlazaManagement />
+                        </motion.div>
+                    ) : activeMainTab === "voice" ? (
+                        <motion.div
+                            key="voice"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: duration.fast}}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+                        >
+                            <VoiceBoxAdmin />
                         </motion.div>
                     ) : activeMainTab === "work" ? (
                         <motion.div
