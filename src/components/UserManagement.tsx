@@ -1136,6 +1136,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             key={perm}
                             label={PERMISSION_LABELS[perm]}
                             description={PERMISSION_DESCRIPTIONS[perm]}
+                            labelPosition="start"
                             labelSpacing="spread"
                             value={selectedPermissions.has(perm)}
                             onChange={() => togglePermission(perm)}
