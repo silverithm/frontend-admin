@@ -386,7 +386,11 @@ export default function EmployeeApproval() {
       return;
     }
     if (approvalLine.length === 0) {
-      showAlert({ type: 'error', title: '입력 오류', message: '결재선을 1명 이상 지정해주세요.' });
+      showAlert({
+        type: 'error',
+        title: '결재선 미지정 양식',
+        message: '이 양식에는 결재선이 지정되어 있지 않습니다. 양식 관리에서 결재선을 지정한 후 다시 시도해주세요.',
+      });
       return;
     }
 
@@ -452,7 +456,11 @@ export default function EmployeeApproval() {
       return;
     }
     if (approvalLine.length === 0) {
-      showAlert({ type: 'error', title: '입력 오류', message: '결재선을 1명 이상 지정해주세요.' });
+      showAlert({
+        type: 'error',
+        title: '결재선 미지정 양식',
+        message: '이 양식에는 결재선이 지정되어 있지 않습니다. 양식 관리에서 결재선을 지정한 후 다시 시도해주세요.',
+      });
       return;
     }
 
@@ -806,7 +814,9 @@ export default function EmployeeApproval() {
                 />
 
                 {/* 결재선 — 양식에 정의된 기본 결재선을 따른다 (기안자가 임의 지정하지 않음) */}
-                {approvalLine.length > 0 && (
+                {/* 결재선 안내 — 공문형 입력(form·hybrid)은 문서의 결재란이 직접 보여주므로 파일 양식에서만 */}
+                {approvalLine.length > 0
+                  && (!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
                   <VStack gap={1}>
                     <Text type="label" weight="medium" color="primary">결재선 (양식에 지정됨)</Text>
                     <Text type="supporting" color="secondary">
@@ -836,26 +846,36 @@ export default function EmployeeApproval() {
                 )}
 
                 {selectedTemplateInfo?.templateType === 'form' && selectedTemplateSchema && (
-                  /* 온라인 양식: FormRenderer (자체 제출 버튼 포함) */
-                  <VStack gap={3}>
-                    <Text type="label" weight="medium" color="primary">온라인 양식 작성</Text>
-                    <FormRenderer
-                      schema={selectedTemplateSchema}
-                      onSubmit={handleFormRendererSubmit}
-                      submitLabel={isSubmitting ? '제출 중...' : '제출'}
-                    />
-                  </VStack>
+                  /* 온라인 양식: 실제 공문 모양 위에서 빈칸을 바로 입력 (자체 제출 버튼 포함) */
+                  <FormRenderer
+                    schema={selectedTemplateSchema}
+                    onSubmit={handleFormRendererSubmit}
+                    submitLabel={isSubmitting ? '제출 중...' : '제출'}
+                    documentFrame={{
+                      companyName,
+                      title: approvalForm.title,
+                      requesterName:
+                        (typeof window !== 'undefined' && localStorage.getItem('userName')) || '기안자',
+                      approvalLine,
+                    }}
+                  />
                 )}
 
                 {selectedTemplateInfo?.templateType === 'hybrid' && selectedTemplateSchema && (
-                  /* 혼합 양식: FormRenderer + 파일 첨부 */
+                  /* 혼합 양식: 공문형 입력 + 파일 첨부 */
                   <VStack gap={4}>
                     <VStack gap={3}>
-                      <Text type="label" weight="medium" color="primary">온라인 양식 작성</Text>
                       <FormRenderer
                         schema={selectedTemplateSchema}
                         onSubmit={(data) => setFormData(data)}
                         submitLabel="양식 확인"
+                        documentFrame={{
+                          companyName,
+                          title: approvalForm.title,
+                          requesterName:
+                            (typeof window !== 'undefined' && localStorage.getItem('userName')) || '기안자',
+                          approvalLine,
+                        }}
                       />
                     </VStack>
                     {formData && (
@@ -878,6 +898,7 @@ export default function EmployeeApproval() {
                     </VStack>
                   </VStack>
                 )}
+
               </VStack>
             </LayoutContent>
           }

@@ -21,6 +21,7 @@ import { NumberInput } from '@astryxdesign/core/NumberInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { groupFieldsIntoRows } from './formValueFormat';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Divider } from '@astryxdesign/core/Divider';
@@ -34,6 +35,13 @@ interface FormRendererProps {
   onSubmit: (formData: FormValues) => void;
   readOnly?: boolean;
   submitLabel?: string;
+  /** 지정하면 실제 공문 문서 모양 위에서 빈칸을 바로 입력하는 레이아웃으로 렌더한다 */
+  documentFrame?: {
+    companyName: string;
+    title: string;
+    requesterName: string;
+    approvalLine?: { name: string }[];
+  };
 }
 
 /** 단일 입력 컨트롤 (그리드 래핑 없이 컨트롤만) — 반복 행 안에서도 재사용한다 */
@@ -449,6 +457,7 @@ export default function FormRenderer({
   onSubmit,
   readOnly = false,
   submitLabel = '제출',
+  documentFrame,
 }: FormRendererProps) {
   const schema = normalizeSchema(rawSchema);
   const buildInitialValues = (): FormValues => {
@@ -523,6 +532,193 @@ export default function FormRenderer({
       <div style={{ padding: 'var(--spacing-10) 0', textAlign: 'center' }}>
         <Text type="body" color="secondary">표시할 필드가 없습니다.</Text>
       </div>
+    );
+  }
+
+  // ── 공문형 레이아웃: 실제 결재 문서 모양 위에서 빈칸을 바로 입력 ──
+  if (documentFrame) {
+    // 표 셀 하나에 들어갈 입력 컨트롤 — 복잡 타입은 여기서 직접 분기한다
+    const renderDocControl = (field: FormFieldSchema) => {
+      const error = field.type === 'dateRange'
+        ? errors[`${field.id}_start`] || errors[`${field.id}_end`]
+        : errors[field.id];
+
+      if (field.type === 'computed') {
+        const result = computeFieldValue(field.computed, formValues);
+        return (
+          <Text type="body" weight="bold" hasTabularNumbers>
+            {result === null ? '-' : result.toLocaleString('ko-KR')}
+            {field.computed?.unit ? ` ${field.computed.unit}` : ''}
+          </Text>
+        );
+      }
+
+      if (field.type === 'dateRange') {
+        return (
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <FieldControl
+              field={{ ...field, id: `${field.id}_start`, type: 'date', label: '시작일' }}
+              value={formValues[`${field.id}_start`]}
+              error={errors[`${field.id}_start`]}
+              readOnly={readOnly}
+              onChange={(val) => handleChange(`${field.id}_start`, val)}
+              compact
+            />
+            <Text color="secondary">~</Text>
+            <FieldControl
+              field={{ ...field, id: `${field.id}_end`, type: 'date', label: '종료일' }}
+              value={formValues[`${field.id}_end`]}
+              error={errors[`${field.id}_end`]}
+              readOnly={readOnly}
+              onChange={(val) => handleChange(`${field.id}_end`, val)}
+              compact
+            />
+          </HStack>
+        );
+      }
+
+      if (field.type === 'checkbox') {
+        const checkedValues: string[] = Array.isArray(formValues[field.id]) ? formValues[field.id] : [];
+        return (
+          <VStack gap={1} vAlign="start">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
+              {(field.options ?? []).map((opt) => (
+                <CheckboxInput
+                  key={opt.value}
+                  label={opt.label}
+                  size="sm"
+                  isDisabled={readOnly}
+                  value={checkedValues.includes(opt.value)}
+                  onChange={(checked) =>
+                    handleChange(
+                      field.id,
+                      checked ? [...checkedValues, opt.value] : checkedValues.filter((v) => v !== opt.value)
+                    )
+                  }
+                />
+              ))}
+            </div>
+            {error && (
+              <span style={{ color: 'var(--color-text-red)' }}>
+                <Text type="supporting" color="inherit">{error}</Text>
+              </span>
+            )}
+          </VStack>
+        );
+      }
+
+      return (
+        <FieldControl
+          field={field}
+          value={formValues[field.id]}
+          error={error}
+          readOnly={readOnly}
+          onChange={(val) => handleChange(field.id, val)}
+          compact
+        />
+      );
+    };
+
+    // 반복 표(repeater)는 문서 표 셀에 들어가기엔 넓어서 표 아래 전체 폭으로 그린다
+    const tableFields = visibleFields.filter((f) => f.type !== 'repeater');
+    const repeaterFields = visibleFields.filter((f) => f.type === 'repeater');
+    const fieldRows = groupFieldsIntoRows(tableFields.filter((f) => f.type !== 'section'));
+    const line = documentFrame.approvalLine ?? [];
+    const boxes = [
+      { label: '기안', name: documentFrame.requesterName },
+      ...line.map((approver, index) => ({
+        label: index === line.length - 1 ? '결재' : '검토',
+        name: approver.name,
+      })),
+    ];
+    const today = new Date();
+    const todayLabel = `${today.getFullYear()}. ${today.getMonth() + 1}. ${today.getDate()}.`;
+
+    return (
+      <VStack gap={5}>
+        <div className="carev-doc-page" style={{ width: '100%' }}>
+          <div className="carev-doc-letterhead">{documentFrame.companyName}</div>
+
+          <div className="carev-doc-topbar">
+            <div className="carev-doc-meta">
+              <div>문서번호 : 결재 후 발급</div>
+              <div>기안일자 : {todayLabel}</div>
+              <div>시행일자 : -</div>
+            </div>
+            <table className="carev-doc-approval-table">
+              <thead>
+                <tr>
+                  {boxes.map((box, index) => (
+                    <th key={index}>{box.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  {boxes.map((_, index) => (
+                    <td key={index} className="carev-doc-approval-cell" />
+                  ))}
+                </tr>
+                <tr>
+                  {boxes.map((box, index) => (
+                    <td key={index} className="carev-doc-approval-name">{box.name || '-'}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="carev-doc-title">
+            {documentFrame.title || '(제목을 입력하세요)'}
+          </div>
+
+          <table className="carev-doc-fields-table">
+            <tbody>
+              {fieldRows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.length === 2 ? (
+                    <>
+                      <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
+                      <td className="carev-doc-field-value">{renderDocControl(row[0])}</td>
+                      <td className="carev-doc-field-label">{row[1].label}{row[1].required ? ' *' : ''}</td>
+                      <td className="carev-doc-field-value">{renderDocControl(row[1])}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
+                      <td className="carev-doc-field-value" colSpan={3}>{renderDocControl(row[0])}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {repeaterFields.length > 0 && (
+            <div style={{ marginTop: 'var(--spacing-4)' }}>
+              <Grid columns={12} gap={4}>
+                {repeaterFields.map((field) => (
+                  <FieldRenderer
+                    key={field.id}
+                    field={field}
+                    values={formValues}
+                    errors={errors}
+                    readOnly={readOnly}
+                    onChange={handleChange}
+                    onRowsChange={handleRowsChange}
+                  />
+                ))}
+              </Grid>
+            </div>
+          )}
+        </div>
+
+        {!readOnly && (
+          <HStack hAlign="end">
+            <Button label={submitLabel} variant="primary" type="button" onClick={handleSubmit} />
+          </HStack>
+        )}
+      </VStack>
     );
   }
 
