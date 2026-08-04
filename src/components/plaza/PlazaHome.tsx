@@ -17,6 +17,7 @@ import { IconClock, IconDownload, IconFlame, IconFolder, IconNews, IconPinned } 
 import type { TablerIcon } from '@tabler/icons-react';
 import { getBoardMeta, getLibraryMeta, formatFileSize } from './plazaStore';
 import { getNewsCategoryMeta, type NewsItem } from './newsMock';
+import { dedupeNews } from './newsDedup';
 import { fetchLibraryItems, fetchPosts, type ApiLibraryItem, type ApiPostSummary } from './plazaApi';
 import { duration } from '@/theme/motion';
 
@@ -151,7 +152,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
             <WidgetHeader icon={IconNews} title="요양 소식" onMore={() => onNavigate('news')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <VStack gap={0}>
-                {newsItems.map((news) => {
+                {dedupeNews(newsItems).map((news) => {
                   const meta = getNewsCategoryMeta(news.category);
                   return (
                     <div

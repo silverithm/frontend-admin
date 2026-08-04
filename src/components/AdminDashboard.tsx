@@ -61,6 +61,7 @@ import {
 import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
+import { dedupeNews } from '@/components/plaza/newsDedup';
 import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
 import { duration } from '@/theme/motion';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -1113,7 +1114,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
               <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 <VStack gap={1}>
-                  {newsItems.slice(0, 5).map((news) => {
+                  {dedupeNews(newsItems).slice(0, 5).map((news) => {
                     const meta = getNewsCategoryMeta(news.category);
                     return (
                       <div
