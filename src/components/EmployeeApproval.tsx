@@ -760,6 +760,14 @@ export default function EmployeeApproval() {
                   onChange={(value) => {
                     setApprovalForm(prev => ({ ...prev, templateId: value, file: null }));
                     setFormData(null);
+                    // 양식에 기본 결재선이 정의돼 있으면 자동으로 채운다 (기안자가 수정 가능)
+                    const pickedForLine = templates.find(t => String(t.id) === value);
+                    if (pickedForLine?.defaultApprovalLine) {
+                      try {
+                        const line = JSON.parse(pickedForLine.defaultApprovalLine);
+                        if (Array.isArray(line) && line.length > 0) setApprovalLine(line);
+                      } catch { /* 형식이 깨졌으면 기존 선택 유지 */ }
+                    }
                     // HWP 파일 양식을 고르면 웹 에디터를 바로 띄운다 (다운로드 없이 즉시 작성)
                     const picked = templates.find(t => String(t.id) === value);
                     if (picked && (picked.templateType === 'file' || !picked.templateType)

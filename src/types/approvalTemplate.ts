@@ -13,6 +13,8 @@ export interface ApprovalTemplate {
   updatedAt: string;
   formSchema?: FormSchema;
   templateType: 'file' | 'form' | 'hybrid';
+  /** 기본 결재선(JSON 문자열) — 이 양식으로 기안하면 자동으로 채워진다 */
+  defaultApprovalLine?: string | null;
 }
 
 // 양식 생성 요청

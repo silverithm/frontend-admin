@@ -22,6 +22,8 @@ import { Table, TableRow, TableCell, TableHeaderCell } from '@astryxdesign/core/
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
+import ApprovalLineSelector from './approval/ApprovalLineSelector';
+import type { ApproverCandidate } from '@/types/approval';
 import { FiPlus, FiDownload, FiEdit2, FiTrash2, FiUploadCloud, FiFileText } from 'react-icons/fi';
 
 export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: boolean }) {
@@ -40,6 +42,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   });
   const [templateType, setTemplateType] = useState<'file' | 'form' | 'hybrid'>('file');
   const [formSchema, setFormSchema] = useState<FormSchema | undefined>(undefined);
+  // 기본 결재선 — 이 양식으로 기안하면 자동으로 채워진다 (기안자가 수정 가능)
+  const [defaultLine, setDefaultLine] = useState<ApproverCandidate[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,6 +146,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           fileSize: templateType !== 'form' ? fileSize : undefined,
           templateType,
           formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
+          defaultApprovalLine: defaultLine.length > 0 ? JSON.stringify(defaultLine) : undefined,
         });
         showAlert({ type: 'success', title: '수정 완료', message: '양식이 수정되었습니다.' });
       } else {
@@ -154,6 +159,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           fileSize: templateType !== 'form' ? fileSize : undefined,
           templateType,
           formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
+          defaultApprovalLine: defaultLine.length > 0 ? JSON.stringify(defaultLine) : undefined,
         });
         showAlert({ type: 'success', title: '등록 완료', message: '양식이 등록되었습니다.' });
       }
@@ -163,6 +169,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       setUploadForm({ name: '', description: '', file: null });
       setTemplateType('file');
       setFormSchema(undefined);
+      setDefaultLine([]);
       loadTemplates();
     } catch (error) {
       console.error('양식 저장 실패:', error);
@@ -222,6 +229,12 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       ? (typeof template.formSchema === 'string' ? JSON.parse(template.formSchema) : template.formSchema)
       : undefined;
     setFormSchema(schema);
+    try {
+      const line = template.defaultApprovalLine ? JSON.parse(template.defaultApprovalLine) : [];
+      setDefaultLine(Array.isArray(line) ? line : []);
+    } catch {
+      setDefaultLine([]);
+    }
     setShowUploadModal(true);
   };
 
@@ -232,6 +245,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     setUploadForm({ name: '', description: '', file: null });
     setTemplateType('file');
     setFormSchema(undefined);
+    setDefaultLine([]);
   };
 
   // 파일 다운로드
@@ -458,6 +472,14 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                   onChange={(value) => setUploadForm(prev => ({ ...prev, description: value }))}
                   placeholder="양식 설명을 입력하세요"
                 />
+
+                {/* 기본 결재선 — 이 양식으로 기안하면 자동으로 채워진다 */}
+                <VStack gap={1}>
+                  <ApprovalLineSelector value={defaultLine} onChange={setDefaultLine} />
+                  <Text type="supporting" color="secondary">
+                    기본 결재선을 정해두면 이 양식으로 기안할 때 자동으로 채워집니다. 기안자가 문서마다 수정할 수 있어요.
+                  </Text>
+                </VStack>
 
                 {/* 온라인 폼 빌더 */}
                 {(templateType === 'form' || templateType === 'hybrid') && (

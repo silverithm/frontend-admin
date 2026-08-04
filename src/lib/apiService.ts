@@ -1396,6 +1396,7 @@ export async function createApprovalTemplate(data: {
     fileSize?: number;
     formSchema?: string;
     templateType?: string;
+    defaultApprovalLine?: string;
 }) {
     const companyId = getCompanyId();
     if (!companyId) {
@@ -1416,6 +1417,7 @@ export async function updateApprovalTemplate(id: string, data: {
     fileSize?: number;
     formSchema?: string;
     templateType?: string;
+    defaultApprovalLine?: string;
 }) {
     return fetchWithAuth(`/api/v1/approval-templates/${id}`, {
         method: 'PUT',
