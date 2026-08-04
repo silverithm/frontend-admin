@@ -67,9 +67,14 @@ interface NoticeStats {
 
 interface NoticeManagementProps {
   isAdmin?: boolean;
+  /**
+   * 광장 [운영] 공지를 열 때 호출. 셸 안에 광장 탭이 있으면 그쪽으로 넘긴다.
+   * 넘겨주지 않으면 새 탭으로 광장을 연다(직원 화면 등 광장 탭이 없는 곳).
+   */
+  onOpenPlazaPost?: (postId: number) => void;
 }
 
-export default function NoticeManagement({ isAdmin = true }: NoticeManagementProps) {
+export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: NoticeManagementProps) {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
@@ -403,7 +408,9 @@ export default function NoticeManagement({ isAdmin = true }: NoticeManagementPro
                       <div
                         key={`official-${n.id}`}
                         className="carev-notice-item"
-                        onClick={() => window.open(`/plaza?post=${n.id}`, '_blank', 'noopener')}
+                        onClick={() => (onOpenPlazaPost
+                          ? onOpenPlazaPost(n.id)
+                          : window.open(`/plaza?post=${n.id}`, '_blank', 'noopener'))}
                         style={{
                           width: '100%',
                           padding: 'var(--spacing-4)',

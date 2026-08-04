@@ -973,13 +973,20 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               ) : (
                 <VStack gap={1}>
-                  {/* 케어브이 시스템 공지 — 광장 [운영] 글. 클릭하면 광장에서 전문을 본다 */}
+                  {/* 케어브이 시스템 공지 — 광장 [운영] 글.
+                      admin 안에 광장 탭이 있으므로 새 탭으로 나가지 않고 그 탭에서 연다.
+                      PlazaManagement가 마운트될 때 ?post= 를 읽으므로 먼저 주소에 심어둔다. */}
                   {officialNotices.map((notice) => (
                     <div
                       key={`official-${notice.id}`}
                       className="carev-dash-row"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
-                      onClick={() => window.open(`/plaza?post=${notice.id}`, '_blank', 'noopener')}
+                      onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('post', String(notice.id));
+                        window.history.replaceState(null, '', url);
+                        onTabChange('plaza');
+                      }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <HStack gap={2} vAlign="center">

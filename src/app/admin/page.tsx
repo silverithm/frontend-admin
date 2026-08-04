@@ -120,6 +120,15 @@ export default function AdminPage() {
     const [showTour, setShowTour] = useState(false);
     // 인라인 함수를 넘기면 투어 쪽 효과가 매 렌더 재실행되어 대상 탐색이 취소된다
     const handleTourNavigate = useCallback((tab: string) => setActiveMainTab(tab as MainTab), []);
+
+    // 광장 [운영] 공지는 새 탭(랜딩)이 아니라 admin 안의 광장 탭에서 연다.
+    // PlazaManagement가 마운트될 때 ?post= 를 읽으므로 먼저 주소에 심어둔다.
+    const handleOpenPlazaPost = useCallback((postId: number) => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('post', String(postId));
+        window.history.replaceState(null, '', url);
+        setActiveMainTab('plaza');
+    }, []);
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("submit");
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -1243,7 +1252,7 @@ export default function AdminPage() {
                             transition={{duration: duration.fast}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <NoticeManagement isAdmin={isAdmin} />
+                            <NoticeManagement isAdmin={isAdmin} onOpenPlazaPost={handleOpenPlazaPost} />
                         </motion.div>
                     ) : activeMainTab === "chat" ? (
                         <motion.div
