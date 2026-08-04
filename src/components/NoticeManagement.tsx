@@ -68,8 +68,8 @@ interface NoticeStats {
 interface NoticeManagementProps {
   isAdmin?: boolean;
   /**
-   * 광장 [운영] 공지를 열 때 호출. 셸 안에 광장 탭이 있으면 그쪽으로 넘긴다.
-   * 넘겨주지 않으면 새 탭으로 광장을 연다(직원 화면 등 광장 탭이 없는 곳).
+   * 커뮤니티 [운영] 공지를 열 때 호출. 셸 안에 커뮤니티 탭이 있으면 그쪽으로 넘긴다.
+   * 넘겨주지 않으면 새 탭으로 커뮤니티을 연다(직원 화면 등 커뮤니티 탭이 없는 곳).
    */
   onOpenPlazaPost?: (postId: number) => void;
 }
@@ -90,7 +90,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 케어브이 시스템 공지 — 광장에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
+  // 케어브이 시스템 공지 — 커뮤니티에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
   const [officialNotices, setOfficialNotices] = useState<ApiOfficialNotice[]>([]);
 
   useEffect(() => {
@@ -403,7 +403,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
               <div className="carev-notice-list" style={{ padding: 'var(--spacing-5)' }}>
                 {notices.length > 0 || officialNotices.length > 0 ? (
                   <VStack gap={2} align="start" width="100%">
-                    {/* 케어브이 시스템 공지 — 광장 [운영] 글. 클릭하면 광장에서 전문을 본다 */}
+                    {/* 케어브이 시스템 공지 — 커뮤니티 [운영] 글. 클릭하면 커뮤니티에서 전문을 본다 */}
                     {officialNotices.map((n) => (
                       <div
                         key={`official-${n.id}`}
@@ -430,7 +430,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                               <HStack gap={3} vAlign="center" wrap="wrap">
                                 <Text type="supporting">{n.displayAuthor}</Text>
                                 <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
-                                <Text type="supporting">광장에서 보기</Text>
+                                <Text type="supporting">커뮤니티에서 보기</Text>
                               </HStack>
                             </VStack>
                           </div>

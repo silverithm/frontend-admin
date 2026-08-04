@@ -32,7 +32,7 @@ import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 
 const BOARD_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
-  { key: 'home', label: '광장 홈', icon: IconHome2 },
+  { key: 'home', label: '커뮤니티 홈', icon: IconHome2 },
   { key: 'all', label: '전체글', icon: IconClipboardList },
   { key: 'qna', label: '실무 Q&A', icon: IconMessages },
   { key: 'review', label: '평가 후기', icon: IconStar },
@@ -47,8 +47,8 @@ const RESOURCE_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
 const BOARD_KEYS: PlazaMenu[] = ['all', 'qna', 'review', 'free'];
 
 /**
- * 케어브이 광장 — 카페형 레이아웃.
- * 좌측 보드 네비(데스크탑) / 상단 가로 탭(모바일) + 광장 홈·보드·요양소식·자료실.
+ * 케어브이 커뮤니티 — 카페형 레이아웃.
+ * 좌측 보드 네비(데스크탑) / 상단 가로 탭(모바일) + 커뮤니티 홈·보드·요양소식·자료실.
  */
 export default function PlazaManagement() {
   const { showAlert, AlertContainer } = useAlert();
@@ -58,7 +58,7 @@ export default function PlazaManagement() {
   const [openPostId, setOpenPostId] = useState<number | null>(null);
   const [pendingWrite, setPendingWrite] = useState(false);
   const [boardDirty, setBoardDirty] = useState(false);
-  // 광장 운영자 여부 — 헤더 배지 표시용 (권한 판정은 서버가 한다)
+  // 커뮤니티 운영자 여부 — 헤더 배지 표시용 (권한 판정은 서버가 한다)
   const [isPlazaAdmin, setIsPlazaAdmin] = useState(false);
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function PlazaManagement() {
       return;
     }
     if (isDemoMode()) {
-      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 광장에 참여할 수 없습니다.' });
+      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 커뮤니티에 참여할 수 없습니다.' });
       return;
     }
     if (!isBoardMenu) {
@@ -145,14 +145,14 @@ export default function PlazaManagement() {
         {/* 페이지 헤더 — 운영자에게는 우측에 권한 표시 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
           <VStack gap={0} align="start">
-            <Heading level={2}>케어브이 광장</Heading>
+            <Heading level={2}>케어브이 커뮤니티</Heading>
             <Text type="supporting" color="secondary">전국 요양 현장의 소식·자료·이야기를 한곳에서</Text>
           </VStack>
           {isPlazaAdmin && (
             <Badge
               variant="teal"
               icon={<Icon icon={IconShieldCheck} size="xsm" />}
-              label="광장 운영자"
+              label="커뮤니티 운영자"
             />
           )}
         </HStack>

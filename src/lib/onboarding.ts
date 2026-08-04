@@ -124,7 +124,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: 'nav-plaza',
     tab: 'plaza',
-    title: '⑦ 광장',
+    title: '⑦ 커뮤니티',
     description:
       '다른 기관에서 일하시는 분들과 이야기 나누는 공간이에요.\n실무 질문과 자료, 요양 관련 소식도 여기 모여 있습니다.',
   },

@@ -1,4 +1,4 @@
-// 광장(게시판·자료실) 목업 스토어 — 백엔드 API 연동 전까지 localStorage에 영속.
+// 커뮤니티(게시판·자료실) 목업 스토어 — 백엔드 API 연동 전까지 localStorage에 영속.
 // TODO: API 연동 시 이 파일의 함수 시그니처를 유지한 채 내부를 fetch로 교체하면 컴포넌트 수정 최소화.
 
 export type BoardType = 'qna' | 'review' | 'free';
@@ -84,7 +84,7 @@ export function isLoggedIn(): boolean {
   return !!localStorage.getItem('authToken');
 }
 
-/** 체험(데모) 모드 여부 — 체험 계정은 광장 읽기는 되지만 쓰기(글쓰기·댓글·좋아요·신고 등)는 막는다 */
+/** 체험(데모) 모드 여부 — 체험 계정은 커뮤니티 읽기는 되지만 쓰기(글쓰기·댓글·좋아요·신고 등)는 막는다 */
 export function isDemoMode(): boolean {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem('isDemoMode') === 'true';
@@ -243,9 +243,9 @@ function seedStore(): PlazaStore {
     {
       id: 'seed-p5',
       board: 'free',
-      title: '[운영] 케어브이 광장 이용 안내',
+      title: '[운영] 케어브이 커뮤니티 이용 안내',
       content:
-        '케어브이 광장이 열렸습니다!\n\n· 실무 Q&A: 업무 중 궁금한 점을 묻고 답해주세요. 질문자는 도움이 된 답변을 채택할 수 있습니다.\n· 평가 후기: 기관 평가 경험과 준비 노하우를 나눠주세요.\n· 자유: 현장 이야기를 자유롭게 나누는 공간입니다.\n\n광고·비방·개인정보 노출 게시물은 신고가 누적되면 자동으로 숨김 처리됩니다. 건강한 커뮤니티를 함께 만들어주세요.',
+        '케어브이 커뮤니티가 열렸습니다!\n\n· 실무 Q&A: 업무 중 궁금한 점을 묻고 답해주세요. 질문자는 도움이 된 답변을 채택할 수 있습니다.\n· 평가 후기: 기관 평가 경험과 준비 노하우를 나눠주세요.\n· 자유: 현장 이야기를 자유롭게 나누는 공간입니다.\n\n광고·비방·개인정보 노출 게시물은 신고가 누적되면 자동으로 숨김 처리됩니다. 건강한 커뮤니티를 함께 만들어주세요.',
       authorId: 'carev-admin',
       authorName: '케어브이 운영팀',
       companyName: '케어브이',

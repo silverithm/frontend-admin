@@ -1237,7 +1237,7 @@ export async function getNotices(filter?: {
     return fetchWithAuth(url);
 }
 
-// 요양 소식(뉴스) 목록 조회 — 케어브이 광장
+// 요양 소식(뉴스) 목록 조회 — 케어브이 커뮤니티
 export async function getNews(params?: { category?: string; page?: number; size?: number }) {
     const query = new URLSearchParams();
     if (params?.category && params.category !== 'all') query.set('category', params.category);

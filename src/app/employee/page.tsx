@@ -135,7 +135,7 @@ export default function EmployeePage() {
     { key: 'schedule', label: '월간일정', icon: IconCalendar },
     { key: 'approval', label: '전자결재', icon: IconFileText },
     { key: 'work', label: '근무조정', icon: IconCalendarStats },
-    { key: 'plaza', label: '광장', icon: IconUsersGroup },
+    { key: 'plaza', label: '커뮤니티', icon: IconUsersGroup },
     // 권한이 있는 경우에만 회원관리 탭 표시
     ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
       { key: 'members', label: '회원관리', icon: IconUsers },

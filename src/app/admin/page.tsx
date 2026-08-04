@@ -121,7 +121,7 @@ export default function AdminPage() {
     // 인라인 함수를 넘기면 투어 쪽 효과가 매 렌더 재실행되어 대상 탐색이 취소된다
     const handleTourNavigate = useCallback((tab: string) => setActiveMainTab(tab as MainTab), []);
 
-    // 광장 [운영] 공지는 새 탭(랜딩)이 아니라 admin 안의 광장 탭에서 연다.
+    // 커뮤니티 [운영] 공지는 새 탭(랜딩)이 아니라 admin 안의 커뮤니티 탭에서 연다.
     // PlazaManagement가 마운트될 때 ?post= 를 읽으므로 먼저 주소에 심어둔다.
     const handleOpenPlazaPost = useCallback((postId: number) => {
         const url = new URL(window.location.href);
@@ -1083,7 +1083,7 @@ export default function AdminPage() {
         { key: "schedule", label: "월간일정", icon: IconCalendar },
         { key: "approval", label: "전자결재", icon: IconFileText },
         { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
-        { key: "plaza", label: "광장", icon: IconUsersGroup, isNew: true },
+        { key: "plaza", label: "커뮤니티", icon: IconUsersGroup, isNew: true },
         ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
     ] as { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[]);
 
@@ -1166,7 +1166,7 @@ export default function AdminPage() {
                     {([
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
-                        { key: "plaza", label: "광장" },
+                        { key: "plaza", label: "커뮤니티" },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
                         <Button

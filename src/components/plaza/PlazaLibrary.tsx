@@ -37,7 +37,7 @@ import {
 type CategoryFilter = 'all' | LibraryCategory;
 
 interface PlazaLibraryProps {
-  /** full: 전체 화면(카테고리 필터·검색 툴바), compact: 광장 통합 화면의 사이드 카드 */
+  /** full: 전체 화면(카테고리 필터·검색 툴바), compact: 커뮤니티 통합 화면의 사이드 카드 */
   variant?: 'full' | 'compact';
 }
 
@@ -101,7 +101,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       return false;
     }
     if (isDemoMode()) {
-      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 광장에 참여할 수 없습니다.' });
+      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 커뮤니티에 참여할 수 없습니다.' });
       return false;
     }
     return true;

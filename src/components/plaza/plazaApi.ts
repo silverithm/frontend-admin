@@ -1,4 +1,4 @@
-// 케어브이 광장 API 클라이언트 (게시판·자료실).
+// 케어브이 커뮤니티 API 클라이언트 (게시판·자료실).
 // 읽기는 비로그인 허용(토큰 없이 호출), 쓰기는 토큰 필수 — 서버가 익명 마스킹·권한을 처리한다.
 
 import type { BoardType, LibraryCategory } from './plazaStore';
@@ -11,7 +11,7 @@ export interface ApiPostSummary {
   displayAuthor: string;
   isAnonymous: boolean;
   isPinned: boolean;
-  /** 광장 운영자가 관리자 모드로 쓴 [운영] 공지 */
+  /** 커뮤니티 운영자가 관리자 모드로 쓴 [운영] 공지 */
   isOfficial: boolean;
   isMine: boolean;
   viewCount: number;
@@ -43,7 +43,7 @@ export interface ApiPostDetail {
   displayAuthor: string;
   isAnonymous: boolean;
   isPinned: boolean;
-  /** 광장 운영자가 관리자 모드로 쓴 [운영] 공지 */
+  /** 커뮤니티 운영자가 관리자 모드로 쓴 [운영] 공지 */
   isOfficial: boolean;
   isMine: boolean;
   viewCount: number;
@@ -99,10 +99,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
-// ── 내 광장 권한 ────────────────────────────────────────
+// ── 내 커뮤니티 권한 ────────────────────────────────────────
 
 /**
- * 로그인 사용자가 광장 운영자인지 확인한다.
+ * 로그인 사용자가 커뮤니티 운영자인지 확인한다.
  * 비로그인이어도 200으로 { isAdmin: false }가 오므로 분기 없이 호출할 수 있다.
  * 실패해도 화면이 깨지지 않도록 false로 떨어뜨린다.
  */
@@ -126,7 +126,7 @@ export interface ApiOfficialNotice {
 }
 
 /**
- * 광장에 올라온 [운영] 시스템 공지.
+ * 커뮤니티에 올라온 [운영] 시스템 공지.
  * 관리자 대시보드 공지 위젯이 기관 공지와 함께 보여준다.
  * 실패해도 대시보드가 깨지지 않도록 빈 배열로 떨어뜨린다.
  */
@@ -161,7 +161,7 @@ export async function fetchPost(id: number): Promise<ApiPostDetail> {
   return request(`posts/${id}`);
 }
 
-/** isOfficial/isPinned는 광장 운영자만 반영된다 (서버에서 검증) */
+/** isOfficial/isPinned는 커뮤니티 운영자만 반영된다 (서버에서 검증) */
 export async function createPost(input: {
   board: BoardType;
   title: string;

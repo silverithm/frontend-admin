@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 케어브이 광장 API 공용 프록시 (게시판·자료실 전 경로)
+// 케어브이 커뮤니티 API 공용 프록시 (게시판·자료실 전 경로)
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
 const headers = {

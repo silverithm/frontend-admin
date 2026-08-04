@@ -69,7 +69,7 @@ const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix:
 interface PlazaBoardProps {
   /** 표시할 보드 ('all' = 전체글). 카페형 셸(PlazaManagement)의 좌측 네비가 제어한다 */
   board?: BoardFilter;
-  /** 외부(광장 홈 위젯)에서 특정 글 상세를 열 때 전달 */
+  /** 외부(커뮤니티 홈 위젯)에서 특정 글 상세를 열 때 전달 */
   openPostId?: number | null;
   onOpenPostConsumed?: () => void;
   /** true가 전달되면 글쓰기 에디터를 열고 onWriteRequestConsumed로 소비를 알린다 (마운트 직후에도 동작) */
@@ -105,7 +105,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const [formAnonymous, setFormAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 광장 운영자 여부 — [운영] 공지 작성과 타인 글 삭제 권한 (서버가 최종 판정)
+  // 커뮤니티 운영자 여부 — [운영] 공지 작성과 타인 글 삭제 권한 (서버가 최종 판정)
   const [isPlazaAdmin, setIsPlazaAdmin] = useState(false);
   const [formOfficial, setFormOfficial] = useState(false);
   const [formPinned, setFormPinned] = useState(false);
@@ -161,7 +161,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     setIsWriting(false);
   }, [board]);
 
-  // 광장 홈 등 외부에서 특정 글 열기
+  // 커뮤니티 홈 등 외부에서 특정 글 열기
   useEffect(() => {
     if (!openPostId) return;
     (async () => {
@@ -219,7 +219,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
       return false;
     }
     if (isDemoMode()) {
-      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 광장에 참여할 수 없습니다.' });
+      showAlert({ type: 'info', title: '체험 모드 안내', message: '체험 모드에서는 커뮤니티에 참여할 수 없습니다.' });
       return false;
     }
     return true;
