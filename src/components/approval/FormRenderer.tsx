@@ -423,13 +423,34 @@ function FieldRenderer({
   );
 }
 
+/**
+ * API에서 온 formSchema는 JSON 문자열일 수 있고, 파싱 실패·필드 누락도 가능하다.
+ * 어떤 입력이 와도 렌더러가 죽지 않도록 항상 { fields: [] } 형태로 정규화한다.
+ * (파싱 없이 문자열을 그대로 넘긴 호출부에서 schema.fields.forEach가 터져
+ *  화면 전체가 Application error로 죽는 사고가 있었다)
+ */
+function normalizeSchema(raw: unknown): FormSchema {
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+  }
+  const schema = parsed as FormSchema | null;
+  if (schema && Array.isArray(schema.fields)) return schema;
+  return { version: 1, fields: [] };
+}
+
 export default function FormRenderer({
-  schema,
+  schema: rawSchema,
   initialValues = {},
   onSubmit,
   readOnly = false,
   submitLabel = '제출',
 }: FormRendererProps) {
+  const schema = normalizeSchema(rawSchema);
   const buildInitialValues = (): FormValues => {
     const vals: FormValues = { ...initialValues };
     schema.fields.forEach((field) => {

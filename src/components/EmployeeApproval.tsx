@@ -547,6 +547,18 @@ export default function EmployeeApproval() {
 
   const selectedTemplateInfo = templates.find(t => String(t.id) === approvalForm.templateId);
 
+  // 백엔드는 formSchema를 JSON 문자열로 내려준다 — FormRenderer에는 파싱된 객체만 전달
+  const selectedTemplateSchema = (() => {
+    const raw = selectedTemplateInfo?.formSchema as unknown;
+    if (!raw) return undefined;
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return parsed && Array.isArray((parsed as { fields?: unknown }).fields) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
   const isWideModal = selectedTemplateInfo?.templateType === 'form' || selectedTemplateInfo?.templateType === 'hybrid';
 
   // 파일 첨부 드롭존 (공용 렌더)
@@ -823,25 +835,25 @@ export default function EmployeeApproval() {
                   </VStack>
                 )}
 
-                {selectedTemplateInfo?.templateType === 'form' && selectedTemplateInfo.formSchema && (
+                {selectedTemplateInfo?.templateType === 'form' && selectedTemplateSchema && (
                   /* 온라인 양식: FormRenderer (자체 제출 버튼 포함) */
                   <VStack gap={3}>
                     <Text type="label" weight="medium" color="primary">온라인 양식 작성</Text>
                     <FormRenderer
-                      schema={selectedTemplateInfo.formSchema}
+                      schema={selectedTemplateSchema}
                       onSubmit={handleFormRendererSubmit}
                       submitLabel={isSubmitting ? '제출 중...' : '제출'}
                     />
                   </VStack>
                 )}
 
-                {selectedTemplateInfo?.templateType === 'hybrid' && selectedTemplateInfo.formSchema && (
+                {selectedTemplateInfo?.templateType === 'hybrid' && selectedTemplateSchema && (
                   /* 혼합 양식: FormRenderer + 파일 첨부 */
                   <VStack gap={4}>
                     <VStack gap={3}>
                       <Text type="label" weight="medium" color="primary">온라인 양식 작성</Text>
                       <FormRenderer
-                        schema={selectedTemplateInfo.formSchema}
+                        schema={selectedTemplateSchema}
                         onSubmit={(data) => setFormData(data)}
                         submitLabel="양식 확인"
                       />
