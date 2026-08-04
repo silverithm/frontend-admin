@@ -75,6 +75,19 @@ export default function ApprovalManagement() {
     return !!currentStep && currentStep.approverId === myApproverId;
   };
 
+  // 직권 승인 전 경고 — 건너뛰게 될 남은 결재 단계를 알려주고 확인받는다
+  const confirmForceApprove = async (approval: ApprovalRequest) => {
+    const remaining = (approval.approvalLine || [])
+      .filter((step) => step.status === 'PENDING' && step.approverId !== myApproverId)
+      .map((step) => `${step.roleLabel === 'FINAL' ? '결재' : '검토'} ${step.approverName}`);
+    return confirm({
+      title: '직권 승인 (전결)',
+      message: `아직 처리되지 않은 결재 단계가 남아 있습니다.\n남은 단계: ${remaining.join(' → ')}\n\n남은 단계를 건너뛰고 즉시 최종 승인합니다. 계속하시겠습니까?`,
+      confirmText: '직권 승인',
+      type: 'warning',
+    });
+  };
+
   // 결재선 진행 배지 텍스트 (결재선 없으면 null)
   const getLineProgress = (approval: ApprovalRequest) => {
     if (!approval.approvalLine || approval.approvalLine.length === 0) return null;
@@ -471,7 +484,10 @@ export default function ApprovalManagement() {
                               size="sm"
                               icon={<Icon icon={FiCheck} />}
                               isDisabled={isProcessing}
-                              onClick={() => setQuickApproveTarget(approval)}
+                              onClick={async () => {
+                                if (!isActionable(approval) && !(await confirmForceApprove(approval))) return;
+                                setQuickApproveTarget(approval);
+                              }}
                             />
                             <Button
                               label={isActionable(approval) ? '반려' : '직권 반려'}

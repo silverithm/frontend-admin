@@ -19,6 +19,7 @@ import { getApprovalRequesterId } from '@/lib/apiService';
 import OfficialDocument from './approval/OfficialDocument';
 import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
 import DocumentViewerModal from './DocumentViewerModal';
+import { useConfirm } from './ConfirmDialog';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
@@ -47,6 +48,7 @@ export default function ApprovalDetail({
   const [showSignatureConfirm, setShowSignatureConfirm] = useState(false);
   const [myApproverId, setMyApproverId] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const { confirm, ConfirmContainer } = useConfirm();
 
   useEffect(() => {
     setMyApproverId(getApprovalRequesterId());
@@ -107,6 +109,19 @@ export default function ApprovalDetail({
   const canAct = approval.status === 'PENDING' && isMyTurn;
   // 관리자 직권 처리(전결): 이 화면은 기관 관리자 전용이므로 내 차례가 아니어도 강제 처리 가능 (백엔드가 관리자 여부 재검증)
   const isForceMode = approval.status === 'PENDING' && hasLine && !isMyTurn;
+
+  // 직권 승인 전 경고 — 건너뛰게 될 남은 결재 단계를 알려주고 확인받는다
+  const confirmForceApprove = () => {
+    const remaining = (approval.approvalLine || [])
+      .filter((step) => step.status === 'PENDING' && step.approverId !== myApproverId)
+      .map((step) => `${step.roleLabel === 'FINAL' ? '결재' : '검토'} ${step.approverName}`);
+    return confirm({
+      title: '직권 승인 (전결)',
+      message: `아직 처리되지 않은 결재 단계가 남아 있습니다.\n남은 단계: ${remaining.join(' → ')}\n\n남은 단계를 건너뛰고 즉시 최종 승인합니다. 계속하시겠습니까?`,
+      confirmText: '직권 승인',
+      type: 'warning',
+    });
+  };
 
   const handleReject = () => {
     if (!rejectReason.trim()) return;
@@ -300,7 +315,10 @@ export default function ApprovalDetail({
                     variant="primary"
                     icon={<Icon icon={FiCheck} size="sm" />}
                     isDisabled={(!canAct && !isForceMode) || isProcessing}
-                    onClick={() => setShowSignatureConfirm(true)}
+                    onClick={async () => {
+                      if (isForceMode && !(await confirmForceApprove())) return;
+                      setShowSignatureConfirm(true);
+                    }}
                   />
                 </HStack>
               ) : (
@@ -350,6 +368,9 @@ export default function ApprovalDetail({
           onClose={() => setShowAttachmentViewer(false)}
         />
       )}
+
+      {/* 직권 승인 경고 */}
+      <ConfirmContainer />
     </>
   );
 }
