@@ -522,6 +522,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       initialSchema={formSchema}
                       onSchemaChange={(schema) => setFormSchema(schema)}
                       templateName={uploadForm.name}
+                      defaultApprovalLine={defaultLine}
                     />
                   </VStack>
                 )}

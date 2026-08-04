@@ -9,7 +9,7 @@ import FormFieldEditor from './FormFieldEditor';
 import { getFieldSpan } from '@/lib/formSchemaLogic';
 import FormPreview from './FormPreview';
 import OfficialDocument from './OfficialDocument';
-import { ApprovalRequest } from '@/types/approval';
+import { ApprovalRequest, ApproverCandidate } from '@/types/approval';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -45,12 +45,19 @@ interface FormSchemaBuilderProps {
   onSchemaChange: (schema: FormSchema) => void;
   /** 공문 미리보기의 양식명/제목에 사용 (선택) */
   templateName?: string;
+  /** 양식에 지정된 기본 결재선 — 공문 미리보기의 결재란에 그대로 반영 (선택) */
+  defaultApprovalLine?: ApproverCandidate[];
 }
 
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 
-/** 스키마 필드별 예시 값으로 공문 미리보기용 가짜 기안을 만든다 */
-function buildSampleApproval(schema: FormSchema, templateName?: string): ApprovalRequest {
+/** 스키마 필드별 예시 값으로 공문 미리보기용 가짜 기안을 만든다.
+ *  기본 결재선이 지정돼 있으면 예시 결재선 대신 그것을 그대로 보여준다. */
+function buildSampleApproval(
+  schema: FormSchema,
+  templateName?: string,
+  defaultLine?: ApproverCandidate[],
+): ApprovalRequest {
   const now = new Date();
   const nowIso = now.toISOString();
   const inTwoDays = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
@@ -99,27 +106,37 @@ function buildSampleApproval(schema: FormSchema, templateName?: string): Approva
     createdAt: nowIso,
     hasApprovalLine: true,
     docNumberDisplay: '제 2026-0 호',
-    approvalLine: [
-      {
-        id: 1,
-        stepOrder: 1,
-        approverType: 'MEMBER',
-        approverId: 'preview-1',
-        approverName: '김검토',
-        roleLabel: 'REVIEWER',
-        status: 'APPROVED',
-        processedAt: nowIso,
-      },
-      {
-        id: 2,
-        stepOrder: 2,
-        approverType: 'ADMIN',
-        approverId: 'preview-2',
-        approverName: '박원장',
-        roleLabel: 'FINAL',
-        status: 'PENDING',
-      },
-    ],
+    approvalLine: defaultLine && defaultLine.length > 0
+      ? defaultLine.map((approver, index) => ({
+          id: index + 1,
+          stepOrder: index + 1,
+          approverType: approver.approverType,
+          approverId: String(approver.approverId),
+          approverName: approver.name,
+          roleLabel: index === defaultLine.length - 1 ? 'FINAL' as const : 'REVIEWER' as const,
+          status: 'PENDING' as const,
+        }))
+      : [
+          {
+            id: 1,
+            stepOrder: 1,
+            approverType: 'MEMBER',
+            approverId: 'preview-1',
+            approverName: '김검토',
+            roleLabel: 'REVIEWER',
+            status: 'APPROVED',
+            processedAt: nowIso,
+          },
+          {
+            id: 2,
+            stepOrder: 2,
+            approverType: 'ADMIN',
+            approverId: 'preview-2',
+            approverName: '박원장',
+            roleLabel: 'FINAL',
+            status: 'PENDING',
+          },
+        ],
   };
 }
 
@@ -198,7 +215,7 @@ const DEFAULT_FIELD_BY_TYPE: Record<FieldType, Partial<FormFieldSchema>> = {
 
 const EMPTY_SCHEMA: FormSchema = { version: 1, fields: [] };
 
-export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templateName }: FormSchemaBuilderProps) {
+export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templateName, defaultApprovalLine }: FormSchemaBuilderProps) {
   const [schema, setSchema] = useState<FormSchema>(initialSchema ?? EMPTY_SCHEMA);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [showFieldTypeSelector, setShowFieldTypeSelector] = useState(false);
@@ -661,7 +678,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                 {previewMode === 'document' ? (
                   <div style={{ background: 'var(--color-background-muted)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-inner)', overflowX: 'auto' }}>
                     <OfficialDocument
-                      approval={buildSampleApproval(schema, templateName)}
+                      approval={buildSampleApproval(schema, templateName, defaultApprovalLine)}
                       schema={schema}
                       companyName={
                         typeof window !== 'undefined'
