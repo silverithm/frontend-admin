@@ -119,7 +119,10 @@ export default function ApprovalManagement() {
 
     if (approval.templateId) {
       try {
-        const template = await getApprovalTemplateById(approval.templateId);
+        const response = await getApprovalTemplateById(approval.templateId);
+        // 응답은 { template: {...} } 래퍼로 온다 — 직접 읽으면 스키마가 항상 undefined가 되어
+        // 폼 문서 상세가 폴백 테이블(영문 필드 id)로 렌더링되는 버그가 있었다.
+        const template = response?.template ?? response;
         if (template) {
           // HWP 파일 양식(file)과 폼 양식(form)의 상세보기가 다르다
           setSelectedTemplateType(template.templateType);

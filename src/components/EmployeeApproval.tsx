@@ -30,7 +30,6 @@ import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormRenderer from './approval/FormRenderer';
-import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import OfficialDocument from './approval/OfficialDocument';
 import MySignatureCard from './approval/MySignatureCard';
 import DocumentViewerModal from './DocumentViewerModal';
@@ -760,13 +759,15 @@ export default function EmployeeApproval() {
                   onChange={(value) => {
                     setApprovalForm(prev => ({ ...prev, templateId: value, file: null }));
                     setFormData(null);
-                    // 양식에 기본 결재선이 정의돼 있으면 자동으로 채운다 (기안자가 수정 가능)
+                    // 결재선은 양식에 정의된 기본 결재선을 그대로 따른다 (기안자가 고르지 않음).
+                    // 양식에 없으면 빈 결재선(레거시 단일 승인) — 이전 양식 선택이 남지 않게 리셋.
                     const pickedForLine = templates.find(t => String(t.id) === value);
-                    if (pickedForLine?.defaultApprovalLine) {
-                      try {
-                        const line = JSON.parse(pickedForLine.defaultApprovalLine);
-                        if (Array.isArray(line) && line.length > 0) setApprovalLine(line);
-                      } catch { /* 형식이 깨졌으면 기존 선택 유지 */ }
+                    try {
+                      const line = pickedForLine?.defaultApprovalLine
+                        ? JSON.parse(pickedForLine.defaultApprovalLine) : [];
+                      setApprovalLine(Array.isArray(line) ? line : []);
+                    } catch {
+                      setApprovalLine([]);
                     }
                     // HWP 파일 양식을 고르면 웹 에디터를 바로 띄운다 (다운로드 없이 즉시 작성)
                     const picked = templates.find(t => String(t.id) === value);
@@ -792,8 +793,15 @@ export default function EmployeeApproval() {
                   placeholder="예: 2026년 1월 휴가 신청"
                 />
 
-                {/* 결재선 지정 */}
-                <ApprovalLineSelector value={approvalLine} onChange={setApprovalLine} />
+                {/* 결재선 — 양식에 정의된 기본 결재선을 따른다 (기안자가 임의 지정하지 않음) */}
+                {approvalLine.length > 0 && (
+                  <VStack gap={1}>
+                    <Text type="label" weight="medium" color="primary">결재선 (양식에 지정됨)</Text>
+                    <Text type="supporting" color="secondary">
+                      {approvalLine.map((a, i) => `${i + 1}. ${a.name}${a.position ? ` (${a.position})` : ''}`).join('  →  ')}
+                    </Text>
+                  </VStack>
+                )}
 
                 {/* templateType에 따른 분기 */}
                 {(!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (

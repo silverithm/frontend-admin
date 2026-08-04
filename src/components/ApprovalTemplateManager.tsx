@@ -183,6 +183,19 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
 
   // 활성화/비활성화 토글
   const handleToggleActive = async (id: string | number) => {
+    const target = templates.find((t) => String(t.id) === String(id));
+
+    // 비활성화하면 직원 신청 화면(웹·앱)의 양식 목록에서 조용히 사라지므로 먼저 알려준다
+    if (target?.isActive) {
+      const confirmed = await confirm({
+        title: '양식 비활성화',
+        message: `'${target.name}' 양식을 비활성화하면 직원들의 결재 신청 화면(웹·앱)에서 이 양식이 보이지 않게 됩니다.\n이미 제출된 문서는 그대로 유지되며, 언제든 다시 활성화할 수 있습니다.`,
+        confirmText: '비활성화',
+        type: 'warning',
+      });
+      if (!confirmed) return;
+    }
+
     try {
       await toggleApprovalTemplateActive(String(id));
       loadTemplates();
