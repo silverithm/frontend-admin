@@ -8,7 +8,7 @@ export const OG_IMAGE = {
   url: `${SITE_URL}/images/og-carev.png`,
   width: 1200,
   height: 630,
-  alt: '케어브이 - 주간보호센터, 장기요양기관 근무표 휴무관리 프로그램',
+  alt: '케어브이 - 주간보호센터·장기요양기관 운영 플랫폼 (근무조정·월간일정·전자결재·공지·채팅)',
   type: 'image/png',
 } as const;
 
