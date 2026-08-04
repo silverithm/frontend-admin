@@ -61,6 +61,9 @@ export default function VoiceBoxAdmin() {
     try {
       const data = await getVoiceMessages('admin', filter === 'all' ? undefined : filter);
       setMessages(Array.isArray(data) ? data : (data.messages || []));
+      // 서버 최신값으로 갱신됐으므로 로컬 편집 초안은 폐기한다 (stale 값 노출 방지)
+      setDrafts({});
+      setExpandedId(null);
     } catch (error) {
       console.error('[VoiceBox] 목록 조회 실패:', error);
       const message = error instanceof Error && error.message ? error.message : '목록 조회에 실패했습니다.';
@@ -120,7 +123,7 @@ export default function VoiceBoxAdmin() {
       />
 
       <SegmentedControl value={filter} onChange={(v) => setFilter(v as typeof filter)} label="유형 필터">
-        <SegmentedControlItem value="all" label={`전체 (${messages.length})`} />
+        <SegmentedControlItem value="all" label={filter === 'all' ? `전체 (${messages.length})` : '전체'} />
         <SegmentedControlItem value="GRIEVANCE" label={`고충·신고${filter === 'all' ? ` (${counts.grievance})` : ''}`} />
         <SegmentedControlItem value="SUGGESTION" label={`건의${filter === 'all' ? ` (${counts.suggestion})` : ''}`} />
       </SegmentedControl>

@@ -1086,7 +1086,8 @@ export default function AdminPage() {
         { key: "approval", label: "전자결재", icon: IconFileText },
         { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
         { key: "plaza", label: "커뮤니티", icon: IconUsersGroup, isNew: true },
-        { key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true },
+        // 고충·건의함은 기관 관리자 전용 (백엔드도 403으로 강제하지만 탭 자체를 숨긴다)
+        ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true }] : []),
         ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
     ] as { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[]);
 
@@ -1169,7 +1170,8 @@ export default function AdminPage() {
                     {([
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
-                        { key: "plaza", label: "커뮤니티" }, { key: "voice", label: "고충·건의" },
+                        { key: "plaza", label: "커뮤니티" },
+                        ...(isAdmin ? [{ key: "voice" as const, label: "고충·건의" as const }] : []),
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
                         <Button

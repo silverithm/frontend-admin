@@ -69,7 +69,7 @@ interface NoticeManagementProps {
   isAdmin?: boolean;
   /**
    * 커뮤니티 [운영] 공지를 열 때 호출. 셸 안에 커뮤니티 탭이 있으면 그쪽으로 넘긴다.
-   * 넘겨주지 않으면 새 탭으로 커뮤니티을 연다(직원 화면 등 커뮤니티 탭이 없는 곳).
+   * 넘겨주지 않으면 새 탭으로 커뮤니티를 연다(직원 화면 등 커뮤니티 탭이 없는 곳).
    */
   onOpenPlazaPost?: (postId: number) => void;
 }

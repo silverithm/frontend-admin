@@ -21,7 +21,7 @@ import { NumberInput } from '@astryxdesign/core/NumberInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
-import { groupFieldsIntoRows } from './formValueFormat';
+import { chunkRowForDocTable, groupFieldsIntoRows } from './formValueFormat';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Divider } from '@astryxdesign/core/Divider';
@@ -622,7 +622,8 @@ export default function FormRenderer({
     // 반복 표(repeater)는 문서 표 셀에 들어가기엔 넓어서 표 아래 전체 폭으로 그린다
     const tableFields = visibleFields.filter((f) => f.type !== 'repeater');
     const repeaterFields = visibleFields.filter((f) => f.type === 'repeater');
-    const fieldRows = groupFieldsIntoRows(tableFields.filter((f) => f.type !== 'section'));
+    // 섹션은 구획 제목 행으로 렌더하고, 3필드 이상 묶인 행은 2개씩 쪼갠다 (필드 유실 방지)
+    const fieldRows = groupFieldsIntoRows(tableFields).flatMap(chunkRowForDocTable);
     const line = documentFrame.approvalLine ?? [];
     const boxes = [
       { label: '기안', name: documentFrame.requesterName },
@@ -676,7 +677,9 @@ export default function FormRenderer({
             <tbody>
               {fieldRows.map((row, rowIndex) => (
                 <tr key={rowIndex}>
-                  {row.length === 2 ? (
+                  {row.length === 1 && row[0].type === 'section' ? (
+                    <td className="carev-doc-section-row" colSpan={4}>{row[0].label}</td>
+                  ) : row.length === 2 ? (
                     <>
                       <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
                       <td className="carev-doc-field-value">{renderDocControl(row[0])}</td>

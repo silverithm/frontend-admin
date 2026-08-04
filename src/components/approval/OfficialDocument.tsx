@@ -8,7 +8,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { HStack } from '@astryxdesign/core/Stack';
 import { ApprovalRequest, ApprovalStep } from '@/types/approval';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
-import { formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
+import { chunkRowForDocTable, formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 
 interface OfficialDocumentProps {
@@ -150,7 +150,8 @@ function DocumentFieldsTable({
   schema: FormSchema;
   formData: Record<string, any>;
 }) {
-  const rows = groupFieldsIntoRows(schema.fields);
+  // 3필드 이상 묶인 행은 2개씩 쪼갠다 — 표는 한 행에 최대 2필드(4셀)라 그대로 두면 유실된다
+  const rows = groupFieldsIntoRows(schema.fields).flatMap(chunkRowForDocTable);
 
   return (
     <table className="carev-doc-fields-table">

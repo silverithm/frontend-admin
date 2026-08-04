@@ -31,6 +31,10 @@ async function proxy(request: NextRequest, path: string[] | undefined) {
     }
 
     const backendResponse = await fetch(target, { method: request.method, headers: backendHeaders, body });
+    // 204 등 바디 없는 응답은 그대로 JSON을 만들 수 없으므로 성공 껍데기로 변환한다
+    if (backendResponse.status === 204 || backendResponse.headers.get('content-length') === '0') {
+      return NextResponse.json({ success: backendResponse.ok }, { status: backendResponse.ok ? 200 : backendResponse.status, headers });
+    }
     const data = await backendResponse.json().catch(() => ({ error: '응답 처리 중 오류가 발생했습니다.' }));
     return NextResponse.json(data, { status: backendResponse.status, headers });
   } catch (error) {

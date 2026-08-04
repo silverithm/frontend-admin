@@ -689,7 +689,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                     />
                   </div>
                 ) : (
-                  <FormPreview schema={schema} />
+                  <FormPreview schema={schema} approvalLine={defaultApprovalLine} />
                 )}
               </VStack>
             </LayoutContent>

@@ -152,3 +152,16 @@ export function groupFieldsIntoRows(fields: FormFieldSchema[]): FormFieldSchema[
   flush();
   return rows;
 }
+
+/**
+ * 문서 표는 한 행에 최대 2필드(라벨+값 4셀)만 담을 수 있다.
+ * 1/3·1/4 폭으로 3개 이상 묶인 행을 2개씩 쪼개 필드 유실을 막는다.
+ */
+export function chunkRowForDocTable(row: FormFieldSchema[]): FormFieldSchema[][] {
+  if (row.length <= 2) return [row];
+  const chunks: FormFieldSchema[][] = [];
+  for (let i = 0; i < row.length; i += 2) {
+    chunks.push(row.slice(i, i + 2));
+  }
+  return chunks;
+}
