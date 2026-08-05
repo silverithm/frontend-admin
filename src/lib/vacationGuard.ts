@@ -71,21 +71,63 @@ export function findDriverConflicts(
   const conflicts: DriverConflict[] = [];
 
   for (const { route, index } of assignments) {
-    route.routeDrivers.forEach((other, otherIndex) => {
-      if (otherIndex === index) return;
-      const otherName = other.driverName.trim();
-      if (!otherName || !onVacation.has(otherName)) return;
+    // 운전자가 셋인 노선에서 한 명 쉬는 건 문제가 아니다.
+    // 내가 쉬었을 때 그 노선에 남는 운전자가 하나도 없을 때만 알린다.
+    const remaining = route.routeDrivers.filter((other, otherIndex) => {
+      if (otherIndex === index) return false;
+      const name = other.driverName.trim();
+      return !!name && !onVacation.has(name);
+    });
+    if (remaining.length > 0) continue;
 
-      conflicts.push({
-        routeName: route.name,
-        routeType: route.type,
-        myRole: driverRoleLabel(index),
-        otherName,
-        otherRole: driverRoleLabel(otherIndex),
-      });
+    const restingOthers = route.routeDrivers
+      .map((other, otherIndex) => ({ other, otherIndex }))
+      .filter(({ other, otherIndex }) => otherIndex !== index && onVacation.has(other.driverName.trim()));
+
+    conflicts.push({
+      routeName: route.name,
+      routeType: route.type,
+      myRole: driverRoleLabel(index),
+      otherName: restingOthers.map(({ other }) => other.driverName.trim()).join(', ') || '-',
+      otherRole: restingOthers.map(({ otherIndex }) => driverRoleLabel(otherIndex)).join(', ') || '-',
     });
   }
   return conflicts;
+}
+
+/** 그날 운전자가 전원 휴무라 운행할 수 없는 노선 */
+export interface RouteOutage {
+  routeId: string;
+  routeName: string;
+  routeType: string;
+  /** 휴무인 운전자 이름 */
+  restingDrivers: string[];
+}
+
+/**
+ * 해당 날짜에 운행이 불가능한 노선을 찾는다 (운전자 전원 휴무).
+ * 관리자 화면에서 빨간 표시를 띄우는 근거로 쓴다.
+ */
+export function findRouteOutages(routes: Route[], vacationNames: string[]): RouteOutage[] {
+  const onVacation = new Set(vacationNames.map((n) => n.trim()).filter(Boolean));
+  if (onVacation.size === 0) return [];
+
+  const outages: RouteOutage[] = [];
+  for (const route of routes) {
+    const drivers = route.routeDrivers.map((d) => d.driverName.trim()).filter(Boolean);
+    if (drivers.length === 0) continue;
+
+    const resting = drivers.filter((name) => onVacation.has(name));
+    if (resting.length === drivers.length) {
+      outages.push({
+        routeId: String(route.id),
+        routeName: route.name,
+        routeType: route.type,
+        restingDrivers: resting,
+      });
+    }
+  }
+  return outages;
 }
 
 /** 서버가 내려주는 운전자 배정 (GET /dispatch-settings/driver-roles) */
@@ -110,34 +152,38 @@ export function findConflictsFromRoles(
   const conflicts: DriverConflict[] = [];
 
   for (const role of roles) {
-    for (const other of role.coDrivers) {
-      const name = other.trim();
-      if (!name || !onVacation.has(name)) continue;
-      conflicts.push({
-        routeName: role.routeName,
-        routeType: role.routeType,
-        myRole: role.roleLabel,
-        otherName: name,
-        // 서버 응답에는 상대의 역할까지 담기지 않는다 — 같은 노선이라는 사실만으로 충분하다
-        otherRole: '같은 노선 운전자',
-      });
-    }
+    const others = role.coDrivers.map((n) => n.trim()).filter(Boolean);
+    // 내가 쉬어도 남는 운전자가 있으면 운행에 지장이 없다
+    const remaining = others.filter((name) => !onVacation.has(name));
+    if (remaining.length > 0) continue;
+
+    const resting = others.filter((name) => onVacation.has(name));
+    conflicts.push({
+      routeName: role.routeName,
+      routeType: role.routeType,
+      myRole: role.roleLabel,
+      otherName: resting.join(', ') || '-',
+      // 서버 응답에는 상대의 역할까지 담기지 않는다 — 같은 노선이라는 사실만으로 충분하다
+      otherRole: '같은 노선 운전자',
+    });
   }
   return conflicts;
 }
 
-/** 차단 안내 문구 — 어느 노선이 왜 멈추는지 구체적으로 알린다 */
+/**
+ * 경고 문구 — 어느 노선이 왜 멈추는지 알린다.
+ * 신청 자체를 막지는 않는다. 사정이 있을 수 있어 최종 판단은 관리자가 한다.
+ */
 export function describeDriverConflicts(memberName: string, conflicts: DriverConflict[]): string {
   const lines = conflicts.map(
     (c) =>
       `· ${c.routeName}(${c.routeType}) — ${c.otherRole} ${c.otherName} 선생님이 이미 휴무입니다.`,
   );
   return [
-    `${memberName} 선생님은 아래 노선의 운전자로 배정돼 있습니다.`,
+    `${memberName} 선생님이 쉬면 아래 노선을 운행할 사람이 없습니다.`,
     ...lines,
     '',
-    '같은 노선의 운전자가 함께 쉬면 그날 차량을 운행할 사람이 없습니다.',
-    '휴무일을 조정하거나, 배차에서 대체 운전자를 먼저 지정해 주세요.',
+    '그래도 신청하시려면 계속 진행하세요. 관리자가 확인 후 조정할 수 있습니다.',
   ].join('\n');
 }
 

@@ -48,6 +48,9 @@ const VacationForm: React.FC<VacationFormProps> = ({
     password: '',
     role: '',
   });
+  /** 운행 공백 경고 — 막지 않고 한 번 확인만 받는다 */
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
 
   /**
    * 그날 이미 휴무인 사람 중 같은 노선의 다른 운전자가 있는지 확인한다.
@@ -161,17 +164,17 @@ const VacationForm: React.FC<VacationFormProps> = ({
       try {
         setIsSubmitting(true);
 
-        // 같은 노선의 주·부운전자가 함께 쉬면 그날 차량을 몰 사람이 없다 — 신청 전에 막는다
+        // 그날 그 노선을 몰 사람이 없어지면 알린다. 막지는 않고 한 번 확인만 받는다
+        // (사정이 있을 수 있어 최종 판단은 관리자가 승인 단계에서 한다)
         const vacationDate = initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
-        const conflicts = await checkDriverConflicts(userName.trim(), vacationDate);
-        if (conflicts.length > 0) {
-          showAlert({
-            type: 'warning',
-            title: '같은 노선 운전자가 이미 휴무입니다',
-            message: describeDriverConflicts(userName.trim(), conflicts),
-          });
-          setIsSubmitting(false);
-          return;
+        if (!conflictAcknowledged) {
+          const conflicts = await checkDriverConflicts(userName.trim(), vacationDate);
+          if (conflicts.length > 0) {
+            setConflictWarning(describeDriverConflicts(userName.trim(), conflicts));
+            setConflictAcknowledged(true);
+            setIsSubmitting(false);
+            return;
+          }
         }
 
         // 현재 호스트 기반 절대 URL 사용
@@ -259,6 +262,15 @@ const VacationForm: React.FC<VacationFormProps> = ({
               description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
             />
 
+            {conflictWarning && (
+              <Banner
+                status="error"
+                container="card"
+                title="이 날 운행할 운전자가 없습니다"
+                description={conflictWarning}
+              />
+            )}
+
             <Divider />
 
             <form onSubmit={handleSubmit}>
@@ -274,7 +286,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   status={errors.userName ? { type: 'error', message: errors.userName } : undefined}
                 />
 
-                {/* 휴무 종류 — 연차 차감 여부까지 이 하나로 정해진다 */}
+                {/* 휴무 종류 — 종류와 종일·반일 구분을 이 하나로 고른다 */}
                 <Selector
                   label="휴무 종류"
                   options={VACATION_KIND_OPTIONS.map((option) => ({
@@ -347,7 +359,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
                     isDisabled={isSubmitting}
                   />
                   <Button
-                    label={isSubmitting ? '처리 중...' : '신청하기'}
+                    label={isSubmitting ? '처리 중...' : conflictWarning ? '그래도 신청' : '신청하기'}
                     variant="primary"
                     type="submit"
                     isLoading={isSubmitting}

@@ -52,6 +52,15 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
 
   // 선택된 직원의 배차 배정 — 서버에서 조회한다(배차 설정은 회사 공용)
   const [driverRoles, setDriverRoles] = useState<RemoteDriverRole[]>([]);
+  /** 운행 공백 경고 — 막지 않고 한 번 확인만 받는다 */
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
+
+  useEffect(() => {
+    // 대상이나 날짜가 바뀌면 경고를 새로 판정한다
+    setConflictWarning(null);
+    setConflictAcknowledged(false);
+  }, [selectedMember?.name, vacationDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,12 +154,16 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
     setError(null);
 
     try {
-      // 같은 노선의 주·부운전자가 함께 쉬면 그날 차량을 몰 사람이 없다 — 등록 전에 막는다
-      const conflicts = await checkDriverConflicts(selectedMember!.name, vacationDate);
-      if (conflicts.length > 0) {
-        setError(describeDriverConflicts(selectedMember!.name, conflicts));
-        setIsSubmitting(false);
-        return;
+      // 그날 그 노선을 몰 사람이 없어지면 알린다. 사정이 있을 수 있어 막지는 않고
+      // 한 번 확인만 받는다 (이미 확인했으면 그대로 진행).
+      if (!conflictAcknowledged) {
+        const conflicts = await checkDriverConflicts(selectedMember!.name, vacationDate);
+        if (conflicts.length > 0) {
+          setConflictWarning(describeDriverConflicts(selectedMember!.name, conflicts));
+          setConflictAcknowledged(true);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const companyId = localStorage.getItem('companyId');
@@ -190,6 +203,8 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
     setVacationKind('regular');
     setReason('');
     setError(null);
+    setConflictWarning(null);
+    setConflictAcknowledged(false);
     onClose();
   };
 
@@ -269,7 +284,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       onChange={(value) => setVacationDate(value || '')}
                     />
 
-                    {/* 휴무 종류 — 연차 차감 여부까지 이 하나로 정해진다 */}
+                    {/* 휴무 종류 — 종류와 종일·반일 구분을 이 하나로 고른다 */}
                     <RadioList
                       label="휴무 종류"
                       value={vacationKind}
@@ -299,6 +314,15 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       rows={3}
                     />
 
+                    {/* 운행 공백 경고 — 막지 않고, 한 번 더 누르면 그대로 등록된다 */}
+                    {conflictWarning && (
+                      <Banner
+                        status="error"
+                        title="이 날 운행할 운전자가 없습니다"
+                        description={conflictWarning}
+                      />
+                    )}
+
                     {/* 에러 메시지 */}
                     {error && (
                       <Banner status="error" title={error} />
@@ -326,8 +350,8 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                   />
                 ) : (
                   <Button
-                    label="휴무 신청 완료"
-                    variant="primary"
+                    label={conflictWarning ? '그래도 등록' : '휴무 신청 완료'}
+                    variant={conflictWarning ? 'destructive' : 'primary'}
                     isLoading={isSubmitting}
                     isDisabled={isSubmitting}
                     onClick={handleSubmit}

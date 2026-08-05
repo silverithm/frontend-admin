@@ -8,6 +8,9 @@ import { Card } from "@astryxdesign/core/Card";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Badge } from "@astryxdesign/core/Badge";
+import { useDispatchStore } from "@/lib/dispatchStore";
+import { loadDispatchSettings } from "@/lib/dispatchSync";
+import { findRouteOutages } from "@/lib/vacationGuard";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -110,6 +113,36 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
     };
 
     // Filter and sort requests
+    // 배차 노선 — 승인 시 그날 운행 공백이 생기는지 표시하는 데 쓴다 (서버가 원본)
+    const routes = useDispatchStore((state) => state.settings.routes);
+    useEffect(() => {
+        loadDispatchSettings();
+    }, []);
+
+    /**
+     * 날짜별 운행 불가 노선.
+     * 목록에 있는 신청(반려 제외)을 그날 휴무자로 보고 판정한다.
+     * 목록 밖의 승인 건까지 반영하려면 날짜마다 조회가 필요해 여기서는 목록 기준으로 본다.
+     */
+    const outagesByDate = useMemo(() => {
+        const map = new Map<string, ReturnType<typeof findRouteOutages>>();
+        if (routes.length === 0) return map;
+
+        const namesByDate = new Map<string, string[]>();
+        for (const request of allRequests) {
+            if (request.status === 'rejected') continue;
+            const date = request.date;
+            const name = request.userName;
+            if (!date || !name) continue;
+            namesByDate.set(date, [...(namesByDate.get(date) ?? []), name]);
+        }
+        for (const [date, names] of namesByDate) {
+            const outages = findRouteOutages(routes, names);
+            if (outages.length > 0) map.set(date, outages);
+        }
+        return map;
+    }, [routes, allRequests]);
+
     const filteredRequests = useMemo(() => {
         if (!Array.isArray(allRequests)) {
             console.warn("allRequests가 배열이 아닙니다:", allRequests);
@@ -558,6 +591,7 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                             {isSelectMode && <TableHeaderCell> </TableHeaderCell>}
                                             <TableHeaderCell>이름</TableHeaderCell>
                                             <TableHeaderCell>날짜</TableHeaderCell>
+                                            <TableHeaderCell>배차</TableHeaderCell>
                                             <TableHeaderCell>직무</TableHeaderCell>
                                             <TableHeaderCell>유형</TableHeaderCell>
                                             <TableHeaderCell>기간</TableHeaderCell>
@@ -616,6 +650,18 @@ export function VacationApproval({ onNotification }: VacationApprovalProps) {
                                                     <Text type="supporting" color="secondary">
                                                         {formatVacationDate(request.date)}
                                                     </Text>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {/* 승인하면 그날 그 노선을 몰 사람이 없어진다 */}
+                                                    {outagesByDate.has(request.date) && (
+                                                        <Badge
+                                                            variant="error"
+                                                            label={`운행 불가 · ${outagesByDate
+                                                                .get(request.date)!
+                                                                .map((o) => o.routeName)
+                                                                .join(', ')}`}
+                                                        />
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge
