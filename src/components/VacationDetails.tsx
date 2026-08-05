@@ -300,7 +300,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                 </HStack>
 
                                 <HStack gap={2} wrap="wrap" vAlign="center">
-                                  {/* 휴무 종류 뱃지 — 종류/연차 차감이 하나로 합쳐졌다 */}
+                                  {/* 휴무 종류 뱃지 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
                                   <Badge
                                     variant={kind.badgeVariant}
                                     icon={<Icon icon="clock" size="sm" />}

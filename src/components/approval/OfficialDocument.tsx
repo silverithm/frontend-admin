@@ -6,7 +6,7 @@ import { ko } from 'date-fns/locale';
 import { FiPrinter } from 'react-icons/fi';
 import { Button } from '@astryxdesign/core/Button';
 import { HStack } from '@astryxdesign/core/Stack';
-import { ApprovalRequest, ApprovalStep } from '@/types/approval';
+import { ApprovalRequest, ApprovalStep, DocumentFooter } from '@/types/approval';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
 import { chunkRowForDocTable, formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
@@ -15,7 +15,6 @@ interface OfficialDocumentProps {
   approval: ApprovalRequest;
   schema?: FormSchema;
   companyName: string;
-  companySealUrl?: string;
   /** 첨부 열람 버튼 클릭 (없으면 버튼 미노출) */
   onOpenAttachment?: () => void;
   /** 인쇄 버튼 노출 여부 (기본 true) */
@@ -77,15 +76,6 @@ function buildApprovalBoxes(approval: ApprovalRequest): ApprovalBoxCell[] {
   });
 
   return boxes;
-}
-
-function formatDateShort(value?: string): string {
-  if (!value) return '';
-  try {
-    return format(new Date(value), 'yy.MM.dd', { locale: ko });
-  } catch {
-    return '';
-  }
 }
 
 function formatDateFull(value?: string): string {
@@ -215,6 +205,84 @@ function DocumentFallbackTable({ formData }: { formData: Record<string, any> }) 
   );
 }
 
+function formatDateDotted(value?: string): string {
+  if (!value) return '';
+  try {
+    return format(new Date(value), 'yyyy . MM. dd.', { locale: ko });
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * 공문 하단 발신부.
+ *
+ * 표준 시행문 형식을 따른다 — 시행/접수 한 줄, 우편번호·주소와 홈페이지 한 줄,
+ * 전화·전송·담당자 메일과 공개구분 한 줄. 담당·대표 줄은 위 결재란과 겹쳐서 넣지 않는다.
+ * 기관 정보가 하나도 없으면 가로줄만 남아 어색하므로 통째로 감춘다.
+ */
+function DocumentFooterBlock({
+  footer,
+  docNumber,
+  receivedAt,
+}: {
+  footer?: DocumentFooter;
+  docNumber?: string;
+  receivedAt?: string;
+}) {
+  const hasCompanyInfo = Boolean(
+    footer &&
+      (footer.postalCode ||
+        footer.address ||
+        footer.homepageUrl ||
+        footer.phoneNumber ||
+        footer.faxNumber ||
+        footer.contactEmail),
+  );
+  if (!hasCompanyInfo && !docNumber) return null;
+
+  const addressLine = [footer?.postalCode, footer?.address].filter(Boolean).join('  ');
+  const contacts = [
+    footer?.phoneNumber ? `전화  ${footer.phoneNumber}` : '',
+    footer?.faxNumber ? `전송  ${footer.faxNumber}` : '',
+  ].filter(Boolean).join('  ');
+
+  return (
+    <div className="carev-doc-footer">
+      <div className="carev-doc-footer-rule" />
+
+      {(docNumber || receivedAt) && (
+        <div className="carev-doc-footer-row">
+          <span className="carev-doc-footer-term">시행</span>
+          <span className="carev-doc-footer-val">{docNumber || ''}</span>
+          <span className="carev-doc-footer-term">접수</span>
+          <span className="carev-doc-footer-val">{formatDateDotted(receivedAt)}</span>
+        </div>
+      )}
+
+      {(addressLine || footer?.homepageUrl) && (
+        <div className="carev-doc-footer-line">
+          {addressLine && (
+            <>
+              <span className="carev-doc-footer-term">우</span>
+              <span>{addressLine}</span>
+            </>
+          )}
+          {footer?.homepageUrl && <span className="carev-doc-footer-sep">/ {footer.homepageUrl}</span>}
+        </div>
+      )}
+
+      {(contacts || footer?.contactEmail) && (
+        <div className="carev-doc-footer-line">
+          {contacts && <span>{contacts}</span>}
+          {footer?.contactEmail && <span>, 담당자 E-MAIL : {footer.contactEmail}</span>}
+          <span className="carev-doc-footer-sep">/ {footer?.disclosureType || '공개'}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * 표준 기안문 형태의 공문 렌더러.
  * A4 고정 레이아웃(bespoke) — Astryx 컴포넌트 조합이 아닌 순수 div + carev-doc-* 클래스.
@@ -223,7 +291,6 @@ export default function OfficialDocument({
   approval,
   schema,
   companyName,
-  companySealUrl,
   onOpenAttachment,
   showPrintButton = true,
 }: OfficialDocumentProps) {
@@ -231,7 +298,6 @@ export default function OfficialDocument({
 
   const boxes = buildApprovalBoxes(approval);
   const hasFormData = approval.formData && Object.keys(approval.formData).length > 0;
-  const sealUrl = companySealUrl || approval.companySealUrl;
   const isApproved = approval.status === 'APPROVED';
   const isRejected = approval.status === 'REJECTED';
 
@@ -304,17 +370,6 @@ export default function OfficialDocument({
                   </td>
                 ))}
               </tr>
-              <tr>
-                {boxes.map((box, index) => (
-                  <td key={index} className="carev-doc-approval-name">
-                    {box.name || '-'}
-                    <br />
-                    {box.status === 'APPROVED' || box.status === 'REJECTED'
-                      ? formatDateShort(box.processedAt)
-                      : ''}
-                  </td>
-                ))}
-              </tr>
             </tbody>
           </table>
         </div>
@@ -342,17 +397,6 @@ export default function OfficialDocument({
           </div>
         )}
 
-        {/* 발신명의 + 직인 */}
-        <div className="carev-doc-sender">
-          <span className="carev-doc-sender-name-wrap">
-            <span className="carev-doc-sender-name">{companyName}</span>
-            {isApproved && sealUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={sealUrl} alt="기관 직인" className="carev-doc-seal-img" />
-            )}
-          </span>
-        </div>
-
         {/* 붙임 */}
         {approval.attachmentFileName && (
           <div className="carev-doc-attachments">
@@ -366,6 +410,13 @@ export default function OfficialDocument({
             </HStack>
           </div>
         )}
+
+        {/* 발신부 — 표준 공문 하단 시행/접수·주소·연락처 줄 */}
+        <DocumentFooterBlock
+          footer={approval.documentFooter}
+          docNumber={approval.docNumberDisplay || approval.docNumber}
+          receivedAt={isApproved ? approval.processedAt : undefined}
+        />
       </div>
     </div>
   );

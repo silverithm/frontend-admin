@@ -587,7 +587,7 @@ export default function EmployeeCalendar() {
                                   {vacation.userName}
                                   {isMyVacation && <Text type="supporting" color="accent">{' (나)'}</Text>}
                                 </Text>
-                                {/* 휴무 종류 — 종류/연차 차감이 하나로 합쳐졌다 */}
+                                {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
                                 {(() => {
                                   const kind = resolveVacationKind(vacation.type, vacation.duration);
                                   return <Badge variant={kind.badgeVariant} label={kind.label} />;
@@ -681,7 +681,7 @@ export default function EmployeeCalendar() {
                   value={requestForm.date ? (requestForm.date as ISODateString) : undefined}
                   onChange={(value) => setRequestForm(prev => ({ ...prev, date: value || '' }))}
                 />
-                {/* 휴무 종류 — 연차 차감 여부까지 이 하나로 정해진다 */}
+                {/* 휴무 종류 — 종류와 종일·반일 구분을 이 하나로 고른다 */}
                 <Selector
                   label="휴무 종류"
                   isRequired

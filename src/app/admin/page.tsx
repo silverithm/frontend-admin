@@ -1699,7 +1699,7 @@ export default function AdminPage() {
                                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1)', flexWrap: "wrap" }}>
                                                                 <Badge variant={roleBadgeVariant(roleBadgeClasses)} label={getRoleText(resolvedRole)} />
-                                                                {/* 휴무 종류 — 종류/연차 차감이 하나로 합쳐졌다 */}
+                                                                {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
                                                                 <Badge variant={requestKind.badgeVariant} label={requestKind.label} />
                                                                 <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>

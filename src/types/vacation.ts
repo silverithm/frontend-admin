@@ -36,9 +36,14 @@ export const VACATION_DURATION_OPTIONS: VacationDurationInfo[] = [
 //
 // 서버는 여전히 두 컬럼으로 나눠 저장한다.
 //   vacation_requests.type      = regular | mandatory | substitute
-//   vacation_requests.duration  = UNUSED | FULL_DAY | HALF_DAY_AM | HALF_DAY_PM  (연차 차감 단위)
+//   vacation_requests.duration  = UNUSED | FULL_DAY | HALF_DAY_AM | HALF_DAY_PM
 // 아래 표가 그 두 컬럼과 화면 한 줄을 잇는 유일한 지점이다. 종류가 늘거나 라벨이
 // 바뀌면 여기만 고치면 되고, 폼·목록·캘린더는 손대지 않아도 된다.
+//
+// 주의: 이 시스템에는 연차 잔여일수 개념이 없다. 직원마다 연차가 몇 개인지 두는
+// 곳도, 신청할 때 깎는 곳도 없다. duration은 그날을 무엇으로 기록할지에 대한
+// 표시값일 뿐이고, '연차/반차'와 '일반·필수·대체'의 차이도 기록 구분에 그친다.
+// 잔여일수 관리가 필요해지면 직원별 부여일수부터 새로 설계해야 한다.
 // ─────────────────────────────────────────────────────────────────────────────
 export type VacationKind =
   | 'regular'
@@ -54,10 +59,8 @@ export interface VacationKindInfo {
   description: string;
   /** 서버 type 컬럼 값 */
   type: 'regular' | 'mandatory' | 'substitute';
-  /** 서버 duration 컬럼 값. UNUSED면 연차를 차감하지 않는다 */
+  /** 서버 duration 컬럼 값. UNUSED면 연차/반차로 기록하지 않는다 */
   duration: VacationDuration | 'UNUSED';
-  /** 차감되는 연차 일수 */
-  days: number;
   /** 캘린더 셀의 한 글자 배지 */
   short: string;
   /** 셀 배지 배경색 (CSS 변수) */
@@ -70,10 +73,9 @@ export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
   {
     value: 'regular',
     label: '일반휴무',
-    description: '연차를 차감하지 않는 휴무',
+    description: '하루 쉼 · 연차로 기록하지 않음',
     type: 'regular',
     duration: 'UNUSED',
-    days: 0,
     short: '일',
     color: 'var(--color-icon-gray)',
     badgeVariant: 'neutral',
@@ -81,10 +83,9 @@ export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
   {
     value: 'mandatory',
     label: '필수휴무',
-    description: '사유를 반드시 남기는 휴무',
+    description: '하루 쉼 · 사유를 반드시 남김',
     type: 'mandatory',
     duration: 'UNUSED',
-    days: 0,
     short: '필',
     color: 'var(--color-icon-orange)',
     badgeVariant: 'orange',
@@ -92,10 +93,9 @@ export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
   {
     value: 'substitute',
     label: '대체휴무',
-    description: '근무한 날을 대신 쉬는 휴무',
+    description: '근무한 날을 대신 쉼',
     type: 'substitute',
     duration: 'UNUSED',
-    days: 0,
     short: '대',
     color: 'var(--color-icon-teal)',
     badgeVariant: 'teal',
@@ -103,10 +103,9 @@ export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
   {
     value: 'annual',
     label: '연차',
-    description: '연차 1일 차감',
+    description: '하루 종일 · 연차로 기록',
     type: 'regular',
     duration: 'FULL_DAY',
-    days: 1,
     short: '연',
     color: 'var(--color-icon-blue)',
     badgeVariant: 'blue',
@@ -114,10 +113,9 @@ export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
   {
     value: 'half_am',
     label: '오전반차',
-    description: '연차 0.5일 차감 · 오전',
+    description: '오전만 쉼',
     type: 'regular',
     duration: 'HALF_DAY_AM',
-    days: 0.5,
     short: '반',
     color: 'var(--color-icon-green)',
     badgeVariant: 'green',
@@ -125,10 +123,9 @@ export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
   {
     value: 'half_pm',
     label: '오후반차',
-    description: '연차 0.5일 차감 · 오후',
+    description: '오후만 쉼',
     type: 'regular',
     duration: 'HALF_DAY_PM',
-    days: 0.5,
     short: '반',
     color: 'var(--color-icon-purple)',
     badgeVariant: 'purple',
@@ -143,8 +140,8 @@ export const getVacationKindInfo = (kind: VacationKind): VacationKindInfo =>
 /**
  * 저장된 (type, duration)을 화면에서 쓰는 한 가지 종류로 되돌린다.
  *
- * 반차를 가장 먼저 보는 이유: 반차는 연차가 실제로 반일 차감된다는 뜻이라
- * 필수/대체 표시보다 근무·급여에 직접 영향을 준다.
+ * 반차를 가장 먼저 보는 이유: 반차는 그날 절반은 근무한다는 뜻이라 자리를 비우는
+ * 시간이 달라진다. 필수/대체 구분보다 근무표를 볼 때 더 중요한 정보다.
  * 종류를 나누기 전에 만들어진 데이터는 duration이 대부분 FULL_DAY라 '연차'로 보인다.
  */
 export const resolveVacationKind = (type?: string, duration?: string): VacationKindInfo => {

@@ -655,14 +655,10 @@ export default function FormRenderer({
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  {boxes.map((_, index) => (
-                    <td key={index} className="carev-doc-approval-cell" />
-                  ))}
-                </tr>
+                {/* 실제 공문과 같이 한 줄만 둔다. 아직 서명 전이라 칸 안에 이름만 보여준다 */}
                 <tr>
                   {boxes.map((box, index) => (
-                    <td key={index} className="carev-doc-approval-name">{box.name || '-'}</td>
+                    <td key={index} className="carev-doc-approval-cell">{box.name || '-'}</td>
                   ))}
                 </tr>
               </tbody>

@@ -74,6 +74,22 @@ export interface ApprovalRequest {
   docNumber?: string;
   docNumberDisplay?: string;
   companySealUrl?: string;      // 최종 승인된 결재선 문서에만 존재
+  documentFooter?: DocumentFooter;
+}
+
+/**
+ * 공문 하단 발신부에 찍히는 기관 정보.
+ * 전부 기관 단위 값이라 값이 비면 그 줄만 빠진다 (지금은 DB에 직접 넣고, 다음에 기관 프로필에서 편집).
+ */
+export interface DocumentFooter {
+  postalCode?: string;
+  address?: string;
+  homepageUrl?: string;
+  phoneNumber?: string;
+  faxNumber?: string;
+  contactEmail?: string;
+  /** 공개 / 부분공개 / 비공개. 비어 있으면 "공개"로 본다 */
+  disclosureType?: string;
 }
 
 // 결재 요청 생성
