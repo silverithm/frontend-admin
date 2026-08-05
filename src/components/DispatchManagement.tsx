@@ -12,6 +12,7 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { Loading } from "@/components/Loading";
 import { IconCalendar, IconList, IconUsers, IconSettings } from "@tabler/icons-react";
 import { useDispatchStore } from "@/lib/dispatchStore";
+import { loadDispatchSettings, startDispatchAutoSave } from "@/lib/dispatchSync";
 import type { DailyDispatch, DispatchDaySummary } from "@/types/dispatch";
 import type { VacationRequest } from "@/types/vacation";
 import { getDailyDispatch, getMonthlyDispatchSummary } from "@/lib/dispatchAlgorithm";
@@ -68,6 +69,13 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
   useEffect(() => {
     fetchVacations();
   }, [fetchVacations]);
+
+  // 배차 설정은 서버가 원본이다. 진입 시 불러오고, 이후 변경분은 자동 저장한다.
+  // (예전에는 이 브라우저 localStorage에만 있어서 다른 기기·직원 앱에서 볼 수 없었다)
+  useEffect(() => {
+    loadDispatchSettings();
+    return startDispatchAutoSave();
+  }, []);
 
   // 월간 요약 정보 계산 (일요일 = 휴일, 나머지 = 정상 운행)
   useEffect(() => {

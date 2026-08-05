@@ -1,18 +1,17 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import MemberSelector from './MemberSelector';
 import { VacationKind, VACATION_KIND_OPTIONS, toVacationRequestFields } from '@/types/vacation';
 import { adminCreateVacationForMember, getVacationCalendar } from '@/lib/apiService';
-import { useDispatchStore } from '@/lib/dispatchStore';
+import { fetchDriverRoles } from '@/lib/dispatchSync';
 import {
   VACATION_NOTICES,
   describeDriverConflicts,
-  driverRoleLabel,
-  findDriverAssignments,
-  findDriverConflicts,
+  findConflictsFromRoles,
+  type RemoteDriverRole,
 } from '@/lib/vacationGuard';
 import type { Member } from './MemberSelector';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -51,14 +50,30 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { settings } = useDispatchStore();
+  // 선택된 직원의 배차 배정 — 서버에서 조회한다(배차 설정은 회사 공용)
+  const [driverRoles, setDriverRoles] = useState<RemoteDriverRole[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedMember?.name) {
+      setDriverRoles([]);
+      return;
+    }
+    fetchDriverRoles(selectedMember.name).then((roles) => {
+      if (!cancelled) setDriverRoles(roles);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMember?.name]);
 
   /**
    * 그날 이미 휴무인 사람 중 같은 노선의 다른 운전자가 있는지 확인한다.
    * 배차에 배정되지 않은 직원이면 조회 없이 통과시킨다.
    */
   const checkDriverConflicts = async (memberName: string, date: string) => {
-    if (findDriverAssignments(memberName, settings.routes).length === 0) return [];
+    const roles = driverRoles.length > 0 ? driverRoles : await fetchDriverRoles(memberName);
+    if (roles.length === 0) return [];
     try {
       const data = await getVacationCalendar(date, date);
       const list: unknown[] = Array.isArray(data) ? data : (data?.vacations ?? data?.content ?? data?.data ?? []);
@@ -70,7 +85,7 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
           return v.userName || v.memberName || v.name || '';
         })
         .filter(Boolean);
-      return findDriverConflicts(memberName, settings.routes, names);
+      return findConflictsFromRoles(roles, names);
     } catch (err) {
       // 조회 실패로 등록 자체를 막지는 않는다 (배차는 보조 규칙)
       console.error('[휴무] 배차 충돌 확인 실패:', err);
@@ -79,14 +94,9 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
   };
 
   /** 선택된 직원이 어느 노선의 무슨 운전자인지 — 등록 전에 알려준다 */
-  const driverRoleSummary = React.useMemo(() => {
-    if (!selectedMember?.name) return '';
-    const assignments = findDriverAssignments(selectedMember.name, settings.routes);
-    if (assignments.length === 0) return '';
-    return assignments
-      .map(({ route, index }) => `· ${route.name}(${route.type}) ${driverRoleLabel(index)}`)
-      .join('\n');
-  }, [selectedMember?.name, settings.routes]);
+  const driverRoleSummary = driverRoles
+    .map((r) => `· ${r.routeName}(${r.routeType}) ${r.roleLabel}`)
+    .join('\n');
 
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);

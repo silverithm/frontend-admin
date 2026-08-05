@@ -20,12 +20,11 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { getVacationCalendar } from '@/lib/apiService';
-import { useDispatchStore } from '@/lib/dispatchStore';
+import { fetchDriverRoles } from '@/lib/dispatchSync';
 import {
   VACATION_NOTICES,
   describeDriverConflicts,
-  findDriverAssignments,
-  findDriverConflicts,
+  findConflictsFromRoles,
 } from '@/lib/vacationGuard';
 
 const VacationForm: React.FC<VacationFormProps> = ({
@@ -50,14 +49,13 @@ const VacationForm: React.FC<VacationFormProps> = ({
     role: '',
   });
 
-  const { settings } = useDispatchStore();
-
   /**
    * 그날 이미 휴무인 사람 중 같은 노선의 다른 운전자가 있는지 확인한다.
-   * 배차에 배정되지 않은 직원이면 조회 없이 통과시킨다.
+   * 배차 설정은 회사 공용이라 서버에 묻는다. 배정되지 않은 직원이면 바로 통과.
    */
   const checkDriverConflicts = async (name: string, date: string) => {
-    if (findDriverAssignments(name, settings.routes).length === 0) return [];
+    const roles = await fetchDriverRoles(name);
+    if (roles.length === 0) return [];
     try {
       const data = await getVacationCalendar(date, date);
       const list: unknown[] = Array.isArray(data) ? data : (data?.vacations ?? data?.content ?? data?.data ?? []);
@@ -68,7 +66,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
           return v.userName || v.memberName || v.name || '';
         })
         .filter(Boolean);
-      return findDriverConflicts(name, settings.routes, names);
+      return findConflictsFromRoles(roles, names);
     } catch (err) {
       // 조회 실패로 신청 자체를 막지는 않는다 (배차는 보조 규칙)
       console.error('[휴무] 배차 충돌 확인 실패:', err);

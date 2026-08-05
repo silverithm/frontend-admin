@@ -88,6 +88,44 @@ export function findDriverConflicts(
   return conflicts;
 }
 
+/** 서버가 내려주는 운전자 배정 (GET /dispatch-settings/driver-roles) */
+export interface RemoteDriverRole {
+  routeName: string;
+  routeType: string;
+  roleIndex: number;
+  roleLabel: string;
+  /** 같은 노선의 다른 운전자 이름 */
+  coDrivers: string[];
+}
+
+/**
+ * 서버에서 받은 배정 정보로 충돌을 찾는다.
+ * 배차 설정을 통째로 내려받지 않아도 되므로 휴무 화면·직원 앱에서 이 경로를 쓴다.
+ */
+export function findConflictsFromRoles(
+  roles: RemoteDriverRole[],
+  vacationNames: string[],
+): DriverConflict[] {
+  const onVacation = new Set(vacationNames.map((n) => n.trim()).filter(Boolean));
+  const conflicts: DriverConflict[] = [];
+
+  for (const role of roles) {
+    for (const other of role.coDrivers) {
+      const name = other.trim();
+      if (!name || !onVacation.has(name)) continue;
+      conflicts.push({
+        routeName: role.routeName,
+        routeType: role.routeType,
+        myRole: role.roleLabel,
+        otherName: name,
+        // 서버 응답에는 상대의 역할까지 담기지 않는다 — 같은 노선이라는 사실만으로 충분하다
+        otherRole: '같은 노선 운전자',
+      });
+    }
+  }
+  return conflicts;
+}
+
 /** 차단 안내 문구 — 어느 노선이 왜 멈추는지 구체적으로 알린다 */
 export function describeDriverConflicts(memberName: string, conflicts: DriverConflict[]): string {
   const lines = conflicts.map(
