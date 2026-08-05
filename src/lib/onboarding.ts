@@ -160,6 +160,16 @@ export const TOUR_STEPS: TourStep[] = [
     adminOnly: true,
   },
 
+  // ── 편의기능 ──
+  {
+    target: 'nav-tools',
+    tab: 'tools',
+    title: '⑨ 편의기능',
+    description:
+      '차량 배차나 AI 글쓰기처럼, 기관마다 쓰기도 하고 안 쓰기도 하는 기능을 모아둔 곳이에요.\n메뉴를 누르시면 아래에 쓰실 수 있는 기능이 펼쳐집니다.\n\n배차관리는 노선과 운전자를 한 번 등록해두시면\n휴무가 생겨도 대체 운전자를 자동으로 찾아드립니다.',
+    adminOnly: true,
+  },
+
   // ── 마무리 ──
   {
     target: 'sidebar-help',
