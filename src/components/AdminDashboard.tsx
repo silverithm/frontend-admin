@@ -65,7 +65,7 @@ import { dedupeNews } from '@/components/plaza/newsDedup';
 import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
 import { duration } from '@/theme/motion';
 import { getDailyGreeting } from '@/lib/dailyGreeting';
-import { buildMemberRoleLookup } from '@/lib/roleUtils';
+import { buildMemberRoleLookup, getRoleDisplayName } from '@/lib/roleUtils';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -446,8 +446,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       .map((person) => {
         const name = (person.memberName || person.userName || person.name || '').trim();
         if (!name) return '';
+        // lookup에는 'caregiver' 같은 원본 키가 담긴다 — 화면에는 등록된 직종명으로 보여준다
         const role = lookup.byName.get(name) || '';
-        return role ? `${role} ${name}` : name;
+        const roleLabel = role ? getRoleDisplayName(role) : '';
+        return roleLabel ? `${roleLabel} ${name}` : name;
       })
       .filter(Boolean)
       .join(', ');
