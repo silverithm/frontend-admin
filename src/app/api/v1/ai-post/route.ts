@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-3.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
 // Vercel 등 서버리스 환경에서 이미지 여러 장 처리 시간 확보
 export const maxDuration = 60;
@@ -51,10 +52,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 로그인한 사용자만 사용 가능 (키 무단 사용 방지 1차 게이트)
+    // 로그인한 사용자만 사용 가능 — 토큰을 백엔드에 실제 검증해서 키 무단 사용을 막는다
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401, headers });
+    }
+    const verifyResponse = await fetch(`${BACKEND_URL}/api/v1/users/info`, {
+      method: 'GET',
+      headers: { Accept: 'application/json', Authorization: authHeader },
+    });
+    if (!verifyResponse.ok) {
+      return NextResponse.json({ error: '로그인이 만료되었습니다. 다시 로그인해주세요.' }, { status: 401, headers });
     }
 
     const body = (await request.json()) as AiPostRequest;
