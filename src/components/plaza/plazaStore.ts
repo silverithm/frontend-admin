@@ -1,7 +1,9 @@
 // 커뮤니티(게시판·자료실) 목업 스토어 — 백엔드 API 연동 전까지 localStorage에 영속.
 // TODO: API 연동 시 이 파일의 함수 시그니처를 유지한 채 내부를 fetch로 교체하면 컴포넌트 수정 최소화.
 
-export type BoardType = 'qna' | 'review' | 'free';
+export type BoardType = 'free' | 'review' | 'tip';
+/** 시설 유형 — 평가후기·실무팁 글에만 붙는다 (자유게시판은 null) */
+export type PostCategory = 'daycare' | 'homecare' | 'nursing';
 export type LibraryCategory = 'form' | 'eval' | 'program' | 'etc';
 
 export interface PlazaComment {
@@ -20,6 +22,7 @@ export interface PlazaComment {
 export interface PlazaPost {
   id: string;
   board: BoardType;
+  category: PostCategory | null;
   title: string;
   content: string;
   authorId: string;
@@ -52,10 +55,16 @@ export interface LibraryItem {
   isSeed: boolean; // 운영자 시딩 자료 (실파일은 API 연동 후 제공)
 }
 
-export const BOARD_META: { value: BoardType; label: string; badgeVariant: 'blue' | 'yellow' | 'teal' }[] = [
-  { value: 'qna', label: '실무 Q&A', badgeVariant: 'blue' },
-  { value: 'review', label: '평가 후기', badgeVariant: 'yellow' },
-  { value: 'free', label: '자유', badgeVariant: 'teal' },
+export const BOARD_META: { value: BoardType; label: string; badgeLabel: string; badgeVariant: 'blue' | 'yellow' | 'teal'; hasCategory: boolean }[] = [
+  { value: 'free', label: '자유게시판', badgeLabel: '자유', badgeVariant: 'teal', hasCategory: false },
+  { value: 'review', label: '평가후기', badgeLabel: '평가후기', badgeVariant: 'yellow', hasCategory: true },
+  { value: 'tip', label: '실무팁', badgeLabel: '실무팁', badgeVariant: 'blue', hasCategory: true },
+];
+
+export const CATEGORY_META: { value: PostCategory; label: string; badgeVariant: 'green' | 'blue' | 'purple' }[] = [
+  { value: 'daycare', label: '주간보호', badgeVariant: 'green' },
+  { value: 'homecare', label: '방문요양·목욕', badgeVariant: 'blue' },
+  { value: 'nursing', label: '요양원', badgeVariant: 'purple' },
 ];
 
 export const LIBRARY_META: { value: LibraryCategory; label: string; badgeVariant: 'blue' | 'yellow' | 'green' | 'purple' }[] = [
@@ -69,7 +78,8 @@ export const REPORT_REASONS = ['광고/홍보', '욕설/비방', '개인정보 �
 
 export const REPORT_AUTO_HIDE_THRESHOLD = 3;
 
-export const getBoardMeta = (board: BoardType) => BOARD_META.find((b) => b.value === board) ?? BOARD_META[2];
+export const getBoardMeta = (board: BoardType) => BOARD_META.find((b) => b.value === board) ?? BOARD_META[0];
+export const getCategoryMeta = (cat: PostCategory) => CATEGORY_META.find((c) => c.value === cat) ?? CATEGORY_META[0];
 export const getLibraryMeta = (cat: LibraryCategory) => LIBRARY_META.find((c) => c.value === cat) ?? LIBRARY_META[3];
 
 export interface PlazaUser {
@@ -127,7 +137,8 @@ function seedStore(): PlazaStore {
   const posts: PlazaPost[] = [
     {
       id: 'seed-p1',
-      board: 'qna',
+      board: 'tip',
+      category: 'daycare',
       title: '요양보호사 근무시간표에서 연장근무 기록은 어떻게들 관리하시나요?',
       content:
         '저희 센터는 수기로 연장근무를 기록하다 보니 급여 정산 때마다 누락 시비가 생깁니다.\n다른 센터에서는 어떤 방식으로 관리하시는지 궁금합니다. 전산으로 관리하시는 곳 있으면 노하우 공유 부탁드려요.',
@@ -173,6 +184,7 @@ function seedStore(): PlazaStore {
     {
       id: 'seed-p2',
       board: 'review',
+      category: 'daycare',
       title: '2025년 하반기 정기평가 후기 — 기록관리에서 지적받은 항목 공유합니다',
       content:
         '지난주에 정기평가 받았습니다. 저희가 지적받은 부분은 크게 두 가지였어요.\n\n1. 프로그램 일지에 참여 어르신 개별 반응 기록 누락\n2. 낙상 위험도 평가 주기 미준수\n\n다들 평가 준비하실 때 이 두 항목은 꼭 챙기시길 바랍니다. 질문 있으시면 댓글 주세요.',
@@ -205,6 +217,7 @@ function seedStore(): PlazaStore {
     {
       id: 'seed-p3',
       board: 'free',
+      category: null,
       title: '어르신들이 제일 좋아하셨던 인지활동 프로그램 하나만 추천해주세요',
       content:
         '매주 프로그램 짜는 게 제일 큰 숙제네요. 저희는 요즘 옛날 물건 사진 보고 이야기 나누는 회상요법 반응이 좋았습니다. 다른 센터 인기 프로그램도 궁금해요!',
@@ -223,7 +236,8 @@ function seedStore(): PlazaStore {
     },
     {
       id: 'seed-p4',
-      board: 'qna',
+      board: 'tip',
+      category: 'nursing',
       title: '수급자 어르신 보호자와의 소통 기록, 어디까지 남기시나요?',
       content:
         '보호자 민원이 있을 때마다 통화 내용을 어디까지 기록해야 하는지 애매합니다.\n분쟁 대비 관점에서 다른 기관들은 어떻게 하시는지 궁금합니다.',
@@ -243,9 +257,10 @@ function seedStore(): PlazaStore {
     {
       id: 'seed-p5',
       board: 'free',
+      category: null,
       title: '[운영] 케어브이 커뮤니티 이용 안내',
       content:
-        '케어브이 커뮤니티가 열렸습니다!\n\n· 실무 Q&A: 업무 중 궁금한 점을 묻고 답해주세요. 질문자는 도움이 된 답변을 채택할 수 있습니다.\n· 평가 후기: 기관 평가 경험과 준비 노하우를 나눠주세요.\n· 자유: 현장 이야기를 자유롭게 나누는 공간입니다.\n\n광고·비방·개인정보 노출 게시물은 신고가 누적되면 자동으로 숨김 처리됩니다. 건강한 커뮤니티를 함께 만들어주세요.',
+        '케어브이 커뮤니티가 열렸습니다!\n\n· 자유게시판: 현장 이야기를 자유롭게 나누는 공간입니다.\n· 평가후기: 기관 평가 경험과 준비 노하우를 시설 유형별로 나눠주세요.\n· 실무팁: 업무 노하우와 꿀팁을 시설 유형별로 공유해주세요.\n\n광고·비방·개인정보 노출 게시물은 신고가 누적되면 자동으로 숨김 처리됩니다. 건강한 커뮤니티를 함께 만들어주세요.',
       authorId: 'carev-admin',
       authorName: '케어브이 운영팀',
       companyName: '케어브이',
@@ -314,11 +329,12 @@ export function getPost(id: string): PlazaPost | undefined {
   return loadStore().posts.find((p) => p.id === id);
 }
 
-export function createPost(input: { board: BoardType; title: string; content: string; isAnonymous: boolean }): PlazaPost {
+export function createPost(input: { board: BoardType; category: PostCategory | null; title: string; content: string; isAnonymous: boolean }): PlazaPost {
   const user = getCurrentUser();
   const post: PlazaPost = {
     id: newId(),
     board: input.board,
+    category: input.board === 'free' ? null : input.category,
     title: input.title,
     content: input.content,
     authorId: user.id,
@@ -338,11 +354,12 @@ export function createPost(input: { board: BoardType; title: string; content: st
   return post;
 }
 
-export function updatePost(id: string, input: { board: BoardType; title: string; content: string; isAnonymous: boolean }) {
+export function updatePost(id: string, input: { board: BoardType; category: PostCategory | null; title: string; content: string; isAnonymous: boolean }) {
   mutate((s) => {
     const p = s.posts.find((x) => x.id === id);
     if (!p) return;
     p.board = input.board;
+    p.category = input.board === 'free' ? null : input.category;
     p.title = input.title;
     p.content = input.content;
     p.isAnonymous = input.isAnonymous;

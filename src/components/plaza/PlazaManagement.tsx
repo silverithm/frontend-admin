@@ -10,10 +10,9 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import {
-  IconClipboardList,
+  IconBulb,
   IconFolder,
   IconHome2,
-  IconMessages,
   IconNews,
   IconPencilPlus,
   IconShieldCheck,
@@ -26,17 +25,15 @@ import PlazaBoard from './PlazaBoard';
 import PlazaHome, { type PlazaMenu } from './PlazaHome';
 import PlazaLibrary from './PlazaLibrary';
 import PlazaNews from './PlazaNews';
-import { isLoggedIn, isDemoMode, type BoardType } from './plazaStore';
-import { fetchPlazaRole } from './plazaApi';
+import { CATEGORY_META, isLoggedIn, isDemoMode, type BoardType, type PostCategory } from './plazaStore';
+import { fetchPlazaRole, fetchPost } from './plazaApi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 
-const BOARD_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
-  { key: 'home', label: '커뮤니티 홈', icon: IconHome2 },
-  { key: 'all', label: '전체글', icon: IconClipboardList },
-  { key: 'qna', label: '실무 Q&A', icon: IconMessages },
-  { key: 'review', label: '평가 후기', icon: IconStar },
-  { key: 'free', label: '자유', icon: IconUsersGroup },
+const BOARD_MENUS: { key: BoardType; label: string; icon: TablerIcon; hasCategory: boolean }[] = [
+  { key: 'free', label: '자유게시판', icon: IconUsersGroup, hasCategory: false },
+  { key: 'review', label: '평가후기', icon: IconStar, hasCategory: true },
+  { key: 'tip', label: '실무팁', icon: IconBulb, hasCategory: true },
 ];
 
 const RESOURCE_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
@@ -44,16 +41,18 @@ const RESOURCE_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
   { key: 'library', label: '자료실', icon: IconFolder },
 ];
 
-const BOARD_KEYS: PlazaMenu[] = ['all', 'qna', 'review', 'free'];
+const BOARD_KEYS: PlazaMenu[] = ['free', 'review', 'tip'];
 
 /**
  * 케어브이 커뮤니티 — 카페형 레이아웃.
- * 좌측 보드 네비(데스크탑) / 상단 가로 탭(모바일) + 커뮤니티 홈·보드·요양소식·자료실.
+ * 좌측 보드 네비(데스크탑) / 상단 가로 탭(모바일) + 커뮤니티 홈·보드(평가후기·실무팁은 시설 유형 서브메뉴)·요양소식·자료실.
  */
 export default function PlazaManagement() {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [activeMenu, setActiveMenu] = useState<PlazaMenu>('home');
+  // 평가후기·실무팁의 시설 유형 필터 (null = 해당 보드 전체)
+  const [activeCategory, setActiveCategory] = useState<PostCategory | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
   const [openPostId, setOpenPostId] = useState<number | null>(null);
   const [pendingWrite, setPendingWrite] = useState(false);
@@ -71,13 +70,15 @@ export default function PlazaManagement() {
     };
   }, []);
 
-  // 외부 링크(/plaza?post=123)로 들어오면 해당 글을 바로 연다.
+  // 외부 링크(/plaza?post=123)로 들어오면 해당 글이 속한 보드로 이동해 바로 연다.
   // useSearchParams는 Suspense 경계를 요구하므로 마운트 후 location에서 직접 읽는다.
   useEffect(() => {
     const postId = Number(new URLSearchParams(window.location.search).get('post'));
     if (Number.isFinite(postId) && postId > 0) {
-      setActiveMenu('all');
       setOpenPostId(postId);
+      fetchPost(postId)
+        .then((post) => setActiveMenu(post.board))
+        .catch(() => setActiveMenu('free'));
     }
   }, []);
 
@@ -94,14 +95,15 @@ export default function PlazaManagement() {
   const isBoardMenu = BOARD_KEYS.includes(activeMenu);
 
   /** 메뉴 이동 — 작성 중인 글이 있으면 이탈 확인 */
-  const navigateTo = async (menu: PlazaMenu) => {
-    if (menu === activeMenu) return;
+  const navigateTo = async (menu: PlazaMenu, category: PostCategory | null = null) => {
+    if (menu === activeMenu && category === activeCategory) return;
     if (boardDirty) {
       const ok = await confirm({ title: '작성 취소', message: '작성 중인 내용이 사라집니다. 이동할까요?', type: 'warning', confirmText: '이동' });
       if (!ok) return;
       setBoardDirty(false);
     }
     setActiveMenu(menu);
+    setActiveCategory(category);
   };
 
   const handleWrite = () => {
@@ -114,27 +116,48 @@ export default function PlazaManagement() {
       return;
     }
     if (!isBoardMenu) {
-      setActiveMenu('all');
+      setActiveMenu('free');
+      setActiveCategory(null);
     }
     setPendingWrite(true);
   };
 
-  const handleOpenPost = (postId: number) => {
-    setActiveMenu('all');
+  const handleOpenPost = (postId: number, board: BoardType) => {
+    setActiveMenu(board);
+    setActiveCategory(null);
     setOpenPostId(postId);
   };
 
-  const navButton = (menu: { key: PlazaMenu; label: string; icon: TablerIcon }) => (
-    <Button
-      key={menu.key}
-      label={menu.label}
-      variant={activeMenu === menu.key ? 'secondary' : 'ghost'}
-      size="md"
-      icon={<Icon icon={menu.icon} size="sm" color={activeMenu === menu.key ? 'accent' : 'secondary'} />}
-      onClick={() => navigateTo(menu.key)}
-      style={{ width: '100%', justifyContent: 'flex-start' }}
-    />
-  );
+  const navButton = (menu: { key: PlazaMenu; label: string; icon: TablerIcon }) => {
+    const isActive = activeMenu === menu.key && (!BOARD_KEYS.includes(menu.key) || activeCategory === null);
+    return (
+      <Button
+        key={menu.key}
+        label={menu.label}
+        variant={isActive ? 'secondary' : 'ghost'}
+        size="md"
+        icon={<Icon icon={menu.icon} size="sm" color={isActive ? 'accent' : 'secondary'} />}
+        onClick={() => navigateTo(menu.key)}
+        style={{ width: '100%', justifyContent: 'flex-start' }}
+      />
+    );
+  };
+
+  /** 평가후기·실무팁 아래 시설 유형 서브메뉴 */
+  const navSubButton = (board: BoardType, category: (typeof CATEGORY_META)[number]) => {
+    const isActive = activeMenu === board && activeCategory === category.value;
+    return (
+      <div key={`${board}-${category.value}`} style={{ paddingLeft: 'var(--spacing-6)' }}>
+        <Button
+          label={category.label}
+          variant={isActive ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => navigateTo(board, category.value)}
+          style={{ width: '100%', justifyContent: 'flex-start' }}
+        />
+      </div>
+    );
+  };
 
   return (
     <>
@@ -157,9 +180,9 @@ export default function PlazaManagement() {
           )}
         </HStack>
 
-        {/* 모바일: 상단 가로 스크롤 탭 */}
+        {/* 모바일: 상단 가로 스크롤 탭 — 시설 유형은 보드 안의 필터 칩으로 고른다 */}
         <div className="carev-plaza-mobiletabs scrollbar-hide">
-          {[...BOARD_MENUS, ...RESOURCE_MENUS].map((menu) => (
+          {[{ key: 'home' as PlazaMenu, label: '커뮤니티 홈' }, ...BOARD_MENUS, ...RESOURCE_MENUS].map((menu) => (
             <Button
               key={menu.key}
               label={menu.label}
@@ -187,7 +210,13 @@ export default function PlazaManagement() {
                   style={{ width: '100%' }}
                 />
                 <div style={{ height: 'var(--spacing-1)' }} />
-                {BOARD_MENUS.map(navButton)}
+                {navButton({ key: 'home', label: '커뮤니티 홈', icon: IconHome2 })}
+                {BOARD_MENUS.map((menu) => (
+                  <VStack key={menu.key} gap={0.5}>
+                    {navButton(menu)}
+                    {menu.hasCategory && CATEGORY_META.map((category) => navSubButton(menu.key, category))}
+                  </VStack>
+                ))}
                 <Divider />
                 {RESOURCE_MENUS.map(navButton)}
               </VStack>
@@ -201,7 +230,9 @@ export default function PlazaManagement() {
             )}
             {isBoardMenu && (
               <PlazaBoard
-                board={activeMenu as 'all' | BoardType}
+                board={activeMenu as BoardType}
+                category={activeCategory}
+                onCategoryChange={setActiveCategory}
                 openPostId={openPostId}
                 onOpenPostConsumed={() => setOpenPostId(null)}
                 writeRequested={pendingWrite}

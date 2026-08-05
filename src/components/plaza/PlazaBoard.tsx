@@ -39,12 +39,21 @@ import {
 import { FiSearch } from 'react-icons/fi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { BOARD_META, REPORT_REASONS, getBoardMeta, isLoggedIn, isDemoMode, type BoardType } from './plazaStore';
+import {
+  BOARD_META,
+  CATEGORY_META,
+  REPORT_REASONS,
+  getBoardMeta,
+  getCategoryMeta,
+  isLoggedIn,
+  isDemoMode,
+  type BoardType,
+  type PostCategory,
+} from './plazaStore';
 import {
   type ApiComment,
   type ApiPostDetail,
   type ApiPostSummary,
-  acceptComment,
   addComment,
   createPost,
   deleteComment,
@@ -59,7 +68,6 @@ import {
 } from './plazaApi';
 import { duration } from '@/theme/motion';
 
-type BoardFilter = 'all' | BoardType;
 type SortKey = 'latest' | 'popular' | 'comments';
 
 const PAGE_SIZE = 10;
@@ -67,8 +75,11 @@ const PAGE_SIZE = 10;
 const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ko });
 
 interface PlazaBoardProps {
-  /** 표시할 보드 ('all' = 전체글). 카페형 셸(PlazaManagement)의 좌측 네비가 제어한다 */
-  board?: BoardFilter;
+  /** 표시할 보드. 카페형 셸(PlazaManagement)의 좌측 네비가 제어한다 */
+  board: BoardType;
+  /** 시설 유형 필터 (평가후기·실무팁, null = 전체) — 좌측 네비 서브메뉴/보드 내 칩과 동기화 */
+  category?: PostCategory | null;
+  onCategoryChange?: (category: PostCategory | null) => void;
   /** 외부(커뮤니티 홈 위젯)에서 특정 글 상세를 열 때 전달 */
   openPostId?: number | null;
   onOpenPostConsumed?: () => void;
@@ -79,7 +90,7 @@ interface PlazaBoardProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsumed, writeRequested, onWriteRequestConsumed, onDirtyChange }: PlazaBoardProps) {
+export default function PlazaBoard({ board, category = null, onCategoryChange, openPostId, onOpenPostConsumed, writeRequested, onWriteRequestConsumed, onDirtyChange }: PlazaBoardProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
 
@@ -87,7 +98,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
-  const boardFilter = board;
+  const boardMeta = getBoardMeta(board);
   const [sortKey, setSortKey] = useState<SortKey>('latest');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -100,6 +111,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const [isWriting, setIsWriting] = useState(false); // 게시판식 전체 화면 글쓰기 모드
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [formBoard, setFormBoard] = useState<BoardType>('free');
+  const [formCategory, setFormCategory] = useState<PostCategory | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formAnonymous, setFormAnonymous] = useState(false);
@@ -121,10 +133,10 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   }, []);
 
   /** 작성 시작 시점의 값 — 이탈 확인(dirty) 판단 기준 */
-  const [writeOrigin, setWriteOrigin] = useState<{ board: BoardType; title: string; content: string; anonymous: boolean } | null>(null);
+  const [writeOrigin, setWriteOrigin] = useState<{ board: BoardType; category: PostCategory | null; title: string; content: string; anonymous: boolean } | null>(null);
   const isWriteDirty = isWriting && !!writeOrigin && (
     formTitle !== writeOrigin.title || formContent !== writeOrigin.content
-    || formBoard !== writeOrigin.board || formAnonymous !== writeOrigin.anonymous
+    || formBoard !== writeOrigin.board || formCategory !== writeOrigin.category || formAnonymous !== writeOrigin.anonymous
   );
 
   useEffect(() => {
@@ -154,12 +166,12 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     return () => clearTimeout(timer);
   }, [search]);
 
-  // 보드 전환 시 목록 상태 초기화
+  // 보드·시설 유형 전환 시 목록 상태 초기화
   useEffect(() => {
     setPage(0);
     setDetail(null);
     setIsWriting(false);
-  }, [board]);
+  }, [board, category]);
 
   // 커뮤니티 홈 등 외부에서 특정 글 열기
   useEffect(() => {
@@ -185,7 +197,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const loadPosts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchPosts({ board: boardFilter, sort: sortKey, search: debouncedSearch || undefined, page, size: PAGE_SIZE });
+      const data = await fetchPosts({ board, category: category ?? undefined, sort: sortKey, search: debouncedSearch || undefined, page, size: PAGE_SIZE });
       setPosts(data.content ?? []);
       setTotalPages(Math.max(1, data.totalPages ?? 1));
     } catch (error) {
@@ -194,7 +206,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     } finally {
       setIsLoading(false);
     }
-  }, [boardFilter, sortKey, debouncedSearch, page]);
+  }, [board, category, sortKey, debouncedSearch, page]);
 
   useEffect(() => {
     loadPosts();
@@ -242,25 +254,28 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
   const openWrite = () => {
     if (!requireLogin()) return;
     setEditingPostId(null);
-    setFormBoard(boardFilter === 'all' ? 'free' : boardFilter);
+    setFormBoard(board);
+    // 서브메뉴에서 들어왔으면 그 시설 유형을 기본값으로
+    setFormCategory(boardMeta.hasCategory ? category : null);
     setFormTitle('');
     setFormContent('');
     setFormAnonymous(false);
     setFormOfficial(false);
     setFormPinned(false);
-    setWriteOrigin({ board: boardFilter === 'all' ? 'free' : boardFilter, title: '', content: '', anonymous: false });
+    setWriteOrigin({ board, category: boardMeta.hasCategory ? category : null, title: '', content: '', anonymous: false });
     setIsWriting(true);
   };
 
   const openEdit = (post: ApiPostDetail) => {
     setEditingPostId(post.id);
     setFormBoard(post.board);
+    setFormCategory(post.category);
     setFormTitle(post.title);
     setFormContent(post.content);
     setFormAnonymous(post.isAnonymous);
     setFormOfficial(post.isOfficial);
     setFormPinned(post.isPinned);
-    setWriteOrigin({ board: post.board, title: post.title, content: post.content, anonymous: post.isAnonymous });
+    setWriteOrigin({ board: post.board, category: post.category, title: post.title, content: post.content, anonymous: post.isAnonymous });
     setIsWriting(true);
   };
 
@@ -277,15 +292,22 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
       showAlert({ type: 'warning', title: '입력 필요', message: '제목과 내용을 입력해주세요.' });
       return;
     }
+    const formBoardMeta = getBoardMeta(formBoard);
+    if (formBoardMeta.hasCategory && !formCategory) {
+      showAlert({ type: 'warning', title: '입력 필요', message: `${formBoardMeta.label} 글은 시설 유형을 선택해주세요.` });
+      return;
+    }
+    const categoryToSave = formBoardMeta.hasCategory ? formCategory : null;
     setIsSubmitting(true);
     try {
       if (editingPostId) {
-        await updatePost(editingPostId, { board: formBoard, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
+        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
         showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
         await reloadDetail(editingPostId);
       } else {
         const created = await createPost({
           board: formBoard,
+          category: categoryToSave,
           title: formTitle.trim(),
           content: formContent.trim(),
           isAnonymous: formAnonymous,
@@ -401,24 +423,9 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
     }
   };
 
-  const handleAccept = async (commentId: number) => {
-    if (!detail) return;
-    const ok = await confirm({ title: '답변 채택', message: '이 답변을 채택할까요? 글당 하나의 답변만 채택됩니다.', confirmText: '채택' });
-    if (!ok) return;
-    try {
-      await acceptComment(commentId);
-      showAlert({ type: 'success', title: '채택 완료', message: '답변이 채택되었습니다.' });
-      await reloadDetail(detail.id);
-    } catch (error) {
-      showAlert({ type: 'error', title: '채택 실패', message: error instanceof Error ? error.message : '답변 채택에 실패했습니다.' });
-    }
-  };
-
   // ── 렌더 ──────────────────────────────────────────────
 
   const renderCommentBody = (comment: ApiComment, isReply: boolean) => {
-    const canAccept = !!detail && detail.board === 'qna' && detail.isMine && !isReply && !comment.isAccepted && !comment.isMine;
-
     return (
       <div
         key={comment.id}
@@ -438,9 +445,6 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
               <Text type="supporting" color="secondary">{timeAgo(comment.createdAt)}</Text>
             </HStack>
             <HStack gap={1} vAlign="center">
-              {canAccept && (
-                <Button variant="ghost" size="sm" label="채택" icon={<Icon icon={IconCheck} size="xsm" color="success" />} onClick={() => handleAccept(comment.id)} />
-              )}
               {!isReply && (
                 <Button variant="ghost" size="sm" label="답글" onClick={() => { setReplyTargetId(replyTargetId === comment.id ? null : comment.id); setReplyInput(''); }} />
               )}
@@ -500,7 +504,8 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
                 <HStack gap={2} vAlign="center" wrap="wrap">
                   {post.isPinned && <Badge variant="neutral" icon={<Icon icon={IconPinned} size="xsm" />} label="고정" />}
                   {post.isOfficial && <Badge variant="teal" label="운영" />}
-                  <Badge variant={meta.badgeVariant} label={meta.label} />
+                  <Badge variant={meta.badgeVariant} label={meta.badgeLabel} />
+                  {post.category && <Badge variant={getCategoryMeta(post.category).badgeVariant} label={getCategoryMeta(post.category).label} />}
                   <Heading level={3}>{post.title}</Heading>
                 </HStack>
                 <HStack gap={3} vAlign="center" wrap="wrap">
@@ -567,9 +572,7 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
               <Text type="body" weight="bold" color="primary">댓글 {post.comments.length}</Text>
 
               {topLevel.length === 0 ? (
-                <Text type="supporting" color="secondary">
-                  {post.board === 'qna' ? '아직 답변이 없습니다. 첫 답변을 남겨보세요.' : '아직 댓글이 없습니다. 첫 댓글을 남겨보세요.'}
-                </Text>
+                <Text type="supporting" color="secondary">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</Text>
               ) : (
                 <VStack gap={1}>
                   {topLevel.map((comment) => (
@@ -588,8 +591,8 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
 
               <VStack gap={2}>
                 <TextArea
-                  label={post.board === 'qna' ? '답변 작성' : '댓글 작성'}
-                  placeholder={post.board === 'qna' ? '답변을 입력하세요' : '댓글을 입력하세요'}
+                  label="댓글 작성"
+                  placeholder="댓글을 입력하세요"
                   value={commentInput}
                   onChange={(v) => setCommentInput(v)}
                   rows={3}
@@ -612,9 +615,18 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
         {/* 툴바 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-          <Text type="body" weight="bold" color="primary">
-            {boardFilter === 'all' ? '전체글' : getBoardMeta(boardFilter).label}
-          </Text>
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Text type="body" weight="bold" color="primary">{boardMeta.label}</Text>
+            {/* 시설 유형 필터 칩 — 좌측 네비 서브메뉴와 동기화 (모바일에서는 이 칩이 유일한 진입점) */}
+            {boardMeta.hasCategory && (
+              <HStack gap={1} vAlign="center" wrap="wrap">
+                <Button variant={category === null ? 'secondary' : 'ghost'} size="sm" label="전체" onClick={() => onCategoryChange?.(null)} />
+                {CATEGORY_META.map((c) => (
+                  <Button key={c.value} variant={category === c.value ? 'secondary' : 'ghost'} size="sm" label={c.label} onClick={() => onCategoryChange?.(c.value)} />
+                ))}
+              </HStack>
+            )}
+          </HStack>
           <HStack gap={2} vAlign="center" wrap="wrap">
             <div style={{ width: 130 }}>
               <Selector
@@ -674,7 +686,6 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
           ) : (
             <VStack gap={0}>
               {posts.map((post, idx) => {
-                const meta = getBoardMeta(post.board);
                 return (
                   <div
                     key={post.id}
@@ -696,9 +707,10 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
                           <Badge variant="teal" label="운영" />
                         </div>
                       )}
-                      {boardFilter === 'all' && (
+                      {/* 시설 유형 말머리 — 특정 유형으로 필터 중일 때는 중복이라 숨긴다 */}
+                      {post.category && !category && (
                         <div style={{ flexShrink: 0 }}>
-                          <Badge variant={meta.badgeVariant} label={meta.label} />
+                          <Badge variant={getCategoryMeta(post.category).badgeVariant} label={getCategoryMeta(post.category).label} />
                         </div>
                       )}
                       {post.hasAccepted && <Icon icon={IconCheck} size="xsm" color="success" />}
@@ -764,15 +776,33 @@ export default function PlazaBoard({ board = 'all', openPostId, onOpenPostConsum
           <Card padding={6} height="100%">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', height: '100%' }}>
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-                <div style={{ width: 160 }}>
-                  <Selector
-                    label="게시판"
-                    isLabelHidden
-                    value={formBoard}
-                    onChange={(v) => setFormBoard((v as BoardType) || 'free')}
-                    options={BOARD_META.map((b) => ({ value: b.value, label: b.label }))}
-                  />
-                </div>
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <div style={{ width: 160 }}>
+                    <Selector
+                      label="게시판"
+                      isLabelHidden
+                      value={formBoard}
+                      onChange={(v) => {
+                        const next = (v as BoardType) || 'free';
+                        setFormBoard(next);
+                        if (!getBoardMeta(next).hasCategory) setFormCategory(null);
+                      }}
+                      options={BOARD_META.map((b) => ({ value: b.value, label: b.label }))}
+                    />
+                  </div>
+                  {getBoardMeta(formBoard).hasCategory && (
+                    <div style={{ width: 170 }}>
+                      <Selector
+                        label="시설 유형"
+                        isLabelHidden
+                        placeholder="시설 유형 선택"
+                        value={formCategory ?? ''}
+                        onChange={(v) => setFormCategory((v as PostCategory) || null)}
+                        options={CATEGORY_META.map((c) => ({ value: c.value, label: c.label }))}
+                      />
+                    </div>
+                  )}
+                </HStack>
                 <HStack gap={4} vAlign="center" wrap="wrap">
                   {/* 운영자에게만 보이는 관리자 모드 — 켜면 '케어브이 운영팀' 이름으로 [운영] 공지가 된다 */}
                   {isPlazaAdmin && (

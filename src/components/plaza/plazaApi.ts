@@ -1,11 +1,13 @@
 // 케어브이 커뮤니티 API 클라이언트 (게시판·자료실).
 // 읽기는 비로그인 허용(토큰 없이 호출), 쓰기는 토큰 필수 — 서버가 익명 마스킹·권한을 처리한다.
 
-import type { BoardType, LibraryCategory } from './plazaStore';
+import type { BoardType, LibraryCategory, PostCategory } from './plazaStore';
 
 export interface ApiPostSummary {
   id: number;
   board: BoardType;
+  /** 시설 유형 — 평가후기·실무팁 글에만 있다 */
+  category: PostCategory | null;
   title: string;
   preview: string;
   displayAuthor: string;
@@ -38,6 +40,8 @@ export interface ApiComment {
 export interface ApiPostDetail {
   id: number;
   board: BoardType;
+  /** 시설 유형 — 평가후기·실무팁 글에만 있다 */
+  category: PostCategory | null;
   title: string;
   content: string;
   displayAuthor: string;
@@ -143,6 +147,7 @@ export async function fetchOfficialNotices(size = 5): Promise<ApiOfficialNotice[
 
 export async function fetchPosts(params: {
   board?: string;
+  category?: string;
   sort?: string;
   search?: string;
   page?: number;
@@ -150,6 +155,7 @@ export async function fetchPosts(params: {
 }): Promise<{ content: ApiPostSummary[]; totalPages: number; totalElements: number }> {
   const query = new URLSearchParams();
   if (params.board && params.board !== 'all') query.set('board', params.board);
+  if (params.category && params.category !== 'all') query.set('category', params.category);
   if (params.sort) query.set('sort', params.sort);
   if (params.search) query.set('search', params.search);
   query.set('page', String(params.page ?? 0));
@@ -164,6 +170,7 @@ export async function fetchPost(id: number): Promise<ApiPostDetail> {
 /** isOfficial/isPinned는 커뮤니티 운영자만 반영된다 (서버에서 검증) */
 export async function createPost(input: {
   board: BoardType;
+  category: PostCategory | null;
   title: string;
   content: string;
   isAnonymous: boolean;
@@ -173,7 +180,7 @@ export async function createPost(input: {
   return request('posts', { method: 'POST', body: JSON.stringify({ ...input, ...authorInfo() }) });
 }
 
-export async function updatePost(id: number, input: { board: BoardType; title: string; content: string; isAnonymous: boolean }): Promise<void> {
+export async function updatePost(id: number, input: { board: BoardType; category: PostCategory | null; title: string; content: string; isAnonymous: boolean }): Promise<void> {
   await request(`posts/${id}`, { method: 'PUT', body: JSON.stringify({ ...input, ...authorInfo() }) });
 }
 

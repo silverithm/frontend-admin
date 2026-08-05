@@ -15,23 +15,23 @@ import { Center } from '@astryxdesign/core/Center';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { IconClock, IconDownload, IconFlame, IconFolder, IconNews, IconPinned } from '@tabler/icons-react';
 import type { TablerIcon } from '@tabler/icons-react';
-import { getBoardMeta, getLibraryMeta, formatFileSize } from './plazaStore';
+import { getBoardMeta, getLibraryMeta, formatFileSize, type BoardType } from './plazaStore';
 import { getNewsCategoryMeta, type NewsItem } from './newsMock';
 import { dedupeNews } from './newsDedup';
 import { fetchLibraryItems, fetchPosts, type ApiLibraryItem, type ApiPostSummary } from './plazaApi';
 import { duration } from '@/theme/motion';
 
-export type PlazaMenu = 'home' | 'all' | 'qna' | 'review' | 'free' | 'news' | 'library';
+export type PlazaMenu = 'home' | 'free' | 'review' | 'tip' | 'news' | 'library';
 
 interface PlazaHomeProps {
   newsItems: NewsItem[];
   onNavigate: (menu: PlazaMenu) => void;
-  onOpenPost: (postId: number) => void;
+  onOpenPost: (postId: number, board: BoardType) => void;
 }
 
 const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ko });
 
-function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string; onMore: () => void }) {
+function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string; onMore?: () => void }) {
   return (
     <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-2)' }}>
       <HStack hAlign="between" vAlign="center">
@@ -39,7 +39,9 @@ function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string
           <Icon icon={icon} size="sm" color="secondary" />
           <Text type="body" weight="bold" color="primary">{title}</Text>
         </HStack>
-        <Button variant="ghost" size="sm" label="더보기" endContent={<Icon icon="chevronRight" size="xsm" />} onClick={onMore} />
+        {onMore && (
+          <Button variant="ghost" size="sm" label="더보기" endContent={<Icon icon="chevronRight" size="xsm" />} onClick={onMore} />
+        )}
       </HStack>
     </div>
   );
@@ -101,10 +103,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         key={post.id}
         className="carev-dash-row"
         style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-1) var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
-        onClick={() => onOpenPost(post.id)}
+        onClick={() => onOpenPost(post.id, post.board)}
       >
         <div style={{ flexShrink: 0 }}>
-          {post.isPinned ? <Icon icon={IconPinned} size="xsm" color="secondary" /> : <Badge variant={meta.badgeVariant} label={meta.label} />}
+          {post.isPinned ? <Icon icon={IconPinned} size="xsm" color="secondary" /> : <Badge variant={meta.badgeVariant} label={meta.badgeLabel} />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <Text type="body" color="primary" maxLines={1}>{post.title}</Text>
@@ -127,7 +129,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         {/* 인기글 */}
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
-            <WidgetHeader icon={IconFlame} title="인기글" onMore={() => onNavigate('all')} />
+            <WidgetHeader icon={IconFlame} title="인기글" />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(4) : popular.length === 0 ? (
                 /* 위젯 높이 안에서 가로·세로 가운데 정렬 (위에 붙지 않게) */
@@ -181,7 +183,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         {/* 최신글 */}
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
-            <WidgetHeader icon={IconClock} title="최신글" onMore={() => onNavigate('all')} />
+            <WidgetHeader icon={IconClock} title="최신글" />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(6) : latest.length === 0 ? (
                 /* 위젯은 공간이 좁아 isCompact를 쓰고, 남는 높이 안에서 가운데 정렬한다 */
