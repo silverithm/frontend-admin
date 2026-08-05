@@ -14,8 +14,6 @@
   /* 관리자/직원 셸은 확정 높이(100dvh)를 갖고, 그 안에서 flex로 높이를 분배한다.
      한 화면을 채워야 하는 영역은 flex: 1 + min-height: 0 을 쓴다 (뷰포트 계산식 금지). */
   --carev-shell-chrome: 88px;
-  /* 대시보드 상단 요약 카드(공지/전자결재/소식) 높이 */
-  --carev-dash-toprow: 200px;
 }
 
 html {
@@ -130,12 +128,15 @@ html {
 @media (min-width: 640px)  { .carev-dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .carev-dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .carev-dash-stats-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 1024px) { .carev-dash-stats-emp { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .carev-dash-panels { grid-template-columns: 1fr; }
-/* 상단 요약 카드 높이 — 월간일정에 남은 높이를 몰아주기 위해 컴팩트하게 */
+/* 상단 요약 카드 높이 — 각 카드가 두 줄만 보여주므로 높이를 내용에 맡기고(auto),
+   남는 높이는 전부 월간일정(마지막 행)이 가져간다. 고정값을 쓰면 두 줄이 잘리거나
+   빈 공간이 남는데, auto면 줄 수만 바꿔도 알아서 맞는다. */
 @media (min-width: 1024px) {
   .carev-dash-panels {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, var(--carev-dash-toprow)) minmax(0, 1fr);
+    grid-template-rows: repeat(2, auto) minmax(0, 1fr);
   }
   .carev-dash-panel-full { grid-column: 1 / -1; }
   .carev-dash-panel-news { grid-column: 1 / -1; }
@@ -145,7 +146,7 @@ html {
 @media (min-width: 1440px) {
   .carev-dash-panels {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: var(--carev-dash-toprow) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
   .carev-dash-panel-news { grid-column: auto; }
 }
@@ -412,7 +413,35 @@ html {
   .carev-schedcal-detail { width: 25%; min-width: 0; }
   .carev-schedcal-card { display: flex; flex-direction: column; }
 }
-.carev-schedcal-week { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); }
+
+/* 달력과 날짜 상세를 가르는 구분선. 두 컬럼 사이 간격 한가운데에 놓고
+   위아래 끝을 흐리게 빼서 선이 툭 끊긴 느낌이 나지 않게 한다. */
+.carev-schedcal-detail { position: relative; }
+.carev-schedcal-detail::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--spacing-6) / -2);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border) 15%, var(--color-border) 85%, transparent);
+}
+@media (min-width: 1280px) {
+  .carev-schedcal-detail::before {
+    left: calc(var(--spacing-6) / -2);
+    right: auto;
+    top: 0;
+    bottom: 0;
+    height: auto;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--color-border) 12%, var(--color-border) 88%, transparent);
+  }
+}
+/* 일요일은 대개 쉬는 날이라 일정이 거의 없다 — 칸을 좁혀 그만큼을 평일에 넘긴다.
+   ⚠ 이 비율을 바꾸면 ScheduleCalendar.tsx의 SUNDAY_FR도 같이 바꿔야 한다.
+   여러 날 일정 바가 이 비율로 계산한 % 좌표에 절대배치되기 때문에 한쪽만 바꾸면 어긋난다. */
+.carev-schedcal-cols { display: grid; grid-template-columns: 0.7fr repeat(6, 1fr); }
+.carev-schedcal-week { position: relative; display: grid; grid-template-columns: 0.7fr repeat(6, 1fr); }
 /* 여러 날 일정 바(최대 3줄) + "+N개" 표시가 들어갈 최소 높이 확보 */
 .carev-schedcal-cell { min-height: 108px; transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
 @media (min-width: 768px) { .carev-schedcal-cell { min-height: 120px; } }
@@ -444,6 +473,115 @@ html {
 @media (hover: hover) { .carev-schedcal-list-item:hover { background: var(--color-background-surface); border-color: var(--color-border); } }
 .carev-schedcal-attach { transition: background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-schedcal-attach:hover { background: var(--color-background-muted); } }
+
+/* ── 연간일정 — 12개월을 한 화면에. 헤더는 고정, 월 그리드만 스크롤한다. ── */
+.carev-annual-root { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.carev-annual-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.carev-annual-body { flex: 1; min-height: 0; overflow-y: auto; padding-top: var(--spacing-3); }
+.carev-annual-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+@media (min-width: 768px)  { .carev-annual-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .carev-annual-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1600px) { .carev-annual-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+.carev-annual-month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-height: 140px;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-card);
+}
+.carev-annual-month-current {
+  border-color: var(--color-border-accent, var(--color-text-accent));
+  box-shadow: var(--shadow-low);
+}
+.carev-annual-month-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+}
+.carev-annual-month-title {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-inner);
+}
+@media (hover: hover) { .carev-annual-month-title:hover { text-decoration: underline; text-underline-offset: 3px; } }
+
+.carev-annual-month-list { display: flex; flex-direction: column; gap: var(--spacing-1); overflow: hidden; }
+.carev-annual-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  padding: 2px var(--spacing-2);
+  border-radius: var(--radius-inner);
+}
+/* 날짜 숫자는 폭을 고정해 제목 시작점을 세로로 맞춘다 */
+.carev-annual-item-day { flex-shrink: 0; width: 18px; text-align: right; }
+.carev-annual-item > *:last-child { min-width: 0; }
+.carev-annual-empty { display: flex; justify-content: center; padding: var(--spacing-10) 0; }
+
+/* ── 오늘 일정 미수행 알림 — 우측 아래, 채팅 버튼(bottom 24 + 지름 56) 위에 쌓는다 ── */
+.carev-today-reminder {
+  position: fixed;
+  right: var(--spacing-6);
+  bottom: 96px;
+  z-index: 39; /* 채팅(40)보다 한 단계 아래 — 채팅 창을 가리지 않는다 */
+  width: min(340px, calc(100vw - var(--spacing-6) * 2));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-card);
+  box-shadow: var(--shadow-high);
+  overflow: hidden;
+}
+.carev-today-reminder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-2) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.carev-today-reminder-body { padding: var(--spacing-3) var(--spacing-4); }
+.carev-today-reminder-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
+  border-radius: var(--radius-element);
+  background: var(--color-background-muted);
+}
+.carev-today-reminder-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-4) var(--spacing-4);
+}
+/* 좁은 화면에서는 채팅 버튼과 겹치지 않게 왼쪽으로 붙인다 */
+@media (max-width: 480px) {
+  .carev-today-reminder { left: var(--spacing-4); right: var(--spacing-4); width: auto; }
+}
 
 /* Phase 6: 전자결재 - FormSchemaBuilder hover */
 @media (hover: hover) { .carev-formbuilder-field-item:hover { border-color: var(--color-border-emphasized); background: var(--color-background-muted); } }

@@ -64,6 +64,8 @@ import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/compo
 import { dedupeNews } from '@/components/plaza/newsDedup';
 import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
 import { duration } from '@/theme/motion';
+import { getDailyGreeting } from '@/lib/dailyGreeting';
+import { buildMemberRoleLookup } from '@/lib/roleUtils';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -145,7 +147,16 @@ interface MemberItem {
   id?: number;
   name?: string;
   status?: string;
+  position?: string;
+  role?: string;
 }
+
+/**
+ * 상단 요약 카드(공지사항·전자결재·요양 소식)에 보여줄 줄 수.
+ * 대시보드 첫 화면이 스크롤 없이 들어오도록 두 줄로 끊고, 남는 높이는 월간일정에 넘긴다.
+ * 나머지는 각 카드의 "전체보기"로 넘어가서 본다.
+ */
+const PANEL_ROW_LIMIT = 2;
 
 // 아이콘 칩 배경 제거(투명) — 아이콘은 중립 단색으로 통일(너무 튀지 않게)
 const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => ({
@@ -166,6 +177,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [approvalRequests, setApprovalRequests] = useState<ApprovalItem[]>([]);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<unknown[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  // 접속 시 오늘 일정 알림 (하루 1회)
+  const [showTodayScheduleAlert, setShowTodayScheduleAlert] = useState(false);
   const [vacationCalendar, setVacationCalendar] = useState<VacationCalendarItem[]>([]);
   const [todayVacationCount, setTodayVacationCount] = useState(0);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
@@ -257,7 +270,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             Promise.resolve({ approvals: [] }),
             Promise.resolve([]),
             getSchedules(todayStr, todayStr),
-            Promise.resolve({ dates: {} }),
+            // 직원 대시보드에도 오늘 출근·휴무 현황을 보여준다
+            getVacationCalendar(todayStr, todayStr),
             getNotices(),
             getSchedules(monthStartStr, monthEndStr),
             Promise.resolve({ count: 0 }),
@@ -307,6 +321,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       if (results[4].status === 'fulfilled') {
         const arr = extractArray(results[4].value, 'schedules', 'content', 'data');
         setSchedules(arr as ScheduleItem[]);
+        // 접속 시 오늘 일정 알림 — 하루에 한 번만 띄운다
+        const alertKey = `todayScheduleAlertShown:${todayStr}`;
+        if (arr.length > 0 && typeof window !== 'undefined' && localStorage.getItem(alertKey) !== '1') {
+          setShowTodayScheduleAlert(true);
+        }
       }
 
       if (results[5].status === 'fulfilled') {
@@ -411,6 +430,28 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   }).length;
   const visibleMembersCount = hasMemberStatus ? activeMembersCount : members.length;
   const employeeAttendanceBase = employeeAttendance.total || visibleMembersCount;
+
+  // 오늘 일정 알림 닫기 — 같은 날 다시 띄우지 않는다
+  const dismissTodayScheduleAlert = () => {
+    setShowTodayScheduleAlert(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`todayScheduleAlertShown:${format(new Date(), 'yyyy-MM-dd')}`, '1');
+    }
+  };
+
+  // 오늘 휴무자 명단 — 회원 목록에서 직종(직책)을 찾아 "요양보호사 김영희" 형식으로 만든다
+  const todayVacationRosterText = (() => {
+    const lookup = buildMemberRoleLookup(members);
+    return vacationCalendar
+      .map((person) => {
+        const name = (person.memberName || person.userName || person.name || '').trim();
+        if (!name) return '';
+        const role = lookup.byName.get(name) || '';
+        return role ? `${role} ${name}` : name;
+      })
+      .filter(Boolean)
+      .join(', ');
+  })();
   const elderAttendanceBase = elderAttendance.total || elderCount;
   const todayWorkingCount = Math.max(visibleMembersCount - todayVacationCount, 0);
 
@@ -744,9 +785,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       iconBg: 'var(--color-background-green)',
       iconColor: 'var(--color-text-green)',
       icon: IconCircleCheck as TablerIcon,
-      tab: 'members',
+      tab: isAdmin ? 'members' : 'work',
       change: employeeAttendanceBase > 0 ? `${Math.round((todayWorkingCount / employeeAttendanceBase) * 100)}%` : null,
-      adminOnly: true,
+      adminOnly: false,
     },
     {
       label: '오늘 휴무',
@@ -757,7 +798,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       icon: IconMoon as TablerIcon,
       tab: 'work',
       change: employeeAttendanceBase > 0 ? `${Math.round((todayVacationCount / employeeAttendanceBase) * 100)}%` : null,
-      adminOnly: true,
+      adminOnly: false,
+      // 휴무자 명단 — "직종 이름" 형식 (예: 요양보호사 김영희)
+      detail: todayVacationRosterText || null,
     },
     {
       label: '총 어르신',
@@ -810,7 +853,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       >
         <HStack gap={2} vAlign="center">
           <Text type="body" weight="bold" color="primary">
-            {(() => { const h = new Date().getHours(); return h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요'; })()}
+            {getDailyGreeting()}
           </Text>
           <Text type="supporting" color="secondary">
             {format(new Date(), 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
@@ -846,6 +889,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       </span>
                     )}
                   </div>
+                  {(card as { detail?: string | null }).detail && (
+                    <Text as="p" type="supporting" color="secondary" maxLines={1}>
+                      {(card as { detail?: string | null }).detail}
+                    </Text>
+                  )}
                 </div>
               </HStack>
             </ClickableCard>
@@ -977,7 +1025,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   {/* 케어브이 시스템 공지 — 광장 [운영] 글.
                       admin 안에 광장 탭이 있으므로 새 탭으로 나가지 않고 그 탭에서 연다.
                       PlazaManagement가 마운트될 때 ?post= 를 읽으므로 먼저 주소에 심어둔다. */}
-                  {officialNotices.map((notice) => (
+                  {officialNotices.slice(0, PANEL_ROW_LIMIT).map((notice) => (
                     <div
                       key={`official-${notice.id}`}
                       className="carev-dash-row"
@@ -1000,7 +1048,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       </div>
                     </div>
                   ))}
-                  {notices.slice(0, 5).map((notice) => (
+                  {/* 운영 공지가 자리를 먼저 차지하고, 남는 줄만 기관 공지로 채운다 */}
+                  {notices.slice(0, Math.max(0, PANEL_ROW_LIMIT - officialNotices.length)).map((notice) => (
                     <div
                       key={notice.id}
                       className="carev-dash-row"
@@ -1060,7 +1109,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               ) : (
                 <VStack gap={1}>
-                  {approvalRequests.slice(0, 5).map((approval) => (
+                  {approvalRequests.slice(0, PANEL_ROW_LIMIT).map((approval) => (
                     <div
                       key={approval.id}
                       className="carev-dash-row"
@@ -1114,7 +1163,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
               <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 <VStack gap={1}>
-                  {dedupeNews(newsItems).slice(0, 5).map((news) => {
+                  {dedupeNews(newsItems).slice(0, PANEL_ROW_LIMIT).map((news) => {
                     const meta = getNewsCategoryMeta(news.category);
                     return (
                       <div
@@ -1783,6 +1832,66 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             }
           />
         )}
+      </Dialog>
+
+      {/* 접속 시 오늘 일정 알림 — 하루 1회 */}
+      <Dialog
+        isOpen={showTodayScheduleAlert}
+        onOpenChange={(o) => { if (!o) dismissTodayScheduleAlert(); }}
+        purpose="info"
+        width={440}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title={`오늘 일정 ${schedules.length}건`}
+              onOpenChange={(o) => { if (!o) dismissTodayScheduleAlert(); }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={3}>
+                <Text type="supporting" color="secondary">
+                  {format(new Date(), 'M월 d일 (EEEE)', { locale: ko })} 예정된 일정입니다.
+                </Text>
+                <VStack gap={2}>
+                  {schedules.slice(0, 6).map((schedule) => (
+                    <HStack key={schedule.id} gap={2} vAlign="center">
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          background: schedule.label?.color || 'var(--color-text-accent)',
+                        }}
+                      />
+                      <Text type="supporting" color="secondary" hasTabularNumbers>
+                        {schedule.isAllDay ? '종일' : (schedule.startTime || '').slice(0, 5) || '-'}
+                      </Text>
+                      <Text type="body" weight="medium" maxLines={1}>{schedule.title}</Text>
+                    </HStack>
+                  ))}
+                  {schedules.length > 6 && (
+                    <Text type="supporting" color="secondary">외 {schedules.length - 6}건</Text>
+                  )}
+                </VStack>
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="닫기" variant="ghost" onClick={dismissTodayScheduleAlert} />
+                <Button
+                  label="일정 보기"
+                  variant="primary"
+                  onClick={() => { dismissTodayScheduleAlert(); onTabChange('schedule'); }}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
       </Dialog>
     </div>
   );
