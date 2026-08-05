@@ -17,6 +17,14 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.si
 
 type ChatView = "rooms" | "messages";
 
+interface ChatToast {
+    key: number;
+    roomId: number;
+    roomName: string;
+    senderName: string;
+    content: string;
+}
+
 export function FloatingChat() {
     const [isOpen, setIsOpen] = useState(false);
     const [currentView, setCurrentView] = useState<ChatView>("rooms");
@@ -28,10 +36,20 @@ export function FloatingChat() {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    const [toasts, setToasts] = useState<ChatToast[]>([]);
 
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    // WS 콜백에서 최신 상태를 참조하기 위한 ref들
+    const selectedRoomIdRef = useRef<number | null>(null);
+    const isOpenRef = useRef(false);
+    const roomsRef = useRef<ChatRoom[]>([]);
+    const toastKeyRef = useRef(0);
+
+    useEffect(() => { selectedRoomIdRef.current = selectedRoomId; }, [selectedRoomId]);
+    useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+    useEffect(() => { roomsRef.current = rooms; }, [rooms]);
 
     const [companyId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("companyId") : null);
     const [userId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userId") : null);
@@ -152,7 +170,71 @@ export function FloatingChat() {
         })();
     }, [selectedRoomId, isConnected, fetchMessages, markAsRead]);
 
-    // WebSocket subscription when room changes
+    // 참여 중인 모든 방 구독 — 안 보고 있는 방의 새 메시지는 뱃지 증가 + 토스트 알림
+    const roomIdsKey = rooms.map(r => r.id).sort((a, b) => a - b).join(",");
+    useEffect(() => {
+        const client = stompClientRef.current;
+        if (!client || !isConnected || !roomIdsKey) return;
+
+        const subscriptions = roomIdsKey.split(",").map(idStr => {
+            const roomId = Number(idStr);
+            return client.subscribe(`/topic/chat/${roomId}`, (stompMessage: IMessage) => {
+                try {
+                    const wsMessage: WebSocketMessage = JSON.parse(stompMessage.body);
+                    if (wsMessage.type !== "MESSAGE" || !wsMessage.message) return;
+
+                    const msg = wsMessage.message;
+                    const isMine = String(msg.senderId) === String(userId);
+                    const isViewing = isOpenRef.current && selectedRoomIdRef.current === roomId;
+
+                    if (isViewing) {
+                        setMessages(prev => {
+                            if (prev.some(m => m.id === msg.id)) return prev;
+                            return [...prev, msg];
+                        });
+                        if (!isMine) markAsRead(roomId, msg.id);
+                    }
+
+                    setRooms(prevRooms => prevRooms.map(room => {
+                        if (room.id !== roomId) return room;
+                        return {
+                            ...room,
+                            lastMessage: {
+                                content: msg.content,
+                                senderName: msg.senderName,
+                                createdAt: msg.createdAt,
+                            },
+                            lastMessageAt: msg.createdAt,
+                            unreadCount: isViewing || isMine ? room.unreadCount : room.unreadCount + 1,
+                        };
+                    }));
+
+                    if (!isViewing && !isMine) {
+                        const roomName = roomsRef.current.find(r => r.id === roomId)?.name || "채팅";
+                        const key = ++toastKeyRef.current;
+                        setToasts(prev => [...prev.slice(-2), {
+                            key,
+                            roomId,
+                            roomName,
+                            senderName: msg.senderName,
+                            content: msg.type === "TEXT" ? msg.content : (msg.fileName || "파일"),
+                        }]);
+                        setTimeout(() => {
+                            setToasts(prev => prev.filter(t => t.key !== key));
+                        }, 5000);
+                    }
+                } catch (e) {
+                    console.error("[FloatingChat WebSocket] 메시지 파싱 오류:", e);
+                }
+            });
+        });
+
+        return () => {
+            subscriptions.forEach(s => s.unsubscribe());
+        };
+    }, [isConnected, roomIdsKey, userId, markAsRead]);
+
+    // 읽음 이벤트 구독 (보고 있는 방만)
     useEffect(() => {
         if (!selectedRoomId || !stompClientRef.current || !isConnected) return;
 
@@ -161,42 +243,6 @@ export function FloatingChat() {
             subscriptionRef.current = null;
         }
 
-        const subscription = stompClientRef.current.subscribe(
-            `/topic/chat/${selectedRoomId}`,
-            (stompMessage: IMessage) => {
-                try {
-                    const wsMessage: WebSocketMessage = JSON.parse(stompMessage.body);
-
-                    if (wsMessage.type === "MESSAGE" && wsMessage.message) {
-                        setMessages(prev => {
-                            if (prev.some(m => m.id === wsMessage.message!.id)) return prev;
-                            return [...prev, wsMessage.message!];
-                        });
-
-                        markAsRead(wsMessage.roomId, wsMessage.message.id);
-
-                        setRooms(prevRooms => prevRooms.map(room => {
-                            if (room.id === wsMessage.roomId && wsMessage.message) {
-                                return {
-                                    ...room,
-                                    lastMessage: {
-                                        content: wsMessage.message.content,
-                                        senderName: wsMessage.message.senderName,
-                                        createdAt: wsMessage.message.createdAt,
-                                    },
-                                    lastMessageAt: wsMessage.message.createdAt,
-                                };
-                            }
-                            return room;
-                        }));
-                    }
-                } catch (e) {
-                    console.error("[FloatingChat WebSocket] 메시지 파싱 오류:", e);
-                }
-            }
-        );
-
-        // 읽음 이벤트 구독
         const readSubscription = stompClientRef.current.subscribe(
             `/topic/chat/${selectedRoomId}/read`,
             (stompMessage: IMessage) => {
@@ -216,13 +262,12 @@ export function FloatingChat() {
             }
         );
 
-        subscriptionRef.current = subscription;
+        subscriptionRef.current = readSubscription;
 
         return () => {
-            subscription.unsubscribe();
             readSubscription.unsubscribe();
         };
-    }, [selectedRoomId, isConnected, markAsRead, userId]);
+    }, [selectedRoomId, isConnected, userId]);
 
     // --- Send message ---
 
@@ -303,6 +348,12 @@ export function FloatingChat() {
         setIsOpen(prev => !prev);
     };
 
+    const handleToastClick = (toast: ChatToast) => {
+        setToasts([]);
+        setIsOpen(true);
+        handleSelectRoom(toast.roomId);
+    };
+
     // Don't render if no auth
     if (!companyId || !userId || !userName || !authToken) return null;
 
@@ -310,6 +361,69 @@ export function FloatingChat() {
 
     return (
         <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 40 }}>
+            {/* 새 메시지 토스트 — 패널이 열려 있으면 패널 위로 올린다 */}
+            <div
+                style={{
+                    position: "absolute",
+                    bottom: isOpen ? 64 + 550 + 12 : 64,
+                    right: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    alignItems: "flex-end",
+                }}
+            >
+                <AnimatePresence>
+                    {toasts.map(toast => (
+                        <motion.button
+                            key={toast.key}
+                            initial={{ opacity: 0, x: 24 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 24 }}
+                            transition={{ duration: duration.fast }}
+                            onClick={() => handleToastClick(toast)}
+                            style={{
+                                width: 300,
+                                textAlign: "left",
+                                cursor: "pointer",
+                                border: "1px solid var(--color-border)",
+                                borderRadius: "var(--radius-container)",
+                                background: "var(--color-background)",
+                                boxShadow: "var(--shadow-high)",
+                                padding: "10px 14px",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                    marginBottom: 2,
+                                    fontSize: 12,
+                                    color: "var(--color-text-secondary)",
+                                }}
+                            >
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {toast.roomName}
+                                </span>
+                                <span style={{ flexShrink: 0, color: "var(--color-text-accent)" }}>새 메시지</span>
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 13,
+                                    color: "var(--color-text)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                <strong>{toast.senderName}</strong>: {toast.content}
+                            </div>
+                        </motion.button>
+                    ))}
+                </AnimatePresence>
+            </div>
+
             {/* Panel */}
             <AnimatePresence>
                 {isOpen && (
