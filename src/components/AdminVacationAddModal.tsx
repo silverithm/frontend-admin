@@ -4,8 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import MemberSelector from './MemberSelector';
-import { VacationDuration, VacationKind, VACATION_DURATION_OPTIONS } from '@/types/vacation';
-import { adminCreateVacationForMember } from '@/lib/apiService';
+import { VacationKind, VACATION_KIND_OPTIONS, toVacationRequestFields } from '@/types/vacation';
+import { adminCreateVacationForMember, getVacationCalendar } from '@/lib/apiService';
+import { useDispatchStore } from '@/lib/dispatchStore';
+import {
+  VACATION_NOTICES,
+  describeDriverConflicts,
+  driverRoleLabel,
+  findDriverAssignments,
+  findDriverConflicts,
+} from '@/lib/vacationGuard';
 import type { Member } from './MemberSelector';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -15,10 +23,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { DateInput } from '@astryxdesign/core/DateInput';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
-import { Switch } from '@astryxdesign/core/Switch';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
-import { Selector } from '@astryxdesign/core/Selector';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Banner } from '@astryxdesign/core/Banner';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
@@ -42,25 +47,46 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
     selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
   );
   const [vacationKind, setVacationKind] = useState<VacationKind>('regular');
-  const [useAnnualLeave, setUseAnnualLeave] = useState(true);
-  const [duration, setDuration] = useState<VacationDuration>('FULL_DAY');
-  const [vacationType, setVacationType] = useState<string>('personal');
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 휴무 유형 옵션들
-  const vacationTypes = [
-    { value: 'personal', label: '개인 사유' },
-    { value: 'sick', label: '병가' },
-    { value: 'emergency', label: '긴급 상황' },
-    { value: 'family', label: '가족 돌봄' },
-    { value: 'other', label: '기타' },
-  ];
+  const { settings } = useDispatchStore();
 
-  const handleKindChange = (value: string) => {
-    setVacationKind(value as VacationKind);
+  /**
+   * 그날 이미 휴무인 사람 중 같은 노선의 다른 운전자가 있는지 확인한다.
+   * 배차에 배정되지 않은 직원이면 조회 없이 통과시킨다.
+   */
+  const checkDriverConflicts = async (memberName: string, date: string) => {
+    if (findDriverAssignments(memberName, settings.routes).length === 0) return [];
+    try {
+      const data = await getVacationCalendar(date, date);
+      const list: unknown[] = Array.isArray(data) ? data : (data?.vacations ?? data?.content ?? data?.data ?? []);
+      const names = list
+        .map((raw) => {
+          const v = raw as { userName?: string; memberName?: string; name?: string; status?: string };
+          // 반려된 건은 그날 쉬는 게 아니므로 제외
+          if (v.status && v.status.toUpperCase() === 'REJECTED') return '';
+          return v.userName || v.memberName || v.name || '';
+        })
+        .filter(Boolean);
+      return findDriverConflicts(memberName, settings.routes, names);
+    } catch (err) {
+      // 조회 실패로 등록 자체를 막지는 않는다 (배차는 보조 규칙)
+      console.error('[휴무] 배차 충돌 확인 실패:', err);
+      return [];
+    }
   };
+
+  /** 선택된 직원이 어느 노선의 무슨 운전자인지 — 등록 전에 알려준다 */
+  const driverRoleSummary = React.useMemo(() => {
+    if (!selectedMember?.name) return '';
+    const assignments = findDriverAssignments(selectedMember.name, settings.routes);
+    if (assignments.length === 0) return '';
+    return assignments
+      .map(({ route, index }) => `· ${route.name}(${route.type}) ${driverRoleLabel(index)}`)
+      .join('\n');
+  }, [selectedMember?.name, settings.routes]);
 
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
@@ -109,38 +135,31 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      // 같은 노선의 주·부운전자가 함께 쉬면 그날 차량을 몰 사람이 없다 — 등록 전에 막는다
+      const conflicts = await checkDriverConflicts(selectedMember!.name, vacationDate);
+      if (conflicts.length > 0) {
+        setError(describeDriverConflicts(selectedMember!.name, conflicts));
+        setIsSubmitting(false);
+        return;
+      }
+
       const companyId = localStorage.getItem('companyId');
 
       if (!companyId) {
         throw new Error('회사 ID를 찾을 수 없습니다.');
       }
 
-      const requestBody = {
-        memberId: parseInt(selectedMember!.id, 10), // Long 타입으로 변환
-        date: vacationDate,
-        reason: reason.trim() || null,
-        duration: useAnnualLeave ? duration : 'UNUSED',
-        type: vacationKind,
-        useAnnualLeave,
-        vacationType: !useAnnualLeave ? vacationType : null,
-        reasonRequired: vacationKind === 'mandatory',
-      };
-
-      console.log('휴무 신청 요청 데이터:', {
-        requestBody,
-        companyId, // 별도로 로깅
-      });
+      // 고른 종류 하나를 서버가 쓰는 type/duration/연차사용 여부로 편다
+      const { type, duration, useAnnualLeave } = toVacationRequestFields(vacationKind);
 
       await adminCreateVacationForMember({
-        memberId: requestBody.memberId.toString(),
-        date: requestBody.date,
-        reason: requestBody.reason || undefined,
-        duration: requestBody.duration,
-        type: requestBody.type,
-        useAnnualLeave: requestBody.useAnnualLeave,
-        vacationType: requestBody.vacationType || undefined,
-        reasonRequired: requestBody.reasonRequired,
+        memberId: parseInt(selectedMember!.id, 10).toString(),
+        date: vacationDate,
+        reason: reason.trim() || undefined,
+        duration,
+        type,
+        useAnnualLeave,
+        reasonRequired: vacationKind === 'mandatory',
         companyId,
       });
 
@@ -159,9 +178,6 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
     setSelectedMember(null);
     setVacationDate(selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
     setVacationKind('regular');
-    setUseAnnualLeave(true);
-    setDuration('FULL_DAY');
-    setVacationType('personal');
     setReason('');
     setError(null);
     onClose();
@@ -218,6 +234,24 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </HStack>
                     </Card>
 
+                    {/* 등록 전 확인할 것들 — 배차·최소 인원처럼 시스템이 다 막지 못하는 부분 */}
+                    <Banner
+                      status="warning"
+                      container="card"
+                      title="휴무 등록 전 확인해 주세요"
+                      description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
+                    />
+
+                    {/* 이 직원이 운전자로 배정돼 있으면 미리 알려준다 */}
+                    {driverRoleSummary && (
+                      <Banner
+                        status="info"
+                        container="card"
+                        title="배차 운전자로 배정된 직원입니다"
+                        description={driverRoleSummary}
+                      />
+                    )}
+
                     {/* 날짜 선택 */}
                     <DateInput
                       label="휴무 날짜"
@@ -225,57 +259,21 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       onChange={(value) => setVacationDate(value || '')}
                     />
 
-                    {/* 휴무 종류 */}
-                    <VStack gap={1.5}>
-                      <Text type="label" weight="medium">휴무 종류</Text>
-                      <SegmentedControl
-                        label="휴무 종류"
-                        layout="fill"
-                        value={vacationKind}
-                        onChange={handleKindChange}
-                      >
-                        <SegmentedControlItem value="regular" label="일반 휴무" />
-                        <SegmentedControlItem value="mandatory" label="필수 휴무" />
-                        <SegmentedControlItem value="substitute" label="대체휴무" />
-                      </SegmentedControl>
-                    </VStack>
-
-                    {/* 연차 사용 여부 */}
-                    <Switch
-                      label="연차 사용 여부"
-                      value={useAnnualLeave}
-                      onChange={(checked) => setUseAnnualLeave(checked)}
-                      labelPosition="start"
-                      labelSpacing="spread"
-                    />
-
-                    {/* 연차 유형 - 연차 사용 시만 표시 */}
-                    {useAnnualLeave && (
-                      <RadioList
-                        label="연차 유형"
-                        value={duration}
-                        onChange={(value) => setDuration(value as VacationDuration)}
-                      >
-                        {VACATION_DURATION_OPTIONS.map((option) => (
-                          <RadioListItem
-                            key={option.value}
-                            value={option.value}
-                            label={option.displayName}
-                            description={option.description}
-                          />
-                        ))}
-                      </RadioList>
-                    )}
-
-                    {/* 휴무 유형 - 연차 미사용 시만 표시 */}
-                    {!useAnnualLeave && (
-                      <Selector
-                        label="휴무 유형"
-                        value={vacationType}
-                        options={vacationTypes}
-                        onChange={(value) => setVacationType(value)}
-                      />
-                    )}
+                    {/* 휴무 종류 — 연차 차감 여부까지 이 하나로 정해진다 */}
+                    <RadioList
+                      label="휴무 종류"
+                      value={vacationKind}
+                      onChange={(value) => setVacationKind(value as VacationKind)}
+                    >
+                      {VACATION_KIND_OPTIONS.map((option) => (
+                        <RadioListItem
+                          key={option.value}
+                          value={option.value}
+                          label={option.label}
+                          description={option.description}
+                        />
+                      ))}
+                    </RadioList>
 
                     {/* 휴무 사유 */}
                     <TextArea

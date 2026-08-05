@@ -22,6 +22,7 @@ import { getMemberUsers, getCompanyElders } from "@/lib/apiService";
 import type { ElderlyInfo } from "@/types/elderly";
 import { useConfirm } from "./ConfirmDialog";
 import type { Route, RouteDriver, Senior, RouteType } from "@/types/dispatch";
+import { driverRoleLabel, findDuplicateAssignment } from "@/lib/vacationGuard";
 
 // 직원 정보 타입
 interface Member {
@@ -222,8 +223,43 @@ export default function DispatchSettings({
   };
 
   // 직원 선택 핸들러 (새 노선용) - driverId와 driverName 함께 설정
+  /**
+   * 한 사람이 두 노선을 동시에 몰 수는 없다. 이미 다른 노선(또는 이 노선의 다른 칸)에
+   * 배정된 사람이면 선택을 되돌리고 어디에 배정돼 있는지 알린다.
+   */
+  const rejectIfDuplicate = (
+    driverName: string,
+    excludeRouteId: string | undefined,
+    siblings: RouteDriver[],
+    selfIndex: number,
+  ): boolean => {
+    const name = driverName.trim();
+    if (!name) return false;
+
+    const inOtherRoute = findDuplicateAssignment(name, settings.routes, excludeRouteId);
+    if (inOtherRoute) {
+      onNotification(
+        `${name} 선생님은 이미 ${inOtherRoute.route.name}(${inOtherRoute.route.type}) ${driverRoleLabel(inOtherRoute.index)}입니다. 한 사람을 두 노선에 배정할 수 없습니다.`,
+        "error",
+      );
+      return true;
+    }
+
+    const dupIndex = siblings.findIndex((d, i) => i !== selfIndex && d.driverName.trim() === name);
+    if (dupIndex >= 0) {
+      onNotification(
+        `${name} 선생님은 이 노선의 ${driverRoleLabel(dupIndex)}로 이미 지정돼 있습니다.`,
+        "error",
+      );
+      return true;
+    }
+    return false;
+  };
+
   const handleSelectMemberForNewRoute = (index: number, memberId: string) => {
     const member = members.find(m => String(m.id) === memberId);
+    if (member?.name && rejectIfDuplicate(member.name, undefined, newRouteDrivers, index)) return;
+
     const updated = [...newRouteDrivers];
     updated[index] = {
       ...updated[index],
@@ -249,6 +285,8 @@ export default function DispatchSettings({
     if (!route) return;
 
     const member = members.find(m => String(m.id) === memberId);
+    if (member?.name && rejectIfDuplicate(member.name, routeId, route.routeDrivers || [], index)) return;
+
     const updatedDrivers = [...(route.routeDrivers || [])];
     updatedDrivers[index] = {
       ...updatedDrivers[index],

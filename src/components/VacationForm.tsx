@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { VacationFormProps, VacationDuration, VacationKind, VACATION_DURATION_OPTIONS } from '@/types/vacation';
-import { FiBriefcase, FiCalendar, FiClock, FiRepeat } from 'react-icons/fi';
+import { VacationFormProps, VacationKind, VACATION_KIND_OPTIONS, toVacationRequestFields } from '@/types/vacation';
+import { FiBriefcase } from 'react-icons/fi';
 import { useAlert } from './Alert';
 import {
   ALL_ROLE_FILTER,
@@ -19,6 +19,14 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Divider } from '@astryxdesign/core/Divider';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import { getVacationCalendar } from '@/lib/apiService';
+import { useDispatchStore } from '@/lib/dispatchStore';
+import {
+  VACATION_NOTICES,
+  describeDriverConflicts,
+  findDriverAssignments,
+  findDriverConflicts,
+} from '@/lib/vacationGuard';
 
 const VacationForm: React.FC<VacationFormProps> = ({
   initialDate,
@@ -33,15 +41,40 @@ const VacationForm: React.FC<VacationFormProps> = ({
   const [userName, setUserName] = useState('');
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
-  const [type, setType] = useState<VacationKind>('regular');
+  const [kind, setKind] = useState<VacationKind>('regular');
   const [role, setRole] = useState('');
-  const [duration, setDuration] = useState<VacationDuration>('FULL_DAY');
   const [errors, setErrors] = useState({
     userName: '',
     reason: '',
     password: '',
     role: '',
   });
+
+  const { settings } = useDispatchStore();
+
+  /**
+   * 그날 이미 휴무인 사람 중 같은 노선의 다른 운전자가 있는지 확인한다.
+   * 배차에 배정되지 않은 직원이면 조회 없이 통과시킨다.
+   */
+  const checkDriverConflicts = async (name: string, date: string) => {
+    if (findDriverAssignments(name, settings.routes).length === 0) return [];
+    try {
+      const data = await getVacationCalendar(date, date);
+      const list: unknown[] = Array.isArray(data) ? data : (data?.vacations ?? data?.content ?? data?.data ?? []);
+      const names = list
+        .map((raw) => {
+          const v = raw as { userName?: string; memberName?: string; name?: string; status?: string };
+          if (v.status && v.status.toUpperCase() === 'REJECTED') return '';
+          return v.userName || v.memberName || v.name || '';
+        })
+        .filter(Boolean);
+      return findDriverConflicts(name, settings.routes, names);
+    } catch (err) {
+      // 조회 실패로 신청 자체를 막지는 않는다 (배차는 보조 규칙)
+      console.error('[휴무] 배차 충돌 확인 실패:', err);
+      return [];
+    }
+  };
 
   const selectableRoles = useMemo(() => {
     const resolvedRoles: string[] = [];
@@ -104,7 +137,7 @@ const VacationForm: React.FC<VacationFormProps> = ({
       isValid = false;
     }
 
-    if (type === 'mandatory' && !reason.trim()) {
+    if (kind === 'mandatory' && !reason.trim()) {
       newErrors.reason = '휴무 사유를 입력해주세요';
       isValid = false;
     }
@@ -130,6 +163,19 @@ const VacationForm: React.FC<VacationFormProps> = ({
       try {
         setIsSubmitting(true);
 
+        // 같은 노선의 주·부운전자가 함께 쉬면 그날 차량을 몰 사람이 없다 — 신청 전에 막는다
+        const vacationDate = initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+        const conflicts = await checkDriverConflicts(userName.trim(), vacationDate);
+        if (conflicts.length > 0) {
+          showAlert({
+            type: 'warning',
+            title: '같은 노선 운전자가 이미 휴무입니다',
+            message: describeDriverConflicts(userName.trim(), conflicts),
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
         // 현재 호스트 기반 절대 URL 사용
         const baseUrl = window.location.origin;
         const apiUrl = `${baseUrl}/api/vacation/request`;
@@ -144,6 +190,9 @@ const VacationForm: React.FC<VacationFormProps> = ({
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
+
+        // 고른 종류 하나를 서버가 쓰는 type/duration으로 편다
+        const { type, duration } = toVacationRequestFields(kind);
 
         // fetch API를 사용하여 휴무 신청
         const response = await fetch(apiUrl, {
@@ -204,6 +253,14 @@ const VacationForm: React.FC<VacationFormProps> = ({
               </Text>
             </VStack>
 
+            {/* 신청 전 확인할 것들 — 배차·최소 인원처럼 시스템이 다 막지 못하는 부분 */}
+            <Banner
+              status="warning"
+              container="card"
+              title="신청 전 확인해 주세요"
+              description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
+            />
+
             <Divider />
 
             <form onSubmit={handleSubmit}>
@@ -219,14 +276,15 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   status={errors.userName ? { type: 'error', message: errors.userName } : undefined}
                 />
 
+                {/* 휴무 종류 — 연차 차감 여부까지 이 하나로 정해진다 */}
                 <Selector
-                  label="휴가 기간"
-                  options={VACATION_DURATION_OPTIONS.map((option) => ({
+                  label="휴무 종류"
+                  options={VACATION_KIND_OPTIONS.map((option) => ({
                     value: option.value,
-                    label: `${option.displayName} · ${option.description} (${option.days}일)`,
+                    label: `${option.label} · ${option.description}`,
                   }))}
-                  value={duration}
-                  onChange={(value) => setDuration(value as VacationDuration)}
+                  value={kind}
+                  onChange={(value) => setKind(value as VacationKind)}
                   isRequired
                   isDisabled={isSubmitting}
                 />
@@ -248,24 +306,11 @@ const VacationForm: React.FC<VacationFormProps> = ({
                   value={reason}
                   onChange={(value) => setReason(value)}
                   rows={4}
-                  placeholder={type === 'mandatory' ? '휴무 사유를 입력하세요' : '휴무 사유를 입력하세요 (선택 사항)'}
-                  isRequired={type === 'mandatory'}
-                  isOptional={type === 'regular'}
+                  placeholder={kind === 'mandatory' ? '휴무 사유를 입력하세요' : '휴무 사유를 입력하세요 (선택 사항)'}
+                  isRequired={kind === 'mandatory'}
+                  isOptional={kind !== 'mandatory'}
                   isDisabled={isSubmitting}
                   status={errors.reason ? { type: 'error', message: errors.reason } : undefined}
-                />
-
-                <Selector
-                  label="휴무 유형"
-                  options={[
-                    { value: 'regular', label: '일반 휴무', icon: FiCalendar },
-                    { value: 'mandatory', label: '필수 휴무', icon: FiClock },
-                    { value: 'substitute', label: '대체휴무', icon: FiRepeat },
-                  ]}
-                  value={type}
-                  onChange={(value) => setType(value as VacationKind)}
-                  isRequired
-                  isDisabled={isSubmitting}
                 />
 
                 {selectableRoles.length > 0 ? (
