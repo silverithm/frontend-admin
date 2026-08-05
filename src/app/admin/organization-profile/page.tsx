@@ -22,7 +22,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal } from '@/lib/apiService';
+import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, updateCompanyHomepage } from '@/lib/apiService';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
 import MySignatureCard from '@/components/approval/MySignatureCard';
@@ -78,6 +78,11 @@ export default function OrganizationProfilePage() {
   const [sealFile, setSealFile] = useState<File | null>(null);
   const [isSealSaving, setIsSealSaving] = useState(false);
 
+  // 기관 홈페이지 — 등록하면 사이드바에 바로가기가 생긴다
+  const [homepageUrl, setHomepageUrl] = useState('');
+  const [savedHomepageUrl, setSavedHomepageUrl] = useState<string | null>(null);
+  const [isHomepageSaving, setIsHomepageSaving] = useState(false);
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -99,6 +104,13 @@ export default function OrganizationProfilePage() {
           adminName: info.userName || '',
         };
         setSealUrl(info.companySealUrl || null);
+        setSavedHomepageUrl(info.companyHomepageUrl || null);
+        setHomepageUrl(info.companyHomepageUrl || '');
+        if (info.companyHomepageUrl) {
+          localStorage.setItem('companyHomepageUrl', info.companyHomepageUrl);
+        } else {
+          localStorage.removeItem('companyHomepageUrl');
+        }
 
         // 다른 화면들이 참조하는 localStorage 동기화
         if (info.companyName) localStorage.setItem('companyName', info.companyName);
@@ -211,6 +223,32 @@ export default function OrganizationProfilePage() {
       setError('직인 삭제에 실패했습니다.');
     } finally {
       setIsSealSaving(false);
+    }
+  };
+
+  const handleSaveHomepage = async () => {
+    setIsHomepageSaving(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      const response = await updateCompanyHomepage(homepageUrl.trim());
+      const saved: string | null = response?.homepageUrl ?? null;
+      setSavedHomepageUrl(saved);
+      setHomepageUrl(saved || '');
+      // 사이드바가 참조하므로 바로 반영되도록 동기화한다
+      if (saved) {
+        localStorage.setItem('companyHomepageUrl', saved);
+      } else {
+        localStorage.removeItem('companyHomepageUrl');
+      }
+      window.dispatchEvent(new Event('carev:company-homepage-changed'));
+      setSuccessMessage(saved
+        ? '기관 홈페이지가 등록되었습니다. 왼쪽 메뉴에서 바로 여실 수 있습니다.'
+        : '기관 홈페이지가 해제되었습니다.');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : '홈페이지 주소 저장에 실패했습니다.');
+    } finally {
+      setIsHomepageSaving(false);
     }
   };
 
@@ -532,6 +570,44 @@ export default function OrganizationProfilePage() {
                       </VStack>
                     </Card>
                   </div>
+                </VStack>
+
+                {/* 기관 홈페이지 섹션 */}
+                <VStack gap={6}>
+                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-8)' }}>
+                    <VStack gap={1}>
+                      <Text type="large" weight="semibold">기관 홈페이지</Text>
+                      <Text type="supporting">
+                        기관 홈페이지나 블로그 주소를 등록하면 왼쪽 메뉴 &quot;연계기관&quot; 위에 바로가기가 생깁니다
+                      </Text>
+                    </VStack>
+                  </div>
+                  <Card padding={6}>
+                    <VStack gap={4}>
+                      <TextInput
+                        label="홈페이지 / 블로그 주소"
+                        type="text"
+                        value={homepageUrl}
+                        onChange={(value) => setHomepageUrl(value)}
+                        placeholder="https://blog.naver.com/우리기관"
+                        hasClear
+                      />
+                      <Text type="supporting">
+                        {savedHomepageUrl
+                          ? '주소를 비우고 저장하면 바로가기가 사라집니다.'
+                          : 'https:// 를 빼고 적으셔도 됩니다.'}
+                      </Text>
+                      <HStack hAlign="end">
+                        <Button
+                          label={isHomepageSaving ? '저장 중...' : '저장'}
+                          variant="primary"
+                          isLoading={isHomepageSaving}
+                          isDisabled={isHomepageSaving || homepageUrl.trim() === (savedHomepageUrl || '')}
+                          onClick={handleSaveHomepage}
+                        />
+                      </HStack>
+                    </VStack>
+                  </Card>
                 </VStack>
 
                 {/* 계정 설정 섹션 */}
