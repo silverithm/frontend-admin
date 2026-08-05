@@ -41,6 +41,8 @@ interface VacationCalendarProps extends CalendarProps {
   currentDate: Date;
   setCurrentDate: (date: Date | SetStateAction<Date>) => void;
   roleFilter?: string;
+  /** 직종 다중 선택 — 전달되면 roleFilter보다 우선. 빈 배열 = 전체 */
+  roleFilters?: string[];
   nameFilter?: string | null;
   onShowLimitPanel?: () => void;
   onNameFilterChange?: (name: string | null) => void;
@@ -68,6 +70,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   currentDate,
   setCurrentDate,
   roleFilter = ALL_ROLE_FILTER,
+  roleFilters,
   nameFilter = null,
   onShowLimitPanel,
   onNameFilterChange,
@@ -76,6 +79,18 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   onExportExcel,
   isExportingExcel = false,
 }) => {
+  // 직종 필터 정규화: roleFilters(다중)가 오면 우선, 없으면 기존 단일 roleFilter를 배열로.
+  // 빈 배열 = 전체. 서버 API는 단일 role만 받으므로 1개 선택일 때만 서버 필터를 쓰고
+  // 그 외에는 전체를 받아 클라이언트에서 거른다.
+  const effectiveRoleFilters = (roleFilters ?? (roleFilter === ALL_ROLE_FILTER ? [] : [roleFilter]))
+    .filter((r) => r && r !== ALL_ROLE_FILTER);
+  const roleFilterKey = effectiveRoleFilters.slice().sort().join(',');
+  const isAllRoles = effectiveRoleFilters.length === 0;
+  const isSingleRole = effectiveRoleFilters.length === 1;
+  const apiRoleFilter = isSingleRole ? effectiveRoleFilters[0] : ALL_ROLE_FILTER;
+  const matchesRoleFilter = (resolvedRole: string | null | undefined) =>
+    isAllRoles || (resolvedRole != null && effectiveRoleFilters.includes(resolvedRole));
+
   const [calendarData, setCalendarData] = useState<VacationData>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -116,7 +131,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         // 필터에 맞는 휴가만 로깅
         const filteredVacations = dateData.vacations.filter(v => {
           const resolvedRole = getVacationRequestRole(v, memberRoleLookup);
-          return roleFilter === ALL_ROLE_FILTER || resolvedRole === roleFilter;
+          return matchesRoleFilter(resolvedRole);
         });
         
         if (filteredVacations.length > 0) {
@@ -126,7 +141,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         }
       }
     });
-  }, [calendarData, memberRoleLookup, roleFilter]);
+  }, [calendarData, memberRoleLookup, roleFilterKey]);
   
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const currentRequestIdRef = React.useRef<string | null>(null);
@@ -174,7 +189,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
       
       // apiService의 getVacationCalendar 함수 사용 (토큰 갱신 로직 포함)
-      const data = await getVacationCalendar(startDateStr, endDateStr, roleFilter, nameFilter || undefined);
+      const data = await getVacationCalendar(startDateStr, endDateStr, apiRoleFilter, nameFilter || undefined);
 
       if (signal.aborted) {
         return;
@@ -255,7 +270,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         setIsLoading(false);
       }
     }
-  }, [roleFilter, MAX_RETRY_COUNT, MAX_RETRY_DELAY, nameFilter]);
+  }, [roleFilterKey, MAX_RETRY_COUNT, MAX_RETRY_DELAY, nameFilter]);
 
   const fetchSelectedDateData = async (date: Date) => {
     try {
@@ -263,7 +278,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
 
       // apiService의 getVacationForDate 함수 사용 (토큰 갱신 로직 포함)
-      const data = await getVacationForDate(formattedDate, roleFilter === ALL_ROLE_FILTER ? ALL_ROLE_FILTER : roleFilter, nameFilter || undefined);
+      const data = await getVacationForDate(formattedDate, apiRoleFilter, nameFilter || undefined);
       
 
       if (data) {
@@ -354,7 +369,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   // 필터 변경시 데이터 로드
   useEffect(() => {
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
-  }, [roleFilter, nameFilter, fetchCalendarData, currentDate]);
+  }, [roleFilterKey, nameFilter, fetchCalendarData, currentDate]);
 
   useEffect(() => {
     setRetryCount(0);
@@ -388,8 +403,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       return { bg: 'var(--color-background-muted)', hoverBg: 'var(--color-background-muted)' };
     }
 
-    // 전체 필터일 때는 무색, 단 오늘 날짜는 강조색
-    if (roleFilter === ALL_ROLE_FILTER) {
+    // 전체·다중 선택일 때는 무색(한도는 직종별이라 단일 선택일 때만 의미), 단 오늘 날짜는 강조색
+    if (!isSingleRole) {
       if (isToday(date)) {
         return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
       }
@@ -440,10 +455,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     
     vacations = vacations.filter(vacation => vacation.status !== 'rejected');
     
-    if (roleFilter !== ALL_ROLE_FILTER) {
+    if (!isAllRoles) {
       vacations = vacations.filter((vacation) => {
         const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
-        return resolvedRole === roleFilter;
+        return matchesRoleFilter(resolvedRole);
       });
     }
     
@@ -900,7 +915,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                     )}
                   </div>
 
-                  {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
+                  {isCurrentMonth && isSingleRole && vacationersCount > 0 && (
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -991,7 +1006,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   </div>
                 )}
 
-                {isCurrentMonth && roleFilter !== ALL_ROLE_FILTER && vacationersCount > 0 && (
+                {isCurrentMonth && isSingleRole && vacationersCount > 0 && (
                   <div style={{ position: 'absolute', bottom: 6, right: 6 }}>
                     {vacationersCount >= maxPeople ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)', color: 'var(--color-text-red)' }}>

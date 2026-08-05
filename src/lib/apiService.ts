@@ -448,6 +448,27 @@ export async function getVacationLimits(startDate: string, endDate: string) {
     return fetchWithAuth(`/api/vacation/limits?start=${startDate}&end=${endDate}&companyId=${companyId}`);
 }
 
+// 휴무 입력 마감일 설정 조회
+export async function getVacationDeadlineSetting() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/vacation/deadline-setting?companyId=${companyId}`);
+}
+
+// 휴무 입력 마감일 설정 저장
+export async function saveVacationDeadlineSetting(deadlineDay: number, enabled: boolean) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/vacation/deadline-setting?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify({ deadlineDay, enabled }),
+    });
+}
+
 // 휴가 제한 저장 (companyId 추가)
 export async function saveVacationLimits(limits: Array<{
     date: string;
@@ -1672,6 +1693,19 @@ export async function uploadCompanySeal(imageBase64: string) {
 // 기관 직인 삭제 (관리자 전용)
 export async function deleteCompanySeal() {
     return fetchWithAuth('/api/v1/users/company-seal', { method: 'DELETE' });
+}
+
+// 내 기관 홈페이지 주소 조회 (관리자·직원 모두)
+export async function getCompanyHomepage() {
+    return fetchWithAuth('/api/v1/users/company-homepage');
+}
+
+// 기관 홈페이지 주소 등록/변경 (관리자 전용, 빈 문자열이면 해제)
+export async function updateCompanyHomepage(homepageUrl: string) {
+    return fetchWithAuth('/api/v1/users/company-homepage', {
+        method: 'PUT',
+        body: JSON.stringify({ homepageUrl }),
+    });
 }
 
 // 결재 반려 (관리자)

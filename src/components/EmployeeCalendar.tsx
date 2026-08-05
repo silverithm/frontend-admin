@@ -14,6 +14,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { Selector } from '@astryxdesign/core/Selector';
+import { MultiSelector } from '@astryxdesign/core/MultiSelector';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
@@ -58,6 +59,22 @@ export default function EmployeeCalendar() {
   const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
 
   const [userName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('userName') : null);
+  // 직종 필터 (중복 선택 가능, 빈 배열 = 전체) — 관리자 근무조정과 동일한 보기 기능
+  const [roleFilters, setRoleFilters] = useState<string[]>([]);
+
+  // 이번 달 휴무 데이터에 등장하는 직종 목록
+  const availableRoles = useMemo(() => {
+    const roles = new Set<string>();
+    Object.values(vacationDays).forEach((day) => {
+      (day.vacations || []).forEach((v) => {
+        if (v.role) roles.add(v.role);
+      });
+    });
+    return Array.from(roles).sort();
+  }, [vacationDays]);
+
+  const matchesRoleFilter = (role?: string) =>
+    roleFilters.length === 0 || (role != null && roleFilters.includes(role));
 
   // 달력 날짜 계산
   const calendarDays = useMemo(() => {
@@ -120,7 +137,10 @@ export default function EmployeeCalendar() {
   const getVacationsForDate = (date: Date): VacationRequest[] => {
     const dateKey = format(date, 'yyyy-MM-dd');
     const dayInfo = vacationDays[dateKey];
-    return dayInfo?.vacations || [];
+    const vacations = dayInfo?.vacations || [];
+    return roleFilters.length === 0
+      ? vacations
+      : vacations.filter((v) => matchesRoleFilter(v.role));
   };
 
   // 날짜에 해당하는 내 휴가 정보 가져오기
@@ -282,6 +302,20 @@ export default function EmployeeCalendar() {
                 <Button label="오늘" variant="secondary" size="sm" onClick={goToToday} />
               </HStack>
               <HStack gap={2} vAlign="center">
+                {availableRoles.length > 0 && (
+                  <MultiSelector
+                    label="직종 필터"
+                    isLabelHidden
+                    size="sm"
+                    placeholder="전체 직종"
+                    options={availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
+                    value={roleFilters}
+                    onChange={(values) => setRoleFilters(values)}
+                    triggerDisplay="badges"
+                    hasSelectAll
+                    selectAllLabel="전체 직종"
+                  />
+                )}
                 <Button
                   label={isExpanded ? '접기' : '펼치기'}
                   variant={isExpanded ? 'primary' : 'secondary'}

@@ -66,6 +66,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
+import { MultiSelector } from "@astryxdesign/core/MultiSelector";
 import { DateRangeInput } from "@astryxdesign/core/DateRangeInput";
 import type { DateRange } from "@astryxdesign/core/DateRangeInput";
 import type { ISODateString } from "@astryxdesign/core/Calendar";
@@ -183,7 +184,10 @@ export default function AdminPage() {
         "all" | "pending" | "approved" | "rejected"
     >("all");
     const [allRequests, setAllRequests] = useState<VacationRequest[]>([]);
-    const [roleFilter, setRoleFilter] = useState<string>(ALL_ROLE_FILTER);
+    const [roleFilters, setRoleFilters] = useState<string[]>([]);
+    // 단일 소비처 호환용 파생값: 1개 선택이면 그 직종, 그 외(전체·다중)는 전체.
+    // 다중 선택의 정밀 필터링은 각 소비처에서 roleFilters로 직접 처리한다.
+    const roleFilter = roleFilters.length === 1 ? roleFilters[0] : ALL_ROLE_FILTER;
     const [nameFilter, setNameFilter] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<
         "latest" | "oldest" | "vacation-date-asc" | "vacation-date-desc" | "name" | "role"
@@ -303,11 +307,11 @@ export default function AdminPage() {
         if (statusFilter !== "all") {
             filtered = filtered.filter((request) => request.status === statusFilter);
         }
-        if (roleFilter !== ALL_ROLE_FILTER) {
-            filtered = filtered.filter(
-                (request) =>
-                    getVacationRequestRole(request, memberRoleLookup) === roleFilter
-            );
+        if (roleFilters.length > 0) {
+            filtered = filtered.filter((request) => {
+                const resolved = getVacationRequestRole(request, memberRoleLookup);
+                return resolved != null && roleFilters.includes(resolved);
+            });
         }
         if (nameFilter) {
             filtered = filtered.filter((request) => request.userName === nameFilter);
@@ -361,7 +365,7 @@ export default function AdminPage() {
     }, [
         allRequests,
         statusFilter,
-        roleFilter,
+        roleFilters,
         nameFilter,
         memberRoleLookup,
         sortOrder,
@@ -584,12 +588,20 @@ export default function AdminPage() {
 
 
             // 데이터에서 휴가 목록 추출
-            const vacations = Array.isArray(data.vacations)
+            let vacations = Array.isArray(data.vacations)
                 ? data.vacations.map((vacation: any) => ({
                     ...vacation,
                     duration: vacation.duration || "FULL_DAY", // duration이 없으면 기본값 설정
                 }))
                 : [];
+
+            // 다중 직종 선택 시 서버는 전체를 반환하므로 클라이언트에서 거른다
+            if (roleFilters.length > 1) {
+                vacations = vacations.filter((vacation: any) => {
+                    const resolved = getVacationRequestRole(vacation, memberRoleLookup);
+                    return resolved != null && roleFilters.includes(resolved);
+                });
+            }
 
 
 
@@ -961,7 +973,7 @@ export default function AdminPage() {
         status: "all" | "pending" | "approved" | "rejected"
     ) => setStatusFilter(status);
     const toggleRoleFilter = (role: string) =>
-        setRoleFilter(role);
+        setRoleFilters(role === ALL_ROLE_FILTER ? [] : [role]);
     const toggleNameFilter = (name: string) =>
         setNameFilter(name === "전체" || name === "" ? null : name);
     const toggleSortOrder = (
@@ -987,7 +999,7 @@ export default function AdminPage() {
 
     const resetFilter = () => {
         setStatusFilter("all");
-        setRoleFilter(ALL_ROLE_FILTER);
+        setRoleFilters([]);
         setNameFilter(null);
         setSortOrder("latest");
         // 기간까지 보고 있는 달로 되돌린다. 예전에는 여기서 전체 기간을 다시 불러와
@@ -1445,6 +1457,7 @@ export default function AdminPage() {
                                         onDateSelect={handleDateSelect}
                                         isAdmin={isAdmin}
                                         roleFilter={roleFilter}
+                                        roleFilters={roleFilters}
                                         nameFilter={nameFilter}
                                         onShowLimitPanel={handleShowLimitPanel}
                                         onNameFilterChange={setNameFilter}
@@ -1517,15 +1530,15 @@ export default function AdminPage() {
                                             </div>
 
                                             {/* 역할 — 직무 수가 많아져도 한 줄 유지 */}
-                                            <Selector
-                                                label="역할"
-                                                width="100%"
-                                                value={roleFilter}
-                                                options={[
-                                                    { value: ALL_ROLE_FILTER, label: `전체 역할 (${availableRoles.length})` },
-                                                    ...availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) })),
-                                                ]}
-                                                onChange={(value) => setRoleFilter(value || ALL_ROLE_FILTER)}
+                                            <MultiSelector
+                                                label="역할 (중복 선택 가능)"
+                                                placeholder="전체 역할"
+                                                options={availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
+                                                value={roleFilters}
+                                                onChange={(values) => setRoleFilters(values)}
+                                                triggerDisplay="badges"
+                                                hasSelectAll
+                                                selectAllLabel="전체 역할"
                                             />
 
                                             {/* 정렬 — 드롭다운이라 옵션을 더 제공할 수 있음 */}

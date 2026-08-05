@@ -27,7 +27,13 @@ import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Icon } from "@astryxdesign/core/Icon";
-import { getPositions, saveVacationLimits } from "@/lib/apiService";
+import { Switch } from "@astryxdesign/core/Switch";
+import {
+  getPositions,
+  saveVacationLimits,
+  getVacationDeadlineSetting,
+  saveVacationDeadlineSetting,
+} from "@/lib/apiService";
 import {
   ALL_ROLE_FILTER,
   buildRoleNames,
@@ -63,6 +69,18 @@ const AdminPanel = ({
   const [message, setMessage] = useState<{ type: string; text: string } | null>(
     null
   );
+  // 휴무 입력 마감일 설정 (회사당 한 벌)
+  const [deadlineDay, setDeadlineDay] = useState<number>(20);
+  const [deadlineEnabled, setDeadlineEnabled] = useState(false);
+
+  useEffect(() => {
+    getVacationDeadlineSetting()
+      .then((data) => {
+        if (typeof data?.deadlineDay === "number") setDeadlineDay(data.deadlineDay);
+        setDeadlineEnabled(Boolean(data?.enabled));
+      })
+      .catch((err) => console.error("휴무 마감일 설정 조회 오류:", err));
+  }, []);
 
   const availableRoles = useMemo(
     () => buildRoleNames({ positions, limits }),
@@ -190,6 +208,7 @@ const AdminPanel = ({
       const saveLimits = limits.filter((limit) => limit.role.trim().length > 0);
 
       await saveVacationLimits(saveLimits);
+      await saveVacationDeadlineSetting(deadlineDay, deadlineEnabled);
 
       // 성공 후 최신 데이터 새로고침
       await onUpdateSuccess();
@@ -268,6 +287,42 @@ const AdminPanel = ({
             <Text color="accent">저장 중... 기다려주세요.</Text>
           </HStack>
         )}
+
+        {/* 휴무 입력 마감일 설정 */}
+        <Card variant="muted" padding={4}>
+          <VStack gap={3}>
+            <Switch
+              label="휴무 입력 마감일 사용"
+              value={deadlineEnabled}
+              onChange={(checked) => setDeadlineEnabled(checked)}
+              labelPosition="start"
+              labelSpacing="spread"
+              isDisabled={isBusy}
+            />
+            {deadlineEnabled && (
+              <HStack gap={3} vAlign="center">
+                <Text>매월</Text>
+                <div style={{ width: 96 }}>
+                  <NumberInput
+                    label="마감일"
+                    isLabelHidden
+                    value={deadlineDay}
+                    min={1}
+                    max={31}
+                    isIntegerOnly
+                    onChange={(value) => setDeadlineDay(value || 20)}
+                    isDisabled={isBusy}
+                  />
+                </div>
+                <Text>일까지 다음 달 휴무를 입력받습니다</Text>
+              </HStack>
+            )}
+            <Text type="supporting" color="secondary">
+              마감일이 지나도 휴무 인원이 제한을 초과한 날짜가 남아 있으면, 그 날짜에
+              신청한 직원들에게 조정 요청 알림을 매일 보냅니다.
+            </Text>
+          </VStack>
+        </Card>
 
         {/* 역할 필터 */}
         <HStack hAlign="center">
