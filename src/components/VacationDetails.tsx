@@ -17,9 +17,7 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import {
   VacationDetailsProps,
   VacationRequest,
-  VACATION_DURATION_OPTIONS,
-  getVacationTypeLabel,
-  isSubstituteVacation,
+  resolveVacationKind,
 } from '@/types/vacation';
 import VacationForm from './VacationForm';
 import {
@@ -168,20 +166,6 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
     }
   };
 
-  // 휴가 기간 텍스트 가져오기
-  const getDurationText = (duration?: string) => {
-    const option = VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
-    return option ? option.displayName : '연차';
-  };
-
-  // 휴가 기간이 유효한지 확인하는 함수
-  const isValidDuration = (duration?: string) => {
-    return duration && VACATION_DURATION_OPTIONS.find(opt => opt.value === duration);
-  };
-
-  // 휴무 유형 한글 변환
-  const getVacationTypeText = getVacationTypeLabel;
-
   // 상태 한글 변환
   const getStatusText = (status?: string) => {
     switch (status) {
@@ -270,6 +254,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                     <VStack gap={2}>
                       {sortedVacations.map((vacation) => {
                         const resolvedRole = getVacationRequestRole(vacation, memberRoleLookup);
+                        const kind = resolveVacationKind(vacation.type, vacation.duration);
 
                         return (
                           <motion.div
@@ -315,16 +300,11 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                 </HStack>
 
                                 <HStack gap={2} wrap="wrap" vAlign="center">
-                                  {/* 휴가 기간 뱃지 - 유효한 duration일 때만 표시 */}
-                                  {isValidDuration(vacation.duration) && (
-                                    <Badge variant="teal" label={getDurationText(vacation.duration)} />
-                                  )}
-
-                                  {/* 휴무 유형 뱃지 */}
+                                  {/* 휴무 종류 뱃지 — 종류/연차 차감이 하나로 합쳐졌다 */}
                                   <Badge
-                                    variant={isSubstituteVacation(vacation.type) ? 'teal' : 'neutral'}
+                                    variant={kind.badgeVariant}
                                     icon={<Icon icon="clock" size="sm" />}
-                                    label={getVacationTypeText(vacation.type)}
+                                    label={kind.label}
                                   />
 
                                   {/* 직원 유형 뱃지 */}

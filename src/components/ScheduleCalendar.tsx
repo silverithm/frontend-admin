@@ -39,6 +39,20 @@ import { duration } from '@/theme/motion';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
+/**
+ * 일요일 열의 폭 배율. 대부분의 기관이 일요일은 쉬어 일정이 거의 없으므로
+ * 칸을 좁혀 평일에 폭을 넘긴다.
+ *
+ * 이 값은 globals.css의 `.carev-schedcal-cols` grid-template-columns와 반드시 같아야 한다.
+ * 여러 날 일정 바가 이 비율로 계산한 % 좌표에 절대배치되기 때문에, 한쪽만 바꾸면 어긋난다.
+ */
+const SUNDAY_FR = 0.7;
+const WEEK_FR_TOTAL = SUNDAY_FR + 6;
+/** 주 안에서 col번째 칸이 시작되는 지점(0~1) */
+const colStartRatio = (col: number) => (col === 0 ? 0 : (SUNDAY_FR + (col - 1)) / WEEK_FR_TOTAL);
+/** 주 안에서 col번째 칸이 끝나는 지점(0~1) */
+const colEndRatio = (col: number) => (SUNDAY_FR + col) / WEEK_FR_TOTAL;
+
 // 여러 날 일정을 주 단위로 이어서 표시하기 위한 바 레이아웃 상수
 const BAR_HEIGHT = 16;
 const BAR_GAP = 2;
@@ -92,6 +106,8 @@ const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
 interface ScheduleCalendarProps {
   isAdmin?: boolean;
   mode?: 'schedule' | 'dispatch';
+  /** 연간일정에서 특정 달을 눌러 들어온 경우 그 달을 펼친 채로 연다. */
+  initialMonth?: Date | null;
   onNotification?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -112,9 +128,9 @@ interface ScheduleFormData {
   managerId: string;
 }
 
-export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', onNotification }: ScheduleCalendarProps) {
+export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, onNotification }: ScheduleCalendarProps) {
   const { showAlert, AlertContainer } = useAlert();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => initialMonth ?? new Date());
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [labels, setLabels] = useState<ScheduleLabel[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -1094,7 +1110,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             </div>
 
             {/* 요일 헤더 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+            <div className="carev-schedcal-cols" style={{ borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
               {WEEKDAYS.map((day, index) => (
                 <div
                   key={day}
@@ -1131,13 +1147,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
             {isLoading ? (
               <Loading label="달력을 불러오는 중..." />
             ) : isDispatchMode ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+              <div className="carev-schedcal-cols">
                 {calendarDays.map((date, index) =>
                   date ? renderDispatchDayCell(date) : <div key={`empty-${index}`} style={EMPTY_CELL_STYLE} />
                 )}
               </div>
             ) : (
-              <div>
+              <div className="carev-schedcal-weeks">
                 {calendarWeeks.map((week, weekIndex) => {
                   const layout = weekBarLayouts[weekIndex];
                   return (
@@ -1154,7 +1170,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                         {layout?.bars.map((bar) => {
                           const leftInset = bar.continuesBefore ? 0 : BAR_EDGE_INSET;
                           const rightInset = bar.continuesAfter ? 0 : BAR_EDGE_INSET;
-                          const spanDays = bar.endCol - bar.startCol + 1;
+                          // 일요일 칸이 좁으므로 균등 분할(1/7)이 아니라 열 비율로 좌표를 낸다
+                          const barLeftPct = colStartRatio(bar.startCol) * 100;
+                          const barWidthPct = (colEndRatio(bar.endCol) - colStartRatio(bar.startCol)) * 100;
                           const startRadius = bar.continuesBefore ? '0' : 'var(--radius-inner)';
                           const endRadius = bar.continuesAfter ? '0' : 'var(--radius-inner)';
                           const barColor = getScheduleColor(bar.schedule);
@@ -1168,11 +1186,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                               style={{
                                 position: 'absolute',
                                 top: BAR_AREA_TOP + bar.lane * (BAR_HEIGHT + BAR_GAP),
-                                left: `calc(${(bar.startCol / 7) * 100}% + ${leftInset}px)`,
-                                width: `calc(${(spanDays / 7) * 100}% - ${leftInset + rightInset}px)`,
+                                left: `calc(${barLeftPct}% + ${leftInset}px)`,
+                                width: `calc(${barWidthPct}% - ${leftInset + rightInset}px)`,
                                 height: BAR_HEIGHT,
                                 display: 'flex',
                                 alignItems: 'center',
+                                // 일정 제목을 칸 가운데에 둔다 (앞뒤 화살표·완료 아이콘은 제목 옆에 붙는다)
+                                justifyContent: 'center',
                                 padding: '0 var(--spacing-1-5)',
                                 border: isDone ? `1px solid ${barColor}` : 'none',
                                 borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
@@ -1181,7 +1201,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                 opacity: isDone ? 0.85 : 0.9,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
-                                textAlign: 'left',
+                                textAlign: 'center',
                                 cursor: 'pointer',
                                 pointerEvents: 'auto',
                               }}
@@ -1196,7 +1216,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', o
                                   <Icon icon={IconCircleCheck} size="xsm" color="inherit" />
                                 </span>
                               )}
-                              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textDecoration: isDone ? 'line-through' : 'none' }}>
+                              <span style={{ flex: '0 1 auto', minWidth: 0, overflow: 'hidden', textDecoration: isDone ? 'line-through' : 'none' }}>
                                 <Text type="supporting" color="inherit" weight="medium" maxLines={1}>
                                   {bar.schedule.title}
                                 </Text>

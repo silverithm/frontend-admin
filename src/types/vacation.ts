@@ -31,8 +31,146 @@ export const VACATION_DURATION_OPTIONS: VacationDurationInfo[] = [
   }
 ];
 
-// 휴무 종류 (백엔드 vacation_requests.type 컬럼에 그대로 저장됨)
-export type VacationKind = 'regular' | 'mandatory' | 'substitute';
+// ─────────────────────────────────────────────────────────────────────────────
+// 휴무 종류 — 화면에서 고르고 보여주는 값은 아래 6가지가 전부다.
+//
+// 서버는 여전히 두 컬럼으로 나눠 저장한다.
+//   vacation_requests.type      = regular | mandatory | substitute
+//   vacation_requests.duration  = UNUSED | FULL_DAY | HALF_DAY_AM | HALF_DAY_PM  (연차 차감 단위)
+// 아래 표가 그 두 컬럼과 화면 한 줄을 잇는 유일한 지점이다. 종류가 늘거나 라벨이
+// 바뀌면 여기만 고치면 되고, 폼·목록·캘린더는 손대지 않아도 된다.
+// ─────────────────────────────────────────────────────────────────────────────
+export type VacationKind =
+  | 'regular'
+  | 'mandatory'
+  | 'substitute'
+  | 'annual'
+  | 'half_am'
+  | 'half_pm';
+
+export interface VacationKindInfo {
+  value: VacationKind;
+  label: string;
+  description: string;
+  /** 서버 type 컬럼 값 */
+  type: 'regular' | 'mandatory' | 'substitute';
+  /** 서버 duration 컬럼 값. UNUSED면 연차를 차감하지 않는다 */
+  duration: VacationDuration | 'UNUSED';
+  /** 차감되는 연차 일수 */
+  days: number;
+  /** 캘린더 셀의 한 글자 배지 */
+  short: string;
+  /** 셀 배지 배경색 (CSS 변수) */
+  color: string;
+  /** Astryx Badge variant */
+  badgeVariant: 'neutral' | 'orange' | 'teal' | 'blue' | 'green' | 'purple';
+}
+
+export const VACATION_KIND_OPTIONS: VacationKindInfo[] = [
+  {
+    value: 'regular',
+    label: '일반휴무',
+    description: '연차를 차감하지 않는 휴무',
+    type: 'regular',
+    duration: 'UNUSED',
+    days: 0,
+    short: '일',
+    color: 'var(--color-icon-gray)',
+    badgeVariant: 'neutral',
+  },
+  {
+    value: 'mandatory',
+    label: '필수휴무',
+    description: '사유를 반드시 남기는 휴무',
+    type: 'mandatory',
+    duration: 'UNUSED',
+    days: 0,
+    short: '필',
+    color: 'var(--color-icon-orange)',
+    badgeVariant: 'orange',
+  },
+  {
+    value: 'substitute',
+    label: '대체휴무',
+    description: '근무한 날을 대신 쉬는 휴무',
+    type: 'substitute',
+    duration: 'UNUSED',
+    days: 0,
+    short: '대',
+    color: 'var(--color-icon-teal)',
+    badgeVariant: 'teal',
+  },
+  {
+    value: 'annual',
+    label: '연차',
+    description: '연차 1일 차감',
+    type: 'regular',
+    duration: 'FULL_DAY',
+    days: 1,
+    short: '연',
+    color: 'var(--color-icon-blue)',
+    badgeVariant: 'blue',
+  },
+  {
+    value: 'half_am',
+    label: '오전반차',
+    description: '연차 0.5일 차감 · 오전',
+    type: 'regular',
+    duration: 'HALF_DAY_AM',
+    days: 0.5,
+    short: '반',
+    color: 'var(--color-icon-green)',
+    badgeVariant: 'green',
+  },
+  {
+    value: 'half_pm',
+    label: '오후반차',
+    description: '연차 0.5일 차감 · 오후',
+    type: 'regular',
+    duration: 'HALF_DAY_PM',
+    days: 0.5,
+    short: '반',
+    color: 'var(--color-icon-purple)',
+    badgeVariant: 'purple',
+  },
+];
+
+const DEFAULT_KIND = VACATION_KIND_OPTIONS[0];
+
+export const getVacationKindInfo = (kind: VacationKind): VacationKindInfo =>
+  VACATION_KIND_OPTIONS.find((option) => option.value === kind) ?? DEFAULT_KIND;
+
+/**
+ * 저장된 (type, duration)을 화면에서 쓰는 한 가지 종류로 되돌린다.
+ *
+ * 반차를 가장 먼저 보는 이유: 반차는 연차가 실제로 반일 차감된다는 뜻이라
+ * 필수/대체 표시보다 근무·급여에 직접 영향을 준다.
+ * 종류를 나누기 전에 만들어진 데이터는 duration이 대부분 FULL_DAY라 '연차'로 보인다.
+ */
+export const resolveVacationKind = (type?: string, duration?: string): VacationKindInfo => {
+  const normalizedType = (type ?? '').trim().toLowerCase();
+  const normalizedDuration = (duration ?? '').trim().toUpperCase();
+
+  if (normalizedDuration === 'HALF_DAY_AM') return getVacationKindInfo('half_am');
+  if (normalizedDuration === 'HALF_DAY_PM') return getVacationKindInfo('half_pm');
+  if (normalizedType === 'substitute') return getVacationKindInfo('substitute');
+  if (normalizedType === 'mandatory') return getVacationKindInfo('mandatory');
+  if (normalizedDuration === 'FULL_DAY') return getVacationKindInfo('annual');
+  return getVacationKindInfo('regular');
+};
+
+export const getVacationKindLabel = (type?: string, duration?: string): string =>
+  resolveVacationKind(type, duration).label;
+
+/** 폼에서 고른 종류를 서버가 받는 필드로 편다 */
+export const toVacationRequestFields = (kind: VacationKind) => {
+  const info = getVacationKindInfo(kind);
+  return {
+    type: info.type,
+    duration: info.duration,
+    useAnnualLeave: info.duration !== 'UNUSED',
+  };
+};
 
 // 대체휴무 여부 판별
 export const isSubstituteVacation = (type?: string): boolean => type === 'substitute';

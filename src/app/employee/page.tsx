@@ -12,6 +12,7 @@ import { ChatManagement } from '@/components/ChatManagement';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
+import TodayTaskReminder from '@/components/TodayTaskReminder';
 import AdminDashboard from '@/components/AdminDashboard';
 import PlazaManagement from '@/components/plaza/PlazaManagement';
 import VoiceBoxEmployee from '@/components/VoiceBoxEmployee';
@@ -31,6 +32,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import type { IconType } from '@astryxdesign/core/Icon';
 import {
   IconLayoutDashboard,
+  IconApps,
   IconBell,
   IconMessageDots,
   IconCalendar,
@@ -45,16 +47,18 @@ import {
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
 
-type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza' | 'voice';
+type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza' | 'voice' | 'tools';
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
-type ScheduleSubTab = 'schedule' | 'dispatch';
+// 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
+// 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
+type ToolKey = 'dispatch';
 
 export default function EmployeePage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('dashboard');
   const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>('submit');
-  const [scheduleSubTab, setScheduleSubTab] = useState<ScheduleSubTab>('schedule');
+  const [activeTool, setActiveTool] = useState<ToolKey>('dispatch');
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -130,18 +134,30 @@ export default function EmployeePage() {
     );
   }
 
+  // 편의기능 탭의 도구 목록 — 권한이 있는 도구만 노출한다.
+  const toolItems = ([
+    ...(hasPermission('SCHEDULE_DISPATCH') ? [
+      { key: 'dispatch' as const, label: '배차관리' },
+    ] : []),
+  ] as { key: ToolKey; label: string }[]);
+
+  // 관리자 화면과 같은 순서: 커뮤니티를 맨 위에 두고 그 아래가 기관 업무 메뉴다.
   const TABS = ([
+    { key: 'plaza', label: '커뮤니티', icon: IconUsersGroup },
     { key: 'dashboard', label: '대시보드', icon: IconLayoutDashboard },
     { key: 'notice', label: '공지사항', icon: IconBell },
     { key: 'chat', label: '채팅', icon: IconMessageDots },
-    { key: 'schedule', label: '월간일정', icon: IconCalendar },
+    { key: 'schedule', label: '일정', icon: IconCalendar },
     { key: 'approval', label: '전자결재', icon: IconFileText },
     { key: 'work', label: '근무조정', icon: IconCalendarStats },
-    { key: 'plaza', label: '커뮤니티', icon: IconUsersGroup },
     { key: 'voice', label: '고충·건의', icon: IconMailbox },
     // 권한이 있는 경우에만 회원관리 탭 표시
     ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
       { key: 'members', label: '회원관리', icon: IconUsers },
+    ] : []),
+    // 편의기능 — 부가 도구를 모으는 자리. 도구가 하나도 없으면 탭 자체를 숨긴다.
+    ...(toolItems.length > 0 ? [
+      { key: 'tools', label: '편의기능', icon: IconApps },
     ] : []),
   ] as { key: string; label: string; icon: IconType }[]);
 
@@ -276,7 +292,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} />
                 </motion.div>
@@ -287,7 +303,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <NoticeManagement isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
@@ -298,7 +314,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
@@ -309,28 +325,35 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.mediumMin }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  {/* 배차관리 권한이 있으면 서브탭 표시 */}
-                  {hasPermission('SCHEDULE_DISPATCH') && (
+                  <ScheduleCalendar isAdmin={hasPermission('SCHEDULE_MANAGE')} mode="schedule" onNotification={showNotification} />
+                </motion.div>
+              ) : activeMainTab === 'tools' ? (
+                <motion.div
+                  key={`tools-${activeTool}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: duration.mediumMin }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+                >
+                  {/* 도구가 둘 이상이 되면 전환 바를 띄운다 */}
+                  {toolItems.length > 1 && (
                     <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
-                      <Button
-                        label="일정"
-                        variant={scheduleSubTab === 'schedule' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setScheduleSubTab('schedule')}
-                      />
-                      <Button
-                        label="배차관리"
-                        variant={scheduleSubTab === 'dispatch' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setScheduleSubTab('dispatch')}
-                      />
+                      {toolItems.map((tool) => (
+                        <Button
+                          key={tool.key}
+                          label={tool.label}
+                          variant={activeTool === tool.key ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setActiveTool(tool.key)}
+                        />
+                      ))}
                     </div>
                   )}
-                  {scheduleSubTab === 'schedule' ? (
-                    <ScheduleCalendar isAdmin={hasPermission('SCHEDULE_MANAGE')} mode="schedule" onNotification={showNotification} />
-                  ) : (
+                  {/* 새 편의기능은 여기에 분기를 추가한다 */}
+                  {activeTool === 'dispatch' && hasPermission('SCHEDULE_DISPATCH') && (
                     <DispatchManagement onNotification={showNotification} />
                   )}
                 </motion.div>
@@ -341,7 +364,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 결재 관리/양식 관리 권한이 있으면 서브탭 표시 */}
                   {hasAnyPermission('APPROVAL_MANAGE', 'APPROVAL_TEMPLATE') && (
@@ -385,7 +408,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <PlazaManagement />
                 </motion.div>
@@ -396,7 +419,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <VoiceBoxEmployee />
                 </motion.div>
@@ -407,7 +430,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <EmployeeCalendar />
                 </motion.div>
@@ -418,7 +441,7 @@ export default function EmployeePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: duration.fast }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <UserManagement
                     onNotification={showNotification}
@@ -470,6 +493,9 @@ export default function EmployeePage() {
 
         {/* 플로팅 채팅 위젯 */}
         <FloatingChat />
+
+        {/* 오늘 담당 일정을 아직 체크하지 않았으면 우측 아래에 알림 */}
+        <TodayTaskReminder onOpenSchedule={() => setActiveMainTab('schedule')} />
       </div>
     </>
   );

@@ -1,17 +1,14 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback } from "react";
+import {useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import {useRouter} from "next/navigation";
-import {format, addMonths, subMonths, isSameDay} from "date-fns";
+import {format, addMonths, subMonths, isSameDay, startOfMonth, endOfMonth} from "date-fns";
 import {ko} from "date-fns/locale";
 import {
     DayInfo,
     VacationRequest,
     VacationLimit,
-    VACATION_DURATION_OPTIONS,
-    VacationDuration,
-    getVacationTypeLabel,
-    isSubstituteVacation,
+    resolveVacationKind,
 } from "@/types/vacation";
 import {
     deleteVacation as apiDeleteVacation,
@@ -29,6 +26,8 @@ import {
 import {motion, AnimatePresence} from "framer-motion";
 import VacationCalendar from "@/components/VacationCalendar";
 import ScheduleCalendar from "@/components/ScheduleCalendar";
+import AnnualScheduleView from "@/components/AnnualScheduleView";
+import TodayTaskReminder from "@/components/TodayTaskReminder";
 import AdminPanel from "@/components/AdminPanel";
 import VacationDetails from "@/components/VacationDetails";
 import UserManagement from "@/components/UserManagement";
@@ -62,10 +61,14 @@ import { exportWorkScheduleExcel } from "@/lib/workScheduleExcel";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Badge } from "@astryxdesign/core/Badge";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
+import { DateRangeInput } from "@astryxdesign/core/DateRangeInput";
+import type { DateRange } from "@astryxdesign/core/DateRangeInput";
+import type { ISODateString } from "@astryxdesign/core/Calendar";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Loading, LoadingOverlay } from "@/components/Loading";
 import { Banner } from "@astryxdesign/core/Banner";
@@ -90,12 +93,16 @@ import {
     IconUsersGroup,
     IconMailbox,
     IconHelp,
+    IconApps,
+    IconBus,
+    IconSparkles,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import OnboardingTour from "@/components/OnboardingTour";
+import AiPostWriter from "@/components/AiPostWriter";
 import { hasSeenTour } from "@/lib/onboarding";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
@@ -113,9 +120,12 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
     return "neutral";
 };
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools";
 type ApprovalSubTab = "management" | "templates" | "submit";
-type ScheduleMode = "schedule" | "dispatch";
+// 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
+type ScheduleMode = "schedule" | "annual";
+// 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
+type ToolKey = "dispatch" | "aipost";
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
@@ -133,6 +143,9 @@ export default function AdminPage() {
     }, []);
     const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>("submit");
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
+    // 연간일정에서 특정 달을 누르면 그 달을 펼친 채로 월간일정으로 넘어간다.
+    const [scheduleFocusMonth, setScheduleFocusMonth] = useState<Date | null>(null);
+    const [activeTool, setActiveTool] = useState<ToolKey>("dispatch");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dateVacations, setDateVacations] = useState<VacationRequest[]>([]);
@@ -157,6 +170,14 @@ export default function AdminPage() {
     );
     const [userName, setUserName] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // 휴무 목록 조회 기간. 기본값은 캘린더가 보고 있는 달이다.
+    // 이 값이 목록에 보이는 범위이자 일괄 승인의 범위다 — 화면에 없는 다음 달 휴무가
+    // "전체 선택"에 딸려 들어가 승인되던 문제를 여기서 막는다.
+    const [listRange, setListRange] = useState<{ start: string; end: string }>(() => ({
+        start: format(startOfMonth(new Date()), "yyyy-MM-dd"),
+        end: format(endOfMonth(new Date()), "yyyy-MM-dd"),
+    }));
 
     const [statusFilter, setStatusFilter] = useState<
         "all" | "pending" | "approved" | "rejected"
@@ -255,7 +276,8 @@ export default function AdminPage() {
             fetchMonthData();
             // fetchAllRequests(); // 제거: getVacationCalendar 데이터 사용
         }
-    }, [currentDate, isClient]);
+        // 조회 기간이 달 밖으로 넓어지면 그만큼 더 받아와야 하므로 listRange도 의존성이다
+    }, [currentDate, listRange, isClient]);
 
     const filteredRequests = useMemo(() => {
         // allRequests가 배열인지 확인
@@ -265,6 +287,12 @@ export default function AdminPage() {
         }
 
         let filtered = allRequests;
+
+        // 조회 기간 밖의 휴무는 목록에도, 일괄 승인 대상에도 들어가지 않는다
+        // (yyyy-MM-dd는 사전순 비교가 곧 날짜 비교다)
+        filtered = filtered.filter(
+            (request) => request.date >= listRange.start && request.date <= listRange.end
+        );
 
         // 선택된 날짜 필터링 추가
         if (selectedDate) {
@@ -338,7 +366,20 @@ export default function AdminPage() {
         memberRoleLookup,
         sortOrder,
         selectedDate,
+        listRange,
     ]);
+
+    // 화면에서 사라진 휴무가 선택에 남아 있으면 일괄 승인에 딸려 들어간다.
+    // (달을 넘기거나 기간·상태 필터를 바꾼 뒤가 특히 위험하다)
+    // 선택은 항상 지금 목록에 보이는 것만 유지한다.
+    useEffect(() => {
+        setSelectedVacationIds((prev) => {
+            if (prev.size === 0) return prev;
+            const visibleIds = new Set(filteredRequests.map((request) => request.id));
+            const kept = new Set([...prev].filter((id) => visibleIds.has(id)));
+            return kept.size === prev.size ? prev : kept;
+        });
+    }, [filteredRequests]);
 
     const fetchInitialData = async () => {
         try {
@@ -372,11 +413,12 @@ export default function AdminPage() {
 
 
 
-            // 캘린더 데이터 조회
-            const startDate = new Date(year, month, 1);
-            const endDate = new Date(year, month + 1, 0);
-            const startDateStr = format(startDate, "yyyy-MM-dd");
-            const endDateStr = format(endDate, "yyyy-MM-dd");
+            // 캘린더는 보고 있는 달이 다 필요하고 목록은 조회 기간이 필요하다.
+            // 조회 기간이 달 밖으로 나갈 수 있으므로 둘을 합친 범위를 한 번에 받는다.
+            const monthStartStr = format(new Date(year, month, 1), "yyyy-MM-dd");
+            const monthEndStr = format(new Date(year, month + 1, 0), "yyyy-MM-dd");
+            const startDateStr = listRange.start < monthStartStr ? listRange.start : monthStartStr;
+            const endDateStr = listRange.end > monthEndStr ? listRange.end : monthEndStr;
 
             // apiService 함수들 사용 (토큰 갱신 로직 포함)
             const [calendarData, limitsData, membersData, positionsData] = await Promise.all([
@@ -932,12 +974,28 @@ export default function AdminPage() {
             | "role"
     ) => setSortOrder(order);
 
-    const resetFilter = async () => {
+    // 캘린더에서 달을 넘기면 조회 기간도 그 달로 맞춘다.
+    // 두 상태를 같은 이벤트에서 바꾸므로 리렌더는 한 번이고 데이터도 한 번만 받는다.
+    const handleCurrentDateChange = useCallback((value: Date | ((prev: Date) => Date)) => {
+        const next = typeof value === "function" ? value(currentDate) : value;
+        setCurrentDate(next);
+        setListRange({
+            start: format(startOfMonth(next), "yyyy-MM-dd"),
+            end: format(endOfMonth(next), "yyyy-MM-dd"),
+        });
+    }, [currentDate]);
+
+    const resetFilter = () => {
         setStatusFilter("all");
         setRoleFilter(ALL_ROLE_FILTER);
         setNameFilter(null);
         setSortOrder("latest");
-        await fetchAllRequests();
+        // 기간까지 보고 있는 달로 되돌린다. 예전에는 여기서 전체 기간을 다시 불러와
+        // 화면에 안 보이는 다음 달 휴무까지 목록에 섞였다.
+        setListRange({
+            start: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+            end: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+        });
     };
 
     // 날짜를 안전하게 포맷팅하는 함수
@@ -1008,39 +1066,6 @@ export default function AdminPage() {
         }
     };
 
-    // 휴가 기간 텍스트 가져오기
-    const getDurationText = (duration?: VacationDuration) => {
-        const option = VACATION_DURATION_OPTIONS.find(
-            (opt) => opt.value === duration
-        );
-        return option ? option.displayName : "연차";
-    };
-
-    // 휴가 기간이 유효한지 확인하는 함수
-    const isValidDuration = (duration?: VacationDuration) => {
-        return (
-            duration &&
-            VACATION_DURATION_OPTIONS.find((opt) => opt.value === duration)
-        );
-    };
-
-    // 휴가 기간을 짧게 표시하는 함수 (동그라미 안에 표시용)
-    const getDurationShortText = (duration?: VacationDuration) => {
-        switch (duration) {
-            case "FULL_DAY":
-                return "연";
-            case "HALF_DAY_AM":
-                return "반";
-            case "HALF_DAY_PM":
-                return "반";
-            default:
-                return "연";
-        }
-    };
-
-    // 휴무 유형 한글 변환
-    const getVacationTypeText = getVacationTypeLabel;
-
     // 상태 한글 변환
     const getStatusText = (status?: string) => {
         switch (status) {
@@ -1078,18 +1103,38 @@ export default function AdminPage() {
         );
     }
 
-    const navItems = ([
-        { key: "dashboard", label: "대시보드", icon: IconLayoutDashboard },
-        { key: "notice", label: "공지사항", icon: IconBell },
-        { key: "chat", label: "채팅", icon: IconMessageDots },
-        { key: "schedule", label: "월간일정", icon: IconCalendar },
-        { key: "approval", label: "전자결재", icon: IconFileText },
-        { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
-        { key: "plaza", label: "커뮤니티", icon: IconUsersGroup, isNew: true },
-        // 고충·건의함은 기관 관리자 전용 (백엔드도 403으로 강제하지만 탭 자체를 숨긴다)
-        ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true }] : []),
-        ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
-    ] as { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[]);
+    // 커뮤니티는 기관 바깥의 공간이라 맨 위에 따로 두고, 그 아래를 기관 업무 메뉴로 묶는다.
+    const navGroups = ([
+        {
+            title: "커뮤니티",
+            items: [
+                { key: "plaza", label: "커뮤니티", icon: IconUsersGroup, isNew: true },
+            ],
+        },
+        {
+            title: "기관",
+            items: [
+                { key: "dashboard", label: "대시보드", icon: IconLayoutDashboard },
+                { key: "notice", label: "공지사항", icon: IconBell },
+                { key: "chat", label: "채팅", icon: IconMessageDots },
+                { key: "schedule", label: "일정", icon: IconCalendar },
+                { key: "approval", label: "전자결재", icon: IconFileText },
+                { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
+                // 고충·건의함은 기관 관리자 전용 (백엔드도 403으로 강제하지만 탭 자체를 숨긴다)
+                ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true }] : []),
+                ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
+                // 편의기능 — 본 업무 흐름에 속하지 않는 부가 도구를 모으는 자리.
+                // 새 편의기능이 생기면 ToolKey / 편의기능 서브탭 / 콘텐츠 분기 세 곳에만 추가하면 된다.
+                ...(isAdmin ? [{ key: "tools", label: "편의기능", icon: IconApps }] : []),
+            ],
+        },
+    ] as { title: string; items: { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[] }[]);
+
+    // 편의기능 탭의 도구 목록 (사이드바 서브탭 + 모바일 서브탭이 함께 사용)
+    const toolItems = ([
+        { key: "dispatch", label: "배차관리", icon: IconBus },
+        { key: "aipost", label: "AI 글쓰기", icon: IconSparkles },
+    ] as { key: ToolKey; label: string; icon: IconType }[]);
 
     return (
         <div style={{ display: "flex", minHeight: "100vh", background: 'var(--color-background-muted)' }}>
@@ -1106,8 +1151,10 @@ export default function AdminPage() {
 
                 {/* 네비게이션 */}
                 <nav style={{ flex: 1, overflowY: "auto", padding: "var(--spacing-4) var(--spacing-3)", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
-                    <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
-                    {navItems.map((tab) => (
+                    {navGroups.map((group, groupIndex) => (
+                    <Fragment key={group.title}>
+                    <Text as="p" type="supporting" weight="semibold" color="secondary" style={groupIndex > 0 ? { marginTop: 'var(--spacing-3)' } : undefined}>{group.title}</Text>
+                    {group.items.map((tab) => (
                         <div key={tab.key} data-tour={`nav-${tab.key}`}>
                             <Button
                                 label={tab.label}
@@ -1130,14 +1177,31 @@ export default function AdminPage() {
                                     )}
                                 </div>
                             )}
-                            {/* 월간일정 서브탭 */}
+                            {/* 일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
                                 <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
-                                    <Button label="일정" variant={scheduleMode === "schedule" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("schedule")} style={{ width: "100%", justifyContent: "flex-start" }} />
-                                    <Button label="배차관리" variant={scheduleMode === "dispatch" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("dispatch")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <Button label="월간일정" variant={scheduleMode === "schedule" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("schedule")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <Button label="연간일정" variant={scheduleMode === "annual" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("annual")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                </div>
+                            )}
+                            {/* 편의기능 서브탭 — 도구가 늘어나면 toolItems에만 추가하면 된다 */}
+                            {tab.key === "tools" && activeMainTab === "tools" && isAdmin && (
+                                <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
+                                    {toolItems.map((tool) => (
+                                        <Button
+                                            key={tool.key}
+                                            label={tool.label}
+                                            variant={activeTool === tool.key ? "secondary" : "ghost"}
+                                            size="sm"
+                                            onClick={() => setActiveTool(tool.key)}
+                                            style={{ width: "100%", justifyContent: "flex-start" }}
+                                        />
+                                    ))}
                                 </div>
                             )}
                         </div>
+                    ))}
+                    </Fragment>
                     ))}
                 </nav>
 
@@ -1168,11 +1232,12 @@ export default function AdminPage() {
                 </div>
                 <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 var(--spacing-2)", marginBottom: -1 }}>
                     {([
+                        { key: "plaza", label: "커뮤니티" },
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
-                        { key: "plaza", label: "커뮤니티" },
                         ...(isAdmin ? [{ key: "voice" as const, label: "고충·건의" as const }] : []),
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
+                        ...(isAdmin ? [{ key: "tools" as const, label: "편의기능" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
                         <Button
                             key={tab.key}
@@ -1279,7 +1344,48 @@ export default function AdminPage() {
                             transition={{duration: duration.mediumMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <ScheduleCalendar isAdmin={isAdmin} mode={scheduleMode} onNotification={showNotification} />
+                            {scheduleMode === "annual" ? (
+                                <AnnualScheduleView
+                                    onSelectMonth={(date) => {
+                                        setScheduleFocusMonth(date);
+                                        setScheduleMode("schedule");
+                                    }}
+                                />
+                            ) : (
+                                <ScheduleCalendar
+                                    isAdmin={isAdmin}
+                                    mode={scheduleMode}
+                                    initialMonth={scheduleFocusMonth}
+                                    onNotification={showNotification}
+                                />
+                            )}
+                        </motion.div>
+                    ) : activeMainTab === "tools" ? (
+                        <motion.div
+                            key={`tools-${activeTool}`}
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: duration.mediumMin}}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+                        >
+                            {/* 도구가 둘 이상이 되면 모바일에서도 고를 수 있도록 전환 바를 띄운다 */}
+                            {toolItems.length > 1 && (
+                                <div className="carev-admin-tools-switch" style={{ marginBottom: 'var(--spacing-3)' }}>
+                                    <SegmentedControl label="편의기능 선택" value={activeTool} onChange={(value) => setActiveTool(value as ToolKey)}>
+                                        {toolItems.map((tool) => (
+                                            <SegmentedControlItem key={tool.key} value={tool.key} label={tool.label} />
+                                        ))}
+                                    </SegmentedControl>
+                                </div>
+                            )}
+                            {/* 새 편의기능은 여기에 분기를 추가한다 */}
+                            {activeTool === "dispatch" && (
+                                <ScheduleCalendar isAdmin={isAdmin} mode="dispatch" onNotification={showNotification} />
+                            )}
+                            {activeTool === "aipost" && (
+                                <AiPostWriter companyName={companyName} onNotification={showNotification} />
+                            )}
                         </motion.div>
                     ) : activeMainTab === "approval" ? (
                         <motion.div
@@ -1335,7 +1441,7 @@ export default function AdminPage() {
                                 <div className="carev-admin-work-calendar">
                                     <VacationCalendar
                                         currentDate={currentDate}
-                                        setCurrentDate={setCurrentDate}
+                                        setCurrentDate={handleCurrentDateChange}
                                         onDateSelect={handleDateSelect}
                                         isAdmin={isAdmin}
                                         roleFilter={roleFilter}
@@ -1358,6 +1464,26 @@ export default function AdminPage() {
                                                 <Text type="body" weight="medium" color="primary">필터</Text>
                                                 <Button label="초기화" variant="ghost" size="sm" onClick={resetFilter} />
                                             </HStack>
+
+                                            {/* 조회 기간 — 목록과 일괄 승인이 이 범위 안에서만 이뤄진다 */}
+                                            <DateRangeInput
+                                                label="조회 기간"
+                                                description="이 기간의 휴무만 목록·일괄 승인 대상이 됩니다"
+                                                value={{ start: listRange.start as ISODateString, end: listRange.end as ISODateString }}
+                                                onChange={(value: DateRange | null) => {
+                                                    if (!value?.start || !value?.end) {
+                                                        // 지우면 보고 있는 달로 되돌린다 (전 기간이 열리면 다시 같은 사고가 난다)
+                                                        setListRange({
+                                                            start: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+                                                            end: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+                                                        });
+                                                        return;
+                                                    }
+                                                    setListRange({ start: value.start, end: value.end });
+                                                    setSelectedVacationIds(new Set());
+                                                }}
+                                                numberOfMonths={1}
+                                            />
 
                                             {/* 직원 검색 — 이름으로 바로 필터 */}
                                             <TextInput
@@ -1502,6 +1628,7 @@ export default function AdminPage() {
                                                         memberRoleLookup
                                                     );
                                                     const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
+                                                    const requestKind = resolveVacationKind(request.type, request.duration);
 
                                                     return (
                                                     <li
@@ -1559,19 +1686,8 @@ export default function AdminPage() {
                                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1)', flexWrap: "wrap" }}>
                                                                 <Badge variant={roleBadgeVariant(roleBadgeClasses)} label={getRoleText(resolvedRole)} />
-                                                                {isValidDuration(request.duration) && (
-                                                                    <Badge variant="purple" label={getDurationText(request.duration)} />
-                                                                )}
-                                                                <Badge
-                                                                    variant={
-                                                                        request.type === "mandatory"
-                                                                            ? "orange"
-                                                                            : isSubstituteVacation(request.type)
-                                                                                ? "teal"
-                                                                                : "neutral"
-                                                                    }
-                                                                    label={getVacationTypeText(request.type)}
-                                                                />
+                                                                {/* 휴무 종류 — 종류/연차 차감이 하나로 합쳐졌다 */}
+                                                                <Badge variant={requestKind.badgeVariant} label={requestKind.label} />
                                                                 <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>
                                                             {isAdmin && (
@@ -1781,6 +1897,14 @@ export default function AdminPage() {
 
             {/* 플로팅 채팅 위젯 */}
             <FloatingChat />
+
+            {/* 오늘 담당 일정을 아직 체크하지 않았으면 우측 아래에 알림 */}
+            <TodayTaskReminder
+                onOpenSchedule={() => {
+                    setScheduleMode("schedule");
+                    setActiveMainTab("schedule");
+                }}
+            />
 
             {/* 로딩 오버레이 */}
             {isProcessing && (

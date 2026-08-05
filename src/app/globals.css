@@ -408,10 +408,14 @@ html {
   .carev-schedcal-layout {
     flex-direction: row;
     align-items: stretch;
+    /* 근무조정(.carev-admin-work-layout)과 같은 규칙 — 셸이 준 높이를 그대로 채운다 */
+    flex: 1;
+    min-height: 0;
   }
   .carev-schedcal-main--narrow { width: 75%; }
-  .carev-schedcal-detail { width: 25%; min-width: 0; }
-  .carev-schedcal-card { display: flex; flex-direction: column; }
+  .carev-schedcal-main { display: flex; flex-direction: column; min-height: 0; }
+  .carev-schedcal-detail { width: 25%; min-width: 0; overflow-y: auto; }
+  .carev-schedcal-card { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 }
 
 /* 달력과 날짜 상세를 가르는 구분선. 두 컬럼 사이 간격 한가운데에 놓고
@@ -440,11 +444,24 @@ html {
 /* 일요일은 대개 쉬는 날이라 일정이 거의 없다 — 칸을 좁혀 그만큼을 평일에 넘긴다.
    ⚠ 이 비율을 바꾸면 ScheduleCalendar.tsx의 SUNDAY_FR도 같이 바꿔야 한다.
    여러 날 일정 바가 이 비율로 계산한 % 좌표에 절대배치되기 때문에 한쪽만 바꾸면 어긋난다. */
-.carev-schedcal-cols { display: grid; grid-template-columns: 0.7fr repeat(6, 1fr); }
-.carev-schedcal-week { position: relative; display: grid; grid-template-columns: 0.7fr repeat(6, 1fr); }
+/* minmax(0, ...)가 필수다. 날짜 칸에 aspect-ratio: 1/1이 걸려 있어서 그냥 0.7fr로 두면
+   트랙의 자동 최소폭이 행 높이에 묶여 일요일 칸이 안 좁아지고 그리드가 옆으로 넘친다. */
+.carev-schedcal-cols { display: grid; grid-template-columns: minmax(0, 0.7fr) repeat(6, minmax(0, 1fr)); }
+.carev-schedcal-week { position: relative; display: grid; grid-template-columns: minmax(0, 0.7fr) repeat(6, minmax(0, 1fr)); }
 /* 여러 날 일정 바(최대 3줄) + "+N개" 표시가 들어갈 최소 높이 확보 */
 .carev-schedcal-cell { min-height: 108px; transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
 @media (min-width: 768px) { .carev-schedcal-cell { min-height: 120px; } }
+
+/* 달력 본문: 남는 높이를 주(週)들이 나눠 가져 한 화면에 한 달이 들어오게 한다.
+   화면이 짧아 96px 아래로 눌리면 그때만 이 안에서 스크롤한다(페이지는 안 밀린다).
+   96px는 일정 바 3줄(38 + 2*18) + 아래 여백이 들어가는 최소치다. */
+.carev-schedcal-scroll { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.carev-schedcal-weeks { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+@media (min-width: 1280px) {
+  .carev-schedcal-weeks > .carev-schedcal-week { flex: 1; min-height: 96px; }
+  /* 주가 높이를 나눠 갖는 동안 칸 자체의 고정 최소높이가 방해하지 않도록 푼다 */
+  .carev-schedcal-weeks .carev-schedcal-cell { min-height: 0; }
+}
 @media (hover: hover) { .carev-schedcal-cell:hover { background: var(--color-background-muted); box-shadow: var(--shadow-inset-hover); } }
 
 /* ── 공용 클릭 피드백 — 화면 곳곳의 비-Astryx 클릭 요소용 (Astryx 표준 토큰) ── */

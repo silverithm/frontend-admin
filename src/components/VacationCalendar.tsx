@@ -9,7 +9,8 @@ import {
   VacationLimit,
   VacationData,
   CalendarProps,
-  isSubstituteVacation,
+  VACATION_KIND_OPTIONS,
+  resolveVacationKind,
 } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
@@ -569,33 +570,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   }, [currentDate]);
 
 
-  // 휴가 기간을 짧게 표시하는 함수 (동그라미 안에 표시용)
-  const getDurationShortText = (duration?: string) => {
-    switch (duration) {
-      case 'FULL_DAY':
-        return '연';
-      case 'HALF_DAY_AM':
-        return '반';
-      case 'HALF_DAY_PM':
-        return '반';
-      default:
-        return '연';
-    }
-  };
-
-  // 휴가 기간에 따른 색상 반환 (인라인 style 값)
-  const getDurationColor = (duration?: string): string => {
-    switch (duration) {
-      case 'FULL_DAY':
-        return 'var(--color-icon-blue)';
-      case 'HALF_DAY_AM':
-      case 'HALF_DAY_PM':
-        return 'var(--color-icon-green)';
-      default:
-        return 'var(--color-icon-blue)';
-    }
-  };
-
   // 셀 안의 원형 배지 스타일
   const circleBadgeStyle = (bg: string, size: number): React.CSSProperties => ({
     width: size,
@@ -624,11 +598,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     if (status === 'approved') return { ...base, backgroundColor: 'var(--color-background-teal)', color: 'var(--color-text-teal)' };
     if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
     return { ...base, backgroundColor: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)' };
-  };
-
-  // 휴가 기간이 유효한지 확인하는 함수
-  const isValidDuration = (duration?: string) => {
-    return duration && ['FULL_DAY', 'HALF_DAY_AM', 'HALF_DAY_PM'].includes(duration);
   };
 
   // 상태 한글 변환
@@ -994,21 +963,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                 {vacation.userName || `이름 없음`}
                               </Text>
                             </span>
-                            {isValidDuration(vacation.duration) && (
-                              <span style={circleBadgeStyle(getDurationColor(vacation.duration), 12)}>
-                                {getDurationShortText(vacation.duration)}
-                              </span>
-                            )}
-                            {vacation.type === 'mandatory' && (
-                              <span style={circleBadgeStyle('var(--color-error)', 12)}>
-                                필
-                              </span>
-                            )}
-                            {isSubstituteVacation(vacation.type) && (
-                              <span style={circleBadgeStyle('var(--color-icon-teal)', 12)}>
-                                대
-                              </span>
-                            )}
+                            {(() => {
+                              // 휴무 종류는 한 사람당 하나. 배지도 하나만 붙인다
+                              const kind = resolveVacationKind(vacation.type, vacation.duration);
+                              return (
+                                <span style={circleBadgeStyle(kind.color, 12)} title={kind.label}>
+                                  {kind.short}
+                                </span>
+                              );
+                            })()}
                             {nameFilter === vacation.userName && (
                               <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: 'var(--color-text-teal)' }}>
                                 <Icon icon="check" size="xsm" color="inherit" />
@@ -1086,23 +1049,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           {/* 구분선 */}
           <span style={{ width: 1, height: 12, background: 'var(--color-background-muted)' }} />
 
-          {/* 휴가 유형 */}
-          <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('var(--color-icon-blue)', 14)}>연</span>
-            <Text type="supporting" color="secondary">연차</Text>
-          </HStack>
-          <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('var(--color-icon-green)', 14)}>반</span>
-            <Text type="supporting" color="secondary">반차</Text>
-          </HStack>
-          <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('var(--color-error)', 14)}>필</span>
-            <Text type="supporting" color="secondary">필수 휴무</Text>
-          </HStack>
-          <HStack gap={1.5} vAlign="center">
-            <span style={circleBadgeStyle('var(--color-icon-teal)', 14)}>대</span>
-            <Text type="supporting" color="secondary">대체휴무</Text>
-          </HStack>
+          {/* 휴무 종류 — 표는 types/vacation.ts 한 곳에서 온다 */}
+          {VACATION_KIND_OPTIONS.map((kind) => (
+            <HStack key={kind.value} gap={1.5} vAlign="center">
+              <span style={circleBadgeStyle(kind.color, 14)}>{kind.short}</span>
+              <Text type="supporting" color="secondary">{kind.label}</Text>
+            </HStack>
+          ))}
         </HStack>
       </div>
 
