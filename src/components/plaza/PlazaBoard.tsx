@@ -37,6 +37,8 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 import { FiSearch } from 'react-icons/fi';
+import DOMPurify from 'dompurify';
+import RichTextEditor from './RichTextEditor';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 import {
@@ -67,6 +69,31 @@ import {
   updatePost,
 } from './plazaApi';
 import { duration } from '@/theme/motion';
+
+/** 리치 에디터 도입 전의 글은 plain text — HTML 태그 유무로 구분한다 */
+const looksLikeHtml = (content: string) => /<([a-z][a-z0-9]*)\b[^>]*>/i.test(content);
+
+/** plain text 글을 에디터(HTML)에 넣을 때 태그로 오해되지 않게 이스케이프 */
+const plainToHtml = (content: string) =>
+  content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+
+/** HTML에서 텍스트만 추출 — 빈 내용 검증용 */
+const htmlToText = (html: string) => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || '';
+};
+
+/** 저장·렌더 공통 소독 — 이미지·스크립트류 제거, 서식 태그만 허용 */
+const sanitizeContent = (html: string) =>
+  DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'strong', 'i', 'em', 'u', 's', 'strike', 'span', 'font', 'div', 'p', 'br', 'ul', 'ol', 'li', 'a', 'blockquote'],
+    ALLOWED_ATTR: ['style', 'color', 'size', 'face', 'href', 'target', 'rel'],
+  });
 
 type SortKey = 'latest' | 'popular' | 'comments';
 
@@ -271,7 +298,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
     setFormBoard(post.board);
     setFormCategory(post.category);
     setFormTitle(post.title);
-    setFormContent(post.content);
+    setFormContent(looksLikeHtml(post.content) ? post.content : plainToHtml(post.content));
     setFormAnonymous(post.isAnonymous);
     setFormOfficial(post.isOfficial);
     setFormPinned(post.isPinned);
@@ -288,7 +315,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
   };
 
   const submitPost = async () => {
-    if (!formTitle.trim() || !formContent.trim()) {
+    if (!formTitle.trim() || !htmlToText(formContent).trim()) {
       showAlert({ type: 'warning', title: '입력 필요', message: '제목과 내용을 입력해주세요.' });
       return;
     }
@@ -301,7 +328,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
     setIsSubmitting(true);
     try {
       if (editingPostId) {
-        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: formContent.trim(), isAnonymous: formAnonymous });
+        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: sanitizeContent(formContent.trim()), isAnonymous: formAnonymous });
         showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
         await reloadDetail(editingPostId);
       } else {
@@ -309,7 +336,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
           board: formBoard,
           category: categoryToSave,
           title: formTitle.trim(),
-          content: formContent.trim(),
+          content: sanitizeContent(formContent.trim()),
           isAnonymous: formAnonymous,
           // 운영자가 아니면 서버가 무시한다
           isOfficial: isPlazaAdmin && formOfficial,
@@ -520,9 +547,17 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
 
               <Divider />
 
-              <div style={{ whiteSpace: 'pre-wrap', minHeight: 80 }}>
-                <Text type="body" color="primary">{post.content}</Text>
-              </div>
+              {looksLikeHtml(post.content) ? (
+                <div
+                  className="carev-richtext-view"
+                  style={{ minHeight: 80, fontSize: 'var(--font-size-md, 15px)', color: 'var(--color-text)' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeContent(post.content) }}
+                />
+              ) : (
+                <div style={{ whiteSpace: 'pre-wrap', minHeight: 80 }}>
+                  <Text type="body" color="primary">{post.content}</Text>
+                </div>
+              )}
 
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
                 <Button
@@ -839,13 +874,11 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
               <TextInput label="제목" isLabelHidden placeholder="제목을 입력하세요" value={formTitle} onChange={(v) => setFormTitle(v)} />
 
               <div className="carev-plaza-editor" style={{ flex: 1, minHeight: 0 }}>
-                <TextArea
-                  label="내용"
-                  isLabelHidden
-                  placeholder={'내용을 입력하세요.\n\n· 현장 경험과 노하우는 다른 선생님들에게 큰 도움이 됩니다.\n· 개인정보(어르신 실명·연락처 등)는 올리지 말아주세요.'}
+                <RichTextEditor
                   value={formContent}
-                  onChange={(v) => setFormContent(v)}
-                  rows={14}
+                  onChange={setFormContent}
+                  placeholder={'내용을 입력하세요.\n\n· 현장 경험과 노하우는 다른 선생님들에게 큰 도움이 됩니다.\n· 개인정보(어르신 실명·연락처 등)는 올리지 말아주세요.'}
+                  minHeight={320}
                 />
               </div>
             </div>
