@@ -97,6 +97,7 @@ import {
     IconHelp,
     IconApps,
     IconBus,
+    IconFolder,
     IconSparkles,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
@@ -105,6 +106,7 @@ import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import OnboardingTour from "@/components/OnboardingTour";
 import AiPostWriter from "@/components/AiPostWriter";
+import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
@@ -122,7 +124,7 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
     return "neutral";
 };
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library";
 type ApprovalSubTab = "management" | "templates" | "submit";
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 type ScheduleMode = "schedule" | "annual";
@@ -1179,6 +1181,7 @@ export default function AdminPage() {
                 { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
                 // 고충·건의함은 기관 관리자 전용 (백엔드도 403으로 강제하지만 탭 자체를 숨긴다)
                 ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true }] : []),
+                { key: "library", label: "자료실", icon: IconFolder },
                 ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
                 // 편의기능 — 본 업무 흐름에 속하지 않는 부가 도구를 모으는 자리.
                 // 새 편의기능이 생기면 ToolKey / 편의기능 서브탭 / 콘텐츠 분기 세 곳에만 추가하면 된다.
@@ -1293,6 +1296,7 @@ export default function AdminPage() {
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
                         { key: "schedule", label: "일정" }, { key: "approval", label: "결재" }, { key: "work", label: "근무" },
                         ...(isAdmin ? [{ key: "voice" as const, label: "고충·건의" as const }] : []),
+                        { key: "library" as const, label: "자료실" as const },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                         ...(isAdmin ? [{ key: "tools" as const, label: "편의기능" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
@@ -1808,6 +1812,17 @@ export default function AdminPage() {
                                     </Card>
                                 </div>
                             </div>
+                        </motion.div>
+                    ) : activeMainTab === "library" ? (
+                        <motion.div
+                            key="library"
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -20}}
+                            transition={{duration: duration.fast}}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+                        >
+                            <CompanyLibrary isAdmin={isAdmin} onNotification={showNotification} />
                         </motion.div>
                     ) : activeMainTab === "members" ? (
                         <motion.div

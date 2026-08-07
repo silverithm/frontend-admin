@@ -2341,6 +2341,43 @@ export async function uploadChatFile(roomId: number, file: File, senderId: strin
     return response.json();
 }
 
+// ================== 기관 전용 자료실 ==================
+
+/** 우리 기관 자료 목록 */
+export async function fetchCompanyLibrary() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/company-library?companyId=${companyId}`);
+}
+
+/** 자료 등록 — 파일은 공용 업로드 API로 먼저 올리고 그 결과를 실어 보낸다 */
+export async function createCompanyLibraryItem(data: {
+    title: string;
+    description?: string;
+    category?: string;
+    fileName: string;
+    fileSize: number;
+    filePath: string;
+    uploaderId: string;
+    uploaderName: string;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/company-library?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** 자료 삭제 */
+export async function deleteCompanyLibraryItem(id: number) {
+    return fetchWithAuth(`/api/v1/company-library/${id}`, { method: 'DELETE' });
+}
+
 /** 지금 접속 중인 사람들의 userId */
 export async function fetchOnlineUserIds() {
     const companyId = getCompanyId();
