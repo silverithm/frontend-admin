@@ -5,6 +5,8 @@ export interface ApprovalTemplate {
   id: string;
   name: string;              // 양식명
   description: string;       // 설명
+  /** 기안 대분류 (공문/교육/인사 등) — 기관이 자유롭게 지정, 없으면 미분류 */
+  category?: string | null;
   fileUrl: string;           // 양식 파일 URL (한글 파일 등)
   fileName: string;          // 원본 파일명
   fileSize: number;          // 파일 크기 (바이트)
@@ -21,6 +23,7 @@ export interface ApprovalTemplate {
 export interface CreateTemplateRequest {
   name: string;
   description: string;
+  category?: string;
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
@@ -32,6 +35,7 @@ export interface CreateTemplateRequest {
 export interface UpdateTemplateRequest {
   name?: string;
   description?: string;
+  category?: string;
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;

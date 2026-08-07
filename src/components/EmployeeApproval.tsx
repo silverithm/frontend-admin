@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -12,6 +12,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
+import type { SelectorOptionType } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -34,6 +35,7 @@ import OfficialDocument from './approval/OfficialDocument';
 import MySignatureCard from './approval/MySignatureCard';
 import DocumentViewerModal from './DocumentViewerModal';
 import { duration } from '@/theme/motion';
+import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
 
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -43,6 +45,10 @@ export default function EmployeeApproval() {
   const { confirm, ConfirmContainer } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('my-approvals');
   const [approvalFilter, setApprovalFilter] = useState<ApprovalFilterType>('all');
+  /** 내 결재 내역의 기안 종류 필터 ('' = 전체) */
+  const [categoryFilter, setCategoryFilter] = useState('');
+  /** 양식 다운로드 탭의 기안 종류 필터 ('' = 전체) */
+  const [templateFilter, setTemplateFilter] = useState('');
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewApproval, setShowNewApproval] = useState(false);
@@ -125,8 +131,35 @@ export default function EmployeeApproval() {
     }
   };
 
+  /** 결재 문서의 기안 종류 — 문서에는 templateId만 있어 양식에서 분류를 끌어온다 */
+  const categoryOf = (approval: ApprovalRequest) => {
+    const template = templates.find((t) => String(t.id) === String(approval.templateId));
+    return (template?.category || '').trim() || UNCATEGORIZED_LABEL;
+  };
+
+  /** 내 결재 내역에 등장하는 기안 종류 */
+  const approvalCategories = useMemo(() => {
+    const seen: string[] = [];
+    for (const approval of approvals) {
+      const category = categoryOf(approval);
+      if (!seen.includes(category)) seen.push(category);
+    }
+    return seen;
+  }, [approvals, templates]);
+
+  /** 양식 다운로드 탭에서 쓰는 분류 목록 (활성 양식 기준) */
+  const templateCategories = useMemo(() => {
+    const seen: string[] = [];
+    for (const template of templates) {
+      const category = (template.category || '').trim() || UNCATEGORIZED_LABEL;
+      if (!seen.includes(category)) seen.push(category);
+    }
+    return seen;
+  }, [templates]);
+
   // 필터링된 결재 목록
   const filteredApprovals = approvals.filter(approval => {
+    if (categoryFilter && categoryOf(approval) !== categoryFilter) return false;
     if (approvalFilter === 'all') return true;
     if (approvalFilter === 'pending') return approval.status === 'PENDING';
     if (approvalFilter === 'approved') return approval.status === 'APPROVED';
@@ -134,10 +167,33 @@ export default function EmployeeApproval() {
     return true;
   });
 
-  // 상태 카운트
+  /** 양식 다운로드 탭에서 분류 필터가 적용된 양식 목록 */
+  const filteredTemplates = templateFilter
+    ? templates.filter((t) => ((t.category || '').trim() || UNCATEGORIZED_LABEL) === templateFilter)
+    : templates;
+
+  /**
+   * 양식 선택 드롭다운 옵션 — 기안 종류(대분류)별 섹션으로 묶는다.
+   * 분류가 하나뿐이면 섹션 머리글이 오히려 방해되므로 평평한 목록으로 둔다.
+   */
+  const templateSelectorOptions = useMemo((): SelectorOptionType[] => {
+    if (templateCategories.length <= 1) {
+      return templates.map((t) => ({ value: String(t.id), label: t.name }));
+    }
+    return templateCategories.map((category) => ({
+      type: 'section' as const,
+      title: category,
+      options: templates
+        .filter((t) => ((t.category || '').trim() || UNCATEGORIZED_LABEL) === category)
+        .map((t) => ({ value: String(t.id), label: t.name })),
+    }));
+  }, [templates, templateCategories]);
+
+  // 상태 카운트 — 기안 종류 필터가 걸려 있으면 그 안에서만 센다 (탭 숫자와 목록이 어긋나지 않게)
   const getStatusCount = (status?: ApprovalStatus) => {
-    if (!status) return approvals.length;
-    return approvals.filter(a => a.status === status).length;
+    const scoped = categoryFilter ? approvals.filter((a) => categoryOf(a) === categoryFilter) : approvals;
+    if (!status) return scoped.length;
+    return scoped.filter(a => a.status === status).length;
   };
 
   // 상태 배지 variant
@@ -625,7 +681,28 @@ export default function EmployeeApproval() {
         {activeTab === 'templates' && (
           templates.length > 0 ? (
             <VStack gap={3}>
-              {templates.map((template) => (
+              {/* 기안 종류 필터 — 분류가 둘 이상일 때만 */}
+              {templateCategories.length > 1 && (
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <Text type="supporting" color="secondary">기안 종류</Text>
+                  <Button
+                    label={`전체 (${templates.length})`}
+                    variant={templateFilter === '' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTemplateFilter('')}
+                  />
+                  {templateCategories.map((category) => (
+                    <Button
+                      key={category}
+                      label={`${category} (${templates.filter((t) => ((t.category || '').trim() || UNCATEGORIZED_LABEL) === category).length})`}
+                      variant={templateFilter === category ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setTemplateFilter(category)}
+                    />
+                  ))}
+                </HStack>
+              )}
+              {filteredTemplates.map((template) => (
                 <Card key={template.id}>
                   <HStack hAlign="between" vAlign="center" gap={4}>
                     <HStack gap={4} vAlign="start">
@@ -633,6 +710,9 @@ export default function EmployeeApproval() {
                       <VStack gap={1}>
                         <HStack gap={2} vAlign="center">
                           <Text weight="semibold" color="primary">{template.name}</Text>
+                          {(template.category || '').trim() && (
+                            <Badge variant="blue" label={(template.category || '').trim()} />
+                          )}
                           {(template.templateType === 'file' || !template.templateType) && (
                             <Badge variant="teal" label="파일 양식" />
                           )}
@@ -702,6 +782,28 @@ export default function EmployeeApproval() {
               <SegmentedControlItem value="approved" label={`승인됨 (${getStatusCount('APPROVED')})`} />
               <SegmentedControlItem value="rejected" label={`반려됨 (${getStatusCount('REJECTED')})`} />
             </SegmentedControl>
+
+            {/* 기안 종류 필터 — 내 문서에 분류가 둘 이상 섞여 있을 때만 */}
+            {approvalCategories.length > 1 && (
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                <Text type="supporting" color="secondary">기안 종류</Text>
+                <Button
+                  label={`전체 (${approvals.length})`}
+                  variant={categoryFilter === '' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCategoryFilter('')}
+                />
+                {approvalCategories.map((category) => (
+                  <Button
+                    key={category}
+                    label={`${category} (${approvals.filter((a) => categoryOf(a) === category).length})`}
+                    variant={categoryFilter === category ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setCategoryFilter(category)}
+                  />
+                ))}
+              </HStack>
+            )}
 
             {/* 결재 목록 */}
             {isLoading ? (
@@ -775,7 +877,9 @@ export default function EmployeeApproval() {
                   isRequired
                   placeholder="양식을 선택하세요"
                   value={approvalForm.templateId}
-                  options={templates.map((template) => ({ value: String(template.id), label: template.name }))}
+                  options={templateSelectorOptions}
+                  hasSearch={templates.length > 8}
+                  searchPlaceholder="양식 이름 검색"
                   onChange={(value) => {
                     setApprovalForm(prev => ({ ...prev, templateId: value, file: null }));
                     setFormData(null);

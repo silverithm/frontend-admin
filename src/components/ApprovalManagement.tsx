@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -23,7 +23,8 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
+import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, getApprovalTemplates, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
+import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
 import { useConfirm } from './ConfirmDialog';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
@@ -45,6 +46,10 @@ export default function ApprovalManagement() {
   const [selectedTemplateType, setSelectedTemplateType] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  /** templateId → 대분류 (양식 목록에서 만든 조회표) */
+  const [templateCategories, setTemplateCategories] = useState<Record<string, string>>({});
+  /** 대분류 필터 ('' = 전체) */
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [dateFilter, setDateFilter] = useState({
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -98,6 +103,43 @@ export default function ApprovalManagement() {
   useEffect(() => {
     loadApprovals();
   }, [activeTab, dateFilter, searchQuery]);
+
+  // 대분류 필터용 — 결재 문서에는 templateId만 있어 양식 목록에서 분류를 끌어온다
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await getApprovalTemplates();
+        const map: Record<string, string> = {};
+        for (const template of (response.templates || []) as { id: string | number; category?: string | null }[]) {
+          const category = (template.category || '').trim();
+          if (category) map[String(template.id)] = category;
+        }
+        setTemplateCategories(map);
+      } catch (error) {
+        // 분류를 못 불러와도 결재 처리는 그대로 되어야 하므로 조용히 넘어간다
+        console.error('양식 분류 로드 실패:', error);
+      }
+    })();
+  }, []);
+
+  /** 결재 문서의 대분류 (양식에 분류가 없으면 미분류) */
+  const categoryOf = (approval: ApprovalRequest) =>
+    templateCategories[String(approval.templateId)] || UNCATEGORIZED_LABEL;
+
+  /** 현재 목록에 실제로 등장하는 대분류 (건수 많은 순이 아니라 양식 등록 순서를 따름) */
+  const visibleCategories = useMemo(() => {
+    const seen: string[] = [];
+    for (const approval of approvals) {
+      const category = categoryOf(approval);
+      if (!seen.includes(category)) seen.push(category);
+    }
+    return seen;
+  }, [approvals, templateCategories]);
+
+  const visibleApprovals = useMemo(
+    () => (categoryFilter ? approvals.filter((a) => categoryOf(a) === categoryFilter) : approvals),
+    [approvals, categoryFilter, templateCategories],
+  );
 
   const loadApprovals = async () => {
     setIsLoading(true);
@@ -154,7 +196,8 @@ export default function ApprovalManagement() {
   };
 
   const handleSelectAll = () => {
-    const actionableApprovals = approvals.filter(isActionable);
+    // 화면에 보이는 것만 선택한다 — 대분류로 걸러낸 문서까지 일괄 처리되면 안 된다
+    const actionableApprovals = visibleApprovals.filter(isActionable);
     if (selectedIds.size === actionableApprovals.length) {
       setSelectedIds(new Set());
     } else {
@@ -367,6 +410,28 @@ export default function ApprovalManagement() {
           </HStack>
         </Card>
 
+        {/* 기안 종류(대분류) 필터 — 분류가 둘 이상일 때만 노출 */}
+        {visibleCategories.length > 1 && (
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Text type="supporting" color="secondary">기안 종류</Text>
+            <Button
+              label={`전체 (${approvals.length})`}
+              variant={categoryFilter === '' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setCategoryFilter('')}
+            />
+            {visibleCategories.map((category) => (
+              <Button
+                key={category}
+                label={`${category} (${approvals.filter((a) => categoryOf(a) === category).length})`}
+                variant={categoryFilter === category ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setCategoryFilter(category)}
+              />
+            ))}
+          </HStack>
+        )}
+
         {/* 일괄 액션 */}
         {selectedIds.size > 0 && (
           <motion.div
@@ -402,16 +467,16 @@ export default function ApprovalManagement() {
         )}
 
         {/* 결재 목록 */}
-        {approvals.length > 0 ? (
+        {visibleApprovals.length > 0 ? (
           <VStack gap={3}>
             {/* 전체 선택 체크박스 (진행중 탭, 처리 가능한 건만) */}
-            {activeTab === 'pending' && approvals.filter(isActionable).length > 0 && (
+            {activeTab === 'pending' && visibleApprovals.filter(isActionable).length > 0 && (
               <HStack vAlign="center">
                 <CheckboxInput
                   label="전체 선택"
                   value={
-                    approvals.filter(isActionable).length > 0 &&
-                    selectedIds.size === approvals.filter(isActionable).length
+                    visibleApprovals.filter(isActionable).length > 0 &&
+                    selectedIds.size === visibleApprovals.filter(isActionable).length
                   }
                   onChange={handleSelectAll}
                 />
@@ -419,7 +484,7 @@ export default function ApprovalManagement() {
             )}
 
             {/* 결재 카드 리스트 */}
-            {approvals.map((approval) => {
+            {visibleApprovals.map((approval) => {
               return (
                 <motion.div
                   key={approval.id}
@@ -520,7 +585,16 @@ export default function ApprovalManagement() {
             <EmptyState
               icon={<Icon icon={FiFileText} size="lg" />}
               title="결재 요청이 없습니다"
-              description="조건에 맞는 결재 요청이 없습니다."
+              description={
+                categoryFilter
+                  ? `'${categoryFilter}' 종류의 결재 요청이 없습니다.`
+                  : '조건에 맞는 결재 요청이 없습니다.'
+              }
+              actions={
+                categoryFilter
+                  ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
+                  : undefined
+              }
             />
           </div>
         )}
