@@ -2333,6 +2333,14 @@ export async function uploadChatFile(roomId: number, file: File, senderId: strin
     return response.json();
 }
 
+/** 방 공지 설정/해제 — messageId가 null이면 공지를 내린다 */
+export async function updateChatRoomNotice(roomId: number, messageId: number | null, setByName: string) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/notice`, {
+        method: 'PUT',
+        body: JSON.stringify({ messageId, setByName }),
+    });
+}
+
 // 채팅 리액션 토글
 export async function toggleChatReaction(roomId: number, messageId: number, emoji: string) {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice } from '@/lib/apiService';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -64,6 +64,11 @@ interface ChatRoom {
     lastMessageAt?: string;
     unreadCount: number;
     participantCount: number;
+    /** 방 상단 고정 공지 (없으면 전부 null) */
+    noticeMessageId?: number | null;
+    noticeContent?: string | null;
+    noticeByName?: string | null;
+    noticeAt?: string | null;
 }
 
 interface WebSocketMessage {
@@ -156,6 +161,9 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [isDeletingRoom, setIsDeletingRoom] = useState(false);
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
     const [isUploadingFile, setIsUploadingFile] = useState(false);
+    const [isUpdatingNotice, setIsUpdatingNotice] = useState(false);
+    /** 공지가 길면 두 줄만 보여주고 필요할 때 펼친다 */
+    const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     /** 채팅에서 받은 문서를 앱 안에서 바로 여는 뷰어 (이미지는 자체 확대 보기로 처리) */
     const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
@@ -477,6 +485,26 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         }
     };
 
+    /** 방 공지 등록/해제 — messageId가 null이면 내린다 */
+    const changeNotice = async (messageId: number | null) => {
+        if (!selectedRoom) return;
+        setIsUpdatingNotice(true);
+        try {
+            const response = await updateChatRoomNotice(selectedRoom, messageId, userName || "");
+            const updated = response.room;
+            // 목록 쪽 방 정보에 공지를 반영해야 상단 바가 바로 갱신된다
+            setRooms(prev => prev.map(r => (r.id === selectedRoom ? { ...r, ...updated } : r)));
+            setContextMenuMessageId(null);
+            setIsNoticeExpanded(false);
+            onNotification(messageId === null ? "공지를 내렸습니다" : "공지로 등록했습니다", "success");
+        } catch (error) {
+            console.error("공지 변경 실패:", error);
+            onNotification("공지 변경에 실패했습니다", "error");
+        } finally {
+            setIsUpdatingNotice(false);
+        }
+    };
+
     const handleFilePick = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         // 같은 파일을 연달아 보낼 수 있게 값을 비운다
@@ -709,6 +737,50 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                             />
                         </div>
 
+                        {/* 고정 공지 — 방에 들어오면 대화보다 먼저 눈에 들어와야 한다 */}
+                        {(() => {
+                            const room = rooms.find(r => r.id === selectedRoom);
+                            if (!room?.noticeContent) return null;
+                            return (
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: 'var(--spacing-2)',
+                                    padding: "var(--spacing-2) var(--spacing-4)",
+                                    background: 'var(--color-background-yellow, #fefce8)',
+                                    borderBottom: `1px solid ${C.border}`,
+                                }}>
+                                    <span style={{ flexShrink: 0, marginTop: 2 }}>📌</span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <Text type="supporting" weight="semibold" color="primary">공지</Text>
+                                        <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                            <Text type="supporting" color="primary" maxLines={isNoticeExpanded ? undefined : 2}>
+                                                {room.noticeContent}
+                                            </Text>
+                                        </div>
+                                        {room.noticeByName && (
+                                            <Text type="supporting" color="secondary">{room.noticeByName} 등록</Text>
+                                        )}
+                                    </div>
+                                    <HStack gap={1}>
+                                        <Button
+                                            label={isNoticeExpanded ? "접기" : "펼치기"}
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setIsNoticeExpanded(v => !v)}
+                                        />
+                                        <Button
+                                            label="내리기"
+                                            variant="ghost"
+                                            size="sm"
+                                            isLoading={isUpdatingNotice}
+                                            onClick={() => changeNotice(null)}
+                                        />
+                                    </HStack>
+                                </div>
+                            );
+                        })()}
+
                         {/* Overlay for context menus */}
                         {contextMenuMessageId !== null && (
                             <div style={{ position: "fixed", inset: 0, zIndex: 30 }} onClick={() => setContextMenuMessageId(null)} />
@@ -918,6 +990,16 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                     size="sm"
                                                                     icon={<Icon icon={FiCornerUpLeft} size="sm" />}
                                                                     onClick={() => { setReplyTo(message); setContextMenuMessageId(null); }}
+                                                                    style={{ width: "100%", justifyContent: "flex-start" }}
+                                                                />
+                                                                <Button
+                                                                    label="공지로 등록"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    icon={<span>📌</span>}
+                                                                    isLoading={isUpdatingNotice}
+                                                                    onClick={() => changeNotice(message.id)}
+                                                                    style={{ width: "100%", justifyContent: "flex-start" }}
                                                                 />
                                                             </div>
                                                         </div>
