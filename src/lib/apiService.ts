@@ -1800,6 +1800,14 @@ export async function getCompanyHomepage() {
 }
 
 // 기관 홈페이지 주소 등록/변경 (관리자 전용, 빈 문자열이면 해제)
+/** 기관 홈페이지 목록 저장 (블로그·밴드 등 여러 개, 첫 항목이 대표) */
+export async function updateCompanyHomepageLinks(links: { name: string; url: string }[]) {
+    return fetchWithAuth('/api/v1/users/company-homepage-links', {
+        method: 'PUT',
+        body: JSON.stringify({ links }),
+    });
+}
+
 export async function updateCompanyHomepage(homepageUrl: string) {
     return fetchWithAuth('/api/v1/users/company-homepage', {
         method: 'PUT',

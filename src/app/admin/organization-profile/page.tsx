@@ -13,9 +13,11 @@ import {
   IconTrash,
   IconCopy,
   IconPencil,
+  IconPlus,
 } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -24,7 +26,8 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, updateCompanyHomepage } from '@/lib/apiService';
+import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, getCompanyHomepage, updateCompanyHomepageLinks } from '@/lib/apiService';
+import type { CompanyLink } from '@/components/ExternalLinksNav';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
 import MySignatureCard from '@/components/approval/MySignatureCard';
@@ -124,8 +127,8 @@ export default function OrganizationProfilePage() {
   const [isSealSaving, setIsSealSaving] = useState(false);
 
   // 기관 홈페이지 — 등록하면 사이드바에 바로가기가 생긴다
-  const [homepageUrl, setHomepageUrl] = useState('');
-  const [savedHomepageUrl, setSavedHomepageUrl] = useState<string | null>(null);
+  /** 기관이 운영하는 주소들 — 빈 줄 하나로 시작해 바로 입력할 수 있게 한다 */
+  const [homepageLinks, setHomepageLinks] = useState<CompanyLink[]>([{ name: '', url: '' }]);
   const [isHomepageSaving, setIsHomepageSaving] = useState(false);
 
   useEffect(() => {
@@ -149,12 +152,20 @@ export default function OrganizationProfilePage() {
           adminName: info.userName || '',
         };
         setSealUrl(info.companySealUrl || null);
-        setSavedHomepageUrl(info.companyHomepageUrl || null);
-        setHomepageUrl(info.companyHomepageUrl || '');
-        if (info.companyHomepageUrl) {
-          localStorage.setItem('companyHomepageUrl', info.companyHomepageUrl);
-        } else {
-          localStorage.removeItem('companyHomepageUrl');
+        // 홈페이지는 목록 API에서 따로 받는다 (여러 개를 등록할 수 있어 users/info로는 부족하다)
+        try {
+          const homepageData = await getCompanyHomepage();
+          const links: CompanyLink[] = Array.isArray(homepageData?.links) ? homepageData.links : [];
+          setHomepageLinks(links.length > 0 ? links : [{ name: '', url: '' }]);
+          if (links.length > 0) {
+            localStorage.setItem('companyHomepageLinks', JSON.stringify(links));
+            localStorage.setItem('companyHomepageUrl', links[0].url);
+          } else {
+            localStorage.removeItem('companyHomepageLinks');
+            localStorage.removeItem('companyHomepageUrl');
+          }
+        } catch {
+          // 홈페이지를 못 불러와도 나머지 프로필은 보여준다
         }
 
         // 다른 화면들이 참조하는 localStorage 동기화
@@ -271,24 +282,39 @@ export default function OrganizationProfilePage() {
     }
   };
 
+  const addHomepageLink = () => setHomepageLinks(prev => [...prev, { name: '', url: '' }]);
+
+  const removeHomepageLink = (index: number) =>
+    setHomepageLinks(prev => prev.filter((_, i) => i !== index));
+
+  const updateHomepageLink = (index: number, field: 'name' | 'url', value: string) =>
+    setHomepageLinks(prev => prev.map((link, i) => (i === index ? { ...link, [field]: value } : link)));
+
   const handleSaveHomepage = async () => {
     setIsHomepageSaving(true);
     setError('');
     setSuccessMessage('');
     try {
-      const response = await updateCompanyHomepage(homepageUrl.trim());
-      const saved: string | null = response?.homepageUrl ?? null;
-      setSavedHomepageUrl(saved);
-      setHomepageUrl(saved || '');
+      // 주소가 빈 줄은 보내지 않는다 (추가만 하고 안 채운 줄)
+      const payload = homepageLinks.filter(link => link.url.trim()).map(link => ({
+        name: link.name.trim(),
+        url: link.url.trim(),
+      }));
+      const response = await updateCompanyHomepageLinks(payload);
+      const saved: CompanyLink[] = Array.isArray(response?.links) ? response.links : [];
+      setHomepageLinks(saved.length > 0 ? saved : [{ name: '', url: '' }]);
+
       // 사이드바가 참조하므로 바로 반영되도록 동기화한다
-      if (saved) {
-        localStorage.setItem('companyHomepageUrl', saved);
+      if (saved.length > 0) {
+        localStorage.setItem('companyHomepageLinks', JSON.stringify(saved));
+        localStorage.setItem('companyHomepageUrl', saved[0].url);
       } else {
+        localStorage.removeItem('companyHomepageLinks');
         localStorage.removeItem('companyHomepageUrl');
       }
       window.dispatchEvent(new Event('carev:company-homepage-changed'));
-      setSuccessMessage(saved
-        ? '기관 홈페이지가 등록되었습니다. 왼쪽 메뉴에서 바로 여실 수 있습니다.'
+      setSuccessMessage(saved.length > 0
+        ? `기관 홈페이지 ${saved.length}곳이 저장되었습니다. 왼쪽 메뉴에서 바로 여실 수 있습니다.`
         : '기관 홈페이지가 해제되었습니다.');
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : '홈페이지 주소 저장에 실패했습니다.');
@@ -616,28 +642,60 @@ export default function OrganizationProfilePage() {
                 >
                   <Card padding={5}>
                     <VStack gap={4}>
-                      <TextInput
-                        label="홈페이지 / 블로그 주소"
-                        type="text"
-                        value={homepageUrl}
-                        onChange={(value) => setHomepageUrl(value)}
-                        placeholder="https://blog.naver.com/우리기관"
-                        hasClear
-                      />
-                      <Text type="supporting" color="secondary">
-                        {savedHomepageUrl
-                          ? '주소를 비우고 저장하면 바로가기가 사라집니다.'
-                          : 'https:// 를 빼고 적으셔도 됩니다.'}
-                      </Text>
-                      <HStack hAlign="end">
+                      {homepageLinks.map((link, index) => (
+                        <Grid key={index} columns={{ minWidth: 200, max: 2 }} gap={3} align="end">
+                          <TextInput
+                            label={index === 0 ? '이름' : `이름 ${index + 1}`}
+                            isLabelHidden={index > 0}
+                            type="text"
+                            value={link.name}
+                            onChange={(value) => updateHomepageLink(index, 'name', value)}
+                            placeholder="예: 블로그, 밴드"
+                          />
+                          <HStack gap={2} vAlign="end">
+                            <div style={{ flex: 1 }}>
+                              <TextInput
+                                label={index === 0 ? '주소' : `주소 ${index + 1}`}
+                                isLabelHidden={index > 0}
+                                type="text"
+                                value={link.url}
+                                onChange={(value) => updateHomepageLink(index, 'url', value)}
+                                placeholder="https://blog.naver.com/우리기관"
+                                hasClear
+                              />
+                            </div>
+                            <IconButton
+                              label="이 줄 삭제"
+                              tooltip="삭제"
+                              variant="ghost"
+                              icon={<Icon icon={IconTrash} size="sm" />}
+                              onClick={() => removeHomepageLink(index)}
+                            />
+                          </HStack>
+                        </Grid>
+                      ))}
+
+                      <HStack hAlign="between" vAlign="center">
+                        <Button
+                          label="주소 추가"
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={IconPlus} size="sm" />}
+                          onClick={addHomepageLink}
+                        />
                         <Button
                           label={isHomepageSaving ? '저장 중...' : '저장'}
                           variant="primary"
                           isLoading={isHomepageSaving}
-                          isDisabled={isHomepageSaving || homepageUrl.trim() === (savedHomepageUrl || '')}
+                          isDisabled={isHomepageSaving}
                           onClick={handleSaveHomepage}
                         />
                       </HStack>
+
+                      <Text type="supporting" color="secondary">
+                        블로그·밴드처럼 여러 곳을 운영하면 모두 등록해두세요. https:// 는 빼고 적으셔도 됩니다.
+                        맨 위 주소가 공문 하단에 찍히는 대표 주소가 됩니다.
+                      </Text>
                     </VStack>
                   </Card>
                 </ProfileSection>

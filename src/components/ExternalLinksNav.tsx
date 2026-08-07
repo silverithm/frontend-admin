@@ -13,15 +13,28 @@ import { getCompanyHomepage } from '@/lib/apiService';
  * 기관이 등록한 홈페이지 주소. 기관 프로필에서 저장할 때 localStorage에 함께 넣고,
  * 같은 탭에서도 즉시 반영되도록 커스텀 이벤트를 듣는다(storage 이벤트는 다른 탭에서만 온다).
  */
-function useCompanyHomepage(): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+export interface CompanyLink {
+  name: string;
+  url: string;
+}
+
+function useCompanyHomepage(): CompanyLink[] {
+  const [links, setLinks] = useState<CompanyLink[]>([]);
 
   useEffect(() => {
     const read = () => {
       try {
-        setUrl(localStorage.getItem('companyHomepageUrl') || null);
+        // 목록이 있으면 그걸 쓰고, 예전 방식(단일 주소)만 있으면 한 줄짜리 목록으로 본다
+        const cachedLinks = localStorage.getItem('companyHomepageLinks');
+        if (cachedLinks) {
+          const parsed = JSON.parse(cachedLinks);
+          setLinks(Array.isArray(parsed) ? parsed : []);
+          return;
+        }
+        const single = localStorage.getItem('companyHomepageUrl');
+        setLinks(single ? [{ name: '기관 홈페이지', url: single }] : []);
       } catch {
-        setUrl(null);
+        setLinks([]);
       }
     };
     read();
@@ -34,13 +47,15 @@ function useCompanyHomepage(): string | null {
     getCompanyHomepage()
       .then((data) => {
         if (!alive) return;
-        const fetched: string | null = data?.homepageUrl ?? null;
-        if (fetched) {
-          localStorage.setItem('companyHomepageUrl', fetched);
+        const fetched: CompanyLink[] = Array.isArray(data?.links) ? data.links : [];
+        if (fetched.length > 0) {
+          localStorage.setItem('companyHomepageLinks', JSON.stringify(fetched));
+          localStorage.setItem('companyHomepageUrl', fetched[0].url);
         } else {
+          localStorage.removeItem('companyHomepageLinks');
           localStorage.removeItem('companyHomepageUrl');
         }
-        setUrl(fetched);
+        setLinks(fetched);
       })
       .catch(() => {
         // 조회 실패 시 캐시된 값을 그대로 쓴다
@@ -53,7 +68,7 @@ function useCompanyHomepage(): string | null {
     };
   }, []);
 
-  return url;
+  return links;
 }
 
 /**
@@ -67,29 +82,32 @@ function useCompanyHomepage(): string | null {
  * noopener noreferrer는 target="_blank"만으로도 Astryx가 자동으로 붙여준다.
  */
 export default function ExternalLinksNav() {
-  const companyHomepage = useCompanyHomepage();
+  const companyLinks = useCompanyHomepage();
 
   return (
     <VStack gap={0} align="stretch">
-      {/* 우리 기관 홈페이지 — 등록했을 때만, 연계기관 위에 */}
-      {companyHomepage && (
+      {/* 우리 기관이 운영하는 주소들 — 등록했을 때만, 연계기관 위에 */}
+      {companyLinks.length > 0 && (
         <>
           <div style={{ padding: 'var(--spacing-1) var(--spacing-3)' }}>
             <Text as="p" type="supporting" weight="semibold" color="secondary">우리 기관</Text>
           </div>
-          <Link
-            href={companyHomepage}
-            target="_blank"
-            isStandalone
-            color="secondary"
-            tooltip={companyHomepage}
-            className="carev-sidenav-extlink"
-          >
-            <HStack gap={2} vAlign="center">
-              <Icon icon={IconHome} size="sm" color="secondary" />
-              <Text type="body" color="secondary">기관 홈페이지</Text>
-            </HStack>
-          </Link>
+          {companyLinks.map((link) => (
+            <Link
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              isStandalone
+              color="secondary"
+              tooltip={link.url}
+              className="carev-sidenav-extlink"
+            >
+              <HStack gap={2} vAlign="center">
+                <Icon icon={IconHome} size="sm" color="secondary" />
+                <Text type="body" color="secondary">{link.name || '기관 홈페이지'}</Text>
+              </HStack>
+            </Link>
+          ))}
         </>
       )}
 
