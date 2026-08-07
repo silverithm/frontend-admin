@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -22,7 +22,7 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { FiCornerUpLeft, FiPaperclip, FiMessageCircle } from 'react-icons/fi';
+import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch } from 'react-icons/fi';
 
 interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
@@ -162,6 +162,14 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
     const [isUploadingFile, setIsUploadingFile] = useState(false);
     const [isUpdatingNotice, setIsUpdatingNotice] = useState(false);
+    /** 헤더 아래로 펼치는 보조 패널 — 검색 / 파일함 (동시에 하나만) */
+    const [sidePanel, setSidePanel] = useState<'search' | 'files' | null>(null);
+    const [searchKeyword, setSearchKeyword] = useState("");
+    /** null = 아직 검색 안 함 (빈 배열은 '결과 없음') */
+    const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [sharedFiles, setSharedFiles] = useState<ChatMessage[]>([]);
+    const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     /** 공지가 길면 두 줄만 보여주고 필요할 때 펼친다 */
     const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -485,6 +493,38 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         }
     };
 
+    /** 방 안 메시지 검색 */
+    const runSearch = async () => {
+        if (!selectedRoom || !searchKeyword.trim()) return;
+        setIsSearching(true);
+        try {
+            const response = await searchChatMessages(selectedRoom, searchKeyword.trim());
+            setSearchResults(response.messages || []);
+        } catch (error) {
+            console.error("메시지 검색 실패:", error);
+            onNotification("검색에 실패했습니다", "error");
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    /** 방에서 주고받은 파일 모아보기 */
+    const loadSharedFiles = async () => {
+        if (!selectedRoom) return;
+        setIsLoadingFiles(true);
+        try {
+            const response = await fetchChatSharedFiles(selectedRoom);
+            setSharedFiles(response.files || []);
+        } catch (error) {
+            console.error("파일 목록 로드 실패:", error);
+            onNotification("파일 목록을 불러오지 못했습니다", "error");
+            setSharedFiles([]);
+        } finally {
+            setIsLoadingFiles(false);
+        }
+    };
+
     /** 방 공지 등록/해제 — messageId가 null이면 내린다 */
     const changeNotice = async (messageId: number | null) => {
         if (!selectedRoom) return;
@@ -729,13 +769,108 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     </Text>
                                 </div>
                             </div>
-                            <IconButton
-                                label="채팅방 정보"
-                                variant="ghost"
-                                icon={<Icon icon="menu" />}
-                                onClick={toggleDrawer}
-                            />
+                            <HStack gap={1}>
+                                <IconButton
+                                    label="메시지 검색"
+                                    tooltip="이 방에서 검색"
+                                    variant={sidePanel === 'search' ? 'secondary' : 'ghost'}
+                                    icon={<Icon icon="search" />}
+                                    onClick={() => setSidePanel(sidePanel === 'search' ? null : 'search')}
+                                />
+                                <IconButton
+                                    label="파일 모아보기"
+                                    tooltip="주고받은 파일"
+                                    variant={sidePanel === 'files' ? 'secondary' : 'ghost'}
+                                    icon={<Icon icon={FiPaperclip} />}
+                                    onClick={() => { setSidePanel(sidePanel === 'files' ? null : 'files'); if (sidePanel !== 'files') loadSharedFiles(); }}
+                                />
+                                <IconButton
+                                    label="채팅방 정보"
+                                    variant="ghost"
+                                    icon={<Icon icon="menu" />}
+                                    onClick={toggleDrawer}
+                                />
+                            </HStack>
                         </div>
+
+                        {/* 검색 / 파일함 패널 — 대화 위에 얹지 않고 헤더 아래 한 줄로 펼친다 */}
+                        {sidePanel && (
+                            <div style={{ borderBottom: `1px solid ${C.border}`, background: C.bgGray, maxHeight: 280, overflowY: "auto" }}>
+                                {sidePanel === 'search' ? (
+                                    <div style={{ padding: 'var(--spacing-3)' }}>
+                                        <VStack gap={2}>
+                                            <TextInput
+                                                label="메시지 검색"
+                                                isLabelHidden
+                                                startIcon={FiSearch}
+                                                value={searchKeyword}
+                                                onChange={setSearchKeyword}
+                                                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') runSearch(); }}
+                                                placeholder="찾을 말을 입력하고 Enter"
+                                                hasClear
+                                            />
+                                            {isSearching ? (
+                                                <Text type="supporting" color="secondary">검색 중...</Text>
+                                            ) : searchResults === null ? (
+                                                <Text type="supporting" color="secondary">이 방의 대화에서 찾습니다.</Text>
+                                            ) : searchResults.length === 0 ? (
+                                                <Text type="supporting" color="secondary">일치하는 메시지가 없습니다.</Text>
+                                            ) : (
+                                                <VStack gap={1}>
+                                                    <Text type="supporting" color="secondary">{searchResults.length}건</Text>
+                                                    {searchResults.map((m) => (
+                                                        <div key={m.id} style={{ padding: 'var(--spacing-2)', background: C.card, border: `1px solid ${C.border}`, borderRadius: 'var(--radius-inner)' }}>
+                                                            <Text type="supporting" weight="semibold" color="primary">
+                                                                {m.senderName} · {formatMessageTime(m.createdAt)}
+                                                            </Text>
+                                                            <Text type="supporting" color="primary" maxLines={2}>{m.content}</Text>
+                                                        </div>
+                                                    ))}
+                                                </VStack>
+                                            )}
+                                        </VStack>
+                                    </div>
+                                ) : (
+                                    <div style={{ padding: 'var(--spacing-3)' }}>
+                                        {isLoadingFiles ? (
+                                            <Text type="supporting" color="secondary">불러오는 중...</Text>
+                                        ) : sharedFiles.length === 0 ? (
+                                            <Text type="supporting" color="secondary">주고받은 파일이 없습니다.</Text>
+                                        ) : (
+                                            <VStack gap={1}>
+                                                {sharedFiles.map((m) => (
+                                                    <button
+                                                        key={m.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (!m.fileUrl) return;
+                                                            if (m.type === "IMAGE") setImagePreview({ fileUrl: m.fileUrl, fileName: m.fileName || "이미지" });
+                                                            else if (isViewableDocument(m.fileName)) setViewerFile({ fileUrl: m.fileUrl, fileName: m.fileName || "문서" });
+                                                            else window.open(m.fileUrl, "_blank", "noopener");
+                                                        }}
+                                                        style={{
+                                                            display: "flex", alignItems: "center", gap: 'var(--spacing-2)', width: "100%",
+                                                            padding: 'var(--spacing-2)', background: C.card, border: `1px solid ${C.border}`,
+                                                            borderRadius: 'var(--radius-inner)', cursor: "pointer", textAlign: "left",
+                                                        }}
+                                                    >
+                                                        <span>{m.type === "IMAGE" ? "📷" : "📎"}</span>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
+                                                                {m.fileName || m.content}
+                                                            </Text>
+                                                            <Text type="supporting" color="secondary">
+                                                                {m.senderName} · {formatMessageTime(m.createdAt)}
+                                                            </Text>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </VStack>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* 고정 공지 — 방에 들어오면 대화보다 먼저 눈에 들어와야 한다 */}
                         {(() => {

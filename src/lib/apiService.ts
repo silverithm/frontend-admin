@@ -2333,6 +2333,16 @@ export async function uploadChatFile(roomId: number, file: File, senderId: strin
     return response.json();
 }
 
+/** 방에서 주고받은 파일·사진 모아보기 */
+export async function fetchChatSharedFiles(roomId: number) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/files`);
+}
+
+/** 방 안 메시지 검색 */
+export async function searchChatMessages(roomId: number, keyword: string) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/search?keyword=${encodeURIComponent(keyword)}`);
+}
+
 /** 방 공지 설정/해제 — messageId가 null이면 공지를 내린다 */
 export async function updateChatRoomNotice(roomId: number, messageId: number | null, setByName: string) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/notice`, {
