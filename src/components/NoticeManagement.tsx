@@ -36,12 +36,13 @@ import {
   getNoticeReaders,
 } from '@/lib/apiService';
 import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
+import ExternalNoticeList from '@/components/ExternalNoticeList';
 import { Notice, NoticeComment, NoticeReader, NoticePriority, NoticeStatus } from '@/types/notice';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 
 type ViewMode = 'list' | 'detail';
-type TabType = 'all' | 'published';
+type TabType = 'all' | 'published' | 'external';
 
 interface NoticeData {
   id: string;
@@ -135,8 +136,9 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
     }
   };
 
-  // 목록 로드
+  // 목록 로드 (장기요양 소식 탭은 별도 컴포넌트에서 자체 로드하므로 제외)
   const loadNotices = async () => {
+    if (activeTab === 'external') return;
     setIsLoading(true);
     try {
       const filter: { status?: string; searchQuery?: string } = {};
@@ -378,30 +380,37 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                 >
                   <SegmentedControlItem value="all" label={`전체 (${stats.total})`} />
                   <SegmentedControlItem value="published" label={`게시중 (${stats.published})`} />
+                  <SegmentedControlItem value="external" label="장기요양 소식" />
                 </SegmentedControl>
               </div>
 
               <Divider />
 
-              {/* 검색 */}
-              <div style={{ padding: 'var(--spacing-4)' }}>
-                <div style={{ maxWidth: 420 }}>
-                  <TextInput
-                    label="검색"
-                    isLabelHidden
-                    value={searchQuery}
-                    onChange={(value) => setSearchQuery(value)}
-                    placeholder="제목, 내용 검색"
-                    startIcon={FiSearch}
-                  />
-                </div>
-              </div>
+              {/* 검색 — 장기요양 소식 탭에는 해당 없음 */}
+              {activeTab !== 'external' && (
+                <>
+                  <div style={{ padding: 'var(--spacing-4)' }}>
+                    <div style={{ maxWidth: 420 }}>
+                      <TextInput
+                        label="검색"
+                        isLabelHidden
+                        value={searchQuery}
+                        onChange={(value) => setSearchQuery(value)}
+                        placeholder="제목, 내용 검색"
+                        startIcon={FiSearch}
+                      />
+                    </div>
+                  </div>
 
-              <Divider />
+                  <Divider />
+                </>
+              )}
 
               {/* 목록 — 남은 높이를 채우고 목록만 스크롤 */}
               <div className="carev-notice-list" style={{ padding: 'var(--spacing-5)' }}>
-                {notices.length > 0 || officialNotices.length > 0 ? (
+                {activeTab === 'external' ? (
+                  <ExternalNoticeList />
+                ) : notices.length > 0 || officialNotices.length > 0 ? (
                   <VStack gap={2} align="start" width="100%">
                     {/* 케어브이 시스템 공지 — 커뮤니티 [운영] 글. 클릭하면 커뮤니티에서 전문을 본다 */}
                     {officialNotices.map((n) => (

@@ -17,10 +17,15 @@ import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { getPublishedNotices, incrementNoticeViewCount, getNoticeDetail, getNoticeComments, createNoticeComment, deleteNoticeComment, getNoticeReaders, markNoticeAsRead } from '@/lib/apiService';
+import ExternalNoticeList from '@/components/ExternalNoticeList';
 import { Notice, NoticePriority, NoticeComment, NoticeReader } from '@/types/notice';
 
+type EmployeeNoticeTab = 'notices' | 'external';
+
 export default function EmployeeNotice() {
+  const [activeTab, setActiveTab] = useState<EmployeeNoticeTab>('notices');
   const [notices, setNotices] = useState<Notice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
@@ -371,8 +376,25 @@ export default function EmployeeNotice() {
 
       <Divider />
 
-      {/* 공지사항 목록 */}
-      {notices.length > 0 ? (
+      {/* 탭: 공지사항 / 장기요양 소식 */}
+      <div style={{ padding: 'var(--spacing-4) var(--spacing-6)' }}>
+        <SegmentedControl
+          value={activeTab}
+          onChange={(v) => setActiveTab(v as EmployeeNoticeTab)}
+          label="공지 구분"
+        >
+          <SegmentedControlItem value="notices" label="공지사항" />
+          <SegmentedControlItem value="external" label="장기요양 소식" />
+        </SegmentedControl>
+      </div>
+
+      <Divider />
+
+      {activeTab === 'external' ? (
+        <div style={{ padding: 'var(--spacing-6)' }}>
+          <ExternalNoticeList />
+        </div>
+      ) : notices.length > 0 ? (
         <div>
           {notices.map((notice, index) => (
             <div key={notice.id}>
