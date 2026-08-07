@@ -570,13 +570,22 @@ html {
 @media (hover: hover) { .carev-annual-month-title:hover { text-decoration: underline; text-underline-offset: 3px; } }
 
 .carev-annual-month-list { display: flex; flex-direction: column; gap: var(--spacing-1); overflow: hidden; }
+/* 색 띠 없이 담백한 한 줄. 누르면 상세가 열리므로 hover로만 눌린다는 걸 알린다. */
 .carev-annual-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
+  width: 100%;
   min-width: 0;
   padding: 2px var(--spacing-2);
+  border: 0;
   border-radius: var(--radius-inner);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .carev-annual-item:hover { background: var(--color-background-muted); }
 }
 /* 날짜 숫자는 폭을 고정해 제목 시작점을 세로로 맞춘다 */
 .carev-annual-item-day { flex-shrink: 0; width: 18px; text-align: right; }

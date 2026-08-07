@@ -15,13 +15,49 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
-import { IconCalendarStats } from '@tabler/icons-react';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { IconCalendarStats, IconCircleCheck } from '@tabler/icons-react';
 import { Loading } from '@/components/Loading';
 import { getSchedules } from '@/lib/apiService';
-import { Schedule, getScheduleColor, withAlpha } from '@/types/schedule';
+import { Schedule, SCHEDULE_CATEGORIES } from '@/types/schedule';
 import { useAlert } from './Alert';
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+const categoryLabel = (category?: string) =>
+  SCHEDULE_CATEGORIES.find((c) => c.value === category)?.label ?? '기타';
+
+/** 'yyyy-MM-dd' → '2026.08.08' (Date로 만들지 않아 시간대에 흔들리지 않는다) */
+const dotted = (iso?: string) => {
+  const d = iso?.substring(0, 10);
+  return d && d.length === 10 ? `${d.substring(0, 4)}.${d.substring(5, 7)}.${d.substring(8, 10)}` : '';
+};
+
+/** 하루짜리면 날짜 하나만, 여러 날이면 시작~종료로 보여준다 */
+const periodText = (schedule: Schedule) => {
+  const start = dotted(schedule.startDate);
+  const end = dotted(schedule.endDate);
+  const range = !end || end === start ? start : `${start} ~ ${end}`;
+  if (schedule.isAllDay) return `${range} · 종일`;
+  const time = [schedule.startTime, schedule.endTime]
+    .filter(Boolean)
+    .map((t) => (t as string).slice(0, 5))
+    .join(' ~ ');
+  return time ? `${range} · ${time}` : range;
+};
+
+/** 라벨과 값을 한 줄로 놓는 상세 항목 */
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <HStack gap={3} vAlign="start">
+      <span style={{ flexShrink: 0, width: 56 }}>
+        <Text type="supporting" color="secondary">{label}</Text>
+      </span>
+      <Text type="body" color="primary">{value}</Text>
+    </HStack>
+  );
+}
 
 /**
  * 한 달에 한 번에 그리는 최대 건수.
@@ -30,11 +66,10 @@ const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8
  */
 const MONTH_ITEM_LIMIT = 20;
 
-/** 렌더링에 필요한 값을 미리 계산해 담아둔다 (렌더 중 날짜 파싱·색 계산을 없앤다) */
+/** 렌더링에 필요한 값을 미리 계산해 담아둔다 (렌더 중 날짜 파싱을 없앤다) */
 interface AnnualItem {
   schedule: Schedule;
   dayLabel: string;
-  color: string;
 }
 
 interface AnnualScheduleViewProps {
@@ -49,6 +84,8 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   const [isLoading, setIsLoading] = useState(true);
   /** "+N건 더 보기"로 펼친 달 (연도를 바꾸면 접힌 상태로 돌아간다) */
   const [expandedMonths, setExpandedMonths] = useState<Record<number, boolean>>({});
+  /** 상세를 보고 있는 일정. 목록 응답에 할 일·참석자까지 들어 있어 추가 조회가 필요 없다. */
+  const [detail, setDetail] = useState<Schedule | null>(null);
 
   // 1년치 조회는 한 달치보다 훨씬 무겁다. 화살표를 연달아 누르면 요청이 쌓이고,
   // 먼저 보낸 응답이 늦게 도착해 나중 연도를 덮어쓰는 일이 생긴다.
@@ -121,7 +158,6 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
           schedule,
           // 그 달에 시작하는 일정만 날짜를 보여준다. 이어져 온 일정은 '·'
           dayLabel: startYear === year && startMonth === m ? String(Number(start.substring(8, 10))) : '·',
-          color: getScheduleColor(schedule),
         });
       }
     }
@@ -199,18 +235,19 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                       <Text type="supporting" color="disabled">일정 없음</Text>
                     ) : (
                       <>
-                        {shown.map(({ schedule, dayLabel, color }) => (
-                          <div
+                        {shown.map(({ schedule, dayLabel }) => (
+                          <button
                             key={`${schedule.id}-${index}`}
+                            type="button"
                             className="carev-annual-item"
-                            style={{ background: withAlpha(color, 0.1), borderLeft: `3px solid ${color}` }}
                             title={schedule.title}
+                            onClick={() => setDetail(schedule)}
                           >
                             <span className="carev-annual-item-day">
                               <Text type="supporting" color="secondary">{dayLabel}</Text>
                             </span>
                             <Text type="supporting" color="primary" maxLines={1}>{schedule.title}</Text>
-                          </div>
+                          </button>
                         ))}
                         {restCount > 0 && (
                           <Button
@@ -227,6 +264,119 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
               );
             })}
           </div>
+
+          {/* 일정 상세 — 월간일정과 같은 내용을 보여준다. 고치거나 지우는 건 월간일정에서 한다. */}
+          <Dialog
+            isOpen={!!detail}
+            onOpenChange={(open) => { if (!open) setDetail(null); }}
+            purpose="info"
+            width={560}
+          >
+            {detail && (
+              <Layout
+                header={
+                  <DialogHeader
+                    title={detail.title}
+                    subtitle={categoryLabel(detail.category)}
+                    onOpenChange={(open) => { if (!open) setDetail(null); }}
+                  />
+                }
+                content={
+                  <LayoutContent>
+                    <VStack gap={4}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 'var(--spacing-2)',
+                          padding: 'var(--spacing-3)',
+                          borderRadius: 'var(--radius-inner)',
+                          border: `1px solid ${detail.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
+                          background: detail.isCompleted ? 'var(--color-background-green)' : 'var(--color-background-muted)',
+                        }}
+                      >
+                        <Icon icon={IconCircleCheck} size="md" color={detail.isCompleted ? 'success' : 'tertiary'} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text type="body" weight="medium" color="primary">
+                            {detail.isCompleted ? '수행완료' : '진행 예정'}
+                          </Text>
+                          {detail.isCompleted && (
+                            <Text type="supporting" color="secondary">
+                              {detail.completedByName ? `${detail.completedByName} · ` : ''}
+                              {detail.completedAt ? format(new Date(detail.completedAt), 'yyyy.MM.dd HH:mm') : ''}
+                            </Text>
+                          )}
+                        </div>
+                      </div>
+
+                      <DetailRow label="기간" value={periodText(detail)} />
+                      {detail.location && <DetailRow label="장소" value={detail.location} />}
+                      {detail.managerName && <DetailRow label="담당자" value={detail.managerName} />}
+                      {detail.participants && detail.participants.length > 0 && (
+                        <DetailRow
+                          label="참석자"
+                          value={detail.participants.map((p) => p.userName).join(', ')}
+                        />
+                      )}
+                      {detail.content && (
+                        <VStack gap={1} align="start">
+                          <Text type="supporting" color="secondary">내용</Text>
+                          <Text type="body" color="primary" style={{ whiteSpace: 'pre-wrap' }}>{detail.content}</Text>
+                        </VStack>
+                      )}
+                      {detail.tasks && detail.tasks.length > 0 && (
+                        <VStack gap={2} align="start">
+                          <Text type="supporting" color="secondary">
+                            할 일 {detail.tasks.filter((t) => t.isCompleted).length}/{detail.tasks.length}
+                          </Text>
+                          {detail.tasks.map((task) => (
+                            <HStack key={task.id} gap={2} vAlign="center">
+                              <Icon
+                                icon={IconCircleCheck}
+                                size="sm"
+                                color={task.isCompleted ? 'success' : 'tertiary'}
+                              />
+                              <Text
+                                type="body"
+                                color={task.isCompleted ? 'secondary' : 'primary'}
+                                style={task.isCompleted ? { textDecoration: 'line-through' } : undefined}
+                              >
+                                {task.content}
+                                {task.assigneeName ? ` · ${task.assigneeName}` : ''}
+                              </Text>
+                            </HStack>
+                          ))}
+                        </VStack>
+                      )}
+                      {detail.authorName && <DetailRow label="작성자" value={detail.authorName} />}
+                    </VStack>
+                  </LayoutContent>
+                }
+                footer={
+                  <LayoutFooter hasDivider>
+                    <HStack gap={2} hAlign="end">
+                      <Button label="닫기" variant="ghost" onClick={() => setDetail(null)} />
+                      {onSelectMonth && (
+                        <Button
+                          label="월간일정에서 열기"
+                          variant="primary"
+                          onClick={() => {
+                            const start = detail.startDate?.substring(0, 10) ?? '';
+                            const y = Number(start.substring(0, 4));
+                            const m = Number(start.substring(5, 7)) - 1;
+                            setDetail(null);
+                            if (Number.isFinite(y) && Number.isFinite(m)) {
+                              onSelectMonth(new Date(y, m, 1));
+                            }
+                          }}
+                        />
+                      )}
+                    </HStack>
+                  </LayoutFooter>
+                }
+              />
+            )}
+          </Dialog>
 
           {total === 0 && (
             <div className="carev-annual-empty">
