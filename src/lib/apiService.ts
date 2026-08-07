@@ -2333,6 +2333,15 @@ export async function uploadChatFile(roomId: number, file: File, senderId: strin
     return response.json();
 }
 
+/** 지금 접속 중인 사람들의 userId */
+export async function fetchOnlineUserIds() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/presence?companyId=${companyId}`);
+}
+
 /** 방에서 주고받은 파일·사진 모아보기 */
 export async function fetchChatSharedFiles(roomId: number) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/files`);

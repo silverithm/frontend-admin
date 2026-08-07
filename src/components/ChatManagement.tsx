@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, fetchOnlineUserIds, getApproverCandidates } from '@/lib/apiService';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -18,6 +18,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { Item } from '@astryxdesign/core/Item';
 import { Divider } from '@astryxdesign/core/Divider';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -145,6 +146,11 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
     );
 }
 
+/** 1:1 방 이름 규칙 — 같은 상대와 두 번 만들지 않으려면 이름이 일정해야 한다 */
+function directRoomName(memberName: string): string {
+    return `${memberName} 님과의 대화`;
+}
+
 function getDateKey(dateStr: string): string {
     const d = new Date(dateStr);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -202,6 +208,13 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     /** @를 입력하면 뜨는 참가자 추천 — null이면 닫힘 */
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    /** 왼쪽 목록 전환 — 대화방 / 직원 */
+    const [listTab, setListTab] = useState<'rooms' | 'people'>('rooms');
+    /** 기관 전 인원 (이름 + 직책) */
+    const [orgMembers, setOrgMembers] = useState<{ id: string; name: string; position?: string | null }[]>([]);
+    /** 지금 접속 중인 사람들의 userId */
+    const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+    const [isOpeningDirect, setIsOpeningDirect] = useState(false);
     /** 공지가 길면 두 줄만 보여주고 필요할 때 펼친다 */
     const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -290,6 +303,28 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             onConnect: () => {
                 console.log("[Chat WebSocket] 연결됨");
                 setIsConnected(true);
+
+                // 접속 상태 — 내가 붙었음을 알리고, 다른 사람의 상태 변화를 받는다.
+                // (연결이 끊기면 서버가 알아서 오프라인 처리하므로 나갈 때 보낼 것은 없다)
+                if (userId && companyId) {
+                    client.publish({
+                        destination: "/app/presence/join",
+                        body: JSON.stringify({ userId, companyId }),
+                    });
+                    client.subscribe(`/topic/presence/${companyId}`, (frame: IMessage) => {
+                        try {
+                            const { userId: changedId, online } = JSON.parse(frame.body) as { userId: string; online: boolean };
+                            setOnlineUserIds(prev => {
+                                const next = new Set(prev);
+                                if (online) next.add(String(changedId));
+                                else next.delete(String(changedId));
+                                return next;
+                            });
+                        } catch (error) {
+                            console.error("[Presence] 상태 수신 처리 실패:", error);
+                        }
+                    });
+                }
             },
             onDisconnect: () => {
                 console.log("[Chat WebSocket] 연결 해제됨");
@@ -323,6 +358,28 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             }
         })();
     }, [selectedRoom, isConnected, fetchMessages, markAsRead]);
+
+    // 기관 인원 목록 + 지금 접속 중인 사람 (첫 화면용 — 이후 변화는 WebSocket으로 받는다)
+    useEffect(() => {
+        if (!companyId) return;
+        (async () => {
+            try {
+                const [candidateResponse, presenceResponse] = await Promise.all([
+                    getApproverCandidates(),
+                    fetchOnlineUserIds().catch(() => ({ onlineUserIds: [] })),
+                ]);
+                const candidates = Array.isArray(candidateResponse?.candidates) ? candidateResponse.candidates : [];
+                setOrgMembers(candidates.map((c: { approverId: number | string; name: string; position?: string | null }) => ({
+                    id: String(c.approverId),
+                    name: c.name,
+                    position: c.position,
+                })));
+                setOnlineUserIds(new Set((presenceResponse?.onlineUserIds || []).map(String)));
+            } catch (error) {
+                console.error("인원 목록 로드 실패:", error);
+            }
+        })();
+    }, [companyId]);
 
     // 방 선택 시 WebSocket 구독 변경
     useEffect(() => {
@@ -564,6 +621,55 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             .slice(0, 6);
     }, [mentionQuery, participants, userId]);
 
+    /**
+     * 1:1 대화 열기.
+     *
+     * 같은 사람과의 방이 이미 있으면 새로 만들지 않고 그 방을 연다 — 매번 새 방이 생기면
+     * 대화가 흩어져 쓸모가 없어진다. 판별은 '나와 상대 둘만 있는 방' 기준.
+     */
+    const openDirectChat = async (member: { id: string; name: string }) => {
+        if (!userId || !userName || isOpeningDirect) return;
+
+        const existing = rooms.find(r => r.participantCount === 2 && r.name === directRoomName(member.name));
+        if (existing) {
+            setSelectedRoom(existing.id);
+            setListTab('rooms');
+            return;
+        }
+
+        setIsOpeningDirect(true);
+        try {
+            const response = await createChatRoom({
+                name: directRoomName(member.name),
+                description: "1:1 대화",
+                creatorId: userId,
+                creatorName: userName,
+                participantIds: [member.id],
+            });
+            const created = response.room || response;
+            await fetchRooms();
+            if (created?.id) setSelectedRoom(created.id);
+            setListTab('rooms');
+        } catch (error) {
+            console.error("1:1 대화 열기 실패:", error);
+            onNotification("대화를 열지 못했습니다", "error");
+        } finally {
+            setIsOpeningDirect(false);
+        }
+    };
+
+    /** 온라인인 사람을 위로 올리고, 그 안에서는 이름순 */
+    const sortedMembers = useMemo(() => {
+        return [...orgMembers]
+            .filter(m => m.id !== userId)
+            .sort((a, b) => {
+                const aOn = onlineUserIds.has(a.id) ? 0 : 1;
+                const bOn = onlineUserIds.has(b.id) ? 0 : 1;
+                if (aOn !== bOn) return aOn - bOn;
+                return a.name.localeCompare(b.name, 'ko');
+            });
+    }, [orgMembers, onlineUserIds, userId]);
+
     /** 방 안 메시지 검색 */
     const runSearch = async () => {
         if (!selectedRoom || !searchKeyword.trim()) return;
@@ -768,7 +874,80 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                     )}
                 </div>
 
+                {/* 대화 / 직원 전환 */}
+                <div style={{ padding: 'var(--spacing-2) var(--spacing-3)', borderBottom: `1px solid ${C.border}` }}>
+                    <SegmentedControl
+                        label="목록 전환"
+                        value={listTab}
+                        onChange={(value) => setListTab(value as 'rooms' | 'people')}
+                        layout="fill"
+                    >
+                        <SegmentedControlItem value="rooms" label={`대화 (${rooms.length})`} />
+                        <SegmentedControlItem value="people" label={`직원 (${sortedMembers.length})`} />
+                    </SegmentedControl>
+                </div>
+
+                {/* 직원 목록 — 온라인이 위, 누르면 1:1 대화 */}
+                {listTab === 'people' && (
+                    <div style={{ flex: 1, overflowY: "auto" }}>
+                        {/* 맨 위는 내 프로필 */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: 'var(--spacing-3)', borderBottom: `1px solid ${C.border}`, background: C.bgGray }}>
+                            <div style={{ position: "relative" }}>
+                                <Avatar name={userName || "나"} size="small" />
+                                <span style={{
+                                    position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%",
+                                    background: 'var(--color-background-success-bold, #16a34a)', border: `2px solid ${C.bgGray}`,
+                                }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <Text type="supporting" weight="semibold" color="primary" maxLines={1}>{userName || "나"}</Text>
+                                <Text type="supporting" color="secondary">나</Text>
+                            </div>
+                        </div>
+
+                        {sortedMembers.length === 0 ? (
+                            <div style={{ padding: 'var(--spacing-6)' }}>
+                                <EmptyState isCompact title="등록된 직원이 없습니다" />
+                            </div>
+                        ) : (
+                            sortedMembers.map((member) => {
+                                const isOnline = onlineUserIds.has(member.id);
+                                return (
+                                    <button
+                                        key={member.id}
+                                        type="button"
+                                        onClick={() => openDirectChat(member)}
+                                        disabled={isOpeningDirect}
+                                        style={{
+                                            display: "flex", alignItems: "center", gap: 'var(--spacing-2)', width: "100%",
+                                            padding: 'var(--spacing-3)', background: "none", border: "none",
+                                            borderBottom: `1px solid ${C.gray100}`, cursor: "pointer", textAlign: "left",
+                                        }}
+                                    >
+                                        <div style={{ position: "relative" }}>
+                                            <Avatar name={member.name} size="small" />
+                                            {/* 온라인 초록 / 오프라인 회색 */}
+                                            <span style={{
+                                                position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%",
+                                                background: isOnline ? 'var(--color-background-success-bold, #16a34a)' : 'var(--color-border-emphasized, #cbd5e1)',
+                                                border: `2px solid ${C.card}`,
+                                            }} />
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
+                                                {member.name}{member.position ? ` ${member.position}` : ""}
+                                            </Text>
+                                            <Text type="supporting" color="secondary">{isOnline ? "접속 중" : "오프라인"}</Text>
+                                        </div>
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                )}
+
                 {/* Room List */}
+                {listTab === 'rooms' && (
                 <div style={{ flex: 1, overflowY: "auto" }}>
                     {isLoadingRooms ? (
                         <Loading size="inline" height={128} label="채팅방을 불러오는 중..." />
@@ -822,6 +1001,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         })
                     )}
                 </div>
+                )}
             </div>
 
             {/* Right Panel - Messages */}
