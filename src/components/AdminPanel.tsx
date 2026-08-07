@@ -72,12 +72,15 @@ const AdminPanel = ({
   // 휴무 입력 마감일 설정 (회사당 한 벌)
   const [deadlineDay, setDeadlineDay] = useState<number>(20);
   const [deadlineEnabled, setDeadlineEnabled] = useState(false);
+  // 켜면 직원은 바로 다음 달 휴무만 신청할 수 있다 (마감일과는 별개 스위치)
+  const [nextMonthOnly, setNextMonthOnly] = useState(false);
 
   useEffect(() => {
     getVacationDeadlineSetting()
       .then((data) => {
         if (typeof data?.deadlineDay === "number") setDeadlineDay(data.deadlineDay);
         setDeadlineEnabled(Boolean(data?.enabled));
+        setNextMonthOnly(Boolean(data?.nextMonthOnly));
       })
       .catch((err) => console.error("휴무 마감일 설정 조회 오류:", err));
   }, []);
@@ -208,7 +211,7 @@ const AdminPanel = ({
       const saveLimits = limits.filter((limit) => limit.role.trim().length > 0);
 
       await saveVacationLimits(saveLimits);
-      await saveVacationDeadlineSetting(deadlineDay, deadlineEnabled);
+      await saveVacationDeadlineSetting(deadlineDay, deadlineEnabled, nextMonthOnly);
 
       // 성공 후 최신 데이터 새로고침
       await onUpdateSuccess();
@@ -320,6 +323,22 @@ const AdminPanel = ({
             <Text type="supporting" color="secondary">
               마감일이 지나도 휴무 인원이 제한을 초과한 날짜가 남아 있으면, 그 날짜에
               신청한 직원들에게 조정 요청 알림을 매일 보냅니다.
+            </Text>
+
+            <Divider />
+
+            <Switch
+              label="다음 달 휴무만 신청받기"
+              value={nextMonthOnly}
+              onChange={(checked) => setNextMonthOnly(checked)}
+              labelPosition="start"
+              labelSpacing="spread"
+              isDisabled={isBusy}
+            />
+            <Text type="supporting" color="secondary">
+              켜면 직원은 바로 다음 달 날짜만 고를 수 있습니다. 근무표를 달 단위로 짜실 때
+              몇 달 뒤 휴무가 미리 들어와 표가 흔들리는 걸 막아줍니다.
+              관리자가 대신 등록하시는 건 이 제한을 받지 않습니다.
             </Text>
           </VStack>
         </Card>

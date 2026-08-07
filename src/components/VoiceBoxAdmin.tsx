@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
-import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -115,12 +114,6 @@ export default function VoiceBoxAdmin() {
         <Heading level={2}>고충·건의함</Heading>
         <Text type="supporting" color="secondary">직원들이 남긴 고충·신고와 건의를 확인하고 처리합니다.</Text>
       </VStack>
-
-      <Banner
-        status="warning"
-        title="이 화면은 기관 관리자만 볼 수 있습니다."
-        description="익명으로 제출된 글은 작성자 이름이 표시되지 않습니다. 상태를 바꾸고 답변을 남기면 작성자가 자신의 제출 내역에서 확인합니다."
-      />
 
       <SegmentedControl value={filter} onChange={(v) => setFilter(v as typeof filter)} label="유형 필터">
         <SegmentedControlItem value="all" label={filter === 'all' ? `전체 (${messages.length})` : '전체'} />

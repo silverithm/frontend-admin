@@ -17,8 +17,10 @@ import { Selector } from '@astryxdesign/core/Selector';
 import { MultiSelector } from '@astryxdesign/core/MultiSelector';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Avatar } from '@astryxdesign/core/Avatar';
+import { Banner } from '@astryxdesign/core/Banner';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
-import { getVacationCalendar, requestVacation, getVacationLimits } from '@/lib/apiService';
+import { getVacationCalendar, requestVacation, getVacationLimits, getVacationDeadlineSetting } from '@/lib/apiService';
+import { VACATION_NOTICES, VACATION_NOTICE_TITLE } from '@/lib/vacationGuard';
 import {
   DayInfo,
   VacationRequest,
@@ -44,6 +46,10 @@ const CARD_STYLE: CSSProperties = {
 export default function EmployeeCalendar() {
   const { showAlert, AlertContainer } = useAlert();
   const [currentDate, setCurrentDate] = useState(new Date());
+  // 기관이 "다음 달 휴무만 신청받기"를 켰는지
+  const [nextMonthOnly, setNextMonthOnly] = useState(false);
+  // 제한이 걸렸을 때 신청 가능한 달 (오늘 기준 바로 다음 달)
+  const nextMonthStart = useMemo(() => startOfMonth(addMonths(new Date(), 1)), []);
   const [vacationDays, setVacationDays] = useState<Record<string, DayInfo>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -93,6 +99,13 @@ export default function EmployeeCalendar() {
   useEffect(() => {
     loadVacations();
   }, [currentDate]);
+
+  // 기관이 "다음 달만 신청" 제한을 켰는지 확인한다 (조회 실패 시 제한 없음으로 본다)
+  useEffect(() => {
+    getVacationDeadlineSetting()
+      .then((data) => setNextMonthOnly(Boolean(data?.nextMonthOnly)))
+      .catch(() => setNextMonthOnly(false));
+  }, []);
 
   const loadVacations = async () => {
     setIsLoading(true);
@@ -167,6 +180,17 @@ export default function EmployeeCalendar() {
   // 휴무 신청 모달 열기
   const openRequestModal = (date?: Date) => {
     const targetDate = date || selectedDate || new Date();
+
+    // 기관이 제한을 걸었으면 다음 달 날짜만 받는다 (서버도 같은 규칙으로 한 번 더 막는다)
+    if (nextMonthOnly && !isSameMonth(targetDate, nextMonthStart)) {
+      showAlert({
+        type: 'info',
+        title: '신청할 수 없는 날짜입니다',
+        message: `${format(nextMonthStart, 'yyyy년 M월', { locale: ko })} 휴무만 신청하실 수 있습니다.`,
+      });
+      return;
+    }
+
     setRequestForm({
       date: format(targetDate, 'yyyy-MM-dd'),
       kind: 'regular',
@@ -205,7 +229,9 @@ export default function EmployeeCalendar() {
       loadVacations();
     } catch (error) {
       console.error('휴무 신청 실패:', error);
-      showAlert({ type: 'error', title: '신청 실패', message: '휴무 신청에 실패했습니다.' });
+      // 서버가 사유를 돌려주면(기간 제한 등) 그대로 보여준다 — 왜 막혔는지 알아야 다시 시도한다
+      const message = error instanceof Error && error.message ? error.message : '휴무 신청에 실패했습니다.';
+      showAlert({ type: 'error', title: '신청 실패', message });
     } finally {
       setIsSubmitting(false);
     }
@@ -290,6 +316,16 @@ export default function EmployeeCalendar() {
     <>
       <AlertContainer />
       <VStack gap={6}>
+        {/* 신청 가능한 달이 제한돼 있으면 먼저 알려준다 — 눌러보고 막히는 것보다 낫다 */}
+        {nextMonthOnly && (
+          <Banner
+            status="info"
+            container="section"
+            title={`${format(nextMonthStart, 'yyyy년 M월', { locale: ko })} 휴무만 신청하실 수 있습니다`}
+            description="기관 설정에 따라 바로 다음 달 휴무만 받고 있습니다. 다른 달 휴무가 필요하시면 관리자에게 말씀해주세요."
+          />
+        )}
+
         {/* 캘린더 카드 */}
         <div style={CARD_STYLE}>
           {/* 캘린더 헤더 */}
@@ -675,11 +711,24 @@ export default function EmployeeCalendar() {
           content={
             <LayoutContent>
               <VStack gap={4}>
+                {/* 신청 전 필수 숙지 — 시스템이 다 막지 못하는 부분이라 강한 색으로 강조 */}
+                <Banner
+                  status="error"
+                  container="card"
+                  title={VACATION_NOTICE_TITLE}
+                  description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
+                />
                 <DateInput
                   label="날짜"
                   isRequired
                   value={requestForm.date ? (requestForm.date as ISODateString) : undefined}
                   onChange={(value) => setRequestForm(prev => ({ ...prev, date: value || '' }))}
+                  // 제한이 걸리면 달력에서 다음 달 밖은 아예 고를 수 없게 한다
+                  min={nextMonthOnly ? (format(nextMonthStart, 'yyyy-MM-dd') as ISODateString) : undefined}
+                  max={nextMonthOnly ? (format(endOfMonth(nextMonthStart), 'yyyy-MM-dd') as ISODateString) : undefined}
+                  description={nextMonthOnly
+                    ? `${format(nextMonthStart, 'yyyy년 M월', { locale: ko })} 안에서 고르실 수 있습니다`
+                    : undefined}
                 />
                 {/* 휴무 종류 — 종류와 종일·반일 구분을 이 하나로 고른다 */}
                 <Selector

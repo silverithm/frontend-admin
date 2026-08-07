@@ -458,14 +458,17 @@ export async function getVacationDeadlineSetting() {
 }
 
 // 휴무 입력 마감일 설정 저장
-export async function saveVacationDeadlineSetting(deadlineDay: number, enabled: boolean) {
+export async function saveVacationDeadlineSetting(deadlineDay: number, enabled: boolean, nextMonthOnly?: boolean) {
     const companyId = getCompanyId();
     if (!companyId) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
     return fetchWithAuth(`/api/vacation/deadline-setting?companyId=${companyId}`, {
         method: 'POST',
-        body: JSON.stringify({ deadlineDay, enabled }),
+        // nextMonthOnly를 안 보내면 서버가 기존 값을 유지한다
+        body: JSON.stringify(nextMonthOnly === undefined
+            ? { deadlineDay, enabled }
+            : { deadlineDay, enabled, nextMonthOnly }),
     });
 }
 
