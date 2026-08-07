@@ -12,6 +12,7 @@ import {
   IconKey,
   IconTrash,
   IconCopy,
+  IconPencil,
 } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
@@ -62,18 +63,24 @@ const pageContainer: React.CSSProperties = {
 function ProfileSection({
   title,
   description,
+  action,
   children,
 }: {
   title: string;
   description?: string;
+  /** 제목 줄 오른쪽에 붙는 버튼 (예: 수정) */
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <VStack gap={4}>
-      <VStack gap={1}>
-        <Text type="large" weight="semibold" color="primary">{title}</Text>
-        {description && <Text type="supporting" color="secondary">{description}</Text>}
-      </VStack>
+      <HStack hAlign="between" vAlign="center" gap={3}>
+        <VStack gap={1}>
+          <Text type="large" weight="semibold" color="primary">{title}</Text>
+          {description && <Text type="supporting" color="secondary">{description}</Text>}
+        </VStack>
+        {action}
+      </HStack>
       {children}
     </VStack>
   );
@@ -94,6 +101,8 @@ export default function OrganizationProfilePage() {
     setIsDemoMode(localStorage.getItem('isDemoMode') === 'true');
   }, [router]);
   const [isEditing, setIsEditing] = useState(false);
+  // 저장 중 상태는 페이지 로딩(isLoading)과 분리한다 — 섞으면 저장하는 동안 폼이 사라진다
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<OrganizationProfileData | null>(null);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -178,7 +187,7 @@ export default function OrganizationProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData || !profile) return;
-    setIsLoading(true);
+    setIsSaving(true);
     setError('');
     setSuccessMessage('');
     try {
@@ -194,12 +203,12 @@ export default function OrganizationProfilePage() {
 
       setProfile(formData);
       setIsEditing(false);
-      setSuccessMessage('회사 정보가 성공적으로 업데이트되었습니다.');
+      setSuccessMessage('기관 정보를 저장했습니다.');
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : '회사 정보 업데이트에 실패했습니다.');
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -373,54 +382,75 @@ export default function OrganizationProfilePage() {
               <Banner status="error" title={error} />
             )}
 
-            {isEditing ? (
-              <form onSubmit={handleSubmit}>
-                <Card padding={6}>
-                <VStack gap={5}>
-                  <TextInput
-                    label="회사명"
-                    type="text"
-                    htmlName="name"
-                    value={formData?.name || ''}
-                    onChange={(value) => setFormData(formData ? { ...formData, name: value } : formData)}
-                    isRequired
-                  />
-                  <TextInput
-                    label="회사 주소"
-                    type="text"
-                    htmlName="address"
-                    value={formData?.address || ''}
-                    onChange={(value) => setFormData(formData ? { ...formData, address: value } : formData)}
-                  />
-                  <TextInput
-                    label="관리자명"
-                    type="text"
-                    htmlName="adminName"
-                    value={formData?.adminName || ''}
-                    onChange={(value) => setFormData(formData ? { ...formData, adminName: value } : formData)}
-                    description="관리자명은 수정할 수 없습니다."
-                    isDisabled
-                  />
-                  <HStack gap={2} hAlign="end">
-                    <Button
-                      label="취소"
-                      variant="secondary"
-                      type="button"
-                      onClick={() => { setIsEditing(false); setError(''); setSuccessMessage(''); setFormData(profile); }}
-                    />
-                    <Button
-                      label="저장"
-                      variant="primary"
-                      type="submit"
-                      isLoading={isLoading}
-                    />
-                  </HStack>
-                </VStack>
-                </Card>
-              </form>
-            ) : (
+            {(
               <VStack gap={8}>
-                <ProfileSection title="기관 정보" description="기관의 이름과 주소, 대표 관리자입니다">
+                {/* 기관 정보 — 이 섹션만 읽기/편집이 바뀐다.
+                    예전에는 편집에 들어가면 페이지 전체가 폼으로 바뀌어 구독·직인·홈페이지가 통째로 사라졌다. */}
+                <ProfileSection
+                  title="기관 정보"
+                  description="기관의 이름과 주소, 대표 관리자입니다"
+                  action={
+                    isEditing ? undefined : (
+                      <Button
+                        label="수정"
+                        variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={IconPencil} size="sm" />}
+                        onClick={() => { setFormData(profile); setError(''); setSuccessMessage(''); setIsEditing(true); }}
+                      />
+                    )
+                  }
+                >
+                {isEditing ? (
+                  <form onSubmit={handleSubmit}>
+                    <Card padding={5}>
+                      <VStack gap={4}>
+                        <Grid columns={{ minWidth: 260, max: 2 }} gap={4}>
+                          <TextInput
+                            label="회사명"
+                            type="text"
+                            htmlName="name"
+                            value={formData?.name || ''}
+                            onChange={(value) => setFormData(formData ? { ...formData, name: value } : formData)}
+                            isRequired
+                          />
+                          <TextInput
+                            label="회사 주소"
+                            type="text"
+                            htmlName="address"
+                            value={formData?.address || ''}
+                            onChange={(value) => setFormData(formData ? { ...formData, address: value } : formData)}
+                          />
+                        </Grid>
+                        <TextInput
+                          label="관리자명"
+                          type="text"
+                          htmlName="adminName"
+                          value={formData?.adminName || ''}
+                          onChange={(value) => setFormData(formData ? { ...formData, adminName: value } : formData)}
+                          description="관리자명은 이 화면에서 수정할 수 없습니다."
+                          isDisabled
+                        />
+                        <HStack gap={2} hAlign="end">
+                          <Button
+                            label="취소"
+                            variant="secondary"
+                            type="button"
+                            isDisabled={isSaving}
+                            onClick={() => { setIsEditing(false); setError(''); setSuccessMessage(''); setFormData(profile); }}
+                          />
+                          <Button
+                            label="저장"
+                            variant="primary"
+                            type="submit"
+                            isLoading={isSaving}
+                            isDisabled={isSaving || !formData?.name?.trim()}
+                          />
+                        </HStack>
+                      </VStack>
+                    </Card>
+                  </form>
+                ) : (
                 <Grid columns={{ minWidth: 260, max: 3 }} gap={4} align="stretch">
                   {/* 기관 정보 카드 */}
                   <Card padding={5} height="100%">
@@ -461,6 +491,7 @@ export default function OrganizationProfilePage() {
                     </HStack>
                   </Card>
                 </Grid>
+                )}
                 </ProfileSection>
 
                 {profile.companyCode && (
@@ -675,6 +706,7 @@ export default function OrganizationProfilePage() {
             )}
           </VStack>
       </motion.div>
+
       </main>
 
       {/* 푸터 — 예전에는 어두운 배경 시절의 파란 글씨·짙은 그림자가 남아 흰 배경에서 글씨가 보이지 않았다 */}
