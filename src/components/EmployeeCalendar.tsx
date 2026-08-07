@@ -19,8 +19,22 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { Banner } from '@astryxdesign/core/Banner';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
-import { getVacationCalendar, requestVacation, getVacationLimits, getVacationDeadlineSetting } from '@/lib/apiService';
-import { VACATION_NOTICES, VACATION_NOTICE_TITLE } from '@/lib/vacationGuard';
+import {
+  getVacationCalendar,
+  requestVacation,
+  getVacationLimits,
+  getVacationDeadlineSetting,
+  getVacationDeadlineDates,
+  getVacationEvents,
+  type VacationEvent,
+} from '@/lib/apiService';
+import {
+  VACATION_NOTICES,
+  VACATION_NOTICE_LIST_CLASS,
+  VACATION_NOTICE_LIST_STYLE,
+  VACATION_NOTICE_TITLE,
+} from '@/lib/vacationGuard';
+import { getHolidayName } from '@/lib/holidays';
 import {
   DayInfo,
   VacationRequest,
@@ -63,6 +77,10 @@ export default function EmployeeCalendar() {
     reason: '',
   });
   const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
+  // 기관이 직접 지정한 월별 휴무 입력 마감일 — { "2026-08": "2026-08-16" }
+  const [deadlineDates, setDeadlineDates] = useState<Record<string, string>>({});
+  // 이 달에 걸친 중요 행사 — 이 날짜는 휴무를 피하도록 안내한다
+  const [events, setEvents] = useState<VacationEvent[]>([]);
 
   const [userName] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('userName') : null);
   // 직종 필터 (중복 선택 가능, 빈 배열 = 전체) — 관리자 근무조정과 동일한 보기 기능
@@ -105,7 +123,26 @@ export default function EmployeeCalendar() {
     getVacationDeadlineSetting()
       .then((data) => setNextMonthOnly(Boolean(data?.nextMonthOnly)))
       .catch(() => setNextMonthOnly(false));
+    getVacationDeadlineDates()
+      .then(setDeadlineDates)
+      .catch(() => setDeadlineDates({}));
   }, []);
+
+  // 중요 행사 — 달력 표시 + 신청 시 안내.
+  // 다음 달 휴무를 신청하는 흐름이 많아 보고 있는 달 다음 달까지 함께 받아둔다.
+  useEffect(() => {
+    const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
+    const end = format(endOfMonth(addMonths(currentDate, 1)), 'yyyy-MM-dd');
+    getVacationEvents(start, end)
+      .then(setEvents)
+      .catch(() => setEvents([]));
+  }, [currentDate]);
+
+  /** 그날에 걸친 행사들 (기간 행사는 매일 표시) */
+  const getEventsForDate = (date: Date) => {
+    const key = format(date, 'yyyy-MM-dd');
+    return events.filter((e) => e.startDate <= key && e.endDate >= key);
+  };
 
   const loadVacations = async () => {
     setIsLoading(true);
@@ -431,6 +468,10 @@ export default function EmployeeCalendar() {
                 const _hasMyVacation = myVacations.length > 0; // 향후 사용을 위해 유지
                 const isSelected = selectedDate && isSameDay(date, selectedDate);
                 const dayOfWeek = date.getDay();
+                const holidayName = getHolidayName(date);
+                const dateKey = format(date, 'yyyy-MM-dd');
+                const isDeadlineDay = deadlineDates[dateKey.slice(0, 7)] === dateKey;
+                const dayEvents = getEventsForDate(date);
 
                 const dayNumberStyle: CSSProperties = isToday(date)
                   ? {
@@ -444,7 +485,7 @@ export default function EmployeeCalendar() {
                       justifyContent: 'center',
                       margin: '0 auto',
                     }
-                  : dayOfWeek === 0
+                  : holidayName || dayOfWeek === 0
                   ? { color: 'var(--color-text-red)' }
                   : dayOfWeek === 6
                   ? { color: 'var(--color-text-blue)' }
@@ -475,6 +516,53 @@ export default function EmployeeCalendar() {
                       <span style={dayNumberStyle}>
                         <Text type="label" weight="medium" color="inherit">{format(date, 'd')}</Text>
                       </span>
+                      {/* 공휴일 이름 */}
+                      {holidayName && (
+                        <div style={{ padding: '0 var(--spacing-1)', color: 'var(--color-text-red)', overflow: 'hidden' }} title={holidayName}>
+                          <Text type="supporting" color="inherit" maxLines={1}>{holidayName}</Text>
+                        </div>
+                      )}
+                      {/* 휴무 입력 마감일 */}
+                      {isDeadlineDay && (
+                        <div
+                          title="휴무 입력 마감일"
+                          style={{
+                            margin: '0 var(--spacing-0-5)',
+                            padding: '0 var(--spacing-1)',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--color-background-yellow)',
+                            color: 'var(--color-text-yellow)',
+                            fontSize: 'var(--font-size-xs)',
+                            fontWeight: 'var(--font-weight-bold)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          ★ 마감
+                        </div>
+                      )}
+                      {/* 중요 행사 — 이 날은 휴무를 피해달라는 표시 */}
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          title={event.description ? `${event.title} — ${event.description}` : event.title}
+                          style={{
+                            margin: '1px var(--spacing-0-5) 0',
+                            padding: '0 var(--spacing-1)',
+                            borderRadius: 'var(--radius-inner)',
+                            background: 'var(--color-background-purple)',
+                            color: 'var(--color-text-purple)',
+                            fontSize: 'var(--font-size-xs)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          📌 {event.title}
+                        </div>
+                      ))}
                       {/* 휴무 제한 표시 */}
                       {(() => {
                         const maxPeople = getMaxPeopleForDate(date);
@@ -712,12 +800,32 @@ export default function EmployeeCalendar() {
             <LayoutContent>
               <VStack gap={4}>
                 {/* 신청 전 필수 숙지 — 시스템이 다 막지 못하는 부분이라 강한 색으로 강조 */}
-                <Banner
-                  status="error"
-                  container="card"
-                  title={VACATION_NOTICE_TITLE}
-                  description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
-                />
+                <Banner status="error" container="card" title={VACATION_NOTICE_TITLE} defaultIsExpanded>
+                  <ul className={VACATION_NOTICE_LIST_CLASS} style={VACATION_NOTICE_LIST_STYLE}>
+                    {VACATION_NOTICES.map((notice) => (
+                      <li key={notice}>{notice}</li>
+                    ))}
+                  </ul>
+                </Banner>
+                {/* 고른 날짜에 기관 행사가 있으면 알려준다 (막지는 않는다 — 사정이 있을 수 있다) */}
+                {(() => {
+                  const warnEvents = requestForm.date
+                    ? events.filter(
+                        (e) => e.warnOnRequest && e.startDate <= requestForm.date && e.endDate >= requestForm.date,
+                      )
+                    : [];
+                  if (warnEvents.length === 0) return null;
+                  return (
+                    <Banner
+                      status="warning"
+                      container="card"
+                      title="이 날은 기관 행사가 있습니다"
+                      description={warnEvents
+                        .map((e) => `· ${e.title}${e.description ? ` — ${e.description}` : ''}`)
+                        .join('\n')}
+                    />
+                  );
+                })()}
                 <DateInput
                   label="날짜"
                   isRequired

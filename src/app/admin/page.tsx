@@ -20,6 +20,7 @@ import {
     getVacationForDate,
     bulkApproveVacations,
     bulkRejectVacations,
+    bulkDeleteVacations,
     getMemberUsers,
     getPositions,
 } from "@/lib/apiService";
@@ -848,9 +849,14 @@ export default function AdminPage() {
             const vacationIds = Array.from(selectedVacationIds);
             const response = await bulkApproveVacations(vacationIds);
 
+            // 이미 승인된 건을 함께 고를 수 있으므로 서버가 돌려준 실제 건수를 알린다
+            const succeeded = response?.successCount ?? vacationIds.length;
+            const failed = response?.failureCount ?? 0;
             showNotification(
-                `${vacationIds.length}개의 휴무 요청이 승인되었습니다.`,
-                "success"
+                failed > 0
+                    ? `${succeeded}개를 승인했습니다. ${failed}개는 처리하지 못했습니다(이미 승인됨 등).`
+                    : `${succeeded}개의 휴무 요청이 승인되었습니다.`,
+                failed > 0 ? "info" : "success"
             );
 
             // 선택 초기화 및 데이터 새로고침
@@ -880,9 +886,14 @@ export default function AdminPage() {
             const vacationIds = Array.from(selectedVacationIds);
             const response = await bulkRejectVacations(vacationIds);
 
+            // 이미 거절된 건을 함께 고를 수 있으므로 서버가 돌려준 실제 건수를 알린다
+            const succeeded = response?.successCount ?? vacationIds.length;
+            const failed = response?.failureCount ?? 0;
             showNotification(
-                `${vacationIds.length}개의 휴무 요청이 거절되었습니다.`,
-                "success"
+                failed > 0
+                    ? `${succeeded}개를 거절했습니다. ${failed}개는 처리하지 못했습니다(이미 거절됨 등).`
+                    : `${succeeded}개의 휴무 요청이 거절되었습니다.`,
+                failed > 0 ? "info" : "success"
             );
 
             // 선택 초기화 및 데이터 새로고침
@@ -913,18 +924,52 @@ export default function AdminPage() {
         });
     };
 
-    // 전체 선택/해제
-    const handleSelectAll = () => {
-        const pendingIds = filteredRequests
-            .filter(req => req.status === 'pending')
-            .map(req => req.id);
+    // 일괄 삭제 처리 — 되돌릴 수 없으므로 확인을 받는다
+    const handleBulkDelete = async () => {
+        if (selectedVacationIds.size === 0) {
+            showNotification("선택된 휴무 요청이 없습니다.", "info");
+            return;
+        }
+        const count = selectedVacationIds.size;
+        const ok = window.confirm(
+            `선택한 휴무 ${count}건을 삭제합니다.\n삭제한 휴무는 되돌릴 수 없습니다. 계속할까요?`,
+        );
+        if (!ok) return;
 
-        if (selectedVacationIds.size === pendingIds.length) {
+        setIsProcessing(true);
+        try {
+            await bulkDeleteVacations(Array.from(selectedVacationIds));
+            showNotification(`${count}개의 휴무가 삭제되었습니다.`, "success");
+            setSelectedVacationIds(new Set());
+            setIsSelectMode(false);
+            await fetchMonthData();
+        } catch (error) {
+            console.error("일괄 삭제 실패:", error);
+            showNotification(
+                `일괄 삭제 중 오류가 발생했습니다: ${(error as Error).message}`,
+                "error"
+            );
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    /**
+     * 다중 선택 대상 — 조회 기간·필터를 통과한 목록 전체.
+     * 승인/거절은 대기 건에만 의미가 있지만 삭제는 승인된 건도 대상이라 상태로 거르지 않는다.
+     * (서버가 이미 처리된 건은 실패로 돌려주고 나머지는 정상 처리한다)
+     */
+    const selectableRequests = filteredRequests;
+
+    // 전체 선택/해제 — 조회 기간 안의 모든 휴무가 대상
+    const handleSelectAll = () => {
+        const ids = selectableRequests.map(req => req.id);
+
+        if (ids.length > 0 && selectedVacationIds.size === ids.length) {
             // 모두 선택되어 있으면 전체 해제
             setSelectedVacationIds(new Set());
         } else {
-            // 전체 선택
-            setSelectedVacationIds(new Set(pendingIds));
+            setSelectedVacationIds(new Set(ids));
         }
     };
 
@@ -1568,7 +1613,7 @@ export default function AdminPage() {
                                                         ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
                                                         : "전체 휴무 목록"}
                                                 </Text>
-                                                {isAdmin && filteredRequests.some(req => req.status === 'pending') && (
+                                                {isAdmin && selectableRequests.length > 0 && (
                                                     <Button
                                                         label={isSelectMode ? '선택 취소' : '다중 선택'}
                                                         variant={isSelectMode ? 'primary' : 'secondary'}
@@ -1598,12 +1643,14 @@ export default function AdminPage() {
                                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 'var(--spacing-2)' }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                                                         <Button
-                                                            label={selectedVacationIds.size === filteredRequests.filter(req => req.status === 'pending').length ? '전체 해제' : '전체 선택'}
+                                                            label={selectedVacationIds.size > 0 && selectedVacationIds.size === selectableRequests.length ? '전체 해제' : '기간 전체 선택'}
                                                             variant="secondary"
                                                             size="sm"
                                                             onClick={handleSelectAll}
                                                         />
-                                                        <Text type="supporting" weight="medium" color="accent">{selectedVacationIds.size}개</Text>
+                                                        <Text type="supporting" weight="medium" color="accent">
+                                                            {selectedVacationIds.size} / {selectableRequests.length}개
+                                                        </Text>
                                                     </div>
                                                     <div style={{ display: "flex", gap: 'var(--spacing-2)' }}>
                                                         <Button
@@ -1616,14 +1663,26 @@ export default function AdminPage() {
                                                         />
                                                         <Button
                                                             label="거절"
-                                                            variant="destructive"
+                                                            variant="secondary"
                                                             size="sm"
                                                             isLoading={isProcessing}
                                                             isDisabled={selectedVacationIds.size === 0}
                                                             onClick={handleBulkReject}
                                                         />
+                                                        <Button
+                                                            label="삭제"
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            isLoading={isProcessing}
+                                                            isDisabled={selectedVacationIds.size === 0}
+                                                            onClick={handleBulkDelete}
+                                                        />
                                                     </div>
                                                 </div>
+                                                {/* 조회 기간이 선택 범위를 정한다 — 어디까지 한 번에 처리되는지 분명히 보여준다 */}
+                                                <Text type="supporting" color="secondary">
+                                                    조회 기간 {listRange.start} ~ {listRange.end}의 휴무가 대상입니다.
+                                                </Text>
                                             </div>
                                         )}
 
@@ -1650,7 +1709,8 @@ export default function AdminPage() {
                                                     >
                                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "flex-start", gap: 'var(--spacing-2)' }}>
-                                                                {isSelectMode && request.status === 'pending' && (
+                                                                {/* 승인·거절은 대기 건에만 의미가 있지만 삭제는 처리된 건도 대상이라 전부 고를 수 있게 둔다 */}
+                                                                {isSelectMode && (
                                                                     <div style={{ marginTop: 'var(--spacing-0-5)' }}>
                                                                         <CheckboxInput
                                                                             label="선택"

@@ -379,6 +379,14 @@ export async function bulkRejectVacations(vacationIds: string[]) {
     });
 }
 
+// 휴가 일괄 삭제 — 되돌릴 수 없으므로 호출 전 확인을 받는다
+export async function bulkDeleteVacations(vacationIds: string[]) {
+    return fetchWithAuth(`/api/vacation/bulk-delete`, {
+        method: 'PUT',
+        body: JSON.stringify({ vacationIds }),
+    });
+}
+
 // 직원이 직접 휴무 신청
 export async function requestVacation(data: {
     date: string;
@@ -470,6 +478,92 @@ export async function saveVacationDeadlineSetting(deadlineDay: number, enabled: 
             ? { deadlineDay, enabled }
             : { deadlineDay, enabled, nextMonthOnly }),
     });
+}
+
+// 월별 마감일 지정 조회 — { "2026-08": "2026-08-16", ... }
+export async function getVacationDeadlineDates(): Promise<Record<string, string>> {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const data = await fetchWithAuth(`/api/vacation/deadline-dates?companyId=${companyId}`);
+    return (data?.dates && typeof data.dates === 'object') ? data.dates : {};
+}
+
+/** 특정 달의 마감일 지정. deadlineDate가 null이면 지정을 해제해 매월 고정일로 되돌린다 */
+export async function saveVacationDeadlineDate(targetMonth: string, deadlineDate: string | null) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/vacation/deadline-dates?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify({ targetMonth, deadlineDate }),
+    });
+}
+
+// ================== 근무조정 중요 행사 ==================
+
+export interface VacationEvent {
+    id: number;
+    title: string;
+    description: string | null;
+    startDate: string;
+    endDate: string;
+    warnOnRequest: boolean;
+}
+
+export async function getVacationEvents(startDate: string, endDate: string): Promise<VacationEvent[]> {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const data = await fetchWithAuth(
+        `/api/vacation/events?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`,
+    );
+    return Array.isArray(data?.events) ? data.events : [];
+}
+
+export async function createVacationEvent(input: {
+    title: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    warnOnRequest?: boolean;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/vacation/events?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+    });
+}
+
+export async function updateVacationEvent(eventId: number, input: {
+    title: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    warnOnRequest?: boolean;
+}) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/vacation/events/${eventId}?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+    });
+}
+
+export async function deleteVacationEvent(eventId: number) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/vacation/events/${eventId}?companyId=${companyId}`, { method: 'DELETE' });
 }
 
 // 휴가 제한 저장 (companyId 추가)
@@ -1415,6 +1509,7 @@ export async function getApprovalTemplateById(id: string) {
 export async function createApprovalTemplate(data: {
     name: string;
     description: string;
+    category?: string;
     fileUrl?: string;
     fileName?: string;
     fileSize?: number;
@@ -1436,6 +1531,7 @@ export async function createApprovalTemplate(data: {
 export async function updateApprovalTemplate(id: string, data: {
     name?: string;
     description?: string;
+    category?: string;
     fileUrl?: string;
     fileName?: string;
     fileSize?: number;

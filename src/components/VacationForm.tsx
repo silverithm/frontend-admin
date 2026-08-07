@@ -23,6 +23,9 @@ import { getVacationCalendar } from '@/lib/apiService';
 import { fetchDriverRoles } from '@/lib/dispatchSync';
 import {
   VACATION_NOTICES,
+  VACATION_NOTICE_LIST_CLASS,
+  VACATION_NOTICE_LIST_STYLE,
+  VACATION_NOTICE_TITLE,
   describeDriverConflicts,
   findConflictsFromRoles,
 } from '@/lib/vacationGuard';
@@ -254,13 +257,14 @@ const VacationForm: React.FC<VacationFormProps> = ({
               </Text>
             </VStack>
 
-            {/* 신청 전 확인할 것들 — 배차·최소 인원처럼 시스템이 다 막지 못하는 부분 */}
-            <Banner
-              status="warning"
-              container="card"
-              title="신청 전 확인해 주세요"
-              description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
-            />
+            {/* 신청 전 필수 숙지 — 배차·최소 인원처럼 시스템이 다 막지 못하는 부분이라 강한 색으로 강조 */}
+            <Banner status="error" container="card" title={VACATION_NOTICE_TITLE} defaultIsExpanded>
+              <ul className={VACATION_NOTICE_LIST_CLASS} style={VACATION_NOTICE_LIST_STYLE}>
+                {VACATION_NOTICES.map((notice) => (
+                  <li key={notice}>{notice}</li>
+                ))}
+              </ul>
+            </Banner>
 
             {conflictWarning && (
               <Banner

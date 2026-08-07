@@ -6,12 +6,32 @@
 
 import type { Route, RouteDriver } from '@/types/dispatch';
 
-/** 휴무 신청 화면에 노출할 주의사항 */
+/** 휴무 등록 전 필수 숙지 사항 — 신청·등록 화면 배너 제목으로 함께 쓴다 */
+export const VACATION_NOTICE_TITLE = '휴무 등록 전 필수 숙지 사항';
+
+/**
+ * 필수 숙지 사항 배너의 공통 스타일.
+ * Banner의 description은 줄바꿈을 유지하지 않아 항목이 한 문단으로 뭉치므로,
+ * 항목은 children의 <ul>로 넘기고 이 스타일로 한 줄씩 세운다.
+ * (Astryx reset이 list-style을 지우므로 불릿은 globals.css의 ::before로 그린다)
+ */
+export const VACATION_NOTICE_LIST_STYLE = {
+  margin: 0,
+  padding: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '6px',
+} as const;
+
+/** 위 목록에 불릿을 그리는 커스텀 클래스 (globals.css의 .carev-vacation-notices) */
+export const VACATION_NOTICE_LIST_CLASS = 'carev-vacation-notices';
+
+/** 휴무 신청 화면에 노출할 필수 숙지 사항 (순서 유지) */
 export const VACATION_NOTICES = [
-  '본인이 주운전자 · 부운전자인지 확인해 주세요.',
-  '요양팀은 최소 휴무 인원을 확인해 주세요.',
-  '휴무 신청은 선착순이 아닙니다. 같은 날 신청이 몰리면 서로 배려해 조정해 주세요.',
-  '근무표는 모든 선생님과의 약속입니다. 변동이 없도록 심사숙고해 입력해 주세요.',
+  '근무표는 모든 선생님과의 약속입니다. 본인의 일정 변동이 다른 선생님들의 업무 과중을 불러일으키니, 심사숙고하여 정해진 기일까지 입력 부탁드립니다.',
+  '휴무 신청은 선착순이 아닙니다. 특정일에 휴무가 중복될 경우 서로 배려하여 조정 부탁드립니다.',
+  '당일 최소 휴무 인원과 주/부운전자 중복 여부를 꼭 확인하시기 바랍니다.',
+  '휴무, 연차 사용의 최종 승인은 센터 운영 전반을 고려하여 이루어집니다.',
 ] as const;
 
 /** routeDrivers 배열에서의 위치를 사람이 읽는 역할명으로 (0=주운전자) */

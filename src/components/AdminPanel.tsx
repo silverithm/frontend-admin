@@ -28,11 +28,15 @@ import { Text } from "@astryxdesign/core/Text";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Switch } from "@astryxdesign/core/Switch";
+import { DateInput } from "@astryxdesign/core/DateInput";
+import type { ISODateString } from "@astryxdesign/core/Calendar";
 import {
   getPositions,
   saveVacationLimits,
   getVacationDeadlineSetting,
   saveVacationDeadlineSetting,
+  getVacationDeadlineDates,
+  saveVacationDeadlineDate,
 } from "@/lib/apiService";
 import {
   ALL_ROLE_FILTER,
@@ -74,6 +78,8 @@ const AdminPanel = ({
   const [deadlineEnabled, setDeadlineEnabled] = useState(false);
   // 켜면 직원은 바로 다음 달 휴무만 신청할 수 있다 (마감일과는 별개 스위치)
   const [nextMonthOnly, setNextMonthOnly] = useState(false);
+  // 달마다 직접 지정한 마감일 — { "2026-08": "2026-08-16" }. 지정된 달은 고정일보다 우선한다
+  const [deadlineDates, setDeadlineDates] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getVacationDeadlineSetting()
@@ -83,7 +89,13 @@ const AdminPanel = ({
         setNextMonthOnly(Boolean(data?.nextMonthOnly));
       })
       .catch((err) => console.error("휴무 마감일 설정 조회 오류:", err));
+    getVacationDeadlineDates()
+      .then(setDeadlineDates)
+      .catch((err) => console.error("월별 마감일 조회 오류:", err));
   }, []);
+
+  const panelMonthKey = format(panelDate, "yyyy-MM");
+  const panelMonthDeadline = deadlineDates[panelMonthKey] ?? null;
 
   const availableRoles = useMemo(
     () => buildRoleNames({ positions, limits }),
@@ -212,6 +224,8 @@ const AdminPanel = ({
 
       await saveVacationLimits(saveLimits);
       await saveVacationDeadlineSetting(deadlineDay, deadlineEnabled, nextMonthOnly);
+      // 지금 보고 있는 달의 마감일 지정만 저장한다 (다른 달은 그 달을 열었을 때 저장됨)
+      await saveVacationDeadlineDate(panelMonthKey, deadlineDates[panelMonthKey] ?? null);
 
       // 성공 후 최신 데이터 새로고침
       await onUpdateSuccess();
@@ -303,26 +317,71 @@ const AdminPanel = ({
               isDisabled={isBusy}
             />
             {deadlineEnabled && (
-              <HStack gap={3} vAlign="center">
-                <Text>매월</Text>
-                <div style={{ width: 96 }}>
-                  <NumberInput
-                    label="마감일"
-                    isLabelHidden
-                    value={deadlineDay}
-                    min={1}
-                    max={31}
-                    isIntegerOnly
-                    onChange={(value) => setDeadlineDay(value || 20)}
-                    isDisabled={isBusy}
-                  />
-                </div>
-                <Text>일까지 다음 달 휴무를 입력받습니다</Text>
-              </HStack>
+              <>
+                <HStack gap={3} vAlign="center">
+                  <Text>기본은 매월</Text>
+                  <div style={{ width: 96 }}>
+                    <NumberInput
+                      label="마감일"
+                      isLabelHidden
+                      value={deadlineDay}
+                      min={1}
+                      max={31}
+                      isIntegerOnly
+                      onChange={(value) => setDeadlineDay(value || 20)}
+                      isDisabled={isBusy}
+                    />
+                  </div>
+                  <Text>일까지 다음 달 휴무를 입력받습니다</Text>
+                </HStack>
+
+                {/* 셋째 주 일요일처럼 달마다 날짜가 달라지는 기관을 위해 이번 달만 따로 지정한다 */}
+                <HStack gap={3} vAlign="center" wrap="wrap">
+                  <Text>{format(panelDate, "yyyy년 M월", { locale: ko })}은</Text>
+                  <div style={{ width: 190 }}>
+                    <DateInput
+                      label="이 달의 마감일"
+                      isLabelHidden
+                      value={panelMonthDeadline ? (panelMonthDeadline as ISODateString) : undefined}
+                      min={format(startOfMonth(panelDate), "yyyy-MM-dd") as ISODateString}
+                      max={format(endOfMonth(panelDate), "yyyy-MM-dd") as ISODateString}
+                      onChange={(value) =>
+                        setDeadlineDates((prev) => {
+                          const next = { ...prev };
+                          if (value) next[panelMonthKey] = value;
+                          else delete next[panelMonthKey];
+                          return next;
+                        })
+                      }
+                      isDisabled={isBusy}
+                    />
+                  </div>
+                  {panelMonthDeadline ? (
+                    <Button
+                      label="지정 해제"
+                      variant="ghost"
+                      size="sm"
+                      isDisabled={isBusy}
+                      onClick={() =>
+                        setDeadlineDates((prev) => {
+                          const next = { ...prev };
+                          delete next[panelMonthKey];
+                          return next;
+                        })
+                      }
+                    />
+                  ) : (
+                    <Text type="supporting" color="secondary">
+                      비워두면 매월 {deadlineDay}일이 적용됩니다
+                    </Text>
+                  )}
+                </HStack>
+              </>
             )}
             <Text type="supporting" color="secondary">
               마감일이 지나도 휴무 인원이 제한을 초과한 날짜가 남아 있으면, 그 날짜에
-              신청한 직원들에게 조정 요청 알림을 매일 보냅니다.
+              신청한 직원들에게 조정 요청 알림을 매일 보냅니다. 지정한 마감일은 달력에 별표로
+              표시됩니다.
             </Text>
 
             <Divider />

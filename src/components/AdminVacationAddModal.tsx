@@ -5,10 +5,13 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import MemberSelector from './MemberSelector';
 import { VacationKind, VACATION_KIND_OPTIONS, toVacationRequestFields } from '@/types/vacation';
-import { adminCreateVacationForMember, getVacationCalendar } from '@/lib/apiService';
+import { adminCreateVacationForMember, getVacationCalendar, getVacationEvents, type VacationEvent } from '@/lib/apiService';
 import { fetchDriverRoles } from '@/lib/dispatchSync';
 import {
   VACATION_NOTICES,
+  VACATION_NOTICE_LIST_CLASS,
+  VACATION_NOTICE_LIST_STYLE,
+  VACATION_NOTICE_TITLE,
   describeDriverConflicts,
   findConflictsFromRoles,
   type RemoteDriverRole,
@@ -55,6 +58,26 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
   /** 운행 공백 경고 — 막지 않고 한 번 확인만 받는다 */
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
+
+  // 고른 날짜에 걸친 중요 행사 — 관리자도 행사일을 알고 등록하도록
+  const [dateEvents, setDateEvents] = useState<VacationEvent[]>([]);
+  useEffect(() => {
+    if (!vacationDate) {
+      setDateEvents([]);
+      return;
+    }
+    let cancelled = false;
+    getVacationEvents(vacationDate, vacationDate)
+      .then((list) => {
+        if (!cancelled) setDateEvents(list);
+      })
+      .catch(() => {
+        if (!cancelled) setDateEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vacationDate]);
 
   useEffect(() => {
     // 대상이나 날짜가 바뀌면 경고를 새로 판정한다
@@ -259,13 +282,14 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       </HStack>
                     </Card>
 
-                    {/* 등록 전 확인할 것들 — 배차·최소 인원처럼 시스템이 다 막지 못하는 부분 */}
-                    <Banner
-                      status="warning"
-                      container="card"
-                      title="휴무 등록 전 확인해 주세요"
-                      description={VACATION_NOTICES.map((n) => `· ${n}`).join('\n')}
-                    />
+                    {/* 등록 전 필수 숙지 — 배차·최소 인원처럼 시스템이 다 막지 못하는 부분이라 강한 색으로 강조 */}
+                    <Banner status="error" container="card" title={VACATION_NOTICE_TITLE} defaultIsExpanded>
+                      <ul className={VACATION_NOTICE_LIST_CLASS} style={VACATION_NOTICE_LIST_STYLE}>
+                        {VACATION_NOTICES.map((notice) => (
+                          <li key={notice}>{notice}</li>
+                        ))}
+                      </ul>
+                    </Banner>
 
                     {/* 이 직원이 운전자로 배정돼 있으면 미리 알려준다 */}
                     {driverRoleSummary && (
@@ -283,6 +307,18 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                       value={vacationDate ? (vacationDate as ISODateString) : undefined}
                       onChange={(value) => setVacationDate(value || '')}
                     />
+
+                    {/* 고른 날짜에 기관 행사가 있으면 알려준다 (막지는 않는다) */}
+                    {dateEvents.length > 0 && (
+                      <Banner
+                        status="warning"
+                        container="card"
+                        title="이 날은 기관 행사가 있습니다"
+                        description={dateEvents
+                          .map((e) => `· ${e.title}${e.description ? ` — ${e.description}` : ''}`)
+                          .join('\n')}
+                      />
+                    )}
 
                     {/* 휴무 종류 — 종류와 종일·반일 구분을 이 하나로 고른다 */}
                     <RadioList

@@ -25,10 +25,12 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
-import { getVacationCalendar, getVacationForDate } from '@/lib/apiService';
+import { getVacationCalendar, getVacationForDate, getVacationDeadlineDates, getVacationEvents, type VacationEvent } from '@/lib/apiService';
+import VacationEventModal from './VacationEventModal';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import { loadDispatchSettings } from '@/lib/dispatchSync';
 import { findRouteOutages } from '@/lib/vacationGuard';
+import { getHolidayName } from '@/lib/holidays';
 import {
   ALL_ROLE_FILTER,
   compareRoleNames,
@@ -113,6 +115,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showAdminVacationModal, setShowAdminVacationModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
+  // 기관이 직접 지정한 월별 마감일 — { "2026-08": "2026-08-16" }
+  const [deadlineDates, setDeadlineDates] = useState<Record<string, string>>({});
+  // 이 달에 걸친 중요 행사
+  const [events, setEvents] = useState<VacationEvent[]>([]);
   const calendarRef = useRef<HTMLDivElement>(null);
   
   const MAX_RETRY_COUNT = 3;
@@ -384,6 +391,39 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     setRetryCount(0);
     setShowMonthError(false);
   }, [currentDate]);
+
+  // 월별 마감일 지정 — 달력에 별표로 표시한다 (실패해도 달력은 그대로 뜬다)
+  const loadDeadlineDates = useCallback(() => {
+    getVacationDeadlineDates()
+      .then(setDeadlineDates)
+      .catch(() => setDeadlineDates({}));
+  }, []);
+
+  useEffect(() => {
+    loadDeadlineDates();
+  }, [loadDeadlineDates]);
+
+  // 이 달에 걸친 중요 행사
+  const loadEvents = useCallback(() => {
+    const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
+    const end = format(endOfMonth(currentDate), 'yyyy-MM-dd');
+    getVacationEvents(start, end)
+      .then(setEvents)
+      .catch(() => setEvents([]));
+  }, [currentDate]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  /** 그날에 걸친 행사들 (기간 행사는 매일 표시) */
+  const getEventsForDate = useCallback(
+    (date: Date) => {
+      const key = format(date, 'yyyy-MM-dd');
+      return events.filter((e) => e.startDate <= key && e.endDate >= key);
+    },
+    [events],
+  );
 
   const handleDateClick = (date: Date) => {
     if (!isSameMonth(date, currentDate)) return;
@@ -828,6 +868,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   size="sm"
                   onClick={onShowLimitPanel}
                 />
+                <Button
+                  label="중요 행사"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowEventModal(true)}
+                />
                 {onExportExcel && (
                   <Button
                     label={isExportingExcel ? '내보내는 중...' : '엑셀 내보내기'}
@@ -903,9 +949,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const isSunday = getDay(day) === 0;
             const isSaturday = getDay(day) === 6;
             const isPast = isBefore(day, startOfDay(new Date()));
+            const holidayName = isCurrentMonth ? getHolidayName(day) : null;
 
             let dayColor = getDayColor(day);
             const dateKey = format(day, 'yyyy-MM-dd');
+            // 기관이 이 달의 마감일로 지정한 날 / 그날에 걸친 중요 행사
+            const isDeadlineDay = isCurrentMonth && deadlineDates[dateKey.slice(0, 7)] === dateKey;
+            const dayEvents = isCurrentMonth ? getEventsForDate(day) : [];
             const dayData = calendarData[dateKey];
             const vacations = getDayVacations(day);
             const vacationersCount = vacations.length;
@@ -942,8 +992,34 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                         <Text type="label" weight="bold" color="inherit">{format(day, 'd')}</Text>
                       </span>
                     ) : (
-                      <span style={{ color: !isCurrentMonth ? 'var(--color-text-primary)' : isSunday ? 'var(--color-text-red)' : isSaturday ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>
+                      <span style={{ color: !isCurrentMonth ? 'var(--color-text-primary)' : holidayName || isSunday ? 'var(--color-text-red)' : isSaturday ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>
                         <Text type="label" weight="semibold" color="inherit">{format(day, 'd')}</Text>
+                      </span>
+                    )}
+                    {/* 휴무 입력 마감일 — 한눈에 띄도록 별표 */}
+                    {isDeadlineDay && (
+                      <span
+                        title="휴무 입력 마감일"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          padding: '0 var(--spacing-1)',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--color-background-yellow)',
+                          color: 'var(--color-text-yellow)',
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 'var(--font-weight-bold)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        ★ 마감
+                      </span>
+                    )}
+                    {/* 공휴일 이름 */}
+                    {holidayName && (
+                      <span style={{ color: 'var(--color-text-red)', minWidth: 0, overflow: 'hidden' }} title={holidayName}>
+                        <Text type="supporting" color="inherit" maxLines={1}>{holidayName}</Text>
                       </span>
                     )}
                   </div>
@@ -985,6 +1061,32 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                     </span>
                   )}
                 </div>
+
+                {/* 중요 행사 — 휴무자 목록 위에 붙여 이 날을 피하도록 알린다 */}
+                {dayEvents.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 'var(--spacing-1)' }}>
+                    {dayEvents.map((event) => (
+                      <span
+                        key={event.id}
+                        title={event.description ? `${event.title} — ${event.description}` : event.title}
+                        style={{
+                          display: 'block',
+                          padding: '1px var(--spacing-1)',
+                          borderRadius: 'var(--radius-inner)',
+                          background: 'var(--color-background-purple)',
+                          color: 'var(--color-text-purple)',
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 'var(--font-weight-semibold)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        📌 {event.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {isCurrentMonth && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', maxHeight: isExpanded ? 'none' : COLLAPSED_LIST_MAX_HEIGHT, overflow: isExpanded ? undefined : 'hidden' }}>
@@ -1135,7 +1237,17 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           onClose={handleCloseAdminPanel}
           onUpdateSuccess={async () => {
             await fetchCalendarData(currentDate);
+            // 마감일 지정도 이 패널에서 저장되므로 별표 표시를 갱신한다
+            loadDeadlineDates();
           }}
+        />
+      )}
+
+      {isAdmin && showEventModal && (
+        <VacationEventModal
+          currentDate={currentDate}
+          onClose={() => setShowEventModal(false)}
+          onChanged={loadEvents}
         />
       )}
 
