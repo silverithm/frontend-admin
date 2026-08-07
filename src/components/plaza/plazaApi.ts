@@ -221,6 +221,18 @@ export async function acceptComment(commentId: number): Promise<void> {
 
 // ── 자료실 ────────────────────────────────────────────
 
+/**
+ * 자료실 이용 자격 확인 — 자유게시판 글 1개 이상 필요.
+ * 미로그인이면 { allowed: false, reason: 'LOGIN_REQUIRED' }.
+ */
+export async function fetchLibraryAccess(): Promise<{ allowed: boolean; reason?: 'LOGIN_REQUIRED' | 'FREE_POST_REQUIRED' }> {
+  try {
+    return await request('library/access');
+  } catch {
+    return { allowed: false, reason: 'LOGIN_REQUIRED' };
+  }
+}
+
 export async function fetchLibraryItems(params: {
   category?: string;
   search?: string;
@@ -266,6 +278,14 @@ export async function downloadLibraryItem(id: number, fileName: string): Promise
   a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** 자료 정보 수정 — 파일은 그대로 두고 제목·분류·내용만 바꾼다 */
+export async function updateLibraryItem(
+  id: number,
+  input: { category: LibraryCategory; title: string; description: string },
+): Promise<void> {
+  await request(`library/${id}`, { method: 'PUT', body: JSON.stringify(input) });
 }
 
 export async function deleteLibraryItem(id: number): Promise<void> {

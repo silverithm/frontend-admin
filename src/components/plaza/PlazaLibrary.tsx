@@ -19,7 +19,7 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { IconDownload, IconFile, IconFlag, IconFolder, IconTrash, IconUpload } from '@tabler/icons-react';
+import { IconDownload, IconFile, IconFlag, IconFolder, IconPencil, IconTrash, IconUpload } from '@tabler/icons-react';
 import { FiSearch } from 'react-icons/fi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -29,8 +29,10 @@ import {
   type ApiLibraryItem,
   deleteLibraryItem,
   downloadLibraryItem,
+  fetchLibraryAccess,
   fetchLibraryItems,
   reportLibraryItem,
+  updateLibraryItem,
   uploadLibraryItem,
 } from './plazaApi';
 
@@ -46,6 +48,9 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const isCompact = variant === 'compact';
 
+  // 자료실 이용 자격 — 자유게시판 글 1개 이상 (null = 확인 중)
+  const [access, setAccess] = useState<{ allowed: boolean; reason?: string } | null>(null);
+  const [accessNoticeOpen, setAccessNoticeOpen] = useState(false);
   const [items, setItems] = useState<ApiLibraryItem[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +65,8 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
   const [formCategory, setFormCategory] = useState<LibraryCategory>('form');
   const [formDescription, setFormDescription] = useState('');
   const [formFile, setFormFile] = useState<File | null>(null);
+  /** 수정 중인 자료 — null이면 새로 올리는 중 */
+  const [editingItem, setEditingItem] = useState<ApiLibraryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,7 +79,22 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    fetchLibraryAccess().then((result) => {
+      setAccess(result);
+      // 전체 화면으로 들어왔는데 자격이 없으면 이용 조건 알림창을 바로 띄운다
+      if (!result.allowed && !isCompact) {
+        setAccessNoticeOpen(true);
+      }
+    });
+  }, [isCompact]);
+
   const loadItems = useCallback(async () => {
+    if (!access?.allowed) {
+      setItems([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const data = await fetchLibraryItems({
@@ -88,7 +110,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [categoryFilter, debouncedSearch, isCompact]);
+  }, [categoryFilter, debouncedSearch, isCompact, access]);
 
   useEffect(() => {
     loadItems();
@@ -109,9 +131,21 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
 
   const openUpload = () => {
     if (!requireLogin()) return;
+    setEditingItem(null);
     setFormTitle('');
     setFormCategory(categoryFilter === 'all' || isCompact ? 'form' : categoryFilter);
     setFormDescription('');
+    setFormFile(null);
+    setUploadOpen(true);
+  };
+
+  /** 올린 자료의 제목·분류·내용을 고친다 (파일은 그대로) */
+  const openEdit = (item: ApiLibraryItem) => {
+    if (!requireLogin()) return;
+    setEditingItem(item);
+    setFormTitle(item.title);
+    setFormCategory(item.category);
+    setFormDescription(item.description ?? '');
     setFormFile(null);
     setUploadOpen(true);
   };
@@ -121,18 +155,32 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       showAlert({ type: 'warning', title: '입력 필요', message: '자료 제목을 입력해주세요.' });
       return;
     }
-    if (!formFile) {
+    // 수정할 때는 파일을 다시 고르지 않는다 (파일 교체는 삭제 후 재업로드)
+    if (!editingItem && !formFile) {
       showAlert({ type: 'warning', title: '파일 필요', message: '업로드할 파일을 선택해주세요.' });
       return;
     }
     setIsSubmitting(true);
     try {
-      await uploadLibraryItem({ category: formCategory, title: formTitle.trim(), description: formDescription.trim(), file: formFile });
+      if (editingItem) {
+        await updateLibraryItem(editingItem.id, {
+          category: formCategory,
+          title: formTitle.trim(),
+          description: formDescription.trim(),
+        });
+        showAlert({ type: 'success', title: '수정 완료', message: '자료 정보가 수정되었습니다.' });
+      } else {
+        await uploadLibraryItem({ category: formCategory, title: formTitle.trim(), description: formDescription.trim(), file: formFile! });
+        showAlert({ type: 'success', title: '업로드 완료', message: '자료가 등록되었습니다.' });
+      }
       setUploadOpen(false);
-      showAlert({ type: 'success', title: '업로드 완료', message: '자료가 등록되었습니다.' });
       loadItems();
     } catch (error) {
-      showAlert({ type: 'error', title: '업로드 실패', message: error instanceof Error ? error.message : '자료 업로드에 실패했습니다.' });
+      showAlert({
+        type: 'error',
+        title: editingItem ? '수정 실패' : '업로드 실패',
+        message: error instanceof Error ? error.message : '요청을 처리하지 못했습니다.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -181,7 +229,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       {/* 업로드 다이얼로그 */}
       <Dialog isOpen={uploadOpen} onOpenChange={(o) => { if (!o) setUploadOpen(false); }} purpose="form" width={520}>
         <Layout
-          header={<DialogHeader title="자료 올리기" onOpenChange={(o) => { if (!o) setUploadOpen(false); }} />}
+          header={<DialogHeader title={editingItem ? '자료 수정' : '자료 올리기'} onOpenChange={(o) => { if (!o) setUploadOpen(false); }} />}
           content={
             <LayoutContent>
               <VStack gap={4}>
@@ -192,8 +240,19 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
                   onChange={(v) => setFormCategory((v as LibraryCategory) || 'form')}
                   options={LIBRARY_META.map((c) => ({ value: c.value, label: c.label }))}
                 />
-                <TextArea label="설명" placeholder="자료에 대한 간단한 설명을 입력하세요" value={formDescription} onChange={(v) => setFormDescription(v)} rows={3} />
+                <TextArea
+                  label="내용"
+                  placeholder={'자료에 대한 설명을 자유롭게 적어주세요.\n\n· 어떤 상황에 쓰는 자료인지\n· 작성 시 주의할 점\n· 참고한 지침이나 서식 출처'}
+                  value={formDescription}
+                  onChange={(v) => setFormDescription(v)}
+                  rows={8}
+                />
 
+                {editingItem ? (
+                  <Text type="supporting" color="secondary">
+                    첨부 파일({editingItem.fileName})은 그대로 유지됩니다. 파일을 바꾸려면 삭제 후 다시 올려주세요.
+                  </Text>
+                ) : (
                 <VStack gap={2} align="start">
                   <Button
                     variant="secondary"
@@ -212,6 +271,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
                     onChange={(e) => setFormFile(e.target.files?.[0] ?? null)}
                   />
                 </VStack>
+                )}
               </VStack>
             </LayoutContent>
           }
@@ -263,6 +323,13 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       <Center height="100%">
         {isLoading ? (
           <Loading size="inline" label="자료를 불러오는 중..." />
+        ) : !access?.allowed ? (
+          <EmptyState
+            isCompact
+            title="자료실 이용 조건이 있어요"
+            description="자유게시판에 글을 1개 이상 작성하면 자료실이 열려요."
+            icon={<Icon icon={IconFolder} size="lg" color="secondary" />}
+          />
         ) : (
           <EmptyState
             isCompact
@@ -333,7 +400,64 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
     );
   }
 
+  const accessNoticeMessage = access?.reason === 'LOGIN_REQUIRED'
+    ? '자료실은 케어브이 로그인 후 이용할 수 있어요.'
+    : '자료실은 자유게시판에 글을 1개 이상 작성한 회원만 이용할 수 있어요.\n자유게시판에 먼저 글을 남기고 다시 방문해주세요.';
+
+  const accessNoticeDialog = (
+    <Dialog isOpen={accessNoticeOpen} onOpenChange={(open) => { if (!open) setAccessNoticeOpen(false); }} purpose="info" width={420}>
+      <Layout
+        header={<DialogHeader title="자료실 이용 안내" onOpenChange={(open) => { if (!open) setAccessNoticeOpen(false); }} />}
+        content={
+          <LayoutContent>
+            <VStack gap={3}>
+              <Text type="body" color="primary">
+                {access?.reason === 'LOGIN_REQUIRED'
+                  ? '자료실은 케어브이 로그인 후 이용할 수 있어요.'
+                  : '자료실은 자유게시판에 글을 1개 이상 작성한 회원만 이용할 수 있어요.'}
+              </Text>
+              {access?.reason !== 'LOGIN_REQUIRED' && (
+                <Text type="supporting" color="secondary">
+                  받기만 하는 공간이 되지 않도록 함께 나누는 분들께 열려 있어요. 자유게시판에 첫 글을 남기면 바로 이용할 수 있습니다.
+                </Text>
+              )}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider>
+            <HStack gap={2} hAlign="end">
+              <Button label="확인" variant="primary" onClick={() => setAccessNoticeOpen(false)} />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
+  );
+
   // ── 전체 화면 렌더 ────────────────────────────────────
+  if (!access?.allowed) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
+        <AlertContainer />
+        {accessNoticeDialog}
+        <div style={{ height: '100%', minHeight: 320, padding: 'var(--spacing-4)' }}>
+          <Center height="100%">
+            {access === null ? (
+              <Loading size="inline" label="자료실을 확인하는 중..." />
+            ) : (
+              <EmptyState
+                title="자료실 이용 조건이 있어요"
+                description={accessNoticeMessage}
+                icon={<Icon icon={IconFolder} size="lg" color="secondary" />}
+              />
+            )}
+          </Center>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: duration.fast }} style={{ height: '100%' }}>
       <AlertContainer />
@@ -387,7 +511,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
                           </div>
                         </HStack>
                         {item.description && (
-                          <Text as="p" type="supporting" color="secondary" maxLines={1}>{item.description}</Text>
+                          <Text as="p" type="supporting" color="secondary" maxLines={2}>{item.description}</Text>
                         )}
                         <HStack gap={3} vAlign="center" wrap="wrap">
                           <Text type="supporting" color="secondary">{item.fileName} · {formatFileSize(item.fileSize)}</Text>
@@ -403,7 +527,10 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
                     <HStack gap={1} vAlign="center">
                       <Button variant="secondary" size="sm" label="다운로드" icon={<Icon icon={IconDownload} size="xsm" />} onClick={() => handleDownload(item)} />
                       {item.isMine ? (
-                        <IconButton label="자료 삭제" variant="ghost" size="sm" icon={<Icon icon={IconTrash} size="xsm" color="secondary" />} onClick={() => handleDelete(item.id)} />
+                        <>
+                          <IconButton label="자료 수정" variant="ghost" size="sm" icon={<Icon icon={IconPencil} size="xsm" color="secondary" />} onClick={() => openEdit(item)} />
+                          <IconButton label="자료 삭제" variant="ghost" size="sm" icon={<Icon icon={IconTrash} size="xsm" color="secondary" />} onClick={() => handleDelete(item.id)} />
+                        </>
                       ) : (
                         <IconButton
                           label={item.reportedByMe ? '신고됨' : '자료 신고'}
