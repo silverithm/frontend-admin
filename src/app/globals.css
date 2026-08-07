@@ -865,3 +865,42 @@ html {
 .carev-richtext-view ul { list-style: disc; padding-left: 1.5em; margin: 0.4em 0; }
 .carev-richtext-view ol { list-style: decimal; padding-left: 1.5em; margin: 0.4em 0; }
 .carev-richtext-view { line-height: 1.7; word-break: break-word; }
+.carev-richtext-size-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.carev-richtext-size-btn:hover { background: var(--color-background-muted); }
+.carev-richtext-size-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  margin-top: 4px;
+  min-width: 120px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  box-shadow: var(--shadow-med);
+}
+.carev-richtext-size-menu button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.carev-richtext-size-menu button:hover { background: var(--color-background-muted); }

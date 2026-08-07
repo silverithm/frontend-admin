@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
-import { Selector } from '@astryxdesign/core/Selector';
 import { HStack } from '@astryxdesign/core/Stack';
 import {
   IconBold,
@@ -28,10 +27,10 @@ import {
  */
 
 const FONT_SIZES = [
-  { value: '2', label: '작게' },
-  { value: '3', label: '보통' },
-  { value: '5', label: '크게' },
-  { value: '6', label: '아주 크게' },
+  { value: '2', label: '작게', previewPx: 13 },
+  { value: '3', label: '보통', previewPx: 15 },
+  { value: '5', label: '크게', previewPx: 19 },
+  { value: '6', label: '아주 크게', previewPx: 24 },
 ];
 
 // 네이버 카페풍 기본 팔레트 (검정~회색 + 주요 색상)
@@ -58,7 +57,29 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
   // onChange로 내보낸 값 — 외부 value와 비교해 편집 중 커서 리셋을 막는다
   const lastEmittedRef = useRef<string>('');
   const [colorOpen, setColorOpen] = useState<'text' | 'highlight' | null>(null);
+  const [sizeOpen, setSizeOpen] = useState(false);
+  const sizeMenuRef = useRef<HTMLDivElement>(null);
   const paletteRef = useRef<HTMLDivElement>(null);
+  // 툴바(특히 드롭다운)를 조작하면 에디터 선택이 풀리므로 마지막 선택을 기억해 둔다
+  const savedRangeRef = useRef<Range | null>(null);
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (editorRef.current?.contains(range.commonAncestorContainer)) {
+      savedRangeRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    const range = savedRangeRef.current;
+    if (!range || !editorRef.current) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
 
   // 외부 value 반영 (수정 모드 진입·초기화). 내가 방금 내보낸 값이면 무시.
   useEffect(() => {
@@ -70,17 +91,28 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
     }
   }, [value]);
 
+  // 에디터 안에서 선택이 바뀔 때마다 기억 (툴바 클릭 후 복원용)
+  useEffect(() => {
+    const onSelectionChange = () => saveSelection();
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  }, []);
+
   // 팔레트 밖 클릭 시 닫기
   useEffect(() => {
-    if (!colorOpen) return;
+    if (!colorOpen && !sizeOpen) return;
     const close = (e: MouseEvent) => {
-      if (paletteRef.current && !paletteRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (colorOpen && paletteRef.current && !paletteRef.current.contains(target)) {
         setColorOpen(null);
+      }
+      if (sizeOpen && sizeMenuRef.current && !sizeMenuRef.current.contains(target)) {
+        setSizeOpen(false);
       }
     };
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
-  }, [colorOpen]);
+  }, [colorOpen, sizeOpen]);
 
   const emitChange = () => {
     const html = editorRef.current?.innerHTML ?? '';
@@ -90,6 +122,7 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
 
   const exec = (command: string, commandValue?: string) => {
     editorRef.current?.focus();
+    restoreSelection();
     try {
       document.execCommand('styleWithCSS', false, 'true');
     } catch { /* 일부 브라우저 미지원 — 무시 */ }
@@ -173,15 +206,36 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
         }}
       >
         <HStack gap={1} vAlign="center" wrap="wrap">
-          <div style={{ width: 110 }}>
-            <Selector
-              label="글자 크기"
-              isLabelHidden
-              size="sm"
-              options={FONT_SIZES}
-              value="3"
-              onChange={(v) => { if (v) exec('fontSize', v); }}
-            />
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              aria-label="글자 크기"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setSizeOpen((prev) => !prev)}
+              className="carev-richtext-size-btn"
+            >
+              <span>글자 크기</span>
+              <Icon icon="chevronDown" size="xsm" color="secondary" />
+            </button>
+            {sizeOpen && (
+              <div ref={sizeMenuRef} className="carev-richtext-size-menu">
+                {FONT_SIZES.map((size) => (
+                  <button
+                    key={size.value}
+                    type="button"
+                    onMouseDown={(e) => {
+                      // mousedown에서 처리해야 에디터 선택이 살아 있다
+                      e.preventDefault();
+                      exec('fontSize', size.value);
+                      setSizeOpen(false);
+                    }}
+                    style={{ fontSize: size.previewPx }}
+                  >
+                    {size.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <span style={{ width: 1, height: 20, background: 'var(--color-border)', margin: '0 4px' }} />
           {toolbarButton('굵게', IconBold, () => exec('bold'))}
