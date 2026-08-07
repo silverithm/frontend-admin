@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile } from '@/lib/apiService';
+import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -84,6 +85,18 @@ interface ChatParticipant {
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
+/** 채팅 첨부 상한 — S3 업로드와 모바일 데이터 사용을 감안한 값 */
+const MAX_CHAT_FILE_SIZE = 20 * 1024 * 1024;
+
+/** 브라우저에서 바로 열어볼 수 있는 문서 (그 외는 다운로드로 안내) */
+const VIEWABLE_DOC_EXTENSIONS = ['pdf', 'hwp', 'hwpx', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
+
+const isViewableDocument = (fileName?: string) => {
+    if (!fileName) return false;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    return !!ext && VIEWABLE_DOC_EXTENSIONS.includes(ext);
+};
+
 // Astryx 마이그레이션: bespoke 레이아웃(스플릿 패널/메시지 버블)에서만 쓰는 잔여 색상 — 전부 디자인 토큰
 const C = {
     accent: 'var(--color-accent)',
@@ -142,6 +155,11 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeletingRoom, setIsDeletingRoom] = useState(false);
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+    const [isUploadingFile, setIsUploadingFile] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    /** 채팅에서 받은 문서를 앱 안에서 바로 여는 뷰어 (이미지는 자체 확대 보기로 처리) */
+    const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
+    const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -427,6 +445,43 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         } finally {
             setIsSendingMessage(false);
         }
+    };
+
+    /**
+     * 파일·사진 전송.
+     *
+     * 앱과 같은 채팅 전용 업로드 엔드포인트를 쓴다 — 서버가 S3 저장부터 메시지 생성,
+     * 열람 가능한 절대 URL 변환까지 한 번에 처리해서 웹·앱이 같은 형식을 갖는다.
+     * (일반 파일 업로드 API는 상대 경로를 돌려줘 이미지가 그대로 뜨지 않는다)
+     */
+    const sendFileMessage = async (file: File) => {
+        if (!selectedRoom || !userId || !userName) return;
+        if (file.size > MAX_CHAT_FILE_SIZE) {
+            onNotification(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`, "error");
+            return;
+        }
+
+        setIsUploadingFile(true);
+        try {
+            const response = await uploadChatFile(selectedRoom, file, userId, userName);
+            const newMessage = response.message || response;
+            setMessages(prev => (prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]));
+            setReplyTo(null);
+            setTimeout(scrollToBottom, 100);
+            fetchRooms();
+        } catch (error) {
+            console.error("파일 전송 실패:", error);
+            onNotification("파일 전송에 실패했습니다", "error");
+        } finally {
+            setIsUploadingFile(false);
+        }
+    };
+
+    const handleFilePick = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        // 같은 파일을 연달아 보낼 수 있게 값을 비운다
+        event.target.value = "";
+        if (file) sendFileMessage(file);
     };
 
     const createRoom = async () => {
@@ -781,13 +836,19 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                     src={message.fileUrl}
                                                                     alt={message.fileName || "이미지"}
                                                                     style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)', cursor: "pointer" }}
-                                                                    onClick={() => window.open(message.fileUrl, "_blank")}
+                                                                    onClick={() => setImagePreview({ fileUrl: message.fileUrl!, fileName: message.fileName || "이미지" })}
                                                                 />
                                                             ) : message.type === "FILE" && message.fileUrl ? (
-                                                                <a
-                                                                    href={message.fileUrl}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
+                                                                // 문서는 새 탭으로 내보내지 않고 화면 안에서 바로 연다
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (isViewableDocument(message.fileName)) {
+                                                                            setViewerFile({ fileUrl: message.fileUrl!, fileName: message.fileName || "문서" });
+                                                                        } else {
+                                                                            window.open(message.fileUrl, "_blank", "noopener");
+                                                                        }
+                                                                    }}
                                                                     style={{
                                                                         fontSize: 'var(--font-size-base)',
                                                                         textDecoration: "underline",
@@ -795,10 +856,15 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                         alignItems: "center",
                                                                         gap: 'var(--spacing-1)',
                                                                         color: isMyMessage ? C.onAccent : C.accent,
+                                                                        background: "none",
+                                                                        border: "none",
+                                                                        padding: 0,
+                                                                        cursor: "pointer",
+                                                                        textAlign: "left",
                                                                     }}
                                                                 >
                                                                     📎 {message.fileName || message.content}
-                                                                </a>
+                                                                </button>
                                                             ) : (
                                                                 <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
                                                                     {message.content}
@@ -891,6 +957,22 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         {/* Input Area */}
                         <div style={{ padding: 'var(--spacing-4)', borderTop: `1px solid ${C.border}` }}>
                             <div style={{ display: "flex", gap: 'var(--spacing-2)', alignItems: "flex-start" }}>
+                                {/* 파일·사진 첨부 — 숨은 input을 아이콘 버튼으로 대신 연다 */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    onChange={handleFilePick}
+                                    style={{ display: "none" }}
+                                />
+                                <IconButton
+                                    label="파일 첨부"
+                                    tooltip="사진·파일 보내기"
+                                    variant="ghost"
+                                    icon={<Icon icon={FiPaperclip} />}
+                                    isLoading={isUploadingFile}
+                                    isDisabled={isUploadingFile || isSendingMessage}
+                                    onClick={() => fileInputRef.current?.click()}
+                                />
                                 <div style={{ flex: 1 }}>
                                     <TextInput
                                         label="메시지 입력"
@@ -899,15 +981,19 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         value={messageInput}
                                         onChange={(value) => setMessageInput(value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder={replyTo ? `${replyTo.senderName}에게 답장...` : "메시지를 입력하세요..."}
-                                        isDisabled={isSendingMessage}
+                                        placeholder={
+                                            isUploadingFile ? "파일을 보내는 중..."
+                                                : replyTo ? `${replyTo.senderName}에게 답장...`
+                                                : "메시지를 입력하세요..."
+                                        }
+                                        isDisabled={isSendingMessage || isUploadingFile}
                                     />
                                 </div>
                                 <Button
                                     label={isSendingMessage ? "전송 중..." : "전송"}
                                     variant="primary"
                                     onClick={sendMessage}
-                                    isDisabled={!messageInput.trim() || isSendingMessage}
+                                    isDisabled={!messageInput.trim() || isSendingMessage || isUploadingFile}
                                     isLoading={isSendingMessage}
                                 />
                             </div>
@@ -1144,6 +1230,46 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                     }
                 />
             </Dialog>
+
+            {/* 받은 문서 바로 보기 — 결재 첨부와 같은 뷰어를 재사용한다 */}
+            {viewerFile && (
+                <DocumentViewerModal
+                    fileUrl={viewerFile.fileUrl}
+                    fileName={viewerFile.fileName}
+                    onClose={() => setViewerFile(null)}
+                />
+            )}
+
+            {/* 사진 크게 보기 */}
+            {imagePreview && (
+                <Dialog isOpen onOpenChange={(open) => { if (!open) setImagePreview(null); }} purpose="info" width={900}>
+                    <Layout
+                        header={<DialogHeader title={imagePreview.fileName} onOpenChange={(open) => { if (!open) setImagePreview(null); }} />}
+                        content={
+                            <LayoutContent>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={imagePreview.fileUrl}
+                                    alt={imagePreview.fileName}
+                                    style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", borderRadius: 'var(--radius-inner)' }}
+                                />
+                            </LayoutContent>
+                        }
+                        footer={
+                            <LayoutFooter hasDivider>
+                                <HStack gap={2} hAlign="end">
+                                    <Button
+                                        label="새 창에서 열기"
+                                        variant="secondary"
+                                        onClick={() => window.open(imagePreview.fileUrl, "_blank", "noopener")}
+                                    />
+                                    <Button label="닫기" variant="ghost" onClick={() => setImagePreview(null)} />
+                                </HStack>
+                            </LayoutFooter>
+                        }
+                    />
+                </Dialog>
+            )}
         </div>
     );
 }

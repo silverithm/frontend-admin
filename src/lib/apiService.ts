@@ -2289,11 +2289,48 @@ export async function markChatAsRead(roomId: number, lastMessageId: number) {
 }
 
 // 채팅 메시지 전송
-export async function sendChatMessage(roomId: number, data: { senderId: string; senderName: string; type: string; content: string; replyToId?: number | null }) {
+export async function sendChatMessage(roomId: number, data: {
+    senderId: string;
+    senderName: string;
+    type: string;
+    content: string;
+    replyToId?: number | null;
+    // 파일·사진 메시지 (업로드 후 결과를 그대로 실어 보낸다)
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+}) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages`, {
         method: 'POST',
         body: JSON.stringify(data),
     });
+}
+
+/**
+ * 채팅 파일·사진 전송 (업로드 + 메시지 생성을 서버가 한 번에 처리)
+ *
+ * 일반 파일 업로드 API와 달리 서버가 열람 가능한 절대 URL을 만들어 돌려주므로,
+ * 웹·앱이 같은 형식의 파일 메시지를 갖게 된다.
+ */
+export async function uploadChatFile(roomId: number, file: File, senderId: string, senderName: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('senderId', senderId);
+    formData.append('senderName', senderName);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const response = await fetch(`/api/v1/chat/rooms/${roomId}/files`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || error.message || '파일 전송에 실패했습니다');
+    }
+    return response.json();
 }
 
 // 채팅 리액션 토글
