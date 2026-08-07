@@ -115,6 +115,36 @@ const C = {
     onAccent: 'var(--color-on-accent)',
 };
 
+/**
+ * 본문의 '@이름'을 눈에 띄게 칠한다.
+ *
+ * 참가자 목록과 대조하지 않고 패턴만 본다 — 이름이 바뀌거나 방을 나간 뒤에도
+ * 지난 대화가 그대로 보여야 하고, 강조가 조금 넉넉한 편이 읽기에 낫다.
+ */
+function renderWithMentions(content: string, isMyMessage: boolean) {
+    if (!content || !content.includes("@")) return content;
+
+    const parts = content.split(/(@[^\s@]{1,20})/g);
+    return parts.map((part, index) =>
+        part.startsWith("@") && part.length > 1 ? (
+            <strong
+                key={index}
+                style={{
+                    fontWeight: 'var(--font-weight-semibold)',
+                    color: isMyMessage ? 'var(--color-on-accent)' : 'var(--color-text-accent)',
+                    background: isMyMessage ? "rgba(255,255,255,0.22)" : 'var(--color-background-teal, rgba(20,184,134,0.12))',
+                    borderRadius: 'var(--radius-inner)',
+                    padding: "0 2px",
+                }}
+            >
+                {part}
+            </strong>
+        ) : (
+            <Fragment key={index}>{part}</Fragment>
+        ),
+    );
+}
+
 function getDateKey(dateStr: string): string {
     const d = new Date(dateStr);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -170,6 +200,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [isSearching, setIsSearching] = useState(false);
     const [sharedFiles, setSharedFiles] = useState<ChatMessage[]>([]);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+    /** @를 입력하면 뜨는 참가자 추천 — null이면 닫힘 */
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     /** 공지가 길면 두 줄만 보여주고 필요할 때 펼친다 */
     const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -492,6 +524,45 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             setIsUploadingFile(false);
         }
     };
+
+    /**
+     * 입력값이 바뀔 때 @호출 후보를 띄운다.
+     * 마지막 '@' 뒤에 공백이 없을 때만 (문장 중간의 이메일 등은 걸리지 않게 앞이 공백/처음일 때만).
+     */
+    const handleMessageInputChange = (value: string) => {
+        setMessageInput(value);
+
+        const atIndex = value.lastIndexOf("@");
+        if (atIndex < 0) {
+            setMentionQuery(null);
+            return;
+        }
+        const charBefore = atIndex === 0 ? " " : value[atIndex - 1];
+        const after = value.slice(atIndex + 1);
+        if (/\s/.test(charBefore) && !/\s/.test(after)) {
+            setMentionQuery(after);
+        } else {
+            setMentionQuery(null);
+        }
+    };
+
+    /** 추천에서 고른 사람을 '@이름 '으로 바꿔 넣는다 */
+    const applyMention = (name: string) => {
+        const atIndex = messageInput.lastIndexOf("@");
+        if (atIndex < 0) return;
+        setMessageInput(`${messageInput.slice(0, atIndex)}@${name} `);
+        setMentionQuery(null);
+    };
+
+    /** 호출 후보 — 나를 뺀 참가자 중 입력한 글자로 시작하는 사람 */
+    const mentionCandidates = useMemo(() => {
+        if (mentionQuery === null) return [];
+        const q = mentionQuery.trim().toLowerCase();
+        return participants
+            .filter((p) => p.userId !== userId)
+            .filter((p) => !q || p.userName.toLowerCase().includes(q))
+            .slice(0, 6);
+    }, [mentionQuery, participants, userId]);
 
     /** 방 안 메시지 검색 */
     const runSearch = async () => {
@@ -1074,7 +1145,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                                 </button>
                                                             ) : (
                                                                 <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
-                                                                    {message.content}
+                                                                    {renderWithMentions(message.content, isMyMessage)}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -1172,7 +1243,33 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                         )}
 
                         {/* Input Area */}
-                        <div style={{ padding: 'var(--spacing-4)', borderTop: `1px solid ${C.border}` }}>
+                        <div style={{ padding: 'var(--spacing-4)', borderTop: `1px solid ${C.border}`, position: "relative" }}>
+                            {/* @호출 추천 — 입력창 바로 위에 띄운다 */}
+                            {mentionCandidates.length > 0 && (
+                                <div style={{
+                                    position: "absolute", bottom: "100%", left: 'var(--spacing-4)', right: 'var(--spacing-4)',
+                                    marginBottom: 'var(--spacing-1)', zIndex: 40, background: C.card,
+                                    border: `1px solid ${C.border}`, borderRadius: 'var(--radius-element)',
+                                    boxShadow: 'var(--shadow-high)', overflow: "hidden",
+                                }}>
+                                    {mentionCandidates.map((p) => (
+                                        <button
+                                            key={p.userId}
+                                            type="button"
+                                            onClick={() => applyMention(p.userName)}
+                                            style={{
+                                                display: "flex", alignItems: "center", gap: 'var(--spacing-2)', width: "100%",
+                                                padding: 'var(--spacing-2) var(--spacing-3)', background: "none", border: "none",
+                                                cursor: "pointer", textAlign: "left",
+                                            }}
+                                        >
+                                            <Avatar name={p.userName} src={p.profileImageUrl} size="small" />
+                                            <Text type="supporting" color="primary">{p.userName}</Text>
+                                            {p.role && <Text type="supporting" color="secondary">{p.role}</Text>}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div style={{ display: "flex", gap: 'var(--spacing-2)', alignItems: "flex-start" }}>
                                 {/* 파일·사진 첨부 — 숨은 input을 아이콘 버튼으로 대신 연다 */}
                                 <input
@@ -1196,7 +1293,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         isLabelHidden
                                         type="text"
                                         value={messageInput}
-                                        onChange={(value) => setMessageInput(value)}
+                                        onChange={handleMessageInputChange}
                                         onKeyDown={handleKeyDown}
                                         placeholder={
                                             isUploadingFile ? "파일을 보내는 중..."
