@@ -3,7 +3,9 @@
 /**
  * 오늘 일정 미수행 알림.
  *
- * 내가 담당자로 지정된 오늘 일정이 아직 수행완료가 아니면 화면 우측 아래에 띄운다.
+ * 내가 담당자로 지정된 오늘 일정이 아직 수행완료가 아니면 화면 가운데 알림창으로 띄운다.
+ * 우측 아래 토스트로 두면 화면 구석이라 그냥 지나치기 쉬워, 접속 시 오늘 일정 안내와
+ * 같은 모달로 통일했다.
  * 닫아도 한 시간 뒤에 다시 올라온다 — 하루가 끝나기 전에 체크를 받아내는 게 목적이라
  * 한 번 닫으면 끝나는 안내로는 역할을 못 한다.
  *
@@ -12,16 +14,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
-import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
-import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
-import { IconBellRinging } from '@tabler/icons-react';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { getSchedules, updateScheduleCompletion } from '@/lib/apiService';
 import { Schedule } from '@/types/schedule';
-import { duration } from '@/theme/motion';
 
 /** 닫은 뒤 다시 띄우기까지의 간격 */
 const SNOOZE_MS = 60 * 60 * 1000;
@@ -111,78 +110,71 @@ export default function TodayTaskReminder({ onOpenSchedule }: TodayTaskReminderP
   const visible = !isSnoozed && pending.length > 0;
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.96 }}
-          transition={{ duration: duration.fast }}
-          className="carev-today-reminder"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="carev-today-reminder-head">
-            <HStack gap={2} vAlign="center">
-              <span style={{ display: 'flex', color: 'var(--color-text-accent)' }}>
-                <Icon icon={IconBellRinging} size="sm" color="inherit" />
-              </span>
-              <Text type="label" weight="bold" color="primary">아직 수행 체크가 안 된 일정</Text>
-            </HStack>
-            <IconButton
-              label="한 시간 뒤에 다시 알림"
-              tooltip="한 시간 뒤에 다시 알림"
-              variant="ghost"
-              size="sm"
-              icon={<Icon icon="close" size="sm" />}
-              onClick={snooze}
-            />
-          </div>
-
-          <div className="carev-today-reminder-body">
-            <VStack gap={2}>
+    <Dialog
+      isOpen={visible}
+      onOpenChange={(open) => { if (!open) snooze(); }}
+      purpose="info"
+      width={440}
+    >
+      <Layout
+        header={
+          <DialogHeader
+            title="아직 수행 체크가 안 된 일정"
+            onOpenChange={(open) => { if (!open) snooze(); }}
+          />
+        }
+        content={
+          <LayoutContent>
+            <VStack gap={3}>
               <Text type="supporting" color="secondary">
                 오늘 담당하신 일정 {pending.length}건이 아직 완료 처리되지 않았습니다.
               </Text>
-              {pending.slice(0, 3).map((schedule) => (
-                <div key={schedule.id} className="carev-today-reminder-item">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{schedule.title}</Text>
-                    <Text type="supporting" color="secondary">
-                      {schedule.isAllDay ? '종일' : (schedule.startTime || '').slice(0, 5) || '시간 미지정'}
+              <VStack gap={2}>
+                {/* 목록이 길어도 알림창이 화면을 넘지 않게 앞의 몇 건만 보여준다 */}
+                {pending.slice(0, 5).map((schedule) => (
+                  <HStack key={schedule.id} gap={2} vAlign="center">
+                    <Text type="supporting" color="secondary" hasTabularNumbers>
+                      {schedule.isAllDay ? '종일' : (schedule.startTime || '').slice(0, 5) || '-'}
                     </Text>
-                  </div>
-                  <Button
-                    label="수행완료"
-                    variant="secondary"
-                    size="sm"
-                    isLoading={busyId === schedule.id}
-                    onClick={() => complete(schedule)}
-                  />
-                </div>
-              ))}
-              {pending.length > 3 && (
-                <Text type="supporting" color="disabled">외 {pending.length - 3}건</Text>
-              )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>
+                        {schedule.title}
+                      </Text>
+                    </div>
+                    <Button
+                      label="수행완료"
+                      variant="secondary"
+                      size="sm"
+                      isLoading={busyId === schedule.id}
+                      onClick={() => complete(schedule)}
+                    />
+                  </HStack>
+                ))}
+                {pending.length > 5 && (
+                  <Text type="supporting" color="secondary">외 {pending.length - 5}건</Text>
+                )}
+              </VStack>
             </VStack>
-          </div>
-
-          <div className="carev-today-reminder-foot">
-            <Button label="한 시간 뒤에" variant="ghost" size="sm" onClick={snooze} />
-            {onOpenSchedule && (
-              <Button
-                label="일정에서 보기"
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  snooze();
-                  onOpenSchedule();
-                }}
-              />
-            )}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider>
+            <HStack gap={2} hAlign="end">
+              <Button label="한 시간 뒤에" variant="ghost" onClick={snooze} />
+              {onOpenSchedule && (
+                <Button
+                  label="일정에서 보기"
+                  variant="primary"
+                  onClick={() => {
+                    snooze();
+                    onOpenSchedule();
+                  }}
+                />
+              )}
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 }

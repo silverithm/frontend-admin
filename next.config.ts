@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 같은 저장소에서 dev 서버와 build를 동시에 돌리면 .next를 서로 덮어써 런타임이 깨진다.
+  // NEXT_DIST_DIR로 각자 다른 디렉터리를 쓰게 해두면 병행 작업이 가능하다. (기본값은 그대로 .next)
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
     remotePatterns: [
       {

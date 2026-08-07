@@ -106,7 +106,9 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
 export function useAlert() {
   const [alerts, setAlerts] = useState<(AlertConfig & { id: string; isVisible: boolean })[]>([]);
 
-  const showAlert = (config: AlertConfig) => {
+  // 렌더링마다 새 함수를 주면 이걸 의존성에 넣은 쪽(useCallback/useEffect)이 매 렌더 다시
+  // 돈다. 실제로 연간일정이 이 때문에 로딩에서 못 빠져나왔다. setAlerts만 쓰므로 []로 고정한다.
+  const showAlert = useCallback((config: AlertConfig) => {
     const id = Math.random().toString(36).substr(2, 9);
     const alert = { ...config, id, isVisible: true };
 
@@ -123,7 +125,7 @@ export function useAlert() {
     });
 
     return id;
-  };
+  }, []);
 
   const hideAlert = useCallback((id: string) => {
     setAlerts(prev => prev.map(alert =>

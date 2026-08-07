@@ -8,6 +8,23 @@
  * 계산만 하는 순수 함수라 화면(월간일정·대시보드)마다 다른 크기로 그려 쓸 수 있다.
  */
 
+/**
+ * 일요일 열의 폭 배율. 대부분의 기관이 일요일은 쉬어 일정이 거의 없으므로 칸을 좁혀
+ * 평일에 폭을 넘긴다. 월간일정과 대시보드 달력이 같은 비율을 써야 하므로 여기 모았다.
+ *
+ * 그리드는 WEEK_GRID_COLUMNS로 깔고, 여러 날 바의 좌표는 colStartRatio/colEndRatio로
+ * 낸다. 균등 분할(1/7)로 좌표를 내면 바가 칸 경계와 어긋나므로 반드시 같이 써야 한다.
+ */
+export const SUNDAY_FR = 0.7;
+const WEEK_FR_TOTAL = SUNDAY_FR + 6;
+
+export const WEEK_GRID_COLUMNS = `minmax(0, ${SUNDAY_FR}fr) repeat(6, minmax(0, 1fr))`;
+
+/** 주 안에서 col번째 칸이 시작되는 지점(0~1) */
+export const colStartRatio = (col: number) => (col === 0 ? 0 : (SUNDAY_FR + (col - 1)) / WEEK_FR_TOTAL);
+/** 주 안에서 col번째 칸이 끝나는 지점(0~1) */
+export const colEndRatio = (col: number) => (SUNDAY_FR + col) / WEEK_FR_TOTAL;
+
 /** 바를 그리는 데 필요한 최소 정보. Schedule/ScheduleItem 어느 쪽이든 받는다. */
 export interface BarSource {
   id: string | number;

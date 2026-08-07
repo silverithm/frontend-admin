@@ -33,13 +33,6 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       '아침에 출근하시면 가장 먼저 보시게 될 화면이에요.\n오늘 처리하실 일이 여기 다 모여 있습니다.',
   },
-  {
-    target: 'dash-stats',
-    tab: 'dashboard',
-    title: '숫자만 보셔도 할 일이 보입니다',
-    description:
-      '승인을 기다리는 휴무와 결재가 몇 건인지 여기 나와요.\n숫자를 누르시면 바로 처리하는 화면으로 넘어갑니다.',
-  },
 
   // ── 근무조정 ──
   {

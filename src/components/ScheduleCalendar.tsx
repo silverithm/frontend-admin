@@ -15,6 +15,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
+import { MultiSelector } from '@astryxdesign/core/MultiSelector';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { TimeInput } from '@astryxdesign/core/TimeInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
@@ -26,7 +27,8 @@ import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin,
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, LABEL_COLORS, getScheduleColor, withAlpha } from '@/types/schedule';
 import { useAlert } from './Alert';
-import { getRoleDisplayName } from '@/lib/roleUtils';
+import { colStartRatio, colEndRatio } from '@/lib/scheduleBars';
+import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
 import type { VacationRequest } from '@/types/vacation';
@@ -39,19 +41,11 @@ import { duration } from '@/theme/motion';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-/**
- * 일요일 열의 폭 배율. 대부분의 기관이 일요일은 쉬어 일정이 거의 없으므로
- * 칸을 좁혀 평일에 폭을 넘긴다.
- *
- * 이 값은 globals.css의 `.carev-schedcal-cols` grid-template-columns와 반드시 같아야 한다.
+/*
+ * 일요일 열 폭 배율(SUNDAY_FR)과 바 좌표 계산은 대시보드 달력과 공유한다 — @/lib/scheduleBars.
+ * globals.css의 `.carev-schedcal-cols` grid-template-columns도 같은 비율이어야 한다.
  * 여러 날 일정 바가 이 비율로 계산한 % 좌표에 절대배치되기 때문에, 한쪽만 바꾸면 어긋난다.
  */
-const SUNDAY_FR = 0.7;
-const WEEK_FR_TOTAL = SUNDAY_FR + 6;
-/** 주 안에서 col번째 칸이 시작되는 지점(0~1) */
-const colStartRatio = (col: number) => (col === 0 ? 0 : (SUNDAY_FR + (col - 1)) / WEEK_FR_TOTAL);
-/** 주 안에서 col번째 칸이 끝나는 지점(0~1) */
-const colEndRatio = (col: number) => (SUNDAY_FR + col) / WEEK_FR_TOTAL;
 
 // 여러 날 일정을 주 단위로 이어서 표시하기 위한 바 레이아웃 상수
 const BAR_HEIGHT = 16;
@@ -75,8 +69,14 @@ interface WeekBarLayout {
   hiddenCounts: Record<string, number>;
 }
 
+/*
+ * 이전·다음 달 자리의 빈 칸.
+ *
+ * 예전에는 실제 칸처럼 aspect-ratio: 1/1을 줬는데, 칸 폭이 열마다 다르면(특히 좁은 일요일)
+ * 높이가 저마다 달라져 아래 구분선이 행 중간에 어긋나 그려졌다. 높이를 행에 맡긴다.
+ */
 const EMPTY_CELL_STYLE: CSSProperties = {
-  aspectRatio: '1 / 1',
+  height: '100%',
   borderBottom: '1px solid var(--color-border)',
   borderRight: '1px solid var(--color-border)',
 };
@@ -113,7 +113,6 @@ interface ScheduleCalendarProps {
 
 interface ScheduleFormData {
   title: string;
-  content: string;
   category: ScheduleCategory;
   labelId: string;
   location: string;
@@ -134,6 +133,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [labels, setLabels] = useState<ScheduleLabel[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  // 참석자 고르기 보조 — 직종으로 좁혀 보고, 직종 단위로 한 번에 고른다.
+  // 직원이 수십 명인 기관에서 한 명씩 찾아 누르는 게 실제로 가장 번거로운 부분이었다.
+  const [participantRoleFilter, setParticipantRoleFilter] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
@@ -157,7 +159,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
-    content: '',
     category: 'MEETING',
     labelId: '',
     location: '',
@@ -179,8 +180,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [editLabelForm, setEditLabelForm] = useState({ name: '', color: '' });
   const [deletingLabelId, setDeletingLabelId] = useState<string | null>(null);
 
-  const [fileInputRef] = useState(useRef<HTMLInputElement>(null));
-  const [attachments, setAttachments] = useState<File[]>([]);
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
@@ -595,7 +594,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     const targetDate = date || selectedDate || new Date();
     setFormData({
       title: '',
-      content: '',
       category: 'MEETING',
       labelId: '',
       location: '',
@@ -608,7 +606,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       participantIds: [],
       managerId: '',
     });
-    setAttachments([]);
     setShowCreateModal(true);
   };
 
@@ -623,7 +620,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     try {
       await createSchedule({
         title: formData.title,
-        content: formData.content || undefined,
         category: formData.category,
         labelId: formData.labelId || undefined,
         location: formData.location || undefined,
@@ -656,7 +652,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     setSelectedSchedule(target);
     setFormData({
       title: target.title,
-      content: target.content || '',
       category: target.category,
       labelId: target.labelId || '',
       location: target.location || '',
@@ -685,7 +680,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     try {
       await updateSchedule(selectedSchedule.id, {
         title: formData.title,
-        content: formData.content || undefined,
         category: formData.category,
         labelId: formData.labelId || undefined,
         location: formData.location || undefined,
@@ -778,25 +772,28 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const handleDeleteLabel = async (id: string) => {
     setIsSubmitting(true);
     try {
-      await deleteScheduleLabel(id);
-      showAlert({ type: 'success', title: '삭제 완료', message: '라벨이 삭제되었습니다.' });
+      // 서버가 이 라벨을 쓰던 일정에서 참조만 떼고 라벨을 지운다 (일정은 남는다)
+      const result = await deleteScheduleLabel(id);
+      const detached = Number(result?.detachedCount) || 0;
+      showAlert({
+        type: 'success',
+        title: '삭제 완료',
+        message: detached > 0
+          ? `라벨을 삭제했습니다. 이 라벨을 쓰던 일정 ${detached}건은 라벨 없음으로 바뀌었습니다.`
+          : '라벨이 삭제되었습니다.',
+      });
       setDeletingLabelId(null);
       if (formData.labelId === id) {
         setFormData(prev => ({ ...prev, labelId: '' }));
       }
       loadLabels();
+      // 달력에 남아 있는 라벨 색을 지우기 위해 일정도 다시 읽는다
+      loadSchedules();
     } catch (error) {
       console.error('라벨 삭제 실패:', error);
       showAlert({ type: 'error', title: '삭제 실패', message: '라벨 삭제에 실패했습니다.' });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // 파일 선택 핸들러
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setAttachments(Array.from(e.target.files));
     }
   };
 
@@ -813,9 +810,45 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   };
 
   // 멤버 역할 텍스트
-  const getMemberRoleText = (role?: string) => {
-    if (!role) return undefined;
-    return getRoleDisplayName(role);
+  /** 직원 목록에 실제로 등장하는 직종 (역할관리에서 배정한 값 기준) */
+  const memberRoleOptions = useMemo(() => {
+    const seen = new Set<string>();
+    members.forEach((m) => {
+      const role = getMemberRoleName(m);
+      if (role) seen.add(role);
+    });
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [members]);
+
+  /** 직종 필터를 적용한 참석자 후보. 필터가 비어 있으면 전체 */
+  const participantCandidates = useMemo(() => (
+    participantRoleFilter.length === 0
+      ? members
+      : members.filter((m) => participantRoleFilter.includes(getMemberRoleName(m)))
+  ), [members, participantRoleFilter]);
+
+  /** 직종 하나를 눌러 그 직종 전원을 한꺼번에 넣거나 뺀다 */
+  const toggleRoleParticipants = (role: string) => {
+    const ids = members.filter((m) => getMemberRoleName(m) === role).map((m) => String(m.id));
+    if (ids.length === 0) return;
+    const allSelected = ids.every((id) => formData.participantIds.includes(id));
+    setFormData((prev) => ({
+      ...prev,
+      participantIds: allSelected
+        ? prev.participantIds.filter((id) => !ids.includes(id))
+        : Array.from(new Set([...prev.participantIds, ...ids])),
+    }));
+  };
+
+  /**
+   * 직원에게 보여줄 직종명.
+   *
+   * member.role에는 'caregiver' 같은 레거시 키가 남아 있어서 그것만 보면 역할관리에서
+   * 바꾼 직종이 반영되지 않는다. position(역할관리에서 배정한 직종)을 먼저 본다.
+   */
+  const getMemberRoleText = (member?: { role?: string | null; position?: string | null }) => {
+    const resolved = getMemberRoleName(member);
+    return resolved ? getRoleDisplayName(resolved) : undefined;
   };
 
   // 날짜 숫자 스타일 (오늘 강조 / 주말 색상)
@@ -856,10 +889,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             setShowDispatchDayDetail(true);
           }
         }}
-        className={isCurrentMonth ? 'carev-schedcal-cell' : undefined}
+        className={isCurrentMonth ? 'carev-schedcal-cell' : 'carev-schedcal-cell'}
         disabled={!isCurrentMonth}
         style={{
-          aspectRatio: '1 / 1',
+          // 일정 칸과 같은 이유로 aspect-ratio를 쓰지 않는다 (구분선 어긋남 방지)
+          height: '100%',
           padding: 'var(--spacing-2)',
           border: 'none',
           borderBottom: '1px solid var(--color-border)',
@@ -926,7 +960,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         onClick={() => handleDateClick(date)}
         className="carev-schedcal-cell"
         style={{
-          aspectRatio: '1 / 1',
+          // aspect-ratio를 쓰면 열 폭에 따라 칸 높이가 달라져 구분선이 어긋난다.
+          // 높이는 CSS의 min-height가 정하고, 남는 높이는 행을 그대로 채운다.
+          height: '100%',
           padding: 'var(--spacing-2)',
           border: 'none',
           borderBottom: '1px solid var(--color-border)',
@@ -1519,84 +1555,92 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   hasClear
                   value={formData.managerId || null}
                   onChange={(value) => setFormData(prev => ({ ...prev, managerId: value || '' }))}
-                  options={members.map((m) => ({ value: String(m.id), label: `${m.name}${getMemberRoleText(m.role) ? ` (${getMemberRoleText(m.role)})` : ''}` }))}
+                  options={members.map((m) => ({ value: String(m.id), label: `${m.name}${getMemberRoleText(m) ? ` (${getMemberRoleText(m)})` : ''}` }))}
                 />
 
-                {/* 참석자 선택 */}
+                {/* 참석자 선택 — 직종으로 좁혀 보고, 직종 단위로 한꺼번에 고를 수 있다 */}
                 <VStack gap={2}>
-                  <Text type="label" weight="medium">참석자</Text>
-                  <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--color-border-emphasized)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-2)' }}>
-                    <VStack gap={1}>
-                      {members.map((member) => (
-                        <div key={member.id} style={{ padding: 'var(--spacing-1-5)', borderRadius: 'var(--radius-inner)' }}>
-                          <CheckboxInput
-                            label={member.name}
-                            description={getMemberRoleText(member.role)}
-                            value={formData.participantIds.includes(member.id.toString())}
-                            onChange={(checked) => {
-                              const memberId = member.id.toString();
-                              if (checked) {
-                                setFormData(prev => ({ ...prev, participantIds: [...prev.participantIds, memberId] }));
-                              } else {
-                                setFormData(prev => ({ ...prev, participantIds: prev.participantIds.filter(id => id !== memberId) }));
-                              }
-                            }}
-                          />
-                        </div>
-                      ))}
-                      {members.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: 'var(--spacing-2)' }}>
-                          <Text type="supporting" color="secondary">직원이 없습니다</Text>
-                        </div>
-                      )}
-                    </VStack>
-                  </div>
-                  {formData.participantIds.length > 0 && (
-                    <Text type="supporting" color="accent">
-                      {formData.participantIds.length}명 선택됨
-                    </Text>
+                  <HStack hAlign="between" vAlign="center">
+                    <Text type="label" weight="medium">참석자</Text>
+                    {formData.participantIds.length > 0 && (
+                      <HStack gap={2} vAlign="center">
+                        <Text type="supporting" color="accent">{formData.participantIds.length}명 선택됨</Text>
+                        <Button
+                          label="선택 해제"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData((prev) => ({ ...prev, participantIds: [] }))}
+                        />
+                      </HStack>
+                    )}
+                  </HStack>
+
+                  {memberRoleOptions.length > 0 && (
+                    <>
+                      {/* 조회 필터 — 목록에 보이는 직종을 좁힌다 */}
+                      <MultiSelector
+                        label="직종으로 조회"
+                        isLabelHidden
+                        size="sm"
+                        placeholder="전체 직종"
+                        options={memberRoleOptions.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
+                        value={participantRoleFilter}
+                        onChange={(values) => setParticipantRoleFilter(values)}
+                        triggerDisplay="badges"
+                        hasSelectAll
+                        selectAllLabel="전체 직종"
+                      />
+
+                      {/* 직종 단위 일괄 선택 — 누르면 그 직종 전원이 들어가고, 다시 누르면 빠진다 */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)' }}>
+                        {memberRoleOptions.map((role) => {
+                          const ids = members.filter((m) => getMemberRoleName(m) === role).map((m) => String(m.id));
+                          const allSelected = ids.length > 0 && ids.every((id) => formData.participantIds.includes(id));
+                          return (
+                            <Button
+                              key={role}
+                              label={`${getRoleDisplayName(role)} ${ids.length}명`}
+                              variant={allSelected ? 'primary' : 'secondary'}
+                              size="sm"
+                              onClick={() => toggleRoleParticipants(role)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
+
+                  {/* 이름을 한 줄에 하나씩 두면 스크롤만 길어진다 — 폭이 되는 만큼 여러 열로 채운다 */}
+                  <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--color-border-emphasized)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-2)' }}>
+                    {participantCandidates.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: 'var(--spacing-2)' }}>
+                        <Text type="supporting" color="secondary">
+                          {members.length === 0 ? '직원이 없습니다' : '이 직종에 해당하는 직원이 없습니다'}
+                        </Text>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 'var(--spacing-1)' }}>
+                        {participantCandidates.map((member) => (
+                          <div key={member.id} style={{ padding: 'var(--spacing-1)', borderRadius: 'var(--radius-inner)', minWidth: 0 }}>
+                            <CheckboxInput
+                              label={`${member.name}${getMemberRoleText(member) ? ` · ${getMemberRoleText(member)}` : ''}`}
+                              value={formData.participantIds.includes(member.id.toString())}
+                              onChange={(checked) => {
+                                const memberId = member.id.toString();
+                                if (checked) {
+                                  setFormData(prev => ({ ...prev, participantIds: [...prev.participantIds, memberId] }));
+                                } else {
+                                  setFormData(prev => ({ ...prev, participantIds: prev.participantIds.filter(id => id !== memberId) }));
+                                }
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </VStack>
 
-                {/* 첨부파일 */}
-                <VStack gap={2}>
-                  <Text type="label" weight="medium">첨부파일</Text>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    onChange={handleFileSelect}
-                    style={{ display: 'none' }}
-                  />
-                  <div>
-                    <Button
-                      label="파일 선택"
-                      variant="secondary"
-                      icon={<Icon icon={IconPaperclip} size="sm" />}
-                      onClick={() => fileInputRef.current?.click()}
-                    />
-                  </div>
-                  {attachments.length > 0 && (
-                    <VStack gap={1}>
-                      {attachments.map((file, index) => (
-                        <HStack key={index} gap={2} vAlign="center">
-                          <Icon icon={IconFileText} size="sm" color="tertiary" />
-                          <Text type="supporting" color="secondary">{file.name}</Text>
-                          <Text type="supporting" color="disabled">({(file.size / 1024).toFixed(1)} KB)</Text>
-                        </HStack>
-                      ))}
-                    </VStack>
-                  )}
-                </VStack>
-
-                {/* 내용 */}
-                <TextArea
-                  label="내용"
-                  value={formData.content}
-                  onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
-                  placeholder="일정 내용을 입력하세요"
-                  rows={4}
-                />
               </VStack>
             </LayoutContent>
           }

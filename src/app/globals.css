@@ -124,11 +124,17 @@ html {
 
 /* AdminDashboard 반응형 + hover (Tailwind 대체) */
 /* 대시보드도 근무조정과 같은 규칙: 셸이 확정 높이를 주므로 flex로 채운다 */
-.carev-dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 640px)  { .carev-dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1024px) { .carev-dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-.carev-dash-stats-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (min-width: 1024px) { .carev-dash-stats-emp { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* 상단 통계 카드 줄은 제거됐다(.carev-dash-stats*). 그 높이는 월간일정이 가져간다. */
+/* 월간일정 헤더의 '오늘 휴무' 버튼 — 숫자만 보여주고 누르면 근무조정으로 간다 */
+.carev-dash-today-off {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: none;
+  padding: var(--spacing-0-5) var(--spacing-2);
+  cursor: pointer;
+  transition: background var(--duration-fast-min) var(--ease-standard);
+}
+@media (hover: hover) { .carev-dash-today-off:hover { background: var(--color-background-muted); } }
 .carev-dash-panels { grid-template-columns: 1fr; }
 /* 상단 요약 카드 높이 — 각 카드가 두 줄만 보여주므로 높이를 내용에 맡기고(auto),
    남는 높이는 전부 월간일정(마지막 행)이 가져간다. 고정값을 쓰면 두 줄이 잘리거나
@@ -361,6 +367,19 @@ html {
   .carev-vacapproval-sidebar { width: 200px; flex-shrink: 0; }
 }
 
+/* 휴무 등록 전 필수 숙지 사항 — Astryx reset이 list-style을 지우므로 불릿을 직접 그린다.
+   (인라인 style로는 ::before를 만들 수 없어 클래스로 둔다) */
+.carev-vacation-notices > li {
+  position: relative;
+  padding-left: 1em;
+}
+.carev-vacation-notices > li::before {
+  content: '·';
+  position: absolute;
+  left: 0.15em;
+  font-weight: var(--font-weight-bold);
+}
+
 /* VacationCalendar 셀 반응형 + hover */
 /* 접힘 상태의 셀은 정사각형으로 둔다. 한 화면에 다 들어오는 것보다
    날짜 칸이 충분히 커서 휴무자 4명이 그대로 보이는 쪽을 택했다.
@@ -454,6 +473,10 @@ html {
 /* 여러 날 일정 바(최대 3줄) + "+N개" 표시가 들어갈 최소 높이 확보 */
 .carev-schedcal-cell { min-height: 108px; transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
 @media (min-width: 768px) { .carev-schedcal-cell { min-height: 120px; } }
+/* 격자 마무리 — 마지막 열의 오른쪽 선과 마지막 주의 아래 선은 카드 테두리와 겹쳐 두 줄로 보인다.
+   칸마다 border를 그리는 구조라 겹치는 쪽만 걷어낸다. */
+.carev-schedcal-week > *:nth-child(7) { border-right: 0 !important; }
+.carev-schedcal-weeks > .carev-schedcal-week:last-child > * { border-bottom: 0 !important; }
 
 /* 달력 본문: 남는 높이를 주(週)들이 나눠 가져 한 화면에 한 달이 들어오게 한다.
    화면이 짧아 96px 아래로 눌리면 그때만 이 안에서 스크롤한다(페이지는 안 밀린다).
@@ -708,6 +731,9 @@ html {
 .carev-doc-page {
   width: 794px; /* A4 210mm @96dpi */
   max-width: 100%;
+  /* 기본 길이는 A4 한 장(297mm @96dpi). 내용이 많으면 그만큼 늘어나되,
+     적다고 종이가 줄어들지는 않는다 — 실제 공문은 항상 한 장에서 시작한다. */
+  min-height: 1123px;
   margin: 0 auto;
   padding: 48px 44px;
   background: #ffffff;
@@ -715,6 +741,9 @@ html {
   box-shadow: var(--shadow-low);
   border-radius: var(--radius-inner);
   box-sizing: border-box;
+  /* 발신부를 종이 맨 아래로 밀기 위한 세로 배치 (footer의 margin-top:auto와 한 쌍) */
+  display: flex;
+  flex-direction: column;
 }
 .carev-doc-letterhead {
   text-align: center;
@@ -769,7 +798,9 @@ html {
 .carev-doc-section-row { background: #e5e7eb; font-weight: 700; text-align: center; letter-spacing: 0.15em; }
 .carev-doc-body-note { font-size: 13px; line-height: 1.8; color: #374151; margin-bottom: 20px; }
 /* 공문 하단 발신부 — 표준 시행문처럼 굵은 가로줄 아래 시행/접수·주소·연락처를 넓은 자간으로 */
-.carev-doc-footer { margin-top: 48px; font-size: 12px; color: #111827; }
+/* margin-top:auto — 내용이 짧아도 발신부는 종이 맨 아래에 붙는다 (본문에 딸려 올라오지 않게).
+   내용이 길어 빈 공간이 없을 때를 대비해 padding-top으로 최소 간격을 남긴다. */
+.carev-doc-footer { margin-top: auto; padding-top: 48px; font-size: 12px; color: #111827; }
 .carev-doc-footer-rule { height: 8px; background: #9ca3af; margin-bottom: 14px; }
 .carev-doc-footer-row {
   display: grid;

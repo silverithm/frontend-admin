@@ -59,7 +59,7 @@ import {
   deleteScheduleTask,
 } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
-import { buildWeekBarLayouts } from '@/lib/scheduleBars';
+import { buildWeekBarLayouts, WEEK_GRID_COLUMNS, colStartRatio, colEndRatio } from '@/lib/scheduleBars';
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
 import { dedupeNews } from '@/components/plaza/newsDedup';
@@ -759,11 +759,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     return (
       <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ height: 56 }} />
-        <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} data-tour="dash-stats" style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} height={96} radius={3} index={i} />
-          ))}
-        </div>
         <div className="carev-dash-panels" style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1 }}>
           <Skeleton height={340} radius={3} />
           <Skeleton height={340} radius={3} />
@@ -774,106 +769,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       </div>
     );
   }
-
-  const statCards = [
-    {
-      label: '총 직원',
-      value: visibleMembersCount,
-      subtitle: '명',
-      iconBg: 'var(--color-background-teal)',
-      iconColor: 'var(--color-text-teal)',
-      icon: IconUsers as TablerIcon,
-      tab: isAdmin ? 'members' : 'work',
-      change: null as string | null,
-      adminOnly: false,
-    },
-    {
-      label: '오늘 일정',
-      value: schedules.length,
-      subtitle: '건',
-      iconBg: 'var(--color-background-blue)',
-      iconColor: 'var(--color-text-blue)',
-      icon: IconCalendar as TablerIcon,
-      tab: 'schedule',
-      change: null as string | null,
-      employeeOnly: true,
-      adminOnly: false,
-    },
-    {
-      label: '공지사항',
-      value: notices.length,
-      subtitle: '건',
-      iconBg: 'var(--color-background-purple)',
-      iconColor: 'var(--color-text-purple)',
-      icon: IconBell as TablerIcon,
-      tab: 'notice',
-      change: null as string | null,
-      employeeOnly: true,
-      adminOnly: false,
-    },
-    {
-      label: '출근',
-      value: todayWorkingCount,
-      subtitle: '명',
-      iconBg: 'var(--color-background-green)',
-      iconColor: 'var(--color-text-green)',
-      icon: IconCircleCheck as TablerIcon,
-      tab: isAdmin ? 'members' : 'work',
-      change: employeeAttendanceBase > 0 ? `${Math.round((todayWorkingCount / employeeAttendanceBase) * 100)}%` : null,
-      adminOnly: false,
-    },
-    {
-      label: '오늘 휴무',
-      value: todayVacationCount,
-      subtitle: '명',
-      iconBg: 'var(--color-background-yellow)',
-      iconColor: 'var(--color-text-yellow)',
-      icon: IconMoon as TablerIcon,
-      tab: 'work',
-      change: employeeAttendanceBase > 0 ? `${Math.round((todayVacationCount / employeeAttendanceBase) * 100)}%` : null,
-      adminOnly: false,
-      // 휴무자 명단 — "직종 이름" 형식 (예: 요양보호사 김영희)
-      detail: todayVacationRosterText || null,
-    },
-    {
-      label: '총 어르신',
-      value: elderCount,
-      subtitle: '명',
-      iconBg: 'var(--color-background-red)',
-      iconColor: 'var(--color-text-red)',
-      icon: IconHeart as TablerIcon,
-      tab: 'members',
-      change: null as string | null,
-      adminOnly: true,
-    },
-    {
-      label: '등원',
-      value: elderAttendance.present,
-      subtitle: '명',
-      iconBg: 'var(--color-background-purple)',
-      iconColor: 'var(--color-text-purple)',
-      icon: IconHome as TablerIcon,
-      tab: 'members',
-      change: elderAttendanceBase > 0 ? `${Math.round((elderAttendance.present / elderAttendanceBase) * 100)}%` : null,
-      adminOnly: true,
-    },
-    {
-      label: '결석',
-      value: elderAttendance.absent,
-      subtitle: '명',
-      iconBg: 'var(--color-background-muted)',
-      iconColor: 'var(--color-text-gray)',
-      icon: IconBan as TablerIcon,
-      tab: 'members',
-      change: null as string | null,
-      adminOnly: true,
-    },
-  ];
-
-  const visibleStatCards = statCards.filter((card) => {
-    if (isAdmin) return !(card as { employeeOnly?: boolean }).employeeOnly;
-    return !card.adminOnly;
-  });
 
   return (
     <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
@@ -897,42 +792,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         </div>
       </motion.div>
 
-      {/* 2. Stat Cards — 월간일정에 자리를 넘기기 위해 한 줄 컴팩트 레이아웃 */}
-      <div className={isAdmin ? 'carev-dash-stats' : 'carev-dash-stats-emp'} style={{ display: 'grid', gap: 'var(--spacing-2)' }}>
-        {visibleStatCards.map((card, idx) => (
-          <motion.div
-            key={card.label}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: duration.fast, delay: 0.02 + idx * 0.02 }}
-          >
-            <ClickableCard label={card.label} onClick={() => onTabChange(card.tab)} padding={2} height="100%">
-              <HStack gap={2} vAlign="center">
-                <div style={{ ...iconBox(card.iconBg, 24, 8), color: card.iconColor }}>
-                  <Icon icon={card.icon} size="sm" color="inherit" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text as="p" type="supporting" color="secondary" maxLines={1}>{card.label}</Text>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--spacing-0-5)' }}>
-                    <Text type="body" weight="bold" color="primary" hasTabularNumbers>{card.value}</Text>
-                    <Text type="supporting" color="secondary">{card.subtitle}</Text>
-                    {card.change && (
-                      <span style={{ marginLeft: 'var(--spacing-1)', color: 'var(--color-text-secondary)' }}>
-                        <Text type="supporting" color="inherit" hasTabularNumbers>{card.change}</Text>
-                      </span>
-                    )}
-                  </div>
-                  {(card as { detail?: string | null }).detail && (
-                    <Text as="p" type="supporting" color="secondary" maxLines={1}>
-                      {(card as { detail?: string | null }).detail}
-                    </Text>
-                  )}
-                </div>
-              </HStack>
-            </ClickableCard>
-          </motion.div>
-        ))}
-      </div>
+      {/* 상단 통계 줄은 없앴다 — 같은 수치를 각 패널 안에서 보고 있어 한 줄을 통째로 쓰는 값이
+          아니었고, 그 높이를 월간일정에 넘기는 편이 훨씬 유용하다는 요청이 있었다.
+          당일 휴무인원만 월간일정 헤더 우측으로 옮겼다. */}
 
       {/* 3. Three-panel grid: 공지사항, 전자결재, 월간일정(하단 전체) */}
       <motion.div
@@ -1241,6 +1103,23 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     </VStack>
                   </HStack>
                   <HStack gap={3} vAlign="center">
+                    {/* 당일 휴무인원 — 상단 통계 줄을 없애고 여기로 옮겼다.
+                        달력을 보면서 "오늘 몇 명 빠지는지"를 같이 확인하는 게 실제 사용 흐름이다. */}
+                    <button
+                      type="button"
+                      onClick={() => onTabChange('work')}
+                      title={todayVacationRosterText || '오늘 휴무자 없음'}
+                      className="carev-dash-today-off"
+                    >
+                      <HStack gap={1.5} vAlign="center">
+                        <span style={{ display: 'flex', color: 'var(--color-text-yellow)' }}>
+                          <Icon icon={IconMoon} size="xsm" color="inherit" />
+                        </span>
+                        <Text type="supporting" color="secondary">오늘 휴무</Text>
+                        <Text type="supporting" weight="bold" color="primary" hasTabularNumbers>{todayVacationCount}명</Text>
+                      </HStack>
+                    </button>
+
                     {/* 이번 달 진행도 */}
                     <HStack gap={2} vAlign="center">
                       <Text type="supporting" color="secondary" hasTabularNumbers>
@@ -1283,7 +1162,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               </div>
 
               <div style={{ padding: '0 var(--spacing-4) var(--spacing-3)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', flexShrink: 0 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, gap: 'var(--spacing-1)', flexShrink: 0 }}>
                   {['일','월','화','수','목','금','토'].map((d) => (
                     <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
@@ -1295,7 +1174,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   return (
                 <div
                   key={`week-${weekIndex}`}
-                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', flex: 1, minHeight: DASH_CELL_MIN_HEIGHT }}
+                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, gap: 'var(--spacing-1)', flex: 1, minHeight: DASH_CELL_MIN_HEIGHT }}
                 >
                   {week.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const hiddenCount = layout?.hiddenCounts[dayStr] || 0;
@@ -1373,8 +1252,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       const schedule = bar.schedule;
                       const color = getScheduleColor(schedule);
                       const done = !!schedule.isCompleted;
-                      const barLeftPct = (bar.startCol / 7) * 100;
-                      const barWidthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+                      // 일요일 칸이 좁으므로 균등 분할(1/7)이 아니라 열 비율로 좌표를 낸다
+                      const barLeftPct = colStartRatio(bar.startCol) * 100;
+                      const barWidthPct = (colEndRatio(bar.endCol) - colStartRatio(bar.startCol)) * 100;
                       const leftInset = bar.continuesBefore ? 0 : DASH_BAR_EDGE_INSET;
                       const rightInset = bar.continuesAfter ? 0 : DASH_BAR_EDGE_INSET;
                       const startRadius = bar.continuesBefore ? '0' : 'var(--radius-inner)';
