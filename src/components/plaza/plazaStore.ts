@@ -1,7 +1,7 @@
 // 커뮤니티(게시판·자료실) 목업 스토어 — 백엔드 API 연동 전까지 localStorage에 영속.
 // TODO: API 연동 시 이 파일의 함수 시그니처를 유지한 채 내부를 fetch로 교체하면 컴포넌트 수정 최소화.
 
-export type BoardType = 'free' | 'review' | 'tip';
+export type BoardType = 'free' | 'review' | 'tip' | 'job_offer' | 'job_seek';
 /** 시설 유형 — 평가후기·실무팁 글에만 붙는다 (자유게시판은 null) */
 export type PostCategory = 'daycare' | 'homecare' | 'nursing';
 export type LibraryCategory = 'form' | 'eval' | 'program' | 'etc';
@@ -59,7 +59,12 @@ export const BOARD_META: { value: BoardType; label: string; badgeLabel: string; 
   { value: 'free', label: '자유게시판', badgeLabel: '자유', badgeVariant: 'teal', hasCategory: false },
   { value: 'review', label: '평가후기', badgeLabel: '평가후기', badgeVariant: 'yellow', hasCategory: true },
   { value: 'tip', label: '실무팁', badgeLabel: '실무팁', badgeVariant: 'blue', hasCategory: true },
+  { value: 'job_offer', label: '구인', badgeLabel: '구인', badgeVariant: 'teal', hasCategory: true },
+  { value: 'job_seek', label: '구직', badgeLabel: '구직', badgeVariant: 'yellow', hasCategory: true },
 ];
+
+/** 구인·구직 게시판 여부 — 연락처 입력·표시 분기 */
+export const isJobBoard = (board: BoardType) => board === 'job_offer' || board === 'job_seek';
 
 export const CATEGORY_META: { value: PostCategory; label: string; badgeVariant: 'green' | 'blue' | 'purple' }[] = [
   { value: 'daycare', label: '주간보호', badgeVariant: 'green' },

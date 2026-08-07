@@ -54,6 +54,9 @@ export interface ApiPostDetail {
   likeCount: number;
   likedByMe: boolean;
   reportedByMe: boolean;
+  /** 구인구직 연락처 — 비공개 글은 비로그인 사용자에게 null */
+  contactInfo: string | null;
+  contactPublic: boolean;
   createdAt: string;
   updatedAt: string | null;
   comments: ApiComment[];
@@ -176,11 +179,14 @@ export async function createPost(input: {
   isAnonymous: boolean;
   isOfficial?: boolean;
   isPinned?: boolean;
+  /** 구인구직 글의 연락처 */
+  contactInfo?: string | null;
+  contactPublic?: boolean;
 }): Promise<{ id: number }> {
   return request('posts', { method: 'POST', body: JSON.stringify({ ...input, ...authorInfo() }) });
 }
 
-export async function updatePost(id: number, input: { board: BoardType; category: PostCategory | null; title: string; content: string; isAnonymous: boolean }): Promise<void> {
+export async function updatePost(id: number, input: { board: BoardType; category: PostCategory | null; title: string; content: string; isAnonymous: boolean; contactInfo?: string | null; contactPublic?: boolean }): Promise<void> {
   await request(`posts/${id}`, { method: 'PUT', body: JSON.stringify({ ...input, ...authorInfo() }) });
 }
 

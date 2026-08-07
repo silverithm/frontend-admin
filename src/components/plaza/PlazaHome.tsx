@@ -21,7 +21,7 @@ import { dedupeNews } from './newsDedup';
 import { fetchLibraryItems, fetchPosts, type ApiLibraryItem, type ApiPostSummary } from './plazaApi';
 import { duration } from '@/theme/motion';
 
-export type PlazaMenu = 'home' | 'free' | 'review' | 'tip' | 'news' | 'library';
+export type PlazaMenu = 'home' | 'free' | 'review' | 'tip' | 'job_offer' | 'job_seek' | 'news' | 'library';
 
 interface PlazaHomeProps {
   newsItems: NewsItem[];

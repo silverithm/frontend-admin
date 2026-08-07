@@ -51,6 +51,7 @@ import {
   isDemoMode,
   type BoardType,
   type PostCategory,
+  isJobBoard,
 } from './plazaStore';
 import {
   type ApiComment,
@@ -142,6 +143,9 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formAnonymous, setFormAnonymous] = useState(false);
+  // 구인구직 전용 — 연락처와 공개 범위
+  const [formContact, setFormContact] = useState('');
+  const [formContactPublic, setFormContactPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 커뮤니티 운영자 여부 — [운영] 공지 작성과 타인 글 삭제 권한 (서버가 최종 판정)
@@ -289,6 +293,8 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
     setFormAnonymous(false);
     setFormOfficial(false);
     setFormPinned(false);
+    setFormContact('');
+    setFormContactPublic(false);
     setWriteOrigin({ board, category: boardMeta.hasCategory ? category : null, title: '', content: '', anonymous: false });
     setIsWriting(true);
   };
@@ -302,6 +308,8 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
     setFormAnonymous(post.isAnonymous);
     setFormOfficial(post.isOfficial);
     setFormPinned(post.isPinned);
+    setFormContact(post.contactInfo ?? '');
+    setFormContactPublic(post.contactPublic);
     setWriteOrigin({ board: post.board, category: post.category, title: post.title, content: post.content, anonymous: post.isAnonymous });
     setIsWriting(true);
   };
@@ -324,11 +332,17 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
       showAlert({ type: 'warning', title: '입력 필요', message: `${formBoardMeta.label} 글은 시설 유형을 선택해주세요.` });
       return;
     }
+    if (isJobBoard(formBoard) && !formContact.trim()) {
+      showAlert({ type: 'warning', title: '입력 필요', message: '연락받을 방법(전화번호·이메일 등)을 입력해주세요.' });
+      return;
+    }
+    // 구인구직은 시설 유형이 선택 사항이라 비어 있어도 저장한다
     const categoryToSave = formBoardMeta.hasCategory ? formCategory : null;
+    const contactToSave = isJobBoard(formBoard) ? formContact.trim() : null;
     setIsSubmitting(true);
     try {
       if (editingPostId) {
-        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: sanitizeContent(formContent.trim()), isAnonymous: formAnonymous });
+        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: sanitizeContent(formContent.trim()), isAnonymous: formAnonymous, contactInfo: contactToSave, contactPublic: formContactPublic });
         showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
         await reloadDetail(editingPostId);
       } else {
@@ -338,6 +352,8 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
           title: formTitle.trim(),
           content: sanitizeContent(formContent.trim()),
           isAnonymous: formAnonymous,
+          contactInfo: contactToSave,
+          contactPublic: formContactPublic,
           // 운영자가 아니면 서버가 무시한다
           isOfficial: isPlazaAdmin && formOfficial,
           isPinned: isPlazaAdmin && formPinned,
@@ -557,6 +573,27 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
                 <div style={{ whiteSpace: 'pre-wrap', minHeight: 80 }}>
                   <Text type="body" color="primary">{post.content}</Text>
                 </div>
+              )}
+
+              {/* 구인구직 연락처 — 비공개 글은 서버가 비로그인 사용자에게 내려주지 않는다 */}
+              {isJobBoard(post.board) && (
+                <Card variant="muted" padding={4}>
+                  <VStack gap={1}>
+                    <Text type="label" weight="semibold" color="primary">연락처</Text>
+                    {post.contactInfo ? (
+                      <>
+                        <Text type="body" color="primary">{post.contactInfo}</Text>
+                        {!post.contactPublic && (
+                          <Text type="supporting" color="secondary">회원에게만 공개된 연락처입니다.</Text>
+                        )}
+                      </>
+                    ) : (
+                      <Text type="supporting" color="secondary">
+                        연락처는 케어브이에 로그인한 회원에게만 공개됩니다.
+                      </Text>
+                    )}
+                  </VStack>
+                </Card>
               )}
 
               <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
@@ -872,6 +909,27 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
               )}
 
               <TextInput label="제목" isLabelHidden placeholder="제목을 입력하세요" value={formTitle} onChange={(v) => setFormTitle(v)} />
+
+              {/* 구인구직 — 연락처는 본문이 아니라 별도 항목으로 받아야 공개 범위를 정할 수 있다 */}
+              {isJobBoard(formBoard) && (
+                <VStack gap={2}>
+                  <TextInput
+                    label="연락받을 방법"
+                    placeholder="예: 010-0000-0000 / carev@example.com"
+                    value={formContact}
+                    onChange={(v) => setFormContact(v)}
+                    isRequired
+                  />
+                  <CheckboxInput
+                    label="연락처를 누구나 볼 수 있게 공개"
+                    value={formContactPublic}
+                    onChange={(checked) => setFormContactPublic(checked)}
+                  />
+                  <Text type="supporting" color="secondary">
+                    공개하지 않으면 케어브이에 로그인한 회원에게만 보입니다. 검색엔진·비회원에게는 감춰져 광고 전화를 줄일 수 있어요.
+                  </Text>
+                </VStack>
+              )}
 
               <div className="carev-plaza-editor" style={{ flex: 1, minHeight: 0 }}>
                 <RichTextEditor

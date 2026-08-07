@@ -10,6 +10,7 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import {
+  IconBriefcase,
   IconBulb,
   IconFolder,
   IconHome2,
@@ -17,6 +18,7 @@ import {
   IconPencilPlus,
   IconShieldCheck,
   IconStar,
+  IconUserSearch,
   IconUsersGroup,
   type TablerIcon,
 } from '@tabler/icons-react';
@@ -34,6 +36,8 @@ const BOARD_MENUS: { key: BoardType; label: string; icon: TablerIcon; hasCategor
   { key: 'free', label: '자유게시판', icon: IconUsersGroup, hasCategory: false },
   { key: 'review', label: '평가후기', icon: IconStar, hasCategory: true },
   { key: 'tip', label: '실무팁', icon: IconBulb, hasCategory: true },
+  { key: 'job_offer', label: '구인', icon: IconBriefcase, hasCategory: true },
+  { key: 'job_seek', label: '구직', icon: IconUserSearch, hasCategory: true },
 ];
 
 const RESOURCE_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
@@ -41,7 +45,7 @@ const RESOURCE_MENUS: { key: PlazaMenu; label: string; icon: TablerIcon }[] = [
   { key: 'library', label: '자료실', icon: IconFolder },
 ];
 
-const BOARD_KEYS: PlazaMenu[] = ['free', 'review', 'tip'];
+const BOARD_KEYS: PlazaMenu[] = ['free', 'review', 'tip', 'job_offer', 'job_seek'];
 
 /**
  * 케어브이 커뮤니티 — 카페형 레이아웃.
