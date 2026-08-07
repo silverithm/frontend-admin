@@ -59,6 +59,7 @@ import {
   deleteScheduleTask,
 } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
+import { buildWeekBarLayouts } from '@/lib/scheduleBars';
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
 import { dedupeNews } from '@/components/plaza/newsDedup';
@@ -107,6 +108,17 @@ interface ApprovalItem {
   requesterName?: string;
   createdAt?: string;
 }
+
+/**
+ * 대시보드 달력에서 여러 날 일정을 잇는 바의 크기.
+ * 월간일정 탭보다 셀이 낮아 바를 얇게 잡고 줄 수도 3줄로 제한한다.
+ */
+const DASH_BAR_HEIGHT = 15;
+const DASH_BAR_GAP = 2;
+const DASH_BAR_AREA_TOP = 30; // 셀 패딩 + 날짜 숫자 높이
+const DASH_BAR_EDGE_INSET = 2;
+const DASH_MAX_BAR_LANES = 3;
+const DASH_CELL_MIN_HEIGHT = 92;
 
 interface ScheduleItem {
   id: string;
@@ -705,24 +717,43 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    return {
-      weeksCount: Math.ceil(days.length / 7),
-      days: days.map((day) => {
-        const dayStr = format(day, 'yyyy-MM-dd');
-        const daySchedules = monthlySchedulesByDay.get(dayStr) || [];
+    const cells = days.map((day) => {
+      const dayStr = format(day, 'yyyy-MM-dd');
+      const daySchedules = monthlySchedulesByDay.get(dayStr) || [];
 
-        return {
-          date: day,
-          dayStr,
-          inMonth: isSameMonth(day, today),
-          todayFlag: isToday(day),
-          dayOfWeek: day.getDay(),
-          scheduleCount: daySchedules.length,
-          daySchedules,
-        };
-      }),
-    };
+      return {
+        date: day,
+        dayStr,
+        inMonth: isSameMonth(day, today),
+        todayFlag: isToday(day),
+        dayOfWeek: day.getDay(),
+        scheduleCount: daySchedules.length,
+        daySchedules,
+      };
+    });
+
+    // 주 단위로 잘라서 담는다. 여러 날 일정을 한 줄로 잇는 바가 주 안에서 좌표를 잡기 때문이다.
+    const weeks: (typeof cells)[] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weeks.push(cells.slice(i, i + 7));
+    }
+
+    return { weeksCount: weeks.length, days: cells, weeks };
   }, [monthlySchedulesByDay]);
+
+  /**
+   * 주별 바 레이아웃. 월간일정 탭과 같은 규칙으로 여러 날 일정을 하나로 잇는다.
+   * 대시보드 셀은 월간일정보다 낮아서 줄 수만 더 좁게 잡는다.
+   */
+  const monthlyWeekBars = useMemo(
+    () =>
+      buildWeekBarLayouts(
+        monthlySchedules,
+        monthlyCalendarDays.weeks.map((week) => week.map((cell) => cell.dayStr)),
+        DASH_MAX_BAR_LANES,
+      ),
+    [monthlySchedules, monthlyCalendarDays],
+  );
 
   if (isLoading) {
     return (
@@ -1251,14 +1282,23 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               </div>
 
-              <div style={{ padding: '0 var(--spacing-4) var(--spacing-3)', flex: 1, minHeight: 0 }}>
-                <div
-                  style={{ display: 'grid', height: '100%', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', gridTemplateRows: `auto repeat(${monthlyCalendarDays.weeksCount}, minmax(0, 1fr))` }}
-                >
+              <div style={{ padding: '0 var(--spacing-4) var(--spacing-3)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', flexShrink: 0 }}>
                   {['일','월','화','수','목','금','토'].map((d) => (
                     <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
-                  {monthlyCalendarDays.days.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
+                </div>
+                {/* 주 단위로 감싼다 — 여러 날 일정을 이어 그리는 바가 주 안에서 좌표를 잡기 때문 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flex: 1, minHeight: 0 }}>
+                {monthlyCalendarDays.weeks.map((week, weekIndex) => {
+                  const layout = monthlyWeekBars[weekIndex];
+                  return (
+                <div
+                  key={`week-${weekIndex}`}
+                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1)', flex: 1, minHeight: DASH_CELL_MIN_HEIGHT }}
+                >
+                  {week.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
+                    const hiddenCount = layout?.hiddenCounts[dayStr] || 0;
                     return (
                       <button
                         key={date.toISOString()}
@@ -1312,44 +1352,80 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                 <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', lineHeight: 'var(--text-display-1-leading)', color: 'var(--color-text-gray)' }}>+{scheduleCount - 3}</span>
                               )}
                             </div>
-                            {/* 데스크탑: 일정 제목 칩 — 월간일정 탭의 바와 동일한 색 처리(꽉 찬 색 / 완료는 연한 배경).
-                                개수 제한 없이 모두 펼치고, 셀보다 많으면 셀 안에서 스크롤한다. */}
-                            <div className="carev-dash-cal-chips" style={{ minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-0-5)', overflowY: 'auto' }}>
-                              {daySchedules.map((schedule, i) => {
-                                const color = getScheduleColor(schedule);
-                                const done = !!schedule.isCompleted;
-                                return (
-                                  <span
-                                    key={`${schedule.id}-${i}`}
-                                    title={done ? `${schedule.title} (수행완료)` : schedule.title}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 'var(--spacing-0-5)',
-                                      flexShrink: 0,
-                                      overflow: 'hidden',
-                                      borderRadius: 'var(--radius-inner)',
-                                      border: done ? `1px solid ${color}` : 'none',
-                                      background: done ? withAlpha(color, 0.14) : color,
-                                      padding: '1px var(--spacing-1)',
-                                      fontSize: 'var(--font-size-xs)',
-                                      fontWeight: 'var(--font-weight-medium)',
-                                      lineHeight: '16px',
-                                      color: done ? color : 'var(--color-on-accent)',
-                                      opacity: done ? 0.85 : 0.9,
-                                    }}
-                                  >
-                                    {done && <Icon icon={IconCircleCheckFilled} size="xsm" color="inherit" />}
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: done ? 'line-through' : 'none' }}>{schedule.title}</span>
-                                  </span>
-                                );
-                              })}
-                            </div>
+                            {/* 데스크탑: 일정 제목은 주 단위 바 오버레이가 그린다(여러 날 일정을 한 줄로 잇기 위해).
+                                여기서는 줄 수 제한에 걸려 못 그린 개수만 셀 아래에 남긴다. */}
+                            {hiddenCount > 0 && (
+                              <div className="carev-dash-cal-chips" style={{ marginTop: 'auto', justifyContent: 'flex-start' }}>
+                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', paddingLeft: 2 }}>
+                                  +{hiddenCount}
+                                </span>
+                              </div>
+                            )}
                           </>
                         )}
                       </button>
                     );
                   })}
+
+                  {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이 (월간일정 탭과 같은 규칙) */}
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} className="carev-dash-cal-bars">
+                    {layout?.bars.map((bar) => {
+                      const schedule = bar.schedule;
+                      const color = getScheduleColor(schedule);
+                      const done = !!schedule.isCompleted;
+                      const barLeftPct = (bar.startCol / 7) * 100;
+                      const barWidthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+                      const leftInset = bar.continuesBefore ? 0 : DASH_BAR_EDGE_INSET;
+                      const rightInset = bar.continuesAfter ? 0 : DASH_BAR_EDGE_INSET;
+                      const startRadius = bar.continuesBefore ? '0' : 'var(--radius-inner)';
+                      const endRadius = bar.continuesAfter ? '0' : 'var(--radius-inner)';
+                      return (
+                        <button
+                          key={`${schedule.id}-${weekIndex}`}
+                          type="button"
+                          title={done ? `${schedule.title} (수행완료)` : schedule.title}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSchedule(schedule);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: DASH_BAR_AREA_TOP + bar.lane * (DASH_BAR_HEIGHT + DASH_BAR_GAP),
+                            left: `calc(${barLeftPct}% + ${leftInset}px)`,
+                            width: `calc(${barWidthPct}% - ${leftInset + rightInset}px)`,
+                            height: DASH_BAR_HEIGHT,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 2,
+                            padding: '0 var(--spacing-1)',
+                            border: done ? `1px solid ${color}` : 'none',
+                            borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
+                            background: done ? withAlpha(color, 0.14) : color,
+                            color: done ? color : 'var(--color-on-accent)',
+                            opacity: done ? 0.85 : 0.9,
+                            fontSize: 'var(--font-size-xs)',
+                            fontWeight: 'var(--font-weight-medium)',
+                            lineHeight: '15px',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                            pointerEvents: 'auto',
+                          }}
+                        >
+                          {bar.continuesBefore && <span style={{ flexShrink: 0 }}>◀</span>}
+                          {done && <Icon icon={IconCircleCheckFilled} size="xsm" color="inherit" />}
+                          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: done ? 'line-through' : 'none' }}>
+                            {schedule.title}
+                          </span>
+                          {bar.continuesAfter && <span style={{ flexShrink: 0 }}>▶</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                  );
+                })}
                 </div>
               </div>
             </VStack>
