@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera } from 'react-icons/fi';
 import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberPermissions, updateMemberPermissions, type PendingUser } from '@/lib/apiService';
+import { uploadMemberProfileImage, deleteMemberProfileImage } from '@/lib/memberProfileApi';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
 import { ALL_PERMISSIONS, PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, type Permission } from '@/types/auth';
@@ -19,12 +20,15 @@ import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
+import { FileInput } from '@astryxdesign/core/FileInput';
+import { Avatar } from '@astryxdesign/core/Avatar';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { Switch } from '@astryxdesign/core/Switch';
 import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Table } from '@astryxdesign/core/Table';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
 import { Loading } from '@/components/Loading';
 import { Divider } from '@astryxdesign/core/Divider';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -48,6 +52,7 @@ interface User {
   organizationId?: string;
   position?: string;
   positionId?: number;
+  profileImageUrl?: string | null;
 }
 
 // Table 행 타입 (Astryx Table의 T는 Record<string, unknown>를 만족해야 함)
@@ -86,6 +91,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [permissionUser, setPermissionUser] = useState<User | null>(null);
   const [permissionLoading, setPermissionLoading] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<Set<Permission>>(new Set());
+
+  // 프로필 사진 상태
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
 
   // 직책 관리 상태
   const [positions, setPositions] = useState<Position[]>([]);
@@ -415,6 +426,53 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       onNotification('권한 저장 중 오류가 발생했습니다.', 'error');
     } finally {
       setPermissionLoading(false);
+    }
+  };
+
+  // 프로필 사진 모달 열기
+  const openProfileModal = (user: User) => {
+    setProfileUser(user);
+    setProfileFile(null);
+    setShowProfileModal(true);
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+    setProfileUser(null);
+    setProfileFile(null);
+  };
+
+  const handleUploadProfileImage = async () => {
+    if (!profileUser || !profileFile) return;
+    setIsProfileSaving(true);
+    try {
+      const result = await uploadMemberProfileImage(profileUser.id, profileFile);
+      const nextUrl = result?.profileImageUrl ?? null;
+      setMembers(prev => prev.map(u => (u.id === profileUser.id ? { ...u, profileImageUrl: nextUrl } : u)));
+      setProfileUser(prev => (prev ? { ...prev, profileImageUrl: nextUrl } : prev));
+      setProfileFile(null);
+      onNotification('프로필 사진을 등록했습니다.', 'success');
+    } catch (error) {
+      console.error('프로필 사진 업로드 오류:', error);
+      onNotification(error instanceof Error ? error.message : '프로필 사진 업로드에 실패했습니다.', 'error');
+    } finally {
+      setIsProfileSaving(false);
+    }
+  };
+
+  const handleDeleteProfileImage = async () => {
+    if (!profileUser) return;
+    setIsProfileSaving(true);
+    try {
+      await deleteMemberProfileImage(profileUser.id);
+      setMembers(prev => prev.map(u => (u.id === profileUser.id ? { ...u, profileImageUrl: null } : u)));
+      setProfileUser(prev => (prev ? { ...prev, profileImageUrl: null } : prev));
+      onNotification('프로필 사진을 삭제했습니다.', 'success');
+    } catch (error) {
+      console.error('프로필 사진 삭제 오류:', error);
+      onNotification(error instanceof Error ? error.message : '프로필 사진 삭제에 실패했습니다.', 'error');
+    } finally {
+      setIsProfileSaving(false);
     }
   };
 
@@ -753,6 +811,21 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                       idKey="id"
                       hasHover
                       columns={[
+                        {
+                          key: 'avatar',
+                          header: '',
+                          renderCell: (u) => (
+                            <button
+                              type="button"
+                              onClick={() => openProfileModal(u)}
+                              title={`${u.name} 프로필 설정`}
+                              aria-label={`${u.name} 프로필 설정`}
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
+                            >
+                              <Avatar src={u.profileImageUrl || undefined} name={u.name} size="medium" />
+                            </button>
+                          ),
+                        },
                         {
                           key: 'name',
                           header: '회원',
@@ -1153,6 +1226,76 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                 <HStack gap={2} hAlign="end">
                   <Button label="취소" variant="ghost" onClick={() => { setShowPermissionModal(false); setPermissionUser(null); }} />
                   <Button label="저장" variant="primary" icon={<Icon icon={FiCheck} size="sm" />} onClick={handleSavePermissions} isLoading={permissionLoading} isDisabled={permissionLoading} />
+                </HStack>
+              </LayoutFooter>
+            }
+          />
+        </Dialog>
+      )}
+
+      {/* 프로필 사진 설정 모달 */}
+      {profileUser && (
+        <Dialog
+          isOpen={showProfileModal}
+          onOpenChange={(o) => { if (!o) closeProfileModal(); }}
+          purpose="form"
+          width={440}
+        >
+          <Layout
+            header={<DialogHeader title="프로필 설정" onOpenChange={(o) => { if (!o) closeProfileModal(); }} />}
+            content={
+              <LayoutContent>
+                <VStack gap={4}>
+                  <HStack gap={3} vAlign="center">
+                    <Avatar src={profileUser.profileImageUrl || undefined} name={profileUser.name} size="large" />
+                    <VStack gap={0}>
+                      <Text weight="semibold">{profileUser.name}</Text>
+                      <Text type="supporting" color="secondary">{profileUser.email}</Text>
+                    </VStack>
+                  </HStack>
+
+                  <Banner
+                    status="info"
+                    title="증명사진 안내"
+                    description="입사 후 증명사진 위주로 등록해주세요."
+                    container="section"
+                  />
+
+                  <FileInput
+                    label="프로필 사진 선택"
+                    isLabelHidden
+                    value={profileFile}
+                    onChange={(f) => setProfileFile(f as File | null)}
+                    accept="image/jpeg,image/png,image/webp"
+                    maxSize={5 * 1024 * 1024}
+                    placeholder="사진 선택 (jpg, png, webp / 최대 5MB)"
+                    isDisabled={isProfileSaving}
+                  />
+                </VStack>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+                <HStack gap={2} hAlign="between" style={{ width: '100%' }}>
+                  <Button
+                    label="사진 삭제"
+                    variant="destructive"
+                    icon={<Icon icon={FiTrash2} size="sm" />}
+                    onClick={handleDeleteProfileImage}
+                    isDisabled={isProfileSaving || !profileUser.profileImageUrl}
+                    isLoading={isProfileSaving}
+                  />
+                  <HStack gap={2}>
+                    <Button label="닫기" variant="ghost" onClick={closeProfileModal} isDisabled={isProfileSaving} />
+                    <Button
+                      label="업로드"
+                      variant="primary"
+                      icon={<Icon icon={FiCamera} size="sm" />}
+                      onClick={handleUploadProfileImage}
+                      isLoading={isProfileSaving}
+                      isDisabled={isProfileSaving || !profileFile}
+                    />
+                  </HStack>
                 </HStack>
               </LayoutFooter>
             }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, useEffect, useState, useCallback } from "react";
+import { Fragment, useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { FiSend, FiCornerUpLeft, FiPaperclip } from "react-icons/fi";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -16,6 +16,7 @@ interface ChatParticipant {
     userName: string;
     role?: string;
     joinedAt?: string;
+    profileImageUrl?: string;
 }
 
 const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
@@ -125,6 +126,17 @@ export function FloatingChatMessages({
         }
         setShowDrawer(!showDrawer);
     };
+
+    // 메시지 발신자 아바타 표시용 — 참여자의 profileImageUrl을 미리 조회해둔다
+    useEffect(() => {
+        fetchParticipants();
+    }, [fetchParticipants]);
+
+    const participantAvatarMap = useMemo(() => {
+        const map = new Map<string, string | undefined>();
+        participants.forEach((p) => map.set(p.userId, p.profileImageUrl));
+        return map;
+    }, [participants]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -405,9 +417,18 @@ export function FloatingChatMessages({
                                     style={{
                                         display: "flex",
                                         justifyContent: isMyMessage ? "flex-end" : "flex-start",
+                                        alignItems: "flex-end",
+                                        gap: 'var(--spacing-1-5)',
                                         position: "relative",
                                     }}
                                 >
+                                    {!isMyMessage && (
+                                        <Avatar
+                                            src={participantAvatarMap.get(message.senderId)}
+                                            name={message.senderName || "?"}
+                                            size="xsmall"
+                                        />
+                                    )}
                                     <div
                                         style={{
                                             maxWidth: "75%",
@@ -651,7 +672,7 @@ export function FloatingChatMessages({
                                 <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                     {participants.map((p, i) => (
                                         <div key={p.userId || i} style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: "var(--spacing-1-5) 0" }}>
-                                            <Avatar name={p.userName || "?"} size="small" />
+                                            <Avatar src={p.profileImageUrl} name={p.userName || "?"} size="small" />
                                             <Text type="body" color="primary">{p.userName}</Text>
                                         </div>
                                     ))}

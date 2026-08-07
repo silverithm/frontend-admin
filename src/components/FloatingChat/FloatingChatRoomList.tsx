@@ -2,6 +2,7 @@
 
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
+import { Avatar } from "@astryxdesign/core/Avatar";
 import { Loading } from "@/components/Loading";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -89,28 +90,33 @@ export function FloatingChatRoomList({
                                 transition: 'background-color var(--duration-fast-min) var(--ease-standard)',
                             }}
                         >
-                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 'var(--spacing-0-5)' }}>
-                                <div style={{ flex: 1, minWidth: 0, marginRight: 'var(--spacing-2)' }}>
-                                    <Text type="body" weight="semibold" color="primary" maxLines={1}>
-                                        {room.name}
+                            <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                                <Avatar name={room.name || "?"} size="small" />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 'var(--spacing-0-5)' }}>
+                                        <div style={{ flex: 1, minWidth: 0, marginRight: 'var(--spacing-2)' }}>
+                                            <Text type="body" weight="semibold" color="primary" maxLines={1}>
+                                                {room.name}
+                                            </Text>
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', flexShrink: 0 }}>
+                                            {room.lastMessageAt && (
+                                                <Text type="supporting" color="disabled">
+                                                    {formatTimestamp(room.lastMessageAt)}
+                                                </Text>
+                                            )}
+                                            {room.unreadCount > 0 && (
+                                                <Badge variant="teal" label={room.unreadCount > 99 ? "99+" : room.unreadCount} />
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Text type="supporting" color="secondary" maxLines={1}>
+                                        {room.lastMessage
+                                            ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
+                                            : "메시지가 없습니다"}
                                     </Text>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', flexShrink: 0 }}>
-                                    {room.lastMessageAt && (
-                                        <Text type="supporting" color="disabled">
-                                            {formatTimestamp(room.lastMessageAt)}
-                                        </Text>
-                                    )}
-                                    {room.unreadCount > 0 && (
-                                        <Badge variant="teal" label={room.unreadCount > 99 ? "99+" : room.unreadCount} />
-                                    )}
-                                </div>
                             </div>
-                            <Text type="supporting" color="secondary" maxLines={1}>
-                                {room.lastMessage
-                                    ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
-                                    : "메시지가 없습니다"}
-                            </Text>
                         </button>
                     ))
                 )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom } from '@/lib/apiService';
@@ -79,6 +79,7 @@ interface ChatParticipant {
     userName: string;
     role?: string;
     joinedAt?: string;
+    profileImageUrl?: string;
 }
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
@@ -131,6 +132,13 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+
+    // 메시지 발신자 아바타 표시용 — 참여자의 profileImageUrl을 미리 조회해둔다
+    const participantAvatarMap = useMemo(() => {
+        const map = new Map<string, string | undefined>();
+        participants.forEach((p) => map.set(p.userId, p.profileImageUrl));
+        return map;
+    }, [participants]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeletingRoom, setIsDeletingRoom] = useState(false);
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -703,7 +711,14 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     return (
                                         <Fragment key={message.id}>
                                             {dateSeparator}
-                                            <div style={{ display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start" }}>
+                                            <div style={{ display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
+                                                {!isMyMessage && (
+                                                    <Avatar
+                                                        src={participantAvatarMap.get(message.senderId || '') || undefined}
+                                                        name={message.senderName || "?"}
+                                                        size="small"
+                                                    />
+                                                )}
                                                 <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isMyMessage ? "flex-end" : "flex-start" }}>
                                                     {!isMyMessage && (
                                                         <div style={{ marginBottom: 'var(--spacing-1)' }}>
@@ -928,7 +943,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                     <Item
                                                         key={p.userId || i}
                                                         density="compact"
-                                                        startContent={<Avatar name={p.userName} size="small" />}
+                                                        startContent={<Avatar src={p.profileImageUrl || undefined} name={p.userName} size="small" />}
                                                         label={p.userName}
                                                     />
                                                 ))}
