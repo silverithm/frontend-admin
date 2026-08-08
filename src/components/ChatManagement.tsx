@@ -5,6 +5,7 @@ import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, fetchOnlineUserIds, getApproverCandidates } from '@/lib/apiService';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
+import MemberItem from '@/components/MemberItem';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -212,8 +213,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     /** 왼쪽 목록 전환 — 대화방 / 직원 */
     const [listTab, setListTab] = useState<'rooms' | 'people'>('rooms');
-    /** 기관 전 인원 (이름 + 직책) */
-    const [orgMembers, setOrgMembers] = useState<{ id: string; name: string; position?: string | null }[]>([]);
+    /** 기관 전 인원 (이름 + 직책 + 프로필 사진) */
+    const [orgMembers, setOrgMembers] = useState<{ id: string; name: string; position?: string | null; profileImageUrl?: string | null }[]>([]);
     /** 지금 접속 중인 사람들의 userId */
     const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
     const [isOpeningDirect, setIsOpeningDirect] = useState(false);
@@ -366,15 +367,18 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         if (!companyId) return;
         (async () => {
             try {
+                // 결재선 후보는 관리자까지 포함해 인원이 가장 온전하다 (프로필 사진도 함께 온다)
                 const [candidateResponse, presenceResponse] = await Promise.all([
                     getApproverCandidates(),
                     fetchOnlineUserIds().catch(() => ({ onlineUserIds: [] })),
                 ]);
                 const candidates = Array.isArray(candidateResponse?.candidates) ? candidateResponse.candidates : [];
-                setOrgMembers(candidates.map((c: { approverId: number | string; name: string; position?: string | null }) => ({
+
+                setOrgMembers(candidates.map((c: { approverId: number | string; name: string; position?: string | null; profileImageUrl?: string | null }) => ({
                     id: String(c.approverId),
                     name: c.name,
                     position: c.position,
+                    profileImageUrl: c.profileImageUrl ?? null,
                 })));
                 setOnlineUserIds(new Set((presenceResponse?.onlineUserIds || []).map(String)));
             } catch (error) {
@@ -660,6 +664,12 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         }
     };
 
+    /** 내 프로필 사진 — 인원 목록에 내가 섞여 있으므로 거기서 꺼낸다 */
+    const myProfileImageUrl = useMemo(
+        () => orgMembers.find(m => m.id === userId)?.profileImageUrl ?? null,
+        [orgMembers, userId],
+    );
+
     /** 온라인인 사람을 위로 올리고, 그 안에서는 이름순 */
     const sortedMembers = useMemo(() => {
         return [...orgMembers]
@@ -885,19 +895,14 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                 {/* 직원 목록 — 온라인이 위, 누르면 1:1 대화 */}
                 {listTab === 'people' && (
                     <div style={{ flex: 1, overflowY: "auto" }}>
-                        {/* 맨 위는 내 프로필 */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: 'var(--spacing-3)', borderBottom: `1px solid ${C.border}`, background: C.bgGray }}>
-                            <div style={{ position: "relative" }}>
-                                <Avatar name={userName || "나"} size="small" />
-                                <span style={{
-                                    position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%",
-                                    background: 'var(--color-background-success-bold, #16a34a)', border: `2px solid ${C.bgGray}`,
-                                }} />
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <Text type="supporting" weight="semibold" color="primary" maxLines={1}>{userName || "나"}</Text>
-                                <Text type="supporting" color="secondary">나</Text>
-                            </div>
+                        {/* 맨 위는 내 프로필 — 이 화면을 보고 있다는 것 자체가 접속 중이라는 뜻 */}
+                        <div style={{ borderBottom: `1px solid ${C.border}`, background: C.bgGray }}>
+                            <MemberItem
+                                name={userName || "나"}
+                                suffix="나"
+                                imageUrl={myProfileImageUrl}
+                                presence="online"
+                            />
                         </div>
 
                         {sortedMembers.length === 0 ? (
@@ -905,38 +910,19 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                 <EmptyState isCompact title="등록된 직원이 없습니다" />
                             </div>
                         ) : (
-                            sortedMembers.map((member) => {
-                                const isOnline = onlineUserIds.has(member.id);
-                                return (
-                                    <button
-                                        key={member.id}
-                                        type="button"
+                            sortedMembers.map((member) => (
+                                <div key={member.id} style={{ borderBottom: `1px solid ${C.gray100}` }}>
+                                    <MemberItem
+                                        name={member.name}
+                                        role={member.position}
+                                        imageUrl={member.profileImageUrl}
+                                        presence={onlineUserIds.has(member.id) ? 'online' : 'offline'}
+                                        isDisabled={isOpeningDirect}
                                         onClick={() => openDirectChat(member)}
-                                        disabled={isOpeningDirect}
-                                        style={{
-                                            display: "flex", alignItems: "center", gap: 'var(--spacing-2)', width: "100%",
-                                            padding: 'var(--spacing-3)', background: "none", border: "none",
-                                            borderBottom: `1px solid ${C.gray100}`, cursor: "pointer", textAlign: "left",
-                                        }}
-                                    >
-                                        <div style={{ position: "relative" }}>
-                                            <Avatar name={member.name} size="small" />
-                                            {/* 온라인 초록 / 오프라인 회색 */}
-                                            <span style={{
-                                                position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%",
-                                                background: isOnline ? 'var(--color-background-success-bold, #16a34a)' : 'var(--color-border-emphasized, #cbd5e1)',
-                                                border: `2px solid ${C.card}`,
-                                            }} />
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
-                                                {member.name}{member.position ? ` ${member.position}` : ""}
-                                            </Text>
-                                            <Text type="supporting" color="secondary">{isOnline ? "접속 중" : "오프라인"}</Text>
-                                        </div>
-                                    </button>
-                                );
-                            })
+                                        endContent={<Icon icon={FiMessageCircle} size="sm" color="tertiary" />}
+                                    />
+                                </div>
+                            ))
                         )}
                     </div>
                 )}

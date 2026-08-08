@@ -6,6 +6,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Loading } from '@/components/Loading';
+import MemberItem from '@/components/MemberItem';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Text } from '@astryxdesign/core/Text';
 import { VStack } from '@astryxdesign/core/Stack';
@@ -182,26 +183,19 @@ export default function ApprovalLineSelector({ value, onChange }: ApprovalLineSe
               filteredCandidates.map((candidate) => {
                 const disabled = value.length >= MAX_STEPS;
                 return (
-                  <div
-                    key={candidateKey(candidate)}
-                    className="carev-member-item"
-                    onClick={() => { if (!disabled) addApprover(candidate); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--spacing-2)',
-                      padding: 'var(--spacing-2) var(--spacing-3)',
-                      borderBottom: '1px solid var(--color-border)',
-                      cursor: disabled ? 'not-allowed' : 'pointer',
-                      opacity: disabled ? 0.5 : 1,
-                    }}
-                  >
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <Text weight="medium">{candidate.name}</Text>
-                    </span>
-                    <Badge
-                      variant={candidate.approverType === 'ADMIN' ? 'purple' : 'neutral'}
-                      label={candidate.position || (candidate.approverType === 'ADMIN' ? '관리자' : '직원')}
+                  <div key={candidateKey(candidate)} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <MemberItem
+                      name={candidate.name}
+                      imageUrl={candidate.profileImageUrl}
+                      isDisabled={disabled}
+                      density="compact"
+                      onClick={() => { if (!disabled) addApprover(candidate); }}
+                      endContent={
+                        <Badge
+                          variant={candidate.approverType === 'ADMIN' ? 'purple' : 'neutral'}
+                          label={candidate.position || (candidate.approverType === 'ADMIN' ? '관리자' : '직원')}
+                        />
+                      }
                     />
                   </div>
                 );

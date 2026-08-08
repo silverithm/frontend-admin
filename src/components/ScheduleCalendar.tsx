@@ -9,6 +9,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
+import MemberItem from '@/components/MemberItem';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -1619,23 +1620,30 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         </Text>
                       </div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 'var(--spacing-1)' }}>
-                        {participantCandidates.map((member) => (
-                          <div key={member.id} style={{ padding: 'var(--spacing-1)', borderRadius: 'var(--radius-inner)', minWidth: 0 }}>
-                            <CheckboxInput
-                              label={`${member.name}${getMemberRoleText(member) ? ` · ${getMemberRoleText(member)}` : ''}`}
-                              value={formData.participantIds.includes(member.id.toString())}
-                              onChange={(checked) => {
-                                const memberId = member.id.toString();
-                                if (checked) {
-                                  setFormData(prev => ({ ...prev, participantIds: [...prev.participantIds, memberId] }));
-                                } else {
-                                  setFormData(prev => ({ ...prev, participantIds: prev.participantIds.filter(id => id !== memberId) }));
-                                }
+                      // 이름만 늘어놓으면 누가 누군지 알기 어렵다 — 사진과 직종을 함께 보여준다
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--spacing-1)' }}>
+                        {participantCandidates.map((member) => {
+                          const memberId = member.id.toString();
+                          const isPicked = formData.participantIds.includes(memberId);
+                          return (
+                            <MemberItem
+                              key={member.id}
+                              name={member.name}
+                              role={getMemberRoleText(member)}
+                              imageUrl={member.profileImageUrl}
+                              isSelected={isPicked}
+                              density="compact"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  participantIds: isPicked
+                                    ? prev.participantIds.filter(id => id !== memberId)
+                                    : [...prev.participantIds, memberId],
+                                }));
                               }}
                             />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1997,11 +2005,20 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                       <VStack gap={2}>
                         <Text type="label" weight="medium">참석자 {selectedSchedule.participants.length}명</Text>
-                        {selectedSchedule.participants.map((participant) => (
-                          <div key={participant.id} style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
-                            <Text type="supporting" color="primary">{(participant as any).memberName || participant.userName || '참석자'}</Text>
-                          </div>
-                        ))}
+                        {selectedSchedule.participants.map((participant) => {
+                          const participantName = (participant as any).memberName || participant.userName || '참석자';
+                          // 참석자 응답에는 사진이 없어 회원 목록에서 찾아 붙인다
+                          const matched = members.find((m) => String(m.id) === String(participant.userId));
+                          return (
+                            <MemberItem
+                              key={participant.id}
+                              name={participantName}
+                              role={matched ? getMemberRoleText(matched) : undefined}
+                              imageUrl={matched?.profileImageUrl}
+                              density="compact"
+                            />
+                          );
+                        })}
                       </VStack>
                     </div>
                   )}

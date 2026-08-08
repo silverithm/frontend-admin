@@ -36,6 +36,8 @@ export interface ApproverCandidate {
   approverId: number;
   name: string;
   position?: string | null;
+  /** 프로필 사진 — 없으면 화면에서 이니셜로 대체한다 */
+  profileImageUrl?: string | null;
 }
 
 // 첨부파일 정보
