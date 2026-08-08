@@ -7,6 +7,7 @@ import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { getNotices } from '@/lib/apiService';
+import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { Notice } from '@/types/notice';
 import { tokens } from '@/theme';
 import { duration } from '@/theme/motion';
@@ -50,12 +51,8 @@ export default function NoticeRollingBanner({
     }
   }, [maxNotices]);
 
-  // Fetch notices on mount + every 5 minutes
-  useEffect(() => {
-    fetchNotices();
-    const refreshInterval = setInterval(fetchNotices, 300000);
-    return () => clearInterval(refreshInterval);
-  }, [fetchNotices]);
+  // 공지 로드 + 5분 주기 갱신 (보고 있는 탭에서만)
+  useVisiblePolling(fetchNotices, 300000);
 
   // Auto-scroll when 2+ notices and not hovered
   useEffect(() => {

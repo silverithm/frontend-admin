@@ -25,6 +25,8 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch } from 'react-icons/fi';
 
+import { useVisiblePolling } from '@/lib/useVisiblePolling';
+
 interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
     isAdmin?: boolean;
@@ -817,16 +819,9 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         return `${ampm} ${displayHours}:${minutes}`;
     };
 
-    // 초기 방 목록 로드 + 30초 주기 polling
-    useEffect(() => {
-        fetchRooms();
-
-        const pollingInterval = setInterval(() => {
-            fetchRooms();
-        }, 30000);
-
-        return () => clearInterval(pollingInterval);
-    }, [fetchRooms]);
+    // 초기 방 목록 로드 + 30초 주기 갱신 (보고 있는 탭에서만)
+    // 소켓은 지금 열어둔 방만 구독하므로, 다른 방의 새 메시지·안읽음 수는 이 갱신으로 받는다.
+    useVisiblePolling(fetchRooms, 30000);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {

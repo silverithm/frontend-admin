@@ -11,6 +11,7 @@ import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
 import { FloatingChatRoomList } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
+import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { duration } from '@/theme/motion';
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
@@ -40,7 +41,6 @@ export function FloatingChat() {
 
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
-    const pollingRef = useRef<NodeJS.Timeout | null>(null);
     // WS 콜백에서 최신 상태를 참조하기 위한 ref들
     const selectedRoomIdRef = useRef<number | null>(null);
     const isOpenRef = useRef(false);
@@ -143,21 +143,8 @@ export function FloatingChat() {
         };
     }, [authToken, userId]);
 
-    // Fetch rooms on mount + polling every 30s
-    useEffect(() => {
-        fetchRooms();
-
-        pollingRef.current = setInterval(() => {
-            fetchRooms();
-        }, 30000);
-
-        return () => {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-                pollingRef.current = null;
-            }
-        };
-    }, [fetchRooms]);
+    // 방 목록 로드 + 30초 주기 갱신 (보고 있는 탭에서만)
+    useVisiblePolling(fetchRooms, 30000);
 
     // Room selection or WebSocket reconnection: fetch messages + mark as read
     useEffect(() => {
