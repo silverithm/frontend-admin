@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { OG_IMAGES } from '@/lib/seo'
+import { OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '이용 가이드',
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '이용 가이드 | 케어브이',
     description: '가입부터 직원 등록, 근무표 작성, 휴무 승인까지 케어브이 사용법을 단계별로 안내합니다.',
-    url: 'https://carev.kr/guide',
+    url: `${SITE_URL}/guide`,
     type: 'article',
     images: OG_IMAGES,
   },
@@ -17,10 +17,19 @@ export const metadata: Metadata = {
   },
 }
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: '이용 가이드', path: '/guide' },
+])
+
 export default function GuideLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <>
+      <script {...jsonLdScriptProps(breadcrumbJsonLd)} />
+      {children}
+    </>
+  )
 }

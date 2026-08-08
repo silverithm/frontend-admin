@@ -1,6 +1,9 @@
 import { Metadata } from 'next'
-import { OG_IMAGES } from '@/lib/seo'
+import { OG_IMAGES, SITE_URL } from '@/lib/seo'
 
+// 목록(/blog)과 상세(/blog/[slug])가 공유하는 설정만 둔다.
+// 목록 전용 구조화 데이터는 (list) route group의 layout에 있다 —
+// 여기에 두면 상세 페이지에도 상속되어 BreadcrumbList가 두 벌 출력된다.
 export const metadata: Metadata = {
   title: {
     default: '블로그',
@@ -12,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '블로그 | 케어브이',
     description: '요양기관 근무표 작성 노하우, 휴무 관리 팁, 케어브이 기능 업데이트 소식을 전합니다.',
-    url: 'https://carev.kr/blog',
+    url: `${SITE_URL}/blog`,
     type: 'website',
     images: OG_IMAGES,
   },

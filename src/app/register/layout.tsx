@@ -10,8 +10,10 @@ export const metadata: Metadata = {
     url: 'https://carev.kr/register',
     images: OG_IMAGES,
   },
+  // 가입 절차 중간 단계 화면 — 검색 결과에 단독 노출될 이유가 없다.
+  robots: { index: false, follow: true },
   alternates: {
-    canonical: 'https://carev.kr/register',
+    canonical: '/register',
   },
 }
 

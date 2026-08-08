@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { OG_IMAGES } from '@/lib/seo'
+import { OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '제휴·광고',
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '제휴·광고 | 케어브이',
     description: '케어브이와 함께하는 기관을 소개합니다. 기관 광고 문의를 남겨주세요.',
-    url: 'https://carev.kr/partners',
+    url: `${SITE_URL}/partners`,
     type: 'website',
     images: OG_IMAGES,
   },
@@ -17,10 +17,19 @@ export const metadata: Metadata = {
   },
 }
 
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: '제휴·광고', path: '/partners' },
+])
+
 export default function PartnersLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return (
+    <>
+      <script {...jsonLdScriptProps(breadcrumbJsonLd)} />
+      {children}
+    </>
+  )
 }

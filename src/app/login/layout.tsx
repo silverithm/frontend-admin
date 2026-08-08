@@ -10,8 +10,11 @@ export const metadata: Metadata = {
     url: 'https://carev.kr/login',
     images: OG_IMAGES,
   },
+  // 로그인 화면은 검색 유입 가치가 없고, 색인되면 브랜드 검색에서 홈 대신 노출될 수 있다.
+  // 링크는 따라가도록 follow는 유지한다.
+  robots: { index: false, follow: true },
   alternates: {
-    canonical: 'https://carev.kr/login',
+    canonical: '/login',
   },
 }
 

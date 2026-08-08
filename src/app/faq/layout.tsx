@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
-import { OG_IMAGES } from '@/lib/seo'
+import { FAQ_DATA } from '@/lib/faqData'
+import { OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '자주 묻는 질문',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '자주 묻는 질문 | 케어브이',
     description: '케어브이 이용 요금, 가입 방법, 지원 시설 종류 등 가장 많이 묻는 질문을 모았습니다.',
-    url: 'https://carev.kr/faq',
+    url: `${SITE_URL}/faq`,
     type: 'website',
     images: OG_IMAGES,
   },
@@ -18,37 +19,26 @@ export const metadata: Metadata = {
 }
 
 // FAQPage 구조화 데이터는 실제 FAQ가 있는 이 경로에서만 노출한다.
+// 질문/답변은 화면과 같은 소스(@/lib/faqData)에서 생성한다 — 구글 FAQPage 정책상
+// 구조화 데이터와 페이지에 보이는 내용이 어긋나면 리치 결과가 무효 처리된다.
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  '@id': 'https://carev.kr/faq#faq',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: '케어브이는 어떤 요양시설에서 사용할 수 있나요?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: '주간보호센터, 장기요양기관, 요양원, 요양병원, 재가노인복지센터, 노인복지관, 치매안심센터 등 모든 노인복지시설에서 사용 가능합니다.'
-      }
+  '@id': `${SITE_URL}/faq#faq`,
+  inLanguage: 'ko-KR',
+  mainEntity: FAQ_DATA.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.answer,
     },
-    {
-      '@type': 'Question',
-      name: '요양보호사와 사회복지사 모두 사용할 수 있나요?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: '네, 요양보호사, 사회복지사, 간호조무사, 물리치료사, 작업치료사 등 모든 직원이 사용할 수 있습니다.'
-      }
-    },
-    {
-      '@type': 'Question',
-      name: '장기요양보험 시설에서도 사용 가능한가요?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: '네, 장기요양보험 지정 시설급여 및 재가급여 기관 모두에서 사용 가능합니다.'
-      }
-    }
-  ]
+  })),
 }
+
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: '자주 묻는 질문', path: '/faq' },
+])
 
 export default function FaqLayout({
   children,
@@ -57,10 +47,8 @@ export default function FaqLayout({
 }) {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
+      <script {...jsonLdScriptProps(faqJsonLd)} />
+      <script {...jsonLdScriptProps(breadcrumbJsonLd)} />
       {children}
     </>
   )

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import SubscriptionGuard from '@/components/SubscriptionGuard'
+import { jsonLdScriptProps } from '@/lib/seo'
 import { AstryxProvider } from './AstryxProvider'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -19,7 +20,20 @@ export const metadata: Metadata = {
   },
   description:
     '주간보호센터·요양원·재가노인복지센터의 근무표와 휴무 관리, 전자결재(공문·결재선·서명), 월간일정, 공지·채팅, 요양 커뮤니티까지 하나로. 결제 수단 없이 30일 무료 체험.',
-  keywords: '주간보호센터, 장기요양기관, 장기요양, 주간보호, 요양기관, 요양원, 요양병원, 요양보호사, 사회복지사, 근무표, 휴무관리, 인력관리, 스케줄관리, 휴가신청, 근태관리, 노인장기요양, 노인요양, 재가요양, 방문요양, 요양시설, 데이케어센터, 재가노인복지센터, 노인복지관, 치매안심센터, 실버케어, 노인돌봄, 장기요양보험, 요양보호사자격증, 사회복지시설, 노인복지시설, 재가급여, 시설급여, 복지용구, 간호조무사, 물리치료사, 작업치료사, 전자결재, 요양기관 전자결재, 기안문, 공문 양식, 결재선, 요양원 근무표, 주간보호센터 근무표, 장기요양기관 평가, 기관 평가 대비, 요양 뉴스, 요양기관 커뮤니티, 월간일정 관리',
+  // 검색엔진은 keywords를 순위에 쓰지 않는다. 수십 개를 나열하면 얻는 것 없이
+  // 키워드 스터핑 신호만 남으므로, 실제로 이 사이트가 답하는 주제만 남긴다.
+  keywords: [
+    '주간보호센터 근무표',
+    '장기요양기관 근무표',
+    '요양원 근무표',
+    '요양기관 인력관리',
+    '요양보호사 휴무관리',
+    '요양기관 전자결재',
+    '주간보호센터 프로그램',
+    '장기요양기관 운영 관리',
+    '재가노인복지센터 관리',
+    '요양기관 커뮤니티',
+  ].join(', '),
   authors: [{ name: '케어브이' }],
   creator: '케어브이',
   publisher: '케어브이',
@@ -79,6 +93,10 @@ export const metadata: Metadata = {
   alternates: {
     // 하위 페이지는 각자의 layout에서 canonical을 덮어쓴다.
     canonical: '/',
+    types: {
+      // 피드 자동 발견 — 네이버 서치어드바이저 RSS 제출과 피드 리더 구독에 쓰인다.
+      'application/rss+xml': [{ url: '/rss.xml', title: '케어브이 블로그' }],
+    },
   },
 }
 
@@ -194,18 +212,9 @@ export default function RootLayout({
     <html lang="ko">
       <body className={inter.className}>
         {/* 구조화 데이터 — head 중복 렌더를 피하기 위해 body에서 한 번만 출력 */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
-        />
+        <script {...jsonLdScriptProps(jsonLd)} />
+        <script {...jsonLdScriptProps(websiteJsonLd)} />
+        <script {...jsonLdScriptProps(softwareJsonLd)} />
         <AstryxProvider>
           <SubscriptionGuard>
             {children}

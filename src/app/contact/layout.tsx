@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { OG_IMAGES } from '@/lib/seo'
+import { OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: '문의하기',
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '문의하기 | 케어브이',
     description: '케어브이 도입 상담, 기능 문의, 요금 안내를 남겨주세요.',
-    url: 'https://carev.kr/contact',
+    url: `${SITE_URL}/contact`,
     type: 'website',
     images: OG_IMAGES,
   },
@@ -17,10 +17,32 @@ export const metadata: Metadata = {
   },
 }
 
+const contactJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ContactPage',
+  '@id': `${SITE_URL}/contact#contact`,
+  name: '케어브이 문의하기',
+  description: '케어브이 도입 상담, 기능 문의, 요금 안내 창구',
+  url: `${SITE_URL}/contact`,
+  inLanguage: 'ko-KR',
+  isPartOf: { '@id': `${SITE_URL}/#website` },
+  mainEntity: { '@id': `${SITE_URL}/#organization` },
+}
+
+const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: '문의하기', path: '/contact' },
+])
+
 export default function ContactLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <>
+      <script {...jsonLdScriptProps(contactJsonLd)} />
+      <script {...jsonLdScriptProps(breadcrumbJsonLd)} />
+      {children}
+    </>
+  )
 }

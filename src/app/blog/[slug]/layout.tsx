@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { BLOG_POSTS, getBlogPostMeta } from '@/lib/blogPosts'
-import { OG_IMAGES } from '@/lib/seo'
+import { OG_IMAGE, OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@/lib/seo'
 
 export async function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }))
@@ -72,40 +72,33 @@ export default async function BlogPostLayout({
     articleSection: post.category,
     keywords: post.keywords.join(', '),
     inLanguage: 'ko-KR',
-    image: 'https://carev.kr/images/carev-logo-text.png',
-    author: { '@type': 'Organization', name: '케어브이', url: 'https://carev.kr' },
-    publisher: { '@id': 'https://carev.kr/#organization' },
+    // 구글 기사 리치 결과는 너비 1200px 이상의 이미지를 요구한다.
+    // 로고(비율이 맞지 않음) 대신 OG 이미지를 쓴다.
+    image: [OG_IMAGE.url],
+    // Blog 노드는 목록 페이지에만 출력되므로, 여기서는 최소 정보를 인라인으로 함께 준다.
+    isPartOf: {
+      '@type': 'Blog',
+      '@id': `${SITE_URL}/blog#blog`,
+      name: '케어브이 블로그',
+      url: `${SITE_URL}/blog`,
+    },
+    author: { '@type': 'Organization', name: '케어브이', url: SITE_URL },
+    publisher: { '@id': `${SITE_URL}/#organization` },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://carev.kr/blog/${post.slug}`,
+      '@id': `${SITE_URL}/blog/${post.slug}`,
     },
   }
 
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: '홈', item: 'https://carev.kr' },
-      { '@type': 'ListItem', position: 2, name: '블로그', item: 'https://carev.kr/blog' },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: post.title,
-        item: `https://carev.kr/blog/${post.slug}`,
-      },
-    ],
-  }
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: '블로그', path: '/blog' },
+    { name: post.title, path: `/blog/${post.slug}` },
+  ])
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <script {...jsonLdScriptProps(articleJsonLd)} />
+      <script {...jsonLdScriptProps(breadcrumbJsonLd)} />
       {children}
     </>
   )
