@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -69,6 +69,42 @@ export default function SubscriptionCheckPage() {
     }
   };
 
+  /**
+   * 서버의 최신 구독 상태를 다시 읽어 화면에 반영한다.
+   * 바로 쓸 수 있는 구독이 있으면 관리자 화면으로 보내고 true를 돌려준다.
+   */
+  const syncLatestSubscription = useCallback(async (): Promise<boolean> => {
+    try {
+      const latest = await subscriptionService.getMySubscription();
+      setSubscription(latest);
+      setHasSubscription(true);
+      if (subscriptionService.isActive(latest)) {
+        router.push('/admin');
+        return true;
+      }
+      // 구독은 있으나 아직 쓸 수 없는 상태(만료·결제 필요)면 화면이 그에 맞게 다시 그려진다
+      return false;
+    } catch {
+      // 구독이 아직 없거나(404) 조회에 실패한 경우 — 화면은 그대로 둔다
+      return false;
+    }
+  }, [router]);
+
+  // 이 화면을 열어둔 채 다른 곳에서 구독이 만들어질 수 있다(관리자가 대신 만들어주는 경우).
+  // 창으로 돌아왔을 때 조용히 다시 확인해, 쓸 수 있는 구독이 생겼으면 그대로 들여보낸다.
+  // 버튼을 눌러 "이미 구독 중" 오류를 보기 전에 먼저 풀리는 쪽이 낫다.
+  useEffect(() => {
+    const recheck = () => {
+      if (document.visibilityState === 'visible') void syncLatestSubscription();
+    };
+    document.addEventListener('visibilitychange', recheck);
+    window.addEventListener('focus', recheck);
+    return () => {
+      document.removeEventListener('visibilitychange', recheck);
+      window.removeEventListener('focus', recheck);
+    };
+  }, [syncLatestSubscription]);
+
   const handleCreateFreeSubscription = async () => {
     try {
       setCreatingFree(true);
@@ -81,7 +117,21 @@ export default function SubscriptionCheckPage() {
       // 무료 구독 생성 성공 후 관리자 페이지로 이동
       router.push('/admin');
     } catch (err) {
-      setError('무료 구독 생성에 실패했습니다. 다시 시도해주세요.');
+      // 이 화면을 띄워둔 사이에 다른 경로로 구독이 생겼을 수 있다.
+      // (관리자가 대신 만들어주는 경우가 대표적이다. 화면은 예전 상태 그대로라
+      //  버튼이 살아 있고, 누르면 서버는 "이미 구독 중"이라며 400을 준다.)
+      // 여기서 실패로 끝내면 정작 쓸 수 있는 구독을 두고도 화면에 갇히므로,
+      // 서버 상태를 다시 확인해서 쓸 수 있으면 그대로 들여보낸다.
+      const recovered = await syncLatestSubscription();
+      if (recovered) return;
+
+      // 서버가 이유를 한국어로 내려주면 그대로 보여주는 편이 사용자에게 낫다
+      const serverMessage = err instanceof Error ? err.message : '';
+      setError(
+        serverMessage && /[가-힣]/.test(serverMessage)
+          ? serverMessage
+          : '무료 구독 생성에 실패했습니다. 다시 시도해주세요.'
+      );
       console.error('무료 구독 생성 오류:', err);
     } finally {
       setCreatingFree(false);

@@ -32,10 +32,19 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Backend error:', response.status, errorText);
-      return NextResponse.json(
-        { error: 'Failed to create free subscription' },
-        { status: response.status }
-      );
+
+      // 백엔드가 내려준 사유("이미 구독 중인 사용자입니다" 등)를 그대로 넘긴다.
+      // 예전에는 전부 'Failed to create free subscription'으로 덮어써서
+      // 화면에서 왜 안 되는지 알 수 없었다.
+      let message = 'Failed to create free subscription';
+      try {
+        const parsed = JSON.parse(errorText);
+        message = parsed.message || parsed.error || message;
+      } catch {
+        if (errorText.trim()) message = errorText.trim();
+      }
+
+      return NextResponse.json({ error: message }, { status: response.status });
     }
 
     const data = await response.json();
