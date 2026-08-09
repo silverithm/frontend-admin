@@ -160,7 +160,7 @@ export default function SubscriptionCheckPage() {
   return (
     <div style={{ minHeight: '100vh', background: PAGE_GRADIENT }}>
       {/* 헤더 */}
-      <header style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.2)' }}>
+      <header style={{ borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: 'var(--spacing-6) var(--spacing-4)' }}>
           <HStack hAlign="center">
             <Image
@@ -348,8 +348,8 @@ export default function SubscriptionCheckPage() {
                     {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
                   </Text>
                 </div>
-                <div style={{ color: 'rgba(219, 234, 254, 0.9)' }}>
-                  <Text type="large" justify="center" color="inherit">
+                <div>
+                  <Text type="large" justify="center" color="secondary">
                     {hasUsedFreeTrial
                       ? '효율적인 휴무 관리를 시작하기 위해 구독 플랜을 선택해주세요.'
                       : !canUseFreeSubscription

@@ -263,7 +263,7 @@ export function FloatingChatMessages({
                             fontSize: 'var(--font-size-xs)',
                             cursor: "pointer",
                             transition: 'background-color var(--duration-fast-min) var(--ease-standard)',
-                            border: reaction.myReaction ? "1px solid #5eead4" : `1px solid ${C.border}`,
+                            border: reaction.myReaction ? "1px solid var(--color-border-teal)" : `1px solid ${C.border}`,
                             background: reaction.myReaction ? 'var(--color-background-blue)' : C.bgGray50,
                             color: reaction.myReaction ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
                         }}
@@ -286,8 +286,8 @@ export function FloatingChatMessages({
                     padding: "var(--spacing-1) var(--spacing-2)",
                     marginBottom: 'var(--spacing-1)',
                     borderRadius: 'var(--radius-none)',
-                    borderLeft: isMyMessage ? "2px solid #5eead4" : `2px solid #9ca3af`,
-                    background: isMyMessage ? "rgba(20,184,166,0.3)" : 'var(--color-border)',
+                    borderLeft: isMyMessage ? "2px solid var(--color-border-teal)" : `2px solid var(--color-border-emphasized)`,
+                    background: isMyMessage ? 'var(--color-background-teal)' : 'var(--color-border)',
                     color: isMyMessage ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                 }}
             >

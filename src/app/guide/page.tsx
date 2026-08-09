@@ -231,7 +231,7 @@ export default function GuidePage() {
                                                     <VStack gap={3}>
                                                         {step.items.map((item) => (
                                                             <HStack key={item} gap={2} vAlign="start">
-                                                                <span style={{ paddingTop: 2 }}>
+                                                                <span style={{ paddingTop: 'var(--spacing-0-5)' }}>
                                                                     <Icon icon="check" size="sm" color="accent" />
                                                                 </span>
                                                                 <Text color="secondary">{item}</Text>

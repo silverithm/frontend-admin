@@ -10,6 +10,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Card } from "@astryxdesign/core/Card";
 import { Badge } from "@astryxdesign/core/Badge";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { IconUser, IconBus, IconUsers, IconMoon } from "@tabler/icons-react";
 import type { DailyDispatch, RouteDispatch } from "@/types/dispatch";
 import { isNonWorkingDay } from "@/lib/dispatchAlgorithm";
@@ -162,11 +163,7 @@ export default function DispatchDayDetail({ dispatch, onClose }: DispatchDayDeta
 
               {/* 배차 목록 */}
               {dispatch.routeDispatches.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "var(--spacing-12) 0" }}>
-                  <Text type="body" color="secondary">
-                    등록된 노선이 없습니다.
-                  </Text>
-                </div>
+                <EmptyState title="등록된 노선이 없습니다" />
               ) : (
                 <VStack gap={3}>
                   {dispatch.routeDispatches.map((routeDispatch) => {

@@ -3,6 +3,7 @@
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Avatar } from "@astryxdesign/core/Avatar";
+import { Timestamp } from "@astryxdesign/core/Timestamp";
 import { Loading } from "@/components/Loading";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -14,20 +15,6 @@ interface FloatingChatRoomListProps {
     isLoadingRooms: boolean;
     isConnected: boolean;
     onSelectRoom: (roomId: number) => void;
-}
-
-function formatTimestamp(timestamp: string) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-
-    if (diffMins < 1) return "방금";
-    if (diffMins < 60) return `${diffMins}분 전`;
-    if (diffHours < 24) return `${diffHours}시간 전`;
-
-    return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function FloatingChatRoomList({
@@ -101,9 +88,7 @@ export function FloatingChatRoomList({
                                         </div>
                                         <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', flexShrink: 0 }}>
                                             {room.lastMessageAt && (
-                                                <Text type="supporting" color="disabled">
-                                                    {formatTimestamp(room.lastMessageAt)}
-                                                </Text>
+                                                <Timestamp value={room.lastMessageAt} format="auto" hasTooltip type="supporting" color="disabled" />
                                             )}
                                             {room.unreadCount > 0 && (
                                                 <Badge variant="teal" label={room.unreadCount > 99 ? "99+" : room.unreadCount} />

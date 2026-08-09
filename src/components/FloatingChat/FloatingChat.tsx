@@ -356,7 +356,7 @@ export function FloatingChat() {
                     right: 0,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
+                    gap: 'var(--spacing-2)',
                     alignItems: "flex-end",
                 }}
             >
@@ -384,8 +384,8 @@ export function FloatingChat() {
                                 style={{
                                     display: "flex",
                                     justifyContent: "space-between",
-                                    gap: 8,
-                                    marginBottom: 2,
+                                    gap: 'var(--spacing-2)',
+                                    marginBottom: 'var(--spacing-0-5)',
                                     fontSize: 12,
                                     color: "var(--color-text-secondary)",
                                 }}

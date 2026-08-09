@@ -64,7 +64,7 @@ const PartnerCard: React.FC<{ ad: PartnerAd; variant?: 'full' | 'compact' }> = (
                                 background: `linear-gradient(135deg, ${ad.accent.from} 0%, ${ad.accent.to} 100%)`,
                                 color: '#FFFFFF',
                                 fontSize: isCompact ? 28 : 34,
-                                fontWeight: 700,
+                                fontWeight: 'var(--font-weight-bold)',
                                 letterSpacing: '-0.02em',
                             }}
                         >

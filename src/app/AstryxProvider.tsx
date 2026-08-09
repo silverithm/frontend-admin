@@ -4,6 +4,7 @@ import NextLink from 'next/link';
 import { MotionConfig } from 'framer-motion';
 import { Theme } from '@astryxdesign/core/theme';
 import { LinkProvider } from '@astryxdesign/core/Link';
+import { LayerProvider } from '@astryxdesign/core/Layer';
 import { neutralTheme } from '@/theme/carev/neutral';
 
 /**
@@ -15,7 +16,9 @@ export function AstryxProvider({ children }: { children: React.ReactNode }) {
   return (
     <Theme theme={neutralTheme} mode="light">
       <MotionConfig reducedMotion="user">
-        <LinkProvider component={NextLink}>{children}</LinkProvider>
+        <LayerProvider toast={{ position: 'topEnd', maxVisible: 3 }}>
+          <LinkProvider component={NextLink}>{children}</LinkProvider>
+        </LayerProvider>
       </MotionConfig>
     </Theme>
   );

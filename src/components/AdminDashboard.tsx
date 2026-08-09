@@ -1235,7 +1235,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                 여기서는 줄 수 제한에 걸려 못 그린 개수만 셀 아래에 남긴다. */}
                             {hiddenCount > 0 && (
                               <div className="carev-dash-cal-chips" style={{ marginTop: 'auto', justifyContent: 'flex-start' }}>
-                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', paddingLeft: 2 }}>
+                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', paddingLeft: 'var(--spacing-0-5)' }}>
                                   +{hiddenCount}
                                 </span>
                               </div>
@@ -1277,7 +1277,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 2,
+                            gap: 'var(--spacing-0-5)',
                             padding: '0 var(--spacing-1)',
                             border: done ? `1px solid ${color}` : 'none',
                             borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,

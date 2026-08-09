@@ -27,7 +27,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
 import { Loading } from '@/components/Loading';
-import { Banner } from '@astryxdesign/core/Banner';
+import { useToast } from '@astryxdesign/core/Toast';
 import { Icon } from '@astryxdesign/core/Icon';
 import type { IconType } from '@astryxdesign/core/Icon';
 import {
@@ -63,11 +63,7 @@ export default function EmployeePage() {
   const [companyName, setCompanyName] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isClient, setIsClient] = useState(false);
-  const [notification, setNotification] = useState<{
-    show: boolean;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>({ show: false, message: '', type: 'success' });
+  const toast = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -122,8 +118,8 @@ export default function EmployeePage() {
   };
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
+    // Astryx Toast는 'info'|'error' 두 타입만 지원한다 — success/info는 info로 매핑.
+    toast({ body: message, type: type === 'error' ? 'error' : 'info' });
   };
 
   if (!isClient) {
@@ -264,25 +260,6 @@ export default function EmployeePage() {
 
           {/* 메인 콘텐츠 */}
           <main style={{ flexGrow: 1, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
-            {/* 알림 메시지 */}
-            <AnimatePresence>
-              {notification.show && (
-                <motion.div
-                  initial={{ opacity: 0, y: -12, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                  style={{ marginBottom: 'var(--spacing-4)' }}
-                >
-                  <Banner
-                    status={notification.type === 'success' ? 'success' : notification.type === 'error' ? 'error' : 'info'}
-                    title={notification.message}
-                    isDismissable
-                    onDismiss={() => setNotification({ ...notification, show: false })}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* 탭별 콘텐츠 */}
             <AnimatePresence mode="wait">
               {activeMainTab === 'dashboard' ? (

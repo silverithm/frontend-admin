@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { FiX, FiCalendar, FiUsers, FiSend, FiBriefcase, FiTrash2, FiLock } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -276,26 +277,12 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                       variant={getStatusBadgeVariant(vacation.status)}
                                       label={getStatusText(vacation.status)}
                                     />
-                                    <button
-                                      type="button"
+                                    <IconButton
+                                      label="휴가 삭제"
+                                      icon={<Icon icon={FiTrash2} />}
+                                      variant="ghost"
                                       onClick={() => handleDeleteClick(vacation)}
-                                      aria-label="휴가 삭제"
-                                      title="휴가 삭제"
-                                      className="carev-vacdetails-delete-btn"
-                                      style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        color: 'var(--color-text-gray)',
-                                        padding: 'var(--spacing-1-5)',
-                                        borderRadius: 'var(--radius-full)',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                      }}
-                                    >
-                                      <FiTrash2 size={16} />
-                                    </button>
+                                    />
                                   </HStack>
                                 </HStack>
 

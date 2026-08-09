@@ -456,7 +456,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                           <Text type="supporting" weight="medium" maxLines={1} color={isSelected ? 'accent' : 'primary'}>
                             {field.label || '(레이블 없음)'}
                             {field.required && (
-                              <span style={{ color: 'var(--color-text-red)', marginLeft: 2 }} aria-hidden>*</span>
+                              <span style={{ color: 'var(--color-text-red)', marginLeft: 'var(--spacing-0-5)' }} aria-hidden>*</span>
                             )}
                           </Text>
                           {field.visibleWhen?.conditions?.length ? (

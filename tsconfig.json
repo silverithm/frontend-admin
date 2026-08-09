@@ -34,9 +34,10 @@
     ".next-claude/types/**/*.ts",
     ".next-verify-profile/types/**/*.ts",
     ".next-verify/types/**/*.ts",
+    ".next-verify2/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-verify2/types/**/*.ts"
+    ".next-seo/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

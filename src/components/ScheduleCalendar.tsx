@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
 import MemberItem from '@/components/MemberItem';
@@ -1404,15 +1405,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       ))}
                     </VStack>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: 'var(--spacing-8) 0' }}>
-                      <Icon icon="calendar" size="lg" color="disabled" />
-                      <div style={{ marginTop: 'var(--spacing-3)' }}>
-                        <Text type="body" weight="medium" color="secondary">일정이 없습니다</Text>
-                      </div>
-                      <div style={{ marginTop: 'var(--spacing-1)' }}>
-                        <Text type="supporting">일정 추가 버튼으로 새 일정을 등록하세요</Text>
-                      </div>
-                    </div>
+                    <EmptyState
+                      icon={<Icon icon="calendar" size="lg" color="disabled" />}
+                      title="일정이 없습니다"
+                      description="일정 추가 버튼으로 새 일정을 등록하세요"
+                    />
                   )}
                 </div>
               </div>
@@ -1614,11 +1611,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   {/* 이름을 한 줄에 하나씩 두면 스크롤만 길어진다 — 폭이 되는 만큼 여러 열로 채운다 */}
                   <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--color-border-emphasized)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-2)' }}>
                     {participantCandidates.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: 'var(--spacing-2)' }}>
-                        <Text type="supporting" color="secondary">
-                          {members.length === 0 ? '직원이 없습니다' : '이 직종에 해당하는 직원이 없습니다'}
-                        </Text>
-                      </div>
+                      <EmptyState title={members.length === 0 ? '직원이 없습니다' : '이 직종에 해당하는 직원이 없습니다'} />
                     ) : (
                       // 이름만 늘어놓으면 누가 누군지 알기 어렵다 — 사진과 직종을 함께 보여준다
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--spacing-1)' }}>

@@ -221,14 +221,14 @@ export default function OnboardingTour({
           style={{
             position: 'fixed',
             borderRadius: 'var(--radius-element)',
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6)',
+            boxShadow: '0 0 0 9999px var(--color-overlay)',
             zIndex: 1000,
           }}
         />
       ) : (
         <div
           onClick={finish}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.6)', zIndex: 1000 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--color-overlay)', zIndex: 1000 }}
         />
       )}
 

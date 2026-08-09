@@ -173,7 +173,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                           padding: 'var(--spacing-1)',
                           borderBottom: '1px solid var(--color-border)',
                           borderRight: '1px solid var(--color-border)',
-                          background: 'rgba(249, 250, 251, 0.5)',
+                          background: 'var(--color-background-muted)',
                         }}
                       />
                     );
@@ -224,7 +224,7 @@ const Calendar: React.FC<CalendarProps> = ({ vacations = [], onSelectDate, selec
                         background: isSelected
                           ? 'var(--color-background-teal)'
                           : !isCurrentMonth
-                          ? 'rgba(249, 250, 251, 0.5)'
+                          ? 'var(--color-background-muted)'
                           : isToday
                           ? 'rgba(240, 253, 250, 0.4)'
                           : undefined,

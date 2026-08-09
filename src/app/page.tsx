@@ -221,7 +221,7 @@ const mockFrame: React.CSSProperties = {
 const mockTitlebar: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: 'var(--spacing-1-5)',
     padding: '10px 14px',
     borderBottom: '1px solid var(--color-border)',
     background: 'var(--color-background-muted)',
@@ -232,10 +232,10 @@ function DashboardPreview() {
     return (
         <div style={{ ...mockFrame, maxWidth: 960, marginInline: 'auto', width: '100%' }}>
             <div style={mockTitlebar}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171', display: 'inline-block' }} />
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', display: 'inline-block' }} />
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399', display: 'inline-block' }} />
-                <span style={{ marginLeft: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-icon-red)', display: 'inline-block' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-icon-yellow)', display: 'inline-block' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-icon-green)', display: 'inline-block' }} />
+                <span style={{ marginLeft: 'var(--spacing-2)' }}>
                     <Text type="supporting" color="secondary">carev.kr — 관리자 대시보드</Text>
                 </span>
             </div>

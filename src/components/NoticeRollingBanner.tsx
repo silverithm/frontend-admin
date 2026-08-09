@@ -79,12 +79,12 @@ export default function NoticeRollingBanner({
 
   const getBadgeStyle = (): React.CSSProperties => {
     if (currentNotice.priority === 'HIGH') {
-      return { backgroundColor: 'rgba(255, 107, 107, 0.8)', color: 'white' };
+      return { backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
     }
     if (currentNotice.isPinned) {
-      return { backgroundColor: 'rgba(255, 179, 71, 0.8)', color: 'white' };
+      return { backgroundColor: 'var(--color-background-orange)', color: 'var(--color-text-orange)' };
     }
-    return { backgroundColor: 'rgba(77, 171, 247, 0.8)', color: 'white' };
+    return { backgroundColor: 'var(--color-background-blue)', color: 'var(--color-text-blue)' };
   };
 
   const getBadgeLabel = () => {

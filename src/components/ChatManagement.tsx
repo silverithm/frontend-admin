@@ -24,6 +24,7 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Timestamp } from '@astryxdesign/core/Timestamp';
 import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch } from 'react-icons/fi';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
@@ -138,7 +139,7 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
                     color: isMyMessage ? 'var(--color-on-accent)' : 'var(--color-text-accent)',
                     background: isMyMessage ? "rgba(255,255,255,0.22)" : 'var(--color-background-teal, rgba(20,184,134,0.12))',
                     borderRadius: 'var(--radius-inner)',
-                    padding: "0 2px",
+                    padding: "0 var(--spacing-0-5)",
                 }}
             >
                 {part}
@@ -805,20 +806,6 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         setShowDrawer(!showDrawer);
     };
 
-    const formatTimestamp = (timestamp: string) => {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-
-        if (diffMins < 1) return "방금";
-        if (diffMins < 60) return `${diffMins}분 전`;
-        if (diffHours < 24) return `${diffHours}시간 전`;
-
-        return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
-    };
-
     const formatMessageTime = (timestamp: string) => {
         const date = new Date(timestamp);
         const hours = date.getHours();
@@ -965,9 +952,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     endContent={
                                         <VStack gap={1} hAlign="end">
                                             {roomTime && (
-                                                <Text type="supporting">
-                                                    {formatTimestamp(roomTime)}
-                                                </Text>
+                                                <Timestamp value={roomTime} format="auto" hasTooltip type="supporting" />
                                             )}
                                             {room.unreadCount > 0 && (
                                                 <Badge
@@ -1114,10 +1099,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                     alignItems: "flex-start",
                                     gap: 'var(--spacing-2)',
                                     padding: "var(--spacing-2) var(--spacing-4)",
-                                    background: 'var(--color-background-yellow, #fefce8)',
+                                    background: 'var(--color-background-yellow)',
                                     borderBottom: `1px solid ${C.border}`,
                                 }}>
-                                    <span style={{ flexShrink: 0, marginTop: 2 }}>📌</span>
+                                    <span style={{ flexShrink: 0, marginTop: 'var(--spacing-0-5)' }}>📌</span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <Text type="supporting" weight="semibold" color="primary">공지</Text>
                                         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
