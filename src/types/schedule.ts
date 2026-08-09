@@ -196,6 +196,33 @@ export function getScheduleColor(schedule: {
 }
 
 /**
+ * 라벨 색 위에 얹을 글자색 — 밝은 배경엔 어두운 글자를 준다 (WCAG 상대휘도 기준).
+ * 검정/흰 글자 중 어느 쪽이 더 높은 대비를 내는지가 갈리는 경계 휘도는 상수로 정해지며,
+ * 그 경계에서도 두 후보 대비가 항상 4.58:1(AA 기준 4.5:1 이상)이므로 "더 나은 쪽 선택"만으로
+ * 팔레트 전체의 AA 대비가 보장된다.
+ *
+ * 주의: 이 수학적 보장은 어두운 후보가 순수 검정(#000000)일 때만 성립한다.
+ * `var(--color-text-primary)`(이 테마에서 #171717)를 쓰면 경계 부근 휘도(예: SCHEDULE_CATEGORY_COLORS.TRAINING
+ * / 라벨 "보라" #8B5CF6, 휘도 ≈0.198)에서 검정·흰 글자 대비가 모두 4.5:1 미만(≈4.23:1)으로 떨어져
+ * AA를 어긴다 — 실측 확인됨. 이 테마엔 순수 검정 토큰이 없으므로(color-on-light도 #171717) 대비 보장이
+ * 필요한 이 계산에 한해 리터럴 #000000을 쓴다.
+ */
+export function getScheduleTextColor(hex: string): string {
+  const color = hex.trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) return 'var(--color-on-accent)';
+  const toLinear = (channel: number) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const r = toLinear(parseInt(color.slice(1, 3), 16));
+  const g = toLinear(parseInt(color.slice(3, 5), 16));
+  const b = toLinear(parseInt(color.slice(5, 7), 16));
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  // 검정 글자 대비와 흰 글자 대비가 같아지는 경계 휘도 ≈ 0.179 (순수 검정 기준)
+  return luminance > 0.179 ? '#000000' : 'var(--color-on-accent)';
+}
+
+/**
  * 배경색 위에 얹을 반투명 톤(캘린더 칩 배경용).
  * #RRGGBB만 지원하며 파싱 실패 시 원본 색을 그대로 돌려준다.
  */

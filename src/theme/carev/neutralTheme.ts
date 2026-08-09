@@ -66,12 +66,16 @@ export const neutralTheme = defineTheme({
   typography: {
     scale: {base: 13, ratio: 1.2},
     body: {
-      family: 'Figtree',
+      // next/font가 실제 패밀리 이름을 해시로 만들기 때문에 리터럴 'Figtree'로는 절대 매칭되지
+      // 않는다. layout.tsx에서 variable로 넘긴 --font-figtree를 통해 잇는다.
+      family: 'var(--font-figtree)',
       fallbacks:
         '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     },
     heading: {
-      family: 'Figtree',
+      // next/font가 실제 패밀리 이름을 해시로 만들기 때문에 리터럴 'Figtree'로는 절대 매칭되지
+      // 않는다. layout.tsx에서 variable로 넘긴 --font-figtree를 통해 잇는다.
+      family: 'var(--font-figtree)',
       fallbacks:
         '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       weights: {3: 'bold', 4: 'bold'},

@@ -225,6 +225,18 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
 
+    // 열린 메시지 메뉴는 Escape로 닫는다.
+    // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
+    // (키보드 사용자의 정상 경로) 메뉴로 이벤트가 오지 않는다.
+    useEffect(() => {
+        if (contextMenuMessageId === null) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setContextMenuMessageId(null);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [contextMenuMessageId]);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -264,7 +276,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             setRooms(roomList);
         } catch (error) {
             console.error("Error fetching rooms:", error);
-            onNotification("채팅방 목록을 불러오는데 실패했습니다", "error");
+            onNotification("채팅방 목록을 불러오지 못했습니다. 네트워크 연결을 확인해주세요", "error");
         } finally {
             setIsLoadingRooms(false);
         }
@@ -284,7 +296,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             return msgList.length > 0 ? msgList[0].id : null;
         } catch (error) {
             console.error("Error fetching messages:", error);
-            onNotification("메시지를 불러오는데 실패했습니다", "error");
+            onNotification("메시지를 불러오지 못했습니다. 채팅방을 다시 선택해주세요", "error");
             return null;
         } finally {
             setIsLoadingMessages(false);
@@ -528,7 +540,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             fetchRooms();
         } catch (error) {
             console.error("Error sending message:", error);
-            onNotification("메시지 전송에 실패했습니다", "error");
+            onNotification("메시지 전송에 실패했습니다. 다시 시도해주세요", "error");
         } finally {
             setIsSendingMessage(false);
         }
@@ -558,7 +570,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             fetchRooms();
         } catch (error) {
             console.error("파일 전송 실패:", error);
-            onNotification("파일 전송에 실패했습니다", "error");
+            onNotification("파일 전송에 실패했습니다. 파일을 다시 첨부해주세요", "error");
         } finally {
             setIsUploadingFile(false);
         }
@@ -621,7 +633,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             setListTab('rooms');
         } catch (error) {
             console.error("1:1 대화 열기 실패:", error);
-            onNotification("대화를 열지 못했습니다", "error");
+            onNotification("대화를 열지 못했습니다. 잠시 후 다시 시도해주세요", "error");
         } finally {
             setIsOpeningDirect(false);
         }
@@ -648,7 +660,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             setSearchResults(response.messages || []);
         } catch (error) {
             console.error("메시지 검색 실패:", error);
-            onNotification("검색에 실패했습니다", "error");
+            onNotification("검색에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
             setSearchResults([]);
         } finally {
             setIsSearching(false);
@@ -664,7 +676,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             setSharedFiles(response.files || []);
         } catch (error) {
             console.error("파일 목록 로드 실패:", error);
-            onNotification("파일 목록을 불러오지 못했습니다", "error");
+            onNotification("파일 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요", "error");
             setSharedFiles([]);
         } finally {
             setIsLoadingFiles(false);
@@ -685,7 +697,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             onNotification(messageId === null ? "공지를 내렸습니다" : "공지로 등록했습니다", "success");
         } catch (error) {
             console.error("공지 변경 실패:", error);
-            onNotification("공지 변경에 실패했습니다", "error");
+            onNotification("공지 변경에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
         } finally {
             setIsUpdatingNotice(false);
         }
@@ -717,7 +729,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             fetchRooms();
         } catch (error) {
             console.error("Error creating room:", error);
-            onNotification(error instanceof Error ? error.message : "채팅방 생성에 실패했습니다", "error");
+            onNotification(error instanceof Error ? error.message : "채팅방 생성에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
         }
     };
 
@@ -749,7 +761,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             fetchRooms();
         } catch (error) {
             console.error("Error deleting room:", error);
-            onNotification("채팅방 삭제에 실패했습니다", "error");
+            onNotification("채팅방 삭제에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
         } finally {
             setIsDeletingRoom(false);
         }
@@ -1167,16 +1179,27 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                     )}
                                                     <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
                                                         {isMyMessage && (
-                                                            <Text type="supporting">
-                                                                {formatMessageTime(message.createdAt)}
-                                                            </Text>
+                                                            <>
+                                                                {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/공지 메뉴에 닿을 수 있어야 한다 */}
+                                                                <IconButton
+                                                                    label="메시지 옵션"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                                    onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
+                                                                />
+                                                                <Text type="supporting">
+                                                                    {formatMessageTime(message.createdAt)}
+                                                                </Text>
+                                                            </>
                                                         )}
                                                         <div
                                                             style={{
                                                                 position: "relative",
                                                                 padding: "var(--spacing-2) var(--spacing-3)",
                                                                 ...(isMyMessage
-                                                                    ? { background: '#0d9488', color: 'var(--color-on-accent)', borderRadius: 'var(--radius-container) var(--radius-inner) var(--radius-container) var(--radius-container)' }
+                                                                    // 저대비로 기각된 하드코딩 색 대신 테마 accent 토큰 사용 (AA 대비 확보)
+                                                                    ? { background: C.accent, color: 'var(--color-on-accent)', borderRadius: 'var(--radius-container) var(--radius-inner) var(--radius-container) var(--radius-container)' }
                                                                     : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: 'var(--radius-inner) var(--radius-container) var(--radius-container) var(--radius-container)' }),
                                                             }}
                                                             onTouchStart={() => {
@@ -1211,13 +1234,20 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                             )}
 
                                                             {message.type === "IMAGE" && message.fileUrl ? (
-                                                                <img
-                                                                    className="carev-chat-image"
-                                                                    src={message.fileUrl}
-                                                                    alt={message.fileName || "이미지"}
-                                                                    style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)', cursor: "pointer" }}
+                                                                // img는 네이티브로 포커스를 못 받으므로 button으로 감싸 키보드로도 크게 보기를 열 수 있게 한다
+                                                                <button
+                                                                    type="button"
                                                                     onClick={() => setImagePreview({ fileUrl: message.fileUrl!, fileName: message.fileName || "이미지" })}
-                                                                />
+                                                                    aria-label={`${message.fileName || "이미지"} 크게 보기`}
+                                                                    style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}
+                                                                >
+                                                                    <img
+                                                                        className="carev-chat-image"
+                                                                        src={message.fileUrl}
+                                                                        alt={message.fileName || "이미지"}
+                                                                        style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)' }}
+                                                                    />
+                                                                </button>
                                                             ) : message.type === "FILE" && message.fileUrl ? (
                                                                 // 문서는 새 탭으로 내보내지 않고 화면 안에서 바로 연다
                                                                 <button
@@ -1252,9 +1282,18 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                                             )}
                                                         </div>
                                                         {!isMyMessage && (
-                                                            <Text type="supporting">
-                                                                {formatMessageTime(message.createdAt)}
-                                                            </Text>
+                                                            <>
+                                                                <Text type="supporting">
+                                                                    {formatMessageTime(message.createdAt)}
+                                                                </Text>
+                                                                <IconButton
+                                                                    label="메시지 옵션"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                                    onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
+                                                                />
+                                                            </>
                                                         )}
                                                     </div>
 
@@ -1467,14 +1506,20 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
                                             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-2)' }}>
                                                 {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
-                                                    <img
+                                                    <button
                                                         key={m.id}
-                                                        src={m.fileUrl!}
-                                                        alt={m.fileName || "사진"}
-                                                        className="carev-chat-photo"
-                                                        style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)', cursor: "pointer" }}
+                                                        type="button"
                                                         onClick={() => window.open(m.fileUrl, "_blank")}
-                                                    />
+                                                        aria-label={`${m.fileName || "사진"} 크게 보기`}
+                                                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
+                                                    >
+                                                        <img
+                                                            src={m.fileUrl!}
+                                                            alt={m.fileName || "사진"}
+                                                            className="carev-chat-photo"
+                                                            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)' }}
+                                                        />
+                                                    </button>
                                                 ))}
                                             </div>
                                         ) : (

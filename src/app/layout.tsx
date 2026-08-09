@@ -1,11 +1,20 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Figtree } from 'next/font/google'
 import './globals.css'
 import SubscriptionGuard from '@/components/SubscriptionGuard'
 import { jsonLdScriptProps } from '@/lib/seo'
 import { AstryxProvider } from './AstryxProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+/**
+ * 브랜드 서체.
+ *
+ * 테마 토큰(--font-family-body/heading)이 'Figtree'를 첫 순위로 지정하는데 정작 로드하는 곳이
+ * 없어서, Astryx Theme 래퍼 안의 모든 글자가 시스템 폰트로 대체되고 있었다. (그동안 받아오던
+ * Inter는 Theme 래퍼의 font-family에 밀려 한 글자도 쓰이지 않았다.)
+ * variable로 넘겨 토큰 스택과 이름이 어긋나지 않게 한다. 한글은 Figtree에 없으므로 스택 뒤쪽
+ * 시스템 폰트가 그대로 받는다 — 바뀌는 것은 숫자·영문뿐이다.
+ */
+const figtree = Figtree({ subsets: ['latin'], display: 'swap', variable: '--font-figtree' })
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -209,7 +218,7 @@ export default function RootLayout({
 
   return (
     <html lang="ko">
-      <body className={inter.className}>
+      <body className={figtree.variable}>
         {/* 구조화 데이터 — head 중복 렌더를 피하기 위해 body에서 한 번만 출력 */}
         <script {...jsonLdScriptProps(jsonLd)} />
         <script {...jsonLdScriptProps(websiteJsonLd)} />

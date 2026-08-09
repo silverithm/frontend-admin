@@ -58,7 +58,8 @@ import {
   updateScheduleTask,
   deleteScheduleTask,
 } from '@/lib/apiService';
-import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES } from '@/types/schedule';
+import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES } from '@/types/schedule';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { buildWeekBarLayouts, WEEK_GRID_COLUMNS, colStartRatio, colEndRatio } from '@/lib/scheduleBars';
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
@@ -183,6 +184,7 @@ const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => 
 });
 
 export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
+  const { confirm, ConfirmContainer } = useConfirm();
   const [isLoading, setIsLoading] = useState(true);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [vacationRequests, setVacationRequests] = useState<VacationItem[]>([]);
@@ -698,6 +700,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
   const handleDeleteDetailTask = async (task: ScheduleTask) => {
     if (!selectedSchedule) return;
+    const confirmed = await confirm({
+      title: '할 일 삭제',
+      message: '이 할 일을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+      confirmText: '삭제',
+      type: 'danger',
+    });
+    if (!confirmed) return;
     setTaskBusyId(task.id);
     try {
       await deleteScheduleTask(selectedSchedule.id, task.id);
@@ -1282,7 +1291,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             border: done ? `1px solid ${color}` : 'none',
                             borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
                             background: done ? withAlpha(color, 0.14) : color,
-                            color: done ? color : 'var(--color-on-accent)',
+                            color: done ? color : getScheduleTextColor(color),
                             opacity: done ? 0.85 : 0.9,
                             fontSize: 'var(--font-size-xs)',
                             fontWeight: 'var(--font-weight-medium)',
@@ -1851,6 +1860,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           }
         />
       </Dialog>
+
+      <ConfirmContainer />
     </div>
   );
 }

@@ -438,7 +438,8 @@ export function FloatingChat() {
             <div
                 style={{
                     position: "absolute",
-                    bottom: isOpen ? 64 + 550 + 12 : 64,
+                    // 패널 높이는 globals.css가 정한다 (좁은 화면에선 550보다 작아진다)
+                    bottom: isOpen ? "calc(64px + var(--carev-fchat-panel-h) + var(--spacing-3))" : 64,
                     right: 0,
                     display: "flex",
                     flexDirection: "column",
@@ -509,9 +510,10 @@ export function FloatingChat() {
                     >
                         <Card
                             padding={0}
+                            // 크기는 carev-fchat-panel이 정한다 — 좁은 화면에서 380px 고정폭이면
+                            // 컨테이너의 right:24 때문에 왼쪽이 화면 밖으로 잘린다
+                            className="carev-fchat-panel"
                             style={{
-                                width: 380,
-                                height: 550,
                                 borderRadius: 'var(--radius-container)',
                                 boxShadow: 'var(--shadow-high)',
                                 overflow: "hidden",

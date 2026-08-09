@@ -27,8 +27,9 @@ import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { Card } from '@astryxdesign/core/Card';
 import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconTag, IconCircleCheck, IconChecklist, IconUserCheck } from '@tabler/icons-react';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask } from '@/lib/apiService';
-import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, LABEL_COLORS, getScheduleColor, withAlpha } from '@/types/schedule';
+import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, LABEL_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
+import { useConfirm } from './ConfirmDialog';
 import { colStartRatio, colEndRatio } from '@/lib/scheduleBars';
 import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
@@ -102,7 +103,8 @@ const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   boxShadow: selected ? '0 0 0 2px var(--color-border)' : undefined,
   transform: selected ? 'scale(1.1)' : undefined,
   backgroundColor: value,
-  transition: 'all var(--duration-fast-min)',
+  // 실제로 바뀌는 속성만 명시 — border/boxShadow/transform은 선택 여부에 따라 토글된다
+  transition: 'border-color var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard), transform var(--duration-fast-min) var(--ease-standard)',
 });
 
 interface ScheduleCalendarProps {
@@ -131,6 +133,7 @@ interface ScheduleFormData {
 
 export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, onNotification }: ScheduleCalendarProps) {
   const { showAlert, AlertContainer } = useAlert();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [currentDate, setCurrentDate] = useState(() => initialMonth ?? new Date());
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [labels, setLabels] = useState<ScheduleLabel[]>([]);
@@ -559,6 +562,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   const handleDeleteTask = async (task: ScheduleTask) => {
     if (!selectedSchedule) return;
+    const confirmed = await confirm({
+      title: '할 일 삭제',
+      message: '이 할 일을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+      confirmText: '삭제',
+      type: 'danger',
+    });
+    if (!confirmed) return;
     setTaskBusyId(task.id);
     try {
       await deleteScheduleTask(selectedSchedule.id, task.id);
@@ -972,7 +982,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           position: 'relative',
           cursor: 'pointer',
           textAlign: 'left',
-          transition: 'all var(--duration-fast)',
+          // 'all'은 .carev-schedcal-cell의 스코프된 전이(background, box-shadow)를 인라인이 항상 이겨서 덮어썼다.
+          // 실제로 바뀌는 두 속성만 같은 지속시간으로 맞춘다.
+          transition: 'background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard)',
           opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
           background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
           boxShadow: isSelected ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
@@ -995,6 +1007,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   return (
     <>
       <AlertContainer />
+      <ConfirmContainer />
       {/* 배차 모드: 서브탭 */}
       {isDispatchMode && (
         <div style={{ marginBottom: 'var(--spacing-4)' }}>
@@ -1235,7 +1248,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                 border: isDone ? `1px solid ${barColor}` : 'none',
                                 borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
                                 backgroundColor: isDone ? withAlpha(barColor, 0.14) : barColor,
-                                color: isDone ? barColor : 'var(--color-on-accent)',
+                                color: isDone ? barColor : getScheduleTextColor(barColor),
                                 opacity: isDone ? 0.85 : 0.9,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',

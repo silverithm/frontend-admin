@@ -14,6 +14,8 @@
   /* 관리자/직원 셸은 확정 높이(100dvh)를 갖고, 그 안에서 flex로 높이를 분배한다.
      한 화면을 채워야 하는 영역은 flex: 1 + min-height: 0 을 쓴다 (뷰포트 계산식 금지). */
   --carev-shell-chrome: 88px;
+  /* 플로팅 채팅 패널 높이 — 패널과 그 위에 뜨는 토스트가 같은 값을 봐야 위치가 어긋나지 않는다 */
+  --carev-fchat-panel-h: min(550px, calc(100dvh - 140px));
 }
 
 html {
@@ -422,7 +424,7 @@ html {
    근무조정(.carev-admin-work-layout)과 같은 규칙: 데스크탑에서 두 컬럼이 같은 높이로
    한 화면을 채우고, 넘치는 내용은 각 컬럼 안에서만 스크롤한다. */
 .carev-schedcal-layout { display: flex; flex-direction: column; gap: var(--spacing-6); }
-.carev-schedcal-main { width: 100%; min-width: 0; transition: all var(--duration-medium-min) var(--ease-standard); }
+.carev-schedcal-main { width: 100%; min-width: 0; transition: width var(--duration-medium-min) var(--ease-standard); }
 .carev-schedcal-detail { width: 100%; }
 @media (min-width: 1280px) {
   /* 달력을 한 화면 높이에 욱여넣지 않는다 — 셀은 최소 높이(120px)를 지키고
@@ -513,7 +515,7 @@ html {
 @media (hover: hover) {
   .carev-schedcal-bar:hover { opacity: 1 !important; filter: brightness(0.94); box-shadow: var(--shadow-low); }
 }
-.carev-schedcal-list-item { transition: all var(--duration-fast-min) var(--ease-standard); }
+.carev-schedcal-list-item { transition: background var(--duration-fast-min) var(--ease-standard), border-color var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-schedcal-list-item:hover { background: var(--color-background-surface); border-color: var(--color-border); } }
 .carev-schedcal-attach { transition: background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-schedcal-attach:hover { background: var(--color-background-muted); } }
@@ -600,9 +602,17 @@ html {
 /* Phase 7: 채팅 도메인 hover */
 @media (hover: hover) {
   .carev-fchat-fab:hover {
-    background: #0d9488 !important;
+    background: var(--color-text-teal) !important;
     box-shadow: var(--shadow-high) !important;
   }
+}
+
+/* 플로팅 채팅 패널 — 좁은 화면에서 화면 밖으로 잘리지 않게.
+   컨테이너가 right:24로 고정돼 있어 380px 고정폭이면 뷰포트 404px 미만에서
+   왼쪽이 잘려나간다 (흔한 안드로이드 360px, iPhone SE 375px). */
+.carev-fchat-panel {
+  width: min(380px, calc(100vw - var(--spacing-12)));
+  height: var(--carev-fchat-panel-h);
 }
 .carev-chat-room-item { transition: background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-chat-room-item:hover { background: var(--color-background-muted); } }

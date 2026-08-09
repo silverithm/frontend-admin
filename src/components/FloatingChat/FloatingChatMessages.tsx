@@ -106,6 +106,18 @@ export function FloatingChatMessages({
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [longPressMenuMessageId, setLongPressMenuMessageId] = useState<number | null>(null);
 
+    // 열린 메시지 메뉴는 Escape로 닫는다.
+    // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
+    // (키보드 사용자의 정상 경로) 메뉴로 이벤트가 오지 않는다.
+    useEffect(() => {
+        if (longPressMenuMessageId === null) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setLongPressMenuMessageId(null);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [longPressMenuMessageId]);
+
     const fetchParticipants = useCallback(async () => {
         if (!roomId) return;
         setIsLoadingParticipants(true);
@@ -447,9 +459,20 @@ export function FloatingChatMessages({
                                         )}
                                         <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)' }}>
                                             {isMyMessage && (
-                                                <Text type="supporting" color="secondary">
-                                                    {formatMessageTime(message.createdAt)}
-                                                </Text>
+                                                <>
+                                                    {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/반응 메뉴에 닿을 수 있어야 한다 */}
+                                                    <Button
+                                                        label="메시지 옵션"
+                                                        isIconOnly
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                        onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
+                                                    />
+                                                    <Text type="supporting" color="secondary">
+                                                        {formatMessageTime(message.createdAt)}
+                                                    </Text>
+                                                </>
                                             )}
                                             <div
                                                 style={{
@@ -475,13 +498,20 @@ export function FloatingChatMessages({
                                                 {renderReplyPreview(message)}
 
                                                 {message.type === "IMAGE" && message.fileUrl ? (
-                                                    <img
-                                                        className="carev-chat-image"
-                                                        src={message.fileUrl}
-                                                        alt={message.fileName || "이미지"}
-                                                        style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', cursor: "pointer", display: "block" }}
+                                                    // img는 네이티브로 포커스를 못 받으므로 button으로 감싸 키보드로도 크게 보기를 열 수 있게 한다
+                                                    <button
+                                                        type="button"
                                                         onClick={() => window.open(message.fileUrl, "_blank")}
-                                                    />
+                                                        aria-label={`${message.fileName || "이미지"} 크게 보기`}
+                                                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}
+                                                    >
+                                                        <img
+                                                            className="carev-chat-image"
+                                                            src={message.fileUrl}
+                                                            alt={message.fileName || "이미지"}
+                                                            style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', display: "block" }}
+                                                        />
+                                                    </button>
                                                 ) : message.type === "FILE" && message.fileUrl ? (
                                                     <a
                                                         href={message.fileUrl}
@@ -503,9 +533,19 @@ export function FloatingChatMessages({
                                                 )}
                                             </div>
                                             {!isMyMessage && (
-                                                <Text type="supporting" color="secondary">
-                                                    {formatMessageTime(message.createdAt)}
-                                                </Text>
+                                                <>
+                                                    <Text type="supporting" color="secondary">
+                                                        {formatMessageTime(message.createdAt)}
+                                                    </Text>
+                                                    <Button
+                                                        label="메시지 옵션"
+                                                        isIconOnly
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                        onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
+                                                    />
+                                                </>
                                             )}
                                         </div>
 
@@ -694,14 +734,20 @@ export function FloatingChatMessages({
                             {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-1-5)' }}>
                                     {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
-                                        <img
+                                        <button
                                             key={m.id}
-                                            className="carev-chat-image"
-                                            src={m.fileUrl!}
-                                            alt={m.fileName || "사진"}
-                                            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)', cursor: "pointer" }}
+                                            type="button"
                                             onClick={() => window.open(m.fileUrl, "_blank")}
-                                        />
+                                            aria-label={`${m.fileName || "사진"} 크게 보기`}
+                                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
+                                        >
+                                            <img
+                                                className="carev-chat-image"
+                                                src={m.fileUrl!}
+                                                alt={m.fileName || "사진"}
+                                                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)' }}
+                                            />
+                                        </button>
                                     ))}
                                 </div>
                             ) : (

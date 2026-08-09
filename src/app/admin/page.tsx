@@ -1127,7 +1127,7 @@ export default function AdminPage() {
             case "pending":
                 return "대기중";
             case "rejected":
-                return "거부됨";
+                return "거절됨";
             default:
                 return status || "알 수 없음";
         }
@@ -1332,14 +1332,14 @@ export default function AdminPage() {
             {/* 메인 콘텐츠 */}
             <main style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", width: "100%", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
                 {/* 탭별 컨텐츠 */}
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="wait" initial={false}>
                     {activeMainTab === "dashboard" ? (
                         <motion.div
                             key="dashboard"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <AdminDashboard onTabChange={(tab) => {
@@ -1352,10 +1352,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "notice" ? (
                         <motion.div
                             key="notice"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <NoticeManagement isAdmin={isAdmin} onOpenPlazaPost={handleOpenPlazaPost} />
@@ -1363,10 +1363,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "chat" ? (
                         <motion.div
                             key="chat"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <ChatManagement onNotification={showNotification} />
@@ -1374,10 +1374,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "schedule" ? (
                         <motion.div
                             key={`schedule-${scheduleMode}`}
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.mediumMin}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {scheduleMode === "annual" ? (
@@ -1399,10 +1399,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "tools" ? (
                         <motion.div
                             key={`tools-${activeTool}`}
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.mediumMin}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* 도구가 둘 이상이 되면 모바일에서도 고를 수 있도록 전환 바를 띄운다 */}
@@ -1426,10 +1426,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "approval" ? (
                         <motion.div
                             key={`approval-${approvalSubTab}`}
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {approvalSubTab === "management" && isAdmin ? (
@@ -1443,10 +1443,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "plaza" ? (
                         <motion.div
                             key="plaza"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <PlazaManagement />
@@ -1454,10 +1454,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "voice" ? (
                         <motion.div
                             key="voice"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <VoiceBoxAdmin />
@@ -1465,10 +1465,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "work" ? (
                         <motion.div
                             key="work"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* 근무관리 - 캘린더 + 사이드바 */}
@@ -1542,7 +1542,7 @@ export default function AdminPage() {
                                                         return (
                                                         <Button
                                                             key={status}
-                                                            label={status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거부"}
+                                                            label={status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거절"}
                                                             variant={active ? (status === "rejected" ? "destructive" : "primary") : "ghost"}
                                                             size="sm"
                                                             onClick={() => setStatusFilter(status)}
@@ -1631,7 +1631,7 @@ export default function AdminPage() {
                                                             {selectedVacationIds.size} / {selectableRequests.length}개
                                                         </Text>
                                                     </div>
-                                                    <div style={{ display: "flex", gap: 'var(--spacing-2)' }}>
+                                                    <div style={{ display: "flex", gap: 'var(--spacing-3)' }}>
                                                         <Button
                                                             label="승인"
                                                             variant="primary"
@@ -1743,7 +1743,7 @@ export default function AdminPage() {
                                                                 <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
                                                             </div>
                                                             {isAdmin && (
-                                                            <div style={{ display: "flex", gap: 'var(--spacing-1)', alignItems: "center" }}>
+                                                            <div style={{ display: "flex", gap: 'var(--spacing-3)', alignItems: "center" }}>
                                                                 {request.status === "pending" && (
                                                                     <>
                                                                         <Button
@@ -1791,10 +1791,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "library" ? (
                         <motion.div
                             key="library"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <CompanyLibrary isAdmin={isAdmin} onNotification={showNotification} />
@@ -1802,10 +1802,10 @@ export default function AdminPage() {
                     ) : activeMainTab === "members" ? (
                         <motion.div
                             key="members"
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -20}}
-                            transition={{duration: duration.fast}}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <UserManagement
