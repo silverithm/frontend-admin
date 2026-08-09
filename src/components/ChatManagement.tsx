@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, fetchOnlineUserIds, getApproverCandidates } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { openOrCreateDirectRoom } from '@/lib/directChat';
+import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import MemberItem from '@/components/MemberItem';
 import { Button } from '@astryxdesign/core/Button';
@@ -150,11 +152,6 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
     );
 }
 
-/** 1:1 방 이름 규칙 — 같은 상대와 두 번 만들지 않으려면 이름이 일정해야 한다 */
-function directRoomName(memberName: string): string {
-    return `${memberName} 님과의 대화`;
-}
-
 function getDateKey(dateStr: string): string {
     const d = new Date(dateStr);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -214,11 +211,12 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     /** 왼쪽 목록 전환 — 대화방 / 직원 */
     const [listTab, setListTab] = useState<'rooms' | 'people'>('rooms');
-    /** 기관 전 인원 (이름 + 직책 + 프로필 사진) */
-    const [orgMembers, setOrgMembers] = useState<{ id: string; name: string; position?: string | null; profileImageUrl?: string | null }[]>([]);
-    /** 지금 접속 중인 사람들의 userId */
-    const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
     const [isOpeningDirect, setIsOpeningDirect] = useState(false);
+    // 기관 인원 명단과 접속 상태는 플로팅 채팅과 스토어를 함께 쓴다 (둘 다 떠 있을 수 있다)
+    const orgMembers = useOrgPresenceStore(s => s.members);
+    const onlineUserIds = useOrgPresenceStore(s => s.onlineUserIds);
+    const loadOrgPresence = useOrgPresenceStore(s => s.load);
+    const setPresence = useOrgPresenceStore(s => s.setPresence);
     /** 공지가 길면 두 줄만 보여주고 필요할 때 펼친다 */
     const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -318,12 +316,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                     client.subscribe(`/topic/presence/${companyId}`, (frame: IMessage) => {
                         try {
                             const { userId: changedId, online } = JSON.parse(frame.body) as { userId: string; online: boolean };
-                            setOnlineUserIds(prev => {
-                                const next = new Set(prev);
-                                if (online) next.add(String(changedId));
-                                else next.delete(String(changedId));
-                                return next;
-                            });
+                            setPresence(changedId, online);
                         } catch (error) {
                             console.error("[Presence] 상태 수신 처리 실패:", error);
                         }
@@ -350,7 +343,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             client.deactivate();
             stompClientRef.current = null;
         };
-    }, [userId]);
+    }, [userId, companyId, setPresence]);
 
     // 방 선택 시 또는 WebSocket 재연결 시 메시지 로드 → 읽음 처리
     useEffect(() => {
@@ -363,30 +356,12 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         })();
     }, [selectedRoom, isConnected, fetchMessages, markAsRead]);
 
-    // 기관 인원 목록 + 지금 접속 중인 사람 (첫 화면용 — 이후 변화는 WebSocket으로 받는다)
+    // 기관 인원 목록 + 지금 접속 중인 사람 (첫 화면용 — 이후 변화는 WebSocket으로 받는다).
+    // 이미 받았거나 받는 중이면 load()가 알아서 넘긴다
     useEffect(() => {
         if (!companyId) return;
-        (async () => {
-            try {
-                // 결재선 후보는 관리자까지 포함해 인원이 가장 온전하다 (프로필 사진도 함께 온다)
-                const [candidateResponse, presenceResponse] = await Promise.all([
-                    getApproverCandidates(),
-                    fetchOnlineUserIds().catch(() => ({ onlineUserIds: [] })),
-                ]);
-                const candidates = Array.isArray(candidateResponse?.candidates) ? candidateResponse.candidates : [];
-
-                setOrgMembers(candidates.map((c: { approverId: number | string; name: string; position?: string | null; profileImageUrl?: string | null }) => ({
-                    id: String(c.approverId),
-                    name: c.name,
-                    position: c.position,
-                    profileImageUrl: c.profileImageUrl ?? null,
-                })));
-                setOnlineUserIds(new Set((presenceResponse?.onlineUserIds || []).map(String)));
-            } catch (error) {
-                console.error("인원 목록 로드 실패:", error);
-            }
-        })();
-    }, [companyId]);
+        loadOrgPresence(companyId);
+    }, [companyId, loadOrgPresence]);
 
     // 방 선택 시 WebSocket 구독 변경
     useEffect(() => {
@@ -637,26 +612,12 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     const openDirectChat = async (member: { id: string; name: string }) => {
         if (!userId || !userName || isOpeningDirect) return;
 
-        const existing = rooms.find(r => r.participantCount === 2 && r.name === directRoomName(member.name));
-        if (existing) {
-            setSelectedRoom(existing.id);
-            setListTab('rooms');
-            return;
-        }
-
         setIsOpeningDirect(true);
         try {
-            const response = await createChatRoom({
-                name: directRoomName(member.name),
-                description: "1:1 대화",
-                creatorId: userId,
-                creatorName: userName,
-                // 백엔드는 생성자를 자동 포함하지 않으므로 나도 참가자에 넣어야 한다
-                participantIds: [userId, member.id],
-            });
-            const created = response.room || response;
-            await fetchRooms();
-            if (created?.id) setSelectedRoom(created.id);
+            const { roomId, isNew } = await openOrCreateDirectRoom({ rooms, member, userId, userName });
+            // 새로 만들었을 때만 목록을 다시 받아야 방이 목록에 나타난다
+            if (isNew) await fetchRooms();
+            if (roomId) setSelectedRoom(roomId);
             setListTab('rooms');
         } catch (error) {
             console.error("1:1 대화 열기 실패:", error);
@@ -673,16 +634,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     );
 
     /** 온라인인 사람을 위로 올리고, 그 안에서는 이름순 */
-    const sortedMembers = useMemo(() => {
-        return [...orgMembers]
-            .filter(m => m.id !== userId)
-            .sort((a, b) => {
-                const aOn = onlineUserIds.has(a.id) ? 0 : 1;
-                const bOn = onlineUserIds.has(b.id) ? 0 : 1;
-                if (aOn !== bOn) return aOn - bOn;
-                return a.name.localeCompare(b.name, 'ko');
-            });
-    }, [orgMembers, onlineUserIds, userId]);
+    const sortedMembers = useMemo(
+        () => sortMembersByPresence(orgMembers, onlineUserIds, userId),
+        [orgMembers, onlineUserIds, userId],
+    );
 
     /** 방 안 메시지 검색 */
     const runSearch = async () => {

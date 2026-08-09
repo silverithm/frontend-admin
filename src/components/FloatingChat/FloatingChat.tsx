@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,9 +8,11 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { Card } from "@astryxdesign/core/Card";
 import { Badge } from "@astryxdesign/core/Badge";
 import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
-import { FloatingChatRoomList } from "./FloatingChatRoomList";
+import { FloatingChatRoomList, FloatingChatListTab } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
+import { DirectChatMember, openOrCreateDirectRoom } from '@/lib/directChat';
+import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { duration } from '@/theme/motion';
 
@@ -38,6 +40,18 @@ export function FloatingChat() {
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [toasts, setToasts] = useState<ChatToast[]>([]);
+
+    // 직원 목록 — 채팅 페이지와 같은 '대화 / 직원' 구성.
+    // 명단·접속 상태는 채팅 페이지와 스토어를 함께 쓴다 (같은 화면에 둘 다 떠 있을 수 있다)
+    const [listTab, setListTab] = useState<FloatingChatListTab>("rooms");
+    const [isOpeningDirect, setIsOpeningDirect] = useState(false);
+    const [directError, setDirectError] = useState<string | null>(null);
+
+    const orgMembers = useOrgPresenceStore(s => s.members);
+    const onlineUserIds = useOrgPresenceStore(s => s.onlineUserIds);
+    const membersStatus = useOrgPresenceStore(s => s.status);
+    const loadOrgPresence = useOrgPresenceStore(s => s.load);
+    const setPresence = useOrgPresenceStore(s => s.setPresence);
 
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -120,6 +134,23 @@ export function FloatingChat() {
             onConnect: () => {
                 console.log("[FloatingChat WebSocket] 연결됨");
                 setIsConnected(true);
+
+                // 접속 상태 — 내가 붙었음을 알리고, 다른 사람의 상태 변화를 받는다.
+                // (연결이 끊기면 서버가 알아서 오프라인 처리하므로 나갈 때 보낼 것은 없다)
+                if (companyId) {
+                    client.publish({
+                        destination: "/app/presence/join",
+                        body: JSON.stringify({ userId, companyId }),
+                    });
+                    client.subscribe(`/topic/presence/${companyId}`, (frame: IMessage) => {
+                        try {
+                            const { userId: changedId, online } = JSON.parse(frame.body) as { userId: string; online: boolean };
+                            setPresence(changedId, online);
+                        } catch (error) {
+                            console.error("[FloatingChat Presence] 상태 수신 처리 실패:", error);
+                        }
+                    });
+                }
             },
             onDisconnect: () => {
                 console.log("[FloatingChat WebSocket] 연결 해제됨");
@@ -141,7 +172,35 @@ export function FloatingChat() {
             client.deactivate();
             stompClientRef.current = null;
         };
-    }, [authToken, userId]);
+    }, [authToken, userId, companyId, setPresence]);
+
+    /**
+     * 기관 인원 목록 + 지금 접속 중인 사람.
+     *
+     * 위젯은 모든 화면에 떠 있으므로 마운트 시점에 부르지 않는다 — 패널을 처음 열 때만
+     * 받아오고, 이후 접속 상태 변화는 WebSocket으로 따라간다.
+     * 이미 받았거나 받는 중이면 load()가 알아서 넘기므로 여러 번 불러도 된다.
+     */
+    useEffect(() => {
+        if (!isOpen || !companyId) return;
+        loadOrgPresence(companyId);
+    }, [isOpen, companyId, loadOrgPresence]);
+
+    const retryLoadMembers = useCallback(() => {
+        if (companyId) loadOrgPresence(companyId, { force: true });
+    }, [companyId, loadOrgPresence]);
+
+    /** 내 프로필 사진 — 인원 목록에 내가 섞여 있으므로 거기서 꺼낸다 */
+    const myProfileImageUrl = useMemo(
+        () => orgMembers.find(m => m.id === userId)?.profileImageUrl ?? null,
+        [orgMembers, userId],
+    );
+
+    /** 온라인인 사람을 위로 올리고, 그 안에서는 이름순 */
+    const sortedMembers = useMemo(
+        () => sortMembersByPresence(orgMembers, onlineUserIds, userId),
+        [orgMembers, onlineUserIds, userId],
+    );
 
     // 방 목록 로드 + 30초 주기 갱신 (보고 있는 탭에서만)
     useVisiblePolling(fetchRooms, 30000);
@@ -331,6 +390,33 @@ export function FloatingChat() {
         fetchRooms();
     };
 
+    /**
+     * 직원 목록에서 누른 사람과의 1:1 대화를 연다.
+     * 방 이름 규칙과 생성 절차는 채팅 페이지와 공유한다 (@/lib/directChat).
+     */
+    const openDirectChat = async (member: DirectChatMember) => {
+        if (!userId || !userName || isOpeningDirect) return;
+
+        setIsOpeningDirect(true);
+        setDirectError(null);
+        try {
+            const { roomId, isNew } = await openOrCreateDirectRoom({ rooms, member, userId, userName });
+            if (isNew) await fetchRooms();
+            if (roomId) {
+                setListTab("rooms");
+                handleSelectRoom(roomId);
+            } else {
+                // 방은 만들어졌는데 id를 못 받은 경우 — 조용히 넘기면 아무 일도 안 일어난 것처럼 보인다
+                setDirectError(`${member.name} 님과의 대화를 열지 못했습니다`);
+            }
+        } catch (error) {
+            console.error("[FloatingChat] 1:1 대화 열기 실패:", error);
+            setDirectError(`${member.name} 님과의 대화를 열지 못했습니다`);
+        } finally {
+            setIsOpeningDirect(false);
+        }
+    };
+
     const handleToggle = () => {
         setIsOpen(prev => !prev);
     };
@@ -448,6 +534,18 @@ export function FloatingChat() {
                                             isLoadingRooms={isLoadingRooms}
                                             isConnected={isConnected}
                                             onSelectRoom={handleSelectRoom}
+                                            listTab={listTab}
+                                            onListTabChange={setListTab}
+                                            members={sortedMembers}
+                                            onlineUserIds={onlineUserIds}
+                                            membersStatus={membersStatus}
+                                            onRetryLoadMembers={retryLoadMembers}
+                                            myName={userName}
+                                            myProfileImageUrl={myProfileImageUrl}
+                                            isOpeningDirect={isOpeningDirect}
+                                            onSelectMember={openDirectChat}
+                                            directError={directError}
+                                            onDismissDirectError={() => setDirectError(null)}
                                         />
                                     </motion.div>
                                 ) : (
