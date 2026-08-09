@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { format, parseISO, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Card } from "@astryxdesign/core/Card";
-import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 import { Grid } from "@astryxdesign/core/Grid";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
@@ -104,7 +104,7 @@ export default function DispatchListView({
       : "error";
 
   return (
-    <VStack gap={6}>
+    <VStack gap={6} height="100%">
       {/* 필터 패널 */}
       <Card padding={6}>
         <VStack gap={4}>
@@ -190,13 +190,19 @@ export default function DispatchListView({
       </Grid>
 
       {/* 배차 테이블 */}
-      <Card padding={0}>
-        {filteredDispatches.length === 0 ? (
-          <EmptyState
-            title="배차 데이터가 없습니다"
-            description="해당 기간에 배차 데이터가 없습니다."
-          />
-        ) : (
+      {filteredDispatches.length === 0 ? (
+        <StackItem size="fill">
+          <Card padding={0} height="100%">
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <EmptyState
+                title="배차 데이터가 없습니다"
+                description="해당 기간에 배차 데이터가 없습니다."
+              />
+            </div>
+          </Card>
+        </StackItem>
+      ) : (
+        <Card padding={0}>
           <div style={{ overflowX: "auto" }}>
             <Table hasHover>
               <TableHeader>
@@ -257,8 +263,8 @@ export default function DispatchListView({
               </TableBody>
             </Table>
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
     </VStack>
   );
 }

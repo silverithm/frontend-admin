@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -109,7 +109,7 @@ export default function VoiceBoxAdmin() {
   };
 
   return (
-    <VStack gap={4}>
+    <VStack gap={4} height="100%">
       <VStack gap={1}>
         <Heading level={2}>고충·건의함</Heading>
         <Text type="supporting" color="secondary">직원들이 남긴 고충·신고와 건의를 확인하고 처리합니다.</Text>
@@ -122,13 +122,17 @@ export default function VoiceBoxAdmin() {
       </SegmentedControl>
 
       {isLoading ? null : messages.length === 0 ? (
-        <Card variant="muted">
-          <EmptyState
-            icon={<Icon icon={FiInbox} size="lg" />}
-            title="접수된 항목이 없습니다"
-            description="직원들이 고충·건의를 남기면 이곳에 표시됩니다."
-          />
-        </Card>
+        <StackItem size="fill">
+          <Card variant="muted" height="100%">
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <EmptyState
+                icon={<Icon icon={FiInbox} size="lg" />}
+                title="접수된 항목이 없습니다"
+                description="직원들이 고충·건의를 남기면 이곳에 표시됩니다."
+              />
+            </div>
+          </Card>
+        </StackItem>
       ) : (
         messages.map((item) => {
           const draft = draftFor(item);

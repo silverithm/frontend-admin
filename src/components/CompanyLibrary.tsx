@@ -9,7 +9,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -203,7 +203,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
   return (
     <>
       <ConfirmContainer />
-      <VStack gap={5}>
+      <VStack gap={5} height="100%">
         <HStack hAlign="between" vAlign="center">
           <VStack gap={1}>
             <Text as="h2" type="display-3" weight="bold">기관 자료실</Text>
@@ -254,18 +254,24 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
         {isLoading ? (
           <Loading label="자료를 불러오는 중..." />
         ) : visibleItems.length === 0 ? (
-          <Card padding={10}>
-            <EmptyState
-              icon={<Icon icon={FiFileText} size="lg" color="tertiary" />}
-              title={items.length === 0 ? '올려둔 자료가 없습니다' : '이 분류에 자료가 없습니다'}
-              description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요.' : undefined}
-              actions={
-                items.length > 0
-                  ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
-                  : undefined
-              }
-            />
-          </Card>
+          <StackItem size="fill">
+            <Card padding={10} height="100%">
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <EmptyState
+                  icon={<Icon icon={FiFileText} size="lg" color="tertiary" />}
+                  title={items.length === 0 ? '올려둔 자료가 없습니다' : '이 분류에 자료가 없습니다'}
+                  description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요.' : undefined}
+                  actions={
+                    items.length === 0 && isAdmin
+                      ? <Button label="자료 올리기" variant="primary" size="sm" icon={<Icon icon={FiPlus} size="sm" />} onClick={() => setShowUpload(true)} />
+                      : items.length > 0
+                        ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
+                        : undefined
+                  }
+                />
+              </div>
+            </Card>
+          </StackItem>
         ) : (
           <VStack gap={3}>
             {visibleItems.map((item) => (

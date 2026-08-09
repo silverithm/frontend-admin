@@ -18,7 +18,7 @@ import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -202,7 +202,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
     }
 
     return (
-        <VStack gap={4}>
+        <VStack gap={4} height="100%">
             {/* 헤더 */}
             <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
@@ -238,8 +238,9 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: duration.fastMin }}
+                        style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                     >
-                        <VStack gap={4}>
+                        <VStack gap={4} height="100%">
                             {/* 추가 버튼 */}
                             {isAdmin && !showAddForm && !editingId && (
                                 <HStack hAlign="start">
@@ -291,13 +292,17 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
                             {/* 역할 목록 */}
                             {positions.length === 0 ? (
-                                <Card padding={8}>
-                                    <EmptyState
-                                        icon={<Icon icon={FiBriefcase} size="lg" />}
-                                        title="등록된 역할이 없습니다."
-                                        description="새 역할을 추가해주세요."
-                                    />
-                                </Card>
+                                <StackItem size="fill">
+                                    <Card padding={8} height="100%">
+                                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <EmptyState
+                                                icon={<Icon icon={FiBriefcase} size="lg" />}
+                                                title="등록된 역할이 없습니다."
+                                                description="새 역할을 추가해주세요."
+                                            />
+                                        </div>
+                                    </Card>
+                                </StackItem>
                             ) : (
                                 <VStack gap={2}>
                                     {positions.map((pos) => (
@@ -375,8 +380,9 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: duration.fastMin }}
+                        style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                     >
-                        <VStack gap={4}>
+                        <VStack gap={4} height="100%">
                             {/* 검색 및 필터 */}
                             <HStack gap={2} vAlign="end">
                                 <div style={{ flex: 1, minWidth: 200 }}>
@@ -406,12 +412,16 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
                             {/* 회원 목록 */}
                             {filteredMembers.length === 0 ? (
-                                <Card padding={8}>
-                                    <EmptyState
-                                        icon={<Icon icon={FiUsers} size="lg" />}
-                                        title="표시할 회원이 없습니다."
-                                    />
-                                </Card>
+                                <StackItem size="fill">
+                                    <Card padding={8} height="100%">
+                                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <EmptyState
+                                                icon={<Icon icon={FiUsers} size="lg" />}
+                                                title="표시할 회원이 없습니다."
+                                            />
+                                        </div>
+                                    </Card>
+                                </StackItem>
                             ) : (
                                 <VStack gap={2}>
                                     {filteredMembers.map((member) => (

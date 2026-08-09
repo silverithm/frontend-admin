@@ -759,11 +759,13 @@ export default function EmployeeApproval() {
               ))}
             </VStack>
           ) : (
-            <EmptyState
-              icon={<Icon icon={FiFileText} size="lg" />}
-              title="등록된 양식이 없습니다"
-              description="관리자에게 문의하세요"
-            />
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <EmptyState
+                icon={<Icon icon={FiFileText} size="lg" />}
+                title="등록된 양식이 없습니다"
+                description="관리자에게 문의하세요"
+              />
+            </div>
           )
         )}
 
@@ -836,11 +838,13 @@ export default function EmployeeApproval() {
                 ))}
               </VStack>
             ) : (
-              <EmptyState
-                icon={<Icon icon={FiFileText} size="lg" />}
-                title="결재 요청이 없습니다"
-                description="새 기안 작성 버튼을 눌러 결재를 요청하세요"
-              />
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <EmptyState
+                  icon={<Icon icon={FiFileText} size="lg" />}
+                  title="결재 요청이 없습니다"
+                  description="새 기안 작성 버튼을 눌러 결재를 요청하세요"
+                />
+              </div>
             )}
           </>
         )}

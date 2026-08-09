@@ -120,7 +120,8 @@ html {
 
 /* 공지사항 목록: 데이터가 적어도 화면을 채우고 목록만 스크롤 */
 .carev-notice-listwrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.carev-notice-list { flex: 1; min-height: 0; overflow-y: auto; }
+/* 부모 Card는 flex 컨테이너가 아니므로 flex:1 대신 height로 채운다 */
+.carev-notice-list { height: 100%; min-height: 0; overflow-y: auto; }
 
 /* AdminDashboard 반응형 + hover (Tailwind 대체) */
 /* 대시보드도 근무조정과 같은 규칙: 셸이 확정 높이를 주므로 flex로 채운다 */
