@@ -110,7 +110,8 @@ export default function RootLayout({
     '@type': 'Organization',
     '@id': 'https://carev.kr/#organization',
     name: '케어브이',
-    alternateName: ['CareV', '케어브이'],
+    alternateName: ['CareV'],
+    legalName: '주식회사 실버리즘',
     url: 'https://carev.kr',
     logo: {
       '@type': 'ImageObject',
@@ -148,10 +149,6 @@ export default function RootLayout({
       email: 'ggprgrkjh2@gmail.com',
       areaServed: 'KR',
       availableLanguage: 'Korean'
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': 'https://carev.kr'
     }
   }
 
@@ -190,7 +187,9 @@ export default function RootLayout({
       price: '9900',
       priceCurrency: 'KRW',
       category: '월 구독',
-      url: 'https://carev.kr/subscription',
+      // /subscription은 로그인 전용(noindex)이라 크롤러가 가격을 검증할 수 없다.
+      // 가격이 공개 노출된 홈으로 연결한다.
+      url: 'https://carev.kr',
       availability: 'https://schema.org/InStock'
     },
     featureList: [

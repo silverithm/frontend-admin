@@ -30,10 +30,6 @@ const nextConfig: NextConfig = {
             value: 'SAMEORIGIN', // DENY에서 SAMEORIGIN으로 변경하여 링크 미리보기 허용
           },
           {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
@@ -60,6 +56,17 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // 정적 이미지(파일명에 해시 없음) — 기본값(max-age=0)은 재방문마다 조건부 요청을 만든다.
+        // 하루 캐시 + 일주일 stale-while-revalidate로 교체 시 지연 노출 위험 없이 재방문을 빠르게.
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
         ],
       },

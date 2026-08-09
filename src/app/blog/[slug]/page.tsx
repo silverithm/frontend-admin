@@ -59,9 +59,10 @@ export default function BlogPostPage() {
             {/* 글 머리 */}
             <Section variant="transparent" padding={0} paddingBlock={8}>
                 <div style={contentWidth}>
+                    {/* 글 제목(H1)이 LCP 후보 — opacity 애니메이션은 LCP를 늦추므로 transform만 사용 */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
                         transition={{ duration: duration.mediumMax }}
                     >
                         <VStack gap={4}>
@@ -74,6 +75,9 @@ export default function BlogPostPage() {
 
                             <HStack gap={2} vAlign="center" wrap="wrap">
                                 <Badge variant="teal" label={post.category} />
+                                <Text type="supporting" color="secondary">
+                                    <time dateTime={post.date}>{formatPostDate(post.date)}</time>
+                                </Text>
                                 <Text type="supporting" color="secondary">{post.readTime}</Text>
                             </HStack>
 
@@ -136,6 +140,12 @@ export default function BlogPostPage() {
             </Section>
         </main>
     );
+}
+
+/** "2026-07-31" → "2026년 7월 31일" — 게시일을 화면에 노출해 신선도 신호를 준다. */
+function formatPostDate(date: string): string {
+    const [year, month, day] = date.split('-').map(Number);
+    return `${year}년 ${month}월 ${day}일`;
 }
 
 function convertMarkdownToHtml(markdown: string): string {

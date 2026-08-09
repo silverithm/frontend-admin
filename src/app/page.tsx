@@ -348,9 +348,11 @@ export default function LandingPage() {
             {/* ── 1. 5초 가치 제안 ── */}
             <Section variant="transparent" padding={0} paddingBlock={10}>
                 <div style={container(1100)}>
+                    {/* LCP 요소(H1·히어로 이미지)가 opacity:0으로 첫 페인트되면 LCP가 애니메이션 종료
+                        시점까지 밀린다 — 히어로만 opacity 없이 transform으로만 등장시킨다. */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
                         transition={{ duration: duration.mediumMax }}
                     >
                         <VStack gap={10}>

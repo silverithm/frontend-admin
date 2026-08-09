@@ -27,6 +27,12 @@ const iconChipStyle: React.CSSProperties = {
     justifyContent: 'center',
 };
 
+/** "2026-07-31" → "2026년 7월 31일" — 게시일을 화면에 노출해 신선도 신호를 준다. */
+function formatPostDate(date: string): string {
+    const [year, month, day] = date.split('-').map(Number);
+    return `${year}년 ${month}월 ${day}일`;
+}
+
 export default function BlogPage() {
     return (
         <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
@@ -35,9 +41,10 @@ export default function BlogPage() {
             {/* 헤더 */}
             <Section variant="transparent" padding={0} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 1152, margin: '0 auto' }}>
+                    {/* H1이 LCP 후보 — opacity 애니메이션은 LCP를 늦추므로 transform만 사용 */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
                         transition={{ duration: duration.mediumMax }}
                     >
                         <VStack gap={2} hAlign="center">
@@ -78,6 +85,9 @@ export default function BlogPage() {
                                             </span>
                                             <HStack gap={2} vAlign="center" wrap="wrap">
                                                 <Badge variant="teal" label={post.category} />
+                                                <Text type="supporting" color="secondary">
+                                                    <time dateTime={post.date}>{formatPostDate(post.date)}</time>
+                                                </Text>
                                                 <Text type="supporting" color="secondary">
                                                     {post.readTime}
                                                 </Text>
