@@ -651,7 +651,8 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                 description: "1:1 대화",
                 creatorId: userId,
                 creatorName: userName,
-                participantIds: [member.id],
+                // 백엔드는 생성자를 자동 포함하지 않으므로 나도 참가자에 넣어야 한다
+                participantIds: [userId, member.id],
             });
             const created = response.room || response;
             await fetchRooms();

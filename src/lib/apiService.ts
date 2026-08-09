@@ -2418,9 +2418,16 @@ export async function toggleChatReaction(roomId: number, messageId: number, emoj
 // 채팅방 생성
 export async function createChatRoom(data: { name: string; description?: string; creatorId: string; creatorName: string; participantIds: string[] }) {
     const companyId = getCompanyId();
+    // 백엔드 ChatRoomCreateRequest는 createdBy/createdByName 필드명을 요구한다
     return fetchWithAuth(`/api/v1/chat/rooms?companyId=${companyId}`, {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+            createdBy: data.creatorId,
+            createdByName: data.creatorName,
+            participantIds: data.participantIds,
+        }),
     });
 }
 
