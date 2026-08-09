@@ -438,7 +438,7 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
                         }}
                       >
                         <span
-                          style={{ flexShrink: 0, display: 'inline-flex', color: 'var(--color-icon-tertiary)' }}
+                          style={{ flexShrink: 0, display: 'inline-flex', color: 'var(--color-icon-secondary)' }}
                           aria-hidden
                         >
                           <IconGripVertical size={14} stroke={1.5} />

@@ -406,7 +406,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
                       </HStack>
                     ) : (
                       <VStack gap={1} hAlign="center">
-                        <FiUploadCloud size={32} style={{ color: 'var(--color-icon-tertiary, #94a3b8)' }} />
+                        <FiUploadCloud size={32} style={{ color: 'var(--color-icon-disabled)' }} />
                         <Text color="secondary">클릭하여 파일 선택</Text>
                         <Text type="supporting">한글·워드·엑셀·PDF·이미지</Text>
                       </VStack>

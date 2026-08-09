@@ -375,7 +375,7 @@ export function FloatingChat() {
                                 cursor: "pointer",
                                 border: "1px solid var(--color-border)",
                                 borderRadius: "var(--radius-container)",
-                                background: "var(--color-background)",
+                                background: "var(--color-background-card)",
                                 boxShadow: "var(--shadow-high)",
                                 padding: "10px 14px",
                             }}
@@ -398,7 +398,7 @@ export function FloatingChat() {
                             <div
                                 style={{
                                     fontSize: 13,
-                                    color: "var(--color-text)",
+                                    color: "var(--color-text-primary)",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",

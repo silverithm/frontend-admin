@@ -153,7 +153,7 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 24px)',
         gap: 6,
-        background: 'var(--color-background)',
+        background: 'var(--color-background-popover)',
         border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius-container)',
         boxShadow: 'var(--shadow-med)',
@@ -300,7 +300,7 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
           outline: 'none',
           fontSize: 'var(--font-size-md, 15px)',
           lineHeight: 1.7,
-          color: 'var(--color-text)',
+          color: 'var(--color-text-primary)',
         }}
       />
     </div>

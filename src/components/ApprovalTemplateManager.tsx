@@ -719,7 +719,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           ) : (
             <div style={{ padding: '80px var(--spacing-6)' }}>
               <VStack gap={2} hAlign="center">
-                <FiFileText size={48} style={{ color: 'var(--color-icon-tertiary, #cbd5e1)' }} />
+                <FiFileText size={48} style={{ color: 'var(--color-icon-disabled)' }} />
                 <Text type="large" color="secondary">등록된 양식이 없습니다</Text>
                 <Text type="supporting">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</Text>
                 {isAdmin && (
@@ -875,7 +875,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                         </HStack>
                       ) : (
                         <VStack gap={1} hAlign="center">
-                          <FiUploadCloud size={32} style={{ color: 'var(--color-icon-tertiary, #94a3b8)' }} />
+                          <FiUploadCloud size={32} style={{ color: 'var(--color-icon-disabled)' }} />
                           <Text color="secondary">클릭하여 파일 선택</Text>
                           <Text type="supporting">지원 형식: .hwp, .docx, .pdf, .xlsx</Text>
                         </VStack>

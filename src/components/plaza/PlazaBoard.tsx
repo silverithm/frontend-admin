@@ -566,7 +566,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
               {looksLikeHtml(post.content) ? (
                 <div
                   className="carev-richtext-view"
-                  style={{ minHeight: 80, fontSize: 'var(--font-size-md, 15px)', color: 'var(--color-text)' }}
+                  style={{ minHeight: 80, fontSize: 'var(--font-size-md, 15px)', color: 'var(--color-text-primary)' }}
                   dangerouslySetInnerHTML={{ __html: sanitizeContent(post.content) }}
                 />
               ) : (

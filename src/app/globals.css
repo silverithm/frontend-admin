@@ -550,7 +550,7 @@ html {
   background: var(--color-background-card);
 }
 .carev-annual-month-current {
-  border-color: var(--color-border-accent, var(--color-text-accent));
+  border-color: var(--color-text-accent);
   box-shadow: var(--shadow-low);
 }
 .carev-annual-month-head {
@@ -899,7 +899,7 @@ html {
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 .carev-richtext-color-btn:hover { background: var(--color-background-muted); }
 /* 상세 화면에서 리치 텍스트 본문 렌더 */
@@ -914,8 +914,8 @@ html {
   padding: 0 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-background);
-  color: var(--color-text);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
   font-size: 13px;
   cursor: pointer;
 }
@@ -930,7 +930,7 @@ html {
   padding: 4px;
   display: flex;
   flex-direction: column;
-  background: var(--color-background);
+  background: var(--color-background-popover);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-container);
   box-shadow: var(--shadow-med);
@@ -940,7 +940,7 @@ html {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   text-align: left;
   cursor: pointer;
 }
