@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
@@ -14,7 +15,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 
-import { FiMessageCircle, FiUsers, FiChevronDown, FiChevronRight, FiChevronsLeft, FiChevronsRight } from "react-icons/fi";
+import { FiMessageCircle, FiUsers, FiChevronDown, FiChevronRight, FiChevronsRight } from "react-icons/fi";
 
 import MemberItem from "@/components/MemberItem";
 import { Loading } from "@/components/Loading";
@@ -22,6 +23,11 @@ import { fetchChatRooms } from "@/lib/apiService";
 import { DirectChatMember, openOrCreateDirectRoom } from "@/lib/directChat";
 import { useOrgPresenceStore, sortMembersByPresence } from "@/lib/orgPresenceStore";
 import { useVisiblePolling } from "@/lib/useVisiblePolling";
+import { duration } from "@/theme/motion";
+
+/** 레일이 실제로 들어가는 최소 폭 — globals.css의 미디어쿼리와 같은 값이어야 한다 */
+const RAIL_BREAKPOINT = 1280;
+const RAIL_WIDTH = 264;
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
@@ -39,6 +45,8 @@ interface RailRoom {
 interface ChatRailProps {
     /** 방을 고르면 채팅 화면으로 데려간다 (레일은 좁아서 대화를 담지 않는다) */
     onOpenRoom: (roomId: number) => void;
+    /** 레일이 들어갈 폭이 안 되는 화면에서 플로팅 버튼을 누른 경우 — 채팅 탭으로 보낸다 */
+    onOpenChatTab: () => void;
 }
 
 type RailState = { isOpen: boolean; showPeople: boolean; showRooms: boolean };
@@ -63,7 +71,7 @@ function readStoredState(): RailState {
  * 레일 자체와 두 구역을 각각 접을 수 있고, 접힌 상태는 기억한다.
  * 대화 내용은 여기 담지 않는다 — 폭이 좁아 읽기 어렵고, 이미 채팅 화면이 그 일을 한다.
  */
-export function ChatRail({ onOpenRoom }: ChatRailProps) {
+export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
     const [state, setState] = useState<RailState>(DEFAULT_STATE);
     const [hydrated, setHydrated] = useState(false);
 
@@ -207,62 +215,68 @@ export function ChatRail({ onOpenRoom }: ChatRailProps) {
     // 하이드레이션 전에는 저장된 접힘 상태를 모르므로 펼친 모습으로 그린다 (기본값과 동일)
     const isOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
 
-    if (!isOpen) {
-        return (
-            <aside className="carev-chat-rail carev-chat-rail-closed" aria-label="채팅">
-                <IconButton
-                    label="채팅 레일 펼치기"
-                    tooltip="채팅 열기"
-                    variant="ghost"
-                    icon={<Icon icon={FiChevronsLeft} size="md" />}
-                    onClick={() => update({ isOpen: true })}
-                />
-                {totalUnread > 0 && (
-                    <Badge variant="error" label={totalUnread > 99 ? "99+" : totalUnread} />
-                )}
-                <div className="carev-chat-rail-closed-label" aria-hidden>
-                    <Text type="supporting" color="secondary">채팅</Text>
-                </div>
-            </aside>
-        );
-    }
+    const openRail = () => {
+        // 레일이 들어갈 폭이 아니면 펴 봐야 보이지 않는다 — 그럴 땐 채팅 화면으로 보낸다
+        if (typeof window !== "undefined" && window.innerWidth < RAIL_BREAKPOINT) {
+            onOpenChatTab();
+            return;
+        }
+        update({ isOpen: true });
+    };
+
+    const peopleGroupClass = `carev-chat-rail-group${state.showPeople ? "" : " carev-chat-rail-group-closed"}`;
+    const roomsGroupClass = `carev-chat-rail-group${state.showRooms ? "" : " carev-chat-rail-group-closed"}`;
 
     return (
-        <aside className="carev-chat-rail" aria-label="채팅">
-            {/* 레일 머리 */}
-            <div className="carev-chat-rail-head">
-                <Text type="label" weight="semibold">채팅</Text>
-                <IconButton
-                    label="채팅 레일 접기"
-                    tooltip="접기"
-                    variant="ghost"
-                    size="sm"
-                    icon={<Icon icon={FiChevronsRight} size="sm" />}
-                    onClick={() => update({ isOpen: false })}
-                />
-            </div>
+        <>
+            {/* 레일은 오른쪽에서 밀려 들어오고, 접으면 그 자리에서 플로팅 버튼으로 오므라든다.
+                두 동작이 이어져 보여야 "저 버튼이 이걸 연다"가 설명 없이 전달된다. */}
+            <AnimatePresence initial={false}>
+                {isOpen && (
+                    <motion.aside
+                        key="rail"
+                        className="carev-chat-rail"
+                        aria-label="채팅"
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: RAIL_WIDTH, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        transition={{ duration: duration.fast, ease: "easeOut" }}
+                    >
+                        <div className="carev-chat-rail-inner">
+                            <div className="carev-chat-rail-head">
+                                <Text type="label" weight="semibold">채팅</Text>
+                                <IconButton
+                                    label="채팅 접기"
+                                    tooltip="접기"
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={<Icon icon={FiChevronsRight} size="sm" />}
+                                    onClick={() => update({ isOpen: false })}
+                                />
+                            </div>
 
-            {directError && (
-                <div className="carev-chat-rail-notice">
-                    <Banner
-                        status="error"
-                        title={directError}
-                        isDismissable
-                        onDismiss={() => setDirectError(null)}
-                    />
-                </div>
-            )}
+                            {directError && (
+                                <div className="carev-chat-rail-notice">
+                                    <Banner
+                                        status="error"
+                                        title={directError}
+                                        isDismissable
+                                        onDismiss={() => setDirectError(null)}
+                                    />
+                                </div>
+                            )}
 
-            {/* 직원 */}
-            <SectionHeader
-                label="직원"
-                count={membersStatus === "loaded" ? `${onlineCount}/${sortedMembers.length}` : undefined}
-                isOpen={state.showPeople}
-                onToggle={() => update({ showPeople: !state.showPeople })}
-            />
-
-            {state.showPeople && (
-                <div className="carev-chat-rail-section">
+                            {/* 직원과 대화방이 높이를 반씩 나눠 갖고 각자 안에서 스크롤한다 */}
+                            <div className="carev-chat-rail-groups">
+                                <div className={peopleGroupClass}>
+                                    <SectionHeader
+                                        label="직원"
+                                        count={membersStatus === "loaded" ? `${onlineCount}/${sortedMembers.length}` : undefined}
+                                        isOpen={state.showPeople}
+                                        onToggle={() => update({ showPeople: !state.showPeople })}
+                                    />
+                                    {state.showPeople && (
+                                        <div className="carev-chat-rail-section">
                     <MemberItem
                         name={userName}
                         suffix="나"
@@ -310,20 +324,20 @@ export function ChatRail({ onOpenRoom }: ChatRailProps) {
                         ))
                     )}
                 </div>
-            )}
+                                    )}
+                                </div>
 
-            {/* 대화방 */}
-            <SectionHeader
-                label="대화방"
-                count={rooms.length > 0 ? String(rooms.length) : undefined}
-                badge={totalUnread > 0 ? (totalUnread > 99 ? "99+" : String(totalUnread)) : undefined}
-                isOpen={state.showRooms}
-                onToggle={() => update({ showRooms: !state.showRooms })}
-                hasDividerAbove
-            />
-
-            {state.showRooms && (
-                <div className="carev-chat-rail-section">
+                                <div className={roomsGroupClass}>
+                                    <SectionHeader
+                                        label="대화방"
+                                        count={rooms.length > 0 ? String(rooms.length) : undefined}
+                                        badge={totalUnread > 0 ? (totalUnread > 99 ? "99+" : String(totalUnread)) : undefined}
+                                        isOpen={state.showRooms}
+                                        onToggle={() => update({ showRooms: !state.showRooms })}
+                                        hasDividerAbove
+                                    />
+                                    {state.showRooms && (
+                                        <div className="carev-chat-rail-section">
                     {isLoadingRooms ? (
                         <Loading size="inline" height={72} label="대화방을 불러오는 중..." />
                     ) : rooms.length === 0 ? (
@@ -362,8 +376,50 @@ export function ChatRail({ onOpenRoom }: ChatRailProps) {
                         ))
                     )}
                 </div>
-            )}
-        </aside>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </motion.aside>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence initial={false}>
+                {!isOpen && (
+                    <motion.div
+                        key="fab"
+                        className="carev-chat-rail-fab"
+                        initial={{ scale: 0.4, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.4, opacity: 0 }}
+                        transition={{ duration: duration.fast, ease: "easeOut" }}
+                    >
+                        <IconButton
+                            label="채팅 열기"
+                            tooltip="채팅 열기"
+                            className="carev-fchat-fab"
+                            icon={<Icon icon={FiMessageCircle} size="md" />}
+                            onClick={openRail}
+                            style={{
+                                width: 56,
+                                height: 56,
+                                minWidth: 56,
+                                padding: "var(--spacing-0)",
+                                borderRadius: "var(--radius-full)",
+                                background: "var(--color-border-teal)",
+                                color: "var(--color-on-accent)",
+                                boxShadow: "var(--shadow-med)",
+                            }}
+                        />
+                        {totalUnread > 0 && (
+                            <div className="carev-chat-rail-fab-badge">
+                                <Badge variant="error" label={totalUnread > 99 ? "99+" : totalUnread} />
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 }
 

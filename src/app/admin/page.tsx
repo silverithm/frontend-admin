@@ -1823,12 +1823,16 @@ export default function AdminPage() {
 
             </main>
 
-            <ChatRail
-                onOpenRoom={(roomId) => {
-                    setRailRoomId(roomId);
-                    setActiveMainTab("chat");
-                }}
-            />
+            {/* 채팅 탭에서는 레일을 띄우지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다 */}
+            {activeMainTab !== "chat" && (
+                <ChatRail
+                    onOpenRoom={(roomId) => {
+                        setRailRoomId(roomId);
+                        setActiveMainTab("chat");
+                    }}
+                    onOpenChatTab={() => setActiveMainTab("chat")}
+                />
+            )}
             </div>
 
             {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}
