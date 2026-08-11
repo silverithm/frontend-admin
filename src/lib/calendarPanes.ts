@@ -76,10 +76,16 @@ export interface BarSegment {
  * 칸의 오른쪽 40%가 휴무자 자리라 바가 그 위를 지나갈 수 없다. 그래서 하루씩
  * 끊고 양끝에 ◀▶를 남겨 "이어지는 일정"임을 표시한다.
  */
-export function buildBarSegments(bar: BarLike, pane: CalendarPane): BarSegment[] {
-  const fraction = schedulePaneFraction(pane);
-
-  const measure = (startCol: number, endCol: number) => {
+export function buildBarSegments(
+  bar: BarLike,
+  pane: CalendarPane,
+  /**
+   * 그 열(날짜)에 휴무자가 있는지. 없으면 그 칸은 휴무자 자리를 비워둘 이유가 없어
+   * 바가 칸을 끝까지 쓴다 — 안 그러면 오른쪽 40%가 늘 빈 채로 남는다.
+   */
+  hasVacationAtCol?: (col: number) => boolean,
+): BarSegment[] {
+  const measure = (startCol: number, endCol: number, fraction: number) => {
     const left = colStartRatio(startCol);
     const lastStart = colStartRatio(endCol);
     const right = lastStart + (colEndRatio(endCol) - lastStart) * fraction;
@@ -87,17 +93,18 @@ export function buildBarSegments(bar: BarLike, pane: CalendarPane): BarSegment[]
   };
 
   if (pane !== 'both') {
-    return [{ ...bar, ...measure(bar.startCol, bar.endCol) }];
+    return [{ ...bar, ...measure(bar.startCol, bar.endCol, schedulePaneFraction(pane)) }];
   }
 
   const segments: BarSegment[] = [];
   for (let col = bar.startCol; col <= bar.endCol; col += 1) {
+    const fraction = hasVacationAtCol && !hasVacationAtCol(col) ? 1 : SCHEDULE_PANE_FRACTION;
     segments.push({
       startCol: col,
       endCol: col,
       continuesBefore: col > bar.startCol || bar.continuesBefore,
       continuesAfter: col < bar.endCol || bar.continuesAfter,
-      ...measure(col, col),
+      ...measure(col, col, fraction),
     });
   }
   return segments;

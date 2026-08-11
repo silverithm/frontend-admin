@@ -1029,6 +1029,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const dayNumStyle = getDayNumStyle(date);
     const dayVacations = monthVacations.get(dateStr) || [];
+    // 그날 일정이 하나도 없으면 휴무자가 칸을 통째로 쓴다 (왼쪽 60%가 빈 채로 남지 않게)
+    const hasSchedulesToday = getSchedulesForDate(date).length > 0;
+    const vacFraction = pane === 'both' && !hasSchedulesToday ? 1 : vacationPaneFraction(pane);
 
     return (
       <button
@@ -1063,10 +1066,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         {showsVacations(pane) && (
           <CalendarVacationPane
             people={dayVacations}
-            fraction={vacationPaneFraction(pane)}
+            fraction={vacFraction}
             maxVisible={VACATION_MAX_VISIBLE}
             topOffset={BAR_AREA_TOP}
-            hasDivider={pane === 'both'}
+            hasDivider={pane === 'both' && hasSchedulesToday}
             roleByName={vacationRoleByName}
           />
         )}
@@ -1317,7 +1320,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                           휴무자를 같이 볼 때는 칸 오른쪽이 명단 자리라 하루 단위로 끊어 그린다. */}
                       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                         {showsSchedules(pane) && layout?.bars.flatMap((bar) =>
-                          buildBarSegments(bar, pane).map((segment) => {
+                          buildBarSegments(bar, pane, (col) => {
+                            const d = week[col];
+                            return !!d && (monthVacations.get(format(d, 'yyyy-MM-dd'))?.length ?? 0) > 0;
+                          }).map((segment) => {
                           const leftInset = segment.continuesBefore ? 0 : BAR_EDGE_INSET;
                           const rightInset = segment.continuesAfter ? 0 : BAR_EDGE_INSET;
                           const startRadius = segment.continuesBefore ? '0' : 'var(--radius-inner)';

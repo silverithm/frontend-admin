@@ -1409,10 +1409,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         {showsVacations(pane) && inMonth && (
                           <CalendarVacationPane
                             people={dayVacations}
-                            fraction={vacationPaneFraction(pane)}
+                            // 그날 일정이 없으면 휴무자가 칸을 통째로 쓴다 (왼쪽이 빈 채로 남지 않게)
+                            fraction={pane === 'both' && scheduleCount === 0 ? 1 : vacationPaneFraction(pane)}
                             maxVisible={DASH_VACATION_MAX_VISIBLE}
                             topOffset={DASH_BAR_AREA_TOP}
-                            hasDivider={pane === 'both'}
+                            hasDivider={pane === 'both' && scheduleCount > 0}
                             roleByName={vacationRoleByName}
                           />
                         )}
@@ -1440,8 +1441,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                 여기서는 줄 수 제한에 걸려 못 그린 개수만 셀 아래에 남긴다. */}
                             {hiddenCount > 0 && (
                               <div className="carev-dash-cal-chips" style={{ marginTop: 'auto', justifyContent: 'flex-start', width: `calc(${schedulePaneFraction(pane) * 100}% - var(--spacing-1))` }}>
+                                {/* 문구는 월간일정 달력과 같게 — 같은 뜻인데 다르게 적으면 다른 수로 읽힌다 */}
                                 <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', paddingLeft: 'var(--spacing-0-5)' }}>
-                                  +{hiddenCount}
+                                  +{hiddenCount}개
                                 </span>
                               </div>
                             )}
@@ -1454,7 +1456,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이 (월간일정 탭과 같은 규칙) */}
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} className="carev-dash-cal-bars">
                     {showsSchedules(pane) && layout?.bars.flatMap((bar) =>
-                      buildBarSegments(bar, pane).map((segment) => {
+                      buildBarSegments(bar, pane, (col) => {
+                        const day = week[col];
+                        return !!day && (monthVacations.get(day.dayStr)?.length ?? 0) > 0;
+                      }).map((segment) => {
                       const schedule = bar.schedule;
                       const color = getScheduleColor(schedule);
                       const done = !!schedule.isCompleted;

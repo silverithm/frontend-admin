@@ -44,8 +44,15 @@ export default function CalendarVacationPane({
 }: CalendarVacationPaneProps) {
   if (fraction <= 0) return null;
 
-  const visible = people.slice(0, Math.max(maxVisible, 0));
+  // "+N" 도 한 줄을 차지한다. 자리를 미리 비워두지 않으면 칸 높이에 걸려 잘려서
+  // 몇 명이 더 있는지 알 수 없게 된다.
+  const limit = Math.max(maxVisible, 0);
+  const willTruncate = people.length > limit;
+  const visible = people.slice(0, willTruncate ? Math.max(limit - 1, 0) : limit);
   const hidden = people.length - visible.length;
+
+  // 칸을 통째로 쓸 때는 가운데로 모은다 (한쪽에 치우쳐 있으면 빈 칸처럼 보인다)
+  const isFullWidth = fraction >= 1;
 
   return (
     <div
@@ -60,6 +67,7 @@ export default function CalendarVacationPane({
         width: `calc(${fraction * 100}% - var(--spacing-2))`,
         paddingLeft: hasDivider ? 'var(--spacing-1)' : 0,
         borderLeft: hasDivider ? '1px solid var(--color-border)' : 'none',
+        alignItems: isFullWidth ? 'center' : 'stretch',
         gap: 1,
         overflow: 'hidden',
         pointerEvents: 'none',
@@ -78,15 +86,14 @@ export default function CalendarVacationPane({
                   : `${person.name} · ${person.kindLabel}`}
               >
                 <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
-                <span style={{ minWidth: 0, overflow: 'hidden' }}>
+                {/* 이름이 먼저다 — 자리가 모자라면 뒤의 직무부터 줄어들고 이름은 그대로 남는다 */}
+                <span className="carev-cal-vacname">
                   <Text type="supporting" color="secondary" maxLines={1}>
                     {person.name}
                   </Text>
                 </span>
-                {/* 직무는 이름이 먼저 보이도록 뒤에 붙이고, 자리가 모자라면 이름부터 살린다.
-                    좁은 칸에서는 CSS가 통째로 숨긴다 */}
                 {role && (
-                  <span className="carev-cal-vacrole" style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <span className="carev-cal-vacrole">
                     <Text type="supporting" color="disabled" maxLines={1}>
                       {role}
                     </Text>
