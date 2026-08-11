@@ -16,25 +16,45 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
 
-// 토큰 갱신 중복 방지를 위한 플래그
-let isRefreshing = false;
-let failedQueue: Array<{
-    resolve: (token: string) => void;
-    reject: (error: Error) => void;
-}> = [];
-//
-// 큐에 있는 모든 요청 처리
-const processQueue = (error: Error | null, token: string | null = null) => {
-    failedQueue.forEach(({resolve, reject}) => {
-        if (error) {
-            reject(error);
-        } else {
-            resolve(token!);
-        }
-    });
+// 화면 하나가 API를 여러 개 동시에 부르는데(캘린더/제한/직원/직책),
+// 토큰이 만료돼 있으면 그 요청들이 한꺼번에 401을 받는다.
+// 각자 갱신을 시도하면 같은 refreshToken을 여러 번 쓰게 되고,
+// 백엔드가 재사용된 토큰을 거부하면 멀쩡한 세션이 로그아웃되거나 오류 토스트가 뜬다.
+// 그래서 갱신은 항상 하나의 프라미스로 묶어 한 번만 돌린다.
+let refreshPromise: Promise<string> | null = null;
 
-    failedQueue = [];
-};
+function refreshAccessTokenOnce(): Promise<string> {
+    if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().then(
+            (token) => {
+                refreshPromise = null;
+                return token;
+            },
+            (error) => {
+                refreshPromise = null;
+                throw error;
+            }
+        );
+    }
+    return refreshPromise;
+}
+
+// 잠깐 흔들린 것뿐인 실패(네트워크 끊김, 백엔드 일시 오류)는 다시 물어보면 대개 성공한다.
+const TRANSIENT_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+interface ApiError extends Error {
+    status?: number;
+    isTransient?: boolean;
+}
+
+function isTransientError(error: unknown): boolean {
+    if (!error) return false;
+    if ((error as ApiError).isTransient) return true;
+    // fetch 자체가 실패하면 TypeError로 온다 (오프라인, 연결 끊김 등)
+    return error instanceof TypeError;
+}
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // CompanyId 가져오기 헬퍼 함수
 function getCompanyId(): string {
@@ -45,6 +65,9 @@ function getCompanyId(): string {
 }
 
 // Refresh Token API 호출
+// 갱신이 잠깐 실패했다고 로그아웃시키면 안 된다. 네트워크가 끊겼거나 서버가 잠시 흔들린 것뿐이면
+// 몇 번 더 시도하고, 그래도 안 되면 "일시적 실패"로 표시해 세션을 유지한 채 올려보낸다.
+// 진짜로 리프레시 토큰이 무효한 경우(4xx)에만 로그아웃 대상이다.
 async function refreshAccessToken(): Promise<string> {
     const refreshToken = localStorage.getItem('refreshToken');
 
@@ -52,20 +75,46 @@ async function refreshAccessToken(): Promise<string> {
         throw new Error('Refresh token이 없습니다.');
     }
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/refresh-token`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({refreshToken}),
-        });
+    const maxAttempts = 3;
 
-        if (!response.ok) {
-            throw new Error(`Refresh token 갱신 실패: ${response.status}`);
+    for (let attempt = 1; ; attempt++) {
+        let response: Response;
+
+        try {
+            response = await fetch(`${API_BASE_URL}/api/v1/refresh-token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({refreshToken}),
+            });
+        } catch (networkError) {
+            console.error('[Token Refresh] 네트워크 오류:', networkError);
+            const error: ApiError = new Error('토큰 갱신 중 네트워크 오류가 발생했습니다.');
+            error.isTransient = true;
+            if (attempt < maxAttempts) {
+                await wait(attempt * 400);
+                continue;
+            }
+            throw error;
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            const error: ApiError = new Error(`Refresh token 갱신 실패: ${response.status}`);
+            error.status = response.status;
+            error.isTransient = TRANSIENT_STATUSES.has(response.status);
+
+            if (error.isTransient && attempt < maxAttempts) {
+                console.warn(`[Token Refresh] ${response.status} 응답, 재시도합니다.`);
+                await wait(attempt * 400);
+                continue;
+            }
+
+            console.error('[Token Refresh] 실패:', error);
+            throw error;
+        }
+
+        const data = await response.json().catch(() => null);
 
         // 백엔드에서 TokenInfo 객체를 직접 반환
         if (data && data.accessToken) {
@@ -75,13 +124,10 @@ async function refreshAccessToken(): Promise<string> {
             localStorage.setItem('tokenExpirationTime', data.accessTokenExpirationTime?.toString() || '');
 
             return data.accessToken;
-        } else {
-            console.error('[Token Refresh] 응답 구조 오류:', data);
-            throw new Error('응답에 새로운 토큰이 없습니다.');
         }
-    } catch (error) {
-        console.error('[Token Refresh] 실패:', error);
-        throw error;
+
+        console.error('[Token Refresh] 응답 구조 오류:', data);
+        throw new Error('응답에 새로운 토큰이 없습니다.');
     }
 }
 
@@ -154,141 +200,164 @@ async function fetchWithoutAuth(url: string, options: RequestInit = {}) {
     return response.json();
 }
 
-// JWT 토큰이 포함된 공통 fetch 함수 (토큰 갱신 로직 포함)
-async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<any> {
-    // 로컬 스토리지에서 JWT 토큰 가져오기
-    let token = localStorage.getItem('authToken');
-
-    // 기본 헤더 설정
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...options.headers as Record<string, string>,
-    };
-
-    // JWT 토큰이 있으면 Authorization 헤더 추가
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+// 응답 본문을 JSON으로 읽는다. HTML이 오면 프록시/엔드포인트 설정 문제다.
+async function readJsonResponse(response: Response): Promise<any> {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text();
+        console.error(`[API Error] 성공 응답이지만 HTML 받음:`, htmlText.substring(0, 200));
+        throw new Error('서버에서 JSON 대신 HTML을 반환했습니다. ngrok 설정을 확인해주세요.');
     }
 
-    // Next.js API 라우트를 통한 프록시 방식
-    const fullUrl = url.startsWith('/api') ? url : `/api${url}`;
+    // 삭제 API 등은 본문 없이 204로 답한다. 이때 json()을 부르면 파싱 오류가 나므로 먼저 걸러낸다.
+    if (response.status === 204) {
+        return null;
+    }
 
+    const text = await response.text();
+    if (!text) {
+        return null;
+    }
 
-    try {
-        // fetch 요청 실행
-        const response = await fetch(fullUrl, {
-            ...options,
-            headers,
-        });
+    return JSON.parse(text);
+}
 
-        // 401 Unauthorized - JWT 토큰 만료 또는 무효
-        if (response.status === 401) {
+// 실패 응답을 Error로 바꾼다. 일시적인 상태 코드면 재시도 대상으로 표시한다.
+async function toApiError(response: Response): Promise<ApiError> {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text();
+        console.error(`[API Error] HTML 응답 받음:`, htmlText.substring(0, 200));
+        const htmlError: ApiError = new Error(`서버에서 HTML 페이지를 반환했습니다. API 엔드포인트를 확인해주세요. (${response.status})`);
+        htmlError.status = response.status;
+        htmlError.isTransient = TRANSIENT_STATUSES.has(response.status);
+        return htmlError;
+    }
 
-            // 이미 다른 요청이 토큰 갱신 중이면 큐에 대기
-            if (isRefreshing) {
-                return new Promise<any>((resolve, reject) => {
-                    failedQueue.push({
-                        resolve: (newToken: string) => {
-                            headers['Authorization'] = `Bearer ${newToken}`;
-                            fetch(fullUrl, { ...options, headers })
-                                .then(res => {
-                                    if (!res.ok) throw new Error(`API 오류: ${res.status}`);
-                                    return res.json();
-                                })
-                                .then(resolve)
-                                .catch(reject);
-                        },
-                        reject,
-                    });
-                });
-            }
+    const errorData = await response.json().catch(() => null);
+    const error: ApiError = new Error(
+        errorData?.error || errorData?.message || `API 오류: ${response.status} ${response.statusText}`
+    );
+    error.status = response.status;
+    error.isTransient = TRANSIENT_STATUSES.has(response.status);
+    return error;
+}
 
-            isRefreshing = true;
+// 요청 한 번 보내기 (401이면 토큰을 갱신해 한 번만 재시도)
+async function sendAuthedRequest(fullUrl: string, options: RequestInit): Promise<any> {
+    const usedToken = localStorage.getItem('authToken');
 
+    const buildHeaders = (token: string | null): Record<string, string> => {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...options.headers as Record<string, string>,
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    };
+
+    const response = await fetch(fullUrl, { ...options, headers: buildHeaders(usedToken) });
+
+    // 401 Unauthorized - JWT 토큰 만료 또는 무효
+    if (response.status === 401) {
+        let newToken: string;
+
+        const currentToken = localStorage.getItem('authToken');
+        if (currentToken && currentToken !== usedToken) {
+            // 이 요청이 나가 있는 사이 다른 요청이 이미 갱신을 끝냈다. 갱신 없이 새 토큰으로 재시도한다.
+            newToken = currentToken;
+        } else {
             try {
-                // 토큰 갱신 시도
-                const newToken = await refreshAccessToken();
-                isRefreshing = false;
-                processQueue(null, newToken);
+                newToken = await refreshAccessTokenOnce();
+            } catch (refreshError) {
+                console.error('[API Auth] 토큰 갱신 실패:', refreshError);
 
-                headers['Authorization'] = `Bearer ${newToken}`;
-
-                // 갱신된 토큰으로 요청 재시도
-                const retryResponse = await fetch(fullUrl, {
-                    ...options,
-                    headers,
-                });
-
-                if (!retryResponse.ok) {
-                    const errorData = await retryResponse.json().catch(() => null);
-                    throw new Error(errorData?.error || errorData?.message || `API 오류: ${retryResponse.status} ${retryResponse.statusText}`);
+                // 서버/네트워크가 잠시 흔들린 것이라면 세션은 멀쩡하다.
+                // 여기서 로그아웃시키면 멀쩡한 사용자가 까닭 없이 튕긴다.
+                if (isTransientError(refreshError)) {
+                    throw refreshError;
                 }
 
-                const result = await retryResponse.json();
-                return result;
-
-            } catch (refreshError) {
-                isRefreshing = false;
-                processQueue(refreshError instanceof Error ? refreshError : new Error('토큰 갱신 실패'));
-                console.error('[API Auth] 토큰 갱신 실패:', refreshError);
                 handleLogout();
                 throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
             }
         }
 
-        // 응답이 OK가 아닌 경우 에러 처리
-        if (!response.ok) {
-            // HTML 응답인지 확인
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('text/html')) {
-                const htmlText = await response.text();
-                console.error(`[API Error] HTML 응답 받음:`, htmlText.substring(0, 200));
-                throw new Error(`서버에서 HTML 페이지를 반환했습니다. API 엔드포인트를 확인해주세요. (${response.status})`);
+        const retryResponse = await fetch(fullUrl, { ...options, headers: buildHeaders(newToken) });
+
+        if (retryResponse.status === 401) {
+            console.error('[API Auth] 갱신된 토큰으로도 인증에 실패했습니다.');
+            handleLogout();
+            throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+
+        if (!retryResponse.ok) {
+            throw await toApiError(retryResponse);
+        }
+
+        return readJsonResponse(retryResponse);
+    }
+
+    if (!response.ok) {
+        throw await toApiError(response);
+    }
+
+    return readJsonResponse(response);
+}
+
+// JWT 토큰이 포함된 공통 fetch 함수 (토큰 갱신 + 일시적 실패 재시도 포함)
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<any> {
+    // Next.js API 라우트를 통한 프록시 방식
+    const fullUrl = url.startsWith('/api') ? url : `/api${url}`;
+
+    // 조회(GET)만 재시도한다. 쓰기 요청을 다시 보내면 같은 작업이 두 번 처리될 수 있다.
+    const method = (options.method || 'GET').toUpperCase();
+    const maxAttempts = method === 'GET' ? 3 : 1;
+
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await sendAuthedRequest(fullUrl, options);
+        } catch (error) {
+            if (attempt < maxAttempts && isTransientError(error)) {
+                console.warn(`[API Retry] ${method} ${fullUrl} ${attempt}번째 실패, 재시도합니다:`, error);
+                await wait(attempt * 400);
+                continue;
             }
 
-            const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.error || errorData?.message || `API 오류: ${response.status} ${response.statusText}`);
-        }
+            console.error(`[API Error] ${method} ${fullUrl}:`, error);
 
-        // JSON 응답인지 확인
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('text/html')) {
-            const htmlText = await response.text();
-            console.error(`[API Error] 성공 응답이지만 HTML 받음:`, htmlText.substring(0, 200));
-            throw new Error('서버에서 JSON 대신 HTML을 반환했습니다. ngrok 설정을 확인해주세요.');
-        }
-
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error(`[API Error] ${options.method || 'GET'} ${fullUrl}:`, error);
-
-        // JSON 파싱 오류 처리
-        if (error instanceof SyntaxError && error.message.includes('Unexpected token')) {
-            console.error('[JSON Parse Error] 서버에서 HTML 응답을 받았습니다. API 라우트 설정 확인이 필요합니다.');
-            throw new Error('서버 응답이 올바르지 않습니다. API 라우트 설정을 확인해주세요.');
-        }
-
-        // 네트워크 오류 등 fetch 자체가 실패한 경우
-        if (error instanceof TypeError) {
-            console.error('[Network Error] Details:', {
-                message: error.message,
-                name: error.name,
-                stack: error.stack,
-                url: fullUrl
-            });
-
-            if (error.message.includes('fetch') || error.message.includes('CORS')) {
-                throw new Error(`네트워크 오류가 발생했습니다. API 라우트 설정을 확인해주세요.`);
+            // JSON 파싱 오류 처리
+            if (error instanceof SyntaxError && error.message.includes('Unexpected token')) {
+                console.error('[JSON Parse Error] 서버에서 HTML 응답을 받았습니다. API 라우트 설정 확인이 필요합니다.');
+                throw new Error('서버 응답이 올바르지 않습니다. API 라우트 설정을 확인해주세요.');
             }
 
-            throw new Error(`네트워크 오류: ${error.message}`);
-        }
+            // 네트워크 오류 등 fetch 자체가 실패한 경우
+            if (error instanceof TypeError) {
+                console.error('[Network Error] Details:', {
+                    message: error.message,
+                    name: error.name,
+                    url: fullUrl
+                });
 
-        // 다른 오류는 그대로 전파
-        throw error;
+                if (error.message.includes('fetch') || error.message.includes('CORS')) {
+                    throw new Error(`네트워크 오류가 발생했습니다. API 라우트 설정을 확인해주세요.`);
+                }
+
+                throw new Error(`네트워크 오류: ${error.message}`);
+            }
+
+            // 다른 오류는 그대로 전파
+            throw error;
+        }
     }
 }
+
+// 토큰 갱신/재시도가 붙은 요청을 다른 모듈에서도 쓸 수 있게 공개한다.
+// 각자 fetch를 직접 부르면 토큰이 만료됐을 때 갱신 없이 그냥 실패한다.
+export const authorizedFetch = fetchWithAuth;
 
 // ================== 휴가 관련 API ==================
 

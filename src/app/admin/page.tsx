@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback, Fragment } from "react";
+import {useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import {useRouter} from "next/navigation";
 import {format, addMonths, subMonths, isSameDay, startOfMonth, endOfMonth} from "date-fns";
 import {ko} from "date-fns/locale";
@@ -248,7 +248,6 @@ export default function AdminPage() {
     useEffect(() => {
         if (!isClient) return; // 클라이언트 사이드가 아니면 실행하지 않음
 
-        const token = localStorage.getItem("authToken");
         const orgName = localStorage.getItem("organizationName");
         const companyNameData = localStorage.getItem("companyName");
         const companyAddressNameData = localStorage.getItem("companyAddressName");
@@ -270,9 +269,9 @@ export default function AdminPage() {
         const storedLoginType = localStorage.getItem('loginType');
         if (storedLoginType) setLoginType(storedLoginType);
 
-        if (token) {
-            fetchInitialData();
-        }
+        // 데이터 조회는 아래 effect가 전담한다.
+        // 여기서도 부르면 화면이 뜰 때 같은 요청이 두 벌씩 나가면서
+        // 토큰 갱신 경합과 백엔드 부하를 괜히 키운다.
     }, [router, isClient]);
 
     useEffect(() => {
@@ -387,21 +386,6 @@ export default function AdminPage() {
         });
     }, [filteredRequests]);
 
-    const fetchInitialData = async () => {
-        try {
-            await fetchMonthData(); // fetchAllRequests 제거
-        } catch (error) {
-            console.error("초기 데이터 로드 실패:", error);
-            showNotification(
-                "데이터를 불러오는데 실패했습니다. 다시 시도해주세요.",
-                "error"
-            );
-            if ((error as Error).message.includes("인증")) {
-                router.push("/login");
-            }
-        }
-    };
-
     const handleLogout = async () => {
         try {
             await apiLogout();
@@ -412,7 +396,14 @@ export default function AdminPage() {
         }
     };
 
+    // 달을 빠르게 넘기면 이전 달 응답이 뒤늦게 도착할 수 있다.
+    // 마지막으로 시작한 조회만 화면에 반영한다.
+    const monthDataRequestIdRef = useRef(0);
+
     const fetchMonthData = async () => {
+        const requestId = ++monthDataRequestIdRef.current;
+        const isStale = () => monthDataRequestIdRef.current !== requestId;
+
         try {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -433,6 +424,8 @@ export default function AdminPage() {
                 getMemberUsers().catch(() => ({ members: [] })),
                 getPositions().catch(() => ({ positions: [] })),
             ]);
+
+            if (isStale()) return; // 더 최신 조회가 이미 시작됐다
 
             const limitsMap: Record<string, VacationLimit> = {};
             const limits = Array.isArray(limitsData.limits) ? limitsData.limits : [];
@@ -506,17 +499,28 @@ export default function AdminPage() {
             setIsLoadingRequests(false);
 
         } catch (error) {
+            // 뒤늦게 실패한 이전 조회는 이미 지나간 화면의 결과다. 알릴 필요 없다.
+            if (isStale()) return;
+
             console.error("월별 휴무 데이터 로드 중 오류 발생:", error);
+            setIsLoadingRequests(false); // 실패해도 목록이 계속 로딩 상태로 남지 않게
+            const message = (error as Error).message || "";
+
+            // 인증이 끊긴 경우: fetchWithAuth가 이미 로그인 페이지로 보내는 중이므로 토스트는 생략한다.
+            const isAuthProblem =
+                message.includes("인증") ||
+                message.includes("회사 ID") ||
+                message.includes("Company ID");
+
+            if (isAuthProblem) {
+                router.push("/login");
+                return;
+            }
+
             showNotification(
                 "월별 휴무 데이터를 불러오는 중 오류가 발생했습니다.",
                 "error"
             );
-            if (
-                (error as Error).message.includes("인증") ||
-                (error as Error).message.includes("회사 ID")
-            ) {
-                router.push("/login");
-            }
         }
     };
 
@@ -1823,16 +1827,12 @@ export default function AdminPage() {
 
             </main>
 
-            {/* 채팅 탭에서는 레일을 띄우지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다 */}
-            {activeMainTab !== "chat" && (
-                <ChatRail
-                    onOpenRoom={(roomId) => {
-                        setRailRoomId(roomId);
-                        setActiveMainTab("chat");
-                    }}
-                    onOpenChatTab={() => setActiveMainTab("chat")}
-                />
-            )}
+            <ChatRail
+                onOpenRoom={(roomId) => {
+                    setRailRoomId(roomId);
+                    setActiveMainTab("chat");
+                }}
+            />
             </div>
 
             {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}

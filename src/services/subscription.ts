@@ -1,44 +1,14 @@
 import { SubscriptionResponseDTO, SubscriptionRequestDTO, SubscriptionStatus } from '@/types/subscription';
 import { PaymentFailurePage } from '@/types/payment';
+import { authorizedFetch } from '@/lib/apiService';
 
 export const subscriptionService = {
   // 구독 정보 조회
+  // 관리자 화면에 들어올 때마다 도는 길목이라, 토큰이 만료됐거나 서버가 잠시 흔들렸다고
+  // 사용자를 랜딩으로 돌려보내면 안 된다. 갱신·재시도가 붙은 공용 요청을 쓴다.
+  // (오류에는 status가 그대로 실리고, 메시지는 백엔드의 error/message 필드를 따른다)
   async getMySubscription(): Promise<SubscriptionResponseDTO> {
-    const token = localStorage.getItem('authToken');
-    
-    const response = await fetch('/api/v1/subscriptions', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      // 에러 응답의 내용을 확인
-      let errorMessage = 'Failed to fetch subscription';
-      let errorData: any = {};
-      
-      try {
-        errorData = await response.json();
-        // 백엔드의 GlobalExceptionHandler가 반환하는 error 필드 사용
-        if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch {
-        // JSON 파싱 실패 시 기본 메시지 사용
-        errorMessage = `HTTP ${response.status} error`;
-      }
-      
-      const error = new Error(errorMessage);
-      (error as any).status = response.status;
-      (error as any).data = errorData;
-      throw error;
-    }
-
-    return response.json();
+    return authorizedFetch('/api/v1/subscriptions');
   },
 
   // 구독 생성 또는 업데이트
