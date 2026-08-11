@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { Text } from '@astryxdesign/core/Text';
-import type { VacationPerson } from '@/lib/monthVacations';
+import { vacationKindBadgeStyle, type VacationPerson } from '@/lib/monthVacations';
 
 interface CalendarVacationPaneProps {
   people: VacationPerson[];
@@ -62,15 +62,7 @@ export default function CalendarVacationPane({
         <>
           {visible.map((person) => (
             <div key={person.id} style={rowStyle} title={`${person.name} · ${person.kindLabel}`}>
-              <span
-                style={{
-                  flexShrink: 0,
-                  width: 5,
-                  height: 5,
-                  borderRadius: 'var(--radius-full)',
-                  background: person.color,
-                }}
-              />
+              <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
               <span style={{ minWidth: 0, overflow: 'hidden' }}>
                 <Text type="supporting" color="secondary" maxLines={1}>
                   {person.name}

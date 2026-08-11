@@ -6,6 +6,7 @@
  * 월간일정 탭과 대시보드 달력이 같은 함수를 쓴다.
  */
 
+import type { CSSProperties } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { getVacationCalendar } from '@/lib/apiService';
 import { resolveVacationKind } from '@/types/vacation';
@@ -21,6 +22,26 @@ export interface VacationPerson {
   kindLabel: string;
 }
 
+/**
+ * 휴무 종류 배지(색 원 안에 연/반/필/대/일).
+ * 근무조정 달력(VacationCalendar)의 circleBadgeStyle과 같은 모양·색이어야 한다 —
+ * 두 화면에서 같은 휴무가 다르게 보이면 색을 외운 의미가 없다.
+ */
+export const vacationKindBadgeStyle = (background: string, size = 12): CSSProperties => ({
+  width: size,
+  height: size,
+  borderRadius: 'var(--radius-full)',
+  background,
+  color: 'var(--color-on-accent)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+  fontSize: size <= 12 ? 'var(--font-size-2xs)' : 'var(--font-size-xs)',
+  fontWeight: 'var(--font-weight-bold)',
+  lineHeight: 1,
+});
+
 interface RawPerson {
   id?: string | number;
   userName?: string;
@@ -33,7 +54,9 @@ interface RawPerson {
 }
 
 const toPerson = (raw: RawPerson, index: number): VacationPerson | null => {
-  const name = (raw.memberName || raw.userName || raw.name || '').trim();
+  // 이름은 근무조정 달력(VacationCalendar)과 같은 필드를 같은 순서로 본다 —
+  // 두 화면에 다른 이름이 뜨면 같은 사람인지 알 수 없다.
+  const name = (raw.userName || raw.memberName || raw.name || '').trim();
   if (!name) return null;
   const kind = resolveVacationKind(raw.type || raw.vacationType, raw.duration);
   return {

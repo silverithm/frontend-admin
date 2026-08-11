@@ -614,6 +614,9 @@ export default function FormFieldEditor({ field, onChange, schema }: FormFieldEd
           </VStack>
           <div
             onKeyDown={(e) => {
+              // 조합 중 Enter는 글자를 확정하는 것이지 추가가 아니다
+              // (거르지 않으면 "선택"을 치다 "선택" 대신 "선태"이 항목으로 들어간다)
+              if (e.nativeEvent.isComposing) return;
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addOption();

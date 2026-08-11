@@ -835,6 +835,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     useVisiblePolling(fetchRooms, 30000);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        // 한글 조합 중의 Enter는 '조합 확정'이지 전송이 아니다.
+        // 거르지 않으면 "알림"을 치고 Enter를 눌렀을 때 조합 중인 값으로 한 번 보내고,
+        // 입력창이 비워진 뒤 확정된 "림"이 들어가 두 번째 Enter에 또 나간다.
+        // 확정 뒤 브라우저가 Enter keydown을 한 번 더 주므로 이걸 걸러도 Enter 한 번에 전송된다.
+        if (e.nativeEvent.isComposing) return;
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
@@ -1067,7 +1072,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 startIcon={FiSearch}
                                                 value={searchKeyword}
                                                 onChange={setSearchKeyword}
-                                                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') runSearch(); }}
+                                                onKeyDown={(e: React.KeyboardEvent) => {
+                                                    // 조합 중 Enter는 글자를 확정하는 것이지 검색이 아니다
+                                                    // (거르지 않으면 덜 완성된 말로 검색된다)
+                                                    if (e.nativeEvent.isComposing) return;
+                                                    if (e.key === 'Enter') runSearch();
+                                                }}
                                                 placeholder="찾을 말을 입력하고 Enter"
                                                 hasClear
                                             />

@@ -188,6 +188,8 @@ export function FloatingChatMessages({
     }, [roomId]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        // 한글 조합 중의 Enter는 '조합 확정'이지 전송이 아니다 (거르지 않으면 마지막 글자가 또 나간다)
+        if (e.nativeEvent.isComposing) return;
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             handleSendMessage();

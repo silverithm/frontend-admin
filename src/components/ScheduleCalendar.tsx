@@ -41,7 +41,7 @@ import {
   CALENDAR_PANE_OPTIONS,
   type CalendarPane,
 } from '@/lib/calendarPanes';
-import { fetchMonthVacations, type VacationPerson } from '@/lib/monthVacations';
+import { fetchMonthVacations, vacationKindBadgeStyle, type VacationPerson } from '@/lib/monthVacations';
 import CalendarVacationPane from '@/components/CalendarVacationPane';
 import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
@@ -1437,7 +1437,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                               background: 'var(--color-background-muted)',
                             }}
                           >
-                            <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: person.color }} />
+                            <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
                             <Text type="supporting" color="secondary">{person.name}</Text>
                           </span>
                         ))}
