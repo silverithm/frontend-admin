@@ -96,9 +96,26 @@ interface ChatParticipant {
     role?: string;
     joinedAt?: string;
     profileImageUrl?: string;
+    /** 이 사람이 어디까지 읽었는지 — 메시지 옆 '안 읽은 수'를 세는 근거 */
+    lastReadMessageId?: number | null;
 }
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
+
+/**
+ * 메시지 옆 '아직 안 읽은 사람 수'.
+ *
+ * 숫자만 덩그러니 두면 무슨 수인지 알 수 없어 화면 낭독기용 설명을 함께 준다.
+ * 모두 읽으면(0) 아무것도 그리지 않는다 — 카카오톡과 같다.
+ */
+function UnreadCount({ count }: { count: number }) {
+    if (count <= 0) return null;
+    return (
+        <Text type="supporting" color="accent" aria-label={`${count}명이 아직 읽지 않음`}>
+            {count}
+        </Text>
+    );
+}
 
 // Astryx 마이그레이션: bespoke 레이아웃(스플릿 패널/메시지 버블)에서만 쓰는 잔여 색상 — 전부 디자인 토큰
 const C = {
@@ -191,6 +208,21 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         participants.forEach((p) => map.set(p.userId, p.profileImageUrl));
         return map;
     }, [participants]);
+
+    /**
+     * 메시지 옆에 붙는 '아직 안 읽은 사람 수' (카카오톡과 같은 규칙).
+     *
+     * 참가자마다 어디까지 읽었는지(lastReadMessageId)를 들고 있으므로, 그 값이 이 메시지보다
+     * 앞이면 아직 안 읽은 것이다. 보낸 사람 자신은 언제나 읽은 것으로 친다 —
+     * 서버는 전송 시 읽음 행만 남기고 참가자 포인터는 옮기지 않는다.
+     * 0이면 모두 읽었다는 뜻이라 숫자를 지운다.
+     */
+    const countUnreadReaders = useCallback((message: ChatMessage): number => {
+        if (participants.length === 0) return 0;
+        return participants.filter(p =>
+            p.userId !== String(message.senderId) && (p.lastReadMessageId ?? 0) < message.id
+        ).length;
+    }, [participants]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeletingRoom, setIsDeletingRoom] = useState(false);
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -261,6 +293,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             // 로컬 unreadCount 즉시 0으로 갱신
             setRooms(prev => prev.map(room =>
                 room.id === roomId ? { ...room, unreadCount: 0 } : room
+            ));
+            // 내 읽음 위치도 함께 옮긴다 — 안 그러면 남이 보낸 메시지 옆 숫자에
+            // 내가 계속 '안 읽은 사람'으로 남는다 (서버는 내 읽음 이벤트를 나에게 되돌려주지 않는다)
+            setParticipants(prev => prev.map(p =>
+                p.userId === String(userId)
+                    ? { ...p, lastReadMessageId: Math.max(p.lastReadMessageId ?? 0, lastMsgId) }
+                    : p
             ));
         } catch (error) {
             console.error("Error marking messages as read:", error);
@@ -433,13 +472,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 try {
                     const wsMessage = JSON.parse(stompMessage.body);
                     if (wsMessage.type === "READ" && wsMessage.senderId !== userId) {
-                        // 다른 사용자가 읽었으므로 메시지 readCount 업데이트
-                        setMessages(prev => prev.map(msg => {
-                            if (msg.id <= (wsMessage.lastReadMessageId || 0)) {
-                                return { ...msg, readCount: msg.readCount + 1 };
-                            }
-                            return msg;
-                        }));
+                        // 그 사람이 '어디까지 읽었는지'만 옮긴다.
+                        // 메시지마다 readCount를 올리는 방식은 같은 사람이 두 번 읽을 때
+                        // 이전 메시지가 또 올라가 참가자 수를 넘어버린다.
+                        setParticipants(prev => prev.map(p =>
+                            p.userId === String(wsMessage.senderId)
+                                ? { ...p, lastReadMessageId: wsMessage.lastReadMessageId ?? p.lastReadMessageId }
+                                : p
+                        ));
                     }
                 } catch (e) {
                     console.error("[Chat WebSocket] 읽음 이벤트 파싱 오류:", e);
@@ -792,6 +832,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     }, []);
 
+    // 방을 열면 참가자를 받아둔다 — 메시지 옆 '안 읽은 수'를 참가자별 읽음 위치로 세므로
+    // 참가자 서랍을 열지 않아도 필요하다
+    useEffect(() => {
+        if (selectedRoom) fetchParticipants(selectedRoom);
+    }, [selectedRoom, fetchParticipants]);
+
     const deleteRoom = async () => {
         if (!selectedRoom) return;
 
@@ -814,6 +860,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     };
 
     const toggleDrawer = () => {
+        // 서랍을 열 때마다 다시 받아 이름·프로필이 최신이 되게 한다 (읽음 위치는 아래 effect가 이미 채워둔다)
         if (!showDrawer && selectedRoom) {
             fetchParticipants(selectedRoom);
         }
@@ -1264,17 +1311,23 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             )}
                                                         </div>
                                                     )}
-                                                    <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
+                                                    <div className="carev-chat-msgrow" style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
                                                         {isMyMessage && (
                                                             <>
                                                                 {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/공지 메뉴에 닿을 수 있어야 한다 */}
-                                                                <IconButton
-                                                                    label="메시지 옵션"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    icon={<Icon icon="moreHorizontal" size="sm" />}
-                                                                    onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
-                                                                />
+                                                                {/* 평소엔 숨어 있다가 마우스를 올리거나 키보드 포커스가 오면 나타난다.
+                                                                    아주 지워버리면 꾹 누르기·우클릭을 못 하는 키보드 사용자가
+                                                                    답장·리액션·공지등록에 닿을 방법이 없어진다. */}
+                                                                <span className="carev-chat-msgactions">
+                                                                    <IconButton
+                                                                        label="메시지 옵션"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                                        onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
+                                                                    />
+                                                                </span>
+                                                                <UnreadCount count={countUnreadReaders(message)} />
                                                                 <Text type="supporting">
                                                                     {formatMessageTime(message.createdAt)}
                                                                 </Text>
@@ -1370,16 +1423,22 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         </div>
                                                         {!isMyMessage && (
                                                             <>
+                                                                <UnreadCount count={countUnreadReaders(message)} />
                                                                 <Text type="supporting">
                                                                     {formatMessageTime(message.createdAt)}
                                                                 </Text>
-                                                                <IconButton
-                                                                    label="메시지 옵션"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    icon={<Icon icon="moreHorizontal" size="sm" />}
-                                                                    onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
-                                                                />
+                                                                {/* 평소엔 숨어 있다가 마우스를 올리거나 키보드 포커스가 오면 나타난다.
+                                                                    아주 지워버리면 꾹 누르기·우클릭을 못 하는 키보드 사용자가
+                                                                    답장·리액션·공지등록에 닿을 방법이 없어진다. */}
+                                                                <span className="carev-chat-msgactions">
+                                                                    <IconButton
+                                                                        label="메시지 옵션"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                                        onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
+                                                                    />
+                                                                </span>
                                                             </>
                                                         )}
                                                     </div>

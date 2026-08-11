@@ -615,6 +615,17 @@ html {
   }
 }
 
+/* 메시지 옆 '옵션(…)' 버튼 — 줄마다 늘 떠 있으면 대화가 지저분해진다.
+   폭은 그대로 두고 투명하게만 해서, 나타났다 사라질 때 줄이 흔들리지 않게 한다.
+   포커스가 오면 보이므로 키보드로도 닿는다. */
+.carev-chat-msgactions { opacity: 0; transition: opacity var(--duration-fast-min) var(--ease-standard); }
+.carev-chat-msgrow:hover .carev-chat-msgactions,
+.carev-chat-msgactions:focus-within { opacity: 1; }
+/* 손가락으로 쓰는 화면에는 hover가 없다 — 꾹 누르기가 그 역할을 하므로 아예 자리를 비운다 */
+@media (hover: none) {
+  .carev-chat-msgactions { display: none; }
+}
+
 /* 본문과 우측 레일을 나란히 — 셸이 준 높이를 그대로 나눠 갖는다 */
 .carev-admin-body { flex: 1; min-height: 0; display: flex; }
 
