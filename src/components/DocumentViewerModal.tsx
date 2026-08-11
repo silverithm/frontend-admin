@@ -28,11 +28,26 @@ interface DocumentViewerModalProps {
   saveLabel?: string;
 }
 
+/** 스프레드시트 한 장 — 병합된 칸은 왼쪽 위 칸만 남기고 나머지는 건너뛴다 */
+interface SheetCell {
+  text: string;
+  colSpan: number;
+  rowSpan: number;
+}
+interface SheetData {
+  name: string;
+  rows: SheetCell[][];
+}
+
 type ViewerState =
   | { kind: 'loading'; message?: string }
   | { kind: 'pdf'; objectUrl: string }
   | { kind: 'image'; objectUrl: string; note?: string }
   | { kind: 'hwp' }
+  /** docx / pptx — 라이브러리가 컨테이너에 직접 그린다 */
+  | { kind: 'rendered'; note?: string }
+  | { kind: 'sheet'; sheets: SheetData[] }
+  | { kind: 'text'; content: string }
   | { kind: 'unsupported'; message: string }
   | { kind: 'error'; message: string };
 
@@ -52,6 +67,108 @@ const getExtension = (fileName: string): string => {
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
 const HWP_EXTENSIONS = ['hwp', 'hwpx'];
+/** 글자만 있는 파일 — 그대로 펼쳐 보여준다 */
+const TEXT_EXTENSIONS = ['txt', 'csv', 'md', 'json', 'log', 'xml', 'yaml', 'yml'];
+/** 워드 — docx-preview로 서식까지 살려 그린다 */
+const WORD_EXTENSIONS = ['docx'];
+/** 엑셀 — exceljs로 읽어 표로 그린다 */
+const SHEET_EXTENSIONS = ['xlsx', 'xlsm'];
+/** 파워포인트 — pptx-preview로 장표를 그린다 */
+const SLIDE_EXTENSIONS = ['pptx'];
+/** 옛 바이너리 형식(97-2003) — 브라우저에서 열 방법이 없어 안내만 한다 */
+const LEGACY_OFFICE_EXTENSIONS = ['doc', 'xls', 'ppt'];
+
+/** 표 한 칸을 사람이 읽는 문자열로 — 수식·서식글자·날짜·링크를 모두 평평하게 만든다 */
+const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  }
+  if (typeof value === 'object') {
+    const v = value as Record<string, unknown>;
+    if (Array.isArray(v.richText)) {
+      return (v.richText as { text?: string }[]).map((r) => r.text ?? '').join('');
+    }
+    if ('result' in v) return formatCellValue(v.result);
+    if ('text' in v) return formatCellValue(v.text);
+    if ('hyperlink' in v) return String(v.hyperlink);
+    if ('error' in v) return String(v.error);
+    return '';
+  }
+  return String(value);
+};
+
+/** "B2:D4" 같은 병합 표기를 행·열 번호로 푼다 (엑셀은 1부터 시작) */
+const parseMergeRange = (range: string) => {
+  const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+  if (!match) return null;
+  const toColumn = (letters: string) =>
+    letters.split('').reduce((acc, ch) => acc * 26 + (ch.charCodeAt(0) - 64), 0);
+  return {
+    top: Number(match[2]),
+    left: toColumn(match[1]),
+    bottom: Number(match[4]),
+    right: toColumn(match[3]),
+  };
+};
+
+/** 엑셀 미리보기 — 시트가 여럿이면 위에 이름 버튼을 두고 하나씩 보여준다 */
+function SheetView({ sheets }: { sheets: SheetData[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const sheet = sheets[Math.min(activeIndex, sheets.length - 1)];
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--color-background-card)' }}>
+      {sheets.length > 1 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--spacing-1)',
+            padding: 'var(--spacing-2) var(--spacing-3)',
+            borderBottom: '1px solid var(--color-border)',
+            overflowX: 'auto',
+            flexShrink: 0,
+          }}
+        >
+          {sheets.map((s, index) => (
+            <Button
+              key={s.name || index}
+              label={s.name || `시트${index + 1}`}
+              variant={index === activeIndex ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveIndex(index)}
+            />
+          ))}
+        </div>
+      )}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 'var(--spacing-3)' }}>
+        {sheet.rows.length === 0 ? (
+          <div style={{ padding: 'var(--spacing-6)', textAlign: 'center' }}>
+            <Text type="body" color="secondary">빈 시트입니다</Text>
+          </div>
+        ) : (
+          <table className="carev-docviewer-sheet">
+            <tbody>
+              {sheet.rows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      colSpan={cell.colSpan > 1 ? cell.colSpan : undefined}
+                      rowSpan={cell.rowSpan > 1 ? cell.rowSpan : undefined}
+                    >
+                      {cell.text}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function DocumentViewerModal({
   fileUrl,
@@ -67,12 +184,15 @@ export default function DocumentViewerModal({
   const blobRef = useRef<Blob | null>(null);
   const objectUrlsRef = useRef<string[]>([]);
   const hwpContainerRef = useRef<HTMLDivElement>(null);
+  /** docx-preview / pptx-preview가 직접 그려 넣는 자리 */
+  const officeContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RhwpEditor | null>(null);
   const exportingRef = useRef(false);
   const lastFileRef = useRef<File | null>(null);
 
   const ext = getExtension(fileName);
   const isHwp = HWP_EXTENSIONS.includes(ext);
+  const isSlide = SLIDE_EXTENSIONS.includes(ext);
   const isAuthoring = !!onSave && isHwp;
 
   useEffect(() => {
@@ -172,6 +292,137 @@ export default function DocumentViewerModal({
           return;
         }
 
+        if (TEXT_EXTENSIONS.includes(ext)) {
+          const content = await blob.text();
+          if (cancelled) return;
+          setState({ kind: 'text', content });
+          return;
+        }
+
+        if (WORD_EXTENSIONS.includes(ext)) {
+          setState({ kind: 'loading', message: '워드 문서를 여는 중...' });
+          try {
+            const { renderAsync } = await import('docx-preview');
+            const container = officeContainerRef.current;
+            if (cancelled || !container) return;
+            container.innerHTML = '';
+            await renderAsync(blob, container, undefined, {
+              className: 'carev-docx',
+              inWrapper: true,
+              ignoreWidth: false,
+              ignoreHeight: true,
+              breakPages: true,
+              experimental: true,
+              useBase64URL: true,
+            });
+            if (cancelled) return;
+            setState({ kind: 'rendered' });
+          } catch (wordError) {
+            console.error('워드 문서 미리보기 실패:', wordError);
+            if (!cancelled) {
+              setState({
+                kind: 'unsupported',
+                message: '워드 문서를 여는 데 실패했습니다.\n다운로드 후 확인해주세요.',
+              });
+            }
+          }
+          return;
+        }
+
+        if (SLIDE_EXTENSIONS.includes(ext)) {
+          setState({ kind: 'loading', message: '슬라이드를 여는 중...' });
+          try {
+            const { init } = await import('pptx-preview');
+            const container = officeContainerRef.current;
+            if (cancelled || !container) return;
+            container.innerHTML = '';
+            // pptx-preview는 지정한 크기의 뷰포트를 만들고 그 안에서 장표를 넘긴다 —
+            // 보이는 영역에 맞춰야 장표가 잘리지 않는다 (아직 크기를 모르면 기본값)
+            // 장표가 여럿이면 안쪽에 세로 스크롤바가 생기므로 그만큼 빼야 가로 스크롤이 안 생긴다
+            const width = Math.max(320, (container.clientWidth || 860) - 16);
+            const height = container.clientHeight || Math.round((width * 9) / 16);
+            const previewer = init(container, { width, height });
+            await previewer.preview(await blob.arrayBuffer());
+            if (cancelled) return;
+            setState({ kind: 'rendered', note: '슬라이드는 원본과 글꼴·배치가 조금 다를 수 있습니다.' });
+          } catch (slideError) {
+            console.error('슬라이드 미리보기 실패:', slideError);
+            if (!cancelled) {
+              setState({
+                kind: 'unsupported',
+                message: '슬라이드를 여는 데 실패했습니다.\n다운로드 후 확인해주세요.',
+              });
+            }
+          }
+          return;
+        }
+
+        if (SHEET_EXTENSIONS.includes(ext)) {
+          setState({ kind: 'loading', message: '엑셀 문서를 여는 중...' });
+          try {
+            const ExcelJS = (await import('exceljs')).default;
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(await blob.arrayBuffer());
+            if (cancelled) return;
+
+            const sheets: SheetData[] = workbook.worksheets.map((worksheet) => {
+              // 병합된 칸은 왼쪽 위에서 span으로 그리고, 가려지는 칸은 표에서 뺀다
+              const merges = (worksheet.model as { merges?: string[] }).merges || [];
+              const spanAt = new Map<string, { colSpan: number; rowSpan: number }>();
+              const covered = new Set<string>();
+              merges.forEach((range) => {
+                const box = parseMergeRange(range);
+                if (!box) return;
+                spanAt.set(`${box.top}:${box.left}`, {
+                  colSpan: box.right - box.left + 1,
+                  rowSpan: box.bottom - box.top + 1,
+                });
+                for (let r = box.top; r <= box.bottom; r += 1) {
+                  for (let c = box.left; c <= box.right; c += 1) {
+                    if (r !== box.top || c !== box.left) covered.add(`${r}:${c}`);
+                  }
+                }
+              });
+
+              const columnCount = Math.max(worksheet.columnCount, 1);
+              const rows: SheetCell[][] = [];
+              for (let r = 1; r <= worksheet.rowCount; r += 1) {
+                const row: SheetCell[] = [];
+                for (let c = 1; c <= columnCount; c += 1) {
+                  if (covered.has(`${r}:${c}`)) continue;
+                  const span = spanAt.get(`${r}:${c}`);
+                  row.push({
+                    text: formatCellValue(worksheet.getCell(r, c).value),
+                    colSpan: span?.colSpan ?? 1,
+                    rowSpan: span?.rowSpan ?? 1,
+                  });
+                }
+                rows.push(row);
+              }
+              return { name: worksheet.name, rows };
+            });
+
+            setState({ kind: 'sheet', sheets: sheets.length > 0 ? sheets : [{ name: '시트1', rows: [] }] });
+          } catch (sheetError) {
+            console.error('엑셀 미리보기 실패:', sheetError);
+            if (!cancelled) {
+              setState({
+                kind: 'unsupported',
+                message: '엑셀 문서를 여는 데 실패했습니다.\n다운로드 후 확인해주세요.',
+              });
+            }
+          }
+          return;
+        }
+
+        if (LEGACY_OFFICE_EXTENSIONS.includes(ext)) {
+          setState({
+            kind: 'unsupported',
+            message: `.${ext}는 오래된 오피스 형식이라 브라우저에서 열 수 없습니다.\n다운로드해서 보시거나, 보낸 분께 .${ext}x로 다시 저장해달라고 요청해주세요.`,
+          });
+          return;
+        }
+
         setState({
           kind: 'unsupported',
           message: `${ext ? `.${ext}` : '이'} 형식은 브라우저 미리보기를 지원하지 않습니다.\n다운로드 후 확인해주세요.`,
@@ -190,6 +441,7 @@ export default function DocumentViewerModal({
       cancelled = true;
       editorRef.current?.destroy();
       editorRef.current = null;
+      if (officeContainerRef.current) officeContainerRef.current.innerHTML = '';
       objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
       objectUrlsRef.current = [];
     };
@@ -457,6 +709,9 @@ export default function DocumentViewerModal({
                 {state.kind === 'image' && state.note && (
                   <Banner status="warning" container="section" title={state.note} />
                 )}
+                {state.kind === 'rendered' && state.note && (
+                  <Banner status="info" container="section" title={state.note} />
+                )}
                 {showSaveButton && (
                   <Banner
                     status="info"
@@ -476,6 +731,44 @@ export default function DocumentViewerModal({
                     ref={hwpContainerRef}
                     style={{ width: '100%', height: '100%', display: state.kind === 'hwp' ? 'block' : 'none' }}
                   />
+
+                  {/*
+                    워드·슬라이드 컨테이너 — 라이브러리가 그리기 전에 가로폭을 알아야 해서
+                    display:none 대신 자리를 유지한 채 감춘다 (0폭이면 슬라이드가 찌그러진다)
+                  */}
+                  <div
+                    ref={officeContainerRef}
+                    className="carev-docviewer-office"
+                    style={
+                      state.kind === 'rendered'
+                        // 슬라이드는 고정 px 뷰포트라 여백을 주면 폭이 어긋난다
+                        ? (isSlide ? { height: '100%' } : undefined)
+                        : { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none', overflow: 'hidden' }
+                    }
+                  />
+
+                  {state.kind === 'sheet' && (
+                    <SheetView sheets={state.sheets} />
+                  )}
+
+                  {state.kind === 'text' && (
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: 'var(--spacing-5)',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        fontSize: 'var(--font-size-supporting)',
+                        lineHeight: 1.7,
+                        color: 'var(--color-text-primary)',
+                        background: 'var(--color-background-card)',
+                        minHeight: '100%',
+                      }}
+                    >
+                      {state.content}
+                    </pre>
+                  )}
 
                   {state.kind === 'loading' && (
                     <Loading height="100%" label={state.message || '문서를 불러오는 중...'} />
