@@ -6,6 +6,7 @@ import SockJS from "sockjs-client";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
+import { MAX_CHAT_FILE_SIZE, isViewableDocument } from '@/lib/chatAttachments';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import MemberItem from '@/components/MemberItem';
 import { Button } from '@astryxdesign/core/Button';
@@ -98,18 +99,6 @@ interface ChatParticipant {
 }
 
 const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
-
-/** 채팅 첨부 상한 — S3 업로드와 모바일 데이터 사용을 감안한 값 */
-const MAX_CHAT_FILE_SIZE = 20 * 1024 * 1024;
-
-/** 브라우저에서 바로 열어볼 수 있는 문서 (그 외는 다운로드로 안내) */
-const VIEWABLE_DOC_EXTENSIONS = ['pdf', 'hwp', 'hwpx', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
-
-const isViewableDocument = (fileName?: string) => {
-    if (!fileName) return false;
-    const ext = fileName.split('.').pop()?.toLowerCase();
-    return !!ext && VIEWABLE_DOC_EXTENSIONS.includes(ext);
-};
 
 // Astryx 마이그레이션: bespoke 레이아웃(스플릿 패널/메시지 버블)에서만 쓰는 잔여 색상 — 전부 디자인 토큰
 const C = {
@@ -1015,7 +1004,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: "var(--color-background-accent-muted, rgba(15, 118, 110, 0.08))",
+                            background: 'var(--color-background-teal)',
                             border: `2px dashed ${C.accent}`,
                             borderRadius: 'var(--radius-container)',
                         }}

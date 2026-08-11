@@ -7,9 +7,13 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
+import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { Loading } from "@/components/Loading";
+import DocumentViewerModal from "@/components/DocumentViewerModal";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
-import { fetchChatParticipants, toggleChatReaction } from '@/lib/apiService';
+import { fetchChatParticipants, toggleChatReaction, uploadChatFile } from '@/lib/apiService';
+import { MAX_CHAT_FILE_SIZE, isViewableDocument } from '@/lib/chatAttachments';
 
 interface ChatParticipant {
     userId: string;
@@ -106,6 +110,19 @@ export function FloatingChatMessages({
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [longPressMenuMessageId, setLongPressMenuMessageId] = useState<number | null>(null);
 
+    // 파일·사진 첨부 관련 — 관리자 채팅 탭과 같은 업로드·뷰어를 쓴다
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isUploadingFile, setIsUploadingFile] = useState(false);
+    /** 전송 실패 안내 — 이 패널엔 토스트가 없어 입력창 위에 한 줄로 띄운다 */
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    /** 문서는 이 창 안에서 바로 열어본다 (이미지는 아래 확대 보기로) */
+    const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
+    const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
+    /** 파일을 창 위로 끌어왔을 때만 안내를 띄운다 */
+    const [isDraggingFile, setIsDraggingFile] = useState(false);
+    /** 자식 위를 지날 때마다 dragleave가 튀어서, 진입 횟수를 세어 상쇄한다 */
+    const dragDepthRef = useRef(0);
+
     // 열린 메시지 메뉴는 Escape로 닫는다.
     // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
     // (키보드 사용자의 정상 경로) 메뉴로 이벤트가 오지 않는다.
@@ -163,6 +180,11 @@ export function FloatingChatMessages({
         setReplyTo(null);
         setLongPressMenuMessageId(null);
         setActiveEmojiPickerMessageId(null);
+        setUploadError(null);
+        setViewerFile(null);
+        setImagePreview(null);
+        setIsDraggingFile(false);
+        dragDepthRef.current = 0;
     }, [roomId]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -175,6 +197,108 @@ export function FloatingChatMessages({
     const handleSendMessage = () => {
         onSendMessage(replyTo?.id);
         setReplyTo(null);
+    };
+
+    // 업로드는 비동기라 그 사이 소켓으로 새 메시지가 들어올 수 있다 — 항상 최신 목록에 이어 붙인다
+    const messagesRef = useRef(messages);
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+
+    /**
+     * 파일·사진 전송.
+     * 관리자 채팅 탭과 같은 채팅 전용 업로드 엔드포인트를 쓴다 — 서버가 S3 저장부터
+     * 메시지 생성, 열람 가능한 절대 URL 변환까지 처리해 웹·앱이 같은 형식을 갖는다.
+     */
+    const sendFileMessage = async (file: File) => {
+        if (!roomId || !userId) return;
+        if (file.size > MAX_CHAT_FILE_SIZE) {
+            setUploadError(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`);
+            return;
+        }
+
+        const userName = (typeof window !== "undefined" ? localStorage.getItem("userName") : null) || "";
+        setUploadError(null);
+        setIsUploadingFile(true);
+        try {
+            const response = await uploadChatFile(roomId, file, userId, userName);
+            const newMessage: ChatMessage = response.message || response;
+            if (onMessagesUpdate) {
+                const current = messagesRef.current;
+                if (!current.some(m => m.id === newMessage.id)) {
+                    onMessagesUpdate([...current, newMessage]);
+                }
+            }
+            setReplyTo(null);
+            setTimeout(scrollToBottom, 100);
+        } catch (error) {
+            console.error("[FloatingChat] 파일 전송 실패:", error);
+            setUploadError("파일 전송에 실패했습니다. 다시 시도해주세요");
+        } finally {
+            setIsUploadingFile(false);
+        }
+    };
+
+    /** 여러 개를 한 번에 떨어뜨려도 보낸 순서가 뒤섞이지 않게 하나씩 올린다 */
+    const sendFiles = async (files: File[]) => {
+        for (const file of files) {
+            await sendFileMessage(file);
+        }
+    };
+
+    const handleFilePick = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        // 같은 파일을 연달아 보낼 수 있게 값을 비운다
+        event.target.value = "";
+        if (file) sendFileMessage(file);
+    };
+
+    /** 창 위에 파일을 떨어뜨려 보내기 */
+    const handleDragEnter = (event: React.DragEvent) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        dragDepthRef.current += 1;
+        setIsDraggingFile(true);
+    };
+
+    const handleDragOver = (event: React.DragEvent) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        // 막지 않으면 브라우저가 파일을 새 탭으로 열어버린다
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+    };
+
+    const handleDragLeave = () => {
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setIsDraggingFile(false);
+    };
+
+    const handleDrop = (event: React.DragEvent) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        dragDepthRef.current = 0;
+        setIsDraggingFile(false);
+        const files = Array.from(event.dataTransfer.files);
+        if (files.length > 0) sendFiles(files);
+    };
+
+    /** 캡쳐한 화면을 Cmd+V로 바로 보내기 — 클립보드에 파일이 있을 때만 가로챈다 */
+    const handlePaste = (event: React.ClipboardEvent) => {
+        const files = Array.from(event.clipboardData.files);
+        if (files.length === 0) return;
+        event.preventDefault();
+        sendFiles(files);
+    };
+
+    /** 받은 첨부 열기 — 사진은 확대 보기, 열람 가능한 문서는 뷰어, 나머지는 새 탭 */
+    const openAttachment = (message: ChatMessage) => {
+        if (!message.fileUrl) return;
+        if (message.type === "IMAGE") {
+            setImagePreview({ fileUrl: message.fileUrl, fileName: message.fileName || "이미지" });
+        } else if (isViewableDocument(message.fileName)) {
+            setViewerFile({ fileUrl: message.fileUrl, fileName: message.fileName || "문서" });
+        } else {
+            window.open(message.fileUrl, "_blank", "noopener");
+        }
     };
 
     // 리액션 토글 (로컬 + API)
@@ -316,7 +440,36 @@ export function FloatingChatMessages({
     };
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
+        <div
+            style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onPaste={handlePaste}
+        >
+            {/* 파일을 끌어온 동안만 덮는 안내 — 마우스 이벤트는 통과시켜 drop이 아래에서 잡히게 둔다 */}
+            {isDraggingFile && (
+                <div
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: 40,
+                        pointerEvents: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 'var(--spacing-3)',
+                        textAlign: "center",
+                        background: 'var(--color-background-teal)',
+                        border: `2px dashed ${C.accent}`,
+                        borderRadius: 'var(--radius-container)',
+                    }}
+                >
+                    <Text type="body" weight="semibold" color="accent">여기에 놓으면 바로 보냅니다</Text>
+                </div>
+            )}
+
             {/* Header */}
             <div
                 style={{
@@ -501,7 +654,7 @@ export function FloatingChatMessages({
                                                     // img는 네이티브로 포커스를 못 받으므로 button으로 감싸 키보드로도 크게 보기를 열 수 있게 한다
                                                     <button
                                                         type="button"
-                                                        onClick={() => window.open(message.fileUrl, "_blank")}
+                                                        onClick={() => openAttachment(message)}
                                                         aria-label={`${message.fileName || "이미지"} 크게 보기`}
                                                         style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}
                                                     >
@@ -513,21 +666,25 @@ export function FloatingChatMessages({
                                                         />
                                                     </button>
                                                 ) : message.type === "FILE" && message.fileUrl ? (
-                                                    <a
-                                                        href={message.fileUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openAttachment(message)}
                                                         style={{
                                                             display: "inline-flex",
                                                             alignItems: "center",
                                                             gap: 'var(--spacing-1)',
+                                                            background: "none",
+                                                            border: "none",
+                                                            padding: 0,
+                                                            cursor: "pointer",
+                                                            textAlign: "left",
                                                             textDecoration: "underline",
                                                             color: isMyMessage ? 'var(--color-on-accent)' : C.accent,
                                                         }}
                                                     >
                                                         <Icon icon={FiPaperclip} size="xsm" color="inherit" />
                                                         <Text type="supporting" color="inherit">{message.fileName || message.content}</Text>
-                                                    </a>
+                                                    </button>
                                                 ) : (
                                                     <Text color="inherit">{message.content}</Text>
                                                 )}
@@ -641,7 +798,28 @@ export function FloatingChatMessages({
 
             {/* Input Area */}
             <div style={{ padding: "var(--spacing-2) var(--spacing-3)", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+                {uploadError && (
+                    <div style={{ paddingBottom: 'var(--spacing-1)', color: 'var(--color-error)' }}>
+                        <Text type="supporting" color="inherit">{uploadError}</Text>
+                    </div>
+                )}
                 <div style={{ display: "flex", gap: 'var(--spacing-2)', alignItems: "flex-end" }}>
+                    {/* 파일·사진 첨부 — 숨은 input을 아이콘 버튼으로 대신 연다 */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        onChange={handleFilePick}
+                        style={{ display: "none" }}
+                    />
+                    <Button
+                        label="파일 첨부"
+                        isIconOnly
+                        variant="ghost"
+                        icon={<Icon icon={FiPaperclip} size="sm" />}
+                        isLoading={isUploadingFile}
+                        isDisabled={isUploadingFile || isSendingMessage}
+                        onClick={() => fileInputRef.current?.click()}
+                    />
                     <div style={{ flex: 1 }} onKeyDown={handleKeyDown}>
                         <TextInput
                             label="메시지 입력"
@@ -649,8 +827,12 @@ export function FloatingChatMessages({
                             type="text"
                             value={messageInput}
                             onChange={(value) => onMessageInputChange(value)}
-                            placeholder={replyTo ? `${replyTo.senderName}에게 답장...` : "메시지를 입력하세요..."}
-                            isDisabled={isSendingMessage}
+                            placeholder={
+                                isUploadingFile ? "파일을 보내는 중..."
+                                    : replyTo ? `${replyTo.senderName}에게 답장...`
+                                    : "메시지 입력 (사진 붙여넣기 가능)"
+                            }
+                            isDisabled={isSendingMessage || isUploadingFile}
                         />
                     </div>
                     <Button
@@ -659,7 +841,7 @@ export function FloatingChatMessages({
                         variant="primary"
                         icon={<Icon icon={FiSend} size="sm" />}
                         onClick={handleSendMessage}
-                        isDisabled={!messageInput.trim() || isSendingMessage}
+                        isDisabled={!messageInput.trim() || isSendingMessage || isUploadingFile}
                     />
                 </div>
             </div>
@@ -737,7 +919,7 @@ export function FloatingChatMessages({
                                         <button
                                             key={m.id}
                                             type="button"
-                                            onClick={() => window.open(m.fileUrl, "_blank")}
+                                            onClick={() => { setShowDrawer(false); openAttachment(m); }}
                                             aria-label={`${m.fileName || "사진"} 크게 보기`}
                                             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
                                         >
@@ -767,12 +949,11 @@ export function FloatingChatMessages({
                             {messages.filter(m => m.type === "FILE" && m.fileUrl).length > 0 ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                                     {messages.filter(m => m.type === "FILE" && m.fileUrl).map(m => (
-                                        <a
+                                        <button
                                             key={m.id}
-                                            href={m.fileUrl!}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', textDecoration: "none" }}
+                                            type="button"
+                                            onClick={() => { setShowDrawer(false); openAttachment(m); }}
+                                            style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', background: "none", border: "none", cursor: "pointer", textAlign: "left", width: "100%" }}
                                         >
                                             <div
                                                 style={{
@@ -792,7 +973,7 @@ export function FloatingChatMessages({
                                                 <Text type="supporting" color="primary" maxLines={1}>{m.fileName || m.content}</Text>
                                                 <Text type="supporting" color="secondary">{formatMessageTime(m.createdAt)}</Text>
                                             </div>
-                                        </a>
+                                        </button>
                                     ))}
                                 </div>
                             ) : (
@@ -803,6 +984,33 @@ export function FloatingChatMessages({
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* 받은 문서 바로 보기 — 관리자 채팅 탭·전자결재와 같은 뷰어를 재사용한다 */}
+            {viewerFile && (
+                <DocumentViewerModal
+                    fileUrl={viewerFile.fileUrl}
+                    fileName={viewerFile.fileName}
+                    onClose={() => setViewerFile(null)}
+                />
+            )}
+
+            {/* 사진 크게 보기 */}
+            {imagePreview && (
+                <Dialog isOpen onOpenChange={(open) => { if (!open) setImagePreview(null); }} purpose="info" width={720}>
+                    <Layout
+                        header={<DialogHeader title={imagePreview.fileName} onOpenChange={(open) => { if (!open) setImagePreview(null); }} />}
+                        content={
+                            <LayoutContent>
+                                <img
+                                    src={imagePreview.fileUrl}
+                                    alt={imagePreview.fileName}
+                                    style={{ width: "100%", height: "auto", display: "block", borderRadius: 'var(--radius-inner)' }}
+                                />
+                            </LayoutContent>
+                        }
+                    />
+                </Dialog>
             )}
         </div>
     );
