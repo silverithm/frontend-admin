@@ -869,6 +869,21 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   };
 
   // 멤버 역할 텍스트
+  /**
+   * 이름 → 직무 표. 달력 칸의 휴무자 옆에 직무를 붙이는 데 쓴다.
+   * 휴무 API가 직무를 주지 않고, 운영 데이터에서 휴무의 user_id는 회원 id와
+   * 맞지 않아 이름이 유일한 연결고리다.
+   */
+  const vacationRoleByName = useMemo(() => {
+    const map = new Map<string, string>();
+    members.forEach((m) => {
+      const name = String(m?.name ?? '').trim();
+      const role = getMemberRoleName(m);
+      if (name && role) map.set(name, getRoleDisplayName(role));
+    });
+    return map;
+  }, [members]);
+
   /** 직원 목록에 실제로 등장하는 직종 (역할관리에서 배정한 값 기준) */
   const memberRoleOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -1052,6 +1067,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             maxVisible={VACATION_MAX_VISIBLE}
             topOffset={BAR_AREA_TOP}
             hasDivider={pane === 'both'}
+            roleByName={vacationRoleByName}
           />
         )}
         {showsSchedules(pane) && hiddenCount > 0 && (

@@ -176,6 +176,12 @@ html {
 .carev-cal-vacpane { display: flex; flex-direction: column; }
 .carev-cal-vacpane--split { display: none; }
 @media (min-width: 640px) { .carev-cal-vacpane--split { display: flex; } }
+/* 휴무자 옆 직무 — 이름이 먼저다. 칸이 좁을 땐 직무부터 접는다 */
+.carev-cal-vacrole { display: none; }
+@media (min-width: 1280px) { .carev-cal-vacrole { display: block; } }
+/* 칸을 반으로 가른 상태(일정+휴무 둘 다)에서는 더 넓어야 직무까지 들어간다 */
+.carev-cal-vacpane--split .carev-cal-vacrole { display: none; }
+@media (min-width: 1600px) { .carev-cal-vacpane--split .carev-cal-vacrole { display: block; } }
 
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }

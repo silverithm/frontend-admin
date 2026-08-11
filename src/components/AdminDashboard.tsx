@@ -524,6 +524,19 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     }
   };
 
+  /**
+   * 이름 → 직무 표. 휴무 API가 직무를 주지 않아 회원 목록에서 이름으로 찾는다
+   * (운영 데이터에서 휴무의 user_id는 회원 id와 맞지 않아 이름이 유일한 연결고리다).
+   */
+  const vacationRoleByName = useMemo(() => {
+    const lookup = buildMemberRoleLookup(members);
+    const map = new Map<string, string>();
+    lookup.byName.forEach((role, name) => {
+      if (role) map.set(name, getRoleDisplayName(role));
+    });
+    return map;
+  }, [members]);
+
   // 오늘 휴무자 명단 — 회원 목록에서 직종(직책)을 찾아 "요양보호사 김영희" 형식으로 만든다
   const todayVacationRosterText = (() => {
     const lookup = buildMemberRoleLookup(members);
@@ -1400,6 +1413,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             maxVisible={DASH_VACATION_MAX_VISIBLE}
                             topOffset={DASH_BAR_AREA_TOP}
                             hasDivider={pane === 'both'}
+                            roleByName={vacationRoleByName}
                           />
                         )}
                         {showsSchedules(pane) && scheduleCount > 0 && inMonth && (

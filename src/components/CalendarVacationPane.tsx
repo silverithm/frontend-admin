@@ -14,6 +14,11 @@ interface CalendarVacationPaneProps {
   topOffset: number;
   /** 왼쪽 일정 영역과 나누는 세로선 */
   hasDivider?: boolean;
+  /**
+   * 이름 → 직무. 주면 이름 옆에 직무를 함께 보여준다.
+   * 휴무 API는 직무를 주지 않아 회원 목록에서 이름으로 찾아 넘긴다.
+   */
+  roleByName?: Map<string, string>;
 }
 
 const rowStyle: CSSProperties = {
@@ -35,6 +40,7 @@ export default function CalendarVacationPane({
   maxVisible,
   topOffset,
   hasDivider = true,
+  roleByName,
 }: CalendarVacationPaneProps) {
   if (fraction <= 0) return null;
 
@@ -61,16 +67,34 @@ export default function CalendarVacationPane({
     >
       {people.length === 0 ? null : (
         <>
-          {visible.map((person) => (
-            <div key={person.id} style={rowStyle} title={`${person.name} · ${person.kindLabel}`}>
-              <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
-              <span style={{ minWidth: 0, overflow: 'hidden' }}>
-                <Text type="supporting" color="secondary" maxLines={1}>
-                  {person.name}
-                </Text>
-              </span>
-            </div>
-          ))}
+          {visible.map((person) => {
+            const role = roleByName?.get(person.name) || '';
+            return (
+              <div
+                key={person.id}
+                style={rowStyle}
+                title={role
+                  ? `${person.name} · ${role} · ${person.kindLabel}`
+                  : `${person.name} · ${person.kindLabel}`}
+              >
+                <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
+                <span style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <Text type="supporting" color="secondary" maxLines={1}>
+                    {person.name}
+                  </Text>
+                </span>
+                {/* 직무는 이름이 먼저 보이도록 뒤에 붙이고, 자리가 모자라면 이름부터 살린다.
+                    좁은 칸에서는 CSS가 통째로 숨긴다 */}
+                {role && (
+                  <span className="carev-cal-vacrole" style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <Text type="supporting" color="disabled" maxLines={1}>
+                      {role}
+                    </Text>
+                  </span>
+                )}
+              </div>
+            );
+          })}
           {hidden > 0 && (
             <Text type="supporting" color="disabled">
               +{hidden}
