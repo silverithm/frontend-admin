@@ -241,19 +241,22 @@ export function FloatingChat() {
                         if (!isMine) markAsRead(roomId, msg.id);
                     }
 
-                    setRooms(prevRooms => prevRooms.map(room => {
-                        if (room.id !== roomId) return room;
-                        return {
-                            ...room,
+                    setRooms(prevRooms => {
+                        const idx = prevRooms.findIndex(room => room.id === roomId);
+                        if (idx === -1) return prevRooms;
+                        const updatedRoom: ChatRoom = {
+                            ...prevRooms[idx],
                             lastMessage: {
                                 content: msg.content,
                                 senderName: msg.senderName,
                                 createdAt: msg.createdAt,
                             },
                             lastMessageAt: msg.createdAt,
-                            unreadCount: isViewing || isMine ? room.unreadCount : room.unreadCount + 1,
+                            unreadCount: isViewing || isMine ? prevRooms[idx].unreadCount : prevRooms[idx].unreadCount + 1,
                         };
-                    }));
+                        // 새 메시지가 온 방을 맨 위로 — 서버가 내려주는 lastMessageAt 내림차순 순서를 유지한다
+                        return [updatedRoom, ...prevRooms.slice(0, idx), ...prevRooms.slice(idx + 1)];
+                    });
 
                     if (!isViewing && !isMine) {
                         const roomName = roomsRef.current.find(r => r.id === roomId)?.name || "채팅";

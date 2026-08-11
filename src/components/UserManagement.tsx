@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -16,6 +16,8 @@ import {
   getMemberRoleName,
   getRoleDisplayName,
 } from '@/lib/roleUtils';
+import { useOrgPresenceStore } from '@/lib/orgPresenceStore';
+import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -106,13 +108,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [showDeletePositionModal, setShowDeletePositionModal] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
 
+  // 채팅 초대 후보 목록(직원 명단 스토어) — 승인 직후 최신 상태로 강제 갱신할 때 쓴다
+  const loadOrgPresence = useOrgPresenceStore(s => s.load);
+  // isLoading은 화면 전체를 스피너로 덮으므로 최초 진입 때만 쓴다 — 이후 주기적 갱신은 조용히 반영한다
+  const hasLoadedUsersRef = useRef(false);
+
   useEffect(() => {
-    fetchUsers();
     fetchSeniors();
   }, []);
 
   const fetchUsers = async () => {
-    setIsLoading(true);
+    const isInitialLoad = !hasLoadedUsersRef.current;
+    if (isInitialLoad) setIsLoading(true);
     try {
       // 가입 대기 중인 사용자 가져오기
       const [pendingData, membersData, posData]: any[] = await Promise.all([
@@ -149,8 +156,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       setMembers([]);
       setPositions([]);
     } finally {
-      setIsLoading(false);
+      hasLoadedUsersRef.current = true;
+      if (isInitialLoad) setIsLoading(false);
     }
+  };
+
+  // 화면을 보고 있는 동안 가입 신청·회원 목록을 주기적으로 최신화한다
+  // (다른 관리자의 승인이나 새 가입 신청이 새로고침 없이 반영되게 — 채팅방 목록과 같은 패턴)
+  useVisiblePolling(fetchUsers, 30000);
+
+  /** 방금 승인/거절한 직원이 채팅 초대 후보 목록(orgPresenceStore)에도 곧바로 반영되게 강제 갱신 */
+  const refreshChatCandidates = () => {
+    const companyId = typeof window !== 'undefined' ? localStorage.getItem('companyId') : null;
+    if (companyId) loadOrgPresence(companyId, { force: true });
   };
 
   const handleApproveUser = async (userId: string) => {
@@ -158,6 +176,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       await approveUser(userId);
       await fetchUsers();
+      refreshChatCandidates();
       onNotification('사용자 가입을 승인했습니다.', 'success');
     } catch (error) {
       console.error('사용자 승인 오류:', error);
