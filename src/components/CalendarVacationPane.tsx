@@ -43,6 +43,9 @@ export default function CalendarVacationPane({
 
   return (
     <div
+      // 칸을 반으로 가른 상태에서는 좁은 화면에 이름이 들어갈 폭이 안 나온다 → CSS에서 숨긴다.
+      // (display를 인라인에 두면 인라인이 항상 이겨서 숨겨지지 않는다 — CSS 클래스가 갖는다)
+      className={fraction < 1 ? 'carev-cal-vacpane carev-cal-vacpane--split' : 'carev-cal-vacpane'}
       style={{
         position: 'absolute',
         top: topOffset,
@@ -51,8 +54,6 @@ export default function CalendarVacationPane({
         width: `calc(${fraction * 100}% - var(--spacing-2))`,
         paddingLeft: hasDivider ? 'var(--spacing-1)' : 0,
         borderLeft: hasDivider ? '1px solid var(--color-border)' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
         gap: 1,
         overflow: 'hidden',
         pointerEvents: 'none',

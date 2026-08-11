@@ -170,6 +170,13 @@ html {
   .carev-dash-cal-chips { display: flex; }
   .carev-dash-cal-bars  { display: block; }
 }
+/* 달력 칸 오른쪽 휴무자 명단 (월간일정·대시보드 공용).
+   칸을 일정과 반으로 가른 상태(--split)에서는 좁은 화면에 이름이 들어갈 폭이 안 나오므로
+   일정 바와 같은 기준(640px)에서 접는다. '휴무만' 보기는 칸 전체를 쓰므로 그대로 둔다. */
+.carev-cal-vacpane { display: flex; flex-direction: column; }
+.carev-cal-vacpane--split { display: none; }
+@media (min-width: 640px) { .carev-cal-vacpane--split { display: flex; } }
+
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }
 .carev-dash-row { transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
