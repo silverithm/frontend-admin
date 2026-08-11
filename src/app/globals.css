@@ -848,6 +848,46 @@ html {
   animation: shimmer 1.5s infinite;
 }
 
+/* ================== 문서 뷰어 (docx / pptx / xlsx 미리보기) ==================
+ * 라이브러리(docx-preview, pptx-preview)가 만들어 넣는 DOM과 표는 인라인 style로
+ * 손댈 수 없어 여기서 맞춘다.
+ */
+.carev-docviewer-office {
+  width: 100%;
+  min-height: 100%;
+}
+/* docx-preview는 자체 기본 스타일(회색 바탕 + 흰 종이 + 그림자)을 직접 주입한다.
+ * 바탕색만 우리 토큰으로 바꾸고 나머지는 라이브러리에 맡긴다. */
+.carev-docviewer-office .carev-docx-wrapper {
+  background: var(--color-background-muted);
+  padding: 0;
+}
+.carev-docviewer-office .carev-docx-wrapper > section.carev-docx {
+  border-radius: var(--radius-inner);
+  max-width: 100%;
+}
+/* 엑셀 표 — 칸 경계가 보여야 근무표를 읽을 수 있다 */
+.carev-docviewer-sheet {
+  border-collapse: collapse;
+  font-size: var(--font-size-supporting);
+  background: var(--color-background-card);
+}
+.carev-docviewer-sheet td {
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-1) var(--spacing-2);
+  color: var(--color-text-primary);
+  vertical-align: top;
+  white-space: pre-wrap;
+  max-width: 320px;
+}
+.carev-docviewer-sheet tr:first-child td {
+  background: var(--color-background-muted);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 /* ================== 전자결재 공문(표준 기안문) ==================
  * 여기서만 원시 px 폰트/여백을 쓴다. A4 794px(210mm@96dpi) 고정 폭 + @media print +
  * @page{size:A4} 로 실제 인쇄물을 재현하는 서식이라, 테마 타이포 스케일(--font-size-*)에
