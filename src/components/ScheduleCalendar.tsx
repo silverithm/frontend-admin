@@ -30,7 +30,19 @@ import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateSch
 import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, LABEL_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
-import { colStartRatio, colEndRatio } from '@/lib/scheduleBars';
+import {
+  buildBarSegments,
+  loadCalendarPane,
+  saveCalendarPane,
+  schedulePaneFraction,
+  showsSchedules,
+  showsVacations,
+  vacationPaneFraction,
+  CALENDAR_PANE_OPTIONS,
+  type CalendarPane,
+} from '@/lib/calendarPanes';
+import { fetchMonthVacations, type VacationPerson } from '@/lib/monthVacations';
+import CalendarVacationPane from '@/components/CalendarVacationPane';
 import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
@@ -56,6 +68,11 @@ const BAR_GAP = 2;
 const BAR_AREA_TOP = 38; // 셀 패딩 + 날짜 숫자 영역 높이
 const MAX_VISIBLE_LANES = 3;
 const BAR_EDGE_INSET = 3;
+/** 칸 오른쪽 휴무자 칸에 이름을 몇 줄까지 보여줄지 (넘치면 +N) */
+const VACATION_MAX_VISIBLE = 4;
+
+/* 달력 격자선. 칸 배경과 구분이 또렷하도록 기본 테두리보다 한 단계 진한 토큰을 쓴다. */
+const GRID_LINE = '1px solid var(--color-border-emphasized)';
 
 // 한 주 안에서 일정이 차지하는 구간
 interface ScheduleBar {
@@ -80,8 +97,8 @@ interface WeekBarLayout {
  */
 const EMPTY_CELL_STYLE: CSSProperties = {
   height: '100%',
-  borderBottom: '1px solid var(--color-border)',
-  borderRight: '1px solid var(--color-border)',
+  borderBottom: GRID_LINE,
+  borderRight: GRID_LINE,
 };
 
 const CARD_STYLE: CSSProperties = {
@@ -188,6 +205,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (대시보드 달력과 선택을 공유한다)
+  const [pane, setPane] = useState<CalendarPane>('both');
+  const [monthVacations, setMonthVacations] = useState<Map<string, VacationPerson[]>>(new Map());
   // 할 일 관련
   const [newTaskContent, setNewTaskContent] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
@@ -232,6 +252,33 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       const storedMemberId = Number(localStorage.getItem('userId'));
       setCurrentMemberId(Number.isFinite(storedMemberId) && storedMemberId > 0 ? storedMemberId : null);
     }
+  }, [currentDate, isDispatchMode]);
+
+  // 저장해 둔 보기 선택을 복원한다 (일정만/휴무만/둘 다)
+  useEffect(() => {
+    setPane(loadCalendarPane());
+  }, []);
+
+  const changePane = useCallback((next: CalendarPane) => {
+    setPane(next);
+    saveCalendarPane(next);
+  }, []);
+
+  // 달력 칸에 얹을 그달 휴무자 명단
+  useEffect(() => {
+    if (isDispatchMode) return;
+    let cancelled = false;
+    fetchMonthVacations(currentDate)
+      .then((map) => {
+        if (!cancelled) setMonthVacations(map);
+      })
+      .catch((error) => {
+        console.error('휴무자 명단 로드 실패:', error);
+        if (!cancelled) setMonthVacations(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [currentDate, isDispatchMode]);
 
   // 배차 모드: 휴무 데이터 로드
@@ -876,7 +923,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        margin: '0 auto',
+        // 날짜는 칸 왼쪽 위에 붙인다 — 가운데 두면 오른쪽 휴무자 칸과 시선이 엉킨다
+        marginRight: 'auto',
       };
     }
     if (dayOfWeek === 0) return { color: 'var(--color-text-red)' };
@@ -908,8 +956,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           height: '100%',
           padding: 'var(--spacing-2)',
           border: 'none',
-          borderBottom: '1px solid var(--color-border)',
-          borderRight: '1px solid var(--color-border)',
+          borderBottom: GRID_LINE,
+          borderRight: GRID_LINE,
           position: 'relative',
           textAlign: 'left',
           transition: 'background var(--duration-fast)',
@@ -965,6 +1013,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     const dateStr = format(date, 'yyyy-MM-dd');
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const dayNumStyle = getDayNumStyle(date);
+    const dayVacations = monthVacations.get(dateStr) || [];
 
     return (
       <button
@@ -977,8 +1026,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           height: '100%',
           padding: 'var(--spacing-2)',
           border: 'none',
-          borderBottom: '1px solid var(--color-border)',
-          borderRight: '1px solid var(--color-border)',
+          borderBottom: GRID_LINE,
+          borderRight: GRID_LINE,
           position: 'relative',
           cursor: 'pointer',
           textAlign: 'left',
@@ -995,8 +1044,27 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             <Text type="label" weight={isToday(date) ? 'bold' : 'medium'} color="inherit">{format(date, 'd')}</Text>
           </span>
         </div>
-        {hiddenCount > 0 && (
-          <div style={{ position: 'absolute', bottom: 'var(--spacing-1)', left: 'var(--spacing-2)', right: 'var(--spacing-2)', color: 'var(--color-text-secondary)' }}>
+        {/* 오른쪽(또는 칸 전체) 휴무자 명단 */}
+        {showsVacations(pane) && (
+          <CalendarVacationPane
+            people={dayVacations}
+            fraction={vacationPaneFraction(pane)}
+            maxVisible={VACATION_MAX_VISIBLE}
+            topOffset={BAR_AREA_TOP}
+            hasDivider={pane === 'both'}
+          />
+        )}
+        {showsSchedules(pane) && hiddenCount > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 'var(--spacing-1)',
+              left: 'var(--spacing-2)',
+              // 휴무자 칸을 침범하지 않도록 일정 영역 안에서만 표시한다
+              width: `calc(${schedulePaneFraction(pane) * 100}% - var(--spacing-4))`,
+              color: 'var(--color-text-secondary)',
+            }}
+          >
             <Text type="supporting" color="inherit" weight="medium">+{hiddenCount}개</Text>
           </div>
         )}
@@ -1069,6 +1137,19 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       </div>
                       <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{monthProgress.percent}%</Text>
                     </HStack>
+                  )}
+                  {/* 일정/휴무자 보기 토글 — 기본은 둘 다 */}
+                  {!isDispatchMode && (
+                    <SegmentedControl
+                      value={pane}
+                      onChange={(v) => changePane(v as CalendarPane)}
+                      label="달력 표시 내용"
+                      size="sm"
+                    >
+                      {CALENDAR_PANE_OPTIONS.map((option) => (
+                        <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
+                      ))}
+                    </SegmentedControl>
                   )}
                   {!isDispatchMode && (
                     <Button
@@ -1161,7 +1242,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             </div>
 
             {/* 요일 헤더 */}
-            <div className="carev-schedcal-cols" style={{ borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+            <div className="carev-schedcal-cols" style={{ borderBottom: GRID_LINE, flexShrink: 0 }}>
               {WEEKDAYS.map((day, index) => (
                 <div
                   key={day}
@@ -1216,29 +1297,28 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                           <div key={`empty-${weekIndex}-${dayIndex}`} style={EMPTY_CELL_STYLE} />
                         )
                       )}
-                      {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이 */}
+                      {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이.
+                          휴무자를 같이 볼 때는 칸 오른쪽이 명단 자리라 하루 단위로 끊어 그린다. */}
                       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-                        {layout?.bars.map((bar) => {
-                          const leftInset = bar.continuesBefore ? 0 : BAR_EDGE_INSET;
-                          const rightInset = bar.continuesAfter ? 0 : BAR_EDGE_INSET;
-                          // 일요일 칸이 좁으므로 균등 분할(1/7)이 아니라 열 비율로 좌표를 낸다
-                          const barLeftPct = colStartRatio(bar.startCol) * 100;
-                          const barWidthPct = (colEndRatio(bar.endCol) - colStartRatio(bar.startCol)) * 100;
-                          const startRadius = bar.continuesBefore ? '0' : 'var(--radius-inner)';
-                          const endRadius = bar.continuesAfter ? '0' : 'var(--radius-inner)';
+                        {showsSchedules(pane) && layout?.bars.flatMap((bar) =>
+                          buildBarSegments(bar, pane).map((segment) => {
+                          const leftInset = segment.continuesBefore ? 0 : BAR_EDGE_INSET;
+                          const rightInset = segment.continuesAfter ? 0 : BAR_EDGE_INSET;
+                          const startRadius = segment.continuesBefore ? '0' : 'var(--radius-inner)';
+                          const endRadius = segment.continuesAfter ? '0' : 'var(--radius-inner)';
                           const barColor = getScheduleColor(bar.schedule);
                           const isDone = !!bar.schedule.isCompleted;
                           return (
                             <button
-                              key={`${bar.schedule.id}-${weekIndex}`}
+                              key={`${bar.schedule.id}-${weekIndex}-${segment.startCol}`}
                               className="carev-schedcal-bar"
                               onClick={(e) => handleScheduleClick(e, bar.schedule)}
                               title={isDone ? `${bar.schedule.title} (수행완료)` : bar.schedule.title}
                               style={{
                                 position: 'absolute',
                                 top: BAR_AREA_TOP + bar.lane * (BAR_HEIGHT + BAR_GAP),
-                                left: `calc(${barLeftPct}% + ${leftInset}px)`,
-                                width: `calc(${barWidthPct}% - ${leftInset + rightInset}px)`,
+                                left: `calc(${segment.leftPct}% + ${leftInset}px)`,
+                                width: `calc(${segment.widthPct}% - ${leftInset + rightInset}px)`,
                                 height: BAR_HEIGHT,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1257,7 +1337,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                 pointerEvents: 'auto',
                               }}
                             >
-                              {bar.continuesBefore && (
+                              {segment.continuesBefore && (
                                 <span style={{ flexShrink: 0, marginRight: 'var(--spacing-1)', lineHeight: 'var(--text-display-1-leading)' }}>
                                   <Text type="supporting" color="inherit" weight="bold">◀</Text>
                                 </span>
@@ -1272,14 +1352,15 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                   {bar.schedule.title}
                                 </Text>
                               </span>
-                              {bar.continuesAfter && (
+                              {segment.continuesAfter && (
                                 <span style={{ flexShrink: 0, marginLeft: 'var(--spacing-1)', lineHeight: 'var(--text-display-1-leading)' }}>
                                   <Text type="supporting" color="inherit" weight="bold">▶</Text>
                                 </span>
                               )}
                             </button>
                           );
-                        })}
+                          })
+                        )}
                       </div>
                     </div>
                   );
@@ -1310,6 +1391,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       </Text>
                       <Text type="supporting">
                         {getSchedulesForDate(selectedDate).length}개 일정 · 완료 {getSchedulesForDate(selectedDate).filter((s) => s.isCompleted).length}개
+                        {' · '}휴무 {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length}명
                       </Text>
                     </VStack>
                     <Button
@@ -1334,6 +1416,35 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     style={{ width: '100%' }}
                   />
                 </div>
+
+                {/* 그날 휴무자 — 달력 칸에서는 이름만 몇 줄 보이므로 여기서 전부 펼친다 */}
+                {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length > 0 && (
+                  <div style={{ padding: 'var(--spacing-4) var(--spacing-5) 0' }}>
+                    <VStack gap={1.5}>
+                      <Text type="label" weight="semibold" color="secondary">휴무자</Text>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)' }}>
+                        {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).map((person) => (
+                          <span
+                            key={person.id}
+                            title={person.kindLabel}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 'var(--spacing-1)',
+                              padding: '2px var(--spacing-2)',
+                              borderRadius: 'var(--radius-full)',
+                              border: '1px solid var(--color-border)',
+                              background: 'var(--color-background-muted)',
+                            }}
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: person.color }} />
+                            <Text type="supporting" color="secondary">{person.name}</Text>
+                          </span>
+                        ))}
+                      </div>
+                    </VStack>
+                  </div>
+                )}
 
                 {/* 일정 목록 (스크롤 가능) */}
                 <div style={{ padding: 'var(--spacing-5)', flex: 1, overflowY: 'auto' }}>

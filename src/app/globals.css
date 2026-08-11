@@ -176,7 +176,8 @@ html {
 @media (hover: hover) { .carev-dash-row:hover { background: var(--color-background-muted); box-shadow: var(--shadow-inset-hover); } }
 .carev-dash-cal-cell { transition: background var(--duration-fast-min) var(--ease-standard), border-color var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-cal-cell-today:hover { background: var(--color-background-surface) !important; box-shadow: var(--shadow-inset-hover); } }
-@media (hover: hover) { .carev-dash-cal-cell-day:hover   { border-color: var(--color-border) !important; background: var(--color-background-muted) !important; box-shadow: var(--shadow-inset-hover); } }
+/* 칸이 격자선(border)을 직접 그리므로 hover에서 테두리 색을 건드리지 않는다 — 건드리면 격자가 얼룩진다 */
+@media (hover: hover) { .carev-dash-cal-cell-day:hover   { background: var(--color-background-muted) !important; box-shadow: var(--shadow-inset-hover); } }
 .carev-dash-timeline { transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-timeline:hover { background: var(--color-background-surface); box-shadow: var(--shadow-inset-hover); } }
 

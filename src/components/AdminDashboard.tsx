@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, type CSSProperties } from 'react';
-import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday } from 'date-fns';
+import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { Text } from '@astryxdesign/core/Text';
@@ -14,6 +14,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import {
   IconUsers,
   IconCalendar,
@@ -54,13 +55,27 @@ import {
   getMyScheduleTasks,
   updateScheduleTaskCompletion,
   getScheduleTasks,
+  getScheduleLabels,
   createScheduleTask,
   updateScheduleTask,
   deleteScheduleTask,
 } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES } from '@/types/schedule';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { buildWeekBarLayouts, WEEK_GRID_COLUMNS, colStartRatio, colEndRatio } from '@/lib/scheduleBars';
+import { buildWeekBarLayouts, WEEK_GRID_COLUMNS } from '@/lib/scheduleBars';
+import {
+  buildBarSegments,
+  loadCalendarPane,
+  saveCalendarPane,
+  schedulePaneFraction,
+  showsSchedules,
+  showsVacations,
+  vacationPaneFraction,
+  CALENDAR_PANE_OPTIONS,
+  type CalendarPane,
+} from '@/lib/calendarPanes';
+import { fetchMonthVacations, type VacationPerson } from '@/lib/monthVacations';
+import CalendarVacationPane from '@/components/CalendarVacationPane';
 import type { ScheduleTask } from '@/types/schedule';
 import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
 import { dedupeNews } from '@/components/plaza/newsDedup';
@@ -120,6 +135,11 @@ const DASH_BAR_AREA_TOP = 30; // 셀 패딩 + 날짜 숫자 높이
 const DASH_BAR_EDGE_INSET = 2;
 const DASH_MAX_BAR_LANES = 3;
 const DASH_CELL_MIN_HEIGHT = 92;
+/** 칸 오른쪽 휴무자 칸에 이름을 몇 줄까지 보여줄지 (넘치면 +N) */
+const DASH_VACATION_MAX_VISIBLE = 3;
+
+/* 달력 격자선. 월간일정 탭과 같은 굵기·색으로 맞춘다. */
+const GRID_LINE = '1px solid var(--color-border-emphasized)';
 
 interface ScheduleItem {
   id: string;
@@ -217,6 +237,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
+  // 달력이 보고 있는 달 (월간일정 탭처럼 앞뒤로 넘길 수 있다)
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const [isMonthLoading, setIsMonthLoading] = useState(false);
+  const [scheduleLabels, setScheduleLabels] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (월간일정 탭과 선택을 공유한다)
+  const [pane, setPane] = useState<CalendarPane>('both');
+  const [monthVacations, setMonthVacations] = useState<Map<string, VacationPerson[]>>(new Map());
   // 케어브이 시스템 공지 — 광장에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
   const [officialNotices, setOfficialNotices] = useState<ApiOfficialNotice[]>([]);
 
@@ -260,9 +288,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     const loadData = async () => {
       setIsLoading(true);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
-      const monthStartStr = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-      const monthEndStr = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
+      // 달력에 얹는 월간 일정·휴무자는 보고 있는 달이 바뀔 때마다 따로 불러온다(아래 useEffect)
       // 직원은 기본 데이터만 로드, 관리자는 전체 데이터 로드
       const apiCalls = isAdmin
         ? [
@@ -273,7 +300,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             getSchedules(todayStr, todayStr),
             getVacationCalendar(todayStr, todayStr),
             getNotices(),
-            getSchedules(monthStartStr, monthEndStr),
             getCompanyElderCount(),
             getEmployeeAttendanceSummary(todayStr),
             getElderAttendanceSummary(todayStr),
@@ -287,7 +313,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             // 직원 대시보드에도 오늘 출근·휴무 현황을 보여준다
             getVacationCalendar(todayStr, todayStr),
             getNotices(),
-            getSchedules(monthStartStr, monthEndStr),
             Promise.resolve({ count: 0 }),
             Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0 }),
             Promise.resolve({ total: 0, present: 0, absent: 0 }),
@@ -389,23 +414,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       }
 
       if (results[7].status === 'fulfilled') {
-        const raw = results[7].value;
-        console.log('[Dashboard] 월간일정 raw:', JSON.stringify(raw).substring(0, 500));
-        const arr = extractArray(raw, 'schedules', 'content', 'data');
-        console.log('[Dashboard] 월간일정 parsed:', arr.length, '건');
-        setMonthlySchedules(arr as ScheduleItem[]);
-      } else {
-        console.error('[Dashboard] 월간일정 API 실패:', results[7]);
-      }
-
-      if (results[8].status === 'fulfilled') {
-        const d = results[8].value as Record<string, unknown>;
+        const d = results[7].value as Record<string, unknown>;
         const count = typeof d?.count === 'number' ? d.count : 0;
         setElderCount(count);
       }
 
-      if (results[9].status === 'fulfilled') {
-        const d = results[9].value as Record<string, number>;
+      if (results[8].status === 'fulfilled') {
+        const d = results[8].value as Record<string, number>;
         if (d && typeof d.total === 'number') {
           setEmployeeAttendance({
             total: d.total || 0,
@@ -416,8 +431,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         }
       }
 
-      if (results[10].status === 'fulfilled') {
-        const d = results[10].value as Record<string, number>;
+      if (results[9].status === 'fulfilled') {
+        const d = results[9].value as Record<string, number>;
         if (d && typeof d.total === 'number') {
           setElderAttendance({
             total: d.total || 0,
@@ -432,6 +447,62 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
     loadData();
   }, [isAdmin]);
+
+  // 저장해 둔 보기 선택을 복원한다 (일정만/휴무만/둘 다)
+  useEffect(() => {
+    setPane(loadCalendarPane());
+  }, []);
+
+  const changePane = (next: CalendarPane) => {
+    setPane(next);
+    saveCalendarPane(next);
+  };
+
+  // 달력이 보고 있는 달의 일정·휴무자. 달을 넘길 때마다 다시 불러온다.
+  useEffect(() => {
+    let cancelled = false;
+    const monthStartStr = format(startOfMonth(calendarMonth), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(calendarMonth), 'yyyy-MM-dd');
+
+    setIsMonthLoading(true);
+    Promise.allSettled([getSchedules(monthStartStr, monthEndStr), fetchMonthVacations(calendarMonth)])
+      .then(([scheduleResult, vacationResult]) => {
+        if (cancelled) return;
+        if (scheduleResult.status === 'fulfilled') {
+          const raw = scheduleResult.value;
+          const arr = Array.isArray(raw)
+            ? raw
+            : ((raw as Record<string, unknown>)?.schedules as unknown[]) ||
+              ((raw as Record<string, unknown>)?.content as unknown[]) ||
+              [];
+          setMonthlySchedules(arr as ScheduleItem[]);
+        } else {
+          console.error('[Dashboard] 월간일정 로드 실패:', scheduleResult.reason);
+          setMonthlySchedules([]);
+        }
+        setMonthVacations(vacationResult.status === 'fulfilled' ? vacationResult.value : new Map());
+        setIsMonthLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [calendarMonth]);
+
+  // 일정 색상 범례에 쓸 사용자 지정 라벨
+  useEffect(() => {
+    let cancelled = false;
+    getScheduleLabels()
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : data?.labels || [];
+        setScheduleLabels(list as { id: string; name: string; color: string }[]);
+      })
+      .catch((error) => console.error('[Dashboard] 일정 라벨 로드 실패:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const pendingVacationCount = vacationRequests.filter(
     (v) => v.status === 'pending' || v.status === 'PENDING'
@@ -471,8 +542,28 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const elderAttendanceBase = elderAttendance.total || elderCount;
   const todayWorkingCount = Math.max(visibleMembersCount - todayVacationCount, 0);
 
+  // 내가 관련된 일정인지 (작성자 / 담당자 / 참석자 / 내 할 일이 걸린 일정)
+  // 월간일정 탭(ScheduleCalendar)의 '내 업무만'과 같은 규칙이다.
+  const isMySchedule = (schedule: ScheduleItem) => {
+    if (schedule.authorId && schedule.authorId === currentUserEmail) return true;
+    if (currentMemberId == null) return false;
+    if (schedule.managerId != null && Number(schedule.managerId) === currentMemberId) return true;
+    if (myTasks.some((task) => String(task.scheduleId) === String(schedule.id))) return true;
+    return !!schedule.participants?.some((p) => {
+      const participant = p as { memberId?: number; userId?: number; id?: number };
+      return Number(participant.memberId ?? participant.userId ?? participant.id) === currentMemberId;
+    });
+  };
+
+  const visibleMonthlySchedules = useMemo(
+    () => (showMyTasksOnly ? monthlySchedules.filter(isMySchedule) : monthlySchedules),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [monthlySchedules, showMyTasksOnly, currentMemberId, currentUserEmail, myTasks],
+  );
+
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-  const selectedSchedules = monthlySchedules.filter((s) => {
+  const selectedDayVacations = monthVacations.get(selectedDateStr) || [];
+  const selectedSchedules = visibleMonthlySchedules.filter((s) => {
     const start = s.startDate?.substring(0, 10);
     const end = s.endDate?.substring(0, 10);
     if (start && end) {
@@ -489,7 +580,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       else dayMap.set(key, [schedule]);
     };
 
-    monthlySchedules.forEach((schedule) => {
+    visibleMonthlySchedules.forEach((schedule) => {
       const start = schedule.startDate?.substring(0, 10);
       const end = schedule.endDate?.substring(0, 10);
 
@@ -510,14 +601,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     });
 
     return dayMap;
-  }, [monthlySchedules]);
+  }, [visibleMonthlySchedules]);
 
-  // 이번 달 일정 진행도
+  // 보고 있는 달의 일정 진행도
   const monthlyProgress = useMemo(() => {
-    const total = monthlySchedules.length;
-    const done = monthlySchedules.filter((s) => s.isCompleted).length;
+    const total = visibleMonthlySchedules.length;
+    const done = visibleMonthlySchedules.filter((s) => s.isCompleted).length;
     return { total, done, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
-  }, [monthlySchedules]);
+  }, [visibleMonthlySchedules]);
 
   // 내 할 일 로드 (이번 달 기준)
   useEffect(() => {
@@ -719,9 +810,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   };
 
   const monthlyCalendarDays = useMemo(() => {
-    const today = new Date();
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
+    const monthStart = startOfMonth(calendarMonth);
+    const monthEnd = endOfMonth(calendarMonth);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
@@ -733,7 +823,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       return {
         date: day,
         dayStr,
-        inMonth: isSameMonth(day, today),
+        inMonth: isSameMonth(day, calendarMonth),
         todayFlag: isToday(day),
         dayOfWeek: day.getDay(),
         scheduleCount: daySchedules.length,
@@ -748,7 +838,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     }
 
     return { weeksCount: weeks.length, days: cells, weeks };
-  }, [monthlySchedulesByDay]);
+  }, [monthlySchedulesByDay, calendarMonth]);
 
   /**
    * 주별 바 레이아웃. 월간일정 탭과 같은 규칙으로 여러 날 일정을 하나로 잇는다.
@@ -757,11 +847,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const monthlyWeekBars = useMemo(
     () =>
       buildWeekBarLayouts(
-        monthlySchedules,
+        visibleMonthlySchedules,
         monthlyCalendarDays.weeks.map((week) => week.map((cell) => cell.dayStr)),
         DASH_MAX_BAR_LANES,
       ),
-    [monthlySchedules, monthlyCalendarDays],
+    [visibleMonthlySchedules, monthlyCalendarDays],
   );
 
   if (isLoading) {
@@ -1107,9 +1197,38 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <VStack gap={0} align="start">
                       <Text type="body" weight="bold" color="primary">월간일정</Text>
                       <Text type="supporting" color="secondary">
-                        {format(new Date(), 'yyyy년 M월', { locale: ko })} · {monthlySchedules.length}건
+                        {format(calendarMonth, 'yyyy년 M월', { locale: ko })} · {visibleMonthlySchedules.length}건
+                        {isMonthLoading ? ' · 불러오는 중' : ''}
                       </Text>
                     </VStack>
+                    {/* 달 이동 — 월간일정 탭과 같은 조작 */}
+                    <HStack gap={1} vAlign="center">
+                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
+                        <IconButton
+                          label="이전 달"
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon="chevronLeft" size="sm" />}
+                          onClick={() => setCalendarMonth((prev) => startOfMonth(subMonths(prev, 1)))}
+                        />
+                        <IconButton
+                          label="다음 달"
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon="chevronRight" size="sm" />}
+                          onClick={() => setCalendarMonth((prev) => startOfMonth(addMonths(prev, 1)))}
+                        />
+                      </div>
+                      <Button
+                        label="오늘"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setCalendarMonth(startOfMonth(new Date()));
+                          setSelectedDate(new Date());
+                        }}
+                      />
+                    </HStack>
                   </HStack>
                   <HStack gap={3} vAlign="center">
                     {/* 당일 휴무인원 — 상단 통계 줄을 없애고 여기로 옮겼다.
@@ -1146,6 +1265,32 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       </div>
                       <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{monthlyProgress.percent}%</Text>
                     </HStack>
+                    {/* 일정/휴무자 보기 토글 — 기본은 둘 다 */}
+                    <SegmentedControl
+                      value={pane}
+                      onChange={(v) => changePane(v as CalendarPane)}
+                      label="달력 표시 내용"
+                      size="sm"
+                    >
+                      {CALENDAR_PANE_OPTIONS.map((option) => (
+                        <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
+                      ))}
+                    </SegmentedControl>
+                    <Button
+                      label={showMyTasksOnly ? '전체 일정 보기' : '내 업무만'}
+                      variant={showMyTasksOnly ? 'primary' : 'secondary'}
+                      size="sm"
+                      icon={<Icon icon={IconUserCheck} size="sm" />}
+                      onClick={() => setShowMyTasksOnly((v) => !v)}
+                    />
+                    {/* 일정 등록은 월간일정 탭에서 한다 — 여기서는 그 화면으로 넘긴다 */}
+                    <Button
+                      label="일정 추가"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Icon icon={IconPlus} size="sm" />}
+                      onClick={() => onTabChange('schedule')}
+                    />
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1155,8 +1300,15 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     />
                   </HStack>
                 </HStack>
-                {/* 카테고리 색상 범례 */}
-                <div style={{ marginTop: 'var(--spacing-2)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)' }}>
+                {/* 색상 범례 (사용자 지정 라벨 + 카테고리 기본색) — 월간일정 탭과 같은 구성 */}
+                <div style={{ marginTop: 'var(--spacing-2)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
+                  {scheduleLabels.map((label) => (
+                    <HStack key={label.id} gap={1} vAlign="center">
+                      <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: label.color }} />
+                      <Text type="supporting" color="secondary">{label.name}</Text>
+                    </HStack>
+                  ))}
+                  {scheduleLabels.length > 0 && <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />}
                   {SCHEDULE_CATEGORIES.map((cat) => (
                     <HStack key={cat.value} gap={1} vAlign="center">
                       <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: getScheduleColor({ category: cat.value }) }} />
@@ -1170,23 +1322,38 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               </div>
 
+              {/* 격자는 월간일정 탭과 같은 규칙 — 칸마다 아래·오른쪽 선을 긋고 바깥은 테두리로 닫는다.
+                  칸 사이 여백(gap)을 쓰던 예전 방식은 선이 없어 날짜 경계가 흐릿했다. */}
               <div style={{ padding: '0 var(--spacing-4) var(--spacing-3)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, gap: 'var(--spacing-1)', flexShrink: 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    minHeight: 0,
+                    border: GRID_LINE,
+                    borderRadius: 'var(--radius-inner)',
+                    overflow: 'hidden',
+                  }}
+                >
+                <div style={{ display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flexShrink: 0, borderBottom: GRID_LINE }}>
                   {['일','월','화','수','목','금','토'].map((d) => (
                     <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
                 </div>
                 {/* 주 단위로 감싼다 — 여러 날 일정을 이어 그리는 바가 주 안에서 좌표를 잡기 때문 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', flex: 1, minHeight: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 {monthlyCalendarDays.weeks.map((week, weekIndex) => {
                   const layout = monthlyWeekBars[weekIndex];
                   return (
                 <div
                   key={`week-${weekIndex}`}
-                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, gap: 'var(--spacing-1)', flex: 1, minHeight: DASH_CELL_MIN_HEIGHT }}
+                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flex: 1, minHeight: DASH_CELL_MIN_HEIGHT }}
                 >
                   {week.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const hiddenCount = layout?.hiddenCounts[dayStr] || 0;
+                    const dayVacations = monthVacations.get(dayStr) || [];
+                    const isLastWeek = weekIndex === monthlyCalendarDays.weeks.length - 1;
                     return (
                       <button
                         key={date.toISOString()}
@@ -1199,31 +1366,46 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         className={!inMonth ? undefined : todayFlag ? 'carev-dash-cal-cell carev-dash-cal-cell-today' : 'carev-dash-cal-cell carev-dash-cal-cell-day'}
                         style={{
                           position: 'relative', display: 'flex', height: '100%', minHeight: 92,
-                          flexDirection: 'column', alignItems: 'stretch', gap: 'var(--spacing-0-5)', borderRadius: 'var(--radius-inner)', padding: 'var(--spacing-1)', textAlign: 'left',
-                          background: !inMonth ? 'transparent' : todayFlag ? 'rgba(16, 185, 129, 0.06)' : 'transparent',
-                          border: `1px solid ${!inMonth ? 'transparent' : todayFlag ? 'var(--color-border-green)' : 'transparent'}`,
+                          flexDirection: 'column', alignItems: 'stretch', gap: 'var(--spacing-0-5)', padding: 'var(--spacing-1)', textAlign: 'left',
+                          background: !inMonth ? 'transparent' : todayFlag ? 'var(--color-background-teal)' : 'transparent',
+                          border: 'none',
+                          // 격자선 — 마지막 열·마지막 주는 바깥 테두리와 겹치므로 긋지 않는다
+                          borderRight: dayOfWeek === 6 ? 'none' : GRID_LINE,
+                          borderBottom: isLastWeek ? 'none' : GRID_LINE,
+                          opacity: inMonth ? 1 : 0.4,
                           cursor: !inMonth ? 'default' : 'pointer',
                         }}
                         disabled={!inMonth}
                       >
                         <span
                           style={{
-                            display: 'flex', height: 24, width: 24, flexShrink: 0, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-sm)',
+                            // 날짜는 칸 왼쪽 위에 붙인다 (오른쪽은 휴무자 자리)
+                            display: 'flex', height: 22, width: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-sm)',
                             ...(
                               !inMonth ? { color: 'var(--color-text-gray)' } :
                               todayFlag ? { background: 'var(--color-background-green)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-green)' } :
                               dayOfWeek === 0 ? { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-red)' } :
                               dayOfWeek === 6 ? { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-blue)' } :
-                              { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-gray)' }
+                              { fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-primary)' }
                             ),
                           }}
                         >
                           {format(date, 'd')}
                         </span>
-                        {scheduleCount > 0 && inMonth && (
+                        {/* 오른쪽(또는 칸 전체) 휴무자 명단 */}
+                        {showsVacations(pane) && inMonth && (
+                          <CalendarVacationPane
+                            people={dayVacations}
+                            fraction={vacationPaneFraction(pane)}
+                            maxVisible={DASH_VACATION_MAX_VISIBLE}
+                            topOffset={DASH_BAR_AREA_TOP}
+                            hasDivider={pane === 'both'}
+                          />
+                        )}
+                        {showsSchedules(pane) && scheduleCount > 0 && inMonth && (
                           <>
                             {/* 모바일: 도트 표시 (일정 색상 그대로) */}
-                            <div className="carev-dash-cal-dots" style={{ alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-0-5)' }}>
+                            <div className="carev-dash-cal-dots" style={{ alignItems: 'center', justifyContent: 'flex-start', gap: 'var(--spacing-0-5)' }}>
                               {daySchedules.slice(0, 3).map((schedule, i) => (
                                 <div
                                   key={`${schedule.id}-dot-${i}`}
@@ -1243,7 +1425,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             {/* 데스크탑: 일정 제목은 주 단위 바 오버레이가 그린다(여러 날 일정을 한 줄로 잇기 위해).
                                 여기서는 줄 수 제한에 걸려 못 그린 개수만 셀 아래에 남긴다. */}
                             {hiddenCount > 0 && (
-                              <div className="carev-dash-cal-chips" style={{ marginTop: 'auto', justifyContent: 'flex-start' }}>
+                              <div className="carev-dash-cal-chips" style={{ marginTop: 'auto', justifyContent: 'flex-start', width: `calc(${schedulePaneFraction(pane) * 100}% - var(--spacing-1))` }}>
                                 <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', paddingLeft: 'var(--spacing-0-5)' }}>
                                   +{hiddenCount}
                                 </span>
@@ -1257,20 +1439,18 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
                   {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이 (월간일정 탭과 같은 규칙) */}
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} className="carev-dash-cal-bars">
-                    {layout?.bars.map((bar) => {
+                    {showsSchedules(pane) && layout?.bars.flatMap((bar) =>
+                      buildBarSegments(bar, pane).map((segment) => {
                       const schedule = bar.schedule;
                       const color = getScheduleColor(schedule);
                       const done = !!schedule.isCompleted;
-                      // 일요일 칸이 좁으므로 균등 분할(1/7)이 아니라 열 비율로 좌표를 낸다
-                      const barLeftPct = colStartRatio(bar.startCol) * 100;
-                      const barWidthPct = (colEndRatio(bar.endCol) - colStartRatio(bar.startCol)) * 100;
-                      const leftInset = bar.continuesBefore ? 0 : DASH_BAR_EDGE_INSET;
-                      const rightInset = bar.continuesAfter ? 0 : DASH_BAR_EDGE_INSET;
-                      const startRadius = bar.continuesBefore ? '0' : 'var(--radius-inner)';
-                      const endRadius = bar.continuesAfter ? '0' : 'var(--radius-inner)';
+                      const leftInset = segment.continuesBefore ? 0 : DASH_BAR_EDGE_INSET;
+                      const rightInset = segment.continuesAfter ? 0 : DASH_BAR_EDGE_INSET;
+                      const startRadius = segment.continuesBefore ? '0' : 'var(--radius-inner)';
+                      const endRadius = segment.continuesAfter ? '0' : 'var(--radius-inner)';
                       return (
                         <button
-                          key={`${schedule.id}-${weekIndex}`}
+                          key={`${schedule.id}-${weekIndex}-${segment.startCol}`}
                           type="button"
                           title={done ? `${schedule.title} (수행완료)` : schedule.title}
                           onClick={(e) => {
@@ -1280,8 +1460,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           style={{
                             position: 'absolute',
                             top: DASH_BAR_AREA_TOP + bar.lane * (DASH_BAR_HEIGHT + DASH_BAR_GAP),
-                            left: `calc(${barLeftPct}% + ${leftInset}px)`,
-                            width: `calc(${barWidthPct}% - ${leftInset + rightInset}px)`,
+                            left: `calc(${segment.leftPct}% + ${leftInset}px)`,
+                            width: `calc(${segment.widthPct}% - ${leftInset + rightInset}px)`,
                             height: DASH_BAR_HEIGHT,
                             display: 'flex',
                             alignItems: 'center',
@@ -1302,19 +1482,21 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             pointerEvents: 'auto',
                           }}
                         >
-                          {bar.continuesBefore && <span style={{ flexShrink: 0 }}>◀</span>}
+                          {segment.continuesBefore && <span style={{ flexShrink: 0 }}>◀</span>}
                           {done && <Icon icon={IconCircleCheckFilled} size="xsm" color="inherit" />}
                           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: done ? 'line-through' : 'none' }}>
                             {schedule.title}
                           </span>
-                          {bar.continuesAfter && <span style={{ flexShrink: 0 }}>▶</span>}
+                          {segment.continuesAfter && <span style={{ flexShrink: 0 }}>▶</span>}
                         </button>
                       );
-                    })}
+                      })
+                    )}
                   </div>
                 </div>
                   );
                 })}
+                </div>
                 </div>
               </div>
             </VStack>
@@ -1333,12 +1515,40 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           header={
             <DialogHeader
               title={isToday(selectedDate) ? '오늘의 일정' : format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
-              subtitle={`총 ${selectedSchedules.length}개의 일정 · 완료 ${selectedSchedules.filter((s) => s.isCompleted).length}개`}
+              subtitle={`총 ${selectedSchedules.length}개의 일정 · 완료 ${selectedSchedules.filter((s) => s.isCompleted).length}개 · 휴무 ${selectedDayVacations.length}명`}
               onOpenChange={(open) => { if (!open) setShowDaySchedules(false); }}
             />
           }
           content={
             <LayoutContent>
+              {/* 그날 휴무자 — 달력 칸에는 몇 명만 보이므로 여기서 전부 펼친다 */}
+              {selectedDayVacations.length > 0 && (
+                <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                  <VStack gap={1.5}>
+                    <Text type="label" weight="semibold" color="secondary">휴무자</Text>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)' }}>
+                      {selectedDayVacations.map((person) => (
+                        <span
+                          key={person.id}
+                          title={person.kindLabel}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 'var(--spacing-1)',
+                            padding: '2px var(--spacing-2)',
+                            borderRadius: 'var(--radius-full)',
+                            border: '1px solid var(--color-border)',
+                            background: 'var(--color-background-muted)',
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: person.color }} />
+                          <Text type="supporting" color="secondary">{person.name}</Text>
+                        </span>
+                      ))}
+                    </div>
+                  </VStack>
+                </div>
+              )}
               {selectedSchedules.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-3)', padding: 'var(--spacing-8) 0' }}>
                   <EmptyState
