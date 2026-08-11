@@ -220,6 +220,10 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
     /** 공지가 길면 두 줄만 보여주고 필요할 때 펼친다 */
     const [isNoticeExpanded, setIsNoticeExpanded] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    /** 파일을 대화 영역 위로 끌어왔을 때만 안내를 띄운다 */
+    const [isDraggingFile, setIsDraggingFile] = useState(false);
+    /** 자식 위를 지날 때마다 dragleave가 튀어서, 진입 횟수를 세어 상쇄한다 */
+    const dragDepthRef = useRef(0);
     /** 채팅에서 받은 문서를 앱 안에서 바로 여는 뷰어 (이미지는 자체 확대 보기로 처리) */
     const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
     const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
@@ -710,6 +714,51 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
         if (file) sendFileMessage(file);
     };
 
+    /** 여러 개를 한 번에 떨어뜨려도 보낸 순서가 뒤섞이지 않게 하나씩 올린다 */
+    const sendFiles = async (files: File[]) => {
+        for (const file of files) {
+            await sendFileMessage(file);
+        }
+    };
+
+    /** 대화 영역에 파일을 떨어뜨려 보내기 */
+    const handleDragEnter = (event: React.DragEvent) => {
+        if (!selectedRoom || !event.dataTransfer.types.includes("Files")) return;
+        dragDepthRef.current += 1;
+        setIsDraggingFile(true);
+    };
+
+    const handleDragOver = (event: React.DragEvent) => {
+        if (!selectedRoom || !event.dataTransfer.types.includes("Files")) return;
+        // 막지 않으면 브라우저가 파일을 새 탭으로 열어버린다
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+    };
+
+    const handleDragLeave = () => {
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setIsDraggingFile(false);
+    };
+
+    const handleDrop = (event: React.DragEvent) => {
+        if (!selectedRoom || !event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        dragDepthRef.current = 0;
+        setIsDraggingFile(false);
+        const files = Array.from(event.dataTransfer.files);
+        if (files.length > 0) sendFiles(files);
+    };
+
+    /** 캡쳐한 화면을 Cmd+V로 바로 보내기 — 클립보드에 이미지가 있을 때만 가로챈다 */
+    const handlePaste = (event: React.ClipboardEvent) => {
+        if (!selectedRoom) return;
+        const files = Array.from(event.clipboardData.files);
+        if (files.length === 0) return;
+        // 글자와 이미지가 함께 담긴 경우가 있어, 이미지가 있을 때만 붙여넣기를 가로챈다
+        event.preventDefault();
+        sendFiles(files);
+    };
+
     const createRoom = async () => {
         if (!newRoomName.trim() || !companyId || !userId || !userName) return;
 
@@ -939,7 +988,38 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
             </div>
 
             {/* Right Panel - Messages */}
-            <div style={{ width: "66.6667%", display: "flex", flexDirection: "column", position: "relative" }}>
+            <div
+                style={{ width: "66.6667%", display: "flex", flexDirection: "column", position: "relative" }}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onPaste={handlePaste}
+            >
+                {/* 파일을 끌어온 동안만 덮는 안내 — 마우스 이벤트는 통과시켜 drop이 아래 영역에서 잡히게 둔다 */}
+                {isDraggingFile && (
+                    <div
+                        style={{
+                            position: "absolute",
+                            inset: 0,
+                            zIndex: 20,
+                            pointerEvents: "none",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "var(--color-background-accent-muted, rgba(15, 118, 110, 0.08))",
+                            border: `2px dashed ${C.accent}`,
+                            borderRadius: 'var(--radius-container)',
+                        }}
+                    >
+                        <div style={{ background: C.card, padding: 'var(--spacing-4) var(--spacing-6)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-high)' }}>
+                            <HStack gap={2} vAlign="center">
+                                <Icon icon={FiPaperclip} size="md" color="accent" />
+                                <Text type="large" weight="semibold">여기에 놓으면 바로 보냅니다</Text>
+                            </HStack>
+                        </div>
+                    </div>
+                )}
                 {selectedRoom ? (
                     <>
                         {/* Header */}
@@ -1439,7 +1519,7 @@ export function ChatManagement({ onNotification, isAdmin = true }: ChatManagemen
                                         placeholder={
                                             isUploadingFile ? "파일을 보내는 중..."
                                                 : replyTo ? `${replyTo.senderName}에게 답장...`
-                                                : "메시지를 입력하세요..."
+                                                : "메시지 입력 (사진은 붙여넣기·끌어놓기로도 보낼 수 있어요)"
                                         }
                                         isDisabled={isSendingMessage || isUploadingFile}
                                     />
