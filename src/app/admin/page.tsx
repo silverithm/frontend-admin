@@ -42,7 +42,7 @@ import VoiceBoxAdmin from "@/components/VoiceBoxAdmin";
 import ExternalLinksNav from "@/components/ExternalLinksNav";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
-import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
+import { ChatRail } from "@/components/ChatRail/ChatRail";
 import AdminDashboard from "@/components/AdminDashboard";
 import Image from "next/image";
 import type { Position } from "@/types/position";
@@ -134,6 +134,8 @@ type ToolKey = "dispatch" | "aipost";
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
+    /** 우측 레일에서 고른 대화방 — 채팅 탭이 열릴 때 이 방을 편다 */
+    const [railRoomId, setRailRoomId] = useState<number | null>(null);
     const [showTour, setShowTour] = useState(false);
     // 인라인 함수를 넘기면 투어 쪽 효과가 매 렌더 재실행되어 대상 탐색이 취소된다
     const handleTourNavigate = useCallback((tab: string) => setActiveMainTab(tab as MainTab), []);
@@ -1330,7 +1332,9 @@ export default function AdminPage() {
             </div>
 
             {/* 메인 콘텐츠 */}
-            <main style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", width: "100%", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
+            {/* 본문 + 우측 상시 채팅 레일 */}
+            <div className="carev-admin-body">
+            <main style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
                 {/* 탭별 컨텐츠 */}
                 <AnimatePresence mode="wait" initial={false}>
                     {activeMainTab === "dashboard" ? (
@@ -1369,7 +1373,7 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <ChatManagement onNotification={showNotification} />
+                            <ChatManagement onNotification={showNotification} initialRoomId={railRoomId} />
                         </motion.div>
                     ) : activeMainTab === "schedule" ? (
                         <motion.div
@@ -1819,6 +1823,14 @@ export default function AdminPage() {
 
             </main>
 
+            <ChatRail
+                onOpenRoom={(roomId) => {
+                    setRailRoomId(roomId);
+                    setActiveMainTab("chat");
+                }}
+            />
+            </div>
+
             {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}
             {activeMainTab === "work" && (
                 <>
@@ -1957,9 +1969,6 @@ export default function AdminPage() {
                 </div>
             </footer>
             </div>{/* end lg:ml-56 wrapper */}
-
-            {/* 플로팅 채팅 위젯 */}
-            <FloatingChat />
 
             {/* 오늘 담당 일정을 아직 체크하지 않았으면 우측 아래에 알림 */}
             <TodayTaskReminder

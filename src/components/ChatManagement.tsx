@@ -34,6 +34,8 @@ import { useVisiblePolling } from '@/lib/useVisiblePolling';
 interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
     isAdmin?: boolean;
+    /** 바깥(우측 레일 등)에서 지목한 대화방 — 열릴 때 이 방을 펴 둔다 */
+    initialRoomId?: number | null;
 }
 
 interface ReactionSummary {
@@ -172,9 +174,15 @@ function formatDateSeparator(dateStr: string): string {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
-export function ChatManagement({ onNotification, isAdmin = true }: ChatManagementProps) {
+export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
-    const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
+    const [selectedRoom, setSelectedRoom] = useState<number | null>(initialRoomId);
+
+    // 우측 레일에서 사람이나 방을 눌러 들어온 경우 그 방을 펴 준다.
+    // 같은 방을 다시 눌렀을 때도 반응해야 하므로 값이 같아도 무시하지 않는다.
+    useEffect(() => {
+        if (initialRoomId != null) setSelectedRoom(initialRoomId);
+    }, [initialRoomId]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [messageInput, setMessageInput] = useState("");
     const [isLoadingRooms, setIsLoadingRooms] = useState(false);
