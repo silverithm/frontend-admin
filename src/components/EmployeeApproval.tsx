@@ -731,29 +731,66 @@ export default function EmployeeApproval() {
                         )}
                       </VStack>
                     </HStack>
-                    {(template.templateType === 'file' || template.templateType === 'hybrid' || !template.templateType) && template.fileUrl && (
-                      <HStack gap={2} vAlign="center">
+                    <HStack gap={2} vAlign="center">
+                      {/* 온라인 양식은 내려받을 파일이 없다. 화면에서 채우는 것이 이 양식을 쓰는
+                          유일한 방법이라 그리로 보낸다 — 전에는 버튼이 하나도 없어서
+                          눌러도 아무 일이 없었다. */}
+                      {template.templateType === 'form' && (
                         <Button
-                          label={isHwpFile(template.fileName) ? '바로 보기 · 작성' : '바로 보기'}
+                          label="이 양식으로 작성"
                           variant="primary"
                           size="sm"
-                          icon={<Icon icon={FiEye} />}
-                          onClick={() => setViewer({
-                            fileUrl: template.fileUrl,
-                            fileName: template.fileName,
-                            authoring: isHwpFile(template.fileName),
-                            templateId: String(template.id),
-                          })}
+                          icon={<Icon icon={FiEdit3} />}
+                          onClick={() => {
+                            setApprovalForm(prev => ({ ...prev, templateId: String(template.id) }));
+                            setShowNewApproval(true);
+                          }}
                         />
+                      )}
+
+                      {(template.templateType === 'file' || template.templateType === 'hybrid' || !template.templateType) && (
+                        template.fileUrl ? (
+                          <>
+                            <Button
+                              label={isHwpFile(template.fileName) ? '바로 보기 · 작성' : '바로 보기'}
+                              variant="primary"
+                              size="sm"
+                              icon={<Icon icon={FiEye} />}
+                              onClick={() => setViewer({
+                                fileUrl: template.fileUrl,
+                                fileName: template.fileName,
+                                authoring: isHwpFile(template.fileName),
+                                templateId: String(template.id),
+                              })}
+                            />
+                            <Button
+                              label="다운로드"
+                              variant="secondary"
+                              size="sm"
+                              icon={<Icon icon={FiDownload} />}
+                              onClick={() => handleDownloadTemplate(template)}
+                            />
+                          </>
+                        ) : (
+                          // 파일 양식인데 파일이 없는 경우 — 조용히 비워두면 고장으로 보인다
+                          <Text type="supporting" color="disabled">첨부된 파일이 없습니다</Text>
+                        )
+                      )}
+
+                      {/* 혼합 양식은 파일도 있고 화면 입력도 있다 — 둘 다 갈 수 있게 한다 */}
+                      {template.templateType === 'hybrid' && (
                         <Button
-                          label="다운로드"
+                          label="화면에서 작성"
                           variant="secondary"
                           size="sm"
-                          icon={<Icon icon={FiDownload} />}
-                          onClick={() => handleDownloadTemplate(template)}
+                          icon={<Icon icon={FiEdit3} />}
+                          onClick={() => {
+                            setApprovalForm(prev => ({ ...prev, templateId: String(template.id) }));
+                            setShowNewApproval(true);
+                          }}
                         />
-                      </HStack>
-                    )}
+                      )}
+                    </HStack>
                   </HStack>
                 </Card>
               ))}
