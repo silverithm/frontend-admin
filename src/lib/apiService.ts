@@ -2,6 +2,7 @@
 
 import {VacationRequest, VacationLimit} from '@/types/vacation';
 import { ALL_ROLE_FILTER, getStoredUserRole } from '@/lib/roleUtils';
+import { getMyChatUserId } from '@/lib/chatIdentity';
 import {
     SigninResponseDTO,
     MemberSigninResponseDTO,
@@ -2354,13 +2355,14 @@ export async function bulkCheckElderAttendance(data: Array<{
 // 채팅방 목록 조회
 export async function fetchChatRooms() {
     const companyId = getCompanyId();
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    // 채팅은 관리자/직원을 접두사로 구분한다 ([[chatIdentity]] 참고)
+    const userId = getMyChatUserId() || '';
     return fetchWithAuth(`/api/v1/chat/rooms?companyId=${companyId}&userId=${userId}`);
 }
 
 // 채팅 메시지 조회
 export async function fetchChatMessages(roomId: number, page = 0, size = 50) {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userId = getMyChatUserId() || '';
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (userId) params.append('userId', userId);
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages?${params.toString()}`);
@@ -2368,7 +2370,7 @@ export async function fetchChatMessages(roomId: number, page = 0, size = 50) {
 
 // 채팅 읽음 처리
 export async function markChatAsRead(roomId: number, lastMessageId: number) {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userId = getMyChatUserId() || '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/read`, {
         method: 'POST',
@@ -2487,7 +2489,7 @@ export async function updateChatRoomNotice(roomId: number, messageId: number | n
 
 // 채팅 리액션 토글
 export async function toggleChatReaction(roomId: number, messageId: number, emoji: string) {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+    const userId = getMyChatUserId() || '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/${messageId}/reactions`, {
         method: 'POST',
@@ -2514,6 +2516,14 @@ export async function createChatRoom(data: { name: string; description?: string;
 // 채팅방 참가자 조회
 export async function fetchChatParticipants(roomId: number) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/participants`);
+}
+
+/** 기존 채팅방에 사람 초대. userIds는 채팅 식별자([[chatIdentity]]) */
+export async function addChatParticipants(roomId: number, userIds: string[]) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/participants`, {
+        method: 'POST',
+        body: JSON.stringify({ userIds }),
+    });
 }
 
 // 채팅방 삭제

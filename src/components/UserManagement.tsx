@@ -165,7 +165,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   // (다른 관리자의 승인이나 새 가입 신청이 새로고침 없이 반영되게 — 채팅방 목록과 같은 패턴)
   useVisiblePolling(fetchUsers, 30000);
 
-  /** 방금 승인/거절한 직원이 채팅 초대 후보 목록(orgPresenceStore)에도 곧바로 반영되게 강제 갱신 */
+  /**
+   * 직원 명단(orgPresenceStore)을 강제로 다시 받는다.
+   *
+   * 이 스토어는 기관별로 한 번만 받아 캐시하고 우측 레일·플로팅 채팅·초대 목록이 함께 쓴다.
+   * 사람이 늘거나 줄었는데 갱신하지 않으면, 지운 직원이 새로고침할 때까지 목록에 남는다.
+   */
   const refreshChatCandidates = () => {
     const companyId = typeof window !== 'undefined' ? localStorage.getItem('companyId') : null;
     if (companyId) loadOrgPresence(companyId, { force: true });
@@ -191,6 +196,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       await rejectUser(userId);
       await fetchUsers();
+      refreshChatCandidates();
       onNotification('사용자 가입을 거절했습니다.', 'info');
     } catch (error) {
       console.error('사용자 거절 오류:', error);
@@ -207,6 +213,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       await deleteUser(selectedUser.id);
       await fetchUsers();
+      refreshChatCandidates();
       setShowDeleteModal(false);
       setSelectedUser(null);
       onNotification('사용자를 삭제했습니다.', 'success');
@@ -377,6 +384,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       await assignPositionToMember(memberId, positionId);
       await fetchUsers();
+      refreshChatCandidates();
       onNotification('역할이 변경되었습니다.', 'success');
     } catch (error) {
       onNotification('역할 변경에 실패했습니다.', 'error');
@@ -392,6 +400,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     try {
       await updateUserStatus(userId, newStatus as 'active' | 'inactive');
       await fetchUsers();
+      // 재직 중인 사람만 채팅 명단에 오르므로 상태가 바뀌면 목록도 달라진다
+      refreshChatCandidates();
       onNotification(`사용자 상태를 ${newStatus === 'active' ? '활성화' : '비활성화'}했습니다.`, 'success');
     } catch (error) {
       console.error('사용자 상태 변경 오류:', error);
@@ -470,6 +480,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       setMembers(prev => prev.map(u => (u.id === profileUser.id ? { ...u, profileImageUrl: nextUrl } : u)));
       setProfileUser(prev => (prev ? { ...prev, profileImageUrl: nextUrl } : prev));
       setProfileFile(null);
+      refreshChatCandidates();
       onNotification('프로필 사진을 등록했습니다.', 'success');
     } catch (error) {
       console.error('프로필 사진 업로드 오류:', error);
@@ -486,6 +497,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       await deleteMemberProfileImage(profileUser.id);
       setMembers(prev => prev.map(u => (u.id === profileUser.id ? { ...u, profileImageUrl: null } : u)));
       setProfileUser(prev => (prev ? { ...prev, profileImageUrl: null } : prev));
+      refreshChatCandidates();
       onNotification('프로필 사진을 삭제했습니다.', 'success');
     } catch (error) {
       console.error('프로필 사진 삭제 오류:', error);

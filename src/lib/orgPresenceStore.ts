@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getApproverCandidates, fetchOnlineUserIds } from '@/lib/apiService';
+import { candidateToChatUserId } from '@/lib/chatIdentity';
 import type { DirectChatMember } from '@/lib/directChat';
 
 /**
@@ -16,6 +17,8 @@ type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 interface ApproverCandidate {
     approverId: number | string;
+    /** 'ADMIN'(app_user) 또는 'MEMBER'(members) — 두 테이블은 id가 겹치므로 반드시 함께 봐야 한다 */
+    approverType?: string | null;
     name: string;
     position?: string | null;
     profileImageUrl?: string | null;
@@ -74,12 +77,16 @@ export const useOrgPresenceStore = create<OrgPresenceStore>((set, get) => ({
                 ? candidateResponse.candidates
                 : [];
 
-            const members: DirectChatMember[] = candidates.map((c) => ({
-                id: String(c.approverId),
-                name: c.name,
-                position: c.position,
-                profileImageUrl: c.profileImageUrl ?? null,
-            }));
+            // approverId만 쓰면 관리자 3번과 직원 3번이 같은 사람이 된다 —
+            // 채팅 식별자로 바꿔서 담는다 ([[chatIdentity]])
+            const members: DirectChatMember[] = candidates
+                .map((c) => ({
+                    id: candidateToChatUserId(c.approverId, c.approverType),
+                    name: c.name,
+                    position: c.position,
+                    profileImageUrl: c.profileImageUrl ?? null,
+                }))
+                .filter((m) => m.id !== '');
 
             const online = new Set<string>((presenceResponse?.onlineUserIds || []).map(String));
             deltasWhileLoading?.forEach((isOnline, id) => {

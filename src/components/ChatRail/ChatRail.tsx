@@ -21,6 +21,7 @@ import MemberItem from "@/components/MemberItem";
 import { Loading } from "@/components/Loading";
 import { fetchChatRooms } from "@/lib/apiService";
 import { DirectChatMember, openOrCreateDirectRoom } from "@/lib/directChat";
+import { getMyChatUserId } from "@/lib/chatIdentity";
 import { useOrgPresenceStore, sortMembersByPresence } from "@/lib/orgPresenceStore";
 import { useVisiblePolling } from "@/lib/useVisiblePolling";
 import { duration } from "@/theme/motion";
@@ -83,7 +84,8 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
     const stompClientRef = useRef<Client | null>(null);
 
     const [companyId] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("companyId") : null));
-    const [userId] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("userId") : null));
+    // 채팅에서 나를 가리키는 값. 관리자 계정은 접두사가 붙는다 ([[chatIdentity]])
+    const [userId] = useState(() => getMyChatUserId());
     const [userName] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("userName") : null));
     const [authToken] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("authToken") : null));
 

@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
+import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument } from '@/lib/chatAttachments';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import MemberItem from '@/components/MemberItem';
+import ChatMemberPicker from '@/components/ChatMemberPicker';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -197,6 +199,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newRoomName, setNewRoomName] = useState("");
     const [newRoomDescription, setNewRoomDescription] = useState("");
+    /** 새 방에 함께 넣을 사람들 (나는 항상 들어가므로 목록에 없다) */
+    const [newRoomParticipantIds, setNewRoomParticipantIds] = useState<string[]>([]);
+    const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+    /** 이미 있는 방에 사람 부르기 */
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteIds, setInviteIds] = useState<string[]>([]);
+    const [isInviting, setIsInviting] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
@@ -276,7 +285,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const longPressTimerRef2 = useRef<NodeJS.Timeout | null>(null);
 
     const [companyId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("companyId") : null);
-    const [userId] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userId") : null);
+    // 채팅에서 나를 가리키는 값. 관리자 계정은 접두사가 붙는다 — localStorage의 원시 userId와 다르다
+    const [userId] = useState(() => getMyChatUserId());
     const [userName] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userName") : null);
 
     const scrollToBottom = () => {
@@ -796,26 +806,65 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         sendFiles(files);
     };
 
-    const createRoom = async () => {
-        if (!newRoomName.trim() || !companyId || !userId || !userName) return;
+    const closeCreateModal = () => {
+        setShowCreateModal(false);
+        setNewRoomName("");
+        setNewRoomDescription("");
+        setNewRoomParticipantIds([]);
+    };
 
+    const toggleNewRoomParticipant = (id: string) => {
+        setNewRoomParticipantIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const createRoom = async () => {
+        if (!newRoomName.trim() || !companyId || !userId || !userName || isCreatingRoom) return;
+
+        setIsCreatingRoom(true);
         try {
-            await createChatRoom({
+            const response = await createChatRoom({
                 name: newRoomName.trim(),
                 description: newRoomDescription.trim() || undefined,
                 creatorId: userId,
                 creatorName: userName,
-                participantIds: [userId],
+                // 서버는 만든 사람을 자동으로 넣어주지 않는다 — 내가 빠지면 내 목록에 안 보인다
+                participantIds: [userId, ...newRoomParticipantIds],
             });
 
             onNotification("채팅방이 생성되었습니다", "success");
-            setShowCreateModal(false);
-            setNewRoomName("");
-            setNewRoomDescription("");
-            fetchRooms();
+            closeCreateModal();
+            await fetchRooms();
+
+            // 만들자마자 그 방을 펴 준다 (목록에서 다시 찾게 하지 않는다)
+            const createdId = (response?.room ?? response)?.id;
+            if (typeof createdId === "number") setSelectedRoom(createdId);
         } catch (error) {
             console.error("Error creating room:", error);
             onNotification(error instanceof Error ? error.message : "채팅방 생성에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
+        } finally {
+            setIsCreatingRoom(false);
+        }
+    };
+
+    /** 열려 있는 방에 고른 사람들을 부른다 */
+    const inviteToRoom = async () => {
+        if (!selectedRoom || inviteIds.length === 0 || isInviting) return;
+
+        setIsInviting(true);
+        try {
+            await addChatParticipants(selectedRoom, inviteIds);
+            onNotification(`${inviteIds.length}명을 초대했습니다`, "success");
+            setShowInviteModal(false);
+            setInviteIds([]);
+            // 참가자 수는 방 목록에도 붙어 있어 둘 다 다시 받는다
+            await Promise.all([fetchParticipants(selectedRoom), fetchRooms()]);
+        } catch (error) {
+            console.error("Error inviting participants:", error);
+            onNotification(error instanceof Error ? error.message : "초대에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
+        } finally {
+            setIsInviting(false);
         }
     };
 
@@ -1618,9 +1667,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     {/* 참여자 */}
                                     <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)' }}>
-                                            <Text type="label" weight="semibold">
-                                                참여자 ({participants.length}명)
-                                            </Text>
+                                            <HStack gap={2} vAlign="center" hAlign="between">
+                                                <Text type="label" weight="semibold">
+                                                    참여자 ({participants.length}명)
+                                                </Text>
+                                                <Button
+                                                    label="초대"
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => { setInviteIds([]); setShowInviteModal(true); }}
+                                                />
+                                            </HStack>
                                         </div>
                                         {isLoadingParticipants ? (
                                             <Loading size="inline" label="참여자를 불러오는 중..." />
@@ -1729,21 +1786,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             {/* Create Room Modal */}
             <Dialog
                 isOpen={showCreateModal}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setShowCreateModal(false);
-                        setNewRoomName("");
-                        setNewRoomDescription("");
-                    }
-                }}
+                onOpenChange={(open) => { if (!open) closeCreateModal(); }}
                 purpose="form"
-                width={440}
+                width={480}
             >
                 <Layout
                     header={
                         <DialogHeader
                             title="새 채팅방 만들기"
-                            onOpenChange={(open) => { if (!open) setShowCreateModal(false); }}
+                            onOpenChange={(open) => { if (!open) closeCreateModal(); }}
                         />
                     }
                     content={
@@ -1765,6 +1816,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     rows={3}
                                     isOptional
                                 />
+                                <ChatMemberPicker
+                                    members={sortedMembers}
+                                    onlineUserIds={onlineUserIds}
+                                    selectedIds={newRoomParticipantIds}
+                                    onToggle={toggleNewRoomParticipant}
+                                />
+                                <Text type="supporting">
+                                    지금 고르지 않아도 방을 만든 뒤 채팅방 정보에서 부를 수 있습니다.
+                                </Text>
                             </VStack>
                         </LayoutContent>
                     }
@@ -1774,17 +1834,66 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 <Button
                                     label="취소"
                                     variant="ghost"
-                                    onClick={() => {
-                                        setShowCreateModal(false);
-                                        setNewRoomName("");
-                                        setNewRoomDescription("");
-                                    }}
+                                    onClick={closeCreateModal}
+                                    isDisabled={isCreatingRoom}
                                 />
                                 <Button
-                                    label="생성"
+                                    label={isCreatingRoom ? "만드는 중..." : "생성"}
                                     variant="primary"
                                     onClick={createRoom}
-                                    isDisabled={!newRoomName.trim()}
+                                    isLoading={isCreatingRoom}
+                                    isDisabled={!newRoomName.trim() || isCreatingRoom}
+                                />
+                            </HStack>
+                        </LayoutFooter>
+                    }
+                />
+            </Dialog>
+
+            {/* 기존 방에 사람 부르기 */}
+            <Dialog
+                isOpen={showInviteModal}
+                onOpenChange={(open) => { if (!open) { setShowInviteModal(false); setInviteIds([]); } }}
+                purpose="form"
+                width={480}
+            >
+                <Layout
+                    header={
+                        <DialogHeader
+                            title="구성원 초대"
+                            onOpenChange={(open) => { if (!open) { setShowInviteModal(false); setInviteIds([]); } }}
+                        />
+                    }
+                    content={
+                        <LayoutContent>
+                            <ChatMemberPicker
+                                members={sortedMembers}
+                                onlineUserIds={onlineUserIds}
+                                selectedIds={inviteIds}
+                                onToggle={(id) => setInviteIds(prev =>
+                                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                                )}
+                                excludeIds={participants.map(p => p.userId)}
+                                emptyLabel="이미 모두 이 방에 있습니다"
+                                maxListHeight={320}
+                            />
+                        </LayoutContent>
+                    }
+                    footer={
+                        <LayoutFooter hasDivider>
+                            <HStack gap={2} hAlign="end">
+                                <Button
+                                    label="취소"
+                                    variant="ghost"
+                                    onClick={() => { setShowInviteModal(false); setInviteIds([]); }}
+                                    isDisabled={isInviting}
+                                />
+                                <Button
+                                    label={isInviting ? "초대 중..." : "초대"}
+                                    variant="primary"
+                                    onClick={inviteToRoom}
+                                    isLoading={isInviting}
+                                    isDisabled={inviteIds.length === 0 || isInviting}
                                 />
                             </HStack>
                         </LayoutFooter>
