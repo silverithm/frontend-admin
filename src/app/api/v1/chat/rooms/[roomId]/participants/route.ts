@@ -91,10 +91,20 @@ export async function POST(
     );
 
     if (!backendResponse.ok) {
-      console.error(`[Chat API] POST 백엔드 응답 오류: ${backendResponse.status}`);
-      return NextResponse.json({
-        error: `백엔드 서버 오류: ${backendResponse.status}`
-      }, { status: backendResponse.status, headers });
+      // 백엔드가 왜 거절했는지(다른 기관 사람 등)를 그대로 넘긴다 —
+      // 상태 코드만 보여주면 화면에서 사용자가 할 수 있는 게 없다
+      const raw = await backendResponse.text().catch(() => '');
+      let message = `백엔드 서버 오류: ${backendResponse.status}`;
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.error === 'string' && parsed.error.trim()) message = parsed.error.trim();
+        else if (typeof parsed?.message === 'string' && parsed.message.trim()) message = parsed.message.trim();
+      } catch {
+        if (raw.trim()) message = raw.trim();
+      }
+
+      console.error(`[Chat API] POST 백엔드 응답 오류: ${backendResponse.status}`, raw);
+      return NextResponse.json({ error: message }, { status: backendResponse.status, headers });
     }
 
     const data = await backendResponse.json();
