@@ -1834,6 +1834,17 @@ export async function deleteMySignature() {
     return fetchWithAuth('/api/v1/signatures', { method: 'DELETE' });
 }
 
+/**
+ * 내 직책 변경 (관리자 전용).
+ * 기관 직책 목록에서 고른 id를 보낸다. null이면 직책 없음 — 결재선·채팅에 '관리자'로 보인다.
+ */
+export async function updateMyPosition(positionId: number | null) {
+    return fetchWithAuth('/api/v1/users/position', {
+        method: 'PUT',
+        body: JSON.stringify({ positionId }),
+    });
+}
+
 // 기관명 변경 (관리자 전용)
 export async function updateCompanyName(companyName: string) {
     return fetchWithAuth('/api/v1/users/company-name', {

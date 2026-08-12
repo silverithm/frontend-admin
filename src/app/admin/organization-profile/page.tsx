@@ -16,6 +16,7 @@ import {
   IconPlus,
 } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
+import { Selector } from '@astryxdesign/core/Selector';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -26,7 +27,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, getCompanyHomepage, updateCompanyHomepageLinks } from '@/lib/apiService';
+import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, getCompanyHomepage, updateCompanyHomepageLinks, getPositions, updateMyPosition } from '@/lib/apiService';
 import type { CompanyLink } from '@/components/ExternalLinksNav';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
@@ -43,6 +44,9 @@ interface OrganizationProfileData {
   // 기타 필요한 회사 정보 필드들
   companyAddressName?: string;
   adminName?: string;
+  /** 관리자 직책 — 비어 있으면 결재선·채팅에 '관리자'로 보인다 */
+  adminPositionId?: number | null;
+  adminPosition?: string | null;
 }
 
 /**
@@ -131,9 +135,51 @@ export default function OrganizationProfilePage() {
   const [homepageLinks, setHomepageLinks] = useState<CompanyLink[]>([{ name: '', url: '' }]);
   const [isHomepageSaving, setIsHomepageSaving] = useState(false);
 
+  // 내 직책 — 직원과 같은 기관 직책 목록에서 고른다
+  const [positionOptions, setPositionOptions] = useState<{ value: string; label: string }[]>([]);
+  const [isPositionSaving, setIsPositionSaving] = useState(false);
+
   useEffect(() => {
     fetchProfile();
+    loadPositions();
   }, []);
+
+  /** 직책 목록 — 못 불러와도 나머지 화면은 그대로 보여준다 */
+  const loadPositions = async () => {
+    try {
+      const data = await getPositions();
+      const list = Array.isArray(data) ? data : (data?.positions || data?.content || []);
+      setPositionOptions(
+        list.map((p: { id: number; name: string }) => ({ value: String(p.id), label: p.name }))
+      );
+    } catch (e) {
+      console.error('직책 목록 조회 실패:', e);
+    }
+  };
+
+  /** 내 직책 저장 — 고르는 즉시 반영한다 (별도 저장 버튼 없음) */
+  const handlePositionChange = async (value: string | null) => {
+    const positionId = value ? Number(value) : null;
+    const previous = profile;
+    setIsPositionSaving(true);
+    setError('');
+    try {
+      const result = await updateMyPosition(positionId);
+      setProfile(prev => prev ? {
+        ...prev,
+        adminPositionId: positionId,
+        adminPosition: result?.position ?? null,
+      } : prev);
+      setSuccessMessage(positionId ? '직책이 변경되었습니다' : '직책을 해제했습니다');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (e) {
+      console.error('직책 변경 실패:', e);
+      setProfile(previous);
+      setError('직책을 바꾸지 못했습니다. 잠시 후 다시 시도해주세요');
+    } finally {
+      setIsPositionSaving(false);
+    }
+  };
 
   const fetchProfile = async () => {
     setIsLoading(true);
@@ -150,6 +196,8 @@ export default function OrganizationProfilePage() {
           companyCode: info.companyCode || '',
           companyAddressName: info.companyAddressName || '',
           adminName: info.userName || '',
+          adminPositionId: info.positionId ?? null,
+          adminPosition: info.position ?? null,
         };
         setSealUrl(info.companySealUrl || null);
         // 홈페이지는 목록 API에서 따로 받는다 (여러 개를 등록할 수 있어 users/info로는 부족하다)
@@ -504,17 +552,33 @@ export default function OrganizationProfilePage() {
                     </HStack>
                   </Card>
 
-                  {/* 관리자 정보 카드 */}
+                  {/* 관리자 정보 카드 — 직책은 결재선·채팅에 그대로 표시된다 */}
                   <Card padding={5} height="100%">
-                    <HStack gap={3} vAlign="center">
-                      <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon icon={IconUser} size="md" color="secondary" />
-                      </div>
-                      <VStack gap={0.5}>
-                        <Text type="supporting" color="secondary">관리자명</Text>
-                        <Text type="body" weight="semibold" color="primary">{profile.adminName || '정보 없음'}</Text>
-                      </VStack>
-                    </HStack>
+                    <VStack gap={4}>
+                      <HStack gap={3} vAlign="center">
+                        <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon icon={IconUser} size="md" color="secondary" />
+                        </div>
+                        <VStack gap={0.5}>
+                          <Text type="supporting" color="secondary">관리자명</Text>
+                          <Text type="body" weight="semibold" color="primary">{profile.adminName || '정보 없음'}</Text>
+                        </VStack>
+                      </HStack>
+                      <Selector
+                        label="내 직책"
+                        options={positionOptions}
+                        value={profile.adminPositionId ? String(profile.adminPositionId) : ''}
+                        onChange={handlePositionChange}
+                        placeholder="직책 없음 (관리자로 표시)"
+                        hasClear
+                        isDisabled={isPositionSaving || positionOptions.length === 0}
+                      />
+                      <Text type="supporting" color="secondary">
+                        {positionOptions.length === 0
+                          ? '먼저 직원 관리에서 직책을 등록해주세요'
+                          : '결재선과 채팅에 이 직책으로 표시됩니다'}
+                      </Text>
+                    </VStack>
                   </Card>
                 </Grid>
                 )}
