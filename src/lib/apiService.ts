@@ -1846,6 +1846,39 @@ export async function updateMyPosition(positionId: number | null) {
     });
 }
 
+/** 내 프로필 사진 등록/교체 (관리자 전용). 직원과 같은 규격 — jpg/png/webp, 5MB 이하 */
+export async function uploadMyProfileImage(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const response = await fetch('/api/v1/users/profile-image', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data?.error || '프로필 사진 업로드에 실패했습니다.');
+    }
+    return data as { profileImageUrl?: string };
+}
+
+/** 내 프로필 사진 삭제 (관리자 전용) */
+export async function deleteMyProfileImage() {
+    return fetchWithAuth('/api/v1/users/profile-image', { method: 'DELETE' });
+}
+
+/** 우리 기관 관리자 계정 목록 — 회원관리에서 직원과 한 표에 놓는다 */
+export async function getCompanyAdmins() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/users/admins?companyId=${companyId}`);
+}
+
 // 기관명 변경 (관리자 전용)
 export async function updateCompanyName(companyName: string) {
     return fetchWithAuth('/api/v1/users/company-name', {

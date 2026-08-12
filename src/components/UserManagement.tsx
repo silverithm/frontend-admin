@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera } from 'react-icons/fi';
-import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberPermissions, updateMemberPermissions, type PendingUser } from '@/lib/apiService';
+import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
 import { uploadMemberProfileImage, deleteMemberProfileImage } from '@/lib/memberProfileApi';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
@@ -17,6 +17,7 @@ import {
   getRoleDisplayName,
 } from '@/lib/roleUtils';
 import { useOrgPresenceStore } from '@/lib/orgPresenceStore';
+import { isAdminSession } from '@/lib/chatIdentity';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
@@ -55,10 +56,25 @@ interface User {
   position?: string;
   positionId?: number;
   profileImageUrl?: string | null;
+  /**
+   * 관리자 계정(app_user) 행. 직원(members)과 다른 테이블이라 상태·권한·가입일 같은
+   * 직원 전용 값이 없고, 여기서는 사진·직책만 손댈 수 있다.
+   */
+  isAdminAccount?: boolean;
 }
 
 // Table 행 타입 (Astryx Table의 T는 Record<string, unknown>를 만족해야 함)
 interface UserRow extends User, Record<string, unknown> {}
+
+/** /api/v1/users/admins 응답 한 건 */
+interface AdminSummary {
+  id: number | string;
+  name: string;
+  email?: string;
+  position?: string | null;
+  positionId?: number | null;
+  profileImageUrl?: string | null;
+}
 interface SeniorRow extends ElderlyInfo, Record<string, unknown> {}
 
 interface UserManagementProps {
@@ -71,6 +87,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'roles' | 'seniors'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [members, setMembers] = useState<User[]>([]);
+  /** 기관 관리자 계정 — 직원과 한 표에 놓되 맨 위에 고정한다 */
+  const [adminAccounts, setAdminAccounts] = useState<User[]>([]);
+  /** 지금 로그인한 관리자 — 사진·직책은 본인 것만 바꿀 수 있다 */
+  const [myUserId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('userId') : null));
+  const [isAdminLogin] = useState(() => isAdminSession());
+  /**
+   * 이 행이 '나'인지.
+   *
+   * 관리자 계정(app_user)과 직원(members)은 id가 겹칠 수 있어 번호만 맞춰보면 안 된다 —
+   * 직원으로 로그인한 사람에게 같은 번호 관리자의 편집 칸이 열려 보인다.
+   */
+  const isMyAdminRow = (u: User) => u.isAdminAccount === true && isAdminLogin && u.id === myUserId;
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>(ALL_ROLE_FILTER);
@@ -122,10 +150,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     if (isInitialLoad) setIsLoading(true);
     try {
       // 가입 대기 중인 사용자 가져오기
-      const [pendingData, membersData, posData]: any[] = await Promise.all([
+      const [pendingData, membersData, posData, adminData]: any[] = await Promise.all([
         getPendingUsers(),
         getMemberUsers(),
         getPositions().catch(() => ({ positions: [] })),
+        // 관리자 명단을 못 받아도 직원 목록은 보여준다
+        getCompanyAdmins().catch(() => ({ admins: [] })),
       ]);
 
       // 백엔드에서 {requests: [...]} 구조로 응답
@@ -148,6 +178,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       // 직책 목록
       const posArray = posData?.positions || [];
       setPositions(posArray);
+
+      // 관리자 계정을 직원과 같은 행 모양으로 맞춘다 (상태·가입일은 관리자에게 없는 개념)
+      const adminArray = adminData?.admins || [];
+      setAdminAccounts(adminArray.map((a: AdminSummary) => ({
+        id: String(a.id),
+        email: a.email || '',
+        name: a.name || '',
+        role: 'admin',
+        status: 'active' as const,
+        position: a.position || undefined,
+        positionId: a.positionId ?? undefined,
+        profileImageUrl: a.profileImageUrl ?? null,
+        isAdminAccount: true,
+      })));
     } catch (error) {
       console.error('사용자 목록 로드 오류:', error);
       onNotification('사용자 목록을 불러오는데 실패했습니다.', 'error');
@@ -155,6 +199,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       setPendingUsers([]);
       setMembers([]);
       setPositions([]);
+      setAdminAccounts([]);
     } finally {
       hasLoadedUsersRef.current = true;
       if (isInitialLoad) setIsLoading(false);
@@ -471,14 +516,43 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     setProfileFile(null);
   };
 
+  /** 열려 있는 프로필 모달의 사진을 목록에도 반영한다 (관리자/직원은 서로 다른 배열에 있다) */
+  const applyProfileImage = (user: User, nextUrl: string | null) => {
+    if (user.isAdminAccount) {
+      setAdminAccounts(prev => prev.map(u => (u.id === user.id ? { ...u, profileImageUrl: nextUrl } : u)));
+    } else {
+      setMembers(prev => prev.map(u => (u.id === user.id ? { ...u, profileImageUrl: nextUrl } : u)));
+    }
+    setProfileUser(prev => (prev ? { ...prev, profileImageUrl: nextUrl } : prev));
+  };
+
+  /** 관리자 본인 직책 변경 — 직원과 API가 다르다 */
+  const handleChangeMyPosition = async (positionId: number | null) => {
+    setIsProcessing(true);
+    try {
+      const result = await updateMyPosition(positionId);
+      setAdminAccounts(prev => prev.map(u => (
+        u.id === myUserId ? { ...u, positionId: positionId ?? undefined, position: result?.position ?? undefined } : u
+      )));
+      refreshChatCandidates();
+      onNotification(positionId ? '직책이 변경되었습니다.' : '직책을 해제했습니다.', 'success');
+    } catch (error) {
+      console.error('관리자 직책 변경 오류:', error);
+      onNotification(error instanceof Error ? error.message : '직책 변경에 실패했습니다.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleUploadProfileImage = async () => {
     if (!profileUser || !profileFile) return;
     setIsProfileSaving(true);
     try {
-      const result = await uploadMemberProfileImage(profileUser.id, profileFile);
+      const result = profileUser.isAdminAccount
+        ? await uploadMyProfileImage(profileFile)
+        : await uploadMemberProfileImage(profileUser.id, profileFile);
       const nextUrl = result?.profileImageUrl ?? null;
-      setMembers(prev => prev.map(u => (u.id === profileUser.id ? { ...u, profileImageUrl: nextUrl } : u)));
-      setProfileUser(prev => (prev ? { ...prev, profileImageUrl: nextUrl } : prev));
+      applyProfileImage(profileUser, nextUrl);
       setProfileFile(null);
       refreshChatCandidates();
       onNotification('프로필 사진을 등록했습니다.', 'success');
@@ -494,9 +568,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     if (!profileUser) return;
     setIsProfileSaving(true);
     try {
-      await deleteMemberProfileImage(profileUser.id);
-      setMembers(prev => prev.map(u => (u.id === profileUser.id ? { ...u, profileImageUrl: null } : u)));
-      setProfileUser(prev => (prev ? { ...prev, profileImageUrl: null } : prev));
+      if (profileUser.isAdminAccount) await deleteMyProfileImage();
+      else await deleteMemberProfileImage(profileUser.id);
+      applyProfileImage(profileUser, null);
       refreshChatCandidates();
       onNotification('프로필 사진을 삭제했습니다.', 'success');
     } catch (error) {
@@ -507,11 +581,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     }
   };
 
-  const filteredMembers = members.filter(user => {
+  /**
+   * 관리자 + 직원을 한 명단으로.
+   *
+   * 관리자는 항상 맨 위에 둔다 — 기관에서 한두 명뿐이고 기준이 되는 사람이라, 이름순에
+   * 섞여 중간에 파묻히면 찾기 어렵다. 정렬만 손대고 검색·필터는 직원과 똑같이 먹인다.
+   */
+  const allPeople: User[] = [...adminAccounts, ...members];
+
+  const filteredMembers = allPeople.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === ALL_ROLE_FILTER || getMemberRoleName(user) === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    // 관리자에게는 재직 상태 개념이 없어 상태 필터에서 빼지 않는다 (걸면 통째로 사라진다)
+    const matchesStatus = statusFilter === 'all' || user.isAdminAccount || user.status === statusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -584,7 +667,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
               label="회원 관리 탭"
             >
               <SegmentedControlItem value="pending" label={`가입 신청 (${pendingUsers.length})`} icon={<Icon icon={FiUserPlus} size="sm" />} />
-              <SegmentedControlItem value="members" label={`기존 회원 (${members.length})`} icon={<Icon icon={FiUsers} size="sm" />} />
+              <SegmentedControlItem value="members" label={`기존 회원 (${members.length + adminAccounts.length})`} icon={<Icon icon={FiUsers} size="sm" />} />
               {isAdmin && <SegmentedControlItem value="roles" label="역할 관리" icon={<Icon icon={FiBriefcase} size="sm" />} />}
               <SegmentedControlItem value="seniors" label={`어르신 관리 (${seniors.length})`} icon={<Icon icon={FiHeart} size="sm" />} />
             </SegmentedControl>
@@ -845,22 +928,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         {
                           key: 'avatar',
                           header: '',
+                          // 관리자 사진은 백엔드가 본인 것만 바꾸게 하므로, 남의 관리자 행은 누를 수 없다
                           renderCell: (u) => (
-                            <button
-                              type="button"
-                              onClick={() => openProfileModal(u)}
-                              title={`${u.name} 프로필 설정`}
-                              aria-label={`${u.name} 프로필 설정`}
-                              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
-                            >
+                            u.isAdminAccount && !isMyAdminRow(u) ? (
                               <Avatar src={u.profileImageUrl || undefined} name={u.name} size="medium" />
-                            </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openProfileModal(u)}
+                                title={`${u.name} 프로필 설정`}
+                                aria-label={`${u.name} 프로필 설정`}
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
+                              >
+                                <Avatar src={u.profileImageUrl || undefined} name={u.name} size="medium" />
+                              </button>
+                            )
                           ),
                         },
                         {
                           key: 'name',
                           header: '회원',
                           renderCell: (u) => {
+                            if (u.isAdminAccount) {
+                              // 관리자에겐 재직 상태가 없다 — 직원 뱃지를 그대로 붙이면 없는 개념이 생긴다
+                              return (
+                                <HStack gap={2} vAlign="center" wrap="wrap">
+                                  <Text weight="semibold">{u.name}</Text>
+                                  <Badge variant="purple" label="관리자" />
+                                  {isMyAdminRow(u) && <Badge variant="green" label="나" />}
+                                </HStack>
+                              );
+                            }
                             const resolvedRole = getMemberRoleName(u);
                             return (
                               <HStack gap={2} vAlign="center" wrap="wrap">
@@ -884,8 +982,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         {
                           key: 'position',
                           header: '직책',
-                          renderCell: (u) => (
-                            isAdmin ? (
+                          renderCell: (u) => {
+                            // 관리자 직책은 본인만 바꿀 수 있다 (백엔드가 '내 직책' API만 연다)
+                            const canEdit = u.isAdminAccount ? isMyAdminRow(u) : isAdmin;
+                            if (!canEdit) {
+                              return u.position ? (
+                                <Badge variant="orange" label={u.position} />
+                              ) : (
+                                <Text type="supporting" color="disabled">-</Text>
+                              );
+                            }
+                            return (
                               <Selector
                                 label="역할 배정"
                                 isLabelHidden
@@ -896,31 +1003,41 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                   { value: '', label: '역할 미배정' },
                                   ...positions.map((pos) => ({ value: pos.id.toString(), label: pos.name })),
                                 ]}
-                                onChange={(val) => handleAssignPosition(u.id, val ? parseInt(val) : null)}
+                                onChange={(val) => {
+                                  const positionId = val ? parseInt(val) : null;
+                                  if (u.isAdminAccount) handleChangeMyPosition(positionId);
+                                  else handleAssignPosition(u.id, positionId);
+                                }}
                                 isDisabled={isProcessing}
                               />
-                            ) : u.position ? (
-                              <Badge variant="orange" label={u.position} />
-                            ) : (
-                              <Text type="supporting" color="disabled">-</Text>
-                            )
-                          ),
+                            );
+                          },
                         },
                         {
                           key: 'joined',
                           header: '가입/로그인',
                           renderCell: (u) => (
-                            <VStack gap={0.5}>
-                              {u.approvedAt && <Text type="supporting">가입: {format(new Date(u.approvedAt), 'yyyy-MM-dd', { locale: ko })}</Text>}
-                              {u.lastLoginAt && <Text type="supporting">로그인: {format(new Date(u.lastLoginAt), 'yyyy-MM-dd HH:mm', { locale: ko })}</Text>}
-                              {!u.approvedAt && !u.lastLoginAt && <Text type="supporting" color="disabled">-</Text>}
-                            </VStack>
+                            u.isAdminAccount ? (
+                              <Text type="supporting" color="disabled">-</Text>
+                            ) : (
+                              <VStack gap={0.5}>
+                                {u.approvedAt && <Text type="supporting">가입: {format(new Date(u.approvedAt), 'yyyy-MM-dd', { locale: ko })}</Text>}
+                                {u.lastLoginAt && <Text type="supporting">로그인: {format(new Date(u.lastLoginAt), 'yyyy-MM-dd HH:mm', { locale: ko })}</Text>}
+                                {!u.approvedAt && !u.lastLoginAt && <Text type="supporting" color="disabled">-</Text>}
+                              </VStack>
+                            )
                           ),
                         },
                         ...(isAdmin ? [{
                           key: 'actions',
                           header: '',
                           renderCell: (u: UserRow) => (
+                            // 관리자 계정은 여기서 지우거나 재우지 않는다 — 계정 자체는 정보관리에서 다룬다
+                            u.isAdminAccount ? (
+                              <HStack gap={2} hAlign="end">
+                                <Text type="supporting" color="disabled">관리자 계정</Text>
+                              </HStack>
+                            ) : (
                             <HStack gap={2} hAlign="end">
                               {u.role !== 'admin' && (
                                 <Button label="권한" size="sm" variant="secondary" icon={<Icon icon={FiShield} size="sm" />} onClick={() => openPermissionModal(u)} isDisabled={isProcessing} />
@@ -941,6 +1058,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                 isDisabled={isProcessing || u.role === 'admin'}
                               />
                             </HStack>
+                            )
                           ),
                         }] : []),
                       ]}

@@ -16,6 +16,7 @@ import {
   IconPlus,
 } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
+import { Avatar } from '@astryxdesign/core/Avatar';
 import { Selector } from '@astryxdesign/core/Selector';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -27,7 +28,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, getCompanyHomepage, updateCompanyHomepageLinks, getPositions, updateMyPosition } from '@/lib/apiService';
+import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, getCompanyHomepage, updateCompanyHomepageLinks, getPositions, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage } from '@/lib/apiService';
 import type { CompanyLink } from '@/components/ExternalLinksNav';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
@@ -47,6 +48,8 @@ interface OrganizationProfileData {
   /** 관리자 직책 — 비어 있으면 결재선·채팅에 '관리자'로 보인다 */
   adminPositionId?: number | null;
   adminPosition?: string | null;
+  /** 관리자 프로필 사진 — 비어 있으면 이니셜 아바타로 보인다 */
+  adminProfileImageUrl?: string | null;
 }
 
 /**
@@ -138,6 +141,9 @@ export default function OrganizationProfilePage() {
   // 내 직책 — 직원과 같은 기관 직책 목록에서 고른다
   const [positionOptions, setPositionOptions] = useState<{ value: string; label: string }[]>([]);
   const [isPositionSaving, setIsPositionSaving] = useState(false);
+  const [isProfileImageSaving, setIsProfileImageSaving] = useState(false);
+  /** FileInput은 제어 컴포넌트라 고른 파일을 들고 있어야 한다 (올린 뒤에는 비운다) */
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -181,6 +187,47 @@ export default function OrganizationProfilePage() {
     }
   };
 
+  /**
+   * 내 프로필 사진 등록/교체.
+   *
+   * 고르는 즉시 올린다 — 직책과 마찬가지로 이 카드에는 별도 저장 버튼이 없다.
+   * 결재선·채팅·회원관리가 모두 이 사진을 쓰므로 성공하면 화면 값을 바로 갈아끼운다.
+   */
+  const handleProfileImageSelect = async (file: File | null) => {
+    if (!file) return;
+    setIsProfileImageSaving(true);
+    setError('');
+    try {
+      const result = await uploadMyProfileImage(file);
+      setProfile(prev => (prev ? { ...prev, adminProfileImageUrl: result?.profileImageUrl || null } : prev));
+      setSuccessMessage('프로필 사진을 등록했습니다');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (e) {
+      console.error('프로필 사진 등록 실패:', e);
+      setError(e instanceof Error ? e.message : '프로필 사진을 등록하지 못했습니다');
+    } finally {
+      // 올린 사진은 아바타로 보여주므로 고른 파일은 비운다 (같은 파일을 다시 고를 수 있게)
+      setProfileImageFile(null);
+      setIsProfileImageSaving(false);
+    }
+  };
+
+  const handleProfileImageDelete = async () => {
+    setIsProfileImageSaving(true);
+    setError('');
+    try {
+      await deleteMyProfileImage();
+      setProfile(prev => (prev ? { ...prev, adminProfileImageUrl: null } : prev));
+      setSuccessMessage('프로필 사진을 삭제했습니다');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (e) {
+      console.error('프로필 사진 삭제 실패:', e);
+      setError(e instanceof Error ? e.message : '프로필 사진을 삭제하지 못했습니다');
+    } finally {
+      setIsProfileImageSaving(false);
+    }
+  };
+
   const fetchProfile = async () => {
     setIsLoading(true);
     try {
@@ -198,6 +245,7 @@ export default function OrganizationProfilePage() {
           adminName: info.userName || '',
           adminPositionId: info.positionId ?? null,
           adminPosition: info.position ?? null,
+          adminProfileImageUrl: info.profileImageUrl ?? null,
         };
         setSealUrl(info.companySealUrl || null);
         // 홈페이지는 목록 API에서 따로 받는다 (여러 개를 등록할 수 있어 users/info로는 부족하다)
@@ -552,18 +600,46 @@ export default function OrganizationProfilePage() {
                     </HStack>
                   </Card>
 
-                  {/* 관리자 정보 카드 — 직책은 결재선·채팅에 그대로 표시된다 */}
+                  {/* 관리자 정보 카드 — 사진·직책은 결재선·채팅·회원관리에 그대로 표시된다 */}
                   <Card padding={5} height="100%">
                     <VStack gap={4}>
                       <HStack gap={3} vAlign="center">
-                        <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon icon={IconUser} size="md" color="secondary" />
-                        </div>
+                        <Avatar
+                          name={profile.adminName || '관리자'}
+                          src={profile.adminProfileImageUrl || undefined}
+                          size="medium"
+                        />
                         <VStack gap={0.5}>
                           <Text type="supporting" color="secondary">관리자명</Text>
                           <Text type="body" weight="semibold" color="primary">{profile.adminName || '정보 없음'}</Text>
                         </VStack>
                       </HStack>
+                      <VStack gap={2}>
+                        <FileInput
+                          label="내 프로필 사진"
+                          accept="image/jpeg,image/png,image/webp"
+                          value={profileImageFile}
+                          onChange={(files) => {
+                            const file = Array.isArray(files) ? files[0] ?? null : files;
+                            setProfileImageFile(file);
+                            handleProfileImageSelect(file);
+                          }}
+                          isDisabled={isProfileImageSaving}
+                          isLoading={isProfileImageSaving}
+                        />
+                        <HStack gap={2} vAlign="center" hAlign="between">
+                          <Text type="supporting" color="secondary">JPG·PNG·WEBP, 5MB 이하</Text>
+                          {profile.adminProfileImageUrl && (
+                            <Button
+                              label="사진 삭제"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleProfileImageDelete}
+                              isDisabled={isProfileImageSaving}
+                            />
+                          )}
+                        </HStack>
+                      </VStack>
                       <Selector
                         label="내 직책"
                         options={positionOptions}
