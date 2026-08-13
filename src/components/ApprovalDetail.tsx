@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
-import { FiCheck, FiXCircle, FiDownload } from 'react-icons/fi';
+import { FiCheck, FiXCircle, FiDownload, FiVolume2 } from 'react-icons/fi';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Card } from '@astryxdesign/core/Card';
@@ -16,8 +16,10 @@ import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { getApprovalRequesterId } from '@/lib/apiService';
+import { isAdminSession } from '@/lib/chatIdentity';
 import OfficialDocument from './approval/OfficialDocument';
 import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
+import ApprovalAnnounceDialog from './approval/ApprovalAnnounceDialog';
 import DocumentViewerModal from './DocumentViewerModal';
 import { useConfirm } from './ConfirmDialog';
 
@@ -46,11 +48,17 @@ export default function ApprovalDetail({
   const [rejectReason, setRejectReason] = useState('');
   const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
   const [showSignatureConfirm, setShowSignatureConfirm] = useState(false);
+  /** 승인된 공문을 채팅방 공지로 올리는 창 */
+  const [showAnnounceDialog, setShowAnnounceDialog] = useState(false);
+  const [announceResult, setAnnounceResult] = useState('');
+  /** 관리자 여부는 localStorage를 보므로 마운트 후에 정한다 (SSR 불일치 방지) */
+  const [isAdmin, setIsAdmin] = useState(false);
   const [myApproverId, setMyApproverId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const { confirm, ConfirmContainer } = useConfirm();
 
   useEffect(() => {
+    setIsAdmin(isAdminSession());
     setMyApproverId(getApprovalRequesterId());
     setCompanyName(
       localStorage.getItem('companyName') || localStorage.getItem('organizationName') || ''
@@ -194,6 +202,9 @@ export default function ApprovalDetail({
           content={
             <LayoutContent>
               <VStack gap={4}>
+                {announceResult && (
+                  <Banner status="success" container="section" title={announceResult} />
+                )}
                 {/* 결재 차례 안내 */}
                 {approval.status === 'PENDING' && hasLine && !isMyTurn && currentStep && (
                   <Banner
@@ -333,11 +344,26 @@ export default function ApprovalDetail({
                     ) : (
                       <span />
                     )}
-                    <Button
-                      label="닫기"
-                      variant="primary"
-                      onClick={onClose}
-                    />
+                    <HStack gap={2}>
+                      {/*
+                        최종 승인된 공문만, 관리자에게만 보인다.
+                        - 반려·진행중 문서가 방 공지로 붙으면 곤란하고
+                        - 이 화면은 직원 탭에서도 쓰이는데 방 공지를 바꾸는 건 관리자 몫이다
+                      */}
+                      {approval.status === 'APPROVED' && isAdmin && (
+                        <Button
+                          label="채팅방에 공지 등록"
+                          variant="secondary"
+                          icon={<Icon icon={FiVolume2} size="sm" />}
+                          onClick={() => setShowAnnounceDialog(true)}
+                        />
+                      )}
+                      <Button
+                        label="닫기"
+                        variant="primary"
+                        onClick={onClose}
+                      />
+                    </HStack>
                   </HStack>
                 )
               )}
@@ -345,6 +371,18 @@ export default function ApprovalDetail({
           }
         />
       </Dialog>
+
+      {/* 승인된 공문 → 채팅방 공지 */}
+      {showAnnounceDialog && (
+        <ApprovalAnnounceDialog
+          approval={approval}
+          onClose={() => setShowAnnounceDialog(false)}
+          onDone={(roomNames) => {
+            setAnnounceResult(`${roomNames.join(', ')}에 공지로 등록했습니다`);
+            setTimeout(() => setAnnounceResult(''), 4000);
+          }}
+        />
+      )}
 
       {/* 승인 서명 확인 */}
       <SignatureConfirmDialog
