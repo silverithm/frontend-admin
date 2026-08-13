@@ -7,7 +7,7 @@
 // 흐름: 진입 시 서버에서 불러오고(없으면 로컬 설정을 한 번 올려 이전),
 // 이후 설정이 바뀔 때마다 잠깐 모았다가 저장한다.
 
-import type { DispatchSettings } from '@/types/dispatch';
+import type { DispatchSettings, SeniorAbsence } from '@/types/dispatch';
 import { useDispatchStore } from './dispatchStore';
 import type { RemoteDriverRole } from './vacationGuard';
 
@@ -50,26 +50,34 @@ export async function loadDispatchSettings(): Promise<void> {
     });
     if (!response.ok) return;
 
-    const remote = (await response.json()) as Partial<DispatchSettings>;
+    const remote = (await response.json()) as Partial<DispatchSettings> & {
+      seniorAbsences?: SeniorAbsence[];
+    };
     const remoteSettings: DispatchSettings = {
       routes: Array.isArray(remote?.routes) ? remote.routes : [],
       seniors: Array.isArray(remote?.seniors) ? remote.seniors : [],
     };
+    const remoteAbsences = Array.isArray(remote?.seniorAbsences)
+      ? remote.seniorAbsences
+      : [];
 
-    const local = useDispatchStore.getState().settings;
+    const store = useDispatchStore.getState();
+    const local = store.settings;
 
     // 서버가 비었는데 이 브라우저에만 설정이 남아 있으면 그대로 올린다
     if (isEmpty(remoteSettings) && !isEmpty(local)) {
       await fetch(`/api/v1/dispatch-settings/migrate?companyId=${companyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(local),
+        body: JSON.stringify(buildPayload(local, store.seniorAbsences)),
       }).catch(() => undefined);
       return;
     }
 
     isApplyingRemote = true;
-    useDispatchStore.getState().setSettings(remoteSettings);
+    store.setSettings(remoteSettings);
+    // 결석도 서버가 원본이다. 직원 앱에서 표시한 결석을 여기서도 봐야 한다.
+    store.setSeniorAbsences(remoteAbsences);
     // setSettings로 발생한 구독 알림이 처리된 뒤 플래그를 내린다
     setTimeout(() => {
       isApplyingRemote = false;
@@ -80,8 +88,21 @@ export async function loadDispatchSettings(): Promise<void> {
   }
 }
 
+/**
+ * 서버에 보낼 한 벌.
+ *
+ * 결석(seniorAbsences)을 빼고 보내면 서버 JSON이 통째로 교체되면서 직원 앱이
+ * 표시해 둔 결석이 사라진다. 저장 경로가 하나뿐이므로 여기서 항상 함께 싣는다.
+ */
+function buildPayload(settings: DispatchSettings, absences: SeniorAbsence[]) {
+  return { ...settings, seniorAbsences: absences };
+}
+
 /** 설정을 서버에 저장한다 (연속 변경은 모아서 한 번만) */
-export function scheduleDispatchSave(settings: DispatchSettings): void {
+export function scheduleDispatchSave(
+  settings: DispatchSettings,
+  absences: SeniorAbsence[] = useDispatchStore.getState().seniorAbsences,
+): void {
   if (isApplyingRemote) return;
   const companyId = getCompanyId();
   if (!companyId || !hasToken()) return;
@@ -92,7 +113,7 @@ export function scheduleDispatchSave(settings: DispatchSettings): void {
       await fetch(`/api/v1/dispatch-settings?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(buildPayload(settings, absences)),
       });
     } catch (error) {
       console.error('[배차설정] 서버 저장 실패:', error);
@@ -102,11 +123,19 @@ export function scheduleDispatchSave(settings: DispatchSettings): void {
 
 /** 설정 변경을 감지해 서버에 저장한다. 앱에서 한 번만 호출한다. */
 export function startDispatchAutoSave(): () => void {
-  let prev = useDispatchStore.getState().settings;
+  const initial = useDispatchStore.getState();
+  let prevSettings = initial.settings;
+  let prevAbsences = initial.seniorAbsences;
+
   return useDispatchStore.subscribe((state) => {
-    if (state.settings === prev) return;
-    prev = state.settings;
-    scheduleDispatchSave(state.settings);
+    // 결석만 바뀐 경우도 저장 대상이다 — 예전에는 settings만 보고 있어서
+    // 결석 표시가 이 브라우저에만 남았다
+    if (state.settings === prevSettings && state.seniorAbsences === prevAbsences) {
+      return;
+    }
+    prevSettings = state.settings;
+    prevAbsences = state.seniorAbsences;
+    scheduleDispatchSave(state.settings, state.seniorAbsences);
   });
 }
 
