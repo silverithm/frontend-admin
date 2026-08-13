@@ -27,9 +27,6 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 
 import { getVacationCalendar, getVacationForDate, getVacationDeadlineDates, getVacationEvents, type VacationEvent } from '@/lib/apiService';
 import VacationEventModal from './VacationEventModal';
-import { useDispatchStore } from '@/lib/dispatchStore';
-import { loadDispatchSettings } from '@/lib/dispatchSync';
-import { findRouteOutages } from '@/lib/vacationGuard';
 import { getHolidayName } from '@/lib/holidays';
 import {
   ALL_ROLE_FILTER,
@@ -98,11 +95,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
   const [calendarData, setCalendarData] = useState<VacationData>({});
 
-  // 배차 노선 — 그날 운행이 불가한 노선을 빨갛게 표시하는 데 쓴다 (서버가 원본)
-  const routes = useDispatchStore((state) => state.settings.routes);
-  useEffect(() => {
-    loadDispatchSettings();
-  }, []);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -486,29 +478,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const fadeInVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: duration.mediumMin } }
-  };
-
-  /**
-   * 그날 운전자가 전원 휴무라 운행할 수 없는 노선.
-   * 역할·이름 필터로 운전자가 빠지면 오판하므로 원본 휴무 목록으로 판정한다.
-   */
-  const getRouteOutages = (date: Date) => {
-    if (routes.length === 0) return [];
-    const dayData = calendarData[format(date, 'yyyy-MM-dd')];
-    if (!dayData) return [];
-
-    const raw = (Array.isArray(dayData.vacations) && dayData.vacations.length > 0
-      ? dayData.vacations
-      : Array.isArray(dayData.people) && dayData.people.length > 0
-      ? dayData.people
-      : []) as VacationRequest[];
-
-    const names = raw
-      .filter((v) => v.status !== 'rejected')
-      .map((v) => v.userName || '')
-      .filter(Boolean);
-
-    return findRouteOutages(routes, names);
   };
 
   const getDayVacations = (date: Date): VacationRequest[] => {
@@ -959,7 +928,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const dayData = calendarData[dateKey];
             const vacations = getDayVacations(day);
             const vacationersCount = vacations.length;
-            const routeOutages = isCurrentMonth ? getRouteOutages(day) : [];
             const maxPeople = dayData?.maxPeople ?? 3;
 
             const cellStyle = {
@@ -1023,28 +991,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                       </span>
                     )}
                   </div>
-
-                  {/* 운전자가 전원 휴무라 그날 운행이 불가한 노선 — 관리자가 한눈에 보도록 빨갛게 */}
-                  {routeOutages.length > 0 && (
-                    <span
-                      title={routeOutages
-                        .map((o) => `${o.routeName}(${o.routeType}) 운행 불가 — ${o.restingDrivers.join(', ')} 휴무`)
-                        .join('\n')}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        fontSize: 'var(--font-size-xs)',
-                        fontWeight: 'var(--font-weight-semibold)',
-                        padding: 'var(--spacing-0-5) var(--spacing-1)',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--color-background-red)',
-                        color: 'var(--color-text-red)',
-                      }}
-                    >
-                      운행 불가 {routeOutages.length}
-                    </span>
-                  )}
 
                   {isCurrentMonth && isSingleRole && vacationersCount > 0 && (
                     <span style={{
