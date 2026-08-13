@@ -683,7 +683,6 @@ html {
 /* 레일이 펼쳐져 있으면 그 왼쪽에 붙는다 — 겹치면 방 목록이 가려진다 */
 .carev-chat-dock--beside-rail { right: calc(264px + var(--spacing-4)); }
 /* 확대 버튼은 대화방 정보 버튼 왼쪽 자리에 얹는다 */
-.carev-chat-dock-expand { position: absolute; top: 6px; right: 40px; z-index: 5; }
 
 /* 접었을 때 나타나는 플로팅 버튼 — 레일이 오므라든 자리에서 튀어나온다 */
 .carev-chat-rail-fab {

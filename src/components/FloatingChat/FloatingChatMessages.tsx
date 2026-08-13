@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { Fragment, useRef, useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
 import { FiSend, FiCornerUpLeft, FiPaperclip } from "react-icons/fi";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -69,6 +69,12 @@ interface FloatingChatMessagesProps {
     onSendMessage: (replyToId?: number) => void;
     onToggleReaction?: (messageId: number, emoji: string) => void;
     onMessagesUpdate?: (messages: ChatMessage[]) => void;
+    /**
+     * 머리줄 오른쪽, '채팅방 정보' 왼쪽에 끼워 넣을 버튼.
+     * 관리자 셸의 도크는 여기에 '크게 보기'를 넣는다 — 예전처럼 머리 위에 절대좌표로 얹으면
+     * 다른 버튼들과 높이가 어긋난다. 안 넘기면 아무것도 안 그린다(직원 플로팅 채팅).
+     */
+    headerAction?: ReactNode;
 }
 
 function formatMessageTime(timestamp: string) {
@@ -94,6 +100,7 @@ export function FloatingChatMessages({
     onSendMessage,
     onToggleReaction,
     onMessagesUpdate,
+    headerAction,
 }: FloatingChatMessagesProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [showDrawer, setShowDrawer] = useState(false);
@@ -495,6 +502,7 @@ export function FloatingChatMessages({
                     <Text type="body" weight="semibold" color="primary" maxLines={1}>{roomName}</Text>
                     <Text type="supporting" color="secondary">참여자 {participantCount}명</Text>
                 </div>
+                {headerAction}
                 <Button
                     label="채팅방 정보"
                     isIconOnly

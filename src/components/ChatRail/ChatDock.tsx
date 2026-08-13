@@ -220,19 +220,19 @@ export default function ChatDock({
             role="dialog"
             aria-label={`${roomName} 대화`}
         >
-            {/* 확대 버튼은 머리 오른쪽에 얹는다 — FloatingChatMessages의 머리를 고쳐 쓰면
-                직원 화면(플로팅 채팅)까지 같이 바뀐다 */}
-            <div className="carev-chat-dock-expand">
-                <IconButton
-                    label="채팅 탭에서 크게 보기"
-                    tooltip="크게 보기"
-                    variant="ghost"
-                    size="sm"
-                    icon={<Icon icon={FiMaximize2} size="sm" />}
-                    onClick={onExpand}
-                />
-            </div>
             <FloatingChatMessages
+                /* 확대 버튼은 머리줄 안에 넣는다 — 예전처럼 머리 위에 절대좌표로 얹으면
+                   뒤로가기·채팅방 정보 버튼과 높이가 어긋나 보인다 */
+                headerAction={
+                    <IconButton
+                        label="채팅 탭에서 크게 보기"
+                        tooltip="크게 보기"
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={FiMaximize2} size="sm" />}
+                        onClick={onExpand}
+                    />
+                }
                 roomId={roomId}
                 roomName={roomName}
                 participantCount={participantCount}
