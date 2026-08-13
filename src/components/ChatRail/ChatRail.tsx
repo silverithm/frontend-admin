@@ -446,7 +446,10 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                             setDockRoomId(null);
                         }}
                         onRead={(readRoomId) =>
-                            setRooms(prev => prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r)))
+                            // 이미 0이면 배열 정체성을 유지해 불필요한 재렌더(→ 도크 재로딩 루프)를 막는다
+                            setRooms(prev => prev.some(r => r.id === readRoomId && r.unreadCount > 0)
+                                ? prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r))
+                                : prev)
                         }
                     />
                 )}

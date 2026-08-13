@@ -61,14 +61,20 @@ export default function ChatDock({
     const [userName] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("userName") : null));
     const [authToken] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("authToken") : null));
 
+    // onRead는 ref로 들고 markAsRead의 의존성에서 뺀다. 부모가 인라인 함수로 넘기면
+    // 렌더마다 markAsRead가 재생성 → 메시지 로드 effect 재실행 → 읽음 처리 → 부모
+    // setState → 재렌더 … 로 무한 재로딩이 됐던 실제 버그의 차단 지점이다.
+    const onReadRef = useRef(onRead);
+    onReadRef.current = onRead;
+
     const markAsRead = useCallback(async (lastMsgId: number) => {
         try {
             await markChatAsRead(roomId, lastMsgId);
-            onRead?.(roomId);
+            onReadRef.current?.(roomId);
         } catch (error) {
             console.error("[ChatDock] 읽음 처리 실패:", error);
         }
-    }, [roomId, onRead]);
+    }, [roomId]);
 
     // 방을 열면(또는 다시 연결되면) 최근 대화를 받아오고 읽음 처리한다
     useEffect(() => {
