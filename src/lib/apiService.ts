@@ -1685,8 +1685,8 @@ export function getApprovalRequesterId(): string {
     return loginType === 'admin' ? `admin_${userId}` : userId;
 }
 
-// 결재 요청 생성
-export async function createApprovalRequest(data: {
+/** 결재 작성 내용 — 상신할 때도 임시저장할 때도 같은 모양으로 보낸다 */
+export interface ApprovalRequestPayload {
     templateId: number;
     title: string;
     formData?: Record<string, any>;
@@ -1694,7 +1694,36 @@ export async function createApprovalRequest(data: {
     attachmentFileName?: string;
     attachmentFileSize?: number;
     approvalLine?: Array<{ approverType: 'ADMIN' | 'MEMBER'; approverId: number }>;
-}) {
+    /** true면 상신하지 않고 임시저장만 한다 (결재함에 뜨지 않고 알림도 안 나간다) */
+    draft?: boolean;
+}
+
+// 백엔드 DTO의 formData는 String(JSON) — 객체를 그대로 보내면 역직렬화에 실패한다
+function toApprovalBody(data: ApprovalRequestPayload) {
+    return JSON.stringify({
+        ...data,
+        ...(data.formData ? { formData: JSON.stringify(data.formData) } : {}),
+    });
+}
+
+/** 임시저장 문서 이어쓰기 (기안자 본인) */
+export async function updateApprovalDraft(id: string | number, data: ApprovalRequestPayload) {
+    return fetchWithAuth(`/api/v1/approvals/${id}/draft`, {
+        method: 'PUT',
+        body: toApprovalBody({ ...data, draft: true }),
+    });
+}
+
+/** 임시저장 문서 상신 — 이 시점에 결재선이 검증되고 결재자에게 알림이 간다 */
+export async function submitApprovalDraft(id: string | number, data: ApprovalRequestPayload) {
+    return fetchWithAuth(`/api/v1/approvals/${id}/submit`, {
+        method: 'POST',
+        body: toApprovalBody({ ...data, draft: false }),
+    });
+}
+
+// 결재 요청 생성
+export async function createApprovalRequest(data: ApprovalRequestPayload) {
     const companyId = getCompanyId();
     const requesterId = getApprovalRequesterId();
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
@@ -1703,15 +1732,9 @@ export async function createApprovalRequest(data: {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
 
-    // 백엔드 DTO의 formData는 String(JSON) 타입 — 객체를 그대로 보내면 역직렬화에 실패한다
-    const payload = {
-        ...data,
-        ...(data.formData ? { formData: JSON.stringify(data.formData) } : {}),
-    };
-
     return fetchWithAuth(`/api/v1/approvals?companyId=${companyId}&requesterId=${requesterId}&requesterName=${encodeURIComponent(userName)}`, {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: toApprovalBody(data),
     });
 }
 

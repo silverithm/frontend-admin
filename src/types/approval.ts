@@ -1,5 +1,6 @@
 // 결재 상태
-export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+/** DRAFT는 아직 상신하지 않은 임시저장 — 기안자 본인에게만 보이고 결재함에는 뜨지 않는다 */
+export type ApprovalStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 // 결재선 단계 상태
 export type ApprovalStepStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED';

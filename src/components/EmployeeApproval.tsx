@@ -25,7 +25,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId } from '@/lib/apiService';
+import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, updateApprovalDraft, submitApprovalDraft, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId, type ApprovalRequestPayload } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus, ApproverCandidate } from '@/types/approval';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
@@ -65,6 +65,9 @@ export default function EmployeeApproval() {
   const [approvalLine, setApprovalLine] = useState<ApproverCandidate[]>([]);
   const [showSignatureManager, setShowSignatureManager] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  /** 이어쓰는 중인 임시저장 문서 id — 새로 쓰는 중이면 null */
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
   // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부,
   // templateId가 있으면 저장 시 해당 양식으로 새 기안 작성 모달을 자동으로 열고,
@@ -218,6 +221,8 @@ export default function EmployeeApproval() {
         return '진행중';
       case 'REJECTED':
         return '반려됨';
+      case 'DRAFT':
+        return '임시저장';
       default:
         return status;
     }
@@ -461,7 +466,7 @@ export default function EmployeeApproval() {
         }
       }
 
-      await createApprovalRequest({
+      await saveOrSubmit({
         templateId: Number(approvalForm.templateId),
         title: approvalForm.title,
         ...(formData ? { formData } : {}),
@@ -531,7 +536,7 @@ export default function EmployeeApproval() {
         }
       }
 
-      await createApprovalRequest({
+      await saveOrSubmit({
         templateId: Number(approvalForm.templateId),
         title: approvalForm.title,
         formData: data,
@@ -600,7 +605,113 @@ export default function EmployeeApproval() {
     setApprovalForm({ templateId: '', title: '', file: null });
     setFormData(null);
     setApprovalLine([]);
+    setEditingDraftId(null);
   };
+
+  /**
+   * 임시저장. 상신과 달리 결재선·첨부가 아직 비어 있어도 저장된다 —
+   * 다 갖춰야 저장할 수 있으면 '중간까지 써두기'라는 목적 자체가 사라진다.
+   * 제목만 있으면 나중에 목록에서 찾을 수 있으므로 제목만 요구한다.
+   */
+  const handleSaveDraft = async () => {
+    if (!approvalForm.templateId) {
+      showAlert({ type: 'error', title: '입력 오류', message: '양식을 선택해주세요.' });
+      return;
+    }
+    if (!approvalForm.title.trim()) {
+      showAlert({ type: 'error', title: '입력 오류', message: '나중에 찾을 수 있도록 제목을 입력해주세요.' });
+      return;
+    }
+
+    setIsSavingDraft(true);
+    try {
+      // 임시저장에서는 파일을 다시 올리지 않는다 — 저장할 때마다 같은 파일이 쌓인다.
+      // 첨부는 상신할 때 확정한다.
+      const payload = {
+        templateId: Number(approvalForm.templateId),
+        title: approvalForm.title,
+        ...(formData ? { formData } : {}),
+        approvalLine: buildApprovalLinePayload(),
+      };
+
+      if (editingDraftId) {
+        await updateApprovalDraft(editingDraftId, payload);
+      } else {
+        const response = await createApprovalRequest({ ...payload, draft: true });
+        const createdId = (response?.approval ?? response)?.id;
+        if (createdId != null) setEditingDraftId(String(createdId));
+      }
+
+      showAlert({
+        type: 'success',
+        title: '임시저장 완료',
+        message: '내 결재함에서 이어서 작성할 수 있습니다.',
+      });
+      loadApprovals();
+    } catch (error) {
+      console.error('임시저장 실패:', error);
+      showAlert({
+        type: 'error',
+        title: '임시저장 실패',
+        message: error instanceof Error ? error.message : '임시저장에 실패했습니다.',
+      });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  /** 임시저장 문서를 작성 모달로 다시 불러온다 */
+  const openDraft = (approval: ApprovalRequest) => {
+    setEditingDraftId(String(approval.id));
+    setApprovalForm({
+      templateId: String(approval.templateId ?? ''),
+      title: approval.title ?? '',
+      file: null,
+    });
+    setFormData(parseFormData(approval.formData));
+    setApprovalLine(toApproverCandidates(approval));
+    setShowNewApproval(true);
+  };
+
+  /**
+   * 상신. 임시저장에서 이어온 문서면 새로 만들지 않고 그 문서를 상신한다 —
+   * 새로 만들면 임시저장본이 그대로 남아 같은 문서가 두 건이 된다.
+   */
+  const saveOrSubmit = async (payload: ApprovalRequestPayload) => {
+    if (editingDraftId) {
+      return submitApprovalDraft(editingDraftId, payload);
+    }
+    return createApprovalRequest(payload);
+  };
+
+  /** 저장된 폼 값 — 백엔드가 JSON 문자열로 돌려줄 때가 있어 양쪽을 모두 받는다 */
+  const parseFormData = (value: unknown): Record<string, any> | null => {
+    if (!value) return null;
+    if (typeof value === 'object') return value as Record<string, any>;
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  /**
+   * 저장된 결재선(단계)을 다시 고르기 위한 후보 형태로 되돌린다.
+   * 단계의 approverId는 'admin_3' 같은 문자열이라 숫자만 떼어내야 한다.
+   */
+  const toApproverCandidates = (approval: ApprovalRequest): ApproverCandidate[] =>
+    (approval.approvalLine ?? [])
+      .slice()
+      .sort((a, b) => a.stepOrder - b.stepOrder)
+      .map((step) => ({
+        approverType: step.approverType,
+        approverId: Number(String(step.approverId).replace('admin_', '')),
+        name: step.approverName,
+      }))
+      .filter((candidate) => Number.isFinite(candidate.approverId));
 
   // 결재선을 생성 payload 형태로 변환
   const buildApprovalLinePayload = () =>
@@ -856,7 +967,11 @@ export default function EmployeeApproval() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: duration.fast }}
                   >
-                    <ClickableCard label={approval.title} onClick={() => setSelectedApproval(approval)}>
+                    {/* 임시저장은 상세로 보내지 않고 작성 화면으로 되돌린다 — 이어서 쓰라고 있는 문서다 */}
+                    <ClickableCard
+                      label={approval.title}
+                      onClick={() => (approval.status === 'DRAFT' ? openDraft(approval) : setSelectedApproval(approval))}
+                    >
                       <HStack hAlign="between" vAlign="center" gap={4}>
                         <VStack gap={1}>
                           <HStack gap={2} vAlign="center">
@@ -1056,6 +1171,14 @@ export default function EmployeeApproval() {
                   label="취소"
                   variant="ghost"
                   onClick={closeNewApprovalModal}
+                />
+                {/* 결재선·첨부가 아직 없어도 저장된다 — 중간까지 써두는 게 목적이다 */}
+                <Button
+                  label={isSavingDraft ? '저장 중...' : '임시저장'}
+                  variant="secondary"
+                  isLoading={isSavingDraft}
+                  isDisabled={isSavingDraft || isSubmitting || !approvalForm.templateId || !approvalForm.title.trim()}
+                  onClick={handleSaveDraft}
                 />
                 {selectedTemplateInfo?.templateType !== 'form' && (
                   <Button
