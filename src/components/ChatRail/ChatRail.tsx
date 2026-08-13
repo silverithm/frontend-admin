@@ -18,6 +18,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { FiMessageCircle, FiUsers, FiChevronDown, FiChevronRight, FiChevronsRight } from "react-icons/fi";
 
 import MemberItem from "@/components/MemberItem";
+import ChatDock from "@/components/ChatRail/ChatDock";
 import { Loading } from "@/components/Loading";
 import { fetchChatRooms } from "@/lib/apiService";
 import { DirectChatMember, openOrCreateDirectRoom } from "@/lib/directChat";
@@ -44,7 +45,10 @@ interface RailRoom {
 }
 
 interface ChatRailProps {
-    /** 방을 고르면 채팅 화면으로 데려간다 (레일은 좁아서 대화를 담지 않는다) */
+    /**
+     * 방을 채팅 화면으로 넘긴다 — 작은 대화창의 '크게 보기'에서만 쓴다.
+     * 방을 누르는 것만으로 탭이 바뀌면, 하려던 일과 대화가 번갈아 끊긴다.
+     */
     onOpenRoom: (roomId: number) => void;
     /** 레일이 들어갈 폭이 안 되는 화면에서 플로팅 버튼을 누른 경우 — 채팅 탭으로 보낸다 */
     onOpenChatTab: () => void;
@@ -77,6 +81,8 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
     const [hydrated, setHydrated] = useState(false);
 
     const [rooms, setRooms] = useState<RailRoom[]>([]);
+    /** 지금 작은 창으로 열어 둔 방. 탭은 그대로 두고 대화만 얹는다. */
+    const [dockRoomId, setDockRoomId] = useState<number | null>(null);
     const [isLoadingRooms, setIsLoadingRooms] = useState(true);
     const [isOpeningDirect, setIsOpeningDirect] = useState(false);
     const [directError, setDirectError] = useState<string | null>(null);
@@ -202,7 +208,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
         try {
             const { roomId, isNew } = await openOrCreateDirectRoom({ rooms, member, userId, userName });
             if (isNew) await loadRooms();
-            if (roomId) onOpenRoom(roomId);
+            if (roomId) setDockRoomId(roomId);
             else setDirectError(`${member.name} 님과의 대화를 열지 못했습니다`);
         } catch (error) {
             console.error("[ChatRail] 1:1 대화 열기 실패:", error);
@@ -216,6 +222,9 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
 
     // 하이드레이션 전에는 저장된 접힘 상태를 모르므로 펼친 모습으로 그린다 (기본값과 동일)
     const isOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
+
+    // 목록이 갱신되며 방이 사라졌다면 창도 닫는다
+    const dockRoom = rooms.find(r => r.id === dockRoomId) ?? null;
 
     const openRail = () => {
         // 레일이 들어갈 폭이 아니면 펴 봐야 보이지 않는다 — 그럴 땐 채팅 화면으로 보낸다
@@ -370,7 +379,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                                         />
                                     ) : undefined
                                 }
-                                onClick={() => onOpenRoom(room.id)}
+                                onClick={() => setDockRoomId(room.id)}
                                 density="compact"
                                 labelLines={1}
                                 descriptionLines={1}
@@ -419,6 +428,27 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                             </div>
                         )}
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 방을 누르면 보던 화면을 그대로 둔 채 옆에 대화창만 뜬다 */}
+            <AnimatePresence>
+                {dockRoom && (
+                    <ChatDock
+                        key={dockRoom.id}
+                        roomId={dockRoom.id}
+                        roomName={dockRoom.name}
+                        participantCount={dockRoom.participantCount}
+                        isRailOpen={isOpen}
+                        onClose={() => setDockRoomId(null)}
+                        onExpand={() => {
+                            onOpenRoom(dockRoom.id);
+                            setDockRoomId(null);
+                        }}
+                        onRead={(readRoomId) =>
+                            setRooms(prev => prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r)))
+                        }
+                    />
                 )}
             </AnimatePresence>
         </>
