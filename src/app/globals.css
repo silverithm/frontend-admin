@@ -996,6 +996,28 @@ html {
   margin: 28px 0 24px;
   word-break: keep-all;
 }
+/* 공문 필드 표 (행 독립 grid 버전) — <table>은 열 폭을 모든 행이 공유해
+   행마다 다른 너비 비율(1/3+2/3, 1/2+1/2 혼용)을 표현할 수 없어 grid로 그린다.
+   테두리는 컨테이너가 위·왼쪽, 셀이 오른쪽·아래를 그려 collapse된 표처럼 보인다. */
+.carev-doc-fields {
+  width: 100%;
+  margin-bottom: 20px;
+  border-top: 1px solid #9ca3af;
+  border-left: 1px solid #9ca3af;
+}
+.carev-doc-fields .carev-doc-field-row { display: grid; }
+.carev-doc-fields .carev-doc-field-label,
+.carev-doc-fields .carev-doc-field-value,
+.carev-doc-fields .carev-doc-section-row {
+  border-right: 1px solid #9ca3af;
+  border-bottom: 1px solid #9ca3af;
+  padding: 8px 10px;
+  font-size: 13px;
+  word-break: break-word;
+}
+/* td용 고정폭 18%는 grid에서는 트랙이 정하므로 무효화 */
+.carev-doc-fields .carev-doc-field-label { width: auto; }
+
 .carev-doc-fields-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
 .carev-doc-fields-table td {
   border: 1px solid #9ca3af;

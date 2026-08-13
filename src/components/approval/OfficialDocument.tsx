@@ -9,6 +9,7 @@ import { HStack } from '@astryxdesign/core/Stack';
 import { ApprovalRequest, ApprovalStep, DocumentFooter } from '@/types/approval';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
 import { chunkRowForDocTable, formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
+import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 
 interface OfficialDocumentProps {
@@ -144,46 +145,45 @@ function DocumentFieldsTable({
   const rows = groupFieldsIntoRows(schema.fields).flatMap(chunkRowForDocTable);
 
   return (
-    <table className="carev-doc-fields-table">
-      <tbody>
-        {rows.map((row, rowIndex) => {
-          if (row.length === 1 && row[0].type === 'section') {
-            return (
-              <tr key={`section-${rowIndex}`}>
-                <td className="carev-doc-section-row" colSpan={4}>
-                  {row[0].label}
-                </td>
-              </tr>
-            );
-          }
-
-          if (row.length === 2) {
-            return (
-              <tr key={`row-${rowIndex}`}>
-                <td className="carev-doc-field-label">{row[0].label}</td>
-                <td className="carev-doc-field-value" style={{ width: '32%' }}>
-                  {formatFieldValueText(row[0], formData)}
-                </td>
-                <td className="carev-doc-field-label">{row[1].label}</td>
-                <td className="carev-doc-field-value" style={{ width: '32%' }}>
-                  {formatFieldValueText(row[1], formData)}
-                </td>
-              </tr>
-            );
-          }
-
-          const field = row[0] as FormFieldSchema;
+    // <table>은 열 폭을 모든 행이 공유해 행마다 다른 너비 비율을 표현할 수 없다 —
+    // 작성 화면(FormRenderer)과 동일하게 행 독립 grid로 그려 양식의 너비 설정을 반영한다.
+    <div className="carev-doc-fields">
+      {rows.map((row, rowIndex) => {
+        if (row.length === 1 && row[0].type === 'section') {
           return (
-            <tr key={`row-${rowIndex}`}>
-              <td className="carev-doc-field-label">{field.label}</td>
-              <td className="carev-doc-field-value" colSpan={3}>
-                {formatFieldValueText(field, formData)}
-              </td>
-            </tr>
+            <div key={`section-${rowIndex}`} className="carev-doc-field-row" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="carev-doc-section-row">{row[0].label}</div>
+            </div>
           );
-        })}
-      </tbody>
-    </table>
+        }
+
+        if (row.length === 2) {
+          const spans = row.map((field) => getFieldSpan(field.width));
+          const totalSpan = spans[0] + spans[1] || 1;
+          const valuePercents = spans.map((span) => ((span / totalSpan) * 64).toFixed(2));
+          return (
+            <div
+              key={`row-${rowIndex}`}
+              className="carev-doc-field-row"
+              style={{ gridTemplateColumns: `18% ${valuePercents[0]}% 18% ${valuePercents[1]}%` }}
+            >
+              <div className="carev-doc-field-label">{row[0].label}</div>
+              <div className="carev-doc-field-value">{formatFieldValueText(row[0], formData)}</div>
+              <div className="carev-doc-field-label">{row[1].label}</div>
+              <div className="carev-doc-field-value">{formatFieldValueText(row[1], formData)}</div>
+            </div>
+          );
+        }
+
+        const field = row[0] as FormFieldSchema;
+        return (
+          <div key={`row-${rowIndex}`} className="carev-doc-field-row" style={{ gridTemplateColumns: '18% 1fr' }}>
+            <div className="carev-doc-field-label">{field.label}</div>
+            <div className="carev-doc-field-value">{formatFieldValueText(field, formData)}</div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

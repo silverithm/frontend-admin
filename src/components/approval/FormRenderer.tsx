@@ -669,48 +669,48 @@ export default function FormRenderer({
             {documentFrame.title || '(제목을 입력하세요)'}
           </div>
 
-          <table className="carev-doc-fields-table">
-            <tbody>
-              {fieldRows.map((row, rowIndex) => {
-                if (row.length === 1 && row[0].type === 'section') {
-                  return (
-                    <tr key={rowIndex}>
-                      <td className="carev-doc-section-row" colSpan={4}>{row[0].label}</td>
-                    </tr>
-                  );
-                }
-
-                if (row.length === 2) {
-                  // 라벨 두 칸은 보기 좋은 고정폭(18%×2)을 유지하고, 값 두 칸만 필드에 설정된
-                  // 너비 비율대로 나눈다. (고정 50/50이면 half·third·quarter를 어떻게 섞어도
-                  // 항상 반반으로 보여 양식 빌더의 "너비" 설정이 화면에 반영되지 않는다)
-                  const spans = row.map((field) => getFieldSpan(field.width));
-                  const totalSpan = spans[0] + spans[1] || 1;
-                  const valueTotalPercent = 100 - 18 * 2;
-                  const valuePercents = spans.map((span) => (span / totalSpan) * valueTotalPercent);
-                  return (
-                    <tr key={rowIndex}>
-                      {row.map((field, i) => (
-                        <Fragment key={field.id}>
-                          <td className="carev-doc-field-label">{field.label}{field.required ? ' *' : ''}</td>
-                          <td className="carev-doc-field-value" style={{ width: `${valuePercents[i]}%` }}>
-                            {renderDocControl(field)}
-                          </td>
-                        </Fragment>
-                      ))}
-                    </tr>
-                  );
-                }
-
+          {/* <table>은 열 폭을 모든 행이 공유해 행마다 다른 너비 비율(1/3+2/3과 1/2+1/2 혼용)을
+              표현할 수 없다 — 행 독립 grid로 그린다. 시각은 기존 표와 동일. */}
+          <div className="carev-doc-fields">
+            {fieldRows.map((row, rowIndex) => {
+              if (row.length === 1 && row[0].type === 'section') {
                 return (
-                  <tr key={rowIndex}>
-                    <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
-                    <td className="carev-doc-field-value" colSpan={3}>{renderDocControl(row[0])}</td>
-                  </tr>
+                  <div key={rowIndex} className="carev-doc-field-row" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="carev-doc-section-row">{row[0].label}</div>
+                  </div>
                 );
-              })}
-            </tbody>
-          </table>
+              }
+
+              if (row.length === 2) {
+                // 라벨 두 칸은 고정폭(18%×2)을 유지하고, 값 두 칸만 필드에 설정된 너비 비율대로 나눈다
+                const spans = row.map((field) => getFieldSpan(field.width));
+                const totalSpan = spans[0] + spans[1] || 1;
+                const valueTotalPercent = 100 - 18 * 2;
+                const valuePercents = spans.map((span) => ((span / totalSpan) * valueTotalPercent).toFixed(2));
+                return (
+                  <div
+                    key={rowIndex}
+                    className="carev-doc-field-row"
+                    style={{ gridTemplateColumns: `18% ${valuePercents[0]}% 18% ${valuePercents[1]}%` }}
+                  >
+                    {row.map((field) => (
+                      <Fragment key={field.id}>
+                        <div className="carev-doc-field-label">{field.label}{field.required ? ' *' : ''}</div>
+                        <div className="carev-doc-field-value">{renderDocControl(field)}</div>
+                      </Fragment>
+                    ))}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={rowIndex} className="carev-doc-field-row" style={{ gridTemplateColumns: '18% 1fr' }}>
+                  <div className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</div>
+                  <div className="carev-doc-field-value">{renderDocControl(row[0])}</div>
+                </div>
+              );
+            })}
+          </div>
 
           {repeaterFields.length > 0 && (
             <div style={{ marginTop: 'var(--spacing-4)' }}>
