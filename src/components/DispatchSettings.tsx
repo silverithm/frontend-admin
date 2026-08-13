@@ -22,7 +22,7 @@ import { getMemberUsers, getCompanyElders } from "@/lib/apiService";
 import type { ElderlyInfo } from "@/types/elderly";
 import { useConfirm } from "./ConfirmDialog";
 import type { Route, RouteDriver, Senior, RouteType } from "@/types/dispatch";
-import { driverRoleLabel, findDuplicateAssignment } from "@/lib/vacationGuard";
+import { driverRoleLabel, findPrimaryDriverConflict } from "@/lib/vacationGuard";
 
 // 직원 정보 타입
 interface Member {
@@ -224,8 +224,9 @@ export default function DispatchSettings({
 
   // 직원 선택 핸들러 (새 노선용) - driverId와 driverName 함께 설정
   /**
-   * 한 사람이 두 노선을 동시에 몰 수는 없다. 이미 다른 노선(또는 이 노선의 다른 칸)에
-   * 배정된 사람이면 선택을 되돌리고 어디에 배정돼 있는지 알린다.
+   * 주운전자는 두 노선을 동시에 몰 수 없으므로 겹치면 되돌린다.
+   * 부운전자는 한 사람이 여러 코스를 맡는 것이 정상이라 막지 않는다.
+   * 같은 노선 안에서 같은 사람이 두 칸을 차지하는 것은 어느 자리든 막는다.
    */
   const rejectIfDuplicate = (
     driverName: string,
@@ -236,13 +237,15 @@ export default function DispatchSettings({
     const name = driverName.trim();
     if (!name) return false;
 
-    const inOtherRoute = findDuplicateAssignment(name, settings.routes, excludeRouteId);
-    if (inOtherRoute) {
-      onNotification(
-        `${name} 선생님은 이미 ${inOtherRoute.route.name}(${inOtherRoute.route.type}) ${driverRoleLabel(inOtherRoute.index)}입니다. 한 사람을 두 노선에 배정할 수 없습니다.`,
-        "error",
-      );
-      return true;
+    if (selfIndex === 0) {
+      const inOtherRoute = findPrimaryDriverConflict(name, settings.routes, excludeRouteId);
+      if (inOtherRoute) {
+        onNotification(
+          `${name} 선생님은 이미 ${inOtherRoute.route.name}(${inOtherRoute.route.type}) 주운전자입니다. 주운전자는 두 노선을 동시에 맡을 수 없습니다.`,
+          "error",
+        );
+        return true;
+      }
     }
 
     const dupIndex = siblings.findIndex((d, i) => i !== selfIndex && d.driverName.trim() === name);

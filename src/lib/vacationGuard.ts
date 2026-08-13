@@ -208,12 +208,16 @@ export function describeDriverConflicts(memberName: string, conflicts: DriverCon
 }
 
 /**
- * 배차 설정에서 한 사람이 여러 노선에 중복 배정됐는지 확인한다.
- * 같은 사람이 두 노선을 동시에 몰 수는 없으므로 설정 단계에서 막는다.
+ * 다른 노선의 '주'운전자로 이미 등록돼 있는지 확인한다.
+ *
+ * 한 사람이 두 노선을 동시에 몰 수는 없으므로 주운전자 자리는 겹치면 안 된다.
+ * 반면 부운전자는 실제로 한 사람이 여러 코스(현장에서는 3개까지)를 맡는다.
+ * 예비 인력이라 동시에 운행하는 것이 아니기 때문이다. 그래서 부운전자 자리는
+ * 겹쳐도 막지 않는다.
  *
  * @param excludeRouteId 지금 편집 중인 노선 (자기 자신과의 비교 제외)
  */
-export function findDuplicateAssignment(
+export function findPrimaryDriverConflict(
   driverName: string,
   routes: Route[],
   excludeRouteId?: string,
@@ -223,9 +227,9 @@ export function findDuplicateAssignment(
 
   for (const route of routes) {
     if (excludeRouteId && String(route.id) === String(excludeRouteId)) continue;
-    const index = route.routeDrivers.findIndex((d) => d.driverName.trim() === name);
-    if (index >= 0) {
-      return { route, driver: route.routeDrivers[index], index };
+    const primary = route.routeDrivers[0];
+    if (primary && primary.driverName.trim() === name) {
+      return { route, driver: primary, index: 0 };
     }
   }
   return null;
