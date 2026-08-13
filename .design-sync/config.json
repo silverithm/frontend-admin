@@ -1,0 +1,32 @@
+{
+  "projectId": "97d4027b-3ba6-4d12-974f-fc15ecc95e6c",
+  "shape": "package",
+  "pkg": "@astryxdesign/core",
+  "globalName": "Astryx",
+  "extraEntries": [
+    "@astryxdesign/core/theme",
+    "../../../.design-sync/ds-styles.mjs",
+    "../../../.design-sync/ds-theme-entry.mjs"
+  ],
+  "extraFonts": [
+    "../../../.design-sync/ds-fonts.css"
+  ],
+  "tsconfig": "../../../tsconfig.json",
+  "provider": {
+    "component": "Theme",
+    "props": {
+      "theme": {
+        "$ref": "carevTheme"
+      },
+      "mode": "light"
+    }
+  },
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "primaryStory": "FormDialog",
+      "viewport": "480x420"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

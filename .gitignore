@@ -40,3 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .next-claude
+
+# design-sync (디자인 시스템 동기화) — 생성물·스테이징 스크립트는 커밋하지 않는다
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

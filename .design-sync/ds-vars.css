@@ -1,0 +1,9 @@
+/*
+ * 앱에서는 next/font가 --font-figtree를 넘겨주지만(layout.tsx), 디자인 시스템 번들에는
+ * 그 주입이 없다. 정의가 없으면 테마의 --font-family-body 스택이 첫 순위를 잃고
+ * 시스템 폰트로 떨어져, Claude Design이 만드는 모든 화면이 우리 서체가 아니게 된다.
+ * 실제 @font-face는 ds-fonts.css가 싣는다(cfg.extraFonts).
+ */
+:root {
+  --font-figtree: "Figtree";
+}
