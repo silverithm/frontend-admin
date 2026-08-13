@@ -1172,7 +1172,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   )}
                   {!isDispatchMode && (
                     <Button
-                      label={showMyTasksOnly ? '전체 일정 보기' : '내 업무만'}
+                      label={showMyTasksOnly ? '전체 일정 보기' : '담당 업무'}
                       variant={showMyTasksOnly ? 'primary' : 'secondary'}
                       size="sm"
                       icon={<Icon icon={IconUserCheck} size="sm" />}

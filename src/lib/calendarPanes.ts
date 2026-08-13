@@ -18,8 +18,8 @@ const STORAGE_KEY = 'carev.calendarPane';
 
 export const CALENDAR_PANE_OPTIONS: { value: CalendarPane; label: string }[] = [
   { value: 'both', label: '일정+휴무' },
-  { value: 'schedule', label: '일정만' },
-  { value: 'vacation', label: '휴무만' },
+  { value: 'schedule', label: '일정' },
+  { value: 'vacation', label: '휴무' },
 ];
 
 /** 둘 다 볼 때 일정 영역이 칸에서 차지하는 폭. 나머지가 휴무자 자리다. */
