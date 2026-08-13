@@ -7,9 +7,10 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
-import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
-import { groupFieldsIntoRows } from './formValueFormat';
+import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 
 function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
@@ -106,51 +107,40 @@ function FieldCell({ field, value }: { field: FormFieldSchema; value: any }) {
 }
 
 function SchemaViewer({ formData, schema }: { formData: Record<string, any>; schema: FormSchema }) {
-  // half/full 폭을 고려한 행 그룹핑 (공용 유틸 — OfficialDocument와 동일 규칙)
-  const rows = groupFieldsIntoRows(schema.fields);
-
+  // 12칸 그리드로 필드별 너비(field.width)를 그대로 반영한다 — 작성 화면(FormRenderer)과 동일한 규칙.
+  // (이전에는 행을 미리 묶어 2개면 반반, 3개 이상이면 전부 세로로 쌓아 폭 설정이 무시됐다)
   return (
-    <VStack gap={3}>
-      {rows.map((row, rowIdx) => {
-        if (row.length === 1 && row[0].type === 'section') {
+    <Grid columns={12} gap={3}>
+      {schema.fields.map((field) => {
+        if (field.type === 'section') {
           return (
-            <div key={`section-${rowIdx}`} style={{ paddingTop: 'var(--spacing-2)' }}>
-              <Divider
-                label={
-                  <Text
-                    type="supporting"
-                    weight="semibold"
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                  >
-                    {row[0].label}
-                  </Text>
-                }
-              />
-            </div>
+            <GridSpan key={field.id} columns={12}>
+              <div style={{ paddingTop: 'var(--spacing-2)' }}>
+                <Divider
+                  label={
+                    <Text
+                      type="supporting"
+                      weight="semibold"
+                      style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                    >
+                      {field.label}
+                    </Text>
+                  }
+                />
+              </div>
+            </GridSpan>
           );
         }
 
-        if (row.length === 2) {
-          return (
-            <HStack key={`row-${rowIdx}`} gap={3}>
-              {row.map((field) => (
-                <StackItem key={field.id} size="fill">
-                  <FieldCell field={field} value={formData[field.id]} />
-                </StackItem>
-              ))}
-            </HStack>
-          );
-        }
-
+        // 반복 항목은 표 형태라 한 줄을 통째로 쓴다 (작성 화면과 동일한 규칙)
+        const span = field.type === 'repeater' ? 12 : getFieldSpan(field.width);
         return (
-          <div key={`row-${rowIdx}`}>
-            {row.map((field) => (
-              <FieldCell key={field.id} field={field} value={formData[field.id]} />
-            ))}
-          </div>
+          <GridSpan key={field.id} columns={span}>
+            <FieldCell field={field} value={formData[field.id]} />
+          </GridSpan>
         );
       })}
-    </VStack>
+    </Grid>
   );
 }
 

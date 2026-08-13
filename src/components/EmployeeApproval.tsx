@@ -892,7 +892,8 @@ export default function EmployeeApproval() {
         isOpen={showNewApproval}
         onOpenChange={(open) => { if (!open) closeNewApprovalModal(); }}
         purpose="form"
-        width={isWideModal ? 680 : 460}
+        width={isWideModal ? 'min(1180px, 92vw)' : 460}
+        maxHeight={isWideModal ? '92vh' : undefined}
       >
         <Layout
           header={

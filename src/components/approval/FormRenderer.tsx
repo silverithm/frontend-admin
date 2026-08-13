@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { FormSchema, FormFieldSchema, AGGREGATE_LABEL } from '@/types/formSchema';
 import {
   FormValues,
@@ -671,25 +671,44 @@ export default function FormRenderer({
 
           <table className="carev-doc-fields-table">
             <tbody>
-              {fieldRows.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {row.length === 1 && row[0].type === 'section' ? (
-                    <td className="carev-doc-section-row" colSpan={4}>{row[0].label}</td>
-                  ) : row.length === 2 ? (
-                    <>
-                      <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
-                      <td className="carev-doc-field-value">{renderDocControl(row[0])}</td>
-                      <td className="carev-doc-field-label">{row[1].label}{row[1].required ? ' *' : ''}</td>
-                      <td className="carev-doc-field-value">{renderDocControl(row[1])}</td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
-                      <td className="carev-doc-field-value" colSpan={3}>{renderDocControl(row[0])}</td>
-                    </>
-                  )}
-                </tr>
-              ))}
+              {fieldRows.map((row, rowIndex) => {
+                if (row.length === 1 && row[0].type === 'section') {
+                  return (
+                    <tr key={rowIndex}>
+                      <td className="carev-doc-section-row" colSpan={4}>{row[0].label}</td>
+                    </tr>
+                  );
+                }
+
+                if (row.length === 2) {
+                  // 라벨 두 칸은 보기 좋은 고정폭(18%×2)을 유지하고, 값 두 칸만 필드에 설정된
+                  // 너비 비율대로 나눈다. (고정 50/50이면 half·third·quarter를 어떻게 섞어도
+                  // 항상 반반으로 보여 양식 빌더의 "너비" 설정이 화면에 반영되지 않는다)
+                  const spans = row.map((field) => getFieldSpan(field.width));
+                  const totalSpan = spans[0] + spans[1] || 1;
+                  const valueTotalPercent = 100 - 18 * 2;
+                  const valuePercents = spans.map((span) => (span / totalSpan) * valueTotalPercent);
+                  return (
+                    <tr key={rowIndex}>
+                      {row.map((field, i) => (
+                        <Fragment key={field.id}>
+                          <td className="carev-doc-field-label">{field.label}{field.required ? ' *' : ''}</td>
+                          <td className="carev-doc-field-value" style={{ width: `${valuePercents[i]}%` }}>
+                            {renderDocControl(field)}
+                          </td>
+                        </Fragment>
+                      ))}
+                    </tr>
+                  );
+                }
+
+                return (
+                  <tr key={rowIndex}>
+                    <td className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</td>
+                    <td className="carev-doc-field-value" colSpan={3}>{renderDocControl(row[0])}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
