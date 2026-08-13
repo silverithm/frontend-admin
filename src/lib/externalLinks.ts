@@ -20,11 +20,6 @@ export const EXTERNAL_LINKS: ExternalLink[] = [
     description: '국민건강보험공단 장기요양보험 — 청구·평가·고시',
   },
   {
-    name: '국민건강보험',
-    url: 'https://www.nhis.or.kr',
-    description: '자격 확인 등 보험 업무',
-  },
-  {
     name: '보건복지부',
     url: 'https://www.mohw.go.kr',
     description: '제도 개정·공고 확인',
@@ -32,11 +27,6 @@ export const EXTERNAL_LINKS: ExternalLink[] = [
   {
     name: '케어포',
     url: 'https://www.carefor.co.kr',
-    description: '노인장기요양 관리프로그램',
-  },
-  {
-    name: '엔젤시스템',
-    url: 'https://www.lcms.or.kr',
     description: '노인장기요양 관리프로그램',
   },
   {
