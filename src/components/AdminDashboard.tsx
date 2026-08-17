@@ -5,6 +5,7 @@ import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterva
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { Text } from '@astryxdesign/core/Text';
+import { ClickableRow } from '@/components/ClickableRow';
 import { Card } from '@astryxdesign/core/Card';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
@@ -1033,8 +1034,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       admin 안에 광장 탭이 있으므로 새 탭으로 나가지 않고 그 탭에서 연다.
                       PlazaManagement가 마운트될 때 ?post= 를 읽으므로 먼저 주소에 심어둔다. */}
                   {officialNotices.slice(0, PANEL_ROW_LIMIT).map((notice) => (
-                    <div
+                    <ClickableRow
                       key={`official-${notice.id}`}
+                      label={`케어브이 공지 열기: ${notice.title}`}
                       className="carev-dash-row"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                       onClick={() => {
@@ -1053,12 +1055,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           {notice.displayAuthor} · {notice.createdAt ? format(new Date(notice.createdAt), 'M.d') : ''}
                         </Text>
                       </div>
-                    </div>
+                    </ClickableRow>
                   ))}
                   {/* 운영 공지가 자리를 먼저 차지하고, 남는 줄만 기관 공지로 채운다 */}
                   {notices.slice(0, Math.max(0, PANEL_ROW_LIMIT - officialNotices.length)).map((notice) => (
-                    <div
+                    <ClickableRow
                       key={notice.id}
+                      label={`공지사항으로 이동: ${notice.title}`}
                       className="carev-dash-row"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                       onClick={() => onTabChange('notice')}
@@ -1073,7 +1076,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           {notice.createdAt ? format(new Date(notice.createdAt), 'M.d') : ''}
                         </Text>
                       </div>
-                    </div>
+                    </ClickableRow>
                   ))}
                 </VStack>
               )}
@@ -1117,8 +1120,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               ) : (
                 <VStack gap={1}>
                   {approvalRequests.slice(0, PANEL_ROW_LIMIT).map((approval) => (
-                    <div
+                    <ClickableRow
                       key={approval.id}
+                      label={`전자결재로 이동: ${approval.title || approval.templateName || '결재 요청'}`}
                       className="carev-dash-row"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                       onClick={() => onTabChange('approval')}
@@ -1135,7 +1139,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       <div style={{ flexShrink: 0 }}>
                         <Badge variant="orange" label="대기" />
                       </div>
-                    </div>
+                    </ClickableRow>
                   ))}
                 </VStack>
               )}
@@ -1173,11 +1177,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                   {dedupeNews(newsItems).slice(0, PANEL_ROW_LIMIT).map((news) => {
                     const meta = getNewsCategoryMeta(news.category);
                     return (
-                      <div
+                      <a
                         key={news.id}
                         className="carev-dash-row"
-                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
-                        onClick={() => window.open(news.url, '_blank', 'noopener,noreferrer')}
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-element)', textDecoration: 'none', color: 'inherit' }}
+                        href={news.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
                         <div style={{ flexShrink: 0 }}>
                           <Badge variant={meta.badgeVariant} label={meta.label} />
@@ -1188,7 +1194,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             {news.source} · {formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}
                           </Text>
                         </div>
-                      </div>
+                      </a>
                     );
                   })}
                 </VStack>
@@ -1580,8 +1586,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               ) : (
                 <VStack gap={0}>
                   {selectedSchedules.map((schedule, idx) => (
-                    <div
+                    <ClickableRow
                       key={schedule.id}
+                      label={`일정 상세 보기: ${schedule.title}`}
                       className="carev-dash-timeline"
                       style={{ display: 'flex', gap: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', padding: '0 var(--spacing-2)', margin: '0 calc(var(--spacing-2) * -1)' }}
                       onClick={() => {
@@ -1631,7 +1638,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         )}
                         <Icon icon={IconChevronRight} size="sm" color="secondary" />
                       </div>
-                    </div>
+                    </ClickableRow>
                   ))}
                 </VStack>
               )}

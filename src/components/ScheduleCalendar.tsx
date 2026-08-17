@@ -1351,7 +1351,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                 border: isDone ? `1px solid ${barColor}` : 'none',
                                 borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
                                 backgroundColor: isDone ? withAlpha(barColor, 0.14) : barColor,
-                                color: isDone ? barColor : getScheduleTextColor(barColor),
+                                /* 완료된 바는 배경이 거의 흰색이라 카테고리 원색을 그대로 글자에
+                                   쓰면 노랑 계열에서 읽히지 않는다. 색은 테두리가 이미 전하므로
+                                   글자는 대비가 보장된 본문색으로 둔다. */
+                                color: isDone ? 'var(--color-text-primary)' : getScheduleTextColor(barColor),
                                 opacity: isDone ? 0.85 : 0.9,
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',

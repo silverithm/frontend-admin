@@ -946,8 +946,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             } as React.CSSProperties;
 
             return (
-              <motion.div
+              <motion.button
                 key={index}
+                type="button"
+                aria-label={`${format(day, 'M월 d일')} 휴무 상세 보기`}
                 variants={fadeInVariants}
                 onClick={() => handleDateClick(day)}
                 className={`${isExpanded ? 'carev-vaccal-cell-expanded' : 'carev-vaccal-cell'}${!isSelected ? ' carev-vaccal-hover' : ''}`}
@@ -1126,7 +1128,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 {isSelected && (
                   <div style={{ position: 'absolute', inset: 0, border: '2px solid var(--color-border-teal)', borderRadius: 'var(--radius-inner)', pointerEvents: 'none' }}></div>
                 )}
-              </motion.div>
+              </motion.button>
             );
           })}
         </motion.div>

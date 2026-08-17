@@ -405,13 +405,19 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                   <VStack gap={2} align="start" width="100%">
                     {/* 케어브이 시스템 공지 — 커뮤니티 [운영] 글. 클릭하면 커뮤니티에서 전문을 본다 */}
                     {officialNotices.map((n) => (
-                      <div
+                      <button
+                        type="button"
                         key={`official-${n.id}`}
                         className="carev-notice-item"
+                        aria-label={`케어브이 공지 열기: ${n.title}`}
                         onClick={() => (onOpenPlazaPost
                           ? onOpenPlazaPost(n.id)
                           : window.open(`/plaza?post=${n.id}`, '_blank', 'noopener'))}
                         style={{
+                          appearance: 'none',
+                          font: 'inherit',
+                          color: 'inherit',
+                          textAlign: 'left',
                           width: '100%',
                           padding: 'var(--spacing-4)',
                           border: '1px solid var(--color-border-teal)',
@@ -436,16 +442,22 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                           </div>
                           <Icon icon="chevronRight" size="md" color="tertiary" />
                         </HStack>
-                      </div>
+                      </button>
                     ))}
                     {notices.map((n) => (
-                      <motion.div
+                      <motion.button
+                        type="button"
                         key={n.id}
                         className="carev-notice-item"
+                        aria-label={`공지 열기: ${n.title}`}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         onClick={() => handleSelectNotice(n.id)}
                         style={{
+                          appearance: 'none',
+                          font: 'inherit',
+                          color: 'inherit',
+                          textAlign: 'left',
                           width: '100%',
                           padding: 'var(--spacing-4)',
                           border: `1px solid ${n.isPinned ? 'var(--color-border-teal)' : 'var(--color-border)'}`,
@@ -475,7 +487,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                           </div>
                           <Icon icon="chevronRight" size="md" color="tertiary" />
                         </HStack>
-                      </motion.div>
+                      </motion.button>
                     ))}
                   </VStack>
                 ) : (

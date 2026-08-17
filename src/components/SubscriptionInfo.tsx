@@ -22,6 +22,9 @@ export default function SubscriptionInfo() {
   const { showAlert, AlertContainer } = useAlert();
   const [subscription, setSubscription] = useState<SubscriptionResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
+  /* 구독 취소는 초기 로딩과 다른 상태를 써야 한다. 같은 loading을 쓰면 확인을 누르는
+     순간 화면 전체가 스켈레톤으로 바뀌면서(141행 조기 반환) 취소 모달이 사라진다. */
+  const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentFailures, setPaymentFailures] = useState<PaymentFailureResponseDTO[]>([]);
   const [loadingPaymentFailures, setLoadingPaymentFailures] = useState(false);
@@ -94,7 +97,7 @@ export default function SubscriptionInfo() {
 
   const handleCancelSubscription = async () => {
     try {
-      setLoading(true);
+      setIsCancelling(true);
       await subscriptionService.cancelSubscription();
       await fetchSubscription();
       setShowCancelModal(false);
@@ -111,7 +114,7 @@ export default function SubscriptionInfo() {
       });
       console.error(err);
     } finally {
-      setLoading(false);
+      setIsCancelling(false);
     }
   };
 
@@ -442,7 +445,7 @@ export default function SubscriptionInfo() {
                 <Button
                   label="구독 취소"
                   variant="destructive"
-                  isLoading={loading}
+                  isLoading={isCancelling}
                   onClick={handleCancelSubscription}
                 />
               </HStack>

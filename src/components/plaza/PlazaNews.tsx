@@ -149,17 +149,23 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
           ) : (
             <VStack gap={0}>
               {filteredRows.map((row, idx) => (
-                <div
+                /* 진짜 링크여야 한다. div+window.open은 키보드로 못 열고, 우클릭
+                   '새 탭에서 열기'나 링크 주소 복사도 동작하지 않는다. */
+                <a
                   key={row.key}
                   className="carev-dash-row"
+                  href={row.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 'var(--spacing-2)',
                     padding: 'var(--spacing-2) var(--spacing-3)',
                     borderTop: idx === 0 ? 'none' : '1px solid var(--color-border)',
+                    textDecoration: 'none',
+                    color: 'inherit',
                   }}
-                  onClick={() => window.open(row.url, '_blank', 'noopener,noreferrer')}
                 >
                   <div style={{ flexShrink: 0 }}>
                     <Badge variant={row.badgeVariant} label={row.badgeLabel} />
@@ -179,7 +185,7 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
                       {formatDistanceToNow(row.date, { addSuffix: true, locale: ko })}
                     </Text>
                   </div>
-                </div>
+                </a>
               ))}
             </VStack>
           )}

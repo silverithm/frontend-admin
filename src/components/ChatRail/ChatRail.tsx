@@ -440,7 +440,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                                 minWidth: 56,
                                 padding: "var(--spacing-0)",
                                 borderRadius: "var(--radius-full)",
-                                background: "var(--color-border-teal)",
+                                background: "var(--color-accent)",
                                 color: "var(--color-on-accent)",
                                 boxShadow: "var(--shadow-med)",
                             }}

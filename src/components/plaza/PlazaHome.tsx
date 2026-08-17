@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
+import { ClickableRow } from '@/components/ClickableRow';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { Button } from '@astryxdesign/core/Button';
@@ -99,9 +100,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
   const renderPostRow = (post: ApiPostSummary) => {
     const meta = getBoardMeta(post.board);
     return (
-      <div
+      <ClickableRow
         key={post.id}
         className="carev-dash-row"
+        label={`게시글 열기: ${post.title}`}
         style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-1) var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
         onClick={() => onOpenPost(post.id, post.board)}
       >
@@ -119,7 +121,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
         <div style={{ flexShrink: 0 }}>
           <Text type="supporting" color="secondary">{timeAgo(post.createdAt)}</Text>
         </div>
-      </div>
+      </ClickableRow>
     );
   };
 
@@ -157,11 +159,13 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
                 {dedupeNews(newsItems).map((news) => {
                   const meta = getNewsCategoryMeta(news.category);
                   return (
-                    <div
+                    <a
                       key={news.id}
                       className="carev-dash-row"
-                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-1) var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
-                      onClick={() => window.open(news.url, '_blank', 'noopener,noreferrer')}
+                      href={news.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-1) var(--spacing-2)', borderRadius: 'var(--radius-element)', textDecoration: 'none', color: 'inherit' }}
                     >
                       <div style={{ flexShrink: 0 }}>
                         <Badge variant={meta.badgeVariant} label={meta.label} />
@@ -172,7 +176,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
                       <div style={{ flexShrink: 0 }}>
                         <Text type="supporting" color="secondary">{formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}</Text>
                       </div>
-                    </div>
+                    </a>
                   );
                 })}
               </VStack>
@@ -217,9 +221,10 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
                   {library.map((item) => {
                     const meta = getLibraryMeta(item.category);
                     return (
-                      <div
+                      <ClickableRow
                         key={item.id}
                         className="carev-dash-row"
+                        label={`자료실에서 보기: ${item.title}`}
                         style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-1) var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
                         onClick={() => onNavigate('library')}
                       >
@@ -236,7 +241,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
                         <div style={{ flexShrink: 0 }}>
                           <Text type="supporting" color="secondary">{formatFileSize(item.fileSize)}</Text>
                         </div>
-                      </div>
+                      </ClickableRow>
                     );
                   })}
                 </VStack>

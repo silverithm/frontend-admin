@@ -11,6 +11,7 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import { FileInput } from '@astryxdesign/core/FileInput';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -81,7 +82,6 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
   const [customCategory, setCustomCategory] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
 
@@ -377,42 +377,18 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
                   )}
                 </VStack>
 
-                <VStack gap={2}>
-                  <Text type="label">파일 *</Text>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    style={{ display: 'none' }}
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      width: '100%',
-                      padding: 'var(--spacing-6)',
-                      border: '2px dashed var(--color-border)',
-                      borderRadius: 'var(--radius-inner)',
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {file ? (
-                      <HStack gap={3} hAlign="center" vAlign="center">
-                        <Icon icon={FiFileText} size="lg" color="accent" />
-                        <VStack gap={0.5}>
-                          <Text weight="semibold">{file.name}</Text>
-                          <Text type="supporting">{formatFileSize(file.size)}</Text>
-                        </VStack>
-                      </HStack>
-                    ) : (
-                      <VStack gap={1} hAlign="center">
-                        <FiUploadCloud size={32} style={{ color: 'var(--color-icon-disabled)' }} />
-                        <Text color="secondary">클릭하여 파일 선택</Text>
-                        <Text type="supporting">한글·워드·엑셀·PDF·이미지</Text>
-                      </VStack>
-                    )}
-                  </div>
-                </VStack>
+                {/* 직접 만든 드롭존은 숨긴 input을 div로 대신 눌러서 키보드로는 파일을 고를 수
+                    없었다. Astryx FileInput이 라벨 연결·드래그앤드롭·용량 검증·지우기까지
+                    이미 갖고 있어 그대로 쓴다. */}
+                <FileInput
+                  label="파일"
+                  isRequired
+                  mode="dropzone"
+                  value={file}
+                  onChange={(files) => setFile(Array.isArray(files) ? files[0] ?? null : files)}
+                  accept=".hwp,.hwpx,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,image/*"
+                  description="한글·워드·엑셀·PDF·이미지"
+                />
               </VStack>
             </LayoutContent>
           }

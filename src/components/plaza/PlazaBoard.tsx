@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
+import { ClickableRow } from '@/components/ClickableRow';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
@@ -759,9 +760,10 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
             <VStack gap={0}>
               {posts.map((post, idx) => {
                 return (
-                  <div
+                  <ClickableRow
                     key={post.id}
                     className="carev-dash-row"
+                    label={`게시글 열기: ${post.title}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -811,7 +813,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
                         <Text type="supporting" color="secondary" hasTabularNumbers>{post.likeCount}</Text>
                       </span>
                     </div>
-                  </div>
+                  </ClickableRow>
                 );
               })}
             </VStack>
