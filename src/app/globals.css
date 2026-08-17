@@ -665,23 +665,16 @@ html {
 
 /* 레일에서 방을 눌렀을 때 그 옆에 뜨는 작은 대화창.
    탭을 옮기지 않고 대화만 얹으려는 것이므로 화면을 가리지 않을 만큼만 차지한다. */
+/* 레일 안에서 대화가 목록 자리를 그대로 차지한다 (별도 창이 아니다).
+   남는 높이를 전부 받아 그 안에서만 스크롤한다 — 레일 자체는 스크롤하지 않는다. */
 .carev-chat-dock {
-  position: fixed;
-  z-index: 45; /* 레일 플로팅 버튼(40)보다 위 */
-  bottom: var(--spacing-4);
-  right: var(--spacing-4);
-  width: 360px;
-  height: min(520px, calc(100dvh - 140px));
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-background-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-container);
-  box-shadow: var(--shadow-high);
   overflow: hidden;
+  background: var(--color-background-card);
 }
-/* 레일이 펼쳐져 있으면 그 왼쪽에 붙는다 — 겹치면 방 목록이 가려진다 */
-.carev-chat-dock--beside-rail { right: calc(264px + var(--spacing-4)); }
 /* 확대 버튼은 대화방 정보 버튼 왼쪽 자리에 얹는다 */
 
 /* 접었을 때 나타나는 플로팅 버튼 — 레일이 오므라든 자리에서 튀어나온다 */

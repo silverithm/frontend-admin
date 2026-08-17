@@ -277,7 +277,29 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                                 </div>
                             )}
 
-                            {/* 직원과 대화방이 높이를 반씩 나눠 갖고 각자 안에서 스크롤한다 */}
+                            {/* 방을 고르면 레일 안이 그대로 대화 화면이 된다.
+                                별도 창으로 띄우면 "새 채팅방이 열렸다"로 읽혀서, 보던 화면을
+                                유지한 채 대화만 얹는다는 의도가 전달되지 않는다. */}
+                            {dockRoom ? (
+                                <ChatDock
+                                    key={dockRoom.id}
+                                    roomId={dockRoom.id}
+                                    roomName={dockRoom.name}
+                                    participantCount={dockRoom.participantCount}
+                                    onClose={() => setDockRoomId(null)}
+                                    onExpand={() => {
+                                        onOpenRoom(dockRoom.id);
+                                        setDockRoomId(null);
+                                    }}
+                                    onRead={(readRoomId) =>
+                                        // 이미 0이면 배열 정체성을 유지해 불필요한 재렌더(→ 도크 재로딩 루프)를 막는다
+                                        setRooms(prev => prev.some(r => r.id === readRoomId && r.unreadCount > 0)
+                                            ? prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r))
+                                            : prev)
+                                    }
+                                />
+                            ) : (
+                            /* 직원과 대화방이 높이를 반씩 나눠 갖고 각자 안에서 스크롤한다 */
                             <div className="carev-chat-rail-groups">
                                 <div className={peopleGroupClass}>
                                     <SectionHeader
@@ -390,6 +412,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                                     )}
                                 </div>
                             </div>
+                            )}
                         </div>
                     </motion.aside>
                 )}
@@ -431,29 +454,6 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
                 )}
             </AnimatePresence>
 
-            {/* 방을 누르면 보던 화면을 그대로 둔 채 옆에 대화창만 뜬다 */}
-            <AnimatePresence>
-                {dockRoom && (
-                    <ChatDock
-                        key={dockRoom.id}
-                        roomId={dockRoom.id}
-                        roomName={dockRoom.name}
-                        participantCount={dockRoom.participantCount}
-                        isRailOpen={isOpen}
-                        onClose={() => setDockRoomId(null)}
-                        onExpand={() => {
-                            onOpenRoom(dockRoom.id);
-                            setDockRoomId(null);
-                        }}
-                        onRead={(readRoomId) =>
-                            // 이미 0이면 배열 정체성을 유지해 불필요한 재렌더(→ 도크 재로딩 루프)를 막는다
-                            setRooms(prev => prev.some(r => r.id === readRoomId && r.unreadCount > 0)
-                                ? prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r))
-                                : prev)
-                        }
-                    />
-                )}
-            </AnimatePresence>
         </>
     );
 }

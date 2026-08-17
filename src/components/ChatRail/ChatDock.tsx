@@ -21,8 +21,6 @@ interface ChatDockProps {
     roomId: number;
     roomName: string;
     participantCount: number;
-    /** 레일이 펼쳐져 있는지 — 창이 레일을 덮지 않도록 오른쪽 여백을 정한다 */
-    isRailOpen: boolean;
     onClose: () => void;
     /** 좁은 창으로는 부족할 때 채팅 탭에서 이어 본다 */
     onExpand: () => void;
@@ -31,11 +29,12 @@ interface ChatDockProps {
 }
 
 /**
- * 레일에서 방을 누르면 그 자리에 뜨는 작은 대화창.
+ * 레일 안에서 열리는 작은 대화창 — 목록 자리를 그대로 대화가 차지한다.
  *
  * 방을 열자고 보던 화면(대시보드·근무조정 등)을 떠나면, 하려던 일과 대화가 번갈아
- * 끊긴다. 그래서 탭을 옮기지 않고 레일 옆에 창만 띄운다. 길게 볼 대화는 머리의
- * 확대 버튼으로 채팅 탭에 넘긴다.
+ * 끊긴다. 그래서 탭을 옮기지 않는다. 레일 밖에 별도 창으로 띄워봤더니 "새 채팅방이
+ * 열렸다"로 읽혀서, 레일 안에 넣어 같은 메뉴의 한 단계로 보이게 했다.
+ * 길게 볼 대화는 머리의 확대 버튼으로 채팅 탭에 넘긴다.
  *
  * 연결은 이 창이 직접 잡는다 — 레일의 STOMP 연결은 접속 상태·안 읽음만 보고,
  * 메시지 송수신까지 얹으면 레일이 대화 상태를 들고 있어야 해서 역할이 섞인다.
@@ -44,7 +43,6 @@ export default function ChatDock({
     roomId,
     roomName,
     participantCount,
-    isRailOpen,
     onClose,
     onExpand,
     onRead,
@@ -212,12 +210,11 @@ export default function ChatDock({
 
     return (
         <motion.div
-            className={`carev-chat-dock${isRailOpen ? " carev-chat-dock--beside-rail" : ""}`}
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            className="carev-chat-dock"
+            // 레일 안에서 목록을 밀어내며 들어오므로 옆에서 스미는 움직임이 맞다
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ duration: duration.fast, ease: "easeOut" }}
-            role="dialog"
             aria-label={`${roomName} 대화`}
         >
             <FloatingChatMessages
