@@ -151,7 +151,7 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
                 style={{
                     fontWeight: 'var(--font-weight-semibold)',
                     color: isMyMessage ? 'var(--color-on-accent)' : 'var(--color-text-accent)',
-                    background: isMyMessage ? "rgba(255,255,255,0.22)" : 'var(--color-background-teal, rgba(20,184,134,0.12))',
+                    background: isMyMessage ? "rgba(255,255,255,0.22)" : 'var(--color-background-teal)',
                     borderRadius: 'var(--radius-inner)',
                     padding: "0 var(--spacing-0-5)",
                 }}

@@ -42,7 +42,7 @@ html {
 
 /* 텍스트 선택 색상 - 브랜드 컬러 */
 ::selection {
-  background-color: rgba(20, 184, 134, 0.15);
+  background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
   color: inherit;
 }
 
@@ -1102,7 +1102,7 @@ html {
 /* ── 커뮤니티 리치 텍스트 에디터 ─────────────────────────── */
 .carev-richtext-editor:empty::before {
   content: attr(data-placeholder);
-  color: var(--color-text-disabled, #a1a1aa);
+  color: var(--color-text-disabled);
   white-space: pre-wrap;
   pointer-events: none;
 }

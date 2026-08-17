@@ -9,7 +9,6 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { getNotices } from '@/lib/apiService';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { Notice } from '@/types/notice';
-import { tokens } from '@/theme';
 import { duration } from '@/theme/motion';
 
 interface NoticeRollingBannerProps {
@@ -100,12 +99,12 @@ export default function NoticeRollingBanner({
         width: '100%',
         height: '48px',
         background: 'var(--color-background-card)',
-        borderBottom: `1px solid ${tokens.colors.border}`,
+        borderBottom: '1px solid var(--color-border)',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
-        transition: `box-shadow ${tokens.animation.normal} ${tokens.animation.curve}`,
-        boxShadow: isHovered ? tokens.shadows.sm : 'none',
+        transition: 'box-shadow var(--duration-medium) var(--ease-standard)',
+        boxShadow: isHovered ? 'var(--shadow-low)' : 'none',
       }}
       onClick={onNoticeClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -185,9 +184,9 @@ export default function NoticeRollingBanner({
                       border: 'none',
                       borderRadius: 'var(--radius-none)',
                       backgroundColor: index === currentIndex
-                        ? tokens.colors.accent
-                        : tokens.colors.border,
-                      transition: `all ${tokens.animation.normal} ${tokens.animation.curve}`,
+                        ? 'var(--color-accent)'
+                        : 'var(--color-border)',
+                      transition: 'background-color var(--duration-medium) var(--ease-standard)',
                       cursor: 'pointer',
                     }}
                   />

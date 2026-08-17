@@ -1,0 +1,140 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "#111827",
+        "createdAt": "2026-08-17T15:51:20.000Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#374151",
+        "createdAt": "2026-08-17T15:51:20.048Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#9ca3af",
+        "createdAt": "2026-08-17T15:51:20.094Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#fee2e2",
+        "createdAt": "2026-08-17T15:51:20.145Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#b91c1c",
+        "createdAt": "2026-08-17T15:51:20.191Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#f3f4f6",
+        "createdAt": "2026-08-17T15:51:20.240Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#e5e7eb",
+        "createdAt": "2026-08-17T15:51:20.286Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "24px",
+        "createdAt": "2026-08-17T15:51:20.337Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "20px",
+        "createdAt": "2026-08-17T15:51:20.384Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "13px",
+        "createdAt": "2026-08-17T15:51:20.431Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "12px",
+        "createdAt": "2026-08-17T15:51:20.478Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*, globals.css 946-1053). DESIGN.md 'Signature: A4 기안문'에 토큰 미사용 예외로 명문화됨 — 794x1123px 고정 픽셀로 종이를 재현하므로 화면 테마와 무관해야 한다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#0074e2",
+        "createdAt": "2026-08-17T15:53:46.740Z",
+        "reason": "src/theme/carev/neutral.css는 'astryx theme build' 산출물이다. 직접 편집하면 다음 빌드에 덮인다(소스는 neutralTheme.ts). 이 값들은 Astryx 코어의 inset 상태 링 색이다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#198100",
+        "createdAt": "2026-08-17T15:53:46.787Z",
+        "reason": "src/theme/carev/neutral.css는 'astryx theme build' 산출물이다. 직접 편집하면 다음 빌드에 덮인다(소스는 neutralTheme.ts). 이 값들은 Astryx 코어의 inset 상태 링 색이다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#64af4c",
+        "createdAt": "2026-08-17T15:53:46.834Z",
+        "reason": "src/theme/carev/neutral.css는 'astryx theme build' 산출물이다. 직접 편집하면 다음 빌드에 덮인다(소스는 neutralTheme.ts). 이 값들은 Astryx 코어의 inset 상태 링 색이다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ffce2f",
+        "createdAt": "2026-08-17T15:53:46.882Z",
+        "reason": "src/theme/carev/neutral.css는 'astryx theme build' 산출물이다. 직접 편집하면 다음 빌드에 덮인다(소스는 neutralTheme.ts). 이 값들은 Astryx 코어의 inset 상태 링 색이다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#e33f4a",
+        "createdAt": "2026-08-17T15:53:46.929Z",
+        "reason": "src/theme/carev/neutral.css는 'astryx theme build' 산출물이다. 직접 편집하면 다음 빌드에 덮인다(소스는 neutralTheme.ts). 이 값들은 Astryx 코어의 inset 상태 링 색이다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ff705d",
+        "createdAt": "2026-08-17T15:53:46.975Z",
+        "reason": "src/theme/carev/neutral.css는 'astryx theme build' 산출물이다. 직접 편집하면 다음 빌드에 덮인다(소스는 neutralTheme.ts). 이 값들은 Astryx 코어의 inset 상태 링 색이다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#d1d5db",
+        "createdAt": "2026-08-17T15:53:47.024Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*)의 반려 배너·구분선. DESIGN.md 'Signature: A4 기안문' 예외 구역"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#fca5a5",
+        "createdAt": "2026-08-17T15:53:47.070Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*)의 반려 배너·구분선. DESIGN.md 'Signature: A4 기안문' 예외 구역"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#fef2f2",
+        "createdAt": "2026-08-17T15:53:47.116Z",
+        "reason": "A4 기안문 인쇄 서식(.carev-doc-*)의 반려 배너·구분선. DESIGN.md 'Signature: A4 기안문' 예외 구역"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#e03131",
+        "createdAt": "2026-08-17T15:53:47.167Z",
+        "reason": "리치텍스트 에디터의 글자색·형광펜 견본. 사용자가 본문에 적용하는 콘텐츠 색이지 UI 테마색이 아니다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#fff3bf",
+        "createdAt": "2026-08-17T15:53:47.219Z",
+        "reason": "리치텍스트 에디터의 글자색·형광펜 견본. 사용자가 본문에 적용하는 콘텐츠 색이지 UI 테마색이 아니다"
+      }
+    ]
+  }
+}
