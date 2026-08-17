@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { FormSchema, FormFieldSchema, AGGREGATE_LABEL } from '@/types/formSchema';
 import {
   FormValues,
@@ -33,6 +33,12 @@ interface FormRendererProps {
   schema: FormSchema;
   initialValues?: FormValues;
   onSubmit: (formData: FormValues) => void;
+  /**
+   * 입력이 바뀔 때마다 현재 값을 알린다.
+   * 제출 전에 바깥에서 값을 봐야 하는 곳(미리보기)이 있어서 둔다 — onSubmit만 있으면
+   * 올리기 전까지 밖에서는 빈 값으로 보인다.
+   */
+  onValuesChange?: (formData: FormValues) => void;
   readOnly?: boolean;
   submitLabel?: string;
   /** 지정하면 실제 공문 문서 모양 위에서 빈칸을 바로 입력하는 레이아웃으로 렌더한다 */
@@ -455,6 +461,7 @@ export default function FormRenderer({
   schema: rawSchema,
   initialValues = {},
   onSubmit,
+  onValuesChange,
   readOnly = false,
   submitLabel = '제출',
   documentFrame,
@@ -490,6 +497,11 @@ export default function FormRenderer({
 
   const [formValues, setFormValues] = useState<FormValues>(buildInitialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 바깥(미리보기)이 지금 값을 볼 수 있게 알린다. 렌더 중이 아니라 값이 바뀐 뒤에 부른다.
+  useEffect(() => {
+    onValuesChange?.(formValues);
+  }, [formValues, onValuesChange]);
 
   const handleChange = (key: string, val: any) => {
     setFormValues((prev) => ({ ...prev, [key]: val }));

@@ -66,6 +66,8 @@ export default function EmployeeApproval() {
   const [showSignatureManager, setShowSignatureManager] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  /** 올리기 전 완성 모양 확인 */
+  const [showPreview, setShowPreview] = useState(false);
   /** 이어쓰는 중인 임시저장 문서 id — 새로 쓰는 중이면 null */
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
@@ -684,6 +686,41 @@ export default function EmployeeApproval() {
     return createApprovalRequest(payload);
   };
 
+  /**
+   * 지금 작성 중인 내용으로 '올리면 이렇게 보인다'를 만든다.
+   *
+   * 제출된 기안과 같은 컴포넌트(OfficialDocument)에 먹여야 실제와 어긋나지 않는다.
+   * 아직 서버에 없는 문서라 id·문서번호처럼 상신 후에 정해지는 값은 비워 둔다.
+   */
+  const previewApproval = (): ApprovalRequest | null => {
+    if (!selectedTemplateInfo) return null;
+    return {
+      id: 'preview',
+      templateId: String(selectedTemplateInfo.id),
+      templateName: selectedTemplateInfo.name,
+      title: approvalForm.title || '(제목을 입력하세요)',
+      formData: formData || {},
+      attachmentUrl: undefined,
+      attachmentFileName: approvalForm.file?.name,
+      attachmentFileSize: approvalForm.file?.size,
+      requesterId: '',
+      requesterName: (typeof window !== 'undefined' && localStorage.getItem('userName')) || '기안자',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      hasApprovalLine: approvalLine.length > 0,
+      // 아직 아무도 결재하지 않았으므로 전부 대기로 그린다
+      approvalLine: approvalLine.map((approver, index) => ({
+        id: index,
+        stepOrder: index + 1,
+        approverType: approver.approverType,
+        approverId: String(approver.approverId),
+        approverName: approver.name,
+        roleLabel: index === approvalLine.length - 1 ? 'FINAL' : 'REVIEWER',
+        status: 'PENDING',
+      })),
+    } as ApprovalRequest;
+  };
+
   /** 저장된 폼 값 — 백엔드가 JSON 문자열로 돌려줄 때가 있어 양쪽을 모두 받는다 */
   const parseFormData = (value: unknown): Record<string, any> | null => {
     if (!value) return null;
@@ -1111,6 +1148,8 @@ export default function EmployeeApproval() {
                   <FormRenderer
                     schema={selectedTemplateSchema}
                     onSubmit={handleFormRendererSubmit}
+                    // 입력한 값이 미리보기·임시저장에 그대로 담기게 한다 (제출 전에도)
+                    onValuesChange={setFormData}
                     submitLabel={isSubmitting ? '제출 중...' : '제출'}
                     documentFrame={{
                       companyName,
@@ -1129,6 +1168,7 @@ export default function EmployeeApproval() {
                       <FormRenderer
                         schema={selectedTemplateSchema}
                         onSubmit={(data) => setFormData(data)}
+                        onValuesChange={setFormData}
                         submitLabel="양식 확인"
                         documentFrame={{
                           companyName,
@@ -1172,6 +1212,14 @@ export default function EmployeeApproval() {
                   variant="ghost"
                   onClick={closeNewApprovalModal}
                 />
+                {/* 올리기 전에 완성된 공문 모양을 확인한다 — 결재선·서명란까지 실제와 같은 화면 */}
+                <Button
+                  label="미리보기"
+                  variant="ghost"
+                  icon={<Icon icon={FiEye} />}
+                  isDisabled={!approvalForm.templateId}
+                  onClick={() => setShowPreview(true)}
+                />
                 {/* 결재선·첨부가 아직 없어도 저장된다 — 중간까지 써두는 게 목적이다 */}
                 <Button
                   label={isSavingDraft ? '저장 중...' : '임시저장'}
@@ -1196,6 +1244,47 @@ export default function EmployeeApproval() {
                     onClick={handleSubmitApproval}
                   />
                 )}
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
+
+      {/* 올리기 전 미리보기 — 제출된 기안과 같은 공문 뷰를 쓴다 (여기서 다르면 미리보기가 아니다) */}
+      <Dialog
+        isOpen={showPreview}
+        onOpenChange={(open) => { if (!open) setShowPreview(false); }}
+        purpose="info"
+        width={880}
+      >
+        <Layout
+          header={<DialogHeader title="미리보기" onOpenChange={(open) => { if (!open) setShowPreview(false); }} />}
+          content={
+            <LayoutContent>
+              {(() => {
+                const draft = previewApproval();
+                if (!draft) return <Text type="body" color="secondary">양식을 먼저 선택해주세요.</Text>;
+                return (
+                  <VStack gap={3}>
+                    {approvalLine.length === 0 && (
+                      <Banner status="info" title="결재선을 아직 지정하지 않았습니다." description="결재란은 결재선을 정하면 채워집니다." />
+                    )}
+                    <div style={{ background: 'var(--color-background-muted)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-inner)', overflowX: 'auto' }}>
+                      <OfficialDocument
+                        approval={draft}
+                        schema={selectedTemplateSchema ?? undefined}
+                        companyName={companyName}
+                      />
+                    </div>
+                  </VStack>
+                );
+              })()}
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button label="닫고 계속 작성" variant="primary" onClick={() => setShowPreview(false)} />
               </HStack>
             </LayoutFooter>
           }
