@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -55,6 +55,9 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
   const [library, setLibrary] = useState<ApiLibraryItem[]>([]);
   // 받아오는 동안 "글이 없습니다"가 먼저 보이지 않도록 스켈레톤을 띄운다
   const [isLoading, setIsLoading] = useState(true);
+
+  // 뉴스 중복 묶기는 O(n²) bigram 비교라 newsItems가 안 바뀌면 다시 돌릴 필요 없다
+  const dedupedNews = useMemo(() => dedupeNews(newsItems), [newsItems]);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,7 +159,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
             <WidgetHeader icon={IconNews} title="요양 소식" onMore={() => onNavigate('news')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <VStack gap={0}>
-                {dedupeNews(newsItems).map((news) => {
+                {dedupedNews.map((news) => {
                   const meta = getNewsCategoryMeta(news.category);
                   return (
                     <a

@@ -367,7 +367,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             heartbeatIncoming: 10000,
             heartbeatOutgoing: 10000,
             onConnect: () => {
-                console.log("[Chat WebSocket] 연결됨");
+                // 연결 상태는 isConnected로 화면에 이미 드러나므로 콘솔 로그는 남기지 않는다
                 setIsConnected(true);
 
                 // 접속 상태 — 내가 붙었음을 알리고, 다른 사람의 상태 변화를 받는다.
@@ -388,7 +388,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 }
             },
             onDisconnect: () => {
-                console.log("[Chat WebSocket] 연결 해제됨");
                 setIsConnected(false);
             },
             onStompError: (frame) => {
@@ -702,6 +701,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const sortedMembers = useMemo(
         () => sortMembersByPresence(orgMembers, onlineUserIds, userId),
         [orgMembers, onlineUserIds, userId],
+    );
+
+    /** 정보 서랍의 사진/파일 섹션 — 렌더마다 messages.filter가 6번씩 돌던 것을 한 번씩만 계산 */
+    const drawerImageMessages = useMemo(
+        () => messages.filter(m => m.type === "IMAGE" && m.fileUrl),
+        [messages],
+    );
+    const drawerFileMessages = useMemo(
+        () => messages.filter(m => m.type === "FILE" && m.fileUrl),
+        [messages],
     );
 
     /** 방 안 메시지 검색 */
@@ -1732,12 +1741,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
-                                                사진 ({messages.filter(m => m.type === "IMAGE" && m.fileUrl).length})
+                                                사진 ({drawerImageMessages.length})
                                             </Text>
                                         </div>
-                                        {messages.filter(m => m.type === "IMAGE" && m.fileUrl).length > 0 ? (
+                                        {drawerImageMessages.length > 0 ? (
                                             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-2)' }}>
-                                                {messages.filter(m => m.type === "IMAGE" && m.fileUrl).map(m => (
+                                                {drawerImageMessages.map(m => (
                                                     <button
                                                         key={m.id}
                                                         type="button"
@@ -1765,12 +1774,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
-                                                파일 ({messages.filter(m => m.type === "FILE" && m.fileUrl).length})
+                                                파일 ({drawerFileMessages.length})
                                             </Text>
                                         </div>
-                                        {messages.filter(m => m.type === "FILE" && m.fileUrl).length > 0 ? (
+                                        {drawerFileMessages.length > 0 ? (
                                             <VStack gap={1}>
-                                                {messages.filter(m => m.type === "FILE" && m.fileUrl).map(m => (
+                                                {drawerFileMessages.map(m => (
                                                     <Item
                                                         key={m.id}
                                                         href={m.fileUrl!}

@@ -326,8 +326,9 @@ export default function OfficialDocument({
           <table className="carev-doc-approval-table">
             <thead>
               <tr>
+                {/* 스크린리더가 헤더-셀 관계를 알 수 있도록 scope 지정 — 시각적 모양은 변화 없음 */}
                 {boxes.map((box, index) => (
-                  <th key={index}>{box.label}</th>
+                  <th key={index} scope="col">{box.label}</th>
                 ))}
               </tr>
             </thead>

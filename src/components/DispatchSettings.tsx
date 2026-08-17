@@ -70,7 +70,6 @@ export default function DispatchSettings({
       // API 응답: { members: [...] }
       if (response?.members && Array.isArray(response.members)) {
         setMembers(response.members);
-        console.log("직원 목록 로드:", response.members.length, "명");
       }
     } catch (err) {
       console.error("직원 목록 로드 실패:", err);
@@ -85,7 +84,6 @@ export default function DispatchSettings({
       const response = await getCompanyElders();
       if (response?.elders && Array.isArray(response.elders)) {
         setCompanySeniors(response.elders);
-        console.log("어르신 목록 로드:", response.elders.length, "명");
       }
     } catch (err) {
       console.error("어르신 목록 로드 실패:", err);
@@ -463,6 +461,7 @@ export default function DispatchSettings({
                                 </HStack>
                                 <IconButton
                                   label="노선 삭제"
+                                  tooltip="삭제"
                                   variant="ghost"
                                   size="sm"
                                   icon={<Icon icon={FiTrash2} size="sm" />}
@@ -561,6 +560,7 @@ export default function DispatchSettings({
                             {newRouteDrivers.length > 1 && (
                               <IconButton
                                 label="운전자 삭제"
+                                tooltip="삭제"
                                 variant="ghost"
                                 size="sm"
                                 icon={<Icon icon={FiX} size="sm" />}
@@ -668,6 +668,7 @@ export default function DispatchSettings({
                               {(selectedRoute.routeDrivers?.length || 0) > 1 && (
                                 <IconButton
                                   label="운전자 삭제"
+                                  tooltip="삭제"
                                   variant="ghost"
                                   size="sm"
                                   icon={<Icon icon={FiX} size="sm" />}
@@ -746,8 +747,10 @@ export default function DispatchSettings({
                                 </Text>
                               </HStack>
                               <HStack gap={1} vAlign="center">
+                                {/* 어르신이 여러 명일 때 스크린리더가 대상을 구분하도록 이름을 aria-label에 포함 */}
                                 <IconButton
-                                  label="위로 이동"
+                                  label={`${senior.name} 위로 이동`}
+                                  tooltip="위로 이동"
                                   variant="ghost"
                                   size="sm"
                                   isDisabled={index === 0}
@@ -755,7 +758,8 @@ export default function DispatchSettings({
                                   onClick={() => handleMoveSenior(senior.id, "up")}
                                 />
                                 <IconButton
-                                  label="아래로 이동"
+                                  label={`${senior.name} 아래로 이동`}
+                                  tooltip="아래로 이동"
                                   variant="ghost"
                                   size="sm"
                                   isDisabled={index === selectedRouteSeniors.length - 1}
@@ -763,7 +767,8 @@ export default function DispatchSettings({
                                   onClick={() => handleMoveSenior(senior.id, "down")}
                                 />
                                 <IconButton
-                                  label="어르신 삭제"
+                                  label={`${senior.name} 삭제`}
+                                  tooltip="삭제"
                                   variant="ghost"
                                   size="sm"
                                   icon={<Icon icon={FiTrash2} size="sm" />}

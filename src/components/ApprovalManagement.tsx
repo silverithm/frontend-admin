@@ -141,6 +141,12 @@ export default function ApprovalManagement() {
     [approvals, categoryFilter, templateCategories],
   );
 
+  // 전체 선택 체크박스가 렌더마다 같은 필터를 3번 반복 계산하던 것을 한 번으로 줄인다
+  const selectableApprovals = useMemo(
+    () => visibleApprovals.filter(isActionable),
+    [visibleApprovals, myApproverId],
+  );
+
   const loadApprovals = async () => {
     setIsLoading(true);
     try {
@@ -384,7 +390,8 @@ export default function ApprovalManagement() {
 
         {/* 필터 영역 */}
         <Card variant="muted" padding={3}>
-          <HStack gap={3} vAlign="end" hAlign="between">
+          {/* 좁은 화면에서 날짜 필터+검색이 가로로 넘치지 않도록 줄바꿈 허용 (밀도는 유지, 넘칠 때만 다음 줄로) */}
+          <HStack gap={3} vAlign="end" hAlign="between" wrap="wrap">
             <HStack gap={2} vAlign="end">
               <DateInput
                 label="시작일"
@@ -470,14 +477,11 @@ export default function ApprovalManagement() {
         {visibleApprovals.length > 0 ? (
           <VStack gap={3}>
             {/* 전체 선택 체크박스 (진행중 탭, 처리 가능한 건만) */}
-            {activeTab === 'pending' && visibleApprovals.filter(isActionable).length > 0 && (
+            {activeTab === 'pending' && selectableApprovals.length > 0 && (
               <HStack vAlign="center">
                 <CheckboxInput
                   label="전체 선택"
-                  value={
-                    visibleApprovals.filter(isActionable).length > 0 &&
-                    selectedIds.size === visibleApprovals.filter(isActionable).length
-                  }
+                  value={selectedIds.size === selectableApprovals.length}
                   onChange={handleSelectAll}
                 />
               </HStack>
@@ -493,8 +497,9 @@ export default function ApprovalManagement() {
                   transition={{ duration: duration.fast }}
                 >
                   <Card>
-                    <HStack hAlign="between" vAlign="center" gap={4}>
-                      <HStack gap={3} vAlign="start">
+                    {/* 좁은 화면에서 정보/버튼 행이 가로로 넘치지 않도록 줄바꿈 허용 + 정보 블록이 실제로 줄어들 수 있게 minWidth 0 */}
+                    <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap">
+                      <HStack gap={3} vAlign="start" style={{ minWidth: 0, flex: 1 }}>
                         {approval.status === 'PENDING' && isActionable(approval) && (
                           <div style={{ paddingTop: 'var(--spacing-1)', flexShrink: 0 }}>
                             <CheckboxInput
@@ -506,7 +511,7 @@ export default function ApprovalManagement() {
                           </div>
                         )}
                         <Icon icon={FiFileText} size="md" color={getStatusIconColor(approval.status)} />
-                        <VStack gap={1}>
+                        <VStack gap={1} style={{ minWidth: 0 }}>
                           <HStack gap={2} vAlign="center">
                             <Text weight="bold" color="primary">{approval.title}</Text>
                             <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />

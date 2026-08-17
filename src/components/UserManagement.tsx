@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera } from 'react-icons/fi';
-import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
+import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
 import { uploadMemberProfileImage, deleteMemberProfileImage } from '@/lib/memberProfileApi';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
@@ -105,7 +105,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  // 처리 중인 대상의 id. 전역 boolean이던 시절엔 한 사람을 승인하는 동안
+  // 다른 탭·다른 행의 무관한 버튼까지 전부 잠겼다 — 이제 해당 행만 잠근다.
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   // 어르신 관리 상태
   const [seniors, setSeniors] = useState<ElderlyInfo[]>([]);
@@ -128,13 +130,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [isProfileSaving, setIsProfileSaving] = useState(false);
 
-  // 직책 관리 상태
+  // 직책 목록 (역할 배정 Selector, 역할 관리 탭에서 사용)
   const [positions, setPositions] = useState<Position[]>([]);
-  const [showPositionModal, setShowPositionModal] = useState(false);
-  const [editingPosition, setEditingPosition] = useState<Position | null>(null);
-  const [positionForm, setPositionForm] = useState({ name: '', description: '' });
-  const [showDeletePositionModal, setShowDeletePositionModal] = useState(false);
-  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
 
   // 채팅 초대 후보 목록(직원 명단 스토어) — 승인 직후 최신 상태로 강제 갱신할 때 쓴다
   const loadOrgPresence = useOrgPresenceStore(s => s.load);
@@ -211,6 +208,44 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   useVisiblePolling(fetchUsers, 30000);
 
   /**
+   * 가입 대기 목록만 다시 불러온다.
+   * 행 하나(거절 등)만 바뀌었는데 fetchUsers()로 4개 엔드포인트를 전부 다시 부르지 않기 위한 좁은 재조회.
+   */
+  const fetchPendingUsers = async () => {
+    try {
+      const pendingData: any = await getPendingUsers();
+      const pendingArray = pendingData?.requests || [];
+      const formattedPendingUsers = pendingArray.map((user: PendingUser) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: 'pending' as const,
+        requestedAt: user.requestedAt ? new Date(user.requestedAt).getTime() : undefined,
+      }));
+      setPendingUsers(formattedPendingUsers);
+    } catch (error) {
+      console.error('가입 신청 목록 로드 오류:', error);
+      onNotification('가입 신청 목록을 불러오는데 실패했습니다.', 'error');
+    }
+  };
+
+  /**
+   * 회원 목록만 다시 불러온다.
+   * 상태 변경·직책 배정·삭제처럼 회원 한 명만 바뀌는 작업 뒤에 positions·admins까지 함께 재조회하지 않기 위한 좁은 재조회.
+   */
+  const fetchMembers = async () => {
+    try {
+      const membersData: any = await getMemberUsers();
+      const membersArray = membersData?.members || [];
+      setMembers(membersArray);
+    } catch (error) {
+      console.error('회원 목록 로드 오류:', error);
+      onNotification('회원 목록을 불러오는데 실패했습니다.', 'error');
+    }
+  };
+
+  /**
    * 직원 명단(orgPresenceStore)을 강제로 다시 받는다.
    *
    * 이 스토어는 기관별로 한 번만 받아 캐시하고 우측 레일·플로팅 채팅·초대 목록이 함께 쓴다.
@@ -222,42 +257,43 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   };
 
   const handleApproveUser = async (userId: string) => {
-    setIsProcessing(true);
+    setProcessingId(userId); // 이 사용자 행만 잠근다
     try {
       await approveUser(userId);
-      await fetchUsers();
+      // 승인은 대기 목록에서 회원 목록으로 옮기는 작업이라 이 둘만 다시 불러온다 (positions·admins는 그대로)
+      await Promise.all([fetchPendingUsers(), fetchMembers()]);
       refreshChatCandidates();
       onNotification('사용자 가입을 승인했습니다.', 'success');
     } catch (error) {
       console.error('사용자 승인 오류:', error);
       onNotification(error instanceof Error ? error.message : '승인 중 오류가 발생했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
   const handleRejectUser = async (userId: string) => {
-    setIsProcessing(true);
+    setProcessingId(userId);
     try {
       await rejectUser(userId);
-      await fetchUsers();
+      await fetchPendingUsers(); // 거절은 대기 목록만 바뀐다
       refreshChatCandidates();
       onNotification('사용자 가입을 거절했습니다.', 'info');
     } catch (error) {
       console.error('사용자 거절 오류:', error);
       onNotification(error instanceof Error ? error.message : '거절 중 오류가 발생했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
 
-    setIsProcessing(true);
+    setProcessingId(selectedUser.id);
     try {
       await deleteUser(selectedUser.id);
-      await fetchUsers();
+      await fetchMembers(); // 삭제는 회원 목록에만 영향을 준다
       refreshChatCandidates();
       setShowDeleteModal(false);
       setSelectedUser(null);
@@ -266,7 +302,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       console.error('사용자 삭제 오류:', error);
       onNotification(error instanceof Error ? error.message : '삭제 중 오류가 발생했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -281,12 +317,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     }
   };
 
+  // 신규 어르신 추가는 아직 행 id가 없어 processingId로 쓸 고정 키가 필요하다
+  const NEW_SENIOR_KEY = 'senior:new';
+
   const handleAddSenior = async () => {
     if (!seniorForm.name.trim()) {
       onNotification('이름을 입력해주세요.', 'error');
       return;
     }
-    setIsProcessing(true);
+    setProcessingId(NEW_SENIOR_KEY);
     try {
       await addCompanyElder({
         name: seniorForm.name.trim(),
@@ -301,13 +340,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       console.error('어르신 등록 오류:', error);
       onNotification('어르신 등록에 실패했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
   const handleUpdateSenior = async () => {
     if (!editingSenior || !seniorForm.name.trim()) return;
-    setIsProcessing(true);
+    setProcessingId(String(editingSenior.id));
     try {
       await updateCompanyElder(editingSenior.id, {
         name: seniorForm.name.trim(),
@@ -323,13 +362,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       console.error('어르신 수정 오류:', error);
       onNotification('어르신 수정에 실패했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
   const handleDeleteSenior = async () => {
     if (!selectedSenior) return;
-    setIsProcessing(true);
+    setProcessingId(String(selectedSenior.id));
     try {
       await deleteCompanyElder(selectedSenior.id);
       await fetchSeniors();
@@ -340,7 +379,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       console.error('어르신 삭제 오류:', error);
       onNotification('어르신 삭제에 실패했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -371,80 +410,31 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   });
 
   // ==================== 직책 관리 핸들러 ====================
-
-  const handleCreatePosition = async () => {
-    if (!positionForm.name.trim()) {
-      onNotification('역할명을 입력해주세요.', 'error');
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      await createPosition({ name: positionForm.name.trim(), description: positionForm.description.trim() || undefined });
-      await fetchUsers();
-      setShowPositionModal(false);
-      setPositionForm({ name: '', description: '' });
-      onNotification('역할이 등록되었습니다.', 'success');
-    } catch (error) {
-      onNotification('역할 등록에 실패했습니다.', 'error');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleUpdatePosition = async () => {
-    if (!editingPosition || !positionForm.name.trim()) return;
-    setIsProcessing(true);
-    try {
-      await updatePosition(editingPosition.id, { name: positionForm.name.trim(), description: positionForm.description.trim() || undefined });
-      await fetchUsers();
-      setShowPositionModal(false);
-      setEditingPosition(null);
-      setPositionForm({ name: '', description: '' });
-      onNotification('역할이 수정되었습니다.', 'success');
-    } catch (error) {
-      onNotification('역할 수정에 실패했습니다.', 'error');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleDeletePositionConfirm = async () => {
-    if (!selectedPosition) return;
-    setIsProcessing(true);
-    try {
-      await deletePosition(selectedPosition.id);
-      await fetchUsers();
-      setShowDeletePositionModal(false);
-      setSelectedPosition(null);
-      onNotification('역할이 삭제되었습니다.', 'success');
-    } catch (error) {
-      onNotification('역할 삭제에 실패했습니다.', 'error');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  // (역할 생성/수정/삭제 모달은 죽은 코드라 제거했다 — '역할 관리' 탭은 PositionManagement 컴포넌트를 쓴다)
 
   const handleAssignPosition = async (memberId: string, positionId: number | null) => {
-    setIsProcessing(true);
+    setProcessingId(memberId);
     try {
       await assignPositionToMember(memberId, positionId);
-      await fetchUsers();
+      await fetchMembers(); // 직책 배정은 회원 목록에만 영향을 준다 (positions 자체는 안 바뀜)
       refreshChatCandidates();
       onNotification('역할이 변경되었습니다.', 'success');
     } catch (error) {
-      onNotification('역할 변경에 실패했습니다.', 'error');
+      // 다른 핸들러와 같은 방식으로: 콘솔에 원인을 남기고 실제 에러 메시지를 사용자에게 보여준다
+      console.error('역할 배정 오류:', error);
+      onNotification(error instanceof Error ? error.message : '역할 변경에 실패했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    setIsProcessing(true);
+    setProcessingId(userId);
 
     try {
       await updateUserStatus(userId, newStatus as 'active' | 'inactive');
-      await fetchUsers();
+      await fetchMembers(); // 상태 변경은 회원 목록에만 영향을 준다
       // 재직 중인 사람만 채팅 명단에 오르므로 상태가 바뀌면 목록도 달라진다
       refreshChatCandidates();
       onNotification(`사용자 상태를 ${newStatus === 'active' ? '활성화' : '비활성화'}했습니다.`, 'success');
@@ -452,7 +442,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       console.error('사용자 상태 변경 오류:', error);
       onNotification(error instanceof Error ? error.message : '상태 변경 중 오류가 발생했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -528,7 +518,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
 
   /** 관리자 본인 직책 변경 — 직원과 API가 다르다 */
   const handleChangeMyPosition = async (positionId: number | null) => {
-    setIsProcessing(true);
+    // 관리자 본인 행의 id(myUserId)로 잠근다 — isMyAdminRow(u)가 true인 행은 u.id === myUserId다
+    setProcessingId(myUserId ?? 'me');
     try {
       const result = await updateMyPosition(positionId);
       setAdminAccounts(prev => prev.map(u => (
@@ -540,7 +531,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       console.error('관리자 직책 변경 오류:', error);
       onNotification(error instanceof Error ? error.message : '직책 변경에 실패했습니다.', 'error');
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -652,7 +643,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           variant="ghost"
           icon={<Icon icon={FiRefreshCw} />}
           onClick={fetchUsers}
-          isLoading={isProcessing}
+          isLoading={processingId !== null}
         />
       </HStack>
 
@@ -807,8 +798,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           header: '',
                           renderCell: (s: SeniorRow) => (
                             <HStack gap={2} hAlign="end">
-                              <Button label="수정" size="sm" variant="secondary" icon={<Icon icon={FiEdit2} size="sm" />} onClick={() => openEditSeniorModal(s)} isDisabled={isProcessing} />
-                              <Button label="삭제" size="sm" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={() => { setSelectedSenior(s); setShowDeleteSeniorModal(true); }} isDisabled={isProcessing} />
+                              <Button label="수정" size="sm" variant="secondary" icon={<Icon icon={FiEdit2} size="sm" />} onClick={() => openEditSeniorModal(s)} isDisabled={processingId === String(s.id)} />
+                              <Button label="삭제" size="sm" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={() => { setSelectedSenior(s); setShowDeleteSeniorModal(true); }} isDisabled={processingId === String(s.id)} />
                             </HStack>
                           ),
                         }] : []),
@@ -893,8 +884,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           header: '',
                           renderCell: (u: UserRow) => (
                             <HStack gap={2} hAlign="end">
-                              <Button label="승인" size="sm" variant="primary" icon={<Icon icon={FiUserCheck} size="sm" />} onClick={() => handleApproveUser(u.id)} isDisabled={isProcessing} />
-                              <Button label="거절" size="sm" variant="destructive" icon={<Icon icon={FiUserX} size="sm" />} onClick={() => handleRejectUser(u.id)} isDisabled={isProcessing} />
+                              <Button label="승인" size="sm" variant="primary" icon={<Icon icon={FiUserCheck} size="sm" />} onClick={() => handleApproveUser(u.id)} isDisabled={processingId === u.id} />
+                              <Button label="거절" size="sm" variant="destructive" icon={<Icon icon={FiUserX} size="sm" />} onClick={() => handleRejectUser(u.id)} isDisabled={processingId === u.id} />
                             </HStack>
                           ),
                         }] : []),
@@ -1008,7 +999,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                   if (u.isAdminAccount) handleChangeMyPosition(positionId);
                                   else handleAssignPosition(u.id, positionId);
                                 }}
-                                isDisabled={isProcessing}
+                                isDisabled={processingId === u.id}
                               />
                             );
                           },
@@ -1040,14 +1031,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             ) : (
                             <HStack gap={2} hAlign="end">
                               {u.role !== 'admin' && (
-                                <Button label="권한" size="sm" variant="secondary" icon={<Icon icon={FiShield} size="sm" />} onClick={() => openPermissionModal(u)} isDisabled={isProcessing} />
+                                <Button label="권한" size="sm" variant="secondary" icon={<Icon icon={FiShield} size="sm" />} onClick={() => openPermissionModal(u)} isDisabled={processingId === u.id} />
                               )}
                               <Button
                                 label={u.status === 'active' ? '비활성화' : '활성화'}
                                 size="sm"
                                 variant="secondary"
                                 onClick={() => handleToggleUserStatus(u.id, u.status)}
-                                isDisabled={isProcessing || u.role === 'admin'}
+                                isDisabled={processingId === u.id || u.role === 'admin'}
                               />
                               <Button
                                 label="삭제"
@@ -1055,7 +1046,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                                 variant="destructive"
                                 icon={<Icon icon={FiTrash2} size="sm" />}
                                 onClick={() => { setSelectedUser(u); setShowDeleteModal(true); }}
-                                isDisabled={isProcessing || u.role === 'admin'}
+                                isDisabled={processingId === u.id || u.role === 'admin'}
                               />
                             </HStack>
                             )
@@ -1094,142 +1085,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             footer={
               <LayoutFooter hasDivider>
                 <HStack gap={2} hAlign="end">
-                  <Button label="취소" variant="ghost" onClick={() => setShowDeleteModal(false)} isDisabled={isProcessing} />
-                  <Button label="삭제하기" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={handleDeleteUser} isLoading={isProcessing} isDisabled={isProcessing} />
-                </HStack>
-              </LayoutFooter>
-            }
-          />
-        </Dialog>
-      )}
-
-      {/* 직책 관리 모달 */}
-      <Dialog
-        isOpen={showPositionModal}
-        onOpenChange={(o) => { if (!o) setShowPositionModal(false); }}
-        purpose="form"
-        width={560}
-      >
-        <Layout
-          header={<DialogHeader title="역할 관리" onOpenChange={(o) => { if (!o) setShowPositionModal(false); }} />}
-          content={
-            <LayoutContent>
-              <VStack gap={4}>
-                {/* 직책 추가 폼 */}
-                <VStack gap={3}>
-                  <Text type="label">{editingPosition ? '역할 수정' : '새 역할 추가'}</Text>
-                  <TextInput
-                    label="역할명"
-                    isLabelHidden
-                    placeholder="역할명 (예: 팀장, 사회복지사)"
-                    value={positionForm.name}
-                    onChange={(v) => setPositionForm(prev => ({ ...prev, name: v }))}
-                  />
-                  <TextInput
-                    label="설명"
-                    isLabelHidden
-                    placeholder="설명 (선택사항)"
-                    value={positionForm.description}
-                    onChange={(v) => setPositionForm(prev => ({ ...prev, description: v }))}
-                  />
-                  <HStack gap={2}>
-                    <Button
-                      label={editingPosition ? '수정' : '추가'}
-                      variant="primary"
-                      onClick={editingPosition ? handleUpdatePosition : handleCreatePosition}
-                      isLoading={isProcessing}
-                      isDisabled={isProcessing || !positionForm.name.trim()}
-                    />
-                    {editingPosition && (
-                      <Button
-                        label="취소"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditingPosition(null);
-                          setPositionForm({ name: '', description: '' });
-                        }}
-                      />
-                    )}
-                  </HStack>
-                </VStack>
-
-                <Divider />
-
-                {/* 직책 목록 */}
-                <VStack gap={2}>
-                  {positions.length === 0 ? (
-                    <Text type="supporting" color="disabled">등록된 역할이 없습니다.</Text>
-                  ) : (
-                    positions.map((pos) => (
-                      <HStack key={pos.id} gap={2} hAlign="between" vAlign="center">
-                        <VStack gap={0}>
-                          <Text weight="medium">{pos.name}</Text>
-                          {pos.description && <Text type="supporting">{pos.description}</Text>}
-                        </VStack>
-                        <HStack gap={1}>
-                          <IconButton
-                            label="역할 수정"
-                            variant="ghost"
-                            size="sm"
-                            icon={<Icon icon={FiEdit2} size="sm" />}
-                            onClick={() => {
-                              setEditingPosition(pos);
-                              setPositionForm({ name: pos.name, description: pos.description || '' });
-                            }}
-                          />
-                          <IconButton
-                            label="역할 삭제"
-                            variant="ghost"
-                            size="sm"
-                            icon={<Icon icon={FiTrash2} size="sm" />}
-                            onClick={() => {
-                              setSelectedPosition(pos);
-                              setShowDeletePositionModal(true);
-                            }}
-                          />
-                        </HStack>
-                      </HStack>
-                    ))
-                  )}
-                </VStack>
-              </VStack>
-            </LayoutContent>
-          }
-          footer={
-            <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="end">
-                <Button label="닫기" variant="secondary" onClick={() => setShowPositionModal(false)} />
-              </HStack>
-            </LayoutFooter>
-          }
-        />
-      </Dialog>
-
-      {/* 직책 삭제 확인 모달 */}
-      {selectedPosition && (
-        <Dialog
-          isOpen={showDeletePositionModal}
-          onOpenChange={(o) => { if (!o) setShowDeletePositionModal(false); }}
-          purpose="form"
-          width={400}
-        >
-          <Layout
-            header={<DialogHeader title="역할 삭제" onOpenChange={(o) => { if (!o) setShowDeletePositionModal(false); }} />}
-            content={
-              <LayoutContent>
-                <HStack gap={3} vAlign="start">
-                  <Icon icon="error" color="error" size="lg" />
-                  <Text type="body" color="secondary">
-                    <Text as="span" weight="bold" color="primary">{selectedPosition.name}</Text> 역할을 삭제하시겠습니까?
-                  </Text>
-                </HStack>
-              </LayoutContent>
-            }
-            footer={
-              <LayoutFooter hasDivider>
-                <HStack gap={2} hAlign="end">
-                  <Button label="취소" variant="ghost" onClick={() => setShowDeletePositionModal(false)} isDisabled={isProcessing} />
-                  <Button label="삭제" variant="destructive" onClick={handleDeletePositionConfirm} isLoading={isProcessing} isDisabled={isProcessing} />
+                  <Button label="취소" variant="ghost" onClick={() => setShowDeleteModal(false)} isDisabled={processingId === selectedUser.id} />
+                  <Button label="삭제하기" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={handleDeleteUser} isLoading={processingId === selectedUser.id} isDisabled={processingId === selectedUser.id} />
                 </HStack>
               </LayoutFooter>
             }
@@ -1278,14 +1135,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   label="취소"
                   variant="ghost"
                   onClick={() => { setShowSeniorModal(false); setEditingSenior(null); }}
-                  isDisabled={isProcessing}
+                  isDisabled={processingId === (editingSenior ? String(editingSenior.id) : NEW_SENIOR_KEY)}
                 />
                 <Button
                   label={editingSenior ? '수정하기' : '추가하기'}
                   variant="primary"
                   onClick={editingSenior ? handleUpdateSenior : handleAddSenior}
-                  isLoading={isProcessing}
-                  isDisabled={isProcessing || !seniorForm.name.trim()}
+                  isLoading={processingId === (editingSenior ? String(editingSenior.id) : NEW_SENIOR_KEY)}
+                  isDisabled={processingId === (editingSenior ? String(editingSenior.id) : NEW_SENIOR_KEY) || !seniorForm.name.trim()}
                 />
               </HStack>
             </LayoutFooter>
@@ -1316,8 +1173,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             footer={
               <LayoutFooter hasDivider>
                 <HStack gap={2} hAlign="end">
-                  <Button label="취소" variant="ghost" onClick={() => setShowDeleteSeniorModal(false)} isDisabled={isProcessing} />
-                  <Button label="삭제하기" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={handleDeleteSenior} isLoading={isProcessing} isDisabled={isProcessing} />
+                  <Button label="취소" variant="ghost" onClick={() => setShowDeleteSeniorModal(false)} isDisabled={processingId === String(selectedSenior.id)} />
+                  <Button label="삭제하기" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={handleDeleteSenior} isLoading={processingId === String(selectedSenior.id)} isDisabled={processingId === String(selectedSenior.id)} />
                 </HStack>
               </LayoutFooter>
             }

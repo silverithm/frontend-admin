@@ -31,7 +31,6 @@ import { getHolidayName } from '@/lib/holidays';
 import {
   ALL_ROLE_FILTER,
   compareRoleNames,
-  getRoleDisplayName,
   getVacationRequestRole,
   type RoleLookup,
 } from '@/lib/roleUtils';
@@ -126,31 +125,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   
   // 달력에 표시될 날짜 범위 계산
   const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
-  
-  // 로그에 모든 휴가 데이터 출력
-  const logAllVacations = useCallback(() => {
-    if (Object.keys(calendarData).length === 0) {
-      return;
-    }
-    
-    Object.keys(calendarData).forEach(dateKey => {
-      const dateData = calendarData[dateKey];
-      if (dateData && dateData.vacations && dateData.vacations.length > 0) {
-        // 필터에 맞는 휴가만 로깅
-        const filteredVacations = dateData.vacations.filter(v => {
-          const resolvedRole = getVacationRequestRole(v, memberRoleLookup);
-          return matchesRoleFilter(resolvedRole);
-        });
-        
-        if (filteredVacations.length > 0) {
-          const vacationersInfo = filteredVacations.map(v => 
-            `${v.userName}(${getVacationRequestRole(v, memberRoleLookup) || v.role}, ${v.status})`
-          ).join(', ');
-        }
-      }
-    });
-  }, [calendarData, memberRoleLookup, roleFilterKey]);
-  
+
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const currentRequestIdRef = React.useRef<string | null>(null);
   const lastFetchTimeRef = React.useRef<number>(0);
@@ -315,8 +290,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const handleRefresh = useCallback(() => {
     setIsLoading(true);
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
-    logAllVacations();
-  }, [fetchCalendarData, currentDate, logAllVacations]);
+  }, [fetchCalendarData, currentDate]);
 
   const prevMonth = useCallback(() => {
     
@@ -439,7 +413,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   };
 
   // 날짜 셀 배경/호버 색상 (인라인 style 값 반환)
-  const getDayColor = (date: Date): { bg: string; hoverBg: string; today?: boolean; status?: string } => {
+  // vacations를 이미 계산해둔 곳(셀 렌더링)에서는 넘겨서 getDayVacations 중복 계산을 피한다
+  const getDayColor = (date: Date, vacations?: VacationRequest[]): { bg: string; hoverBg: string; today?: boolean; status?: string } => {
     if (!isSameMonth(date, currentDate)) {
       return { bg: 'var(--color-background-muted)', hoverBg: 'var(--color-background-muted)' };
     }
@@ -454,7 +429,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
     const dateKey = format(date, 'yyyy-MM-dd');
     const dayData = calendarData[dateKey];
-    const filteredVacations = getDayVacations(date);
+    const filteredVacations = vacations ?? getDayVacations(date);
     const vacationersCount = filteredVacations.length;
     const maxPeople = dayData?.maxPeople ?? 3;
 
@@ -667,14 +642,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         return '거부됨';
       default:
         return status || '알 수 없음';
-    }
-  };
-
-  // 역할 한글 변환
-  const getRoleText = (role?: string) => {
-    switch (role) {
-      default:
-        return getRoleDisplayName(role);
     }
   };
 
@@ -920,7 +887,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const isPast = isBefore(day, startOfDay(new Date()));
             const holidayName = isCurrentMonth ? getHolidayName(day) : null;
 
-            let dayColor = getDayColor(day);
             const dateKey = format(day, 'yyyy-MM-dd');
             // 기관이 이 달의 마감일로 지정한 날 / 그날에 걸친 중요 행사
             const isDeadlineDay = isCurrentMonth && deadlineDates[dateKey.slice(0, 7)] === dateKey;
@@ -929,6 +895,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             const vacations = getDayVacations(day);
             const vacationersCount = vacations.length;
             const maxPeople = dayData?.maxPeople ?? 3;
+            // getDayColor 내부에서 다시 계산하지 않도록 위에서 구한 vacations를 그대로 넘긴다
+            let dayColor = getDayColor(day, vacations);
 
             const cellStyle = {
               padding: 'var(--spacing-2)',
@@ -1055,6 +1023,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           <span style={cellStatusPillStyle(vacation.status)}>
                             <Text type="supporting" color="inherit">{getStatusText(vacation.status)}</Text>
                           </span>
+                          {/* 셀 자체가 button이라 안에 클릭 핸들러를 또 넣으면 버튼 중첩(키보드 접근 불가)이 된다.
+                              이름으로 필터링은 상위 검색창/목록에서 이미 가능하므로 여기선 표시만 한다. */}
                           <span
                             style={{
                               flex: 1,
@@ -1063,7 +1033,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                               display: 'flex',
                               alignItems: 'center',
                               gap: 'var(--spacing-1)',
-                              cursor: vacation.status === 'rejected' ? 'default' : 'pointer',
                               color: vacation.status === 'rejected'
                                 ? 'var(--color-text-red)'
                                 : nameFilter === vacation.userName
@@ -1071,13 +1040,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                   : 'var(--color-text-primary)',
                               textDecoration: vacation.status === 'rejected' ? 'line-through' : undefined,
                             }}
-                            title={vacation.userName || '이름 없음'}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (vacation.userName) {
-                                handleNameClick(vacation.userName);
-                              }
-                            }}>
+                            title={vacation.userName || '이름 없음'}>
                             <span style={{ minWidth: 0, overflow: 'hidden' }}>
                               <Text type="supporting" color="inherit" weight={nameFilter === vacation.userName ? 'semibold' : 'normal'} maxLines={1}>
                                 {vacation.userName || `이름 없음`}

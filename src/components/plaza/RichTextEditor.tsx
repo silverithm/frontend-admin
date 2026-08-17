@@ -151,8 +151,9 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
         marginTop: 4,
         padding: 8,
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 24px)',
-        gap: 6,
+        // 버튼 터치 영역이 44px로 늘어난 만큼 셀 폭도 맞춘다
+        gridTemplateColumns: 'repeat(4, 44px)',
+        gap: 0,
         background: 'var(--color-background-popover)',
         border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius-container)',
@@ -170,17 +171,28 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
             exec(kind === 'text' ? 'foreColor' : 'hiliteColor', color);
             setColorOpen(null);
           }}
+          // 스와치 자체는 24x24 유지, 패딩 10px로 버튼(터치 영역)을 44x44로 키운다
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 4,
+            padding: 10,
+            border: 'none',
+            background: 'transparent',
             cursor: 'pointer',
-            border: '1px solid var(--color-border)',
-            background: color === 'transparent'
-              ? 'repeating-conic-gradient(#e9ecef 0% 25%, #ffffff 0% 50%) 0 / 8px 8px'
-              : color,
+            borderRadius: 'var(--radius-element)',
           }}
-        />
+        >
+          <span
+            style={{
+              display: 'block',
+              width: 24,
+              height: 24,
+              borderRadius: 4,
+              border: '1px solid var(--color-border)',
+              background: color === 'transparent'
+                ? 'repeating-conic-gradient(#e9ecef 0% 25%, #ffffff 0% 50%) 0 / 8px 8px'
+                : color,
+            }}
+          />
+        </button>
       ))}
     </div>
   );

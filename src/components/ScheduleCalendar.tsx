@@ -393,6 +393,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     });
   };
 
+  // 선택 날짜 상세 패널에서 4번 독립 재계산되던 것을 한 번만 계산해 재사용
+  const selectedDateSchedules = useMemo(
+    () => (selectedDate ? getSchedulesForDate(selectedDate) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedDate, visibleSchedules]
+  );
+
   // 주별 일정 바 레이아웃 계산 (여러 날 일정을 하나의 바로 이어서 표시)
   const weekBarLayouts = useMemo<WeekBarLayout[]>(() => {
     const rangeOf = (schedule: Schedule) => ({
@@ -964,7 +971,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             setShowDispatchDayDetail(true);
           }
         }}
-        className={isCurrentMonth ? 'carev-schedcal-cell' : 'carev-schedcal-cell'}
+        // 두 분기 값이 같던 무의미 삼항연산자 제거
+        className="carev-schedcal-cell"
         disabled={!isCurrentMonth}
         style={{
           // 일정 칸과 같은 이유로 aspect-ratio를 쓰지 않는다 (구분선 어긋남 방지)
@@ -1416,7 +1424,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                       </Text>
                       <Text type="supporting">
-                        {getSchedulesForDate(selectedDate).length}개 일정 · 완료 {getSchedulesForDate(selectedDate).filter((s) => s.isCompleted).length}개
+                        {selectedDateSchedules.length}개 일정 · 완료 {selectedDateSchedules.filter((s) => s.isCompleted).length}개
                         {' · '}휴무 {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length}명
                       </Text>
                     </VStack>
@@ -1474,9 +1482,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
                 {/* 일정 목록 (스크롤 가능) */}
                 <div style={{ padding: 'var(--spacing-5)', flex: 1, overflowY: 'auto' }}>
-                  {getSchedulesForDate(selectedDate).length > 0 ? (
+                  {selectedDateSchedules.length > 0 ? (
                     <VStack gap={2}>
-                      {getSchedulesForDate(selectedDate).map((schedule) => (
+                      {selectedDateSchedules.map((schedule) => (
                         <div
                           key={schedule.id}
                           className="carev-schedcal-list-item"

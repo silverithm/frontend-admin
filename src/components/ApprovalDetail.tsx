@@ -22,6 +22,7 @@ import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
 import ApprovalAnnounceDialog from './approval/ApprovalAnnounceDialog';
 import DocumentViewerModal from './DocumentViewerModal';
 import { useConfirm } from './ConfirmDialog';
+import { useAlert } from './Alert';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
@@ -56,6 +57,7 @@ export default function ApprovalDetail({
   const [myApproverId, setMyApproverId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const { confirm, ConfirmContainer } = useConfirm();
+  const { showAlert, AlertContainer } = useAlert();
 
   useEffect(() => {
     setIsAdmin(isAdminSession());
@@ -172,7 +174,8 @@ export default function ApprovalDetail({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('파일 다운로드 실패:', error);
-      alert('파일 다운로드에 실패했습니다.');
+      // 네이티브 alert 대신 앱 공용 알림(Banner 기반)을 사용해 다른 알림과 모양을 맞춘다
+      showAlert({ type: 'error', title: '다운로드 실패', message: '파일 다운로드에 실패했습니다.' });
     }
   };
 
@@ -409,6 +412,7 @@ export default function ApprovalDetail({
 
       {/* 직권 승인 경고 */}
       <ConfirmContainer />
+      <AlertContainer />
     </>
   );
 }

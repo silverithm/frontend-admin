@@ -65,6 +65,9 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 };
 
+/** 분류값 정규화 — `(category || '').trim()`이 여러 곳에 흩어져 있던 것을 한 곳으로 모음 */
+const normalizeCategory = (category?: string | null): string => (category || '').trim();
+
 /**
  * 기관 전용 자료실.
  *
@@ -103,21 +106,32 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
   };
 
   const categories = useMemo(() => {
-    const used = items.map((i) => (i.category || '').trim()).filter(Boolean);
+    const used = items.map((i) => normalizeCategory(i.category)).filter(Boolean);
     return Array.from(new Set([...DEFAULT_CATEGORIES, ...used]));
   }, [items]);
 
   const usedCategories = useMemo(
-    () => Array.from(new Set(items.map((i) => (i.category || '').trim()).filter(Boolean))),
+    () => Array.from(new Set(items.map((i) => normalizeCategory(i.category)).filter(Boolean))),
     [items],
   );
 
-  const hasUncategorized = useMemo(() => items.some((i) => !(i.category || '').trim()), [items]);
+  const hasUncategorized = useMemo(() => items.some((i) => !normalizeCategory(i.category)), [items]);
+
+  // 분류 필터 버튼의 카운트 — items에만 의존하므로 업로드 다이얼로그 타이핑(form 변경)으로는
+  // 재계산되지 않는다. 렌더마다 카테고리별 items.filter()를 새로 돌리던 것을 여기로 모음.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      const key = normalizeCategory(item.category) || UNCATEGORIZED;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return counts;
+  }, [items]);
 
   const visibleItems = useMemo(() => {
     if (!categoryFilter) return items;
-    if (categoryFilter === UNCATEGORIZED) return items.filter((i) => !(i.category || '').trim());
-    return items.filter((i) => (i.category || '').trim() === categoryFilter);
+    if (categoryFilter === UNCATEGORIZED) return items.filter((i) => !normalizeCategory(i.category));
+    return items.filter((i) => normalizeCategory(i.category) === categoryFilter);
   }, [items, categoryFilter]);
 
   const closeUpload = () => {
@@ -234,7 +248,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
             {usedCategories.map((category) => (
               <Button
                 key={category}
-                label={`${category} (${items.filter((i) => (i.category || '').trim() === category).length})`}
+                label={`${category} (${categoryCounts.get(category) || 0})`}
                 variant={categoryFilter === category ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => setCategoryFilter(category)}
@@ -242,7 +256,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
             ))}
             {hasUncategorized && (
               <Button
-                label={`${UNCATEGORIZED} (${items.filter((i) => !(i.category || '').trim()).length})`}
+                label={`${UNCATEGORIZED} (${categoryCounts.get(UNCATEGORIZED) || 0})`}
                 variant={categoryFilter === UNCATEGORIZED ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => setCategoryFilter(UNCATEGORIZED)}
@@ -282,7 +296,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
                     <VStack gap={1}>
                       <HStack gap={2} vAlign="center" wrap="wrap">
                         <Text weight="semibold" color="primary">{item.title}</Text>
-                        {(item.category || '').trim() && <Badge variant="blue" label={(item.category || '').trim()} />}
+                        {normalizeCategory(item.category) && <Badge variant="blue" label={normalizeCategory(item.category)} />}
                       </HStack>
                       {item.description && (
                         <Text type="supporting" color="secondary">{item.description}</Text>

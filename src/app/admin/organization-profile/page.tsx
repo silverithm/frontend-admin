@@ -25,11 +25,13 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { deleteAdminUser, changePassword, getUserInfo, updateCompanyName, updateCompanyAddress, uploadCompanySeal, deleteCompanySeal, getCompanyHomepage, updateCompanyHomepageLinks, getPositions, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage } from '@/lib/apiService';
 import type { CompanyLink } from '@/components/ExternalLinksNav';
+import { useAlert } from '@/components/Alert';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
 import MySignatureCard from '@/components/approval/MySignatureCard';
@@ -58,6 +60,8 @@ interface OrganizationProfileData {
  */
 const PAGE_MAX_WIDTH = 1120;
 const PAGE_PADDING_X = 'var(--spacing-6)';
+/** 아이콘 배지(정사각형) 한 변 길이. 5곳에서 재사용하므로 상수 하나로 통일한다. */
+const ICON_BADGE_SIZE = 'var(--spacing-10)'; // 40px
 
 const pageContainer: React.CSSProperties = {
   maxWidth: PAGE_MAX_WIDTH,
@@ -86,7 +90,9 @@ function ProfileSection({
     <VStack gap={4}>
       <HStack hAlign="between" vAlign="center" gap={3}>
         <VStack gap={1}>
-          <Text type="large" weight="semibold" color="primary">{title}</Text>
+          {/* 실제 <h2>로 렌더링 — 스크린리더 제목 탐색을 위해. Heading level=2 기본 크기(xl)는
+              원래 크기(lg)보다 커서 밀도가 달라지므로 fontSize만 고정한다(weight는 기본값이 이미 동일). */}
+          <Heading level={2} color="primary" style={{ fontSize: 'var(--font-size-lg)' }}>{title}</Heading>
           {description && <Text type="supporting" color="secondary">{description}</Text>}
         </VStack>
         {action}
@@ -98,6 +104,9 @@ function ProfileSection({
 
 export default function OrganizationProfilePage() {
   const router = useRouter();
+  // 짧게 떴다 사라지는 성공 알림은 앱 공용 useAlert로 — 예전엔 setTimeout으로 Banner를
+  // 직접 지워 다른 화면의 토스트와 동작이 달랐다(지속돼야 하는 에러 Banner는 그대로 둔다).
+  const { showAlert, AlertContainer } = useAlert();
   const [profile, setProfile] = useState<OrganizationProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -176,8 +185,7 @@ export default function OrganizationProfilePage() {
         adminPositionId: positionId,
         adminPosition: result?.position ?? null,
       } : prev);
-      setSuccessMessage(positionId ? '직책이 변경되었습니다' : '직책을 해제했습니다');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      showAlert({ type: 'success', message: positionId ? '직책이 변경되었습니다' : '직책을 해제했습니다' });
     } catch (e) {
       console.error('직책 변경 실패:', e);
       setProfile(previous);
@@ -200,8 +208,7 @@ export default function OrganizationProfilePage() {
     try {
       const result = await uploadMyProfileImage(file);
       setProfile(prev => (prev ? { ...prev, adminProfileImageUrl: result?.profileImageUrl || null } : prev));
-      setSuccessMessage('프로필 사진을 등록했습니다');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      showAlert({ type: 'success', message: '프로필 사진을 등록했습니다' });
     } catch (e) {
       console.error('프로필 사진 등록 실패:', e);
       setError(e instanceof Error ? e.message : '프로필 사진을 등록하지 못했습니다');
@@ -218,8 +225,7 @@ export default function OrganizationProfilePage() {
     try {
       await deleteMyProfileImage();
       setProfile(prev => (prev ? { ...prev, adminProfileImageUrl: null } : prev));
-      setSuccessMessage('프로필 사진을 삭제했습니다');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      showAlert({ type: 'success', message: '프로필 사진을 삭제했습니다' });
     } catch (e) {
       console.error('프로필 사진 삭제 실패:', e);
       setError(e instanceof Error ? e.message : '프로필 사진을 삭제하지 못했습니다');
@@ -466,7 +472,9 @@ export default function OrganizationProfilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
+    <>
+      <AlertContainer />
+      <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
       {/* 헤더 — 페이지 제목은 본문이 아니라 여기에만 둔다 (예전에는 헤더와 본문에 제목이 겹쳐 있었다) */}
       <header style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ ...pageContainer, paddingTop: 'var(--spacing-5)', paddingBottom: 'var(--spacing-5)' }}>
@@ -474,7 +482,9 @@ export default function OrganizationProfilePage() {
             <HStack gap={3} vAlign="center">
               <Image src="/images/carev-favicon.png" alt="케어브이" width={36} height={36} style={{ borderRadius: 'var(--radius-inner)' }} />
               <VStack gap={0.5}>
-                <Text type="display-3" color="primary" weight="bold">기관 프로필</Text>
+                {/* 페이지의 유일한 <h1> — 이전엔 Text로만 그려져 스크린리더가 제목을 찾을 수 없었다.
+                    type="display-3"가 기존 크기(3xl)와 같으므로 화면은 그대로다. */}
+                <Heading level={1} type="display-3" color="primary" style={{ fontWeight: 'var(--font-weight-bold)' }}>기관 프로필</Heading>
                 <Text type="supporting" color="secondary">기관의 기본 정보와 계정을 관리합니다</Text>
               </VStack>
             </HStack>
@@ -504,8 +514,7 @@ export default function OrganizationProfilePage() {
               <Banner status="error" title={error} />
             )}
 
-            {(
-              <VStack gap={8}>
+            <VStack gap={8}>
                 {/* 기관 정보 — 이 섹션만 읽기/편집이 바뀐다.
                     예전에는 편집에 들어가면 페이지 전체가 폼으로 바뀌어 구독·직인·홈페이지가 통째로 사라졌다. */}
                 <ProfileSection
@@ -577,7 +586,7 @@ export default function OrganizationProfilePage() {
                   {/* 기관 정보 카드 */}
                   <Card padding={5} height="100%">
                     <HStack gap={3} vAlign="center">
-                      <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Icon icon={IconBuilding} size="md" color="accent" />
                       </div>
                       <VStack gap={0.5}>
@@ -590,7 +599,7 @@ export default function OrganizationProfilePage() {
                   {/* 위치 정보 카드 */}
                   <Card padding={5} height="100%">
                     <HStack gap={3} vAlign="center">
-                      <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Icon icon={IconMapPin} size="md" color="secondary" />
                       </div>
                       <VStack gap={0.5}>
@@ -618,6 +627,9 @@ export default function OrganizationProfilePage() {
                         <FileInput
                           label="내 프로필 사진"
                           accept="image/jpeg,image/png,image/webp"
+                          // 안내 문구(5MB 이하)만 있고 실제로는 강제되지 않았다 — 초과 파일은
+                          // FileInput이 자동으로 거부하고(onChange에 null) 에러 상태를 보여준다.
+                          maxSize={5 * 1024 * 1024}
                           value={profileImageFile}
                           onChange={(files) => {
                             const file = Array.isArray(files) ? files[0] ?? null : files;
@@ -846,7 +858,7 @@ export default function OrganizationProfilePage() {
                     <Card variant="blue" padding={5} height="100%">
                       <VStack gap={4} height="100%">
                         <HStack gap={3} vAlign="center">
-                          <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon icon={IconKey} size="md" color="accent" />
                           </div>
                           <VStack gap={0.5}>
@@ -868,7 +880,7 @@ export default function OrganizationProfilePage() {
                       // 옆 카드와 같은 모양으로 맞춘다 (Banner는 높이가 늘지 않아 짝이 맞지 않았다)
                       <Card padding={5} height="100%">
                         <HStack gap={3} vAlign="center">
-                          <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon icon="info" size="md" color="secondary" />
                           </div>
                           <VStack gap={0.5}>
@@ -881,7 +893,7 @@ export default function OrganizationProfilePage() {
                       <Card variant="red" padding={5} height="100%">
                         <VStack gap={4} height="100%">
                           <HStack gap={3} vAlign="center">
-                            <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon icon={IconTrash} size="md" color="error" />
                             </div>
                             <VStack gap={0.5}>
@@ -900,8 +912,7 @@ export default function OrganizationProfilePage() {
                     )}
                   </Grid>
                 </ProfileSection>
-              </VStack>
-            )}
+            </VStack>
           </VStack>
       </motion.div>
 
@@ -1159,6 +1170,7 @@ export default function OrganizationProfilePage() {
           }
         />
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }

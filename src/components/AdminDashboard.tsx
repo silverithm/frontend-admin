@@ -6,6 +6,7 @@ import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { Text } from '@astryxdesign/core/Text';
 import { ClickableRow } from '@/components/ClickableRow';
+import DashboardClock from '@/components/DashboardClock';
 import { Card } from '@astryxdesign/core/Card';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
@@ -218,7 +219,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [todayVacationCount, setTodayVacationCount] = useState(0);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [monthlySchedules, setMonthlySchedules] = useState<ScheduleItem[]>([]);
-  const [currentTime, setCurrentTime] = useState(format(new Date(), 'HH:mm:ss'));
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
   const [showDaySchedules, setShowDaySchedules] = useState(false);
@@ -279,13 +279,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(format(new Date(), 'HH:mm:ss'));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -332,10 +325,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         return [];
       };
 
+      // 디버그용 console.log 제거 — 실패 로그(console.error)만 남긴다
       results.forEach((r, i) => {
-        if (r.status === 'fulfilled') {
-          console.log(`[Dashboard] API[${i}] response keys:`, r.value && typeof r.value === 'object' ? Object.keys(r.value as object) : typeof r.value);
-        } else {
+        if (r.status === 'rejected') {
           console.error(`[Dashboard] API[${i}] failed:`, r.reason);
         }
       });
@@ -900,9 +892,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             {format(new Date(), 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
           </Text>
         </HStack>
-        <div className="carev-dash-clock" style={{ textAlign: 'right' }}>
-          <Text type="body" weight="bold" color="secondary" hasTabularNumbers>{currentTime}</Text>
-        </div>
+        {/* 1초마다 갱신되는 시계만 별도 컴포넌트로 분리 — 대시보드 전체 리렌더 방지 */}
+        <DashboardClock />
       </motion.div>
 
       {/* 상단 통계 줄은 없앴다 — 같은 수치를 각 패널 안에서 보고 있어 한 줄을 통째로 쓰는 값이

@@ -567,7 +567,9 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
               {looksLikeHtml(post.content) ? (
                 <div
                   className="carev-richtext-view"
-                  style={{ minHeight: 80, fontSize: 'var(--font-size-md, 15px)', color: 'var(--color-text-primary)' }}
+                  /* --font-size-md는 존재하지 않는 토큰이라 항상 폴백(15px)만 적용되던 문제 —
+                     실존 토큰인 --font-size-base로 교체 (하단 평문 폴백의 Text type="body"와 크기 통일) */
+                  style={{ minHeight: 80, fontSize: 'var(--font-size-base)', color: 'var(--color-text-primary)' }}
                   dangerouslySetInnerHTML={{ __html: sanitizeContent(post.content) }}
                 />
               ) : (

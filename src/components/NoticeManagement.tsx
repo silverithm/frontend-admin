@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiChevronLeft, FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiRefreshCw, FiPlus, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
+import { FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiRefreshCw, FiPlus, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -89,6 +89,8 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
   const [stats, setStats] = useState<NoticeStats>({ total: 0, published: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  // 검색 디바운스 — PlazaBoard.tsx와 동일 패턴(300ms), 타이핑마다 목록 API가 호출되던 문제 수정
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
   // 케어브이 시스템 공지 — 커뮤니티에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
   const [officialNotices, setOfficialNotices] = useState<ApiOfficialNotice[]>([]);
@@ -141,7 +143,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
     try {
       const filter: { status?: string; searchQuery?: string } = {};
       if (activeTab === 'published') filter.status = 'PUBLISHED';
-      if (searchQuery) filter.searchQuery = searchQuery;
+      if (debouncedSearchQuery) filter.searchQuery = debouncedSearchQuery;
 
       const response = await getNotices(filter);
       if (response.notices) {
@@ -201,9 +203,17 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
     }
   };
 
+  // 입력값을 300ms 지연 후 반영 — 타이핑마다 API를 호출하지 않도록
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     loadNotices();
-  }, [activeTab, searchQuery]);
+  }, [activeTab, debouncedSearchQuery]);
 
   // 공지사항 선택
   const handleSelectNotice = (id: string) => {

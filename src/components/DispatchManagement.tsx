@@ -50,15 +50,12 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
       // 응답 형식: { requests: [...] }
       if (response.requests && Array.isArray(response.requests)) {
-        console.log("휴무 데이터 개수:", response.requests.length);
-        console.log("휴무자 샘플:", response.requests.slice(0, 5).map((v: VacationRequest) => ({ userName: v.userName, date: v.date })));
+        // 직원 실명·휴무 데이터가 콘솔에 노출되는 디버그 로그였어서 제거
         setVacations(response.requests);
       } else if (Array.isArray(response.data)) {
         setVacations(response.data);
       } else if (Array.isArray(response)) {
         setVacations(response);
-      } else {
-        console.log("휴무 데이터 형식 불명:", response);
       }
     } catch (error) {
       console.error("휴무 데이터 로드 실패:", error);
@@ -80,13 +77,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
   // 월간 요약 정보 계산 (일요일 = 휴일, 나머지 = 정상 운행)
   useEffect(() => {
     if (isHydrated && settings.routes.length > 0) {
-      // 디버깅: 노선별 운전자 이름 확인
-      console.log("노선별 운전자:", settings.routes.map(r => ({
-        routeName: r.name,
-        drivers: r.routeDrivers?.map(d => d.driverName)
-      })));
-      console.log("휴무 데이터 수:", vacations.length);
-
+      // 직원 실명이 담긴 디버그 로그였어서 제거
       const summary = getMonthlyDispatchSummary(
         currentDate.getFullYear(),
         currentDate.getMonth(),
