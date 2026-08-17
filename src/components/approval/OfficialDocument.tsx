@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { Fragment, useRef } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiPrinter } from 'react-icons/fi';
@@ -8,7 +8,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { HStack } from '@astryxdesign/core/Stack';
 import { ApprovalRequest, ApprovalStep, DocumentFooter } from '@/types/approval';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
-import { chunkRowForDocTable, formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
+import { chunkRowForDocTable, docRowColumnTemplate, formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
 import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 
@@ -157,29 +157,19 @@ function DocumentFieldsTable({
           );
         }
 
-        if (row.length === 2) {
-          const spans = row.map((field) => getFieldSpan(field.width));
-          const totalSpan = spans[0] + spans[1] || 1;
-          const valuePercents = spans.map((span) => ((span / totalSpan) * 64).toFixed(2));
-          return (
-            <div
-              key={`row-${rowIndex}`}
-              className="carev-doc-field-row"
-              style={{ gridTemplateColumns: `18% ${valuePercents[0]}% 18% ${valuePercents[1]}%` }}
-            >
-              <div className="carev-doc-field-label">{row[0].label}</div>
-              <div className="carev-doc-field-value">{formatFieldValueText(row[0], formData)}</div>
-              <div className="carev-doc-field-label">{row[1].label}</div>
-              <div className="carev-doc-field-value">{formatFieldValueText(row[1], formData)}</div>
-            </div>
-          );
-        }
-
-        const field = row[0] as FormFieldSchema;
+        // 한 줄에 들어온 필드를 그대로 편다 — 1/3 셋, 1/4 넷도 한 줄에 놓인다
         return (
-          <div key={`row-${rowIndex}`} className="carev-doc-field-row" style={{ gridTemplateColumns: '18% 1fr' }}>
-            <div className="carev-doc-field-label">{field.label}</div>
-            <div className="carev-doc-field-value">{formatFieldValueText(field, formData)}</div>
+          <div
+            key={`row-${rowIndex}`}
+            className="carev-doc-field-row"
+            style={{ gridTemplateColumns: docRowColumnTemplate(row) }}
+          >
+            {row.map((field) => (
+              <Fragment key={field.id}>
+                <div className="carev-doc-field-label">{field.label}</div>
+                <div className="carev-doc-field-value">{formatFieldValueText(field, formData)}</div>
+              </Fragment>
+            ))}
           </div>
         );
       })}

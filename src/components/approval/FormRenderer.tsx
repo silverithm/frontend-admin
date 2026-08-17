@@ -21,7 +21,7 @@ import { NumberInput } from '@astryxdesign/core/NumberInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
-import { chunkRowForDocTable, groupFieldsIntoRows } from './formValueFormat';
+import { chunkRowForDocTable, docRowColumnTemplate, groupFieldsIntoRows } from './formValueFormat';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Divider } from '@astryxdesign/core/Divider';
@@ -681,32 +681,19 @@ export default function FormRenderer({
                 );
               }
 
-              if (row.length === 2) {
-                // 라벨 두 칸은 고정폭(18%×2)을 유지하고, 값 두 칸만 필드에 설정된 너비 비율대로 나눈다
-                const spans = row.map((field) => getFieldSpan(field.width));
-                const totalSpan = spans[0] + spans[1] || 1;
-                const valueTotalPercent = 100 - 18 * 2;
-                const valuePercents = spans.map((span) => ((span / totalSpan) * valueTotalPercent).toFixed(2));
-                return (
-                  <div
-                    key={rowIndex}
-                    className="carev-doc-field-row"
-                    style={{ gridTemplateColumns: `18% ${valuePercents[0]}% 18% ${valuePercents[1]}%` }}
-                  >
-                    {row.map((field) => (
-                      <Fragment key={field.id}>
-                        <div className="carev-doc-field-label">{field.label}{field.required ? ' *' : ''}</div>
-                        <div className="carev-doc-field-value">{renderDocControl(field)}</div>
-                      </Fragment>
-                    ))}
-                  </div>
-                );
-              }
-
+              // 한 줄에 들어온 필드를 그대로 편다 — 폭은 12칼럼 기준(docRowColumnTemplate)
               return (
-                <div key={rowIndex} className="carev-doc-field-row" style={{ gridTemplateColumns: '18% 1fr' }}>
-                  <div className="carev-doc-field-label">{row[0].label}{row[0].required ? ' *' : ''}</div>
-                  <div className="carev-doc-field-value">{renderDocControl(row[0])}</div>
+                <div
+                  key={rowIndex}
+                  className="carev-doc-field-row"
+                  style={{ gridTemplateColumns: docRowColumnTemplate(row) }}
+                >
+                  {row.map((field) => (
+                    <Fragment key={field.id}>
+                      <div className="carev-doc-field-label">{field.label}{field.required ? ' *' : ''}</div>
+                      <div className="carev-doc-field-value">{renderDocControl(field)}</div>
+                    </Fragment>
+                  ))}
                 </div>
               );
             })}

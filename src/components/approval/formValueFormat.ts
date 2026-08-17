@@ -154,14 +154,34 @@ export function groupFieldsIntoRows(fields: FormFieldSchema[]): FormFieldSchema[
 }
 
 /**
- * 문서 표는 한 행에 최대 2필드(라벨+값 4셀)만 담을 수 있다.
- * 1/3·1/4 폭으로 3개 이상 묶인 행을 2개씩 쪼개 필드 유실을 막는다.
+ * 문서 표의 한 행을 그릴 수 있는 단위로 쪼갠다.
+ *
+ * 예전에는 <table>이라 한 행에 최대 2필드(라벨+값 4셀)만 담을 수 있어 여기서 2개씩 잘랐고,
+ * 그래서 1/3 세 개를 한 줄에 놓은 양식이 "둘 + 하나"로 밀려 내려갔다.
+ * 지금은 행마다 독립된 grid로 그리므로 12칼럼에 들어가는 만큼 그대로 한 줄에 둔다.
  */
 export function chunkRowForDocTable(row: FormFieldSchema[]): FormFieldSchema[][] {
-  if (row.length <= 2) return [row];
-  const chunks: FormFieldSchema[][] = [];
-  for (let i = 0; i < row.length; i += 2) {
-    chunks.push(row.slice(i, i + 2));
-  }
-  return chunks;
+  return [row];
+}
+
+/**
+ * 한 행의 칸 폭(%)을 12칼럼 기준으로 계산한다.
+ *
+ * 라벨은 읽히는 최소 폭을 지켜야 해서 개수에 따라 줄이고(2개면 18%씩 — 예전과 같음),
+ * 남는 자리를 각 필드의 span 비율대로 나눈다. 그래서 1/3은 1/2보다 실제로 좁게 나온다.
+ * (예전에는 그 줄 안에서의 상대 비율로만 계산해 1/3+1/3과 1/2+1/2이 똑같이 보였다)
+ */
+export function docRowColumnTemplate(row: FormFieldSchema[]): string {
+  const count = Math.max(row.length, 1);
+  const labelPercent = Math.min(18, 44 / count);
+  const valueTotal = 100 - labelPercent * count;
+  const spans = row.map((field) => getFieldSpan(field.width));
+  const spanTotal = spans.reduce((sum, span) => sum + span, 0) || 1;
+
+  return row
+    .map((_, index) => {
+      const valuePercent = (valueTotal * spans[index]) / spanTotal;
+      return `${labelPercent.toFixed(2)}% ${valuePercent.toFixed(2)}%`;
+    })
+    .join(' ');
 }
