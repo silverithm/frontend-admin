@@ -774,6 +774,46 @@ export default function EmployeeApproval() {
   const isWideModal = selectedTemplateInfo?.templateType === 'form' || selectedTemplateInfo?.templateType === 'hybrid';
 
   // 파일 첨부 드롭존 (공용 렌더)
+  /**
+   * 파일 양식(HWP·워드 등)을 작성 화면에서 바로 여는 버튼들.
+   *
+   * 전에는 한글 양식에만 '웹에서 바로 작성'이 있었고, 그 외 형식은 양식이 어떻게 생겼는지
+   * 보려면 내려받아야 했다. 양식 다운로드 탭이 이미 하는 일이라 같은 뷰어를 여기서도 쓴다.
+   * 한글은 편집까지 되므로 '보기'와 '작성'을 나눠 둔다 — 그냥 확인만 하고 싶을 때
+   * 편집기가 열리면 부담스럽다.
+   */
+  const renderTemplateFileActions = () => {
+    const fileUrl = selectedTemplateInfo?.fileUrl;
+    if (!fileUrl) return null;
+    const fileName = selectedTemplateInfo?.fileName;
+    const editable = isHwpFile(fileName);
+
+    return (
+      <HStack gap={2} wrap="wrap">
+        <Button
+          label="양식 바로 보기"
+          variant="secondary"
+          icon={<Icon icon={FiEye} />}
+          onClick={() => setViewer({ fileUrl, fileName })}
+        />
+        {editable && (
+          <Button
+            label="양식을 웹에서 바로 작성 (다운로드 불필요)"
+            variant="primary"
+            icon={<Icon icon={FiEdit3} />}
+            onClick={() => setViewer({ fileUrl, fileName, authoring: true })}
+          />
+        )}
+        <Button
+          label="다운로드"
+          variant="ghost"
+          icon={<Icon icon={FiDownload} />}
+          onClick={() => selectedTemplateInfo && handleDownloadTemplate(selectedTemplateInfo)}
+        />
+      </HStack>
+    );
+  };
+
   const renderFileDropzone = (label: string = '작성한 양식 첨부') => (
     <FileInput
       label={label}
@@ -1125,20 +1165,9 @@ export default function EmployeeApproval() {
 
                 {/* templateType에 따른 분기 */}
                 {(!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
-                  /* 파일 양식: 기존 파일 업로드 UI */
+                  /* 파일 양식: 양식을 먼저 보고, 작성한 파일을 첨부한다 */
                   <VStack gap={2}>
-                    {selectedTemplateInfo?.fileUrl && isHwpFile(selectedTemplateInfo.fileName) && (
-                      <Button
-                        label="양식을 웹에서 바로 작성 (다운로드 불필요)"
-                        variant="primary"
-                        icon={<Icon icon={FiEdit3} />}
-                        onClick={() => setViewer({
-                          fileUrl: selectedTemplateInfo.fileUrl,
-                          fileName: selectedTemplateInfo.fileName,
-                          authoring: true,
-                        })}
-                      />
-                    )}
+                    {renderTemplateFileActions()}
                     {renderFileDropzone('작성한 양식 첨부')}
                   </VStack>
                 )}
@@ -1183,18 +1212,7 @@ export default function EmployeeApproval() {
                       <Banner status="success" title="온라인 양식이 확인되었습니다." />
                     )}
                     <VStack gap={2}>
-                      {selectedTemplateInfo.fileUrl && isHwpFile(selectedTemplateInfo.fileName) && (
-                        <Button
-                          label="양식을 웹에서 바로 작성 (다운로드 불필요)"
-                          variant="primary"
-                          icon={<Icon icon={FiEdit3} />}
-                          onClick={() => setViewer({
-                            fileUrl: selectedTemplateInfo.fileUrl,
-                            fileName: selectedTemplateInfo.fileName,
-                            authoring: true,
-                          })}
-                        />
-                      )}
+                      {renderTemplateFileActions()}
                       {renderFileDropzone('추가 파일 첨부')}
                     </VStack>
                   </VStack>
