@@ -6,6 +6,9 @@ import { ko } from 'date-fns/locale';
 import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { FormSchema } from '@/types/formSchema';
+import DocumentViewerModal from '@/components/DocumentViewerModal';
+import OfficialDocument from '@/components/approval/OfficialDocument';
+import { buildSampleApproval } from '@/components/approval/templatePreview';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -25,7 +28,7 @@ import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApproverCandidate } from '@/types/approval';
-import { FiPlus, FiDownload, FiEdit2, FiTrash2, FiUploadCloud, FiFileText, FiFolder } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder } from 'react-icons/fi';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
   DEFAULT_TEMPLATE_CATEGORIES,
@@ -34,6 +37,21 @@ import {
 
 /** '+ 새 대분류 직접 입력' 셀렉터 항목의 내부 값 */
 const NEW_CATEGORY_VALUE = '__new__';
+
+/** 기본 결재선은 문자열(JSON)로 오기도 한다 — 미리보기 결재란에 그대로 보여주려고 푼다 */
+function parseDefaultLine(value: unknown): ApproverCandidate[] | undefined {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value as ApproverCandidate[];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as ApproverCandidate[]) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
 
 export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: boolean }) {
   const { showAlert, AlertContainer } = useAlert();
@@ -71,8 +89,16 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** 상태 토글 버튼에 마우스를 올린 행 — 라벨을 '누르면 될 결과'로 바꿔 보여준다 */
   const [hoveredToggleId, setHoveredToggleId] = useState<string | number | null>(null);
+  /** 목록에서 바로 여는 미리보기 — 편집 화면에 들어가지 않고 모습만 확인한다 */
+  const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
+  /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
+  const [companyName, setCompanyName] = useState('');
 
   // 템플릿 로드
+  useEffect(() => {
+    setCompanyName(localStorage.getItem('companyName') || localStorage.getItem('organizationName') || '');
+  }, []);
+
   useEffect(() => {
     loadTemplates();
   }, []);
@@ -686,6 +712,14 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                             <IconButton
                               variant="ghost"
                               size="sm"
+                              label="미리보기"
+                              tooltip="미리보기"
+                              icon={<Icon icon={FiEye} size="sm" />}
+                              onClick={() => setPreviewTemplate(template)}
+                            />
+                            <IconButton
+                              variant="ghost"
+                              size="sm"
                               label="편집"
                               tooltip="편집"
                               icon={<Icon icon={FiEdit2} size="sm" />}
@@ -957,6 +991,45 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           }
         />
       </Dialog>
+      {/* 목록에서 바로 보는 미리보기 — 서식은 공문 모습으로, 파일 양식은 문서 뷰어로 */}
+      {previewTemplate && (() => {
+        const raw = previewTemplate.formSchema;
+        const schema: FormSchema | undefined = typeof raw === 'string'
+          ? (() => { try { return JSON.parse(raw) as FormSchema; } catch { return undefined; } })()
+          : (raw as FormSchema | undefined);
+
+        if (!schema?.fields?.length && previewTemplate.fileUrl) {
+          return (
+            <DocumentViewerModal
+              fileUrl={previewTemplate.fileUrl}
+              fileName={previewTemplate.fileName || previewTemplate.name}
+              onClose={() => setPreviewTemplate(null)}
+            />
+          );
+        }
+
+        return (
+          <Dialog isOpen onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }} purpose="info" width={960} maxHeight="95vh">
+            <Layout
+              header={<DialogHeader title={`${previewTemplate.name} 미리보기`} onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }} />}
+              content={
+                <LayoutContent>
+                  {schema?.fields?.length ? (
+                    <OfficialDocument
+                      approval={buildSampleApproval(schema, previewTemplate.name, parseDefaultLine(previewTemplate.defaultApprovalLine))}
+                      schema={schema}
+                      companyName={companyName}
+                      showPrintButton={false}
+                    />
+                  ) : (
+                    <Text type="body" color="secondary">미리볼 서식이 없습니다. 편집에서 항목을 추가해주세요.</Text>
+                  )}
+                </LayoutContent>
+              }
+            />
+          </Dialog>
+        );
+      })()}
     </>
   );
 }
