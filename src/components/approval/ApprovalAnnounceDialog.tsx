@@ -4,8 +4,15 @@
  * 최종 승인된 공문을 채팅방 공지로 올리는 창.
  *
  * 채팅 공지는 "방에 올라온 메시지 하나를 상단에 고정"하는 구조라, 여기서도 같은 길을 쓴다 —
- * 공문 요약을 메시지로 보낸 뒤 그 메시지를 공지로 지정한다. 그래야 직원이 공지를 눌렀을 때
- * 원본 메시지로 이동하는 기존 동작이 그대로 살아난다.
+ * 공문 요약을 메시지로 보낸 뒤 그 메시지를 공지로 지정한다.
+ *
+ * 공문 파일(첨부가 있으면 그 파일, 없으면 렌더된 공문을 PDF로 만든 것)도 같은 방에 파일
+ * 메시지로 함께 올린다. 이 파일 메시지는 공지로 고정하지 않고 요약 텍스트 메시지를 고정한다 —
+ * 방 공지 스냅샷(noticeContent)은 백엔드가 파일 메시지의 본문이 비면 파일명으로 대신 채우는데,
+ * 그러면 공지에 "공문_상반기휴가신청_2026-08-17.pdf" 한 줄만 남아 문서번호·승인자·기안자가
+ * 요약된 지금의 공지보다 정보량이 크게 준다. 원본 메시지로 이동하는 클릭 동작은 지금 코드에
+ * 아직 없어 어느 쪽을 고정해도 그 자체로 깨지는 기능은 없으므로, 더 읽기 좋은 텍스트 쪽을 고정으로
+ * 남긴다.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -21,8 +28,9 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
 import { Loading } from '@/components/Loading';
 import { ApprovalRequest } from '@/types/approval';
-import { fetchChatRooms, sendChatMessage, updateChatRoomNotice } from '@/lib/apiService';
+import { fetchChatRooms, sendChatMessage, updateChatRoomNotice, uploadChatFile } from '@/lib/apiService';
 import { getMyChatUserId } from '@/lib/chatIdentity';
+import { buildApprovalDocumentFile } from '@/lib/approvalDocumentFile';
 
 interface ChatRoomOption {
     id: number;
@@ -75,7 +83,9 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
     const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
     const [message, setMessage] = useState(() => buildAnnouncement(approval));
     const [isSending, setIsSending] = useState(false);
+    const [progressLabel, setProgressLabel] = useState('');
     const [error, setError] = useState('');
+    const [fileWarning, setFileWarning] = useState('');
 
     useEffect(() => {
         let cancelled = false;
@@ -106,6 +116,8 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
     );
 
     const canSend = selectedRoomIds.length > 0 && message.trim().length > 0 && !isSending;
+    // 전부 성공했지만 파일 쪽에 문제가 있었던 경우 — 재전송(중복 공지)을 막고 확인 후 닫기만 시킨다
+    const isDoneWithFileWarning = !isSending && !error && Boolean(fileWarning);
 
     const handleSend = async () => {
         const senderId = getMyChatUserId();
@@ -116,16 +128,43 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
 
         setIsSending(true);
         setError('');
+        setFileWarning('');
 
         const content = message.trim().slice(0, NOTICE_MAX_LENGTH);
+
+        // 공문 파일은 방마다 다르지 않으니 한 번만 만들어 모든 방에 재사용한다.
+        // 만들지 못해도(렌더 DOM 없음, 첨부 다운로드 실패, 용량 초과 등) 텍스트 공지는 그대로 진행한다.
+        setProgressLabel('공문 파일을 준비하는 중...');
+        let documentFile: File | null = null;
+        let fileIssueMessage = '';
+        try {
+            documentFile = await buildApprovalDocumentFile(approval);
+        } catch (e) {
+            console.error('공문 파일 준비 실패:', e);
+            fileIssueMessage = '공문 파일을 준비하지 못해 요약 내용만 공지로 등록됩니다';
+        }
+
         const succeeded: string[] = [];
         const failed: string[] = [];
+        let fileUploadFailedCount = 0;
 
         // 방마다 따로 보낸다 — 한 방이 실패해도 나머지는 올라가야 한다
-        for (const roomId of selectedRoomIds) {
+        for (let i = 0; i < selectedRoomIds.length; i++) {
+            const roomId = selectedRoomIds[i];
             const room = rooms.find(r => String(r.id) === roomId);
             const roomName = room?.name || `방 ${roomId}`;
+            setProgressLabel(`${roomName}에 올리는 중... (${i + 1}/${selectedRoomIds.length})`);
             try {
+                if (documentFile) {
+                    try {
+                        await uploadChatFile(Number(roomId), documentFile, senderId, senderName);
+                    } catch (fileError) {
+                        // 파일 업로드가 실패해도 이 방의 텍스트 공지는 계속 진행한다
+                        console.error(`공문 파일 업로드 실패 (roomId=${roomId}):`, fileError);
+                        fileUploadFailedCount += 1;
+                    }
+                }
+
                 const sent = await sendChatMessage(Number(roomId), {
                     senderId,
                     senderName,
@@ -144,6 +183,13 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
         }
 
         setIsSending(false);
+        setProgressLabel('');
+        if (documentFile && fileUploadFailedCount > 0) {
+            fileIssueMessage = fileUploadFailedCount === selectedRoomIds.length
+                ? '공문 파일 업로드에 실패해 요약 내용만 공지로 등록됐습니다'
+                : `${fileUploadFailedCount}개 방에는 공문 파일 업로드가 실패해 요약 내용만 올라갔습니다`;
+        }
+        if (fileIssueMessage) setFileWarning(fileIssueMessage);
 
         if (failed.length > 0) {
             setError(
@@ -160,6 +206,8 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
         }
 
         onDone?.(succeeded);
+        // 파일 관련 경고가 있으면 사용자가 내용을 확인하고 직접 닫도록 남겨둔다
+        if (fileIssueMessage) return;
         onClose();
     };
 
@@ -173,11 +221,19 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
                             <Banner
                                 status="info"
                                 container="section"
-                                title="선택한 방에 아래 내용이 올라가고, 그 메시지가 방 공지로 고정됩니다"
+                                title="선택한 방에 공문 파일과 아래 내용이 함께 올라가고, 요약 메시지가 방 공지로 고정됩니다"
                             />
 
                             {error && (
                                 <Banner status="error" container="section" title={error} />
+                            )}
+
+                            {fileWarning && (
+                                <Banner status="warning" container="section" title={fileWarning} />
+                            )}
+
+                            {isSending && progressLabel && (
+                                <Loading size="inline" label={progressLabel} />
                             )}
 
                             <VStack gap={2}>
@@ -188,6 +244,7 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
                                     value={message}
                                     onChange={(value: string) => setMessage(value.slice(0, NOTICE_MAX_LENGTH))}
                                     rows={7}
+                                    isDisabled={isSending}
                                 />
                                 <Text type="supporting" color="secondary">
                                     {message.length} / {NOTICE_MAX_LENGTH}자
@@ -206,6 +263,7 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
                                         label={`올릴 채팅방 (${selectedRoomIds.length}개 선택)`}
                                         value={selectedRoomIds}
                                         onChange={setSelectedRoomIds}
+                                        isDisabled={isSending}
                                     >
                                         {rooms.map(room => (
                                             <CheckboxListItem
@@ -225,15 +283,21 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
                 footer={
                     <LayoutFooter hasDivider>
                         <HStack gap={2} hAlign="end">
-                            <Button label="취소" variant="secondary" isDisabled={isSending} onClick={onClose} />
-                            <Button
-                                label={isSending ? '올리는 중...' : '공지로 등록'}
-                                variant="primary"
-                                icon={<Icon icon={FiVolume2} size="sm" />}
-                                isLoading={isSending}
-                                isDisabled={!canSend}
-                                onClick={handleSend}
-                            />
+                            {isDoneWithFileWarning ? (
+                                <Button label="확인" variant="primary" onClick={onClose} />
+                            ) : (
+                                <>
+                                    <Button label="취소" variant="secondary" isDisabled={isSending} onClick={onClose} />
+                                    <Button
+                                        label={isSending ? '올리는 중...' : '공지로 등록'}
+                                        variant="primary"
+                                        icon={<Icon icon={FiVolume2} size="sm" />}
+                                        isLoading={isSending}
+                                        isDisabled={!canSend}
+                                        onClick={handleSend}
+                                    />
+                                </>
+                            )}
                         </HStack>
                     </LayoutFooter>
                 }
