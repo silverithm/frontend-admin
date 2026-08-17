@@ -36,9 +36,12 @@ export async function generateOfficialDocumentPdf(approval: ApprovalRequest): Pr
   }
 
   // 인쇄 버튼 등 화면 전용 요소는 문서에 포함하지 않는다 (carev-doc-noprint)
-  const dataUrl = await htmlToImage.toPng(element, {
+  // PNG는 A4 한 장에 수 MB가 나와 업로드 프록시(Vercel)의 요청 본문 한도(4.5MB)에
+  // 걸린다 — 흰 배경 문서는 JPEG 고품질이면 수백 KB로 충분하다.
+  const dataUrl = await htmlToImage.toJpeg(element, {
     backgroundColor: '#ffffff',
     pixelRatio: 2,
+    quality: 0.92,
     width: element.scrollWidth,
     height: element.scrollHeight,
     filter: (node) => !(node instanceof HTMLElement && node.classList.contains('carev-doc-noprint')),
@@ -52,13 +55,13 @@ export async function generateOfficialDocumentPdf(approval: ApprovalRequest): Pr
 
   let heightLeft = imgHeight;
   let position = 0;
-  pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
+  pdf.addImage(dataUrl, 'JPEG', 0, position, imgWidth, imgHeight);
   heightLeft -= pageHeight;
 
   while (heightLeft > 0) {
     position = heightLeft - imgHeight;
     pdf.addPage();
-    pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
+    pdf.addImage(dataUrl, 'JPEG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
   }
 
