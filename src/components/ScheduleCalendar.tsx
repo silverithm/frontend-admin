@@ -1152,7 +1152,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         aria-valuemax={100}
                         style={{ width: 120, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
                       >
-                        <div style={{ width: `${monthProgress.percent}%`, height: '100%', background: 'var(--color-background-green)', transition: 'width var(--duration-fast) var(--ease-standard)' }} />
+                        {/* 폭 대신 scaleX를 움직인다 — 폭을 애니메이션하면 매 프레임 레이아웃을 다시 계산한다 */}
+                        <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${monthProgress.percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
                       </div>
                       <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{monthProgress.percent}%</Text>
                     </HStack>
@@ -1900,7 +1901,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                   aria-valuemax={100}
                                   style={{ width: 100, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
                                 >
-                                  <div style={{ width: `${percent}%`, height: '100%', background: 'var(--color-background-green)', transition: 'width var(--duration-fast) var(--ease-standard)' }} />
+                                  <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
                                 </div>
                                 <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{percent}%</Text>
                               </HStack>

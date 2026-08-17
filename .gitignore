@@ -47,3 +47,8 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+# impeccable — 디자인 검사 도구. npx impeccable install로 각자 설치한다
+# (3.4MB짜리 도구를 저장소에 넣는 대신 install/update로 최신을 받는다)
+.claude/skills/
+.impeccable/

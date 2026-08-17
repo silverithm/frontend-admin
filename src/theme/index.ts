@@ -54,6 +54,7 @@ export const tokens = {
     normal: '410ms',
     slow: '975ms',
     curve: 'cubic-bezier(0.24, 1, 0.4, 1)',
-    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    // 되튀는 이징(cubic-bezier(0.68, -0.55, …))은 쓰는 곳이 없어 지웠다.
+    // 실제 물체는 튕기지 않고 감속한다 — 필요하면 curve를 쓴다.
   },
 } as const;
