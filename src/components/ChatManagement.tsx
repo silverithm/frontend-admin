@@ -81,6 +81,8 @@ interface ChatRoom {
     noticeContent?: string | null;
     noticeByName?: string | null;
     noticeAt?: string | null;
+    noticeFileName?: string | null;
+    noticeFileUrl?: string | null;
 }
 
 interface WebSocketMessage {
@@ -1263,6 +1265,33 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         </div>
                                         {room.noticeByName && (
                                             <Text type="supporting" color="secondary">{room.noticeByName} 등록</Text>
+                                        )}
+                                        {room.noticeFileUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isViewableDocument(room.noticeFileName ?? undefined)) {
+                                                        setViewerFile({ fileUrl: room.noticeFileUrl!, fileName: room.noticeFileName || "문서" });
+                                                    } else {
+                                                        window.open(room.noticeFileUrl!, "_blank", "noopener");
+                                                    }
+                                                }}
+                                                style={{
+                                                    fontSize: 'var(--font-size-sm)',
+                                                    textDecoration: "underline",
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    gap: 'var(--spacing-1)',
+                                                    color: C.accent,
+                                                    background: "none",
+                                                    border: "none",
+                                                    padding: 0,
+                                                    cursor: "pointer",
+                                                    textAlign: "left",
+                                                }}
+                                            >
+                                                📎 {room.noticeFileName || "첨부 파일"}
+                                            </button>
                                         )}
                                     </div>
                                     <HStack gap={1}>

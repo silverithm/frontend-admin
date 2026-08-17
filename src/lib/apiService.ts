@@ -2535,11 +2535,14 @@ export async function searchChatMessages(roomId: number, keyword: string) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/search?keyword=${encodeURIComponent(keyword)}`);
 }
 
-/** 방 공지 설정/해제 — messageId가 null이면 공지를 내린다 */
-export async function updateChatRoomNotice(roomId: number, messageId: number | null, setByName: string) {
+/**
+ * 방 공지 설정/해제 — messageId가 null이면 공지를 내린다.
+ * fileMessageId를 함께 주면 그 파일 메시지의 파일명·URL이 공지에 스냅샷된다.
+ */
+export async function updateChatRoomNotice(roomId: number, messageId: number | null, setByName: string, fileMessageId?: number | null) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/notice`, {
         method: 'PUT',
-        body: JSON.stringify({ messageId, setByName }),
+        body: JSON.stringify({ messageId, setByName, fileMessageId }),
     });
 }
 

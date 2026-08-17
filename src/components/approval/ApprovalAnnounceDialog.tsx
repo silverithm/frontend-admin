@@ -155,9 +155,12 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
             const roomName = room?.name || `방 ${roomId}`;
             setProgressLabel(`${roomName}에 올리는 중... (${i + 1}/${selectedRoomIds.length})`);
             try {
+                let fileMessageId: number | null = null;
                 if (documentFile) {
                     try {
-                        await uploadChatFile(Number(roomId), documentFile, senderId, senderName);
+                        const uploaded = await uploadChatFile(Number(roomId), documentFile, senderId, senderName);
+                        const uploadedId = uploaded?.message?.id ?? uploaded?.id;
+                        fileMessageId = uploadedId ? Number(uploadedId) : null;
                     } catch (fileError) {
                         // 파일 업로드가 실패해도 이 방의 텍스트 공지는 계속 진행한다
                         console.error(`공문 파일 업로드 실패 (roomId=${roomId}):`, fileError);
@@ -174,7 +177,7 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
                 const messageId = sent?.message?.id ?? sent?.id;
                 if (!messageId) throw new Error('메시지 id를 받지 못했습니다');
 
-                await updateChatRoomNotice(Number(roomId), Number(messageId), senderName);
+                await updateChatRoomNotice(Number(roomId), Number(messageId), senderName, fileMessageId);
                 succeeded.push(roomName);
             } catch (e) {
                 console.error(`공지 등록 실패 (roomId=${roomId}):`, e);
