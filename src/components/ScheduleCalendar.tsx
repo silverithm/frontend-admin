@@ -1538,6 +1538,16 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         aria-label={color.label}
                       />
                     ))}
+                    {/* 라벨 시절에 붙은 색은 이 팔레트 밖일 수 있다. 그 색을 목록에 더해 주지 않으면
+                        수정 화면에서 아무 색도 안 고른 것처럼 보인다(저장하면 값은 그대로 유지되지만). */}
+                    {formData.color && !SCHEDULE_COLORS.some((c) => c.value === formData.color) && (
+                      <button
+                        type="button"
+                        style={colorSwatchStyle(true, formData.color)}
+                        title="지금 쓰는 색"
+                        aria-label={`지금 쓰는 색 ${formData.color}`}
+                      />
+                    )}
                   </div>
                 </VStack>
 
