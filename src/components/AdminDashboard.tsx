@@ -1220,134 +1220,71 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         <div className="carev-dash-panel-full">
           <Card padding={0} height="100%">
             <VStack gap={0} height="100%">
-              <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-2)' }}>
-                <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-                  <HStack gap={2} vAlign="center">
-                    <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)' }}>
-                      <Icon icon={IconCalendar} size="sm" color="inherit" />
-                    </div>
-                    <VStack gap={0} align="start">
-                      <Text type="body" weight="bold" color="primary">월간일정</Text>
-                      <Text type="supporting" color="secondary">
-                        {format(calendarMonth, 'yyyy년 M월', { locale: ko })} · {visibleMonthlySchedules.length}건
-                        {isMonthLoading ? ' · 불러오는 중' : ''}
-                      </Text>
-                    </VStack>
-                    {/* 달 이동 — 월간일정 탭과 같은 조작 */}
-                    <HStack gap={1} vAlign="center">
-                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
-                        <IconButton
-                          label="이전 달"
-                          variant="ghost"
-                          size="sm"
-                          icon={<Icon icon="chevronLeft" size="sm" />}
-                          onClick={() => setCalendarMonth((prev) => startOfMonth(subMonths(prev, 1)))}
-                        />
-                        <IconButton
-                          label="다음 달"
-                          variant="ghost"
-                          size="sm"
-                          icon={<Icon icon="chevronRight" size="sm" />}
-                          onClick={() => setCalendarMonth((prev) => startOfMonth(addMonths(prev, 1)))}
-                        />
+                  <div style={{ padding: 'var(--spacing-3) var(--spacing-4)' }}>
+                    <div className="carev-dash-cal-head">
+                      <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)' }}>
+                        <Icon icon={IconCalendar} size="sm" color="inherit" />
                       </div>
-                      <Button
-                        label="오늘"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setCalendarMonth(startOfMonth(new Date()));
-                          setSelectedDate(new Date());
-                        }}
-                      />
-                    </HStack>
-                  </HStack>
-                  <HStack gap={3} vAlign="center">
-                    {/* 당일 휴무인원 — 상단 통계 줄을 없애고 여기로 옮겼다.
-                        달력을 보면서 "오늘 몇 명 빠지는지"를 같이 확인하는 게 실제 사용 흐름이다. */}
-                    <button
-                      type="button"
-                      onClick={() => onTabChange('work')}
-                      title={todayVacationRosterText || '오늘 휴무자 없음'}
-                      className="carev-dash-today-off"
-                    >
-                      <HStack gap={1.5} vAlign="center">
-                        <span style={{ display: 'flex', color: 'var(--color-text-yellow)' }}>
-                          <Icon icon={IconMoon} size="xsm" color="inherit" />
-                        </span>
-                        <Text type="supporting" color="secondary">오늘 휴무</Text>
-                        <Text type="supporting" weight="bold" color="primary" hasTabularNumbers>{todayVacationCount}명</Text>
+                      <VStack gap={0} align="start">
+                        <Text type="body" weight="bold" color="primary">월간일정</Text>
+                        <Text type="supporting" color="secondary">
+                          {format(calendarMonth, 'yyyy년 M월', { locale: ko })} · {visibleMonthlySchedules.length}건
+                          {isMonthLoading ? ' · 불러오는 중' : ''}
+                        </Text>
+                      </VStack>
+                      <HStack gap={1} vAlign="center">
+                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
+                          <IconButton label="이전 달" variant="ghost" size="sm" icon={<Icon icon="chevronLeft" size="sm" />} onClick={() => setCalendarMonth((prev) => startOfMonth(subMonths(prev, 1)))} />
+                          <IconButton label="다음 달" variant="ghost" size="sm" icon={<Icon icon="chevronRight" size="sm" />} onClick={() => setCalendarMonth((prev) => startOfMonth(addMonths(prev, 1)))} />
+                        </div>
+                        <Button label="오늘" variant="ghost" size="sm" onClick={() => { setCalendarMonth(startOfMonth(new Date())); setSelectedDate(new Date()); }} />
                       </HStack>
-                    </button>
-
-                    {/* 이번 달 진행도 */}
-                    <HStack gap={2} vAlign="center">
-                      <Text type="supporting" color="secondary" hasTabularNumbers>
-                        진행 {monthlyProgress.done}/{monthlyProgress.total}
-                      </Text>
-                      <div
-                        role="progressbar"
-                        aria-label="이번 달 일정 진행도"
-                        aria-valuenow={monthlyProgress.percent}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        style={{ width: 96, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
-                      >
-                        {/* 폭 대신 scaleX를 움직인다 — 폭을 애니메이션하면 매 프레임 레이아웃을 다시 계산한다 */}
-                        <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${monthlyProgress.percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
+                      {/* 읽기만 하는 숫자 둘을 한 덩어리로 묶는다 */}
+                      <div className="carev-dash-cal-stat">
+                        <button type="button" onClick={() => onTabChange('work')} title={todayVacationRosterText || '오늘 휴무자 없음'} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                          <HStack gap={1} vAlign="center">
+                            <span style={{ display: 'flex', color: 'var(--color-text-yellow)' }}>
+                              <Icon icon={IconMoon} size="xsm" color="inherit" />
+                            </span>
+                            <Text type="supporting" color="secondary">휴무</Text>
+                            <Text type="supporting" weight="bold" color="primary" hasTabularNumbers>{todayVacationCount}</Text>
+                          </HStack>
+                        </button>
+                        <span className="carev-dash-cal-stat-sep" />
+                        <HStack gap={1.5} vAlign="center">
+                          <Icon icon={IconCircleCheckFilled} size="xsm" color="success" />
+                          <Text type="supporting" color="secondary" hasTabularNumbers>{monthlyProgress.done}/{monthlyProgress.total}</Text>
+                          <div role="progressbar" aria-label="이번 달 일정 진행도" aria-valuenow={monthlyProgress.percent} aria-valuemin={0} aria-valuemax={100} style={{ width: 48, height: 4, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}>
+                            <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${monthlyProgress.percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
+                          </div>
+                        </HStack>
                       </div>
-                      <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{monthlyProgress.percent}%</Text>
-                    </HStack>
-                    {/* 일정/휴무자 보기 토글 — 기본은 둘 다 */}
-                    <SegmentedControl
-                      value={pane}
-                      onChange={(v) => changePane(v as CalendarPane)}
-                      label="달력 표시 내용"
-                      size="sm"
-                    >
-                      {CALENDAR_PANE_OPTIONS.map((option) => (
-                        <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
-                      ))}
-                    </SegmentedControl>
-                    <Button
-                      label={showMyTasksOnly ? '전체 일정 보기' : '담당 업무'}
-                      variant={showMyTasksOnly ? 'primary' : 'secondary'}
-                      size="sm"
-                      icon={<Icon icon={IconUserCheck} size="sm" />}
-                      onClick={() => setShowMyTasksOnly((v) => !v)}
-                    />
-                    {/* 일정 등록은 월간일정 탭에서 한다 — 여기서는 그 화면으로 넘긴다 */}
-                    <Button
-                      label="일정 추가"
-                      variant="secondary"
-                      size="sm"
-                      icon={<Icon icon={IconPlus} size="sm" />}
-                      onClick={() => onTabChange('schedule')}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      label="전체보기"
-                      endContent={<Icon icon={IconChevronRight} size="xsm" />}
-                      onClick={() => onTabChange('schedule')}
-                    />
-                  </HStack>
-                </HStack>
-                {/* 색상 범례 — 일정에 직접 고른 색이 없을 때 붙는 카테고리별 기본 색상. 월간일정 탭과 같은 구성 */}
-                <div style={{ marginTop: 'var(--spacing-2)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
-                  <Text type="supporting" color="secondary">기본 색상</Text>
-                  {SCHEDULE_CATEGORIES.map((cat) => (
-                    <HStack key={cat.value} gap={1} vAlign="center">
-                      <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: getScheduleColor({ category: cat.value }) }} />
-                      <Text type="supporting" color="secondary">{cat.label}</Text>
-                    </HStack>
-                  ))}
-                  <HStack gap={1} vAlign="center">
-                    <Icon icon={IconCircleCheckFilled} size="xsm" color="success" />
-                    <Text type="supporting" color="secondary">수행완료</Text>
-                  </HStack>
-                </div>
-              </div>
+                      {/* 범례는 색 점만 — 이름은 마우스를 올리면 나온다.
+                          셀의 모바일용 도트(carev-dash-cal-dots)와 같은 클래스를 쓰면 이 규칙이
+                          그쪽 미디어쿼리를 덮어 데스크탑에서 도트가 바 위에 겹쳐 되살아난다. */}
+                      <div className="carev-dash-cal-legend">
+                        {SCHEDULE_CATEGORIES.map((cat) => (
+                          <span key={cat.value} title={cat.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                            <span className="carev-dash-cal-dot" style={{ background: getScheduleColor({ category: cat.value }) }} />
+                          </span>
+                        ))}
+                      </div>
+                      <div className="carev-dash-cal-head-fill" />
+                      <SegmentedControl value={pane} onChange={(v) => changePane(v as CalendarPane)} label="달력 표시 내용" size="sm">
+                        {CALENDAR_PANE_OPTIONS.map((option) => (
+                          <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
+                        ))}
+                      </SegmentedControl>
+                      <Button
+                        label={showMyTasksOnly ? '전체 일정' : '담당 업무'}
+                        variant={showMyTasksOnly ? 'primary' : 'ghost'}
+                        size="sm"
+                        icon={<Icon icon={IconUserCheck} size="sm" />}
+                        onClick={() => setShowMyTasksOnly((v) => !v)}
+                      />
+                      <Button variant="ghost" size="sm" label="월간일정 열기" endContent={<Icon icon={IconChevronRight} size="xsm" />} onClick={() => onTabChange('schedule')} />
+                    </div>
+                  </div>
 
               {/* 격자는 월간일정 탭과 같은 규칙 — 칸마다 아래·오른쪽 선을 긋고 바깥은 테두리로 닫는다.
                   칸 사이 여백(gap)을 쓰던 예전 방식은 선이 없어 날짜 경계가 흐릿했다. */}

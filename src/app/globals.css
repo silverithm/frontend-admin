@@ -170,6 +170,74 @@ html {
   .carev-dash-cal-chips { display: flex; }
   .carev-dash-cal-bars  { display: block; }
 }
+/* 기관 정보 — 한 줄짜리 사실(회사명·주소)을 각각 카드로 세우면, 옆의 관리자 카드
+   높이에 맞춰 늘어나면서 카드 안이 텅 빈다. 사실은 한 장 안에 줄로 쌓고 카드는 둘로 줄인다. */
+.carev-org-split { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
+@media (min-width: 900px) {
+  .carev-org-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.carev-org-facts { display: flex; flex-direction: column; }
+.carev-org-fact { display: flex; align-items: center; gap: var(--spacing-3); padding: var(--spacing-3) 0; }
+.carev-org-fact + .carev-org-fact { border-top: 1px solid var(--color-border); }
+.carev-org-fact:first-child { padding-top: 0; }
+.carev-org-fact:last-child { padding-bottom: 0; }
+
+/* 직원 가입 코드 — 예전에는 자기 섹션에 3xl 글씨로 혼자 서 있었다. 자주 보는 값이 아니라
+   기관 카드 안의 한 줄로 충분하다. 자간만 남겨 한 글자씩 또박또박 읽히게 한다. */
+.carev-org-code {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+}
+/* 이 화면에서 유일하게 밖으로 불러주는 값이다 — 브랜드 틸로 "여기를 보라"를 표시한다.
+   배지와 같은 짝(틸 페일 위 딥 틸)이라 대비는 이미 검증된 조합이다.
+   복사 버튼까지 안에 넣어 칩이 카드 폭을 끝까지 쓴다. */
+.carev-org-code-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  padding: var(--spacing-1) var(--spacing-1) var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-teal);
+}
+.carev-org-code-value {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.32em;
+  /* 자간이 마지막 글자 뒤에도 붙어 가운데가 왼쪽으로 밀린다 — 그만큼 되돌린다 */
+  text-indent: 0.32em;
+  text-align: center;
+  color: var(--color-text-teal);
+  line-height: 1.6;
+}
+
+/* 대시보드 월간일정 헤더 — 한 줄에 아홉 개가 늘어서 있던 것을 성격별로 묶었다.
+   읽기만 하는 숫자(오늘 휴무·진행도)는 한 덩어리로, 범례는 색 점만 남기고 이름은 title로 넘겨
+   범례 줄 하나를 통째로 없앴다. 그만큼 달력이 커진다. */
+.carev-dash-cal-head { display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap; }
+.carev-dash-cal-head-fill { flex: 1; min-width: var(--spacing-2); }
+/* 휴무와 진행도는 눌러서 쓰는 게 아니라 곁눈으로 읽는 값이다 — 테두리로 한 묶음임을 보인다 */
+.carev-dash-cal-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  height: 26px;
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+.carev-dash-cal-stat-sep { width: 1px; height: 12px; background: var(--color-border); }
+/* 헤더 범례 — 셀의 모바일 도트(.carev-dash-cal-dots)와 클래스를 나눈다.
+   같은 이름을 쓰면 이 규칙이 뒤에 와서 위 640px 미디어쿼리의 display:none을 덮어버린다. */
+.carev-dash-cal-legend { display: inline-flex; align-items: center; gap: var(--spacing-1); }
+.carev-dash-cal-dot { width: 8px; height: 8px; border-radius: var(--radius-full); }
+
 /* 달력 칸 오른쪽 휴무자 명단 (월간일정·대시보드 공용).
    칸을 일정과 반으로 가른 상태(--split)에서는 좁은 화면에 이름이 들어갈 폭이 안 나오므로
    일정 바와 같은 기준(640px)에서 접는다. '휴무만' 보기는 칸 전체를 쓰므로 그대로 둔다. */

@@ -582,116 +582,96 @@ export default function OrganizationProfilePage() {
                     </Card>
                   </form>
                 ) : (
-                <Grid columns={{ minWidth: 260, max: 3 }} gap={4} align="stretch">
-                  {/* 기관 정보 카드 */}
-                  <Card padding={5} height="100%">
-                    <HStack gap={3} vAlign="center">
-                      <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon icon={IconBuilding} size="md" color="accent" />
-                      </div>
-                      <VStack gap={0.5}>
-                        <Text type="supporting" color="secondary">회사명</Text>
-                        <Text type="body" weight="semibold" color="primary">{profile.name || '정보 없음'}</Text>
-                      </VStack>
-                    </HStack>
-                  </Card>
-
-                  {/* 위치 정보 카드 */}
-                  <Card padding={5} height="100%">
-                    <HStack gap={3} vAlign="center">
-                      <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon icon={IconMapPin} size="md" color="secondary" />
-                      </div>
-                      <VStack gap={0.5}>
-                        <Text type="supporting" color="secondary">회사 주소</Text>
-                        <Text type="body" weight="semibold" color="primary">{profile.address || '정보 없음'}</Text>
-                      </VStack>
-                    </HStack>
-                  </Card>
-
-                  {/* 관리자 정보 카드 — 사진·직책은 결재선·채팅·회원관리에 그대로 표시된다 */}
-                  <Card padding={5} height="100%">
-                    <VStack gap={4}>
-                      <HStack gap={3} vAlign="center">
-                        <Avatar
-                          name={profile.adminName || '관리자'}
-                          src={profile.adminProfileImageUrl || undefined}
-                          size="medium"
-                        />
-                        <VStack gap={0.5}>
-                          <Text type="supporting" color="secondary">관리자명</Text>
-                          <Text type="body" weight="semibold" color="primary">{profile.adminName || '정보 없음'}</Text>
-                        </VStack>
-                      </HStack>
-                      <VStack gap={2}>
-                        <FileInput
-                          label="내 프로필 사진"
-                          accept="image/jpeg,image/png,image/webp"
-                          // 안내 문구(5MB 이하)만 있고 실제로는 강제되지 않았다 — 초과 파일은
-                          // FileInput이 자동으로 거부하고(onChange에 null) 에러 상태를 보여준다.
-                          maxSize={5 * 1024 * 1024}
-                          value={profileImageFile}
-                          onChange={(files) => {
-                            const file = Array.isArray(files) ? files[0] ?? null : files;
-                            setProfileImageFile(file);
-                            handleProfileImageSelect(file);
-                          }}
-                          isDisabled={isProfileImageSaving}
-                          isLoading={isProfileImageSaving}
-                        />
-                        <HStack gap={2} vAlign="center" hAlign="between">
-                          <Text type="supporting" color="secondary">JPG·PNG·WEBP, 5MB 이하</Text>
-                          {profile.adminProfileImageUrl && (
-                            <Button
-                              label="사진 삭제"
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleProfileImageDelete}
-                              isDisabled={isProfileImageSaving}
-                            />
+                    <div className="carev-org-split">
+                      <Card padding={5} height="100%">
+                        <VStack gap={3}>
+                          <Text type="label" weight="semibold" color="secondary">기관</Text>
+                          <div className="carev-org-facts">
+                            <div className="carev-org-fact">
+                              <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Icon icon={IconBuilding} size="md" color="accent" />
+                              </div>
+                              <VStack gap={0.5}>
+                                <Text type="supporting" color="secondary">회사명</Text>
+                                <Text type="body" weight="semibold" color="primary">{profile.name || '정보 없음'}</Text>
+                              </VStack>
+                            </div>
+                            <div className="carev-org-fact">
+                              <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Icon icon={IconMapPin} size="md" color="secondary" />
+                              </div>
+                              <VStack gap={0.5}>
+                                <Text type="supporting" color="secondary">회사 주소</Text>
+                                <Text type="body" weight="semibold" color="primary">{profile.address || '정보 없음'}</Text>
+                              </VStack>
+                            </div>
+                          </div>
+                          {/* 직원 가입 코드 — 기관을 가리키는 값이라 기관 카드 안에 둔다.
+                              별도 섹션으로 두면 카드 하나에 코드 한 줄만 놓여 화면이 늘어난다. */}
+                          {profile.companyCode && (
+                            <div className="carev-org-code">
+                              <Text type="supporting" color="secondary">직원 가입 코드</Text>
+                              {/* 코드와 복사 버튼을 한 칩 안에 둔다 — 버튼을 밖에 두면
+                                  칩이 그만큼 짧아져 오른쪽이 빈다 */}
+                              <div className="carev-org-code-chip">
+                                <span className="carev-org-code-value">{profile.companyCode}</span>
+                                <Button
+                                  label="복사"
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<Icon icon={IconCopy} size="sm" />}
+                                  onClick={handleCopyCompanyCode}
+                                />
+                              </div>
+                              <Text type="supporting" color="secondary">직원분이 회원가입 화면에서 입력하면 우리 기관으로 요청이 들어옵니다</Text>
+                            </div>
                           )}
-                        </HStack>
-                      </VStack>
-                      <Selector
-                        label="내 직책"
-                        options={positionOptions}
-                        value={profile.adminPositionId ? String(profile.adminPositionId) : ''}
-                        onChange={handlePositionChange}
-                        placeholder="직책 없음 (관리자로 표시)"
-                        hasClear
-                        isDisabled={isPositionSaving || positionOptions.length === 0}
-                      />
-                      <Text type="supporting" color="secondary">
-                        {positionOptions.length === 0
-                          ? '먼저 직원 관리에서 직책을 등록해주세요'
-                          : '결재선과 채팅에 이 직책으로 표시됩니다'}
-                      </Text>
-                    </VStack>
-                  </Card>
-                </Grid>
+                        </VStack>
+                      </Card>
+                      <Card padding={5} height="100%">
+                        <VStack gap={3}>
+                          <HStack gap={3} vAlign="center">
+                            <Avatar name={profile.adminName || '관리자'} src={profile.adminProfileImageUrl || undefined} size="medium" />
+                            <VStack gap={0.5}>
+                              <Text type="supporting" color="secondary">관리자명</Text>
+                              <Text type="body" weight="semibold" color="primary">{profile.adminName || '정보 없음'}</Text>
+                            </VStack>
+                          </HStack>
+                          <FileInput
+                            label="내 프로필 사진"
+                            accept="image/jpeg,image/png,image/webp"
+                            maxSize={5 * 1024 * 1024}
+                            value={profileImageFile}
+                            onChange={(files) => {
+                              const file = Array.isArray(files) ? files[0] ?? null : files;
+                              setProfileImageFile(file);
+                              handleProfileImageSelect(file);
+                            }}
+                            isDisabled={isProfileImageSaving}
+                            isLoading={isProfileImageSaving}
+                            description="JPG·PNG·WEBP, 5MB 이하"
+                          />
+                          {profile.adminProfileImageUrl && (
+                            <HStack hAlign="end">
+                              <Button label="사진 삭제" variant="ghost" size="sm" onClick={handleProfileImageDelete} isDisabled={isProfileImageSaving} />
+                            </HStack>
+                          )}
+                          <Selector
+                            label="내 직책"
+                            options={positionOptions}
+                            value={profile.adminPositionId ? String(profile.adminPositionId) : ''}
+                            onChange={handlePositionChange}
+                            placeholder="직책 없음 (관리자로 표시)"
+                            hasClear
+                            isDisabled={isPositionSaving || positionOptions.length === 0}
+                            description={positionOptions.length === 0 ? '먼저 직원 관리에서 직책을 등록해주세요' : '결재선과 채팅에 이 직책으로 표시됩니다'}
+                          />
+                        </VStack>
+                      </Card>
+                    </div>
                 )}
                 </ProfileSection>
 
-                {profile.companyCode && (
-                  <ProfileSection title="직원 가입 코드" description="직원분이 회원가입 화면에서 이 코드를 입력하면 우리 기관으로 가입 요청이 들어옵니다">
-                  <Card variant="yellow" padding={5}>
-                    <HStack gap={4} hAlign="between" vAlign="center" wrap="wrap">
-                      <VStack gap={1}>
-                        <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', letterSpacing: '0.28em', color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
-                          {profile.companyCode}
-                        </div>
-                        <Text type="supporting" color="secondary">복사해서 직원분께 전달해주세요</Text>
-                      </VStack>
-                      <Button
-                        label="코드 복사"
-                        variant="primary"
-                        icon={<Icon icon={IconCopy} size="sm" />}
-                        onClick={handleCopyCompanyCode}
-                      />
-                    </HStack>
-                  </Card>
-                  </ProfileSection>
-                )}
 
                 {/* 구독 정보 섹션 — SubscriptionInfo가 자체 제목을 그리므로 여기서 제목을 또 달지 않는다 */}
                 <SubscriptionInfo />
@@ -704,17 +684,18 @@ export default function OrganizationProfilePage() {
                   <Grid columns={{ minWidth: 320, max: 2 }} gap={4} align="stretch">
                     {/* 기관 직인 카드 */}
                     <Card padding={5} height="100%">
-                      <VStack gap={4}>
+                      <VStack gap={4} height="100%">
                         <Text type="body" weight="medium" color="primary">기관 직인</Text>
-                        {/* 등록 전에도 같은 크기의 자리를 잡아둔다 — 옆 서명 카드와 밀도를 맞추고,
-                            등록 후에 화면이 갑자기 늘어나지 않게 하려는 것 */}
+                        {/* 남는 높이는 이 미리보기가 가져간다 — 고정 높이로 두면 옆 카드가 길어질 때
+                            그 차이가 카드 아래 죽은 공간으로 남는다. 여기서 늘어나면 직인이 커 보일 뿐이다. */}
                         <div
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             width: '100%',
-                            height: 160,
+                            flex: 1,
+                            minHeight: 140,
                             border: sealUrl ? '1px solid var(--color-border)' : '1px dashed var(--color-border)',
                             borderRadius: 'var(--radius-inner)',
                             background: sealUrl ? 'var(--color-on-accent)' : 'var(--color-background-muted)',
@@ -769,7 +750,7 @@ export default function OrganizationProfilePage() {
 
                     {/* 내 서명 카드 */}
                     <Card padding={5} height="100%">
-                      <VStack gap={4}>
+                      <VStack gap={4} height="100%">
                         <Text type="body" weight="medium" color="primary">내 결재 서명</Text>
                         <MySignatureCard
                           onNotification={(message, type) => {
@@ -854,7 +835,9 @@ export default function OrganizationProfilePage() {
 
                 {/* 계정 설정 섹션 */}
                 <ProfileSection title="계정 설정">
-                  <Grid columns={{ minWidth: 300, max: 2 }} gap={4} align="stretch">
+                  {/* 체험 계정에는 탈퇴 카드가 없다. 그때 2열을 유지하면 오른쪽 안내 카드에
+                      버튼이 없어 아래가 비므로, 열 수를 실제 카드 수에 맞춘다. */}
+                  <Grid columns={{ minWidth: 300, max: isDemoMode ? 1 : 2 }} gap={4} align="stretch">
                     <Card variant="blue" padding={5} height="100%">
                       <VStack gap={4} height="100%">
                         <HStack gap={3} vAlign="center">
@@ -877,18 +860,11 @@ export default function OrganizationProfilePage() {
                     </Card>
 
                     {isDemoMode ? (
-                      // 옆 카드와 같은 모양으로 맞춘다 (Banner는 높이가 늘지 않아 짝이 맞지 않았다)
-                      <Card padding={5} height="100%">
-                        <HStack gap={3} vAlign="center">
-                          <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon icon="info" size="md" color="secondary" />
-                          </div>
-                          <VStack gap={0.5}>
-                            <Text type="body" weight="medium" color="primary">체험 계정은 7일 후 자동 삭제됩니다</Text>
-                            <Text type="supporting" color="secondary">별도 탈퇴가 필요하지 않습니다</Text>
-                          </VStack>
-                        </HStack>
-                      </Card>
+                      <Banner
+                        status="info"
+                        title="체험 계정은 7일 후 자동 삭제됩니다"
+                        description="별도 탈퇴가 필요하지 않습니다"
+                      />
                     ) : (
                       <Card variant="red" padding={5} height="100%">
                         <VStack gap={4} height="100%">

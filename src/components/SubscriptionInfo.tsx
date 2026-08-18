@@ -12,6 +12,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Grid } from '@astryxdesign/core/Grid';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -177,42 +178,44 @@ export default function SubscriptionInfo() {
     <>
       <AlertContainer />
       <VStack gap={4}>
+        {/* 구독 정보와 혜택은 둘 다 폭을 다 쓰지 않는다 — 좌우로 나란히 두면
+            세로로 쌓을 때 생기던 빈 공간이 서로의 자리로 들어간다. */}
+        <Grid columns={{ minWidth: 340, max: 2 }} gap={4} align="stretch">
         {/* 현재 구독 정보 카드 */}
-        <Card padding={5}>
+        <Card padding={5} height="100%">
           <VStack gap={5}>
             <Text type="large" weight="semibold">구독 정보</Text>
 
             {subscription ? (
               <VStack gap={4}>
-                <VStack gap={3}>
-                  <HStack hAlign="between" vAlign="center">
-                    <Text color="secondary">현재 플랜</Text>
+                {/* 네 가지 사실을 한 줄씩 쌓으면 넓은 카드에서 가운데가 통째로 빈다.
+                    라벨 위 값 아래로 묶어 가로로 늘어놓으면 같은 정보가 한 덩어리로 읽힌다. */}
+                <Grid columns={{ minWidth: 150, max: 4 }} gap={4}>
+                  <VStack gap={0.5} align="start">
+                    <Text type="supporting" color="secondary">현재 플랜</Text>
                     <Text weight="medium">
                       {subscription.planName === SubscriptionType.FREE ? '무료 체험' :
                        subscription.planName === SubscriptionType.BASIC ? 'Basic 플랜' :
                        subscription.planName}
                     </Text>
-                  </HStack>
-
-                  <HStack hAlign="between" vAlign="center">
-                    <Text color="secondary">상태</Text>
+                  </VStack>
+                  <VStack gap={0.5} align="start">
+                    <Text type="supporting" color="secondary">상태</Text>
                     <Badge variant={statusVariant} label={statusLabel} />
-                  </HStack>
-
-                  <HStack hAlign="between" vAlign="center">
-                    <Text color="secondary">시작일</Text>
-                    <Text weight="medium">
+                  </VStack>
+                  <VStack gap={0.5} align="start">
+                    <Text type="supporting" color="secondary">시작일</Text>
+                    <Text weight="medium" hasTabularNumbers>
                       {new Date(subscription.startDate).toLocaleDateString('ko-KR')}
                     </Text>
-                  </HStack>
-
-                  <HStack hAlign="between" vAlign="center">
-                    <Text color="secondary">종료일</Text>
-                    <Text weight="medium">
+                  </VStack>
+                  <VStack gap={0.5} align="start">
+                    <Text type="supporting" color="secondary">종료일</Text>
+                    <Text weight="medium" hasTabularNumbers>
                       {new Date(subscription.endDate).toLocaleDateString('ko-KR')}
                     </Text>
-                  </HStack>
-                </VStack>
+                  </VStack>
+                </Grid>
 
                 {/* 무료 체험 중인 경우 */}
                 {subscription.planName === SubscriptionType.FREE &&
@@ -307,7 +310,7 @@ export default function SubscriptionInfo() {
 
         {/* Basic 플랜 정보 - 무료 체험 중이 아닐 때만 표시 */}
         {(!subscription || subscription.planName !== SubscriptionType.FREE) && (
-          <Card padding={5}>
+          <Card padding={5} height="100%">
             <VStack gap={4}>
               <Text type="large" weight="semibold">Basic 플랜 혜택</Text>
               <VStack gap={3}>
@@ -331,6 +334,7 @@ export default function SubscriptionInfo() {
             </VStack>
           </Card>
         )}
+        </Grid>
 
         {/* 결제 실패 정보 섹션 */}
         {paymentFailures.length > 0 && (
