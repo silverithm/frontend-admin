@@ -24,7 +24,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
-import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconChecklist, IconUserCheck } from '@tabler/icons-react';
+import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck } from '@tabler/icons-react';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask } from '@/lib/apiService';
 import { Schedule, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
@@ -1046,96 +1046,15 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         {/* 캘린더 카드 */}
         <div className={!isDispatchMode && selectedDate ? 'carev-schedcal-main carev-schedcal-main--narrow' : 'carev-schedcal-main'}>
           <div className="carev-schedcal-card" style={CARD_STYLE}>
-            {/* 캘린더 헤더 */}
-            <div style={{ padding: 'var(--spacing-6)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
-              <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-                <HStack gap={4} vAlign="center" wrap="wrap">
-                  <Text type="large" as="h2" weight="bold" color="primary">
-                    {format(currentDate, 'yyyy년 M월', { locale: ko })}
-                  </Text>
-                  <Button label="오늘" variant="secondary" size="sm" onClick={goToToday} />
-                  {/* 일정 모드: 이번 달 수행 진행도 */}
-                  {!isDispatchMode && (
-                    <HStack gap={2} vAlign="center">
-                      <Text type="supporting" color="secondary" hasTabularNumbers>
-                        수행완료 {monthProgress.done}/{monthProgress.total}
-                      </Text>
-                      <div
-                        role="progressbar"
-                        aria-label="이번 달 일정 진행도"
-                        aria-valuenow={monthProgress.percent}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        style={{ width: 120, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
-                      >
-                        {/* 폭 대신 scaleX를 움직인다 — 폭을 애니메이션하면 매 프레임 레이아웃을 다시 계산한다 */}
-                        <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${monthProgress.percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
-                      </div>
-                      <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{monthProgress.percent}%</Text>
-                    </HStack>
-                  )}
-                  {/* 일정/휴무자 보기 토글 — 기본은 둘 다 */}
-                  {!isDispatchMode && (
-                    <SegmentedControl
-                      value={pane}
-                      onChange={(v) => changePane(v as CalendarPane)}
-                      label="달력 표시 내용"
-                      size="sm"
-                    >
-                      {CALENDAR_PANE_OPTIONS.map((option) => (
-                        <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
-                      ))}
-                    </SegmentedControl>
-                  )}
-                  {!isDispatchMode && (
-                    <Button
-                      label={showMyTasksOnly ? '전체 일정 보기' : '담당 업무'}
-                      variant={showMyTasksOnly ? 'primary' : 'secondary'}
-                      size="sm"
-                      icon={<Icon icon={IconUserCheck} size="sm" />}
-                      onClick={() => setShowMyTasksOnly((v) => !v)}
-                    />
-                  )}
-                </HStack>
-                <HStack gap={2} vAlign="center">
-                  {isDispatchMode ? (
-                    <>
-                      {/* 배차 범례 */}
-                      <HStack gap={3} vAlign="center">
-                        <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-green)' }} />
-                          <Text type="supporting" color="secondary">정상</Text>
-                        </HStack>
-                        <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-yellow)' }} />
-                          <Text type="supporting" color="secondary">대체</Text>
-                        </HStack>
-                        <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }} />
-                          <Text type="supporting" color="secondary">운행없음</Text>
-                        </HStack>
-                        <HStack gap={1} vAlign="center">
-                          <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)' }} />
-                          <Text type="supporting" color="secondary">휴일</Text>
-                        </HStack>
-                      </HStack>
-                      <Button
-                        label="배차 설정"
-                        variant="primary"
-                        size="sm"
-                        icon={<Icon icon="wrench" size="sm" />}
-                        onClick={() => setShowDispatchSettings(true)}
-                      />
-                    </>
-                  ) : (
-                    <Button
-                      label="일정 추가"
-                      variant="primary"
-                      size="sm"
-                      icon={<Icon icon={IconPlus} size="sm" />}
-                      onClick={() => openCreateModal()}
-                    />
-                  )}
+            {/* 캘린더 헤더 — 대시보드 달력 헤더와 같은 문법으로 압축했다.
+                읽기만 하는 진행도는 알약 한 덩어리로, 범례는 색 점만 남기고 이름은 title로
+                넘겨 두 번째 줄을 통째로 없앤다. 스타일은 대시보드와 공용 클래스를 그대로 쓴다. */}
+            <div style={{ padding: 'var(--spacing-4) var(--spacing-6)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+              <div className="carev-dash-cal-head">
+                <Text type="large" as="h2" weight="bold" color="primary">
+                  {format(currentDate, 'yyyy년 M월', { locale: ko })}
+                </Text>
+                <HStack gap={1} vAlign="center">
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
                     <Button
                       label="이전 달"
@@ -1154,21 +1073,100 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       onClick={goToNextMonth}
                     />
                   </div>
+                  <Button label="오늘" variant="ghost" size="sm" onClick={goToToday} />
                 </HStack>
-              </HStack>
-
-              {/* 일정 모드: 색상 범례 — 일정에 직접 고른 색이 없을 때 붙는 카테고리별 기본 색상 */}
-              {!isDispatchMode && (
-                <div style={{ marginTop: 'var(--spacing-3)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
-                  <Text type="supporting" color="secondary">기본 색상</Text>
-                  {SCHEDULE_CATEGORIES.map((cat) => (
-                    <HStack key={cat.value} gap={1} vAlign="center">
-                      <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
-                      <Text type="supporting" color="secondary">{cat.label}</Text>
+                {/* 일정 모드: 이번 달 수행 진행도 — 곁눈으로 읽는 값이라 알약으로 묶는다 */}
+                {!isDispatchMode && (
+                  <div className="carev-dash-cal-stat" title={`이번 달 일정 수행완료 ${monthProgress.percent}%`}>
+                    <HStack gap={1.5} vAlign="center">
+                      <Icon icon={IconCircleCheckFilled} size="xsm" color="success" />
+                      <Text type="supporting" color="secondary" hasTabularNumbers>
+                        {monthProgress.done}/{monthProgress.total}
+                      </Text>
+                      <div
+                        role="progressbar"
+                        aria-label="이번 달 일정 진행도"
+                        aria-valuenow={monthProgress.percent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        style={{ width: 48, height: 4, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
+                      >
+                        {/* 폭 대신 scaleX를 움직인다 — 폭을 애니메이션하면 매 프레임 레이아웃을 다시 계산한다 */}
+                        <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${monthProgress.percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
+                      </div>
                     </HStack>
-                  ))}
-                </div>
-              )}
+                  </div>
+                )}
+                {/* 일정 모드: 카테고리 기본 색상 범례 — 색 점만, 이름은 마우스를 올리면 나온다 */}
+                {!isDispatchMode && (
+                  <div className="carev-dash-cal-legend">
+                    {SCHEDULE_CATEGORIES.map((cat) => (
+                      <span key={cat.value} title={`기본 색상 · ${cat.label}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                        <span className="carev-dash-cal-dot" style={{ background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="carev-dash-cal-head-fill" />
+                {isDispatchMode ? (
+                  <>
+                    {/* 배차 범례 — 상태색은 뜻을 바로 읽어야 하므로 이름을 남긴다 */}
+                    <HStack gap={3} vAlign="center">
+                      <HStack gap={1} vAlign="center">
+                        <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-green)' }} />
+                        <Text type="supporting" color="secondary">정상</Text>
+                      </HStack>
+                      <HStack gap={1} vAlign="center">
+                        <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-yellow)' }} />
+                        <Text type="supporting" color="secondary">대체</Text>
+                      </HStack>
+                      <HStack gap={1} vAlign="center">
+                        <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-red)' }} />
+                        <Text type="supporting" color="secondary">운행없음</Text>
+                      </HStack>
+                      <HStack gap={1} vAlign="center">
+                        <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)' }} />
+                        <Text type="supporting" color="secondary">휴일</Text>
+                      </HStack>
+                    </HStack>
+                    <Button
+                      label="배차 설정"
+                      variant="primary"
+                      size="sm"
+                      icon={<Icon icon="wrench" size="sm" />}
+                      onClick={() => setShowDispatchSettings(true)}
+                    />
+                  </>
+                ) : (
+                  <>
+                    {/* 일정/휴무자 보기 토글 — 기본은 둘 다 */}
+                    <SegmentedControl
+                      value={pane}
+                      onChange={(v) => changePane(v as CalendarPane)}
+                      label="달력 표시 내용"
+                      size="sm"
+                    >
+                      {CALENDAR_PANE_OPTIONS.map((option) => (
+                        <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
+                      ))}
+                    </SegmentedControl>
+                    <Button
+                      label={showMyTasksOnly ? '전체 일정' : '담당 업무'}
+                      variant={showMyTasksOnly ? 'primary' : 'ghost'}
+                      size="sm"
+                      icon={<Icon icon={IconUserCheck} size="sm" />}
+                      onClick={() => setShowMyTasksOnly((v) => !v)}
+                    />
+                    <Button
+                      label="일정 추가"
+                      variant="primary"
+                      size="sm"
+                      icon={<Icon icon={IconPlus} size="sm" />}
+                      onClick={() => openCreateModal()}
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
             {/* 요일 헤더 */}
