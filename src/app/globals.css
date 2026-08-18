@@ -547,11 +547,23 @@ html {
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
-.carev-annual-body { flex: 1; min-height: 0; overflow-y: auto; padding-top: var(--spacing-3); }
+/* 월 그리드가 남는 세로 공간을 나눠 갖도록 body를 flex 컨테이너로 둔다 */
+.carev-annual-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+}
 .carev-annual-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 행 높이를 균등하게 — 내용이 적으면 남는 높이를 나눠 카드 밑이 비지 않고,
+     많으면 min-content 위로 자라서 잘리지 않는다. */
+  grid-auto-rows: minmax(min-content, 1fr);
   gap: var(--spacing-3);
+  flex: 1;
 }
 @media (min-width: 768px)  { .carev-annual-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1280px) { .carev-annual-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -561,7 +573,7 @@ html {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
-  min-height: 140px;
+  min-height: 110px;
   padding: var(--spacing-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-container);
@@ -588,12 +600,21 @@ html {
 }
 @media (hover: hover) { .carev-annual-month-title:hover { text-decoration: underline; text-underline-offset: 3px; } }
 
-.carev-annual-month-list { display: flex; flex-direction: column; gap: var(--spacing-1); overflow: hidden; }
+.carev-annual-month-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+/* 일정이 없는 달 — 남는 칸을 비워두지 않고 안내를 가로세로 가운데에 놓는다 */
+.carev-annual-month-list-empty { align-items: center; justify-content: center; }
 /* 색 띠 없이 담백한 한 줄. 누르면 상세가 열리므로 hover로만 눌린다는 걸 알린다. */
 .carev-annual-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1-5);
   width: 100%;
   min-width: 0;
   padding: 2px var(--spacing-2);
@@ -608,8 +629,14 @@ html {
 }
 /* 날짜 숫자는 폭을 고정해 제목 시작점을 세로로 맞춘다 */
 .carev-annual-item-day { flex-shrink: 0; width: 18px; text-align: right; }
+/* 일정 색 점 — 월간일정 목록의 색 점과 같은 역할 (여긴 줄이 촘촘해 조금 작다) */
+.carev-annual-item-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+}
 .carev-annual-item > *:last-child { min-width: 0; }
-.carev-annual-empty { display: flex; justify-content: center; padding: var(--spacing-10) 0; }
 
 /* Phase 6: 전자결재 - FormSchemaBuilder hover */
 @media (hover: hover) { .carev-formbuilder-field-item:hover { border-color: var(--color-border-emphasized); background: var(--color-background-muted); } }

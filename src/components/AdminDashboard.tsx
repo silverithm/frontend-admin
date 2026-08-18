@@ -57,7 +57,6 @@ import {
   getMyScheduleTasks,
   updateScheduleTaskCompletion,
   getScheduleTasks,
-  getScheduleLabels,
   createScheduleTask,
   updateScheduleTask,
   deleteScheduleTask,
@@ -165,7 +164,7 @@ interface ScheduleItem {
   description?: string;
   content?: string;
   location?: string;
-  label?: { id?: string; name?: string; color?: string } | null;
+  color?: string;
   isCompleted?: boolean;
   completedByName?: string;
   authorId?: string;
@@ -251,7 +250,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   // 달력이 보고 있는 달 (월간일정 탭처럼 앞뒤로 넘길 수 있다)
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => startOfMonth(new Date()));
   const [isMonthLoading, setIsMonthLoading] = useState(false);
-  const [scheduleLabels, setScheduleLabels] = useState<{ id: string; name: string; color: string }[]>([]);
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
   // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (월간일정 탭과 선택을 공유한다)
   const [pane, setPane] = useState<CalendarPane>('both');
@@ -491,21 +489,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       cancelled = true;
     };
   }, [calendarMonth]);
-
-  // 일정 색상 범례에 쓸 사용자 지정 라벨
-  useEffect(() => {
-    let cancelled = false;
-    getScheduleLabels()
-      .then((data) => {
-        if (cancelled) return;
-        const list = Array.isArray(data) ? data : data?.labels || [];
-        setScheduleLabels(list as { id: string; name: string; color: string }[]);
-      })
-      .catch((error) => console.error('[Dashboard] 일정 라벨 로드 실패:', error));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const pendingVacationCount = vacationRequests.filter(
     (v) => v.status === 'pending' || v.status === 'PENDING'
@@ -1345,15 +1328,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     />
                   </HStack>
                 </HStack>
-                {/* 색상 범례 (사용자 지정 라벨 + 카테고리 기본색) — 월간일정 탭과 같은 구성 */}
+                {/* 색상 범례 — 일정에 직접 고른 색이 없을 때 붙는 카테고리별 기본 색상. 월간일정 탭과 같은 구성 */}
                 <div style={{ marginTop: 'var(--spacing-2)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
-                  {scheduleLabels.map((label) => (
-                    <HStack key={label.id} gap={1} vAlign="center">
-                      <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: label.color }} />
-                      <Text type="supporting" color="secondary">{label.name}</Text>
-                    </HStack>
-                  ))}
-                  {scheduleLabels.length > 0 && <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />}
+                  <Text type="supporting" color="secondary">기본 색상</Text>
                   {SCHEDULE_CATEGORIES.map((cat) => (
                     <HStack key={cat.value} gap={1} vAlign="center">
                       <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: getScheduleColor({ category: cat.value }) }} />
@@ -2093,7 +2070,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           height: 8,
                           borderRadius: '50%',
                           flexShrink: 0,
-                          background: schedule.label?.color || 'var(--color-text-accent)',
+                          background: getScheduleColor(schedule),
                         }}
                       />
                       <Text type="supporting" color="secondary" hasTabularNumbers>

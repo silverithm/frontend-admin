@@ -17,10 +17,10 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { IconCalendarStats, IconCircleCheck } from '@tabler/icons-react';
+import { IconCircleCheck } from '@tabler/icons-react';
 import { Loading } from '@/components/Loading';
 import { getSchedules } from '@/lib/apiService';
-import { Schedule, SCHEDULE_CATEGORIES } from '@/types/schedule';
+import { Schedule, SCHEDULE_CATEGORIES, getScheduleColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
@@ -195,7 +195,9 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
             <Button label="올해" variant="ghost" size="sm" onClick={() => setYear(thisYear)} />
           )}
         </HStack>
-        <Text type="supporting" color="secondary">연간 {total}건</Text>
+        <Text type="supporting" color="secondary">
+          {total === 0 ? '월간일정에서 등록하면 여기에 모여 보입니다' : `연간 ${total}건`}
+        </Text>
       </div>
 
       {isLoading && schedules.length === 0 ? (
@@ -230,7 +232,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                     {items.length > 0 && <Badge variant="neutral" label={items.length} />}
                   </header>
 
-                  <div className="carev-annual-month-list">
+                  <div className={`carev-annual-month-list${items.length === 0 ? ' carev-annual-month-list-empty' : ''}`}>
                     {items.length === 0 ? (
                       <Text type="supporting" color="disabled">일정 없음</Text>
                     ) : (
@@ -246,7 +248,23 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                             <span className="carev-annual-item-day">
                               <Text type="supporting" color="secondary">{dayLabel}</Text>
                             </span>
-                            <Text type="supporting" color="primary" maxLines={1}>{schedule.title}</Text>
+                            {/* 월간일정과 같은 색 규칙 — 일정에 고른 색이 있으면 그 색, 없으면 카테고리 기본색 */}
+                            <span
+                              className="carev-annual-item-dot"
+                              style={{
+                                backgroundColor: getScheduleColor(schedule),
+                                opacity: schedule.isCompleted ? 0.4 : 1,
+                              }}
+                            />
+                            <span
+                              style={{
+                                minWidth: 0,
+                                textDecoration: schedule.isCompleted ? 'line-through' : 'none',
+                                opacity: schedule.isCompleted ? 0.6 : 1,
+                              }}
+                            >
+                              <Text type="supporting" color="primary" maxLines={1}>{schedule.title}</Text>
+                            </span>
                           </button>
                         ))}
                         {restCount > 0 && (
@@ -377,16 +395,6 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
               />
             )}
           </Dialog>
-
-          {total === 0 && (
-            <div className="carev-annual-empty">
-              <VStack gap={2} hAlign="center">
-                <Icon icon={IconCalendarStats} size="lg" color="tertiary" />
-                <Text type="body" color="secondary">{year}년에 등록된 일정이 없습니다.</Text>
-                <Text type="supporting" color="disabled">월간일정에서 일정을 등록하시면 여기에 모여서 보입니다.</Text>
-              </VStack>
-            </div>
-          )}
         </div>
       )}
     </div>

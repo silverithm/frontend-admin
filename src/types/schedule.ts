@@ -10,15 +10,6 @@ export const SCHEDULE_CATEGORIES: { value: ScheduleCategory; label: string }[] =
   { value: 'OTHER', label: '기타' },
 ];
 
-// 일정 라벨
-export interface ScheduleLabel {
-  id: string;
-  companyId: string;
-  name: string;
-  color: string;
-  createdAt: string;
-}
-
 // 일정 참석자
 export interface ScheduleParticipant {
   id: string;
@@ -72,8 +63,7 @@ export interface Schedule {
   title: string;
   content?: string;
   category: ScheduleCategory;
-  labelId?: string;
-  label?: ScheduleLabel;
+  color?: string;
   location?: string;
   startDate: string;
   startTime?: string;
@@ -105,7 +95,6 @@ export interface ScheduleSummary {
   id: string;
   title: string;
   category: ScheduleCategory;
-  labelColor?: string;
   startDate: string;
   endDate: string;
   isAllDay: boolean;
@@ -116,7 +105,7 @@ export interface CreateScheduleRequest {
   title: string;
   content?: string;
   category: ScheduleCategory;
-  labelId?: string;
+  color?: string;
   location?: string;
   startDate: string;
   startTime?: string;
@@ -138,7 +127,7 @@ export interface UpdateScheduleRequest {
   title?: string;
   content?: string;
   category?: ScheduleCategory;
-  labelId?: string;
+  color?: string;
   location?: string;
   startDate?: string;
   startTime?: string;
@@ -155,14 +144,8 @@ export interface UpdateScheduleRequest {
   }[];
 }
 
-// 라벨 생성 요청
-export interface CreateLabelRequest {
-  name: string;
-  color: string;
-}
-
-// 라벨 색상 옵션
-export const LABEL_COLORS = [
+// 일정 색상 옵션
+export const SCHEDULE_COLORS = [
   { value: '#EF4444', label: '빨강' },
   { value: '#F97316', label: '주황' },
   { value: '#EAB308', label: '노랑' },
@@ -173,7 +156,7 @@ export const LABEL_COLORS = [
   { value: '#6B7280', label: '회색' },
 ];
 
-// 라벨 미지정 일정도 색이 보이도록 카테고리별 기본 색상을 부여한다.
+// 색을 안 고른 일정도 색이 보이도록 카테고리별 기본 색상을 부여한다.
 export const SCHEDULE_CATEGORY_COLORS: Record<ScheduleCategory, string> = {
   MEETING: '#3B82F6',   // 회의 - 파랑
   EVENT: '#EC4899',     // 행사 - 분홍
@@ -182,28 +165,26 @@ export const SCHEDULE_CATEGORY_COLORS: Record<ScheduleCategory, string> = {
 };
 
 /**
- * 일정 표시 색상. 라벨 색상이 있으면 그것을, 없으면 카테고리 기본 색상을 쓴다.
+ * 일정 표시 색상. 일정에 직접 고른 색이 있으면 그것을, 없으면 카테고리 기본 색상을 쓴다.
  */
 export function getScheduleColor(schedule: {
-  label?: { color?: string } | null;
-  labelColor?: string;
+  color?: string;
   category?: string;
 }): string {
-  const labelColor = schedule.label?.color || schedule.labelColor;
-  if (labelColor) return labelColor;
+  if (schedule.color) return schedule.color;
   const category = (schedule.category || 'OTHER') as ScheduleCategory;
   return SCHEDULE_CATEGORY_COLORS[category] || SCHEDULE_CATEGORY_COLORS.OTHER;
 }
 
 /**
- * 라벨 색 위에 얹을 글자색 — 밝은 배경엔 어두운 글자를 준다 (WCAG 상대휘도 기준).
+ * 일정 색 위에 얹을 글자색 — 밝은 배경엔 어두운 글자를 준다 (WCAG 상대휘도 기준).
  * 검정/흰 글자 중 어느 쪽이 더 높은 대비를 내는지가 갈리는 경계 휘도는 상수로 정해지며,
  * 그 경계에서도 두 후보 대비가 항상 4.58:1(AA 기준 4.5:1 이상)이므로 "더 나은 쪽 선택"만으로
  * 팔레트 전체의 AA 대비가 보장된다.
  *
  * 주의: 이 수학적 보장은 어두운 후보가 순수 검정(#000000)일 때만 성립한다.
  * `var(--color-text-primary)`(이 테마에서 #171717)를 쓰면 경계 부근 휘도(예: SCHEDULE_CATEGORY_COLORS.TRAINING
- * / 라벨 "보라" #8B5CF6, 휘도 ≈0.198)에서 검정·흰 글자 대비가 모두 4.5:1 미만(≈4.23:1)으로 떨어져
+ * / 팔레트 "보라" #8B5CF6, 휘도 ≈0.198)에서 검정·흰 글자 대비가 모두 4.5:1 미만(≈4.23:1)으로 떨어져
  * AA를 어긴다 — 실측 확인됨. 이 테마엔 순수 검정 토큰이 없으므로(color-on-light도 #171717) 대비 보장이
  * 필요한 이 계산에 한해 리터럴 #000000을 쓴다.
  */

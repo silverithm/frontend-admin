@@ -24,10 +24,9 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
-import { Card } from '@astryxdesign/core/Card';
-import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconTag, IconCircleCheck, IconChecklist, IconUserCheck } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask } from '@/lib/apiService';
-import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, LABEL_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
+import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconChecklist, IconUserCheck } from '@tabler/icons-react';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask } from '@/lib/apiService';
+import { Schedule, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import {
@@ -109,7 +108,7 @@ const CARD_STYLE: CSSProperties = {
   overflow: 'hidden',
 };
 
-// 라벨 색상 스와치 스타일
+// 일정 색상 스와치 스타일
 const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   width: 28,
   height: 28,
@@ -135,7 +134,7 @@ interface ScheduleCalendarProps {
 interface ScheduleFormData {
   title: string;
   category: ScheduleCategory;
-  labelId: string;
+  color: string;
   location: string;
   startDate: string;
   startTime: string;
@@ -153,7 +152,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const { confirm, ConfirmContainer } = useConfirm();
   const [currentDate, setCurrentDate] = useState(() => initialMonth ?? new Date());
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [labels, setLabels] = useState<ScheduleLabel[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   // 참석자 고르기 보조 — 직종으로 좁혀 보고, 직종 단위로 한 번에 고른다.
   // 직원이 수십 명인 기관에서 한 명씩 찾아 누르는 게 실제로 가장 번거로운 부분이었다.
@@ -163,7 +161,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showLabelModal, setShowLabelModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
@@ -182,7 +179,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     category: 'MEETING',
-    labelId: '',
+    color: '',
     location: '',
     startDate: '',
     startTime: '09:00',
@@ -193,14 +190,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     participantIds: [],
     managerId: '',
   });
-
-  const [labelForm, setLabelForm] = useState({
-    name: '',
-    color: LABEL_COLORS[0].value,
-  });
-  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
-  const [editLabelForm, setEditLabelForm] = useState({ name: '', color: '' });
-  const [deletingLabelId, setDeletingLabelId] = useState<string | null>(null);
 
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
@@ -243,7 +232,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   useEffect(() => {
     if (!isDispatchMode) {
       loadSchedules();
-      loadLabels();
       loadMembers();
     }
     if (typeof window !== 'undefined') {
@@ -345,15 +333,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       showAlert({ type: 'error', title: '로드 실패', message: '일정 데이터를 불러오지 못했습니다.' });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const loadLabels = async () => {
-    try {
-      const data = await getScheduleLabels();
-      setLabels(Array.isArray(data) ? data : data.labels || []);
-    } catch (error) {
-      console.error('라벨 데이터 로드 실패:', error);
     }
   };
 
@@ -661,7 +640,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     setFormData({
       title: '',
       category: 'MEETING',
-      labelId: '',
+      color: '',
       location: '',
       startDate: format(targetDate, 'yyyy-MM-dd'),
       startTime: '09:00',
@@ -687,7 +666,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       await createSchedule({
         title: formData.title,
         category: formData.category,
-        labelId: formData.labelId || undefined,
+        color: formData.color,
         location: formData.location || undefined,
         startDate: formData.startDate,
         startTime: formData.isAllDay ? undefined : formData.startTime,
@@ -719,7 +698,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     setFormData({
       title: target.title,
       category: target.category,
-      labelId: target.labelId || '',
+      color: target.color || '',
       location: target.location || '',
       startDate: target.startDate.split('T')[0],
       startTime: target.startTime || '09:00',
@@ -747,7 +726,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       await updateSchedule(selectedSchedule.id, {
         title: formData.title,
         category: formData.category,
-        labelId: formData.labelId || undefined,
+        color: formData.color,
         location: formData.location || undefined,
         startDate: formData.startDate,
         startTime: formData.isAllDay ? undefined : formData.startTime,
@@ -786,78 +765,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     } catch (error) {
       console.error('일정 삭제 실패:', error);
       showAlert({ type: 'error', title: '삭제 실패', message: '일정 삭제에 실패했습니다.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // 라벨 생성
-  const handleCreateLabel = async () => {
-    if (!labelForm.name.trim()) {
-      showAlert({ type: 'error', title: '입력 오류', message: '라벨 이름을 입력해주세요.' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await createScheduleLabel({
-        name: labelForm.name,
-        color: labelForm.color,
-      });
-
-      showAlert({ type: 'success', title: '생성 완료', message: '라벨이 생성되었습니다.' });
-      setLabelForm({ name: '', color: LABEL_COLORS[0].value });
-      loadLabels();
-    } catch (error) {
-      console.error('라벨 생성 실패:', error);
-      showAlert({ type: 'error', title: '생성 실패', message: '라벨 생성에 실패했습니다.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateLabel = async () => {
-    if (!editingLabelId || !editLabelForm.name.trim()) return;
-    setIsSubmitting(true);
-    try {
-      await updateScheduleLabel(editingLabelId, {
-        name: editLabelForm.name,
-        color: editLabelForm.color,
-      });
-      showAlert({ type: 'success', title: '수정 완료', message: '라벨이 수정되었습니다.' });
-      setEditingLabelId(null);
-      loadLabels();
-    } catch (error) {
-      console.error('라벨 수정 실패:', error);
-      showAlert({ type: 'error', title: '수정 실패', message: '라벨 수정에 실패했습니다.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteLabel = async (id: string) => {
-    setIsSubmitting(true);
-    try {
-      // 서버가 이 라벨을 쓰던 일정에서 참조만 떼고 라벨을 지운다 (일정은 남는다)
-      const result = await deleteScheduleLabel(id);
-      const detached = Number(result?.detachedCount) || 0;
-      showAlert({
-        type: 'success',
-        title: '삭제 완료',
-        message: detached > 0
-          ? `라벨을 삭제했습니다. 이 라벨을 쓰던 일정 ${detached}건은 라벨 없음으로 바뀌었습니다.`
-          : '라벨이 삭제되었습니다.',
-      });
-      setDeletingLabelId(null);
-      if (formData.labelId === id) {
-        setFormData(prev => ({ ...prev, labelId: '' }));
-      }
-      loadLabels();
-      // 달력에 남아 있는 라벨 색을 지우기 위해 일정도 다시 읽는다
-      loadSchedules();
-    } catch (error) {
-      console.error('라벨 삭제 실패:', error);
-      showAlert({ type: 'error', title: '삭제 실패', message: '라벨 삭제에 실패했습니다.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -1249,16 +1156,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                 </HStack>
               </HStack>
 
-              {/* 일정 모드: 색상 범례 (라벨 + 카테고리 기본색) */}
+              {/* 일정 모드: 색상 범례 — 일정에 직접 고른 색이 없을 때 붙는 카테고리별 기본 색상 */}
               {!isDispatchMode && (
                 <div style={{ marginTop: 'var(--spacing-3)', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-3)', alignItems: 'center' }}>
-                  {labels.map((label) => (
-                    <HStack key={label.id} gap={1} vAlign="center">
-                      <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: label.color }} />
-                      <Text type="supporting" color="secondary">{label.name}</Text>
-                    </HStack>
-                  ))}
-                  {labels.length > 0 && <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />}
+                  <Text type="supporting" color="secondary">기본 색상</Text>
                   {SCHEDULE_CATEGORIES.map((cat) => (
                     <HStack key={cat.value} gap={1} vAlign="center">
                       <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
@@ -1604,48 +1505,41 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   placeholder="일정 제목을 입력하세요"
                 />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)' }}>
-                  {/* 일정 구분 */}
-                  <Selector
-                    label="일정 구분"
-                    width="100%"
-                    value={formData.category}
-                    options={SCHEDULE_CATEGORIES.map((cat) => ({ value: cat.value, label: cat.label }))}
-                    onChange={(value) => setFormData(prev => ({ ...prev, category: value as ScheduleCategory }))}
-                  />
+                {/* 일정 구분 */}
+                <Selector
+                  label="일정 구분"
+                  width="100%"
+                  value={formData.category}
+                  options={SCHEDULE_CATEGORIES.map((cat) => ({ value: cat.value, label: cat.label }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, category: value as ScheduleCategory }))}
+                />
 
-                  {/* 라벨 (색상) */}
-                  <div>
-                    <div style={{ display: 'flex', gap: 'var(--spacing-2)', alignItems: 'flex-end' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <Selector
-                          label="라벨"
-                          width="100%"
-                          value={formData.labelId}
-                          options={[{ value: '', label: '없음' }, ...labels.map((label) => ({ value: String(label.id), label: label.name }))]}
-                          onChange={(value) => setFormData(prev => ({ ...prev, labelId: value }))}
-                        />
-                      </div>
-                      <Button
-                        label="라벨 설정"
-                        variant="secondary"
-                        isIconOnly
-                        icon={<Icon icon="wrench" size="sm" />}
-                        onClick={() => setShowLabelModal(true)}
+                {/* 색상 — 직접 고르지 않으면 카테고리 기본색으로 표시된다 */}
+                <VStack gap={1.5}>
+                  <Text type="label" weight="medium">색상</Text>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, color: '' }))}
+                      style={{
+                        ...colorSwatchStyle(formData.color === '', 'var(--color-background-muted)'),
+                        backgroundImage: 'linear-gradient(to top right, transparent calc(50% - 1px), var(--color-border-emphasized) calc(50% - 1px), var(--color-border-emphasized) calc(50% + 1px), transparent calc(50% + 1px))',
+                      }}
+                      title="색상 없음"
+                      aria-label="색상 없음 (카테고리 기본색 사용)"
+                    />
+                    {SCHEDULE_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
+                        style={colorSwatchStyle(formData.color === color.value, color.value)}
+                        title={color.label}
+                        aria-label={color.label}
                       />
-                    </div>
-                    {formData.labelId && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginTop: 'var(--spacing-1-5)' }}>
-                        <span
-                          style={{ width: 12, height: 12, borderRadius: 'var(--radius-full)', backgroundColor: labels.find(l => String(l.id) === String(formData.labelId))?.color }}
-                        />
-                        <Text type="supporting" color="secondary">
-                          {labels.find(l => String(l.id) === String(formData.labelId))?.name}
-                        </Text>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                </div>
+                </VStack>
 
                 {/* 장소 */}
                 <TextInput
@@ -2236,189 +2130,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   isLoading={isSubmitting}
                   isDisabled={isSubmitting}
                   onClick={handleDeleteSchedule}
-                />
-              </HStack>
-            </LayoutFooter>
-          }
-        />
-      </Dialog>
-
-      {/* 라벨 설정 모달 */}
-      <Dialog
-        isOpen={showLabelModal}
-        onOpenChange={(open) => { if (!open) { setShowLabelModal(false); setEditingLabelId(null); setDeletingLabelId(null); } }}
-        purpose="form"
-        width={440}
-      >
-        <Layout
-          header={
-            <DialogHeader
-              title="라벨 설정"
-              subtitle="라벨을 추가, 수정, 삭제할 수 있습니다"
-              onOpenChange={(open) => { if (!open) { setShowLabelModal(false); setEditingLabelId(null); setDeletingLabelId(null); } }}
-            />
-          }
-          content={
-            <LayoutContent>
-              <VStack gap={5}>
-                {/* 기존 라벨 목록 */}
-                {labels.length > 0 && (
-                  <VStack gap={3}>
-                    <Text type="label" weight="medium">등록된 라벨</Text>
-                    <VStack gap={2}>
-                      {labels.map((label) => (
-                        <div key={label.id}>
-                          {editingLabelId === label.id ? (
-                            /* 수정 모드 */
-                            <Card variant="muted" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
-                              <VStack gap={3}>
-                                <TextInput
-                                  label="라벨 이름"
-                                  isLabelHidden
-                                  value={editLabelForm.name}
-                                  onChange={(value) => setEditLabelForm(prev => ({ ...prev, name: value }))}
-                                />
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
-                                  {LABEL_COLORS.map((color) => (
-                                    <button
-                                      key={color.value}
-                                      onClick={() => setEditLabelForm(prev => ({ ...prev, color: color.value }))}
-                                      style={colorSwatchStyle(editLabelForm.color === color.value, color.value)}
-                                      title={color.label}
-                                      aria-label={color.label}
-                                    />
-                                  ))}
-                                </div>
-                                <HStack gap={2} hAlign="end">
-                                  <Button label="취소" variant="ghost" size="sm" onClick={() => setEditingLabelId(null)} />
-                                  <Button
-                                    label="저장"
-                                    variant="primary"
-                                    size="sm"
-                                    isLoading={isSubmitting}
-                                    isDisabled={isSubmitting || !editLabelForm.name.trim()}
-                                    onClick={handleUpdateLabel}
-                                  />
-                                </HStack>
-                              </VStack>
-                            </Card>
-                          ) : deletingLabelId === label.id ? (
-                            /* 삭제 확인 */
-                            <Card variant="red" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
-                              <VStack gap={2}>
-                                <Text type="supporting" color="secondary">
-                                  &apos;{label.name}&apos; 라벨을 삭제하시겠습니까?
-                                </Text>
-                                <HStack gap={2} hAlign="end">
-                                  <Button label="취소" variant="ghost" size="sm" onClick={() => setDeletingLabelId(null)} />
-                                  <Button
-                                    label="삭제"
-                                    variant="destructive"
-                                    size="sm"
-                                    isLoading={isSubmitting}
-                                    isDisabled={isSubmitting}
-                                    onClick={() => handleDeleteLabel(label.id)}
-                                  />
-                                </HStack>
-                              </VStack>
-                            </Card>
-                          ) : (
-                            /* 기본 표시 */
-                            <Card variant="muted" padding={3} style={{ borderRadius: 'var(--radius-inner)' }}>
-                              <HStack hAlign="between" vAlign="center">
-                                <HStack gap={3} vAlign="center">
-                                  <span style={{ width: 16, height: 16, borderRadius: 'var(--radius-full)', flexShrink: 0, backgroundColor: label.color }} />
-                                  <Text type="body" weight="medium">{label.name}</Text>
-                                </HStack>
-                                <HStack gap={1}>
-                                  <Button
-                                    label="수정"
-                                    variant="ghost"
-                                    size="sm"
-                                    isIconOnly
-                                    icon={<Icon icon={IconPencil} size="sm" />}
-                                    onClick={() => {
-                                      setEditingLabelId(label.id);
-                                      setEditLabelForm({ name: label.name, color: label.color });
-                                      setDeletingLabelId(null);
-                                    }}
-                                  />
-                                  <Button
-                                    label="삭제"
-                                    variant="ghost"
-                                    size="sm"
-                                    isIconOnly
-                                    icon={<Icon icon={IconTrash} size="sm" />}
-                                    onClick={() => {
-                                      setDeletingLabelId(label.id);
-                                      setEditingLabelId(null);
-                                    }}
-                                  />
-                                </HStack>
-                              </HStack>
-                            </Card>
-                          )}
-                        </div>
-                      ))}
-                    </VStack>
-                  </VStack>
-                )}
-
-                {labels.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: 'var(--spacing-6) 0' }}>
-                    <Icon icon={IconTag} size="lg" color="disabled" />
-                    <div style={{ marginTop: 'var(--spacing-2)' }}>
-                      <Text type="supporting" color="secondary">등록된 라벨이 없습니다</Text>
-                    </div>
-                  </div>
-                )}
-
-                {/* 구분선 */}
-                <div style={{ borderTop: '1px solid var(--color-border)' }} />
-
-                {/* 새 라벨 추가 */}
-                <VStack gap={3}>
-                  <Text type="label" weight="medium">새 라벨 추가</Text>
-                  <VStack gap={3}>
-                    <TextInput
-                      label="라벨 이름"
-                      isLabelHidden
-                      value={labelForm.name}
-                      onChange={(value) => setLabelForm(prev => ({ ...prev, name: value }))}
-                      placeholder="라벨 이름을 입력하세요"
-                    />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
-                      {LABEL_COLORS.map((color) => (
-                        <button
-                          key={color.value}
-                          onClick={() => setLabelForm(prev => ({ ...prev, color: color.value }))}
-                          style={colorSwatchStyle(labelForm.color === color.value, color.value)}
-                          title={color.label}
-                          aria-label={color.label}
-                        />
-                      ))}
-                    </div>
-                    <Button
-                      label={isSubmitting ? '추가 중...' : '라벨 추가'}
-                      variant="primary"
-                      isLoading={isSubmitting}
-                      isDisabled={isSubmitting || !labelForm.name}
-                      icon={<Icon icon={IconPlus} size="sm" />}
-                      onClick={handleCreateLabel}
-                      style={{ width: '100%' }}
-                    />
-                  </VStack>
-                </VStack>
-              </VStack>
-            </LayoutContent>
-          }
-          footer={
-            <LayoutFooter hasDivider>
-              <HStack hAlign="end">
-                <Button
-                  label="닫기"
-                  variant="ghost"
-                  onClick={() => { setShowLabelModal(false); setEditingLabelId(null); setDeletingLabelId(null); }}
                 />
               </HStack>
             </LayoutFooter>
