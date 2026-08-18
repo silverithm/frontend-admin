@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties } from 'react';
 import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -135,10 +135,20 @@ const DASH_BAR_HEIGHT = 15;
 const DASH_BAR_GAP = 2;
 const DASH_BAR_AREA_TOP = 30; // 셀 패딩 + 날짜 숫자 높이
 const DASH_BAR_EDGE_INSET = 2;
-const DASH_MAX_BAR_LANES = 3;
-const DASH_CELL_MIN_HEIGHT = 92;
-/** 칸 오른쪽 휴무자 칸에 이름을 몇 줄까지 보여줄지 (넘치면 +N) */
-const DASH_VACATION_MAX_VISIBLE = 3;
+/** 측정 전(첫 렌더)에 가정하는 행 높이. 데스크톱 5주 달의 기본 밀도다. */
+const DASH_CELL_DEFAULT_HEIGHT = 92;
+/**
+ * 행이 이보다 낮아지면 더 줄이지 않고 안전판 스크롤로 넘긴다.
+ * (날짜 숫자 30 + 바 한 줄 15 + "+N개" 한 줄이 겨우 서는 높이)
+ */
+const DASH_CELL_FLOOR = 58;
+/**
+ * 달력은 패널이 주는 높이를 주 수만큼 균등하게 나눠 갖는다. 5주 달에 맞던 고정
+ * 높이를 6주 달(예: 2026-08)에 그대로 쓰면 마지막 줄이 잘리므로, 실제 행 높이를
+ * 재서 그 높이에 들어가는 만큼만 일정 바·휴무자 줄 수를 편성한다.
+ */
+const dashBarLanesForRow = (rowHeight: number) => (rowHeight >= 88 ? 3 : rowHeight >= 72 ? 2 : 1);
+const dashVacationRowsForRow = (rowHeight: number) => (rowHeight >= 84 ? 3 : rowHeight >= 66 ? 2 : 1);
 
 /* 달력 격자선. 월간일정 탭과 같은 굵기·색으로 맞춘다. */
 const GRID_LINE = '1px solid var(--color-border-emphasized)';
@@ -846,6 +856,30 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
     return { weeksCount: weeks.length, days: cells, weeks };
   }, [monthlySchedulesByDay, calendarMonth]);
 
+  // 주 영역이 실제로 받은 높이. 행 높이 = 이 값 ÷ 주 수 — 여기에 맞춰 셀 안 밀도를 고른다.
+  // 로딩 스켈레톤 ↔ 본문 전환으로 노드가 새로 붙어도 놓치지 않게 callback ref로 관찰한다.
+  const [weeksAreaHeight, setWeeksAreaHeight] = useState(0);
+  const weeksAreaObserver = useRef<ResizeObserver | null>(null);
+  const weeksAreaRef = useCallback((el: HTMLDivElement | null) => {
+    weeksAreaObserver.current?.disconnect();
+    weeksAreaObserver.current = null;
+    if (!el) return;
+    // 첫 측정은 즉시 한다 — 백그라운드 탭은 렌더링이 멈춰 ResizeObserver 첫 전달이 보류된다
+    setWeeksAreaHeight(el.clientHeight);
+    const observer = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height;
+      if (typeof height === 'number') setWeeksAreaHeight(height);
+    });
+    observer.observe(el);
+    weeksAreaObserver.current = observer;
+  }, []);
+
+  const dashRowHeight = weeksAreaHeight > 0
+    ? Math.max(weeksAreaHeight / monthlyCalendarDays.weeksCount, DASH_CELL_FLOOR)
+    : DASH_CELL_DEFAULT_HEIGHT;
+  const dashMaxBarLanes = dashBarLanesForRow(dashRowHeight);
+  const dashVacationMaxVisible = dashVacationRowsForRow(dashRowHeight);
+
   /**
    * 주별 바 레이아웃. 월간일정 탭과 같은 규칙으로 여러 날 일정을 하나로 잇는다.
    * 대시보드 셀은 월간일정보다 낮아서 줄 수만 더 좁게 잡는다.
@@ -855,9 +889,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       buildWeekBarLayouts(
         visibleMonthlySchedules,
         monthlyCalendarDays.weeks.map((week) => week.map((cell) => cell.dayStr)),
-        DASH_MAX_BAR_LANES,
+        dashMaxBarLanes,
       ),
-    [visibleMonthlySchedules, monthlyCalendarDays],
+    [visibleMonthlySchedules, monthlyCalendarDays, dashMaxBarLanes],
   );
 
   if (isLoading) {
@@ -1352,14 +1386,15 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}
                 </div>
-                {/* 주 단위로 감싼다 — 여러 날 일정을 이어 그리는 바가 주 안에서 좌표를 잡기 때문 */}
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                {/* 주 단위로 감싼다 — 여러 날 일정을 이어 그리는 바가 주 안에서 좌표를 잡기 때문.
+                    행이 바닥값보다 낮아질 만큼 패널이 낮으면 잘리는 대신 스크롤한다 (월간일정 탭과 같은 안전판) */}
+                <div ref={weeksAreaRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {monthlyCalendarDays.weeks.map((week, weekIndex) => {
                   const layout = monthlyWeekBars[weekIndex];
                   return (
                 <div
                   key={`week-${weekIndex}`}
-                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flex: 1, minHeight: DASH_CELL_MIN_HEIGHT }}
+                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flex: 1, minHeight: DASH_CELL_FLOOR }}
                 >
                   {week.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const hiddenCount = layout?.hiddenCounts[dayStr] || 0;
@@ -1376,7 +1411,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         }}
                         className={!inMonth ? undefined : todayFlag ? 'carev-dash-cal-cell carev-dash-cal-cell-today' : 'carev-dash-cal-cell carev-dash-cal-cell-day'}
                         style={{
-                          position: 'relative', display: 'flex', height: '100%', minHeight: 92,
+                          position: 'relative', display: 'flex', height: '100%', minHeight: DASH_CELL_FLOOR,
                           flexDirection: 'column', alignItems: 'stretch', gap: 'var(--spacing-0-5)', padding: 'var(--spacing-1)', textAlign: 'left',
                           background: !inMonth ? 'transparent' : todayFlag ? 'var(--color-background-teal)' : 'transparent',
                           border: 'none',
@@ -1409,7 +1444,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             people={dayVacations}
                             // 그날 일정이 없으면 휴무자가 칸을 통째로 쓴다 (왼쪽이 빈 채로 남지 않게)
                             fraction={pane === 'both' && scheduleCount === 0 ? 1 : vacationPaneFraction(pane)}
-                            maxVisible={DASH_VACATION_MAX_VISIBLE}
+                            maxVisible={dashVacationMaxVisible}
                             topOffset={DASH_BAR_AREA_TOP}
                             hasDivider={pane === 'both' && scheduleCount > 0}
                             roleByName={vacationRoleByName}
