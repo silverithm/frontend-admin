@@ -39,6 +39,11 @@ interface ChatManagementProps {
     isAdmin?: boolean;
     /** 바깥(우측 레일 등)에서 지목한 대화방 — 열릴 때 이 방을 펴 둔다 */
     initialRoomId?: number | null;
+    /**
+     * 전체 안 읽은 메시지 수를 셸에 알린다 — 채팅 탭이 열려 있는 동안은 레일이
+     * 내려가 있어(같은 목록 중복) 이 화면이 배지 숫자를 책임진다.
+     */
+    onUnreadChange?: (total: number) => void;
 }
 
 interface ReactionSummary {
@@ -86,7 +91,7 @@ interface ChatRoom {
 }
 
 interface WebSocketMessage {
-    type: "MESSAGE" | "TYPING" | "READ" | "JOIN" | "LEAVE";
+    type: "MESSAGE" | "TYPING" | "READ" | "JOIN" | "LEAVE" | "DELETE";
     roomId: number;
     senderId?: string;
     senderName?: string;
@@ -184,9 +189,14 @@ function formatDateSeparator(dateStr: string): string {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
-export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null }: ChatManagementProps) {
+export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, onUnreadChange }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<number | null>(initialRoomId);
+
+    // 방을 읽어 unreadCount가 줄면 셸의 채팅 탭 배지도 바로 줄어든다
+    useEffect(() => {
+        onUnreadChange?.(rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0));
+    }, [rooms, onUnreadChange]);
 
     // 우측 레일에서 사람이나 방을 눌러 들어온 경우 그 방을 펴 준다.
     // 같은 방을 다시 눌렀을 때도 반응해야 하므로 값이 같아도 무시하지 않는다.
@@ -450,6 +460,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 try {
                     const wsMessage: WebSocketMessage = JSON.parse(stompMessage.body);
 
+                    // 누가 메시지를 지우면 그 자리를 '삭제된 메시지입니다'로 갈아끼운다
+                    if (wsMessage.type === "DELETE" && wsMessage.message) {
+                        const deleted = wsMessage.message;
+                        setMessages(prev => prev.map(m => (m.id === deleted.id ? deleted : m)));
+                        return;
+                    }
+
                     if (wsMessage.type === "MESSAGE" && wsMessage.message) {
                         setMessages(prev => {
                             // 중복 방지
@@ -524,14 +541,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         setContextMenuMessageId(null);
         setPendingDeleteMessageId(null);
 
-        const before = messages;
         // 낙관적 업데이트 — 왕복을 기다리는 동안 눌린 게 반영 안 된 것처럼 보이지 않게
         setMessages(prev => prev.map(msg => (msg.id === messageId ? { ...msg, isDeleted: true } : msg)));
         try {
             await deleteChatMessage(selectedRoom, messageId);
         } catch (error) {
             console.error('[ChatManagement] 메시지 삭제 실패:', error);
-            setMessages(before);
+            // 되돌릴 때 목록을 통째로 되돌리면, 그 사이 도착한 새 메시지가 사라진다.
+            // 건드린 한 건만 원래대로 돌린다.
+            setMessages(prev => prev.map(msg => (msg.id === messageId ? { ...msg, isDeleted: false } : msg)));
             onNotification('메시지를 삭제하지 못했습니다. 잠시 후 다시 시도해주세요', 'error');
         }
     };

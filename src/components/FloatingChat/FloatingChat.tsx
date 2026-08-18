@@ -229,6 +229,15 @@ export function FloatingChat() {
             return client.subscribe(`/topic/chat/${roomId}`, (stompMessage: IMessage) => {
                 try {
                     const wsMessage: WebSocketMessage = JSON.parse(stompMessage.body);
+                    // 누가 메시지를 지우면 그 자리를 '삭제된 메시지입니다'로 갈아끼운다.
+                    // 안 보고 있는 방은 다시 열 때 서버에서 받아오므로 여기서 할 일이 없다.
+                    if (wsMessage.type === "DELETE" && wsMessage.message) {
+                        const deleted = wsMessage.message;
+                        if (isOpenRef.current && selectedRoomIdRef.current === roomId) {
+                            setMessages(prev => prev.map(m => (m.id === deleted.id ? deleted : m)));
+                        }
+                        return;
+                    }
                     if (wsMessage.type !== "MESSAGE" || !wsMessage.message) return;
 
                     const msg = wsMessage.message;

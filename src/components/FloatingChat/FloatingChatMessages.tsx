@@ -379,14 +379,15 @@ export function FloatingChatMessages({
         setLongPressMenuMessageId(null);
         setPendingDeleteId(null);
 
-        const before = messages;
         // 낙관적 업데이트 — 왕복을 기다리는 동안 눌린 게 반영 안 된 것처럼 보이지 않게
         onMessagesUpdate?.(messages.map(msg => (msg.id === messageId ? { ...msg, isDeleted: true } : msg)));
         try {
             await deleteChatMessage(roomId, messageId);
         } catch (error) {
             console.error("[FloatingChat] 메시지 삭제 실패:", error);
-            onMessagesUpdate?.(before);
+            // 되돌릴 때 목록을 통째로 되돌리면, 그 사이 도착한 새 메시지가 사라진다.
+            // 건드린 한 건만 원래대로 돌린다.
+            onMessagesUpdate?.(messages.map(msg => (msg.id === messageId ? { ...msg, isDeleted: false } : msg)));
         }
     };
 

@@ -113,6 +113,12 @@ export default function ChatDock({
                 client.subscribe(`/topic/chat/${roomId}`, (frame: IMessage) => {
                     try {
                         const wsMessage: WebSocketMessage = JSON.parse(frame.body);
+                        // 누가 메시지를 지우면 그 자리를 '삭제된 메시지입니다'로 갈아끼운다
+                        if (wsMessage.type === "DELETE" && wsMessage.message) {
+                            const deleted = wsMessage.message;
+                            setMessages((prev) => prev.map((m) => (m.id === deleted.id ? deleted : m)));
+                            return;
+                        }
                         if (wsMessage.type !== "MESSAGE" || !wsMessage.message) return;
                         const msg = wsMessage.message;
                         setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));

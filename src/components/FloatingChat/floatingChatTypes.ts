@@ -37,7 +37,7 @@ export interface ChatMessage {
 }
 
 export interface WebSocketMessage {
-    type: "MESSAGE" | "TYPING" | "READ" | "JOIN" | "LEAVE";
+    type: "MESSAGE" | "TYPING" | "READ" | "JOIN" | "LEAVE" | "DELETE";
     roomId: number;
     senderId?: string;
     senderName?: string;
