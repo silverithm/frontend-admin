@@ -285,6 +285,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<number | null>(null);
 
+    /** 헤더 우측 더보기(⋯) 메뉴 — 앱의 채팅방 ⋮ 메뉴와 같은 자리다 */
+    const [showRoomMenu, setShowRoomMenu] = useState(false);
+
     // 열린 메시지 메뉴는 Escape로 닫는다.
     // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
     // (키보드 사용자의 정상 경로) 메뉴로 이벤트가 오지 않는다.
@@ -301,6 +304,19 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     useEffect(() => {
         if (contextMenuMessageId === null) setPendingDeleteMessageId(null);
     }, [contextMenuMessageId]);
+
+    // 헤더 더보기 메뉴도 Escape와 바깥 클릭으로 닫는다 (메시지 메뉴와 같은 이유로 document에 건다)
+    useEffect(() => {
+        if (!showRoomMenu) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setShowRoomMenu(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [showRoomMenu]);
+
+    // 방을 옮기면 열려 있던 메뉴는 닫는다
+    useEffect(() => { setShowRoomMenu(false); }, [selectedRoom]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const stompClientRef = useRef<Client | null>(null);
@@ -1215,6 +1231,54 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     icon={<Icon icon="menu" />}
                                     onClick={toggleDrawer}
                                 />
+                                {/*
+                                  더보기 — 앱 채팅방 헤더의 ⋮ 메뉴와 같은 자리에 같은 항목을 둔다.
+                                  검색·파일·정보는 웹에선 화면이 넓어 아이콘으로 바로 꺼내 두고,
+                                  되돌릴 수 없는 삭제만 이 메뉴 안에 넣는다.
+                                */}
+                                {isAdmin && (
+                                    <div style={{ position: "relative" }}>
+                                        <IconButton
+                                            label="더보기"
+                                            variant={showRoomMenu ? 'secondary' : 'ghost'}
+                                            icon={<Icon icon="moreHorizontal" />}
+                                            onClick={() => setShowRoomMenu(!showRoomMenu)}
+                                        />
+                                        {showRoomMenu && (
+                                            <>
+                                                {/* 바깥 아무 데나 누르면 닫힌다 */}
+                                                <div
+                                                    style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                                                    onClick={() => setShowRoomMenu(false)}
+                                                />
+                                                <div
+                                                    style={{
+                                                        position: "absolute",
+                                                        zIndex: 40,
+                                                        top: "100%",
+                                                        right: 0,
+                                                        marginTop: 'var(--spacing-1)',
+                                                        minWidth: 160,
+                                                        background: C.card,
+                                                        border: `1px solid ${C.border}`,
+                                                        borderRadius: 'var(--radius-element)',
+                                                        boxShadow: 'var(--shadow-high)',
+                                                        overflow: "hidden",
+                                                    }}
+                                                >
+                                                    <Button
+                                                        label="채팅 삭제"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        icon={<Icon icon={FiTrash2} size="sm" color="error" />}
+                                                        onClick={() => { setShowRoomMenu(false); setShowDeleteConfirm(true); }}
+                                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </HStack>
                         </div>
 
@@ -1886,16 +1950,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         )}
                                     </div>
 
-                                    {/* 채팅방 삭제 (관리자만) */}
-                                    {isAdmin && (
-                                        <div style={{ padding: 'var(--spacing-4)' }}>
-                                            <Button
-                                                label="채팅방 삭제"
-                                                variant="destructive"
-                                                onClick={() => setShowDeleteConfirm(true)}
-                                            />
-                                        </div>
-                                    )}
+                                    {/* 삭제는 헤더 더보기(⋯) 메뉴로 옮겼다 — 앱과 같은 자리에서 찾도록 */}
                                 </div>
                             </div>
                         )}
