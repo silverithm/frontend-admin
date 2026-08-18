@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera, FiUpload } from 'react-icons/fi';
 import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
 import { uploadMemberProfileImage, deleteMemberProfileImage } from '@/lib/memberProfileApi';
 import type { ElderlyInfo } from '@/types/elderly';
 import type { Position } from '@/types/position';
 import { ALL_PERMISSIONS, PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, type Permission } from '@/types/auth';
 import PositionManagement from '@/components/PositionManagement';
+import ElderBulkUploadDialog from '@/components/ElderBulkUploadDialog';
 import {
   ALL_ROLE_FILTER,
   buildRoleNames,
@@ -126,6 +127,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [seniorForm, setSeniorForm] = useState({ name: '', homeAddress: '', requiredFrontSeat: false });
   const [showDeleteSeniorModal, setShowDeleteSeniorModal] = useState(false);
   const [selectedSenior, setSelectedSenior] = useState<ElderlyInfo | null>(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // 권한 설정 상태
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -693,12 +695,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                       />
                     </StackItem>
                     {isAdmin && (
-                      <Button
-                        label="어르신 추가"
-                        variant="primary"
-                        icon={<Icon icon={FiPlus} size="sm" />}
-                        onClick={openAddSeniorModal}
-                      />
+                      <>
+                        <Button
+                          label="엑셀 등록"
+                          variant="secondary"
+                          icon={<Icon icon={FiUpload} size="sm" />}
+                          onClick={() => setShowBulkUpload(true)}
+                        />
+                        <Button
+                          label="어르신 추가"
+                          variant="primary"
+                          icon={<Icon icon={FiPlus} size="sm" />}
+                          onClick={openAddSeniorModal}
+                        />
+                      </>
                     )}
                   </HStack>
                 ) : (
@@ -1317,6 +1327,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           />
         </Dialog>
       )}
+
+      {/* 어르신 엑셀 대량 등록 */}
+      <ElderBulkUploadDialog
+        isOpen={showBulkUpload}
+        onClose={() => setShowBulkUpload(false)}
+        existingSeniors={seniors}
+        onComplete={fetchSeniors}
+        onNotification={onNotification}
+      />
     </div>
   );
 };
