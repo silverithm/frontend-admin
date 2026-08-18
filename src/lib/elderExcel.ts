@@ -17,7 +17,6 @@ const ADDRESS_MAX = 200;
 
 const HEADER_NAME = ['이름', '성명'];
 const HEADER_ADDRESS = ['주소', '자택주소', '집주소', '거주지'];
-const HEADER_FRONT_SEAT = ['앞자리', '앞좌석', '보조석', '앞자리 필요', '앞좌석 필요'];
 
 export type ElderRowStatus =
   | 'ok' // 등록 대상
@@ -30,7 +29,6 @@ export interface ParsedElderRow {
   rowNumber: number;
   name: string;
   homeAddress: string;
-  requiredFrontSeat: boolean;
   status: ElderRowStatus;
   /** 제외 사유 또는 등록해도 되지만 확인이 필요한 경고 */
   message?: string;
@@ -63,19 +61,6 @@ function cellText(cell: { text?: unknown; value?: unknown }): string {
   return String(value).trim();
 }
 
-/**
- * '앞자리 필요' 칸 해석. O/X 외에도 현장에서 흔히 적는 표기를 넓게 받는다.
- * 해석할 수 없는 값은 조용히 false로 넘기지 않고 오류로 알린다 —
- * "필요"라고 적었는데 무시되는 것이 조용한 데이터 오염의 시작이기 때문이다.
- */
-function parseFrontSeat(raw: string): boolean | null {
-  const v = raw.replace(/\s/g, '').toLowerCase();
-  if (v === '') return false;
-  if (['o', 'ㅇ', 'y', 'yes', '예', '네', '필요', 'true', '1', 'v', '✓', '○'].includes(v)) return true;
-  if (['x', 'ㄴ', 'n', 'no', '아니오', '아니요', '불필요', 'false', '0', '-', '×'].includes(v)) return false;
-  return null;
-}
-
 const dupKey = (name: string, address: string) => `${name}\u0000${address}`;
 
 /**
@@ -105,7 +90,6 @@ export async function parseElderExcel(
   let headerRow = -1;
   let nameCol = -1;
   let addressCol = -1;
-  let frontSeatCol = -1;
   const normalize = (raw: string) => raw.replace(/\s|\(.*\)|（.*）|\*/g, '');
   const scanLimit = Math.min(worksheet.rowCount, 10);
   const columnLimit = Math.max(worksheet.columnCount, 3);
@@ -123,11 +107,8 @@ export async function parseElderExcel(
     const row = worksheet.getRow(headerRow);
     for (let c = 1; c <= columnLimit; c += 1) {
       if (c === nameCol) continue;
-      const text = normalize(cellText(row.getCell(c)));
-      if (addressCol === -1 && HEADER_ADDRESS.includes(text)) {
+      if (addressCol === -1 && HEADER_ADDRESS.includes(normalize(cellText(row.getCell(c))))) {
         addressCol = c;
-      } else if (frontSeatCol === -1 && HEADER_FRONT_SEAT.some((h) => text.startsWith(h.replace(/\s/g, '')))) {
-        frontSeatCol = c;
       }
     }
   }
@@ -147,20 +128,16 @@ export async function parseElderExcel(
     const row = worksheet.getRow(r);
     const name = cellText(row.getCell(nameCol));
     const homeAddress = addressCol === -1 ? '' : cellText(row.getCell(addressCol));
-    const frontSeatRaw = frontSeatCol === -1 ? '' : cellText(row.getCell(frontSeatCol));
 
     // 완전히 빈 행은 조용히 건너뛴다 (양식 아래쪽 빈 칸)
-    if (!name && !homeAddress && !frontSeatRaw) continue;
+    if (!name && !homeAddress) continue;
 
     const parsed: ParsedElderRow = {
       rowNumber: r,
       name,
       homeAddress,
-      requiredFrontSeat: false,
       status: 'ok',
     };
-
-    const frontSeat = parseFrontSeat(frontSeatRaw);
 
     if (!name) {
       parsed.status = 'invalid';
@@ -171,12 +148,7 @@ export async function parseElderExcel(
     } else if (homeAddress.length > ADDRESS_MAX) {
       parsed.status = 'invalid';
       parsed.message = `주소가 너무 깁니다 (${ADDRESS_MAX}자 이내)`;
-    } else if (frontSeat === null) {
-      parsed.status = 'invalid';
-      parsed.message = `'앞자리 필요' 값을 해석할 수 없습니다: "${frontSeatRaw}" — O 또는 X로 적어주세요`;
     } else {
-      parsed.requiredFrontSeat = frontSeat;
-
       const key = dupKey(name, homeAddress);
       const firstRow = seenInFile.get(key);
       if (firstRow !== undefined) {
@@ -233,30 +205,20 @@ export async function downloadElderTemplate(): Promise<void> {
   const sheet = workbook.addWorksheet('어르신 명단');
   sheet.columns = [
     { header: '이름', key: 'name', width: 16 },
-    { header: '주소', key: 'homeAddress', width: 44 },
-    { header: '앞자리 필요(O/X)', key: 'requiredFrontSeat', width: 18 },
+    { header: '주소', key: 'homeAddress', width: 48 },
   ];
 
   const headerRow = sheet.getRow(1);
   headerRow.font = { bold: true };
   headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
   headerRow.height = 22;
-  for (let c = 1; c <= 3; c += 1) {
+  for (let c = 1; c <= 2; c += 1) {
     headerRow.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F1F1' } };
     headerRow.getCell(c).border = { bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } } };
   }
 
-  // 앞자리 열은 O/X 드롭다운으로 입력 실수를 줄인다
+  // 모든 칸을 텍스트 서식으로 — 이름이 숫자로, 주소 번지가 날짜로 바뀌는 사고를 막는다
   for (let r = 2; r <= MAX_BULK_ELDERS + 1; r += 1) {
-    sheet.getCell(r, 3).dataValidation = {
-      type: 'list',
-      allowBlank: true,
-      formulae: ['"O,X"'],
-      showErrorMessage: true,
-      errorTitle: '입력 오류',
-      error: 'O 또는 X만 입력할 수 있습니다.',
-    };
-    // 모든 칸을 텍스트 서식으로 — 이름이 숫자로, 주소 번지가 날짜로 바뀌는 사고를 막는다
     sheet.getCell(r, 1).numFmt = '@';
     sheet.getCell(r, 2).numFmt = '@';
   }
@@ -268,9 +230,8 @@ export async function downloadElderTemplate(): Promise<void> {
     '',
     "1. '어르신 명단' 시트의 2행부터 한 줄에 한 분씩 적습니다.",
     `2. 이름은 필수입니다 (${NAME_MAX}자 이내). 주소는 비워 둘 수 있습니다 (${ADDRESS_MAX}자 이내).`,
-    "3. '앞자리 필요'는 차량 앞좌석이 필요한 분만 O, 나머지는 X 또는 빈칸으로 둡니다.",
-    `4. 한 번에 최대 ${MAX_BULK_ELDERS}명까지 등록할 수 있습니다. 넘으면 파일을 나눠 올려주세요.`,
-    '5. 열 순서를 바꾸거나 열을 지우지 마세요. 제목(1행)만 있으면 위에 다른 행이 있어도 됩니다.',
+    `3. 한 번에 최대 ${MAX_BULK_ELDERS}명까지 등록할 수 있습니다. 넘으면 파일을 나눠 올려주세요.`,
+    '4. 제목(1행)만 있으면 위에 다른 행이 있어도 됩니다.',
     '',
     '업로드하면 등록 전에 행별 검사 결과를 먼저 보여드립니다.',
     '이미 등록된 어르신과 이름·주소가 같은 행은 자동으로 제외되며, 필요하면 포함할 수 있습니다.',

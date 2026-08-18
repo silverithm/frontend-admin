@@ -14,7 +14,6 @@ import { authorizedFetch, addCompanyElder } from '@/lib/apiService';
 export interface BulkElderInput {
   name: string;
   homeAddress?: string;
-  requiredFrontSeat?: boolean;
 }
 
 export interface BulkRegisterResult {
@@ -55,7 +54,6 @@ export async function bulkRegisterElders(
   const payload = elders.map((e) => ({
     name: e.name,
     homeAddress: e.homeAddress || '',
-    requiredFrontSeat: e.requiredFrontSeat || false,
   }));
 
   try {
@@ -82,7 +80,6 @@ export async function bulkRegisterElders(
       await addCompanyElder({
         name: input.name,
         homeAddress: input.homeAddress || undefined,
-        requiredFrontSeat: input.requiredFrontSeat || false,
       });
     } catch (error) {
       failed.push({ input, message: errorMessage(error) });
@@ -106,7 +103,6 @@ export async function bulkRegisterElders(
         await addCompanyElder({
           name: input.name,
           homeAddress: input.homeAddress || undefined,
-          requiredFrontSeat: input.requiredFrontSeat || false,
         });
       } catch (error) {
         failed.push({ input, message: errorMessage(error) });

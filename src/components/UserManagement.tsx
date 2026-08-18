@@ -799,7 +799,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             <HStack gap={2} vAlign="center">
                               <Icon icon={FiHeart} size="sm" color="secondary" />
                               <Text weight="semibold">{s.name}</Text>
-                              {s.requiredFrontSeat && <Badge variant="orange" label="앞좌석 필요" />}
                             </HStack>
                           ),
                         },
@@ -1139,11 +1138,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   value={seniorForm.homeAddress}
                   onChange={(v) => setSeniorForm(prev => ({ ...prev, homeAddress: v }))}
                 />
-                <CheckboxInput
-                  label="앞좌석 필요"
-                  value={seniorForm.requiredFrontSeat}
-                  onChange={(checked) => setSeniorForm(prev => ({ ...prev, requiredFrontSeat: checked }))}
-                />
+                {/* 앞좌석 필요는 배차 서비스 종료로 남은 레거시 항목 — 입력받지 않고 기존 값만 보존한다 */}
               </VStack>
             </LayoutContent>
           }

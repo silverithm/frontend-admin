@@ -121,7 +121,6 @@ export default function ElderBulkUploadDialog({
         registerTargets.map((r) => ({
           name: r.name,
           homeAddress: r.homeAddress || undefined,
-          requiredFrontSeat: r.requiredFrontSeat,
         })),
         (done, total) => setProgress({ done, total }),
       );
@@ -268,7 +267,6 @@ export default function ElderBulkUploadDialog({
                         <TableHeaderCell>행</TableHeaderCell>
                         <TableHeaderCell>이름</TableHeaderCell>
                         <TableHeaderCell>주소</TableHeaderCell>
-                        <TableHeaderCell>앞자리</TableHeaderCell>
                         <TableHeaderCell>상태</TableHeaderCell>
                       </TableRow>
                     </thead>
@@ -283,9 +281,6 @@ export default function ElderBulkUploadDialog({
                           </TableCell>
                           <TableCell>
                             <Text type="supporting" color="secondary" maxLines={1}>{row.homeAddress || '—'}</Text>
-                          </TableCell>
-                          <TableCell>
-                            <Text type="supporting" color="secondary">{row.requiredFrontSeat ? 'O' : 'X'}</Text>
                           </TableCell>
                           <TableCell>
                             <VStack gap={0.5} align="start">
