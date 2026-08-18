@@ -15,12 +15,15 @@ interface NoticeRollingBannerProps {
   onNoticeClick: () => void;
   autoScrollInterval?: number;
   maxNotices?: number;
+  /** 받아온 전체 공지 목록(자르기 전)을 셸에 넘긴다 — 사이드바 새 공지 배지가 같은 데이터를 쓴다 */
+  onNoticesLoaded?: (notices: Notice[]) => void;
 }
 
 export default function NoticeRollingBanner({
   onNoticeClick,
   autoScrollInterval = 5000,
   maxNotices = 5,
+  onNoticesLoaded,
 }: NoticeRollingBannerProps) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -43,12 +46,13 @@ export default function NoticeRollingBanner({
       });
 
       setNotices(sortedNotices.slice(0, maxNotices));
+      onNoticesLoaded?.(sortedNotices);
     } catch (error) {
       console.error('Failed to fetch notices:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [maxNotices]);
+  }, [maxNotices, onNoticesLoaded]);
 
   // 공지 로드 + 5분 주기 갱신 (보고 있는 탭에서만)
   useVisiblePolling(fetchNotices, 300000);

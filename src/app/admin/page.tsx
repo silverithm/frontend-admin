@@ -109,6 +109,7 @@ import OnboardingTour from "@/components/OnboardingTour";
 import AiPostWriter from "@/components/AiPostWriter";
 import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
+import { useTabBadges } from "@/lib/useTabBadges";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -210,6 +211,24 @@ export default function AdminPage() {
     const [loginType, setLoginType] = useState<string>('admin');
     const isAdmin = loginType === 'admin';
     const [isDemoMode, setIsDemoMode] = useState(false);
+
+    // 탭별 새 콘텐츠 배지 — 근무조정(pendingRequests)·채팅(서버 unreadCount)을 뺀
+    // 나머지 탭의 숫자를 이 훅이 폴링으로 집계한다
+    const { counts: tabCounts, onNoticesLoaded, onMembersPendingChange } = useTabBadges({
+        activeTab: activeMainTab,
+    });
+    /** 전체 안 읽은 채팅 수 — 채팅 탭 밖에서는 레일이, 채팅 탭 안에서는 채팅 화면이 채운다 */
+    const [chatUnread, setChatUnread] = useState(0);
+
+    /** 사이드바·모바일 탭에 붙는 빨간 숫자. 0이면 아무것도 그리지 않는다. */
+    const tabBadgeEl = (key: MainTab) => {
+        const count =
+            key === "work" ? pendingRequests.length
+            : key === "chat" ? chatUnread
+            : key in tabCounts ? tabCounts[key as keyof typeof tabCounts]
+            : 0;
+        return count > 0 ? <Badge variant="error" label={count > 99 ? "99+" : count} /> : undefined;
+    };
 
     const memberRoleLookup = useMemo(
         () => buildMemberRoleLookup(members),
@@ -1178,7 +1197,7 @@ export default function AdminPage() {
                 { key: "chat", label: "채팅", icon: IconMessageDots },
                 { key: "schedule", label: "일정", icon: IconCalendar },
                 { key: "approval", label: "전자결재", icon: IconFileText },
-                { key: "work", label: "근무조정", icon: IconCalendarStats, badge: pendingRequests.length > 0 ? pendingRequests.length : undefined },
+                { key: "work", label: "근무조정", icon: IconCalendarStats },
                 // 고충·건의함은 기관 관리자 전용 (백엔드도 403으로 강제하지만 탭 자체를 숨긴다)
                 ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true }] : []),
                 { key: "library", label: "자료실", icon: IconFolder },
@@ -1188,7 +1207,7 @@ export default function AdminPage() {
                 ...(isAdmin ? [{ key: "tools", label: "편의기능", icon: IconApps }] : []),
             ],
         },
-    ] as { title: string; items: { key: string; label: string; icon: IconType; badge?: number; isNew?: boolean }[] }[]);
+    ] as { title: string; items: { key: string; label: string; icon: IconType; isNew?: boolean }[] }[]);
 
     // 편의기능 탭의 도구 목록 (사이드바 서브탭 + 모바일 서브탭이 함께 사용)
     const toolItems = ([
@@ -1222,7 +1241,7 @@ export default function AdminPage() {
                                 size="md"
                                 onClick={() => setActiveMainTab(tab.key as MainTab)}
                                 icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? "accent" : "primary"} />}
-                                endContent={tab.badge ? <Badge variant="error" label={tab.badge} /> : tab.isNew ? <Badge variant="teal" label="NEW" /> : undefined}
+                                endContent={tabBadgeEl(tab.key as MainTab) ?? (tab.isNew ? <Badge variant="teal" label="NEW" /> : undefined)}
                                 style={{ width: "100%", justifyContent: "flex-start" }}
                             />
                             {/* 전자결재 서브탭 */}
@@ -1306,6 +1325,7 @@ export default function AdminPage() {
                             variant={activeMainTab === tab.key ? "secondary" : "ghost"}
                             size="sm"
                             onClick={() => setActiveMainTab(tab.key as MainTab)}
+                            endContent={tabBadgeEl(tab.key as MainTab)}
                             style={{ whiteSpace: "nowrap", flexShrink: 0 }}
                         />
                     ))}
@@ -1332,6 +1352,7 @@ export default function AdminPage() {
               onNoticeClick={() => setActiveMainTab('notice')}
               autoScrollInterval={5000}
               maxNotices={5}
+              onNoticesLoaded={onNoticesLoaded}
             />
             </div>
 
@@ -1377,7 +1398,7 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <ChatManagement onNotification={showNotification} initialRoomId={railRoomId} />
+                            <ChatManagement onNotification={showNotification} initialRoomId={railRoomId} onUnreadChange={setChatUnread} />
                         </motion.div>
                     ) : activeMainTab === "schedule" ? (
                         <motion.div
@@ -1820,6 +1841,7 @@ export default function AdminPage() {
                                 organizationName={companyName || undefined}
                                 onNotification={showNotification}
                                 isAdmin={isAdmin}
+                                onPendingCountChange={onMembersPendingChange}
                             />
                         </motion.div>
                     ) : null}
@@ -1835,6 +1857,7 @@ export default function AdminPage() {
                         setActiveMainTab("chat");
                     }}
                     onOpenChatTab={() => setActiveMainTab("chat")}
+                    onUnreadChange={setChatUnread}
                 />
             )}
             </div>

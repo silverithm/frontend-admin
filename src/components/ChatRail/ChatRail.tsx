@@ -52,6 +52,8 @@ interface ChatRailProps {
     onOpenRoom: (roomId: number) => void;
     /** 레일이 들어갈 폭이 안 되는 화면에서 플로팅 버튼을 누른 경우 — 채팅 탭으로 보낸다 */
     onOpenChatTab: () => void;
+    /** 전체 안 읽은 메시지 수를 셸에 알린다 — 사이드바 채팅 탭 배지가 이 값을 쓴다 */
+    onUnreadChange?: (total: number) => void;
 }
 
 type RailState = { isOpen: boolean; showPeople: boolean; showRooms: boolean };
@@ -76,7 +78,7 @@ function readStoredState(): RailState {
  * 레일 자체와 두 구역을 각각 접을 수 있고, 접힌 상태는 기억한다.
  * 대화 내용은 여기 담지 않는다 — 폭이 좁아 읽기 어렵고, 이미 채팅 화면이 그 일을 한다.
  */
-export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
+export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange }: ChatRailProps) {
     const [state, setState] = useState<RailState>(DEFAULT_STATE);
     const [hydrated, setHydrated] = useState(false);
 
@@ -119,11 +121,15 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
         });
     }, []);
 
+    /** 첫 방 목록을 받기 전에는 안읽음 수를 셸에 보고하지 않기 위한 표식 */
+    const hasLoadedRoomsRef = useRef(false);
+
     const loadRooms = useCallback(async () => {
         if (!companyId || !userId) return;
         try {
             const data = await fetchChatRooms();
             const list = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
+            hasLoadedRoomsRef.current = true; // setRooms로 인한 재렌더에서 배지 보고가 열리도록 먼저 세운다
             setRooms(list);
         } catch (error) {
             console.error("[ChatRail] 대화방 목록 로드 실패:", error);
@@ -200,6 +206,15 @@ export function ChatRail({ onOpenRoom, onOpenChatTab }: ChatRailProps) {
         () => rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0),
         [rooms],
     );
+
+    // 셸의 채팅 탭 배지도 같은 숫자를 보게 한다 (레일이 접혀 있어도 값은 올라간다).
+    // 첫 목록을 받기 전의 빈 배열은 '아직 모른다'이지 '0건'이 아니므로 보고하지 않고,
+    // 의존성도 합계(숫자)가 아니라 rooms 자체로 둔다 — 마운트 때 0으로 계산된 합계가
+    // 로드 후에도 0이면 숫자 의존성으로는 effect가 다시 돌지 않아 보고가 영영 빠진다.
+    useEffect(() => {
+        if (!hasLoadedRoomsRef.current) return;
+        onUnreadChange?.(rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0));
+    }, [rooms, onUnreadChange]);
 
     const openDirect = async (member: DirectChatMember) => {
         if (!userId || !userName || isOpeningDirect) return;

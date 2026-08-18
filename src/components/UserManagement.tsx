@@ -81,11 +81,20 @@ interface UserManagementProps {
   organizationName?: string;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
   isAdmin?: boolean;
+  /** 가입 승인 대기 수를 셸에 알린다 — 사이드바 회원관리 탭 배지가 이 값을 쓴다 */
+  onPendingCountChange?: (count: number) => void;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, isAdmin = true }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, isAdmin = true, onPendingCountChange }) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'roles' | 'seniors'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+
+  // 승인·거절·폴링으로 대기 목록이 바뀔 때마다 셸 배지도 같은 숫자를 보게 한다.
+  // 첫 조회가 끝나기 전의 빈 목록은 보고하지 않는다 — 셸이 이미 세어 둔 값을 0으로 지우게 된다.
+  useEffect(() => {
+    if (!hasLoadedUsersRef.current) return;
+    onPendingCountChange?.(pendingUsers.length);
+  }, [pendingUsers, onPendingCountChange]);
   const [members, setMembers] = useState<User[]>([]);
   /** 기관 관리자 계정 — 직원과 한 표에 놓되 맨 위에 고정한다 */
   const [adminAccounts, setAdminAccounts] = useState<User[]>([]);

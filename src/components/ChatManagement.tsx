@@ -193,8 +193,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<number | null>(initialRoomId);
 
-    // 방을 읽어 unreadCount가 줄면 셸의 채팅 탭 배지도 바로 줄어든다
+    // 방을 읽어 unreadCount가 줄면 셸의 채팅 탭 배지도 바로 줄어든다.
+    // 첫 목록을 받기 전의 빈 배열은 보고하지 않는다 — '아직 모른다'를 '0건'으로
+    // 올리면 탭을 오갈 때마다 배지가 사라졌다 되살아난다 (UserManagement와 같은 가드)
+    const hasLoadedRoomsRef = useRef(false);
     useEffect(() => {
+        if (!hasLoadedRoomsRef.current) return;
         onUnreadChange?.(rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0));
     }, [rooms, onUnreadChange]);
 
@@ -342,6 +346,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         try {
             const data = await fetchChatRooms();
             const roomList = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
+            hasLoadedRoomsRef.current = true; // setRooms로 인한 재렌더에서 배지 보고가 열리도록 먼저 세운다
             setRooms(roomList);
         } catch (error) {
             console.error("Error fetching rooms:", error);
