@@ -65,13 +65,25 @@ const PLAZA_PAGE_SIZE = 20;
 
 const isSeenTab = (tab: string): tab is SeenTab => (SEEN_TABS as readonly string[]).includes(tab);
 
-function storageKey(): string | null {
+/**
+ * localStorage 접근 자체가 SecurityError를 던지는 환경(사파리 쿠키 전면 차단 등)에서도
+ * 죽지 않게 읽는다. 배지는 부가 기능이라 이런 환경에서는 조용히 꺼지는 게 맞다.
+ */
+function readStorage(key: string): string | null {
     if (typeof window === 'undefined') return null;
-    const companyId = localStorage.getItem('companyId');
-    const userId = localStorage.getItem('userId');
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function storageKey(): string | null {
+    const companyId = readStorage('companyId');
+    const userId = readStorage('userId');
     if (!companyId || !userId) return null;
     // 관리자와 직원의 id가 겹칠 수 있어 loginType까지 키에 넣는다 ([[chat-user-identity]]와 같은 이유)
-    const loginType = localStorage.getItem('loginType') || 'admin';
+    const loginType = readStorage('loginType') || 'admin';
     return `carev-tab-seen:${companyId}:${loginType}:${userId}`;
 }
 
@@ -80,7 +92,7 @@ function loadSeen(): Partial<Record<SeenTab, string>> | null {
     const key = storageKey();
     if (!key) return null;
     try {
-        const raw = localStorage.getItem(key);
+        const raw = readStorage(key);
         if (raw) return JSON.parse(raw);
     } catch {
         // 깨진 저장값은 새로 만든다
@@ -129,8 +141,7 @@ interface UseTabBadgesOptions {
  * 셸의 loginType state는 마운트 후에야 채워지는데 첫 폴링 틱은 그보다 먼저 돈다 —
  * prop으로 받으면 직원 세션이 관리자 API를 한 번 때리고 403을 받는다. 저장소를 직접 읽는다.
  */
-const isAdminLogin = () =>
-    typeof window !== 'undefined' && (localStorage.getItem('loginType') || 'admin') === 'admin';
+const isAdminLogin = () => (readStorage('loginType') || 'admin') === 'admin';
 
 export function useTabBadges({ activeTab }: UseTabBadgesOptions) {
     const [counts, setCounts] = useState<TabBadgeCounts>(ZERO_COUNTS);
@@ -139,8 +150,15 @@ export function useTabBadges({ activeTab }: UseTabBadgesOptions) {
     const activeTabRef = useRef(activeTab);
     activeTabRef.current = activeTab;
 
-    const ready = () =>
-        typeof window !== 'undefined' && !!localStorage.getItem('authToken') && !!storageKey();
+    // 처리 대기형은 주기 틱과 탭 이탈 틱이 겹칠 수 있다. 요청마다 번호를 매겨
+    // 뒤늦게 도착한 옛 응답이 더 새 값을 덮어쓰지 못하게 한다.
+    const approvalReqSeqRef = useRef(0);
+    const membersReqSeqRef = useRef(0);
+    // 회원관리 화면이 승인/거절 직후 직접 보고한 시각. 그보다 먼저 출발한 폴링 응답은
+    // 과거의 대기 수를 들고 있으므로 버린다 — 안 그러면 방금 승인한 건이 배지에 되살아난다.
+    const membersReportedAtRef = useRef(0);
+
+    const ready = () => !!readStorage('authToken') && !!storageKey();
 
     const setCount = useCallback((tab: keyof TabBadgeCounts, value: number) => {
         setCounts((prev) => (prev[tab] === value ? prev : { ...prev, [tab]: value }));
@@ -233,8 +251,10 @@ export function useTabBadges({ activeTab }: UseTabBadgesOptions) {
 
         // 전자결재: PENDING 중에서도 '내 차례'인 문서만 — 결재선의 다른 사람 차례까지
         // 세면 내가 할 수 없는 일이 빨간 숫자로 남는다 (ApprovalManagement.isActionable과 동일 판정)
+        const approvalSeq = ++approvalReqSeqRef.current;
         getApprovalRequests({ status: 'PENDING' })
             .then((response) => {
+                if (approvalSeq !== approvalReqSeqRef.current) return; // 더 새 요청이 이미 나갔다
                 const approvals: ApprovalRequest[] = response?.approvals || [];
                 const myApproverId = getApprovalRequesterId();
                 const actionable = approvals.filter((approval) => {
@@ -248,8 +268,13 @@ export function useTabBadges({ activeTab }: UseTabBadgesOptions) {
             .catch((error) => console.error('[탭배지] 결재 대기 조회 실패:', error));
 
         // 회원관리: 가입 승인 대기 수
+        const membersSeq = ++membersReqSeqRef.current;
+        const membersFetchStartedAt = Date.now();
         getPendingUsers()
             .then((data) => {
+                if (membersSeq !== membersReqSeqRef.current) return; // 더 새 요청이 이미 나갔다
+                // 요청을 보낸 뒤 회원관리 화면이 더 최신 값을 보고했다면 이 응답은 과거다
+                if (membersReportedAtRef.current > membersFetchStartedAt) return;
                 const requests = (data as unknown as { requests?: unknown[] })?.requests || [];
                 setCount('members', requests.length);
             })
@@ -288,7 +313,10 @@ export function useTabBadges({ activeTab }: UseTabBadgesOptions) {
 
     /** 회원관리 화면이 승인/거절/재조회로 알게 된 최신 대기 수를 배지에 반영한다 */
     const onMembersPendingChange = useCallback(
-        (count: number) => setCount('members', count),
+        (count: number) => {
+            membersReportedAtRef.current = Date.now();
+            setCount('members', count);
+        },
         [setCount],
     );
 
