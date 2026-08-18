@@ -343,37 +343,38 @@ export default function EmployeePage() {
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  {/* 결재 관리/양식 관리 권한이 있으면 서브탭 표시 */}
-                  {hasAnyPermission('APPROVAL_MANAGE', 'APPROVAL_TEMPLATE') && (
-                    <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
+                  {/*
+                    서브탭은 항상 보인다.
+                    결재 권한이 없는 직원도 열람 대상으로 지정된 문서(회의록 등)를 봐야 하므로
+                    같은 목록 화면을 '문서함'이라는 이름으로 열어준다 — 목록에 무엇이 담기는지는
+                    서버가 열람 권한으로 거른다.
+                  */}
+                  <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
+                    <Button
+                      label="결재 신청"
+                      variant={approvalSubTab === 'submit' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setApprovalSubTab('submit')}
+                    />
+                    <Button
+                      label={hasPermission('APPROVAL_MANAGE') ? '결재 관리' : '문서함'}
+                      variant={approvalSubTab === 'management' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setApprovalSubTab('management')}
+                    />
+                    {hasPermission('APPROVAL_TEMPLATE') && (
                       <Button
-                        label="결재 신청"
-                        variant={approvalSubTab === 'submit' ? 'secondary' : 'ghost'}
+                        label="양식 관리"
+                        variant={approvalSubTab === 'templates' ? 'secondary' : 'ghost'}
                         size="sm"
-                        onClick={() => setApprovalSubTab('submit')}
+                        onClick={() => setApprovalSubTab('templates')}
                       />
-                      {hasPermission('APPROVAL_MANAGE') && (
-                        <Button
-                          label="결재 관리"
-                          variant={approvalSubTab === 'management' ? 'secondary' : 'ghost'}
-                          size="sm"
-                          onClick={() => setApprovalSubTab('management')}
-                        />
-                      )}
-                      {hasPermission('APPROVAL_TEMPLATE') && (
-                        <Button
-                          label="양식 관리"
-                          variant={approvalSubTab === 'templates' ? 'secondary' : 'ghost'}
-                          size="sm"
-                          onClick={() => setApprovalSubTab('templates')}
-                        />
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                   {approvalSubTab === 'submit' ? (
                     <EmployeeApproval />
                   ) : approvalSubTab === 'management' ? (
-                    <ApprovalManagement />
+                    <ApprovalManagement canManage={hasPermission('APPROVAL_MANAGE')} />
                   ) : approvalSubTab === 'templates' ? (
                     <ApprovalTemplateManager />
                   ) : null}

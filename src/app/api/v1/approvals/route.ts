@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     const startDate = url.searchParams.get('startDate');
     const endDate = url.searchParams.get('endDate');
     const searchQuery = url.searchParams.get('searchQuery');
+    const templateId = url.searchParams.get('templateId');
+    const category = url.searchParams.get('category');
 
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -66,6 +68,8 @@ export async function GET(request: NextRequest) {
     if (startDate) backendUrl += `&startDate=${startDate}`;
     if (endDate) backendUrl += `&endDate=${endDate}`;
     if (searchQuery) backendUrl += `&searchQuery=${encodeURIComponent(searchQuery)}`;
+    if (templateId) backendUrl += `&templateId=${templateId}`;
+    if (category) backendUrl += `&category=${encodeURIComponent(category)}`;
 
     const backendResponse = await fetch(backendUrl, {
       method: 'GET',

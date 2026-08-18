@@ -11,6 +11,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Badge } from '@astryxdesign/core/Badge';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { TextInput } from '@astryxdesign/core/TextInput';
+import { Selector } from '@astryxdesign/core/Selector';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
@@ -25,6 +26,9 @@ import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, getApprovalTemplates, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
 import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
+
+/** 서버가 "분류가 비어 있는 문서"로 알아듣는 값 (ApprovalRequestService.UNCATEGORIZED_FILTER) */
+const UNCATEGORIZED_QUERY = '__NONE__';
 import { useConfirm } from './ConfirmDialog';
 import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
 import { FormSchema } from '@/types/formSchema';
@@ -35,7 +39,17 @@ import { duration } from '@/theme/motion';
 
 type TabType = 'all' | 'pending' | 'approved' | 'rejected';
 
-export default function ApprovalManagement() {
+interface ApprovalManagementProps {
+  /**
+   * 결재를 처리할 수 있는 사람인지 (관리자 또는 APPROVAL_MANAGE 보유 직원).
+   *
+   * false면 같은 목록이 '문서함'으로 열린다 — 열람 권한으로 공유된 문서를 보고 검색만 하며,
+   * 직권 처리·삭제 버튼은 나오지 않는다. (내 결재 차례인 문서는 그대로 승인·반려할 수 있다)
+   */
+  canManage?: boolean;
+}
+
+export default function ApprovalManagement({ canManage = true }: ApprovalManagementProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
@@ -46,10 +60,12 @@ export default function ApprovalManagement() {
   const [selectedTemplateType, setSelectedTemplateType] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  /** templateId → 대분류 (양식 목록에서 만든 조회표) */
-  const [templateCategories, setTemplateCategories] = useState<Record<string, string>>({});
+  /** 양식 목록 (양식별 필터 + 대분류 목록에 쓴다) */
+  const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
   /** 대분류 필터 ('' = 전체) */
   const [categoryFilter, setCategoryFilter] = useState('');
+  /** 양식 필터 ('' = 전체) */
+  const [templateFilter, setTemplateFilter] = useState('');
   const [dateFilter, setDateFilter] = useState({
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -102,19 +118,19 @@ export default function ApprovalManagement() {
 
   useEffect(() => {
     loadApprovals();
-  }, [activeTab, dateFilter, searchQuery]);
+  }, [activeTab, dateFilter, searchQuery, categoryFilter, templateFilter]);
 
   // 대분류 필터용 — 결재 문서에는 templateId만 있어 양식 목록에서 분류를 끌어온다
   useEffect(() => {
     (async () => {
       try {
         const response = await getApprovalTemplates();
-        const map: Record<string, string> = {};
-        for (const template of (response.templates || []) as { id: string | number; category?: string | null }[]) {
-          const category = (template.category || '').trim();
-          if (category) map[String(template.id)] = category;
-        }
-        setTemplateCategories(map);
+        const list = (response.templates || []) as { id: string | number; name: string; category?: string | null }[];
+        setTemplates(list.map((template) => ({
+          id: String(template.id),
+          name: template.name,
+          category: (template.category || '').trim() || UNCATEGORIZED_LABEL,
+        })));
       } catch (error) {
         // 분류를 못 불러와도 결재 처리는 그대로 되어야 하므로 조용히 넘어간다
         console.error('양식 분류 로드 실패:', error);
@@ -122,24 +138,25 @@ export default function ApprovalManagement() {
     })();
   }, []);
 
-  /** 결재 문서의 대분류 (양식에 분류가 없으면 미분류) */
-  const categoryOf = (approval: ApprovalRequest) =>
-    templateCategories[String(approval.templateId)] || UNCATEGORIZED_LABEL;
-
-  /** 현재 목록에 실제로 등장하는 대분류 (건수 많은 순이 아니라 양식 등록 순서를 따름) */
+  /** 등록된 양식에 쓰이는 대분류 (양식 등록 순서를 따름) */
   const visibleCategories = useMemo(() => {
     const seen: string[] = [];
-    for (const approval of approvals) {
-      const category = categoryOf(approval);
-      if (!seen.includes(category)) seen.push(category);
+    for (const template of templates) {
+      if (!seen.includes(template.category)) seen.push(template.category);
     }
     return seen;
-  }, [approvals, templateCategories]);
+  }, [templates]);
 
-  const visibleApprovals = useMemo(
-    () => (categoryFilter ? approvals.filter((a) => categoryOf(a) === categoryFilter) : approvals),
-    [approvals, categoryFilter, templateCategories],
+  /** 대분류를 고르면 그 분류의 양식만 고를 수 있게 좁힌다 */
+  const templateOptions = useMemo(
+    () => templates
+      .filter((template) => !categoryFilter || template.category === categoryFilter)
+      .map((template) => ({ value: template.id, label: template.name })),
+    [templates, categoryFilter],
   );
+
+  // 걸러내기는 서버가 한다 — 기간 밖이나 다른 분류의 문서는 애초에 내려오지 않는다
+  const visibleApprovals = approvals;
 
   // 전체 선택 체크박스가 렌더마다 같은 필터를 3번 반복 계산하던 것을 한 번으로 줄인다
   const selectableApprovals = useMemo(
@@ -155,6 +172,11 @@ export default function ApprovalManagement() {
         startDate: dateFilter.startDate,
         endDate: dateFilter.endDate,
         searchQuery: searchQuery || undefined,
+        templateId: templateFilter || undefined,
+        // 미분류는 "분류가 비어 있는 문서"라 서버가 알아듣는 약속된 값으로 바꿔 보낸다
+        category: categoryFilter
+          ? (categoryFilter === UNCATEGORIZED_LABEL ? UNCATEGORIZED_QUERY : categoryFilter)
+          : undefined,
       });
       setApprovals(response.approvals || []);
       if (response.stats) {
@@ -361,8 +383,12 @@ export default function ApprovalManagement() {
         {/* 헤더 */}
         <HStack hAlign="between" vAlign="center">
           <VStack gap={1}>
-            <Heading level={2}>전자결재 관리</Heading>
-            <Text type="supporting" color="secondary">직원들의 결재 요청을 처리합니다</Text>
+            <Heading level={2}>{canManage ? '전자결재 관리' : '문서함'}</Heading>
+            <Text type="supporting" color="secondary">
+              {canManage
+                ? '직원들의 결재 요청을 처리합니다'
+                : '열람 권한이 있는 결재 문서를 보고 검색합니다'}
+            </Text>
           </VStack>
           <IconButton
             label="새로고침"
@@ -411,7 +437,7 @@ export default function ApprovalManagement() {
                 startIcon={FiSearch}
                 value={searchQuery}
                 onChange={(value) => setSearchQuery(value)}
-                placeholder="제목, 기안자 검색"
+                placeholder="제목, 기안자, 양식, 결재자, 열람자, 첨부파일, 내용 검색"
               />
             </div>
           </HStack>
@@ -422,21 +448,38 @@ export default function ApprovalManagement() {
           <HStack gap={2} vAlign="center" wrap="wrap">
             <Text type="supporting" color="secondary">기안 종류</Text>
             <Button
-              label={`전체 (${approvals.length})`}
+              label="전체"
               variant={categoryFilter === '' ? 'secondary' : 'ghost'}
               size="sm"
-              onClick={() => setCategoryFilter('')}
+              onClick={() => { setCategoryFilter(''); setTemplateFilter(''); }}
             />
             {visibleCategories.map((category) => (
               <Button
                 key={category}
-                label={`${category} (${approvals.filter((a) => categoryOf(a) === category).length})`}
+                label={category}
                 variant={categoryFilter === category ? 'secondary' : 'ghost'}
                 size="sm"
-                onClick={() => setCategoryFilter(category)}
+                // 분류를 바꾸면 그 분류에 없는 양식이 선택된 채로 남지 않게 양식 필터를 푼다
+                onClick={() => { setCategoryFilter(category); setTemplateFilter(''); }}
               />
             ))}
           </HStack>
+        )}
+
+        {/* 양식별 필터 */}
+        {templateOptions.length > 1 && (
+          <div style={{ maxWidth: 320 }}>
+            <Selector
+              label="양식"
+              placeholder="양식 전체"
+              value={templateFilter}
+              options={templateOptions}
+              hasClear
+              hasSearch={templateOptions.length > 8}
+              searchPlaceholder="양식 이름 검색"
+              onChange={(value) => setTemplateFilter(value || '')}
+            />
+          </div>
         )}
 
         {/* 일괄 액션 */}
@@ -545,7 +588,7 @@ export default function ApprovalManagement() {
                           icon={<Icon icon={FiEye} />}
                           onClick={() => handleOpenDetail(approval)}
                         />
-                        {approval.status === 'PENDING' && (
+                        {approval.status === 'PENDING' && (canManage || isActionable(approval)) && (
                           <>
                             {/* 내 차례가 아니어도 관리자는 직권 승인(전결)·직권 반려 가능 */}
                             <Button
@@ -569,15 +612,17 @@ export default function ApprovalManagement() {
                             />
                           </>
                         )}
-                        <IconButton
-                          label="삭제"
-                          tooltip="삭제"
-                          variant="ghost"
-                          size="sm"
-                          icon={<Icon icon={FiTrash2} />}
-                          isDisabled={isProcessing}
-                          onClick={() => handleDelete(approval.id)}
-                        />
+                        {canManage && (
+                          <IconButton
+                            label="삭제"
+                            tooltip="삭제"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={FiTrash2} />}
+                            isDisabled={isProcessing}
+                            onClick={() => handleDelete(approval.id)}
+                          />
+                        )}
                       </HStack>
                     </HStack>
                   </Card>

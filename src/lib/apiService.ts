@@ -12,6 +12,7 @@ import {
     PasswordChangeRequest,
     UserRole
 } from '@/types/auth';
+import { ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
@@ -1586,6 +1587,7 @@ export async function createApprovalTemplate(data: {
     formSchema?: string;
     templateType?: string;
     defaultApprovalLine?: string;
+    defaultViewers?: ApprovalViewerEntry[];
 }) {
     const companyId = getCompanyId();
     if (!companyId) {
@@ -1608,6 +1610,7 @@ export async function updateApprovalTemplate(id: string, data: {
     formSchema?: string;
     templateType?: string;
     defaultApprovalLine?: string;
+    defaultViewers?: ApprovalViewerEntry[];
 }) {
     return fetchWithAuth(`/api/v1/approval-templates/${id}`, {
         method: 'PUT',
@@ -1652,6 +1655,10 @@ export async function getApprovalRequests(filter?: {
     startDate?: string;
     endDate?: string;
     searchQuery?: string;
+    /** 양식별 필터 */
+    templateId?: string | number;
+    /** 기안 대분류 필터 */
+    category?: string;
 }) {
     const companyId = getCompanyId();
     if (!companyId) {
@@ -1663,6 +1670,8 @@ export async function getApprovalRequests(filter?: {
     if (filter?.startDate) url += `&startDate=${filter.startDate}`;
     if (filter?.endDate) url += `&endDate=${filter.endDate}`;
     if (filter?.searchQuery) url += `&searchQuery=${encodeURIComponent(filter.searchQuery)}`;
+    if (filter?.templateId) url += `&templateId=${filter.templateId}`;
+    if (filter?.category) url += `&category=${encodeURIComponent(filter.category)}`;
 
     return normalizeApprovalFormData(await fetchWithAuth(url));
 }
@@ -1799,6 +1808,22 @@ export async function getApproverCandidates() {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
     return fetchWithAuth(`/api/v1/approvals/approver-candidates?companyId=${companyId}`);
+}
+
+// 열람 대상 지정 후보 (직책 + 사람)
+export async function getViewerCandidates(): Promise<{
+    positions: ViewerPositionCandidate[];
+    people: ApproverCandidate[];
+}> {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    const response = await fetchWithAuth(`/api/v1/approvals/viewer-candidates?companyId=${companyId}`);
+    return {
+        positions: Array.isArray(response?.positions) ? response.positions : [],
+        people: Array.isArray(response?.people) ? response.people : [],
+    };
 }
 
 // 로그인 관리자 + 회사 정보 조회 (직인 URL 포함)
@@ -2026,7 +2051,7 @@ export async function createSchedule(data: {
     title: string;
     content?: string;
     category: string;
-    labelId?: string;
+    color?: string;
     location?: string;
     startDate: string;
     startTime?: string;
@@ -2059,7 +2084,7 @@ export async function updateSchedule(id: string, data: {
     title?: string;
     content?: string;
     category?: string;
-    labelId?: string;
+    color?: string;
     location?: string;
     startDate?: string;
     startTime?: string;
@@ -2186,53 +2211,6 @@ export async function deleteSchedule(id: string) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
     }
     return fetchWithAuth(`/api/v1/schedules/${id}?companyId=${companyId}`, {
-        method: 'DELETE',
-    });
-}
-
-// ================== 일정 라벨 API ==================
-
-// 라벨 목록 조회
-export async function getScheduleLabels() {
-    const companyId = getCompanyId();
-    if (!companyId) {
-        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
-    }
-    return fetchWithAuth(`/api/v1/schedule-labels?companyId=${companyId}`);
-}
-
-// 라벨 생성
-export async function createScheduleLabel(data: { name: string; color: string }) {
-    const companyId = getCompanyId();
-    if (!companyId) {
-        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
-    }
-
-    return fetchWithAuth(`/api/v1/schedule-labels?companyId=${companyId}`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
-}
-
-// 라벨 수정
-export async function updateScheduleLabel(id: string, data: { name?: string; color?: string }) {
-    const companyId = getCompanyId();
-    if (!companyId) {
-        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
-    }
-    return fetchWithAuth(`/api/v1/schedule-labels/${id}?companyId=${companyId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-    });
-}
-
-// 라벨 삭제
-export async function deleteScheduleLabel(id: string) {
-    const companyId = getCompanyId();
-    if (!companyId) {
-        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
-    }
-    return fetchWithAuth(`/api/v1/schedule-labels/${id}?companyId=${companyId}`, {
         method: 'DELETE',
     });
 }

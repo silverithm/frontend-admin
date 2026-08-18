@@ -275,6 +275,22 @@ export default function ApprovalDetail({
                   </HStack>
                 )}
 
+                {/* 열람 대상 — 누가 이 문서를 볼 수 있는지 */}
+                {(approval.viewers?.length ?? 0) > 0 && (
+                  <HStack gap={2} vAlign="center" wrap="wrap">
+                    <Text type="supporting" color="secondary">열람 대상</Text>
+                    {approval.viewers!.map((viewer) => (
+                      <Badge
+                        key={`${viewer.viewerType}:${viewer.refId}`}
+                        variant={viewer.viewerType === 'POSITION' ? 'teal' : 'neutral'}
+                        label={viewer.viewerType === 'POSITION'
+                          ? `${viewer.viewerName} 전원`
+                          : viewer.viewerName}
+                      />
+                    ))}
+                  </HStack>
+                )}
+
                 {/* 반려 사유 입력 폼 */}
                 {showRejectForm && (
                   <motion.div

@@ -1163,6 +1163,23 @@ export default function EmployeeApproval() {
                   </VStack>
                 )}
 
+                {/* 열람 대상 안내 — 양식에 지정된 대로 따라간다 (결재선과 같은 정책) */}
+                {(selectedTemplateInfo?.defaultViewers?.length ?? 0) > 0 && (
+                  <VStack gap={1}>
+                    <Text type="label" weight="medium" color="primary">열람 대상 (양식에 지정됨)</Text>
+                    <Text type="supporting" color="secondary">
+                      {selectedTemplateInfo!.defaultViewers!
+                        .map((viewer) => viewer.viewerType === 'POSITION'
+                          ? `${viewer.viewerName} 직책 전원`
+                          : viewer.viewerName)
+                        .join(', ')}
+                    </Text>
+                    <Text type="supporting" color="secondary">
+                      기관 관리자와 결재선에 포함된 사람은 별도 지정 없이도 볼 수 있습니다.
+                    </Text>
+                  </VStack>
+                )}
+
                 {/* templateType에 따른 분기 */}
                 {(!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
                   /* 파일 양식: 양식을 먼저 보고, 작성한 파일을 첨부한다 */

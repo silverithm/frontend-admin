@@ -41,6 +41,31 @@ export interface ApproverCandidate {
   profileImageUrl?: string | null;
 }
 
+// 열람 대상 지정 단위 — 직책(POSITION)이면 그 직책 전원, 개인이면 그 사람만
+export type ApprovalViewerType = 'POSITION' | 'MEMBER' | 'ADMIN';
+
+// 열람 대상 한 줄 (조회 응답 — 이름은 지정 시점 스냅샷)
+export interface ApprovalViewer {
+  viewerType: ApprovalViewerType;
+  refId: number;
+  viewerName: string;
+}
+
+// 열람 대상 지정 항목 (생성/수정 요청 — 이름은 서버가 채운다)
+export interface ApprovalViewerEntry {
+  viewerType: ApprovalViewerType;
+  refId: number;
+}
+
+// 열람 대상 후보 중 직책
+export interface ViewerPositionCandidate {
+  id: number;
+  name: string;
+  description?: string | null;
+  /** 이 직책을 가진 재직 직원 수 — 몇 명이 보게 되는지 확인용 */
+  memberCount: number;
+}
+
 // 첨부파일 정보
 export interface AttachmentFile {
   id: string;
@@ -78,6 +103,8 @@ export interface ApprovalRequest {
   docNumberDisplay?: string;
   companySealUrl?: string;      // 최종 승인된 결재선 문서에만 존재
   documentFooter?: DocumentFooter;
+  /** 열람 대상 — 관리자·기안자·결재선 참여자는 여기에 없어도 볼 수 있다 */
+  viewers?: ApprovalViewer[];
 }
 
 /**
@@ -101,6 +128,8 @@ export interface CreateApprovalRequest {
   title: string;
   formData: Record<string, any>;
   approvalLine?: ApprovalLineEntry[];
+  /** 보내지 않으면 양식의 기본 열람 대상이 그대로 적용된다 */
+  viewers?: ApprovalViewerEntry[];
 }
 
 // 결재 필터

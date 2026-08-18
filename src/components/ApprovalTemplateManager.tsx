@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates } from '@/lib/apiService';
+import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates, uploadFileToServer } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { FormSchema } from '@/types/formSchema';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import OfficialDocument from '@/components/approval/OfficialDocument';
 import { buildSampleApproval } from '@/components/approval/templatePreview';
+import ViewerSelector from '@/components/approval/ViewerSelector';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -27,7 +28,7 @@ import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
-import type { ApproverCandidate } from '@/types/approval';
+import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
 import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder } from 'react-icons/fi';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
@@ -85,6 +86,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   const [formSchema, setFormSchema] = useState<FormSchema | undefined>(undefined);
   // 기본 결재선 — 이 양식으로 기안하면 자동으로 채워진다 (기안자가 수정 가능)
   const [defaultLine, setDefaultLine] = useState<ApproverCandidate[]>([]);
+  /** 이 양식으로 기안한 문서를 볼 수 있는 직책·개인 (기안 시 문서로 복사된다) */
+  const [defaultViewers, setDefaultViewers] = useState<ApprovalViewerEntry[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** 상태 토글 버튼에 마우스를 올린 행 — 라벨을 '누르면 될 결과'로 바꿔 보여준다 */
@@ -295,29 +298,6 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
-  // 파일 업로드 API 호출
-  const uploadFileToServer = async (file: File): Promise<{ filePath: string; fileName: string; fileSize: number } | null> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('/api/v1/files/upload?category=templates', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || '파일 업로드 실패');
-    }
-
-    const result = await response.json();
-    return {
-      filePath: result.filePath,
-      fileName: result.fileName,
-      fileSize: result.fileSize,
-    };
-  };
-
   // 양식 업로드
   const handleUpload = async () => {
     if (!uploadForm.name.trim()) {
@@ -338,7 +318,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
 
       // 새 파일이 있으면 서버에 업로드
       if (uploadForm.file) {
-        const uploadResult = await uploadFileToServer(uploadForm.file);
+        const uploadResult = await uploadFileToServer(uploadForm.file, { category: 'templates' });
         if (uploadResult) {
           fileUrl = uploadResult.filePath;
           fileName = uploadResult.fileName;
@@ -361,6 +341,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           templateType,
           formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
           defaultApprovalLine: defaultLine.length > 0 ? JSON.stringify(defaultLine) : undefined,
+          defaultViewers,
         });
         showAlert({ type: 'success', title: '수정 완료', message: '양식이 수정되었습니다.' });
       } else {
@@ -375,6 +356,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           templateType,
           formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
           defaultApprovalLine: defaultLine.length > 0 ? JSON.stringify(defaultLine) : undefined,
+          defaultViewers,
         });
         showAlert({ type: 'success', title: '등록 완료', message: '양식이 등록되었습니다.' });
       }
@@ -390,7 +372,13 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       loadTemplates();
     } catch (error) {
       console.error('양식 저장 실패:', error);
-      showAlert({ type: 'error', title: '저장 실패', message: '양식 저장에 실패했습니다.' });
+      // 파일 업로드 단계에서 걸리면 원인(용량/확장자/권한)이 메시지에 들어 있어 그대로 보여준다
+      const detail = error instanceof Error ? error.message : '';
+      showAlert({
+        type: 'error',
+        title: '저장 실패',
+        message: detail || '양식 저장에 실패했습니다.',
+      });
     } finally {
       setIsUploading(false);
     }
@@ -477,6 +465,12 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     } catch {
       setDefaultLine([]);
     }
+    setDefaultViewers(
+      (template.defaultViewers ?? []).map((viewer) => ({
+        viewerType: viewer.viewerType,
+        refId: viewer.refId,
+      })),
+    );
     setShowUploadModal(true);
   };
 
@@ -490,6 +484,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     setTemplateType('file');
     setFormSchema(undefined);
     setDefaultLine([]);
+    setDefaultViewers([]);
   };
 
   // 파일 다운로드
@@ -860,6 +855,13 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                     기본 결재선을 정해두면 이 양식으로 기안할 때 자동으로 채워집니다. 기안자가 문서마다 수정할 수 있어요.
                   </Text>
                 </VStack>
+
+                {/* 열람 대상 — 이 양식으로 기안한 문서를 볼 수 있는 사람 */}
+                <ViewerSelector
+                  value={defaultViewers}
+                  onChange={setDefaultViewers}
+                  description="이 양식으로 기안한 문서를 볼 수 있는 직책·직원입니다. 기안자가 문서마다 조정할 수 있어요."
+                />
 
                 {/* 온라인 폼 빌더 */}
                 {(templateType === 'form' || templateType === 'hybrid') && (

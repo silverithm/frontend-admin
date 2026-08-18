@@ -1,4 +1,5 @@
 import { FormSchema } from '@/types/formSchema';
+import { ApprovalViewer, ApprovalViewerEntry } from '@/types/approval';
 
 // 양식 템플릿 (한글 파일 기반)
 export interface ApprovalTemplate {
@@ -17,6 +18,8 @@ export interface ApprovalTemplate {
   templateType: 'file' | 'form' | 'hybrid';
   /** 기본 결재선(JSON 문자열) — 이 양식으로 기안하면 자동으로 채워진다 */
   defaultApprovalLine?: string | null;
+  /** 기본 열람 대상 — 이 양식으로 기안한 문서를 볼 수 있는 직책·개인 */
+  defaultViewers?: ApprovalViewer[];
 }
 
 // 양식 생성 요청
@@ -29,6 +32,8 @@ export interface CreateTemplateRequest {
   fileSize?: number;
   formSchema?: string; // JSON 문자열
   templateType?: string;
+  /** 기본 열람 대상 — 보내지 않으면 기존 설정을 유지한다 */
+  defaultViewers?: ApprovalViewerEntry[];
 }
 
 // 양식 수정 요청
@@ -42,4 +47,6 @@ export interface UpdateTemplateRequest {
   isActive?: boolean;
   formSchema?: string; // JSON 문자열
   templateType?: string;
+  /** 기본 열람 대상 — 보내지 않으면 기존 설정을 유지한다 */
+  defaultViewers?: ApprovalViewerEntry[];
 }
