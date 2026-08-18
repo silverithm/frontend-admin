@@ -1175,6 +1175,12 @@ export default function EmployeeApproval() {
                 {selectedTemplateInfo?.templateType === 'form' && selectedTemplateSchema && (
                   /* 온라인 양식: 실제 공문 모양 위에서 빈칸을 바로 입력 (자체 제출 버튼 포함) */
                   <FormRenderer
+                    // 임시저장을 이어 열면 저장해둔 값으로 시작해야 한다. 이게 없으면 폼이
+                    // 빈칸으로 마운트되고, 마운트 직후 onValuesChange(빈 값)가 부모의 복원값까지
+                    // 덮어써서 다시 저장하는 순간 내용이 진짜로 지워진다(실제 제보).
+                    // key는 다른 임시저장/양식을 열 때 이전 입력이 남지 않게 다시 마운트시킨다.
+                    key={`form:${approvalForm.templateId}:${editingDraftId ?? 'new'}`}
+                    initialValues={formData ?? undefined}
                     schema={selectedTemplateSchema}
                     onSubmit={handleFormRendererSubmit}
                     // 입력한 값이 미리보기·임시저장에 그대로 담기게 한다 (제출 전에도)
@@ -1195,6 +1201,8 @@ export default function EmployeeApproval() {
                   <VStack gap={4}>
                     <VStack gap={3}>
                       <FormRenderer
+                        key={`hybrid:${approvalForm.templateId}:${editingDraftId ?? 'new'}`}
+                        initialValues={formData ?? undefined}
                         schema={selectedTemplateSchema}
                         onSubmit={(data) => setFormData(data)}
                         onValuesChange={setFormData}
