@@ -14,6 +14,8 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { createNotice } from '@/lib/apiService';
+import RichTextEditor from '@/components/plaza/RichTextEditor';
+import { sanitizeRichText, richTextToPlain } from '@/lib/richText';
 import { NoticePriority } from '@/types/notice';
 import { useAlert } from '@/components/Alert';
 
@@ -42,7 +44,7 @@ export default function NewNoticePage() {
       showAlert({ type: 'warning', title: '입력 필요', message: '제목을 입력해주세요.' });
       return;
     }
-    if (!content.trim()) {
+    if (!richTextToPlain(content).trim()) {
       showAlert({ type: 'warning', title: '입력 필요', message: '내용을 입력해주세요.' });
       return;
     }
@@ -51,7 +53,7 @@ export default function NewNoticePage() {
     try {
       await createNotice({
         title: title.trim(),
-        content: content.trim(),
+        content: sanitizeRichText(content).trim(),
         priority,
         isPinned,
         sendPushNotification,
@@ -151,15 +153,16 @@ export default function NewNoticePage() {
                     isRequired
                   />
 
-                  {/* 내용 */}
-                  <TextArea
-                    label="내용"
-                    value={content}
-                    onChange={(value) => setContent(value)}
-                    placeholder="공지사항 내용을 입력하세요"
-                    rows={12}
-                    isRequired
-                  />
+                  {/* 내용 — 광장 글쓰기와 같은 서식 편집기를 쓴다 (글자 크기·색·정렬·목록) */}
+                  <VStack gap={1} align="start" width="100%">
+                    <Text type="label" weight="medium" color="primary">내용</Text>
+                    <RichTextEditor
+                      value={content}
+                      onChange={(html) => setContent(html)}
+                      placeholder="공지사항 내용을 입력하세요"
+                      minHeight={320}
+                    />
+                  </VStack>
 
                   {/* 우선순위 & 상단고정 */}
                   <HStack gap={4} vAlign="end">

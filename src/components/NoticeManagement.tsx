@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -104,6 +104,14 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
       cancelled = true;
     };
   }, []);
+
+  /* 검색어를 넣으면 기관 공지만 걸러지고 케어브이 운영 공지는 그대로 남아 있어서
+     "검색이 안 먹는다"처럼 보였다. 사용자에게는 둘 다 같은 목록이므로 함께 거른다. */
+  const visibleOfficialNotices = useMemo(() => {
+    const q = debouncedSearchQuery.trim().toLowerCase();
+    if (!q) return officialNotices;
+    return officialNotices.filter((n) => (n.title || '').toLowerCase().includes(q));
+  }, [officialNotices, debouncedSearchQuery]);
 
   // 상세 상태
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -411,10 +419,10 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
 
               {/* 목록 — 남은 높이를 채우고 목록만 스크롤 */}
               <div className="carev-notice-list" style={{ padding: 'var(--spacing-5)' }}>
-                {notices.length > 0 || officialNotices.length > 0 ? (
+                {notices.length > 0 || visibleOfficialNotices.length > 0 ? (
                   <VStack gap={2} align="start" width="100%">
                     {/* 케어브이 시스템 공지 — 커뮤니티 [운영] 글. 클릭하면 커뮤니티에서 전문을 본다 */}
-                    {officialNotices.map((n) => (
+                    {visibleOfficialNotices.map((n) => (
                       <button
                         type="button"
                         key={`official-${n.id}`}
