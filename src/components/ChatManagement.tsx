@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, deleteChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
@@ -30,7 +30,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Timestamp } from '@astryxdesign/core/Timestamp';
-import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch } from 'react-icons/fi';
+import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2 } from 'react-icons/fi';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 
@@ -268,6 +268,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
     const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
+    /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
+    const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<number | null>(null);
 
     // 열린 메시지 메뉴는 Escape로 닫는다.
     // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
@@ -279,6 +281,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         };
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
+    }, [contextMenuMessageId]);
+
+    // 메뉴가 닫히면 삭제 확인도 푼다 — 안 그러면 다음에 연 메뉴가 확인 상태로 시작한다
+    useEffect(() => {
+        if (contextMenuMessageId === null) setPendingDeleteMessageId(null);
     }, [contextMenuMessageId]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -507,6 +514,27 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     }, [selectedRoom, isConnected, fetchMessages, markAsRead, userId]);
 
     const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
+
+    /**
+     * 내 메시지 삭제. 서버는 지우지 않고 '삭제됨'으로만 바꾸므로(소프트 삭제)
+     * 화면에서도 지우지 않고 그 자리에 "삭제된 메시지입니다"를 남긴다.
+     */
+    const handleDeleteMessage = async (messageId: number) => {
+        if (!selectedRoom) return;
+        setContextMenuMessageId(null);
+        setPendingDeleteMessageId(null);
+
+        const before = messages;
+        // 낙관적 업데이트 — 왕복을 기다리는 동안 눌린 게 반영 안 된 것처럼 보이지 않게
+        setMessages(prev => prev.map(msg => (msg.id === messageId ? { ...msg, isDeleted: true } : msg)));
+        try {
+            await deleteChatMessage(selectedRoom, messageId);
+        } catch (error) {
+            console.error('[ChatManagement] 메시지 삭제 실패:', error);
+            setMessages(before);
+            onNotification('메시지를 삭제하지 못했습니다. 잠시 후 다시 시도해주세요', 'error');
+        }
+    };
 
     const handleToggleReaction = async (messageId: number, emoji: string) => {
         if (!userId || !selectedRoom) return;
@@ -1581,6 +1609,41 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     onClick={() => changeNotice(message.id)}
                                                                     style={{ width: "100%", justifyContent: "flex-start" }}
                                                                 />
+                                                                {/* 삭제는 내가 보낸 것만. 지우면 그 자리에 '삭제된 메시지입니다'가 남는다 */}
+                                                                {isMyMessage && !message.isDeleted && (
+                                                                    pendingDeleteMessageId === message.id ? (
+                                                                        <div style={{ padding: 'var(--spacing-2)', borderTop: `1px solid ${C.gray100}` }}>
+                                                                            <VStack gap={1.5} align="start">
+                                                                                <Text type="supporting" color="secondary">
+                                                                                    상대에게는 &lsquo;삭제된 메시지입니다&rsquo;로 남습니다
+                                                                                </Text>
+                                                                                <HStack gap={1}>
+                                                                                    <Button
+                                                                                        label="삭제할게요"
+                                                                                        variant="destructive"
+                                                                                        size="sm"
+                                                                                        onClick={() => handleDeleteMessage(message.id)}
+                                                                                    />
+                                                                                    <Button
+                                                                                        label="그대로 두기"
+                                                                                        variant="secondary"
+                                                                                        size="sm"
+                                                                                        onClick={() => setPendingDeleteMessageId(null)}
+                                                                                    />
+                                                                                </HStack>
+                                                                            </VStack>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <Button
+                                                                            label="삭제"
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            icon={<Icon icon={FiTrash2} size="sm" color="error" />}
+                                                                            onClick={() => setPendingDeleteMessageId(message.id)}
+                                                                            style={{ width: "100%", justifyContent: "flex-start" }}
+                                                                        />
+                                                                    )
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}

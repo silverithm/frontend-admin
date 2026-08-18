@@ -2556,6 +2556,14 @@ export async function toggleChatReaction(roomId: number, messageId: number, emoj
     });
 }
 
+// 채팅 메시지 삭제 — 서버가 지우지 않고 '삭제됨'으로 표시만 한다(소프트 삭제).
+// 그래서 삭제 후에도 그 자리에 "삭제된 메시지입니다"가 남아 대화 흐름이 끊기지 않는다.
+export async function deleteChatMessage(roomId: number, messageId: number) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/${messageId}`, {
+        method: 'DELETE',
+    });
+}
+
 // 채팅방 생성
 export async function createChatRoom(data: { name: string; description?: string; creatorId: string; creatorName: string; participantIds: string[] }) {
     const companyId = getCompanyId();
