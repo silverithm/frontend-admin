@@ -1054,6 +1054,34 @@ html {
 .carev-doc-field-value { white-space: pre-wrap; }
 .carev-doc-section-row { background: #e5e7eb; font-weight: 700; text-align: center; letter-spacing: 0.15em; }
 .carev-doc-body-note { font-size: 13px; line-height: 1.8; color: #374151; margin-bottom: 20px; }
+/* 발신명의 — 기관명을 가운데 두고 그 오른쪽 끝에 관인을 겹쳐 찍는다 (표준 공문 관례).
+   inline-flex + relative라 기관명 길이가 달라져도 관인이 항상 이름 끝에 붙는다. */
+.carev-doc-issuer {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 44px;
+}
+.carev-doc-issuer-name {
+  position: relative;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  color: #111827;
+}
+/* 이름 끝 글자에 절반쯤 걸치게 — 도장이 글자를 덮어 읽기를 방해하지 않을 만큼만 겹친다 */
+.carev-doc-seal {
+  position: absolute;
+  right: -34px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
 /* 공문 하단 발신부 — 표준 시행문처럼 굵은 가로줄 아래 시행/접수·주소·연락처를 넓은 자간으로 */
 /* margin-top:auto — 내용이 짧아도 발신부는 종이 맨 아래에 붙는다 (본문에 딸려 올라오지 않게).
    내용이 길어 빈 공간이 없을 때를 대비해 padding-top으로 최소 간격을 남긴다. */

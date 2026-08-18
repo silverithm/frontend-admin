@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { HStack } from '@astryxdesign/core/Stack';
@@ -19,6 +20,7 @@ export interface SignatureCanvasHandle {
 }
 
 interface SignatureCanvasProps {
+  /** 지정하면 그 폭으로 고정한다. 없으면 부모 폭을 재서 채운다 (카드 오른쪽이 남지 않게) */
   width?: number;
   height?: number;
   strokeColor?: string;
@@ -29,8 +31,33 @@ interface SignatureCanvasProps {
  * 결재 서명 그리기 캔버스. 마우스/터치 공용(pointer events), 투명 배경 PNG로 내보낸다.
  */
 const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvasProps>(
-  ({ width = 320, height = 160, strokeColor = '#111827', onChange }, ref) => {
+  ({ width, height = 160, strokeColor = '#111827', onChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const boxRef = useRef<HTMLDivElement>(null);
+    /**
+     * 실제로 그릴 폭. 고정 폭을 받으면 그대로 쓰고, 아니면 부모를 재서 채운다.
+     * 캔버스는 백킹 스토어를 픽셀로 잡아야 해서 CSS만으로 늘리면 획이 뭉갠다.
+     */
+    const [measuredWidth, setMeasuredWidth] = useState(320);
+    const drawWidth = width ?? measuredWidth;
+
+    useEffect(() => {
+      if (width) return;
+      const box = boxRef.current;
+      if (!box) return;
+      setMeasuredWidth(box.clientWidth || 320);
+      const observer = new ResizeObserver((entries) => {
+        const next = entries[0]?.contentRect.width;
+        // 폭이 바뀌면 백킹 스토어를 다시 잡아야 하고 그 과정에서 그리던 획이 지워진다.
+        // 1px 떨림으로 서명이 사라지지 않게 의미 있는 변화만 반영한다.
+        if (typeof next === 'number' && Math.abs(next - measuredWidth) > 8) {
+          setMeasuredWidth(next);
+        }
+      });
+      observer.observe(box);
+      return () => observer.disconnect();
+    }, [width, measuredWidth]);
+
     const isDrawingRef = useRef(false);
     const hasInkRef = useRef(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -40,7 +67,7 @@ const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvasProps>(
       const canvas = canvasRef.current;
       if (!canvas) return;
       const scale = 2;
-      canvas.width = width * scale;
+      canvas.width = drawWidth * scale;
       canvas.height = height * scale;
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -50,7 +77,7 @@ const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvasProps>(
         ctx.lineJoin = 'round';
         ctx.strokeStyle = strokeColor;
       }
-    }, [width, height, strokeColor]);
+    }, [drawWidth, height, strokeColor]);
 
     const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current!;
@@ -133,12 +160,12 @@ const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvasProps>(
     }), [clear]);
 
     return (
-      <div>
+      <div ref={boxRef}>
         <canvas
           ref={canvasRef}
           className="carev-signature-canvas"
           style={{
-            width,
+            width: drawWidth,
             height,
             border: '1px dashed var(--color-border)',
             borderRadius: 'var(--radius-inner)',

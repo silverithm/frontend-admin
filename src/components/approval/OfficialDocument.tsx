@@ -402,6 +402,23 @@ export default function OfficialDocument({
           </div>
         )}
 
+        {/*
+          발신명의 — 표준 공문 관례대로 기관명을 가운데 두고 그 끝에 관인을 겹쳐 찍는다.
+          직인은 최종 승인된 문서에만 내려오므로(companySealUrl) 결재 전에는 기관명만 남는다.
+          앱(official_document_view.dart)의 발신명의 블록과 같은 구성이다.
+        */}
+        <div className="carev-doc-issuer">
+          <span className="carev-doc-issuer-name">{companyName}</span>
+          {isApproved && approval.companySealUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={approval.companySealUrl}
+              alt="기관 직인"
+              className="carev-doc-seal"
+            />
+          )}
+        </div>
+
         {/* 발신부 — 표준 공문 하단 시행/접수·주소·연락처 줄 */}
         <DocumentFooterBlock
           footer={approval.documentFooter}

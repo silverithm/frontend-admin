@@ -136,11 +136,12 @@ export default function MySignatureCard({ onNotification }: MySignatureCardProps
           <Text type="supporting" color="secondary">등록된 서명</Text>
           <div
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 200,
-              height: 100,
+              // 고정 폭이면 카드 오른쪽이 남는다 — 직인 미리보기와 같이 폭을 채운다
+              width: '100%',
+              height: 140,
               border: '1px solid var(--color-border)',
               borderRadius: 'var(--radius-inner)',
               background: 'var(--color-on-accent)',

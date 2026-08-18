@@ -14,6 +14,59 @@ import { MAX_CHAT_FILE_SIZE } from '@/lib/chatAttachments';
 
 const OFFICIAL_DOC_SELECTOR = '.carev-doc-page';
 
+/**
+ * 캡처 전에 공문 안의 S3 이미지(결재란 서명)를 data URL로 바꿔둔다.
+ *
+ * 서명은 `https://<bucket>.s3.../carev/signatures/….png` 절대 URL로 내려오는데, 이 버킷에는
+ * CORS 응답 헤더가 없다. <img>로 그리는 화면에는 문제가 없지만 html-to-image는 이미지를
+ * fetch해서 인라인하므로 cross-origin fetch가 막히고, 실패하면 예외 대신 경고만 남기고
+ * 빈 이미지로 넘어간다 — 그래서 PDF에서만 서명 칸이 비어 나왔다.
+ *
+ * 같은 파일을 동일 오리진 프록시(/api/v1/files/download)로 받으면 CORS가 끼지 않는다.
+ * 되돌리는 함수를 돌려주고, 캡처가 끝나면 화면을 원래 src로 반드시 복구한다.
+ */
+async function inlineCrossOriginImages(root: HTMLElement): Promise<() => void> {
+  const images = Array.from(root.querySelectorAll('img'))
+    .filter((img) => /^https?:\/\//.test(img.src));
+  if (images.length === 0) return () => {};
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const restores: Array<() => void> = [];
+
+  await Promise.all(images.map(async (img) => {
+    const originalSrc = img.src;
+    try {
+      const path = extractRelativePath(originalSrc);
+      // 우리 버킷 경로로 환원되지 않는 이미지는 프록시로 받을 수 없다 — 원본 그대로 둔다
+      if (path === originalSrc) return;
+
+      const response = await fetch(
+        `/api/v1/files/download?path=${encodeURIComponent(path)}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!response.ok) return;
+
+      const blob = await response.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('이미지를 읽지 못했습니다'));
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsDataURL(blob);
+      });
+
+      img.src = dataUrl;
+      restores.push(() => { img.src = originalSrc; });
+      // 새 src가 실제로 그려진 뒤에 캡처해야 PDF에 들어간다
+      await img.decode().catch(() => {});
+    } catch (error) {
+      // 한 장 실패했다고 공문 전체를 포기하지 않는다 (그 칸만 비어 나온다)
+      console.warn('공문 이미지 인라인 실패:', originalSrc, error);
+    }
+  }));
+
+  return () => { for (const restore of restores) restore(); };
+}
+
 function sanitizeFileNamePart(value: string): string {
   const cleaned = value.replace(/[\\/:*?"<>|]/g, '').trim();
   return cleaned.slice(0, 80) || '문서';
@@ -38,14 +91,20 @@ export async function generateOfficialDocumentPdf(approval: ApprovalRequest): Pr
   // 인쇄 버튼 등 화면 전용 요소는 문서에 포함하지 않는다 (carev-doc-noprint)
   // PNG는 A4 한 장에 수 MB가 나와 업로드 프록시(Vercel)의 요청 본문 한도(4.5MB)에
   // 걸린다 — 흰 배경 문서는 JPEG 고품질이면 수백 KB로 충분하다.
-  const dataUrl = await htmlToImage.toJpeg(element, {
-    backgroundColor: '#ffffff',
-    pixelRatio: 2,
-    quality: 0.92,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
-    filter: (node) => !(node instanceof HTMLElement && node.classList.contains('carev-doc-noprint')),
-  });
+  const restoreImages = await inlineCrossOriginImages(element);
+  let dataUrl: string;
+  try {
+    dataUrl = await htmlToImage.toJpeg(element, {
+      backgroundColor: '#ffffff',
+      pixelRatio: 2,
+      quality: 0.92,
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      filter: (node) => !(node instanceof HTMLElement && node.classList.contains('carev-doc-noprint')),
+    });
+  } finally {
+    restoreImages();
+  }
 
   const pdf = new jsPDF('p', 'mm', 'a4');
   const pageWidth = pdf.internal.pageSize.getWidth();
