@@ -109,9 +109,10 @@ const CARD_STYLE: CSSProperties = {
 };
 
 // 일정 색상 스와치 스타일
+// 한 줄을 균등하게 나눠 쓰는 그리드 칸이라 폭은 칸에 맡기고 정사각만 유지한다
 const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
-  width: 28,
-  height: 28,
+  width: '100%',
+  aspectRatio: '1 / 1',
   borderRadius: 'var(--radius-full)',
   padding: 'var(--spacing-0)',
   cursor: 'pointer',
@@ -1517,7 +1518,15 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                 {/* 색상 — 직접 고르지 않으면 카테고리 기본색으로 표시된다 */}
                 <VStack gap={1.5}>
                   <Text type="label" weight="medium">색상</Text>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
+                  {/* 한 줄을 꽉 채우는 균등 그리드 — 칸 수가 늘거나 줄어도 줄 끝이 맞는다 */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      // 없음 + 팔레트 + (팔레트 밖 기존 색이 있으면 그 한 칸)
+                      gridTemplateColumns: `repeat(${SCHEDULE_COLORS.length + 1 + (formData.color && !SCHEDULE_COLORS.some((c) => c.value === formData.color) ? 1 : 0)}, minmax(0, 1fr))`,
+                      gap: 'var(--spacing-2)',
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, color: '' }))}

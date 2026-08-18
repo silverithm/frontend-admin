@@ -145,12 +145,18 @@ export interface UpdateScheduleRequest {
 }
 
 // 일정 색상 옵션
+// 고르는 자리에서 한 줄로 늘어놓기 좋게 색상환 순서로 둔다 (빨강 → 보라 → 분홍, 끝에 무채색).
+// 기존 8색의 값은 그대로 두고 사이사이를 메웠다 — 이미 저장된 일정의 색이 목록 밖으로 밀리지 않게.
 export const SCHEDULE_COLORS = [
   { value: '#EF4444', label: '빨강' },
   { value: '#F97316', label: '주황' },
   { value: '#EAB308', label: '노랑' },
+  { value: '#84CC16', label: '연두' },
   { value: '#22C55E', label: '초록' },
+  { value: '#14B8A6', label: '청록' },
+  { value: '#0EA5E9', label: '하늘' },
   { value: '#3B82F6', label: '파랑' },
+  { value: '#6366F1', label: '남보라' },
   { value: '#8B5CF6', label: '보라' },
   { value: '#EC4899', label: '분홍' },
   { value: '#6B7280', label: '회색' },
