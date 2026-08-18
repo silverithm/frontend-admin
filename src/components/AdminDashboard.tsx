@@ -138,15 +138,20 @@ const DASH_BAR_EDGE_INSET = 2;
 const DASH_CELL_DEFAULT_HEIGHT = 92;
 /**
  * 행이 이보다 낮아지면 더 줄이지 않고 안전판 스크롤로 넘긴다.
- * (날짜 숫자 30 + 바 한 줄 15 + "+N개" 한 줄이 겨우 서는 높이)
+ * (날짜 숫자 30 + 바 두 줄 15+2+15가 겨우 서는 높이 — 아래 줄 수 최소 2와 짝이다)
  */
-const DASH_CELL_FLOOR = 58;
+const DASH_CELL_FLOOR = 64;
 /**
  * 달력은 패널이 주는 높이를 주 수만큼 균등하게 나눠 갖는다. 5주 달에 맞던 고정
  * 높이를 6주 달(예: 2026-08)에 그대로 쓰면 마지막 줄이 잘리므로, 실제 행 높이를
  * 재서 그 높이에 들어가는 만큼만 일정 바·휴무자 줄 수를 편성한다.
+ *
+ * 줄 수는 2 밑으로 줄이지 않는다 — 1줄이 되면 "보호자 상담 주간" 같은 여러 날
+ * 바가 그 줄을 독점해, 같은 주의 단일 일정(소방 안전 교육 등)이 "+1개"로만 접혀
+ * 그날 무슨 일정이 있는지 달력에서 보이지 않게 된다. 그만큼 필요한 최소 높이는
+ * DASH_CELL_FLOOR가 보장한다.
  */
-const dashBarLanesForRow = (rowHeight: number) => (rowHeight >= 88 ? 3 : rowHeight >= 72 ? 2 : 1);
+const dashBarLanesForRow = (rowHeight: number) => (rowHeight >= 88 ? 3 : 2);
 const dashVacationRowsForRow = (rowHeight: number) => (rowHeight >= 84 ? 3 : rowHeight >= 66 ? 2 : 1);
 
 /* 달력 격자선. 월간일정 탭과 같은 굵기·색으로 맞춘다. */
@@ -1450,9 +1455,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             {/* 데스크탑: 일정 제목은 주 단위 바 오버레이가 그린다(여러 날 일정을 한 줄로 잇기 위해).
                                 여기서는 줄 수 제한에 걸려 못 그린 개수만 셀 아래에 남긴다. */}
                             {hiddenCount > 0 && (
-                              <div className="carev-dash-cal-chips" style={{ marginTop: 'auto', justifyContent: 'flex-start', width: `calc(${schedulePaneFraction(pane) * 100}% - var(--spacing-1))` }}>
+                              // 행이 낮으면 이 자리가 바 오버레이와 겹친다 — z-index와 바탕색을 줘서
+                              // 바 위에서도 읽히게 한다. 안 그러면 "숨은 일정이 있다"는 표시 자체가 숨는다.
+                              <div className="carev-dash-cal-chips" style={{ position: 'relative', zIndex: 1, marginTop: 'auto', justifyContent: 'flex-start', width: `calc(${schedulePaneFraction(pane) * 100}% - var(--spacing-1))` }}>
                                 {/* 문구는 월간일정 달력과 같게 — 같은 뜻인데 다르게 적으면 다른 수로 읽힌다 */}
-                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', paddingLeft: 'var(--spacing-0-5)' }}>
+                                <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-gray)', background: 'var(--color-background-card)', borderRadius: 'var(--radius-inner)', padding: '0 var(--spacing-0-5)' }}>
                                   +{hiddenCount}개
                                 </span>
                               </div>
