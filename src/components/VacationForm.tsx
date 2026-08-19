@@ -182,7 +182,9 @@ const VacationForm: React.FC<VacationFormProps> = ({
 
         // 현재 호스트 기반 절대 URL 사용
         const baseUrl = window.location.origin;
-        const apiUrl = `${baseUrl}/api/vacation/request`;
+        const storedCompanyId =
+          typeof window !== 'undefined' ? localStorage.getItem('companyId') || '' : '';
+        const apiUrl = `${baseUrl}/api/vacation/request?companyId=${encodeURIComponent(storedCompanyId)}`;
 
         // JWT 토큰 가져오기
         const token = localStorage.getItem('authToken');

@@ -40,8 +40,12 @@ export async function POST(request: NextRequest) {
       backendHeaders['Authorization'] = `Bearer ${token}`;
     }
 
+    // 백엔드는 companyId를 쿼리로 요구한다 — 빠뜨리면 500으로 죽는다 (실제로 그랬다)
+    const companyId =
+      new URL(request.url).searchParams.get('companyId') || requestBody.companyId || '';
+
     // 백엔드로 요청 전달
-    const backendResponse = await fetch(`${BACKEND_URL}/api/vacation/submit`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/vacation/submit?companyId=${encodeURIComponent(companyId)}`, {
       method: 'POST',
       headers: backendHeaders,
       body: JSON.stringify(requestBody),
