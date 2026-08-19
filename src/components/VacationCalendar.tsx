@@ -680,9 +680,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         width: captureElement.scrollWidth,
         height: captureElement.scrollHeight,
         filter: (node: HTMLElement) => {
-          // 버튼과 불필요한 요소 제외
+          // 조작용 버튼만 뺀다. 달력 셀도 키보드 접근을 위해 button이라,
+          // 태그만 보고 거르면 달력 전체가 빠져 빈 이미지가 나온다 (실제로 났던 사고).
           if (node.tagName === 'BUTTON') {
-            return false;
+            const cls = typeof node.className === 'string' ? node.className : '';
+            return cls.includes('carev-vaccal-cell');
           }
           return true;
         }
@@ -1023,10 +1025,16 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           <span style={cellStatusPillStyle(vacation.status)}>
                             <Text type="supporting" color="inherit">{getStatusText(vacation.status)}</Text>
                           </span>
-                          {/* 셀 자체가 button이라 안에 클릭 핸들러를 또 넣으면 버튼 중첩(키보드 접근 불가)이 된다.
-                              이름으로 필터링은 상위 검색창/목록에서 이미 가능하므로 여기선 표시만 한다. */}
+                          {/* 이름을 누르면 그 사람 휴무만 필터링한다 (한 번 더 누르면 해제).
+                              셀이 button이라 중첩 버튼은 만들 수 없어 마우스 클릭만 받고
+                              전파를 끊는다 — 키보드로는 상단 직원 목록/검색으로 같은 필터가 가능하다. */}
                           <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (vacation.userName) handleNameClick(vacation.userName);
+                            }}
                             style={{
+                              cursor: 'pointer',
                               flex: 1,
                               minWidth: 0,
                               lineHeight: 'var(--text-display-3-leading)',
