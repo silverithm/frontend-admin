@@ -67,10 +67,27 @@ const SignatureCanvas = forwardRef<SignatureCanvasHandle, SignatureCanvasProps>(
       const canvas = canvasRef.current;
       if (!canvas) return;
       const scale = 2;
+      // width/height를 다시 대입하면 캔버스가 통째로 비워진다. 창 크기가 바뀌는 순간
+      // 그려둔 서명이 조용히 사라지고 hasInkRef만 true로 남아 '빈 서명'이 저장되는
+      // 사고가 났었다 — 스냅숏을 떠서 새 크기에 옮겨 담는다.
+      let snapshot: HTMLCanvasElement | null = null;
+      if (hasInkRef.current && canvas.width > 0 && canvas.height > 0) {
+        snapshot = document.createElement('canvas');
+        snapshot.width = canvas.width;
+        snapshot.height = canvas.height;
+        snapshot.getContext('2d')?.drawImage(canvas, 0, 0);
+      }
       canvas.width = drawWidth * scale;
       canvas.height = height * scale;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        if (snapshot) {
+          ctx.drawImage(
+            snapshot,
+            0, 0, snapshot.width, snapshot.height,
+            0, 0, canvas.width, canvas.height,
+          );
+        }
         ctx.scale(scale, scale);
         ctx.lineWidth = 2.5;
         ctx.lineCap = 'round';

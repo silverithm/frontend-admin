@@ -1533,11 +1533,17 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               ) : (
                 <VStack gap={0}>
                   {selectedSchedules.map((schedule, idx) => (
-                    <ClickableRow
+                    /* ClickableRow(button) 안에 '수행완료' Button이 중첩되던 자리 —
+                       중첩 버튼은 보조기술에서 안쪽 버튼이 사라진다. 완료 버튼을 행 밖 형제로 빼고
+                       클릭 영역(ClickableRow)은 내용까지만 감싼다. */
+                    <div
                       key={schedule.id}
-                      label={`일정 상세 보기: ${schedule.title}`}
                       className="carev-dash-timeline"
-                      style={{ display: 'flex', gap: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', padding: '0 var(--spacing-2)', margin: '0 calc(var(--spacing-2) * -1)' }}
+                      style={{ display: 'flex', gap: 'var(--spacing-1)', borderRadius: 'var(--radius-inner)', padding: '0 var(--spacing-2)', margin: '0 calc(var(--spacing-2) * -1)' }}
+                    >
+                    <ClickableRow
+                      label={`일정 상세 보기: ${schedule.title}`}
+                      style={{ display: 'flex', gap: 'var(--spacing-3)', flex: 1, minWidth: 0 }}
                       onClick={() => {
                         setShowDaySchedules(false);
                         setSelectedSchedule(schedule);
@@ -1570,22 +1576,23 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           <Text as="p" type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
                         )}
                       </div>
-                      <div style={{ flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                        {!hasTasks(schedule) && canToggleCompletion(schedule) && (
-                          <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex' }}>
-                            <Button
-                              variant={schedule.isCompleted ? 'secondary' : 'primary'}
-                              size="sm"
-                              label={schedule.isCompleted ? '완료 해제' : '수행완료'}
-                              isLoading={togglingScheduleId === schedule.id}
-                              isDisabled={togglingScheduleId === schedule.id}
-                              onClick={() => handleToggleCompletion(schedule, !schedule.isCompleted)}
-                            />
-                          </span>
-                        )}
+                      <div style={{ flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
                         <Icon icon={IconChevronRight} size="sm" color="secondary" />
                       </div>
                     </ClickableRow>
+                    {!hasTasks(schedule) && canToggleCompletion(schedule) && (
+                      <div style={{ flexShrink: 0, alignSelf: 'center', display: 'flex' }}>
+                        <Button
+                          variant={schedule.isCompleted ? 'secondary' : 'primary'}
+                          size="sm"
+                          label={schedule.isCompleted ? '완료 해제' : '수행완료'}
+                          isLoading={togglingScheduleId === schedule.id}
+                          isDisabled={togglingScheduleId === schedule.id}
+                          onClick={() => handleToggleCompletion(schedule, !schedule.isCompleted)}
+                        />
+                      </div>
+                    )}
+                    </div>
                   ))}
                 </VStack>
               )}

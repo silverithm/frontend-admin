@@ -39,6 +39,8 @@ import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza
 import { Notice, NoticeComment, NoticeReader, NoticePriority, NoticeStatus } from '@/types/notice';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
+import { sanitizeRichText, isRichText, richTextToPlain } from '@/lib/richText';
+import RichTextEditor from '@/components/plaza/RichTextEditor';
 
 type ViewMode = 'list' | 'detail';
 type TabType = 'all' | 'published';
@@ -178,7 +180,17 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
       const data = response.notice || response; // API가 { notice: {...} } 형태로 반환
       setNotice(data);
       setTitle(data.title || '');
-      setContent(data.content || '');
+      // 옛 평문 공지를 서식 에디터에 그대로 넣으면 줄바꿈이 사라진다 — 이스케이프 후 <br>로 변환
+      const raw = data.content || '';
+      setContent(
+        isRichText(raw)
+          ? raw
+          : raw
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/\n/g, '<br>'),
+      );
       setPriority(data.priority || 'NORMAL');
       setIsPinned(data.isPinned || false);
 
@@ -259,7 +271,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
 
   // 수정 저장
   const handleUpdate = async () => {
-    if (!selectedNoticeId || !title.trim() || !content.trim()) {
+    if (!selectedNoticeId || !title.trim() || !richTextToPlain(content).trim()) {
       showAlert({ type: 'warning', title: '입력 필요', message: '제목과 내용을 입력해주세요.' });
       return;
     }
@@ -268,7 +280,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
     try {
       await updateNotice(selectedNoticeId, {
         title: title.trim(),
-        content: content.trim(),
+        content: sanitizeRichText(content).trim(),
         priority,
         isPinned,
       });
@@ -492,7 +504,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                                 <Heading level={4} maxLines={1}>{n.title}</Heading>
                                 <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
                               </HStack>
-                              <Text type="supporting" maxLines={2}>{n.content}</Text>
+                              <Text type="supporting" maxLines={2}>{richTextToPlain(n.content)}</Text>
                               <HStack gap={3} vAlign="center" wrap="wrap">
                                 <Text type="supporting">작성자: {n.authorName}</Text>
                                 <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
@@ -576,7 +588,8 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                     <TextInput label="제목" value={title} onChange={(value) => setTitle(value)} />
                   </div>
                   <div style={{ width: '100%' }}>
-                    <TextArea label="내용" value={content} onChange={(value) => setContent(value)} rows={10} />
+                    {/* 작성 화면과 같은 서식 에디터 — 평문 TextArea로 열면 서식 공지의 HTML 소스가 그대로 보인다 */}
+                    <RichTextEditor value={content} onChange={(html) => setContent(html)} minHeight={220} />
                   </div>
                   <HStack gap={4} vAlign="end" wrap="wrap" width="100%">
                     <div style={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -617,9 +630,17 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                     <Divider />
                   </div>
 
-                  <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
-                    <Text type="body">{notice.content}</Text>
-                  </div>
+                  {isRichText(notice.content) ? (
+                    <div
+                      className="carev-richtext-view"
+                      style={{ width: '100%', fontSize: 'var(--font-size-base)', color: 'var(--color-text-primary)' }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.content) }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
+                      <Text type="body">{notice.content}</Text>
+                    </div>
+                  )}
 
                   {/* 읽은 사람 섹션 */}
                   <div style={{ width: '100%' }}>
