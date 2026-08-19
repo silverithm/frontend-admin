@@ -228,10 +228,16 @@ const VacationForm: React.FC<VacationFormProps> = ({
           console.error('에러 스택:', error.stack);
         }
 
+        // 서버가 알려준 사유(제한 인원 초과 등)를 그대로 보여준다 — 일반 문구로 덮으면
+        // 왜 안 되는지 모른 채 반복 시도하게 된다
+        const serverReason =
+          error instanceof Error && error.message && !error.message.startsWith('API 응답 오류')
+            ? error.message
+            : null;
         showAlert({
           type: 'error',
           title: '휴무 신청 실패',
-          message: '휴무 신청 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.'
+          message: serverReason ?? '휴무 신청 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.'
         });
       } finally {
         setIsSubmitting(false);
