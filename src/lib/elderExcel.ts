@@ -180,10 +180,12 @@ export async function parseElderExcel(
     }
   }
 
-  // 한도 초과분은 등록 불가로 표시한다 — 잘라내고 조용히 넘어가면 누락을 알 수 없다
+  // 한도 초과분은 등록 불가로 표시한다 — 잘라내고 조용히 넘어가면 누락을 알 수 없다.
+  // 기본 제외되는 '기존 중복' 행은 한도를 소진하지 않는다 (포함을 켠 채 넘치는 경우는
+  // 다이얼로그가 등록 버튼에서 다시 막는다).
   let registrable = 0;
   for (const parsed of rows) {
-    if (parsed.status === 'ok' || parsed.status === 'duplicateExisting') {
+    if (parsed.status === 'ok') {
       registrable += 1;
       if (registrable > MAX_BULK_ELDERS) {
         parsed.status = 'invalid';

@@ -107,6 +107,8 @@ export default function ElderBulkUploadDialog({
   const registerTargets = rows.filter(
     (r) => r.status === 'ok' || (includeExisting && r.status === 'duplicateExisting'),
   );
+  // '기존 중복 포함'을 켜면 한도를 넘어설 수 있다 — 넘치면 등록을 막고 이유를 보여준다
+  const overLimit = registerTargets.length > MAX_BULK_ELDERS;
   const invalidCount = rows.filter((r) => r.status === 'invalid').length;
   const duplicateInFileCount = rows.filter((r) => r.status === 'duplicateInFile').length;
   const duplicateExistingCount = rows.filter((r) => r.status === 'duplicateExisting').length;
@@ -168,7 +170,7 @@ export default function ElderBulkUploadDialog({
             {step === 'select' && (
               <VStack gap={4}>
                 <Text type="body" color="secondary">
-                  양식을 내려받아 이름·주소·앞자리 필요 여부를 채운 뒤 올려주세요.
+                  양식을 내려받아 이름·주소를 채운 뒤 올려주세요.
                   등록 전에 행별 검사 결과를 먼저 보여드립니다.
                 </Text>
                 <HStack gap={2}>
@@ -243,13 +245,13 @@ export default function ElderBulkUploadDialog({
             {(step === 'preview' || step === 'uploading') && (
               <VStack gap={3}>
                 <Banner
-                  status={registerTargets.length > 0 ? 'info' : 'warning'}
+                  status={overLimit ? 'warning' : registerTargets.length > 0 ? 'info' : 'warning'}
                   title={`${registerTargets.length}명 등록 예정${excludedCount > 0 ? ` · ${excludedCount}건 제외` : ''}`}
                   description={[
                     invalidCount > 0 ? `등록 불가 ${invalidCount}건` : '',
                     duplicateInFileCount > 0 ? `파일 안 중복 ${duplicateInFileCount}건` : '',
                     duplicateExistingCount > 0 ? `이미 등록된 어르신과 중복 ${duplicateExistingCount}건` : '',
-                  ].filter(Boolean).join(' · ') || '모든 행이 검사를 통과했습니다.'}
+                  ].filter(Boolean).join(' · ') + (overLimit ? ` — 한 번에 ${MAX_BULK_ELDERS}명까지 등록할 수 있습니다. 포함을 줄이거나 파일을 나눠주세요.` : '') || '모든 행이 검사를 통과했습니다.'}
                   container="section"
                 />
                 {duplicateExistingCount > 0 && (
@@ -372,9 +374,9 @@ export default function ElderBulkUploadDialog({
                 <>
                   <Button label="다른 파일 선택" variant="secondary" onClick={() => { reset(); }} />
                   <Button
-                    label={`${registerTargets.length}명 등록`}
+                    label={overLimit ? `${MAX_BULK_ELDERS}명 초과` : `${registerTargets.length}명 등록`}
                     variant="primary"
-                    isDisabled={registerTargets.length === 0}
+                    isDisabled={registerTargets.length === 0 || overLimit}
                     onClick={handleRegister}
                   />
                 </>
