@@ -227,6 +227,20 @@ export default function ApprovalDetail({
                   />
                 )}
 
+                {/* 이관 문서 안내 — 여기서 결재를 진행하는 문서가 아니라는 것을 먼저 알린다 */}
+                {approval.isImported && (
+                  <Banner
+                    status="info"
+                    container="section"
+                    title="다른 시스템에서 옮겨온 보관 문서입니다."
+                    description={[
+                      approval.importedSource ? `가져온 곳: ${approval.importedSource}` : null,
+                      approval.externalDocNumber ? `원본 문서번호: ${approval.externalDocNumber}` : null,
+                      '결재는 이미 끝난 상태로, 여기서 다시 진행되지 않습니다.',
+                    ].filter(Boolean).join(' · ')}
+                  />
+                )}
+
                 {/* 본문 — HWP 양식 문서는 작성된 파일이 본문이므로 공문 프레임 대신 문서 뷰어로 안내 */}
                 {isFileDocument ? (
                   <Card variant="muted" padding={5}>
@@ -283,6 +297,29 @@ export default function ApprovalDetail({
                       onClick={() => handleDownloadAttachment(approval.attachmentUrl!, approval.attachmentFileName || '첨부파일')}
                     />
                   </HStack>
+                )}
+
+                {/* 이관 문서의 딸린 첨부 — 대표 파일 외에 함께 옮겨온 파일들 */}
+                {(approval.extraAttachments?.length ?? 0) > 0 && (
+                  <VStack gap={1}>
+                    <Text type="supporting" color="secondary">함께 옮겨온 파일</Text>
+                    {approval.extraAttachments!.map((attachment) => (
+                      <HStack key={attachment.fileUrl} gap={2} vAlign="center" hAlign="end">
+                        <Text type="supporting" color="secondary">
+                          {attachment.fileName}
+                          {attachment.fileSize ? ` (${(attachment.fileSize / 1024).toFixed(1)}KB)` : ''}
+                        </Text>
+                        <Button
+                          label={`${attachment.fileName} 다운로드`}
+                          isIconOnly
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={FiDownload} size="sm" />}
+                          onClick={() => handleDownloadAttachment(attachment.fileUrl, attachment.fileName)}
+                        />
+                      </HStack>
+                    ))}
+                  </VStack>
                 )}
 
                 {/* 열람 대상 — 누가 이 문서를 볼 수 있는지 */}

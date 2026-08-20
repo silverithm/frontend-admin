@@ -66,6 +66,41 @@ export interface ViewerPositionCandidate {
   memberCount: number;
 }
 
+// ── 과거 문서 이관 ──
+
+/** 이관 색인 한 줄 (미리보기 응답 = 등록 요청) */
+export interface ApprovalImportRow {
+  rowNumber: number;
+  externalDocNumber?: string | null;
+  title?: string | null;
+  requesterName?: string | null;
+  draftedAt?: string | null;      // yyyy-MM-dd
+  status?: string | null;         // APPROVED | REJECTED (그 외는 읽은 원문)
+  category?: string | null;
+  approvers: ApprovalImportApprover[];
+  fileNames: string[];
+  /** 있으면 이 줄은 등록되지 않는다 */
+  errors: string[];
+  /** 등록은 되지만 알고 넘어가야 하는 것 */
+  warnings: string[];
+}
+
+export interface ApprovalImportApprover {
+  name: string;
+  approvedAt?: string | null;
+  matchedType?: ApproverType | null;
+  matchedRefId?: number | null;
+}
+
+export interface ApprovalImportPreview {
+  columnMappings?: { header: string; field: string }[];
+  unmappedColumns?: string[];
+  rows: ApprovalImportRow[];
+  totalCount: number;
+  errorCount: number;
+  missingFileNames?: string[];
+}
+
 // 첨부파일 정보
 export interface AttachmentFile {
   id: string;
@@ -105,6 +140,12 @@ export interface ApprovalRequest {
   documentFooter?: DocumentFooter;
   /** 열람 대상 — 관리자·기안자·결재선 참여자는 여기에 없어도 볼 수 있다 */
   viewers?: ApprovalViewer[];
+  /** 다른 시스템에서 옮겨온 완료 문서인지 — 참이면 결재를 다시 진행하지 않는다 */
+  isImported?: boolean;
+  importedSource?: string | null;
+  externalDocNumber?: string | null;
+  /** 대표 첨부 외의 딸린 파일들 */
+  extraAttachments?: { fileUrl: string; fileName: string; fileSize?: number | null }[];
 }
 
 /**

@@ -12,7 +12,7 @@ import {
     PasswordChangeRequest,
     UserRole
 } from '@/types/auth';
-import { ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
+import { ApprovalImportPreview, ApprovalImportRow, ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
@@ -1910,6 +1910,56 @@ export async function getViewerCandidates(): Promise<{
         positions: Array.isArray(response?.positions) ? response.positions : [],
         people: Array.isArray(response?.people) ? response.people : [],
     };
+}
+
+// ================== 과거 문서 이관 (관리자) ==================
+
+/** 이관 색인(엑셀)을 읽어본다 — 저장하지 않는다 */
+export async function previewApprovalImport(
+    file: File,
+    uploadedFileNames: string[] = [],
+): Promise<ApprovalImportPreview> {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    // 이미 올려둔 파일 이름을 함께 보내면, 색인에 적혔는데 빠진 파일을 미리 짚어준다
+    uploadedFileNames.forEach((name) => formData.append('uploadedFileNames', name));
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const response = await fetch(`/api/v1/approvals/import/preview?companyId=${companyId}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.error || '색인 파일을 읽지 못했습니다.');
+    }
+    return data.preview;
+}
+
+/** 확정 등록 — 문제가 있는 줄은 건너뛰고 나머지가 들어간다 */
+export async function importApprovals(payload: {
+    templateId?: number;
+    source?: string;
+    rows: ApprovalImportRow[];
+    files: Record<string, { filePath: string; fileSize?: number }>;
+    viewers?: ApprovalViewerEntry[];
+}): Promise<{ result: ApprovalImportPreview; message: string }> {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/approvals/import?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
 }
 
 // 로그인 관리자 + 회사 정보 조회 (직인 URL 포함)

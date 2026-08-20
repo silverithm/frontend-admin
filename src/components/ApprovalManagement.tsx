@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
+import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -12,6 +12,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
+import ApprovalImportDialog from '@/components/approval/ApprovalImportDialog';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
@@ -71,6 +72,8 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
   });
   const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
+  /** 과거 문서 이관 마법사 */
+  const [showImport, setShowImport] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -379,6 +382,11 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     <>
       <AlertContainer />
       <ConfirmContainer />
+      <ApprovalImportDialog
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onImported={loadApprovals}
+      />
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-5)' }}>
         {/* 헤더 */}
@@ -391,6 +399,16 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                 : '열람 권한이 있는 결재 문서를 보고 검색합니다'}
             </Text>
           </VStack>
+          <HStack gap={2} vAlign="center">
+          {canManage && (
+            <Button
+              label="과거 문서 이관"
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={FiUploadCloud} size="sm" />}
+              onClick={() => setShowImport(true)}
+            />
+          )}
           <IconButton
             label="새로고침"
             tooltip="새로고침"
@@ -400,6 +418,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
             isDisabled={isProcessing}
             onClick={loadApprovals}
           />
+          </HStack>
         </HStack>
 
         {/* 탭 네비게이션 */}
@@ -571,6 +590,11 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiFileText} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">{approval.templateName}</Text>
+                              {approval.isImported && (
+                                <Badge variant="purple" label={approval.externalDocNumber
+                                  ? `이관 · ${approval.externalDocNumber}`
+                                  : '이관'} />
+                              )}
                             </HStack>
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiCalendar} size="sm" color="tertiary" />
