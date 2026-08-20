@@ -402,7 +402,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
           <HStack gap={2} vAlign="center">
           {canManage && (
             <Button
-              label="과거 문서 이관"
+              label="대량 문서 업로드"
               variant="secondary"
               size="sm"
               icon={<Icon icon={FiUploadCloud} size="sm" />}

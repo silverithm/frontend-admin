@@ -408,15 +408,19 @@ export default function OfficialDocument({
           앱(official_document_view.dart)의 발신명의 블록과 같은 구성이다.
         */}
         <div className="carev-doc-issuer">
-          <span className="carev-doc-issuer-name">{companyName}</span>
-          {isApproved && approval.companySealUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={approval.companySealUrl}
-              alt="기관 직인"
-              className="carev-doc-seal"
-            />
-          )}
+          {/* 도장은 기관명 span 안에 둔다 — 바깥에 두면 컨테이너(전체 폭) 기준으로 붙어
+              가운데 정렬된 기관명과 상관없이 문서 오른쪽 끝에 떠 버린다 */}
+          <span className="carev-doc-issuer-name">
+            {companyName}
+            {isApproved && approval.companySealUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={approval.companySealUrl}
+                alt="기관 직인"
+                className="carev-doc-seal"
+              />
+            )}
+          </span>
         </div>
 
         {/* 발신부 — 표준 공문 하단 시행/접수·주소·연락처 줄 */}

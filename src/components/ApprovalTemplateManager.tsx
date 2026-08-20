@@ -10,6 +10,7 @@ import DocumentViewerModal from '@/components/DocumentViewerModal';
 import OfficialDocument from '@/components/approval/OfficialDocument';
 import { buildSampleApproval } from '@/components/approval/templatePreview';
 import ViewerSelector from '@/components/approval/ViewerSelector';
+import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -60,6 +61,8 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  /** 대량 양식 업로드 (파일 하나 = 양식 하나) */
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ApprovalTemplate | null>(null);
 
   // 업로드 폼 상태
@@ -520,6 +523,12 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   return (
     <>
       <AlertContainer />
+      <TemplateBulkUploadDialog
+        isOpen={showBulkUpload}
+        onClose={() => setShowBulkUpload(false)}
+        onUploaded={loadTemplates}
+        knownCategories={knownCategories}
+      />
       <ConfirmContainer />
       <VStack gap={6}>
         {/* 헤더 */}
@@ -536,6 +545,12 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                 icon={<Icon icon={FiDownload} size="sm" />}
                 isLoading={isSeeding}
                 onClick={handleSeedDefaults}
+              />
+              <Button
+                label="대량 양식 업로드"
+                variant="secondary"
+                icon={<Icon icon={FiUploadCloud} size="sm" />}
+                onClick={() => setShowBulkUpload(true)}
               />
               <Button
                 label="새 양식 등록"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState } from 'react';
-import { FiDownload, FiFileText, FiUploadCloud } from 'react-icons/fi';
+import { FiDownload, FiFileText, FiFolder, FiUploadCloud, FiX } from 'react-icons/fi';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
@@ -13,6 +13,8 @@ import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import ViewerSelector from '@/components/approval/ViewerSelector';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { collectFromDataTransfer, collectFromFileList, PickedFile } from '@/lib/fileDrop';
 import {
   downloadApprovalImportTemplate,
   importApprovals,
@@ -46,7 +48,10 @@ const UPLOAD_BATCH = 4;
 export default function ApprovalImportDialog({ isOpen, onClose, onImported }: ApprovalImportDialogProps) {
   const [phase, setPhase] = useState<Phase>('select');
   const [indexFile, setIndexFile] = useState<File | null>(null);
-  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<PickedFile[]>([]);
+  /** 같은 이름이라 목록에서 제외한 파일 수 — 색인은 파일명으로 짝을 맞추므로 이름이 유일해야 한다 */
+  const [duplicateCount, setDuplicateCount] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [source, setSource] = useState('ECOUNT');
   const [viewers, setViewers] = useState<ApprovalViewerEntry[]>([]);
   const [preview, setPreview] = useState<ApprovalImportPreview | null>(null);
@@ -57,16 +62,53 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
 
   const indexInputRef = useRef<HTMLInputElement>(null);
   const filesInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const importableCount = useMemo(
     () => (preview ? preview.totalCount - preview.errorCount : 0),
     [preview],
   );
 
+  /** 파일 추가 — 색인이 파일명으로 짝을 맞추므로 같은 이름은 처음 것만 남긴다 */
+  const addFiles = (incoming: PickedFile[]) => {
+    setDocumentFiles((current) => {
+      const seen = new Set(current.map((entry) => entry.file.name));
+      const fresh: PickedFile[] = [];
+      let skipped = 0;
+      for (const entry of incoming) {
+        if (seen.has(entry.file.name)) {
+          skipped++;
+          continue;
+        }
+        seen.add(entry.file.name);
+        fresh.push(entry);
+      }
+      if (skipped > 0) setDuplicateCount((count) => count + skipped);
+      return [...current, ...fresh];
+    });
+  };
+
+  const removeFile = (name: string) => {
+    setDocumentFiles((current) => current.filter((entry) => entry.file.name !== name));
+  };
+
+  /** 폴더에서 온 파일을 폴더별로 묶는다 — 무엇을 골랐는지 눈으로 확인하고 올리게 */
+  const groupedFiles = useMemo(() => {
+    const groups = new Map<string, PickedFile[]>();
+    for (const entry of documentFiles) {
+      const slash = entry.path.indexOf('/');
+      const group = slash > 0 ? entry.path.slice(0, slash) : '';
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(entry);
+    }
+    return Array.from(groups.entries());
+  }, [documentFiles]);
+
   const reset = () => {
     setPhase('select');
     setIndexFile(null);
     setDocumentFiles([]);
+    setDuplicateCount(0);
     setViewers([]);
     setPreview(null);
     setResult(null);
@@ -85,7 +127,7 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
     setIsBusy(true);
     setErrorMessage('');
     try {
-      const read = await previewApprovalImport(indexFile, documentFiles.map((file) => file.name));
+      const read = await previewApprovalImport(indexFile, documentFiles.map((entry) => entry.file.name));
       setPreview(read);
       setPhase('review');
     } catch (error) {
@@ -103,7 +145,7 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
     try {
       // 색인에 이름이 적힌 파일만 올린다 — 관계없는 파일까지 저장소에 쌓지 않는다
       const neededNames = new Set(preview.rows.flatMap((row) => row.fileNames));
-      const targets = documentFiles.filter((file) => neededNames.has(file.name));
+      const targets = documentFiles.filter((entry) => neededNames.has(entry.file.name)).map((entry) => entry.file);
 
       const uploaded: Record<string, { filePath: string; fileSize?: number }> = {};
       for (let i = 0; i < targets.length; i += UPLOAD_BATCH) {
@@ -192,7 +234,7 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
       <Layout
         header={
           <DialogHeader
-            title="과거 문서 이관"
+            title="대량 문서 업로드"
             onOpenChange={(open) => { if (!open) close(); }}
           />
         }
@@ -266,26 +308,141 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
                   <VStack gap={2}>
                     <Text type="label" weight="medium">2. 문서 파일 (선택)</Text>
                     <Text type="supporting" color="secondary">
-                      기안서 PDF와 첨부파일을 한꺼번에 고르세요. 색인의 파일명과 이름이 같은 것끼리 붙습니다.
+                      기안서 PDF와 첨부파일을 끌어다 놓거나 골라주세요. 폴더째 넣어도 안의 파일을 전부 읽습니다.
+                      색인의 파일명과 이름이 같은 것끼리 붙습니다.
                     </Text>
                     <input
                       ref={filesInputRef}
                       type="file"
                       multiple
                       style={{ display: 'none' }}
-                      onChange={(event) => setDocumentFiles(Array.from(event.target.files ?? []))}
+                      onChange={(event) => {
+                        if (event.target.files) addFiles(collectFromFileList(event.target.files));
+                        event.target.value = '';
+                      }}
                     />
-                    <HStack gap={2} vAlign="center">
-                      <Button
-                        label={documentFiles.length > 0 ? '다시 고르기' : '파일 고르기'}
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => filesInputRef.current?.click()}
-                      />
-                      {documentFiles.length > 0 && (
-                        <Text type="supporting" color="secondary">{documentFiles.length}개 선택됨</Text>
-                      )}
-                    </HStack>
+                    <input
+                      ref={folderInputRef}
+                      type="file"
+                      // @ts-expect-error 비표준이지만 모든 주요 브라우저가 지원하는 폴더 선택
+                      webkitdirectory=""
+                      style={{ display: 'none' }}
+                      onChange={(event) => {
+                        if (event.target.files) addFiles(collectFromFileList(event.target.files));
+                        event.target.value = '';
+                      }}
+                    />
+                    <div
+                      onDragOver={(event) => { event.preventDefault(); setIsDragOver(true); }}
+                      onDragLeave={() => setIsDragOver(false)}
+                      onDrop={async (event) => {
+                        event.preventDefault();
+                        setIsDragOver(false);
+                        addFiles(await collectFromDataTransfer(event.dataTransfer));
+                      }}
+                      style={{
+                        padding: 'var(--spacing-4)',
+                        border: `2px dashed ${isDragOver ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                        borderRadius: 'var(--radius-inner)',
+                        background: isDragOver ? 'var(--color-background-muted)' : undefined,
+                        textAlign: 'center',
+                      }}
+                    >
+                      <VStack gap={2} hAlign="center">
+                        <FiUploadCloud size={24} style={{ color: 'var(--color-icon-disabled)' }} />
+                        <Text type="supporting" color="secondary">여기로 파일이나 폴더를 끌어다 놓으세요</Text>
+                        <HStack gap={2}>
+                          <Button
+                            label="파일 고르기"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => filesInputRef.current?.click()}
+                          />
+                          <Button
+                            label="폴더 고르기"
+                            variant="secondary"
+                            size="sm"
+                            icon={<Icon icon={FiFolder} size="sm" />}
+                            onClick={() => folderInputRef.current?.click()}
+                          />
+                        </HStack>
+                      </VStack>
+                    </div>
+
+                    {duplicateCount > 0 && (
+                      <Text type="supporting" color="secondary">
+                        같은 이름이라 제외한 파일 {duplicateCount}개 — 색인은 파일명으로 짝을 맞추므로 이름이 겹치면 처음 것만 씁니다.
+                      </Text>
+                    )}
+
+                    {/* 골라진 파일 전체 목록 — 폴더별로 묶어 눈으로 확인하고 올린다 */}
+                    {documentFiles.length > 0 && (
+                      <VStack gap={1}>
+                        <HStack gap={2} vAlign="center" hAlign="between">
+                          <Text type="supporting" weight="medium">선택된 파일 {documentFiles.length}개</Text>
+                          <Button
+                            label="모두 비우기"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setDocumentFiles([]); setDuplicateCount(0); }}
+                          />
+                        </HStack>
+                        <div
+                          style={{
+                            maxHeight: 220,
+                            overflowY: 'auto',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-inner)',
+                          }}
+                        >
+                          {groupedFiles.map(([group, entries]) => (
+                            <div key={group || '(낱개)'}>
+                              {group && (
+                                <div
+                                  style={{
+                                    padding: 'var(--spacing-1) var(--spacing-3)',
+                                    background: 'var(--color-background-muted)',
+                                    borderBottom: '1px solid var(--color-border)',
+                                  }}
+                                >
+                                  <HStack gap={1} vAlign="center">
+                                    <Icon icon={FiFolder} size="sm" color="secondary" />
+                                    <Text type="supporting" weight="medium">{group} ({entries.length}개)</Text>
+                                  </HStack>
+                                </div>
+                              )}
+                              {entries.map((entry) => (
+                                <div
+                                  key={entry.path}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 'var(--spacing-2)',
+                                    padding: '2px var(--spacing-3)',
+                                    borderBottom: '1px solid var(--color-border)',
+                                    paddingLeft: group ? 'var(--spacing-6)' : 'var(--spacing-3)',
+                                  }}
+                                >
+                                  <span style={{ flex: 1, minWidth: 0 }}>
+                                    <Text type="supporting" maxLines={1}>{entry.file.name}</Text>
+                                  </span>
+                                  <Text type="supporting" color="secondary">
+                                    {(entry.file.size / 1024).toFixed(0)}KB
+                                  </Text>
+                                  <IconButton
+                                    label={`${entry.file.name} 제거`}
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={<FiX />}
+                                    onClick={() => removeFile(entry.file.name)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </VStack>
+                    )}
                   </VStack>
 
                   <TextInput

@@ -1137,16 +1137,18 @@ html {
   letter-spacing: 0.25em;
   color: #111827;
 }
-/* 이름 끝 글자에 절반쯤 걸치게 — 도장이 글자를 덮어 읽기를 방해하지 않을 만큼만 겹친다 */
+/* 관인 날인 관례대로 기관명 마지막 글자 위에 인영 중심이 오게 — 살짝 겹치되 글자는 읽힌다.
+   기준은 기관명 span(position: relative)이다. 컨테이너 기준으로 잡으면 가운데 정렬과 어긋난다. */
 .carev-doc-seal {
   position: absolute;
-  right: -34px;
+  right: -16px;
   top: 50%;
   transform: translateY(-50%);
   width: 62px;
   height: 62px;
   object-fit: contain;
-  opacity: 0.9;
+  opacity: 0.85;
+  mix-blend-mode: multiply; /* 도장이 글자를 가리지 않고 겹쳐 찍힌 것처럼 보이게 */
   pointer-events: none;
 }
 
