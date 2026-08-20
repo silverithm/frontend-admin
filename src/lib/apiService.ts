@@ -1914,6 +1914,34 @@ export async function getViewerCandidates(): Promise<{
 
 // ================== 과거 문서 이관 (관리자) ==================
 
+/** 기관에 나눠줄 이관 색인 양식(엑셀)을 내려받는다 */
+export async function downloadApprovalImportTemplate(): Promise<void> {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const response = await fetch(`/api/v1/approvals/import/template?companyId=${companyId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || '양식을 내려받지 못했습니다.');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '케어브이_결재문서_이관양식.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+}
+
 /** 이관 색인(엑셀)을 읽어본다 — 저장하지 않는다 */
 export async function previewApprovalImport(
     file: File,
