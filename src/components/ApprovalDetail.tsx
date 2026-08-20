@@ -33,6 +33,12 @@ interface ApprovalDetailProps {
   templateSchema?: FormSchema;
   templateType?: string;
   isProcessing?: boolean;
+  /**
+   * 결재를 처리할 수 있는 사람인지 (관리자 또는 APPROVAL_MANAGE 보유 직원).
+   * 결재선 없는 legacy 문서·직권 처리(전결) 가드에 쓰인다 — 열람만 가능한 사람에게
+   * 승인/반려 버튼이 노출되지 않도록 기본값은 false(안전 측)로 둔다.
+   */
+  canManage?: boolean;
 }
 
 export default function ApprovalDetail({
@@ -44,6 +50,7 @@ export default function ApprovalDetail({
   templateSchema,
   templateType,
   isProcessing = false,
+  canManage = false,
 }: ApprovalDetailProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -110,15 +117,18 @@ export default function ApprovalDetail({
     }
   };
 
-  // 결재선 차례 판단: 결재선 없는 legacy 문서는 서버 인가에 맡기고 기존처럼 노출
+  // 결재선 차례 판단: 결재선 없는 legacy 문서는 canManage(관리자 또는 APPROVAL_MANAGE 보유)일 때만 액션 가능
+  // — 열람만 가능한 직원에게 승인/반려 버튼이 노출되던 문제 수정
   const hasLine = !!approval.approvalLine && approval.approvalLine.length > 0;
   const currentStep = hasLine
     ? approval.approvalLine!.find((step) => step.status === 'PENDING')
     : undefined;
-  const isMyTurn = !hasLine || (currentStep ? currentStep.approverId === myApproverId : false);
+  const isMyTurn = hasLine
+    ? (currentStep ? currentStep.approverId === myApproverId : false)
+    : canManage;
   const canAct = approval.status === 'PENDING' && isMyTurn;
-  // 관리자 직권 처리(전결): 이 화면은 기관 관리자 전용이므로 내 차례가 아니어도 강제 처리 가능 (백엔드가 관리자 여부 재검증)
-  const isForceMode = approval.status === 'PENDING' && hasLine && !isMyTurn;
+  // 관리자 직권 처리(전결): 결재선이 있고 내 차례가 아닐 때, canManage 보유자만 강제 처리 가능 (백엔드가 재검증)
+  const isForceMode = approval.status === 'PENDING' && hasLine && !isMyTurn && canManage;
 
   // 직권 승인 전 경고 — 건너뛰게 될 남은 결재 단계를 알려주고 확인받는다
   const confirmForceApprove = () => {

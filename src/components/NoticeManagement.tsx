@@ -152,13 +152,14 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
     setIsLoading(true);
     try {
       const filter: { status?: string; searchQuery?: string } = {};
-      if (activeTab === 'published') filter.status = 'PUBLISHED';
+      // 비관리자는 미게시(DRAFT)·보관 공지를 볼 권한이 없다 — 탭 상태와 무관하게 항상 게시된 공지만 조회한다
+      if (!isAdmin || activeTab === 'published') filter.status = 'PUBLISHED';
       if (debouncedSearchQuery) filter.searchQuery = debouncedSearchQuery;
 
       const response = await getNotices(filter);
       if (response.notices) {
         const filteredNotices = response.notices.filter(
-          (n: NoticeData) => n.status === 'PUBLISHED' || activeTab === 'all'
+          (n: NoticeData) => n.status === 'PUBLISHED' || (isAdmin && activeTab === 'all')
         );
         setNotices(filteredNotices);
       }
@@ -399,19 +400,23 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
           {/* 카드: 탭 + 검색 + 목록 */}
           <div className="carev-notice-listwrap" style={{ width: '100%' }}>
             <Card padding={0} height="100%">
-              {/* 탭 */}
-              <div style={{ padding: 'var(--spacing-4)' }}>
-                <SegmentedControl
-                  value={activeTab}
-                  onChange={(v) => setActiveTab(v as TabType)}
-                  label="공지 필터"
-                >
-                  <SegmentedControlItem value="all" label={`전체 (${stats.total})`} />
-                  <SegmentedControlItem value="published" label={`게시중 (${stats.published})`} />
-                </SegmentedControl>
-              </div>
+              {/* 탭 — 비관리자는 항상 게시된 공지만 보이므로 전체/게시 구분이 무의미해 탭 자체를 숨긴다 */}
+              {isAdmin && (
+                <>
+                  <div style={{ padding: 'var(--spacing-4)' }}>
+                    <SegmentedControl
+                      value={activeTab}
+                      onChange={(v) => setActiveTab(v as TabType)}
+                      label="공지 필터"
+                    >
+                      <SegmentedControlItem value="all" label={`전체 (${stats.total})`} />
+                      <SegmentedControlItem value="published" label={`게시중 (${stats.published})`} />
+                    </SegmentedControl>
+                  </div>
 
-              <Divider />
+                  <Divider />
+                </>
+              )}
 
               {/* 검색 */}
               <div style={{ padding: 'var(--spacing-4)' }}>

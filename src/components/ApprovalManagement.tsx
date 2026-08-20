@@ -88,10 +88,11 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     setMyApproverId(getApprovalRequesterId());
   }, []);
 
-  // 결재선이 있으면 내 차례일 때만, 없으면(legacy) 기존처럼 처리 가능
+  // 결재선이 있으면 내 차례일 때만, 없으면(legacy) canManage(관리자 또는 APPROVAL_MANAGE 보유)일 때만 처리 가능
+  // — 열람만 가능한 직원에게 legacy 문서의 승인/반려 버튼이 노출되던 문제 수정
   const isActionable = (approval: ApprovalRequest) => {
     if (approval.status !== 'PENDING') return false;
-    if (!approval.approvalLine || approval.approvalLine.length === 0) return true;
+    if (!approval.approvalLine || approval.approvalLine.length === 0) return canManage;
     const currentStep = approval.approvalLine.find((step) => step.status === 'PENDING');
     return !!currentStep && currentStep.approverId === myApproverId;
   };
@@ -662,6 +663,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
             templateSchema={selectedTemplateSchema}
             templateType={selectedTemplateType}
             isProcessing={isProcessing}
+            canManage={canManage}
           />
         )}
       </AnimatePresence>
