@@ -134,6 +134,30 @@
         "value": "#fff3bf",
         "createdAt": "2026-08-17T15:53:47.219Z",
         "reason": "리치텍스트 에디터의 글자색·형광펜 견본. 사용자가 본문에 적용하는 콘텐츠 색이지 UI 테마색이 아니다"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#3b82f6",
+        "createdAt": "2026-08-20T03:59:03.576Z",
+        "reason": "일정 카테고리 기본색 도메인 데이터 — 백엔드 ScheduleCategory enum·앱 schedule_colors.dart와 값이 일치해야 하는 크로스플랫폼 팔레트(SCHEDULE_CATEGORY_COLORS와 동일 값)"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ec4899",
+        "createdAt": "2026-08-20T03:59:03.619Z",
+        "reason": "일정 카테고리 기본색 도메인 데이터 — 백엔드 ScheduleCategory enum·앱 schedule_colors.dart와 값이 일치해야 하는 크로스플랫폼 팔레트(SCHEDULE_CATEGORY_COLORS와 동일 값)"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#8b5cf6",
+        "createdAt": "2026-08-20T03:59:03.663Z",
+        "reason": "일정 카테고리 기본색 도메인 데이터 — 백엔드 ScheduleCategory enum·앱 schedule_colors.dart와 값이 일치해야 하는 크로스플랫폼 팔레트(SCHEDULE_CATEGORY_COLORS와 동일 값)"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#14b8a6",
+        "createdAt": "2026-08-20T03:59:03.707Z",
+        "reason": "일정 카테고리 기본색 도메인 데이터 — 백엔드 ScheduleCategory enum·앱 schedule_colors.dart와 값이 일치해야 하는 크로스플랫폼 팔레트(SCHEDULE_CATEGORY_COLORS와 동일 값)"
       }
     ]
   }
