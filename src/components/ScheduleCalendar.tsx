@@ -25,8 +25,8 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel } from '@/lib/apiService';
-import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting } from '@/lib/apiService';
+import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import {
@@ -197,7 +197,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   // 기관 커스텀 일정 구분 (이름+색). 고르면 색이 자동으로 따라온다.
   const [customCategories, setCustomCategories] = useState<ScheduleLabel[]>([]);
+  // 기본 구분(회의·행사·교육·기타)의 기관별 상태 — 이름·색 변경, 숨김 반영.
+  const [baseCategories, setBaseCategories] = useState<ScheduleCategorySetting[]>(DEFAULT_CATEGORY_SETTINGS);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  // id: 커스텀 구분은 라벨 id, 기본 구분 수정 중엔 'base:MEETING' 형식
   const [categoryForm, setCategoryForm] = useState<{ id: string; name: string; color: string }>({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
   const [isCategorySaving, setIsCategorySaving] = useState(false);
 
@@ -217,9 +220,23 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     }
   }, []);
 
+  const loadBaseCategories = useCallback(async () => {
+    try {
+      const data = await getScheduleCategorySettings();
+      const list = data?.categories;
+      if (Array.isArray(list) && list.length > 0) {
+        setBaseCategories(list as ScheduleCategorySetting[]);
+      }
+    } catch (error) {
+      // 설정을 못 불러와도 enum 기본값으로 계속 동작한다
+      console.error('기본 구분 설정 로드 실패:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadCustomCategories();
-  }, [loadCustomCategories]);
+    loadBaseCategories();
+  }, [loadCustomCategories, loadBaseCategories]);
 
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
@@ -694,16 +711,60 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     }
     setIsCategorySaving(true);
     try {
-      if (categoryForm.id) {
+      if (categoryForm.id.startsWith('base:')) {
+        // 기본 구분(회의 등)의 이름·색 변경 — 삭제는 없고 기관별 덮어쓰기만 저장된다
+        await updateScheduleCategorySetting(categoryForm.id.slice('base:'.length), { name, color: categoryForm.color });
+        await loadBaseCategories();
+        await loadSchedules(); // 색 폴백이 바뀌므로 달력 색을 갱신한다
+      } else if (categoryForm.id) {
         await updateScheduleLabel(categoryForm.id, { name, color: categoryForm.color });
+        await loadCustomCategories();
+        await loadSchedules();
       } else {
         await createScheduleLabel({ name, color: categoryForm.color });
+        await loadCustomCategories();
       }
       setCategoryForm({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
-      await loadCustomCategories();
     } catch (error) {
       console.error('일정 구분 저장 실패:', error);
       showAlert({ type: 'error', title: '저장 실패', message: '일정 구분 저장에 실패했습니다.' });
+    } finally {
+      setIsCategorySaving(false);
+    }
+  };
+
+  // 기본 구분 숨김/보이기 — 등록 폼 목록에서만 빠지고 기존 일정 표시는 유지된다
+  const handleToggleBaseHidden = async (setting: ScheduleCategorySetting) => {
+    setIsCategorySaving(true);
+    try {
+      await updateScheduleCategorySetting(setting.category, { hidden: !setting.hidden });
+      if (!setting.hidden && formData.category === setting.category && !formData.labelId) {
+        // 지금 폼에 골라둔 구분을 숨겼으면 첫 보이는 구분으로 되돌린다
+        const fallback = baseCategories.find((c) => c.category !== setting.category && !c.hidden);
+        if (fallback) setFormData(prev => ({ ...prev, category: fallback.category }));
+      }
+      await loadBaseCategories();
+    } catch (error) {
+      console.error('기본 구분 숨김 변경 실패:', error);
+      showAlert({ type: 'error', title: '변경 실패', message: '기본 구분 변경에 실패했습니다.' });
+    } finally {
+      setIsCategorySaving(false);
+    }
+  };
+
+  // 기본 구분을 원래 이름·색·표시 상태로 되돌리기
+  const handleResetBaseCategory = async (setting: ScheduleCategorySetting) => {
+    setIsCategorySaving(true);
+    try {
+      await resetScheduleCategorySetting(setting.category);
+      if (categoryForm.id === `base:${setting.category}`) {
+        setCategoryForm({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
+      }
+      await loadBaseCategories();
+      await loadSchedules();
+    } catch (error) {
+      console.error('기본 구분 되돌리기 실패:', error);
+      showAlert({ type: 'error', title: '되돌리기 실패', message: '기본 구분 되돌리기에 실패했습니다.' });
     } finally {
       setIsCategorySaving(false);
     }
@@ -844,8 +905,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     }
   };
 
-  // 카테고리 한글 변환
+  // 카테고리 한글 변환 — 기관이 바꾼 이름(baseCategories)을 우선한다
   const getCategoryText = (category: ScheduleCategory) => {
+    const setting = baseCategories.find(c => c.category === category);
+    if (setting) return setting.name;
     const found = SCHEDULE_CATEGORIES.find(c => c.value === category);
     return found?.label || category;
   };
@@ -1173,9 +1236,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                 {/* 일정 모드: 카테고리 기본 색상 범례 — 색 점만, 이름은 마우스를 올리면 나온다 */}
                 {!isDispatchMode && (
                   <div className="carev-dash-cal-legend">
-                    {SCHEDULE_CATEGORIES.map((cat) => (
-                      <span key={cat.value} title={`기본 색상 · ${cat.label}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                        <span className="carev-dash-cal-dot" style={{ background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
+                    {baseCategories.filter((c) => !c.hidden).map((cat) => (
+                      <span key={cat.category} title={`기본 색상 · ${cat.name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                        <span className="carev-dash-cal-dot" style={{ background: cat.color }} />
                       </span>
                     ))}
                     {customCategories.map((c) => (
@@ -1590,7 +1653,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       width="100%"
                       value={formData.labelId ? `label:${formData.labelId}` : formData.category}
                       options={[
-                        ...SCHEDULE_CATEGORIES.map((cat) => ({ value: cat.value, label: cat.label })),
+                        // 숨긴 기본 구분은 새 일정 목록에서 빠진다 — 수정 중인 일정이 그 구분이면 표시 유지
+                        ...baseCategories
+                          .filter((c) => !c.hidden || (!formData.labelId && formData.category === c.category))
+                          .map((c) => ({ value: c.category, label: c.name })),
                         ...customCategories.map((c) => ({ value: `label:${c.id}`, label: c.name })),
                       ]}
                       onChange={(value) => {
@@ -2280,22 +2346,53 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           content={
             <LayoutContent>
               <VStack gap={4}>
-                {customCategories.length > 0 ? (
+                {/* 기본 구분 — enum이라 삭제는 없고 이름·색 변경과 숨김만 된다.
+                    숨겨도 이미 등록된 일정의 표시는 그대로 유지된다. */}
+                <VStack gap={1}>
+                  <Text type="label" weight="medium" color="secondary">기본 구분</Text>
                   <VStack gap={0}>
-                    {customCategories.map((c) => (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                    {baseCategories.map((c) => (
+                      <div key={c.category} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--color-border)', opacity: c.hidden ? 0.45 : 1 }}>
                         <span style={{ width: 12, height: 12, borderRadius: 'var(--radius-full)', background: c.color, flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text type="body" weight={categoryForm.id === c.id ? 'semibold' : 'normal'} maxLines={1}>{c.name}</Text>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                          <Text type="body" weight={categoryForm.id === `base:${c.category}` ? 'semibold' : 'normal'} maxLines={1}>{c.name}</Text>
+                          {c.hidden && <Badge variant="muted" label="숨김" />}
                         </div>
-                        <Button label="수정" variant="ghost" size="sm" onClick={() => setCategoryForm({ id: c.id, name: c.name, color: c.color })} />
-                        <Button label="삭제" variant="ghost" size="sm" isDisabled={isCategorySaving} onClick={() => handleDeleteCategory(c.id)} />
+                        {c.customized && (
+                          <Button label="되돌리기" variant="ghost" size="sm" isDisabled={isCategorySaving} onClick={() => handleResetBaseCategory(c)} />
+                        )}
+                        <Button label="수정" variant="ghost" size="sm" onClick={() => setCategoryForm({ id: `base:${c.category}`, name: c.name, color: c.color })} />
+                        <Button
+                          label={c.hidden ? '보이기' : '숨기기'}
+                          variant="ghost"
+                          size="sm"
+                          isDisabled={isCategorySaving}
+                          onClick={() => handleToggleBaseHidden(c)}
+                        />
                       </div>
                     ))}
                   </VStack>
-                ) : (
-                  <Text type="supporting" color="secondary">아직 만든 구분이 없습니다. 아래에서 추가해보세요 — 예: 운영, 인사, 회계, 사업</Text>
-                )}
+                </VStack>
+
+                <VStack gap={1}>
+                  <Text type="label" weight="medium" color="secondary">내가 만든 구분</Text>
+                  {customCategories.length > 0 ? (
+                    <VStack gap={0}>
+                      {customCategories.map((c) => (
+                        <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                          <span style={{ width: 12, height: 12, borderRadius: 'var(--radius-full)', background: c.color, flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <Text type="body" weight={categoryForm.id === c.id ? 'semibold' : 'normal'} maxLines={1}>{c.name}</Text>
+                          </div>
+                          <Button label="수정" variant="ghost" size="sm" onClick={() => setCategoryForm({ id: c.id, name: c.name, color: c.color })} />
+                          <Button label="삭제" variant="ghost" size="sm" isDisabled={isCategorySaving} onClick={() => handleDeleteCategory(c.id)} />
+                        </div>
+                      ))}
+                    </VStack>
+                  ) : (
+                    <Text type="supporting" color="secondary">아직 만든 구분이 없습니다. 아래에서 추가해보세요 — 예: 운영, 인사, 회계, 사업</Text>
+                  )}
+                </VStack>
 
                 <VStack gap={2}>
                   <TextInput

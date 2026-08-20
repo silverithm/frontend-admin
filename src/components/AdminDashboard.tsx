@@ -59,8 +59,8 @@ import {
   getScheduleTasks,
   createScheduleTask,
   updateScheduleTask,
-  deleteScheduleTask, getScheduleLabels } from '@/lib/apiService';
-import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES } from '@/types/schedule';
+  deleteScheduleTask, getScheduleLabels, getScheduleCategorySettings } from '@/lib/apiService';
+import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS } from '@/types/schedule';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { buildWeekBarLayouts, WEEK_GRID_COLUMNS } from '@/lib/scheduleBars';
 import {
@@ -255,6 +255,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
   // 기관 커스텀 일정 구분 — 범례에 색 점으로 함께 보여준다
   const [customCategories, setCustomCategories] = useState<{ id: string; name: string; color: string }[]>([]);
+  // 기본 구분의 기관별 상태 (이름·색 변경, 숨김) — 범례·구분명 표시에 반영
+  const [baseCategories, setBaseCategories] = useState<ScheduleCategorySetting[]>(DEFAULT_CATEGORY_SETTINGS);
   useEffect(() => {
     getScheduleLabels()
       .then((data) => {
@@ -262,6 +264,15 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         setCustomCategories((list as { id: string | number; name: string; color?: string }[]).map((l) => ({ id: String(l.id), name: l.name, color: l.color || 'var(--color-background-muted)' })));
       })
       .catch(() => setCustomCategories([]));
+    getScheduleCategorySettings()
+      .then((data) => {
+        if (Array.isArray(data?.categories) && data.categories.length > 0) {
+          setBaseCategories(data.categories as ScheduleCategorySetting[]);
+        }
+      })
+      .catch(() => {
+        // 설정을 못 불러와도 enum 기본값으로 계속 동작한다
+      });
   }, []);
 
   // 달력이 보고 있는 달 (월간일정 탭처럼 앞뒤로 넘길 수 있다)
@@ -661,6 +672,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   };
 
   const getCategoryLabel = (category?: string) =>
+    baseCategories.find((c) => c.category === category)?.name ||
     SCHEDULE_CATEGORIES.find((c) => c.value === category)?.label || category || '';
 
   // 수정/삭제 권한 (관리자 또는 작성자 본인)
@@ -1275,9 +1287,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           셀의 모바일용 도트(carev-dash-cal-dots)와 같은 클래스를 쓰면 이 규칙이
                           그쪽 미디어쿼리를 덮어 데스크탑에서 도트가 바 위에 겹쳐 되살아난다. */}
                       <div className="carev-dash-cal-legend">
-                        {SCHEDULE_CATEGORIES.map((cat) => (
-                          <span key={cat.value} title={cat.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                            <span className="carev-dash-cal-dot" style={{ background: getScheduleColor({ category: cat.value }) }} />
+                        {baseCategories.filter((c) => !c.hidden).map((cat) => (
+                          <span key={cat.category} title={cat.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                            <span className="carev-dash-cal-dot" style={{ background: cat.color }} />
                           </span>
                         ))}
                         {customCategories.map((c) => (

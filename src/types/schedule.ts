@@ -18,6 +18,33 @@ export const SCHEDULE_CATEGORIES: { value: ScheduleCategory; label: string }[] =
   { value: 'OTHER', label: '기타' },
 ];
 
+// 기본 구분의 기관별 설정 상태 — 서버가 enum 기본값과 머지해 내려준다.
+// 기본 구분은 기존 일정이 물고 있어 삭제 대신 숨김(hidden)만 지원한다.
+export interface ScheduleCategorySetting {
+  category: ScheduleCategory;
+  /** 최종 이름 (기관이 바꿨으면 그 이름, 아니면 기본 이름) */
+  name: string;
+  /** 최종 색 (기관이 바꿨으면 그 색, 아니면 기본색) */
+  color: string;
+  /** 새 일정 등록 폼에서 숨김. 기존 일정 표시는 유지된다 */
+  hidden: boolean;
+  defaultName: string;
+  defaultColor: string;
+  /** 이름·색·숨김 중 하나라도 기본에서 바뀌었는지 (되돌리기 버튼 노출용) */
+  customized: boolean;
+}
+
+/** 서버 설정을 못 불러왔을 때 쓰는 enum 기본값 그대로의 폴백 */
+export const DEFAULT_CATEGORY_SETTINGS: ScheduleCategorySetting[] = SCHEDULE_CATEGORIES.map((cat) => ({
+  category: cat.value,
+  name: cat.label,
+  color: { MEETING: '#3B82F6', EVENT: '#EC4899', TRAINING: '#8B5CF6', OTHER: '#14B8A6' }[cat.value],
+  hidden: false,
+  defaultName: cat.label,
+  defaultColor: { MEETING: '#3B82F6', EVENT: '#EC4899', TRAINING: '#8B5CF6', OTHER: '#14B8A6' }[cat.value],
+  customized: false,
+}));
+
 // 일정 참석자
 export interface ScheduleParticipant {
   id: string;
@@ -71,6 +98,8 @@ export interface Schedule {
   title: string;
   content?: string;
   category: ScheduleCategory;
+  /** 서버가 기관 설정(이름 변경)까지 반영해 내려주는 구분 표시명 */
+  categoryDisplayName?: string;
   color?: string;
   /** 커스텀 일정 구분(라벨). 서버가 응답에 실어준다 */
   labelId?: string | number | null;
@@ -190,8 +219,11 @@ export const SCHEDULE_CATEGORY_COLORS: Record<ScheduleCategory, string> = {
 export function getScheduleColor(schedule: {
   color?: string;
   category?: string;
+  label?: { color?: string } | null;
 }): string {
   if (schedule.color) return schedule.color;
+  // 서버가 label shim에 항상 채워주는 계산색 — 기관이 바꾼 기본 구분색까지 반영돼 있다
+  if (schedule.label?.color) return schedule.label.color;
   const category = (schedule.category || 'OTHER') as ScheduleCategory;
   return SCHEDULE_CATEGORY_COLORS[category] || SCHEDULE_CATEGORY_COLORS.OTHER;
 }

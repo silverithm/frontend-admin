@@ -705,6 +705,44 @@ export async function deleteScheduleLabel(id: string) {
         method: 'DELETE',
     });
 }
+
+// ================== 기본 일정 구분 설정 API ==================
+// 기본 구분(회의·행사·교육·기타)의 기관별 이름·색·숨김. 삭제는 없다(기존 일정이 물고 있음).
+
+// 기본 구분 설정 조회 — 응답: { categories: [{category,name,color,hidden,...}] }
+export async function getScheduleCategorySettings() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-categories?companyId=${companyId}`);
+}
+
+// 기본 구분 이름·색·숨김 변경 (null/undefined 필드는 유지)
+export async function updateScheduleCategorySetting(
+    category: string,
+    data: { name?: string; color?: string; hidden?: boolean },
+) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-categories/${category}?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 기본 구분 설정을 기본값으로 되돌리기
+export async function resetScheduleCategorySetting(category: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-categories/${category}?companyId=${companyId}`, {
+        method: 'DELETE',
+    });
+}
 // ================== 멤버 관련 API ==================
 
 // 멤버 로그인 (기존 - 호환성을 위해 유지)
