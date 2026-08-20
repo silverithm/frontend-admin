@@ -10,6 +10,7 @@ Disallow: /payment
 Disallow: /subscription
 Disallow: /subscription-check
 Disallow: /dev-sched-preview
+Disallow: /doc-view
 
 # Sitemap
 Sitemap: https://carev.kr/sitemap.xml

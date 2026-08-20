@@ -43,27 +43,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
+    // 아래 넷은 홈·가이드와 갱신 주기가 달라 공유 상수를 쓰면 날짜가 부풀려진다.
+    // 실제 마지막 변경일(git 기준)을 각자 들고, 페이지를 고칠 때 함께 올린다.
     {
       url: `${SITE_URL}/plaza`,
-      lastModified: CONTENT_UPDATED,
+      lastModified: '2026-08-04',
       changeFrequency: 'daily',
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/partners`,
-      lastModified: CONTENT_UPDATED,
+      lastModified: '2026-08-01',
       changeFrequency: 'monthly',
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/contact`,
-      lastModified: CONTENT_UPDATED,
+      lastModified: '2026-08-01',
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/signup`,
-      lastModified: CONTENT_UPDATED,
+      lastModified: '2026-08-01',
       changeFrequency: 'monthly',
       priority: 0.8,
     },

@@ -90,7 +90,8 @@ const nextConfig: NextConfig = {
       },
       // 로그인 이후에만 의미가 있는 화면은 검색결과에 노출되지 않도록 한다.
       // robots.txt의 Disallow는 크롤링만 막을 뿐, 외부 링크로 발견되면 URL이 색인될 수 있다.
-      ...['/admin', '/employee', '/payment', '/subscription', '/subscription-check', '/dev-sched-preview'].flatMap(
+      // /doc-view는 로그인 후 WebView 문서뷰어 — 파라미터 없이 열리면 빈 껍데기가 색인될 수 있다
+      ...['/admin', '/employee', '/payment', '/subscription', '/subscription-check', '/dev-sched-preview', '/doc-view'].flatMap(
         (path) => [
           {
             source: path,

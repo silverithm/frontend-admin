@@ -122,13 +122,15 @@ export default function RootLayout({
     alternateName: ['CareV'],
     legalName: '주식회사 실버리즘',
     url: 'https://carev.kr',
+    // 구글 로고 가이드는 정사각형을 권장한다 — 워드마크(2048×1000)를 넣으면
+    // 지식패널·검색 결과에서 잘리거나 무시된다. 워드마크는 image 필드가 계속 쓴다.
     logo: {
       '@type': 'ImageObject',
       '@id': 'https://carev.kr/#logo',
-      url: 'https://carev.kr/images/carev-logo-text.png',
-      contentUrl: 'https://carev.kr/images/carev-logo-text.png',
-      width: 2048,
-      height: 1000,
+      url: 'https://carev.kr/images/logo.png',
+      contentUrl: 'https://carev.kr/images/logo.png',
+      width: 1024,
+      height: 1024,
       caption: '케어브이 로고',
       representativeOfPage: true,
       inLanguage: 'ko-KR'
