@@ -368,10 +368,14 @@ export default function EmployeeCalendar() {
     return limits;
   };
 
-  // 날짜의 전체 최대 인원 가져오기
+  // 날짜의 전체 최대 인원 가져오기.
+  // 관리자가 '전체(all)' 한도를 직접 건 날짜는 그 값이 정답이다 —
+  // 직종별 합산에 all까지 섞으면 어느 쪽 한도도 아닌 숫자(3+4=7)가 나온다.
   const getMaxPeopleForDate = (date: Date): number | null => {
     const limits = getLimitsForDate(date);
     if (limits.length === 0) return null;
+    const allLimit = limits.find((l) => (l.role || '').toLowerCase() === 'all');
+    if (allLimit?.maxPeople != null) return allLimit.maxPeople;
     return limits.reduce((sum, l) => sum + (l.maxPeople || 0), 0);
   };
 

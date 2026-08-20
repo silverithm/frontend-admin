@@ -304,6 +304,13 @@ export function getMaxRoleLimitForDate(
     return limits[`${date}_${roleFilter}`]?.maxPeople ?? 3;
   }
 
+  // 관리자가 '전체(all)' 한도를 직접 건 날짜는 그 값이 정답 —
+  // 서버 검증(validateDailyVacationLimit)이 실제로 쓰는 기준과 표시를 맞춘다
+  const allLimit = limits[`${date}_${ALL_ROLE_FILTER}`]?.maxPeople;
+  if (typeof allLimit === "number") {
+    return allLimit;
+  }
+
   const dailyLimits = roleNames
     .map((roleName) => limits[`${date}_${roleName}`]?.maxPeople)
     .filter((value): value is number => typeof value === "number");
