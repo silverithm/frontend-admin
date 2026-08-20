@@ -1606,7 +1606,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                             color: picked?.color || prev.color,
                           }));
                         } else {
-                          setFormData(prev => ({ ...prev, category: v as ScheduleCategory, labelId: '' }));
+                          // 커스텀 구분에서 기본 구분으로 돌아오면 데려왔던 구분색도 내려놓는다
+                          setFormData(prev => ({
+                            ...prev,
+                            category: v as ScheduleCategory,
+                            labelId: '',
+                            color: prev.labelId ? '' : prev.color,
+                          }));
                         }
                       }}
                     />
@@ -1623,7 +1629,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   )}
                 </HStack>
 
-                {/* 색상 — 직접 고르지 않으면 카테고리 기본색으로 표시된다 */}
+                {/* 색상 — 기본 구분일 때만. 커스텀 구분은 자기 색이 곧 일정 색이라
+                    따로 고를 게 없다 (다른 색을 원하면 구분 관리에서 구분색을 바꾼다). */}
+                {!formData.labelId && (
                 <VStack gap={1.5}>
                   <Text type="label" weight="medium">색상</Text>
                   {/* 한 줄을 꽉 채우는 균등 그리드 — 칸 수가 늘거나 줄어도 줄 끝이 맞는다 */}
@@ -1667,6 +1675,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     )}
                   </div>
                 </VStack>
+                )}
 
                 {/* 장소 */}
                 <TextInput
