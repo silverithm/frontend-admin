@@ -657,6 +657,54 @@ export async function saveVacationLimits(limits: Array<{
     return result;
 }
 
+
+// ================== 일정 구분(커스텀 카테고리) API ==================
+// 기관이 직접 만드는 일정 구분(이름+색). 서버·구버전 앱과의 호환을 위해 라벨이라는 이름을 유지한다.
+
+// 라벨 목록 조회
+export async function getScheduleLabels() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-labels?companyId=${companyId}`);
+}
+
+// 라벨 생성
+export async function createScheduleLabel(data: { name: string; color: string }) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/api/v1/schedule-labels?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// 라벨 수정
+export async function updateScheduleLabel(id: string, data: { name?: string; color?: string }) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-labels/${id}?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+// 라벨 삭제
+export async function deleteScheduleLabel(id: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/schedule-labels/${id}?companyId=${companyId}`, {
+        method: 'DELETE',
+    });
+}
 // ================== 멤버 관련 API ==================
 
 // 멤버 로그인 (기존 - 호환성을 위해 유지)
@@ -2051,6 +2099,7 @@ export async function createSchedule(data: {
     title: string;
     content?: string;
     category: string;
+    labelId?: string | number | null;
     color?: string;
     location?: string;
     startDate: string;
@@ -2084,6 +2133,7 @@ export async function updateSchedule(id: string, data: {
     title?: string;
     content?: string;
     category?: string;
+    labelId?: string | number | null;
     color?: string;
     location?: string;
     startDate?: string;

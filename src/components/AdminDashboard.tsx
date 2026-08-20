@@ -59,8 +59,7 @@ import {
   getScheduleTasks,
   createScheduleTask,
   updateScheduleTask,
-  deleteScheduleTask,
-} from '@/lib/apiService';
+  deleteScheduleTask, getScheduleLabels } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES } from '@/types/schedule';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { buildWeekBarLayouts, WEEK_GRID_COLUMNS } from '@/lib/scheduleBars';
@@ -161,6 +160,8 @@ interface ScheduleItem {
   id: string;
   title: string;
   category?: string;
+  /** 커스텀 일정 구분(라벨) — 있으면 카테고리 대신 이 이름을 보여준다 */
+  label?: { id?: string | number; name?: string; color?: string } | null;
   startDate?: string;
   endDate?: string;
   startTime?: string;
@@ -252,6 +253,17 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
+  // 기관 커스텀 일정 구분 — 범례에 색 점으로 함께 보여준다
+  const [customCategories, setCustomCategories] = useState<{ id: string; name: string; color: string }[]>([]);
+  useEffect(() => {
+    getScheduleLabels()
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data?.labels || data?.content || data?.data || []);
+        setCustomCategories((list as { id: string | number; name: string; color?: string }[]).map((l) => ({ id: String(l.id), name: l.name, color: l.color || 'var(--color-background-muted)' })));
+      })
+      .catch(() => setCustomCategories([]));
+  }, []);
+
   // 달력이 보고 있는 달 (월간일정 탭처럼 앞뒤로 넘길 수 있다)
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => startOfMonth(new Date()));
   const [isMonthLoading, setIsMonthLoading] = useState(false);
@@ -1268,6 +1280,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             <span className="carev-dash-cal-dot" style={{ background: getScheduleColor({ category: cat.value }) }} />
                           </span>
                         ))}
+                        {customCategories.map((c) => (
+                          <span key={`custom-${c.id}`} title={c.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                            <span className="carev-dash-cal-dot" style={{ background: c.color }} />
+                          </span>
+                        ))}
                       </div>
                       <div className="carev-dash-cal-head-fill" />
                       <SegmentedControl value={pane} onChange={(v) => changePane(v as CalendarPane)} label="달력 표시 내용" size="sm">
@@ -1560,7 +1577,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           <Text type="supporting" weight="semibold" color="accent" hasTabularNumbers>
                             {schedule.isAllDay ? '종일' : (schedule.startTime || '')}
                           </Text>
-                          {schedule.category && <Badge variant="neutral" label={getCategoryLabel(schedule.category)} />}
+                          {(schedule.label?.name || schedule.category) && <Badge variant="neutral" label={schedule.label?.name || getCategoryLabel(schedule.category)} />}
                           {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
                           {hasTasks(schedule) && !schedule.isCompleted && (
                             <Badge
@@ -1633,7 +1650,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             header={
               <DialogHeader
                 title={selectedSchedule.title}
-                subtitle={selectedSchedule.category ? getCategoryLabel(selectedSchedule.category) : undefined}
+                subtitle={selectedSchedule.label?.name || (selectedSchedule.category ? getCategoryLabel(selectedSchedule.category) : undefined)}
                 onOpenChange={(open) => { if (!open) setSelectedSchedule(null); }}
               />
             }

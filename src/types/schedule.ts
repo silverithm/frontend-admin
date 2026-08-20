@@ -3,6 +3,14 @@
 // 일정 카테고리
 export type ScheduleCategory = 'MEETING' | 'EVENT' | 'TRAINING' | 'OTHER';
 
+// 기관 커스텀 일정 구분 — 기본 카테고리 외에 기관이 만드는 구분 (이름+색).
+// 서버·구버전 앱 호환을 위해 저장소 이름은 '라벨'을 유지한다.
+export interface ScheduleLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export const SCHEDULE_CATEGORIES: { value: ScheduleCategory; label: string }[] = [
   { value: 'MEETING', label: '회의' },
   { value: 'EVENT', label: '행사' },
@@ -64,6 +72,9 @@ export interface Schedule {
   content?: string;
   category: ScheduleCategory;
   color?: string;
+  /** 커스텀 일정 구분(라벨). 서버가 응답에 실어준다 */
+  labelId?: string | number | null;
+  label?: { id: string | number; name: string; color?: string } | null;
   location?: string;
   startDate: string;
   startTime?: string;
@@ -106,6 +117,9 @@ export interface CreateScheduleRequest {
   content?: string;
   category: ScheduleCategory;
   color?: string;
+  /** 커스텀 일정 구분(라벨). 서버가 응답에 실어준다 */
+  labelId?: string | number | null;
+  label?: { id: string | number; name: string; color?: string } | null;
   location?: string;
   startDate: string;
   startTime?: string;

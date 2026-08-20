@@ -11,7 +11,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
 import MemberItem from '@/components/MemberItem';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -25,8 +25,8 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask } from '@/lib/apiService';
-import { Schedule, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel } from '@/lib/apiService';
+import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import {
@@ -146,6 +146,8 @@ interface ScheduleFormData {
   participantIds: string[];
   /** 담당자 member id ('' = 미지정) */
   managerId: string;
+  /** 커스텀 일정 구분(라벨) id. '' = 기본 카테고리 사용 */
+  labelId: string;
 }
 
 export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, onNotification }: ScheduleCalendarProps) {
@@ -190,7 +192,34 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     sendNotification: false,
     participantIds: [],
     managerId: '',
+    labelId: '',
   });
+
+  // 기관 커스텀 일정 구분 (이름+색). 고르면 색이 자동으로 따라온다.
+  const [customCategories, setCustomCategories] = useState<ScheduleLabel[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [categoryForm, setCategoryForm] = useState<{ id: string; name: string; color: string }>({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
+  const [isCategorySaving, setIsCategorySaving] = useState(false);
+
+  const loadCustomCategories = useCallback(async () => {
+    try {
+      const data = await getScheduleLabels();
+      const list = Array.isArray(data) ? data : (data?.labels || data?.content || data?.data || []);
+      setCustomCategories(
+        (list as { id: string | number; name: string; color?: string }[]).map((l) => ({
+          id: String(l.id),
+          name: l.name,
+          color: l.color || SCHEDULE_COLORS[0].value,
+        })),
+      );
+    } catch (error) {
+      console.error('일정 구분 목록 로드 실패:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCustomCategories();
+  }, [loadCustomCategories]);
 
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
@@ -651,8 +680,49 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       sendNotification: false,
       participantIds: [],
       managerId: '',
+      labelId: '',
     });
     setShowCreateModal(true);
+  };
+
+  // ── 일정 구분(커스텀 카테고리) 관리 ──
+  const handleSaveCategory = async () => {
+    const name = categoryForm.name.trim();
+    if (!name) {
+      showAlert({ type: 'error', title: '입력 오류', message: '구분 이름을 입력해주세요.' });
+      return;
+    }
+    setIsCategorySaving(true);
+    try {
+      if (categoryForm.id) {
+        await updateScheduleLabel(categoryForm.id, { name, color: categoryForm.color });
+      } else {
+        await createScheduleLabel({ name, color: categoryForm.color });
+      }
+      setCategoryForm({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
+      await loadCustomCategories();
+    } catch (error) {
+      console.error('일정 구분 저장 실패:', error);
+      showAlert({ type: 'error', title: '저장 실패', message: '일정 구분 저장에 실패했습니다.' });
+    } finally {
+      setIsCategorySaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    setIsCategorySaving(true);
+    try {
+      await deleteScheduleLabel(id);
+      // 이미 등록된 일정의 색은 스냅숏이라 그대로 남는다 — 구분만 목록에서 사라진다
+      if (categoryForm.id === id) setCategoryForm({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
+      if (formData.labelId === id) setFormData(prev => ({ ...prev, labelId: '' }));
+      await loadCustomCategories();
+    } catch (error) {
+      console.error('일정 구분 삭제 실패:', error);
+      showAlert({ type: 'error', title: '삭제 실패', message: '일정 구분 삭제에 실패했습니다.' });
+    } finally {
+      setIsCategorySaving(false);
+    }
   };
 
   // 일정 생성 제출
@@ -667,6 +737,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       await createSchedule({
         title: formData.title,
         category: formData.category,
+        labelId: formData.labelId ? formData.labelId : null,
         color: formData.color,
         location: formData.location || undefined,
         startDate: formData.startDate,
@@ -709,6 +780,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       sendNotification: target.sendNotification,
       participantIds: target.participants?.map(p => p.userId) || [],
       managerId: target.managerId ? String(target.managerId) : '',
+      labelId: target.label?.id != null ? String(target.label.id) : (target.labelId != null ? String(target.labelId) : ''),
     });
     setShowDetailModal(false);
     setShowCreateModal(true);
@@ -727,6 +799,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       await updateSchedule(selectedSchedule.id, {
         title: formData.title,
         category: formData.category,
+        labelId: formData.labelId ? formData.labelId : null,
         color: formData.color,
         location: formData.location || undefined,
         startDate: formData.startDate,
@@ -1105,6 +1178,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         <span className="carev-dash-cal-dot" style={{ background: SCHEDULE_CATEGORY_COLORS[cat.value] }} />
                       </span>
                     ))}
+                    {customCategories.map((c) => (
+                      <span key={`custom-${c.id}`} title={c.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                        <span className="carev-dash-cal-dot" style={{ background: c.color }} />
+                      </span>
+                    ))}
                   </div>
                 )}
                 <div className="carev-dash-cal-head-fill" />
@@ -1404,7 +1482,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                 </div>
                                 <div style={{ marginTop: 'var(--spacing-1)' }}>
                                   <HStack gap={1.5} vAlign="center" wrap="wrap">
-                                    <Badge variant="teal" label={getCategoryText(schedule.category)} />
+                                    <Badge variant="teal" label={schedule.label?.name || getCategoryText(schedule.category)} />
                                     {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
                                     {(schedule.taskTotal || 0) > 0 && !schedule.isCompleted && (
                                       <Badge
@@ -1504,14 +1582,46 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   placeholder="일정 제목을 입력하세요"
                 />
 
-                {/* 일정 구분 */}
-                <Selector
-                  label="일정 구분"
-                  width="100%"
-                  value={formData.category}
-                  options={SCHEDULE_CATEGORIES.map((cat) => ({ value: cat.value, label: cat.label }))}
-                  onChange={(value) => setFormData(prev => ({ ...prev, category: value as ScheduleCategory }))}
-                />
+                {/* 일정 구분 — 기본 구분 + 기관이 직접 만든 구분(색 자동 적용) */}
+                <HStack gap={2} vAlign="end">
+                  <StackItem size="fill">
+                    <Selector
+                      label="일정 구분"
+                      width="100%"
+                      value={formData.labelId ? `label:${formData.labelId}` : formData.category}
+                      options={[
+                        ...SCHEDULE_CATEGORIES.map((cat) => ({ value: cat.value, label: cat.label })),
+                        ...customCategories.map((c) => ({ value: `label:${c.id}`, label: c.name })),
+                      ]}
+                      onChange={(value) => {
+                        const v = String(value);
+                        if (v.startsWith('label:')) {
+                          const id = v.slice('label:'.length);
+                          const picked = customCategories.find((c) => c.id === id);
+                          // 커스텀 구분은 자기 색을 데려온다 — 고르는 즉시 색이 세팅된다
+                          setFormData(prev => ({
+                            ...prev,
+                            labelId: id,
+                            category: 'OTHER',
+                            color: picked?.color || prev.color,
+                          }));
+                        } else {
+                          setFormData(prev => ({ ...prev, category: v as ScheduleCategory, labelId: '' }));
+                        }
+                      }}
+                    />
+                  </StackItem>
+                  {isAdmin && (
+                    <Button
+                      label="구분 관리"
+                      variant="secondary"
+                      onClick={() => {
+                        setCategoryForm({ id: '', name: '', color: SCHEDULE_COLORS[0].value });
+                        setShowCategoryManager(true);
+                      }}
+                    />
+                  )}
+                </HStack>
 
                 {/* 색상 — 직접 고르지 않으면 카테고리 기본색으로 표시된다 */}
                 <VStack gap={1.5}>
@@ -1747,7 +1857,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             header={
               <DialogHeader
                 title={selectedSchedule.title}
-                subtitle={getCategoryText(selectedSchedule.category)}
+                subtitle={selectedSchedule.label?.name || getCategoryText(selectedSchedule.category)}
                 onOpenChange={(open) => { if (!open) { setShowDetailModal(false); setSelectedSchedule(null); } }}
               />
             }
@@ -2148,6 +2258,72 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   isDisabled={isSubmitting}
                   onClick={handleDeleteSchedule}
                 />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
+
+      {/* 일정 구분 관리 — 기관이 직접 구분(이름+색)을 만들고 고친다 */}
+      <Dialog isOpen={showCategoryManager} onOpenChange={(o) => { if (!o) setShowCategoryManager(false); }} purpose="form" width={480}>
+        <Layout
+          header={<DialogHeader title="일정 구분 관리" subtitle="구분을 고르면 일정에 그 색이 자동으로 적용됩니다" onOpenChange={(o) => { if (!o) setShowCategoryManager(false); }} />}
+          content={
+            <LayoutContent>
+              <VStack gap={4}>
+                {customCategories.length > 0 ? (
+                  <VStack gap={0}>
+                    {customCategories.map((c) => (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--color-border)' }}>
+                        <span style={{ width: 12, height: 12, borderRadius: 'var(--radius-full)', background: c.color, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text type="body" weight={categoryForm.id === c.id ? 'semibold' : 'normal'} maxLines={1}>{c.name}</Text>
+                        </div>
+                        <Button label="수정" variant="ghost" size="sm" onClick={() => setCategoryForm({ id: c.id, name: c.name, color: c.color })} />
+                        <Button label="삭제" variant="ghost" size="sm" isDisabled={isCategorySaving} onClick={() => handleDeleteCategory(c.id)} />
+                      </div>
+                    ))}
+                  </VStack>
+                ) : (
+                  <Text type="supporting" color="secondary">아직 만든 구분이 없습니다. 아래에서 추가해보세요 — 예: 운영, 인사, 회계, 사업</Text>
+                )}
+
+                <VStack gap={2}>
+                  <TextInput
+                    label={categoryForm.id ? '구분 이름 수정' : '새 구분 이름'}
+                    value={categoryForm.name}
+                    onChange={(value) => setCategoryForm(prev => ({ ...prev, name: value }))}
+                    placeholder="예: 운영, 인사, 회계, 사업"
+                  />
+                  <VStack gap={1.5}>
+                    <Text type="label" weight="medium">색상</Text>
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SCHEDULE_COLORS.length}, minmax(0, 1fr))`, gap: 'var(--spacing-2)' }}>
+                      {SCHEDULE_COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          onClick={() => setCategoryForm(prev => ({ ...prev, color: color.value }))}
+                          style={colorSwatchStyle(categoryForm.color === color.value, color.value)}
+                          title={color.label}
+                          aria-label={color.label}
+                        />
+                      ))}
+                    </div>
+                  </VStack>
+                </VStack>
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="between" vAlign="center">
+                {categoryForm.id ? (
+                  <Button label="새로 만들기" variant="ghost" onClick={() => setCategoryForm({ id: '', name: '', color: SCHEDULE_COLORS[0].value })} />
+                ) : <span />}
+                <HStack gap={2}>
+                  <Button label="닫기" variant="secondary" onClick={() => setShowCategoryManager(false)} />
+                  <Button label={categoryForm.id ? '수정 저장' : '추가'} variant="primary" isLoading={isCategorySaving} isDisabled={isCategorySaving} onClick={handleSaveCategory} />
+                </HStack>
               </HStack>
             </LayoutFooter>
           }
