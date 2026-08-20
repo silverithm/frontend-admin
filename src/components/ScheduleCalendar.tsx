@@ -2356,7 +2356,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         <span style={{ width: 12, height: 12, borderRadius: 'var(--radius-full)', background: c.color, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                           <Text type="body" weight={categoryForm.id === `base:${c.category}` ? 'semibold' : 'normal'} maxLines={1}>{c.name}</Text>
-                          {c.hidden && <Badge variant="muted" label="숨김" />}
+                          {c.hidden && <Badge variant="neutral" label="숨김" />}
                         </div>
                         {c.customized && (
                           <Button label="되돌리기" variant="ghost" size="sm" isDisabled={isCategorySaving} onClick={() => handleResetBaseCategory(c)} />
