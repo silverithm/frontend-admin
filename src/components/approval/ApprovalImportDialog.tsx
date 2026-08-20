@@ -210,15 +210,9 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
                     description="이관된 문서는 결재를 다시 진행하지 않습니다. 목록에서 검색·열람만 됩니다."
                   />
 
-                  <Card variant="muted" padding={3}>
-                    <HStack gap={3} vAlign="center" hAlign="between" wrap="wrap">
-                      <VStack gap={0.5}>
-                        <Text weight="medium">양식을 받아 채우는 방법이 가장 확실합니다</Text>
-                        <Text type="supporting" color="secondary">
-                          이 양식을 기관에 전달해 채워 오게 하세요. 쓰던 시스템에서 내보낸 파일을
-                          그대로 올려도 되지만, 그때는 열 이름을 못 알아볼 수 있습니다.
-                        </Text>
-                      </VStack>
+                  <VStack gap={2}>
+                    <HStack gap={2} vAlign="center" hAlign="between">
+                      <Text type="label" weight="medium">1. 색인 파일 (엑셀)</Text>
                       <Button
                         label="양식 내려받기"
                         variant="secondary"
@@ -234,13 +228,8 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
                         }}
                       />
                     </HStack>
-                  </Card>
-
-                  <VStack gap={2}>
-                    <Text type="label" weight="medium">1. 색인 파일 (엑셀)</Text>
                     <Text type="supporting" color="secondary">
-                      내려받은 양식을 채워서 올리시면 됩니다. 다른 파일이어도 문서번호·제목·기안자·기안일·
-                      결재상태·결재자·결재일·첨부파일명이 열로 있으면 최대한 알아서 맞춰봅니다.
+                      양식을 채워서 올리세요. 쓰던 시스템에서 내보낸 파일도 열 이름이 맞으면 그대로 올릴 수 있습니다.
                     </Text>
                     <input
                       ref={indexInputRef}
