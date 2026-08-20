@@ -110,7 +110,15 @@ export default function ApprovalImportDialog({ isOpen, onClose, onImported }: Ap
         const batch = targets.slice(i, i + UPLOAD_BATCH);
         setProgress(`문서 파일 올리는 중… (${Math.min(i + batch.length, targets.length)}/${targets.length})`);
         const results = await Promise.all(
-          batch.map((file) => uploadFileToServer(file, { category: 'approvals' })),
+          batch.map(async (file) => {
+            try {
+              return await uploadFileToServer(file, { category: 'approvals' });
+            } catch (error) {
+              // 수백 개 중 하나가 걸려도 어느 파일인지 알아야 고칠 수 있다
+              const reason = error instanceof Error ? error.message : '업로드 실패';
+              throw new Error(`"${file.name}" 업로드에 실패했습니다: ${reason}`);
+            }
+          }),
         );
         results.forEach((result, index) => {
           uploaded[batch[index].name] = { filePath: result.filePath, fileSize: result.fileSize };
