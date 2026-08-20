@@ -79,6 +79,7 @@ export default function EmployeeCalendar() {
   const [vacationLimits, setVacationLimits] = useState<Record<string, VacationLimit>>({});
   // 기관이 직접 지정한 월별 휴무 입력 마감일 — { "2026-08": "2026-08-16" }
   const [deadlineDates, setDeadlineDates] = useState<Record<string, string>>({});
+  const [deadlineSetting, setDeadlineSetting] = useState<{ enabled: boolean; deadlineDay: number }>({ enabled: false, deadlineDay: 0 });
   // 이 달에 걸친 중요 행사 — 이 날짜는 휴무를 피하도록 안내한다
   const [events, setEvents] = useState<VacationEvent[]>([]);
 
@@ -121,12 +122,37 @@ export default function EmployeeCalendar() {
   // 기관이 "다음 달만 신청" 제한을 켰는지 확인한다 (조회 실패 시 제한 없음으로 본다)
   useEffect(() => {
     getVacationDeadlineSetting()
-      .then((data) => setNextMonthOnly(Boolean(data?.nextMonthOnly)))
+      .then((data) => {
+        setNextMonthOnly(Boolean(data?.nextMonthOnly));
+        setDeadlineSetting({
+          enabled: Boolean(data?.enabled),
+          deadlineDay: Number(data?.deadlineDay) || 0,
+        });
+      })
       .catch(() => setNextMonthOnly(false));
     getVacationDeadlineDates()
       .then(setDeadlineDates)
       .catch(() => setDeadlineDates({}));
   }, []);
+
+  // 보고 있는 달 휴무의 '신청 마감일' — 마감일은 그 전 달에 위치한다
+  // (예: 9월 휴무 마감 = 8월 16일). 월별 지정이 있으면 그 날짜, 없으면 매월 고정일.
+  const viewMonthDeadline = useMemo(() => {
+    const prev = subMonths(startOfMonth(currentDate), 1);
+    const prevKey = format(prev, 'yyyy-MM');
+    const override = deadlineDates[prevKey];
+    if (override) return new Date(`${override}T00:00:00`);
+    if (!deadlineSetting.enabled || !deadlineSetting.deadlineDay) return null;
+    const lastDay = endOfMonth(prev).getDate();
+    return new Date(prev.getFullYear(), prev.getMonth(), Math.min(deadlineSetting.deadlineDay, lastDay));
+  }, [currentDate, deadlineDates, deadlineSetting]);
+
+  const viewMonthDeadlinePassed = useMemo(() => {
+    if (!viewMonthDeadline) return false;
+    const end = new Date(viewMonthDeadline);
+    end.setHours(23, 59, 59, 999);
+    return new Date() > end;
+  }, [viewMonthDeadline]);
 
   // 중요 행사 — 달력 표시 + 신청 시 안내.
   // 다음 달 휴무를 신청하는 흐름이 많아 보고 있는 달 다음 달까지 함께 받아둔다.
@@ -360,6 +386,20 @@ export default function EmployeeCalendar() {
             container="section"
             title={`${format(nextMonthStart, 'yyyy년 M월', { locale: ko })} 휴무만 신청하실 수 있습니다`}
             description="기관 설정에 따라 바로 다음 달 휴무만 받고 있습니다. 다른 달 휴무가 필요하시면 관리자에게 말씀해주세요."
+          />
+        )}
+
+        {/* 보고 있는 달 휴무의 신청 마감 안내 — 마감일은 그 전 달에 있다 (9월 휴무 마감 = 8월 16일) */}
+        {viewMonthDeadline && (
+          <Banner
+            status={viewMonthDeadlinePassed ? 'warning' : 'info'}
+            container="section"
+            title={viewMonthDeadlinePassed
+              ? `${format(currentDate, 'M월', { locale: ko })} 휴무 신청이 ${format(viewMonthDeadline, 'M월 d일', { locale: ko })}에 마감됐습니다`
+              : `${format(currentDate, 'M월', { locale: ko })} 휴무 신청 마감일: ${format(viewMonthDeadline, 'M월 d일', { locale: ko })}`}
+            description={viewMonthDeadlinePassed
+              ? '마감을 놓친 휴무는 관리자에게 문의해주세요.'
+              : '마감일까지 근무표에 반영할 휴무를 신청해주세요.'}
           />
         )}
 

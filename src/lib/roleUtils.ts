@@ -8,6 +8,7 @@ const LEGACY_ROLE_LABELS: Record<string, string> = {
   office: "사무직",
   admin: "관리자",
   employee: "직원",
+  all: "전체",
 };
 
 /**
@@ -72,6 +73,10 @@ function shouldIgnoreStoredRole(role: string) {
 function addRoleName(roleNames: string[], seen: Set<string>, role: string) {
   const trimmedRole = normalizeRoleName(role);
   if (!trimmedRole || seen.has(trimmedRole)) {
+    return;
+  }
+  // '전체(all)' 한도 행은 직종이 아니라 날짜 총인원 제한 — 역할 목록에 섞이면 안 된다
+  if (trimmedRole.toLowerCase() === ALL_ROLE_FILTER) {
     return;
   }
 

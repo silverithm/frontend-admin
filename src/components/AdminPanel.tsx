@@ -46,7 +46,8 @@ import {
 
 interface LimitRow extends Record<string, unknown> {
   date: string;
-  maxPeople: number;
+  /** '전체' 탭에서 아직 저장 안 된 날짜는 비어 있다 (입력해야 저장 대상이 됨) */
+  maxPeople?: number;
   role: string;
 }
 
@@ -186,6 +187,23 @@ const AdminPanel = ({
           });
         });
 
+        // '전체(all)' 한도는 직종과 무관한 그 날짜 총인원 제한 —
+        // 서버에 저장된 날짜만 담는다. 직종처럼 매일 기본 3을 만들어 저장하면
+        // 모든 기관에 전체 3명 제한이 생겨버린다.
+        const matchedAll = existingLimits.find(
+          (limit: VacationLimit) =>
+            limit.date === dateStr && limit.role === ALL_ROLE_FILTER
+        );
+        if (matchedAll) {
+          allLimits.push({
+            id: matchedAll.id,
+            date: dateStr,
+            maxPeople: matchedAll.maxPeople,
+            createdAt: matchedAll.createdAt,
+            role: ALL_ROLE_FILTER,
+          });
+        }
+
         currentDay = addDays(currentDay, 1);
       }
       setLimits(allLimits);
@@ -201,7 +219,13 @@ const AdminPanel = ({
     value: number
   ) => {
     const idx = limits.findIndex((l) => l.date === date && l.role === role);
-    if (idx === -1) return;
+    if (idx === -1) {
+      // '전체(all)' 한도는 저장된 날짜만 목록에 있다 — 처음 입력하는 날짜는 새로 추가
+      if (role === ALL_ROLE_FILTER) {
+        setLimits((prev) => [...prev, { date, role, maxPeople: value }]);
+      }
+      return;
+    }
     const newLimits = [...limits];
     newLimits[idx] = { ...newLimits[idx], maxPeople: value };
     setLimits(newLimits);
@@ -245,13 +269,34 @@ const AdminPanel = ({
 
   const isBusy = isSaving || isSubmitting;
 
-  const rows: LimitRow[] = limits
-    .filter((l) => l.role === activeFilter)
-    .map((limit) => ({
-      date: limit.date,
-      maxPeople: limit.maxPeople,
-      role: limit.role,
-    }));
+  // '전체' 탭은 저장된 all 행이 없는 날짜도 빈 입력으로 보여준다 (입력해야 저장 대상이 됨)
+  const rows: LimitRow[] = activeFilter === ALL_ROLE_FILTER
+    ? (() => {
+        const monthStart = startOfMonth(panelDate);
+        const monthEnd = endOfMonth(panelDate);
+        const result: LimitRow[] = [];
+        let day = monthStart;
+        while (day <= monthEnd) {
+          const dateStr = format(day, "yyyy-MM-dd");
+          const existing = limits.find(
+            (l) => l.date === dateStr && l.role === ALL_ROLE_FILTER
+          );
+          result.push({
+            date: dateStr,
+            maxPeople: existing?.maxPeople,
+            role: ALL_ROLE_FILTER,
+          });
+          day = addDays(day, 1);
+        }
+        return result;
+      })()
+    : limits
+        .filter((l) => l.role === activeFilter)
+        .map((limit) => ({
+          date: limit.date,
+          maxPeople: limit.maxPeople,
+          role: limit.role,
+        }));
 
   return (
     // Dialog가 backdrop·ESC·포커스 트랩을 처리한다. 호출부에서 오버레이를 만들지 않는다.
@@ -335,7 +380,8 @@ const AdminPanel = ({
                   <Text>일까지 다음 달 휴무를 입력받습니다</Text>
                 </HStack>
 
-                {/* 셋째 주 일요일처럼 달마다 날짜가 달라지는 기관을 위해 이번 달만 따로 지정한다 */}
+                {/* 셋째 주 일요일처럼 달마다 날짜가 달라지는 기관을 위해 이번 달만 따로 지정한다.
+                    이 달에 지정한 마감일은 '다음 달' 휴무 신청분을 관장한다 — 문구에 명시한다. */}
                 <HStack gap={3} vAlign="center" wrap="wrap">
                   <Text>{format(panelDate, "yyyy년 M월", { locale: ko })}은</Text>
                   <div style={{ width: 190 }}>
@@ -356,6 +402,9 @@ const AdminPanel = ({
                       isDisabled={isBusy}
                     />
                   </div>
+                  <Text>
+                    까지 {format(addMonths(panelDate, 1), "M월", { locale: ko })} 휴무를 받습니다
+                  </Text>
                   {panelMonthDeadline ? (
                     <Button
                       label="지정 해제"
@@ -427,49 +476,56 @@ const AdminPanel = ({
               title="설정할 역할이 없습니다."
               description="회원관리의 역할관리에서 역할을 먼저 등록해주세요."
             />
-          ) : activeFilter === ALL_ROLE_FILTER ? (
-            <EmptyState
-              title="역할을 선택하면 해당 역할별 휴가 제한을 설정할 수 있습니다."
-              description="회원관리의 역할관리에서 등록한 역할이 여기서 함께 표시됩니다."
-            />
           ) : (
-            <Table
-              data={rows}
-              idKey={(item) => `${item.date}-${item.role}`}
-              isStriped
-              hasHover
-              columns={[
-                {
-                  key: "date",
-                  header: "날짜",
-                  renderCell: (row) => (
-                    <Text weight="medium">
-                      {format(new Date(row.date), "yyyy-MM-dd (EEE)", {
-                        locale: ko,
-                      })}
-                    </Text>
-                  ),
-                },
-                {
-                  key: "maxPeople",
-                  header: `${getRoleDisplayName(activeFilter)} 최대 인원`,
-                  renderCell: (row) => (
-                    <NumberInput
-                      label={`${getRoleDisplayName(activeFilter)} 인원`}
-                      isLabelHidden
-                      value={row.maxPeople}
-                      min={0}
-                      isIntegerOnly
-                      placeholder={`${getRoleDisplayName(activeFilter)} 인원`}
-                      onChange={(value) =>
-                        handleUpdateLimit(row.date, row.role, value || 0)
-                      }
-                      isDisabled={isBusy}
-                    />
-                  ),
-                },
-              ]}
-            />
+            <VStack gap={2}>
+              {activeFilter === ALL_ROLE_FILTER && (
+                <Text type="supporting" color="secondary">
+                  직종과 무관하게 그 날짜에 쉴 수 있는 총인원을 제한합니다. 직종별 제한과
+                  함께 적용되며, 비워둔 날짜는 전체 제한이 없습니다.
+                </Text>
+              )}
+              <Table
+                data={rows}
+                idKey={(item) => `${item.date}-${item.role}`}
+                isStriped
+                hasHover
+                columns={[
+                  {
+                    key: "date",
+                    header: "날짜",
+                    renderCell: (row) => (
+                      <Text weight="medium">
+                        {format(new Date(row.date), "yyyy-MM-dd (EEE)", {
+                          locale: ko,
+                        })}
+                      </Text>
+                    ),
+                  },
+                  {
+                    key: "maxPeople",
+                    header: activeFilter === ALL_ROLE_FILTER
+                      ? "전체 최대 인원 (직종 무관)"
+                      : `${getRoleDisplayName(activeFilter)} 최대 인원`,
+                    renderCell: (row) => (
+                      <NumberInput
+                        label={`${getRoleDisplayName(activeFilter)} 인원`}
+                        isLabelHidden
+                        value={row.maxPeople}
+                        min={0}
+                        isIntegerOnly
+                        placeholder={activeFilter === ALL_ROLE_FILTER
+                          ? "제한 없음"
+                          : `${getRoleDisplayName(activeFilter)} 인원`}
+                        onChange={(value) =>
+                          handleUpdateLimit(row.date, row.role, value || 0)
+                        }
+                        isDisabled={isBusy}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </VStack>
           )}
         </div>
 
