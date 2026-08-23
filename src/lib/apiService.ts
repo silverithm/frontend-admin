@@ -638,9 +638,10 @@ export async function deleteVacationEvent(eventId: number) {
 }
 
 // 휴가 제한 저장 (companyId 추가)
+// maxPeople가 null인 항목은 "이 한도를 삭제해 달라"는 표식이다 ('전체' 탭에서 지운 날짜)
 export async function saveVacationLimits(limits: Array<{
     date: string;
-    maxPeople: number;
+    maxPeople: number | null;
     role: string;
 }>) {
     const companyId = getCompanyId();

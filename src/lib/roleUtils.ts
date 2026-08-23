@@ -301,7 +301,15 @@ export function getMaxRoleLimitForDate(
   roleNames: string[]
 ) {
   if (roleFilter !== ALL_ROLE_FILTER) {
-    return limits[`${date}_${roleFilter}`]?.maxPeople ?? 3;
+    // 서버(VacationService.validateDailyVacationLimit)는 '직종별 한도'와 '전체(all) 한도'를
+    // 서로 독립된 두 제약으로 모두 검사한다 — 화면도 둘 중 더 빡빡한(작은) 쪽을 보여줘야
+    // "여유 있다"고 나왔다가 실제 신청 시 409로 거부되는 불일치가 없다.
+    const roleLimit = limits[`${date}_${roleFilter}`]?.maxPeople;
+    const allLimit = limits[`${date}_${ALL_ROLE_FILTER}`]?.maxPeople;
+    const candidates = [roleLimit, allLimit].filter(
+      (value): value is number => typeof value === "number"
+    );
+    return candidates.length > 0 ? Math.min(...candidates) : 3;
   }
 
   // 관리자가 '전체(all)' 한도를 직접 건 날짜는 그 값이 정답 —

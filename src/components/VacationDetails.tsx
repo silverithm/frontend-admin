@@ -33,6 +33,13 @@ import { deleteVacation as apiDeleteVacation } from '@/lib/apiService';
 type VacationDetailsComponentProps = VacationDetailsProps & {
   roleOptions?: string[];
   memberRoleLookup?: RoleLookup;
+  /**
+   * '전체(all)' 필터로 보고 있을 때, 이 날짜에 관리자가 명시적으로 걸어둔 전체 한도가
+   * 있는지 여부. true일 때만 정원 배지를 노출한다 — 직종별 한도를 합산한 값처럼
+   * 오해될 수 있는 숫자를 만들지 않기 위함. 호출부(src/app/admin/page.tsx)에서
+   * 그 날짜의 `${date}_all` 한도 존재 여부를 계산해 내려줘야 실제로 배지가 뜬다.
+   */
+  hasExplicitAllLimit?: boolean;
 };
 
 type BadgeColorVariant =
@@ -73,6 +80,7 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
   isAdmin = false,
   roleOptions = [],
   memberRoleLookup,
+  hasExplicitAllLimit = false,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [sortedVacations, setSortedVacations] = useState<VacationRequest[]>([]);
@@ -200,8 +208,12 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
   const remainingSlots = maxPeople - validVacationCount;
   const isFull = remainingSlots <= 0;
 
-  // roleFilter가 'all'인지 확인
-  const shouldShowVacationLimit = roleFilter !== ALL_ROLE_FILTER;
+  // 특정 직종 필터에서는 늘 정원 배지를 보여준다. '전체(all)' 필터에서는 그 날짜에
+  // 명시적으로 걸어둔 전체 한도가 있을 때만 보여준다 — 그래야 관리자가 전체 한도를
+  // 걸어도 기본 화면(전체 필터)에서 확인할 곳이 없던 문제가 없어지고, 동시에 한도를
+  // 안 건 날짜까지 직종별 값을 합산한 것처럼 오해될 배지가 뜨지 않는다.
+  const shouldShowVacationLimit =
+    roleFilter !== ALL_ROLE_FILTER || hasExplicitAllLimit;
 
   return (
     <>

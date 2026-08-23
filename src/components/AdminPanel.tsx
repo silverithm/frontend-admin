@@ -66,6 +66,10 @@ const AdminPanel = ({
 }: AdminPanelProps) => {
   const [panelDate, setPanelDate] = useState(currentDate);
   const [limits, setLimits] = useState<VacationLimit[]>([]);
+  // '전체(all)' 한도를 지운 날짜들 — 저장 시 null 표식으로 보내야 서버 행이 실제로
+  // 삭제된다 (저장 API는 페이로드에 없는 행을 건드리지 않는 upsert라서, 목록에서
+  // 빼기만 하면 DB에 남은 한도가 계속 신청을 막는다)
+  const [clearedAllDates, setClearedAllDates] = useState<Set<string>>(new Set());
   const [positions, setPositions] = useState<Position[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>(ALL_ROLE_FILTER);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -207,6 +211,7 @@ const AdminPanel = ({
         currentDay = addDays(currentDay, 1);
       }
       setLimits(allLimits);
+      setClearedAllDates(new Set());
     } catch (err) {
       console.error("휴가 제한 조회 오류:", err);
       setError("휴가 제한 조회에 실패했습니다.");
@@ -218,6 +223,15 @@ const AdminPanel = ({
     role: string,
     value: number
   ) => {
+    if (role === ALL_ROLE_FILTER) {
+      // 지웠다가 다시 입력한 날짜는 삭제 표식을 거둔다
+      setClearedAllDates((prev) => {
+        if (!prev.has(date)) return prev;
+        const next = new Set(prev);
+        next.delete(date);
+        return next;
+      });
+    }
     const idx = limits.findIndex((l) => l.date === date && l.role === role);
     if (idx === -1) {
       // '전체(all)' 한도는 저장된 날짜만 목록에 있다 — 처음 입력하는 날짜는 새로 추가
@@ -229,6 +243,23 @@ const AdminPanel = ({
     const newLimits = [...limits];
     newLimits[idx] = { ...newLimits[idx], maxPeople: value };
     setLimits(newLimits);
+  };
+
+  // NumberInput을 hasClear로 비웠을 때(null) 호출된다.
+  const handleClearLimit = (date: string, role: string) => {
+    if (role === ALL_ROLE_FILTER) {
+      // '전체(all)' 한도는 저장된 날짜만 목록에 있다 — 지우면 그 날짜의 전체 제한
+      // 항목 자체를 없애 안내 문구대로 "제한 없음"이 되게 하고, 저장 시 서버 행도
+      // 지워지도록 삭제 표식을 남긴다.
+      setLimits((prev) => prev.filter((l) => !(l.date === date && l.role === role)));
+      setClearedAllDates((prev) => new Set(prev).add(date));
+      return;
+    }
+
+    // 직종별 한도는 매달 기본값 3이 항상 채워지는 모델이라 '값 없음' 상태가 없다
+    // (getMaxRoleLimitForDate의 기본값과 동일). 지우면 그 기본값으로 되돌린다 —
+    // 목록에서 행이 사라지면(=필터링에서 빠지면) 오히려 더 헷갈린다.
+    handleUpdateLimit(date, role, 3);
   };
 
   const saveChanges = async () => {
@@ -246,11 +277,17 @@ const AdminPanel = ({
 
       const saveLimits = limits.filter((limit) => limit.role.trim().length > 0);
 
-      await saveVacationLimits(saveLimits);
+      // 지운 전체(all) 한도는 null 표식으로 보내 서버가 그 행을 삭제하게 한다
+      const allDeletions = [...clearedAllDates]
+        .filter((date) => !saveLimits.some((l) => l.date === date && l.role === ALL_ROLE_FILTER))
+        .map((date) => ({ date, role: ALL_ROLE_FILTER, maxPeople: null }));
+
+      await saveVacationLimits([...saveLimits, ...allDeletions]);
       await saveVacationDeadlineSetting(deadlineDay, deadlineEnabled, nextMonthOnly);
       // 지금 보고 있는 달의 마감일 지정만 저장한다 (다른 달은 그 달을 열었을 때 저장됨)
       await saveVacationDeadlineDate(panelMonthKey, deadlineDates[panelMonthKey] ?? null);
 
+      setClearedAllDates(new Set());
       // 성공 후 최신 데이터 새로고침
       await onUpdateSuccess();
 
@@ -513,12 +550,17 @@ const AdminPanel = ({
                         value={row.maxPeople}
                         min={0}
                         isIntegerOnly
+                        hasClear
                         placeholder={activeFilter === ALL_ROLE_FILTER
                           ? "제한 없음"
                           : `${getRoleDisplayName(activeFilter)} 인원`}
-                        onChange={(value) =>
-                          handleUpdateLimit(row.date, row.role, value || 0)
-                        }
+                        onChange={(value) => {
+                          if (value === null) {
+                            handleClearLimit(row.date, row.role);
+                          } else {
+                            handleUpdateLimit(row.date, row.role, value);
+                          }
+                        }}
                         isDisabled={isBusy}
                       />
                     ),

@@ -1881,6 +1881,11 @@ export default function AdminPage() {
                                         roleFilter,
                                         availableRoles
                                     )}
+                                    hasExplicitAllLimit={Boolean(
+                                        vacationLimits[
+                                            `${format(selectedDate, "yyyy-MM-dd")}_${ALL_ROLE_FILTER}`
+                                        ]
+                                    )}
                                     roleFilter={roleFilter}
                                     isAdmin={isAdmin}
                                     roleOptions={availableRoles}
