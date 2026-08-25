@@ -99,6 +99,7 @@ import {
     IconApps,
     IconBus,
     IconFolder,
+    IconNotes,
     IconSparkles,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
@@ -107,6 +108,7 @@ import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import OnboardingTour from "@/components/OnboardingTour";
 import AiPostWriter from "@/components/AiPostWriter";
+import MeetingMinutes from "@/components/meetingMinutes/MeetingMinutes";
 import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
 import { useTabBadges } from "@/lib/useTabBadges";
@@ -131,7 +133,7 @@ type ApprovalSubTab = "management" | "templates" | "submit";
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 type ScheduleMode = "schedule" | "annual";
 // 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
-type ToolKey = "dispatch" | "aipost";
+type ToolKey = "dispatch" | "aipost" | "minutes";
 export default function AdminPage() {
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
@@ -1213,6 +1215,7 @@ export default function AdminPage() {
     const toolItems = ([
         { key: "dispatch", label: "배차관리", icon: IconBus },
         { key: "aipost", label: "AI 글쓰기", icon: IconSparkles },
+        { key: "minutes", label: "회의록", icon: IconNotes },
     ] as { key: ToolKey; label: string; icon: IconType }[]);
 
     return (
@@ -1450,6 +1453,9 @@ export default function AdminPage() {
                             )}
                             {activeTool === "aipost" && (
                                 <AiPostWriter companyName={companyName} onNotification={showNotification} />
+                            )}
+                            {activeTool === "minutes" && (
+                                <MeetingMinutes onNotification={showNotification} />
                             )}
                         </motion.div>
                     ) : activeMainTab === "approval" ? (

@@ -2783,3 +2783,154 @@ export async function submitContactInquiry(payload: ContactInquiryPayload): Prom
         );
     }
 }
+
+// ================== 회의록 (편의기능) ==================
+
+import type {
+    CreateMeetingMinutesInput,
+    MeetingMinutes as MeetingMinutesModel,
+    MinutesSection,
+    MinutesSectionContent,
+} from '@/types/meetingMinutes';
+
+function requireCompanyIdForMinutes(): string {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return String(companyId);
+}
+
+export async function getMeetingMinutesList(): Promise<MeetingMinutesModel[]> {
+    const companyId = requireCompanyIdForMinutes();
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes?companyId=${companyId}`);
+    return Array.isArray(response?.items) ? response.items : [];
+}
+
+export async function getMeetingMinutesById(id: number): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}`);
+    return response.minutes;
+}
+
+export async function createMeetingMinutes(input: CreateMeetingMinutesInput): Promise<MeetingMinutesModel> {
+    const companyId = requireCompanyIdForMinutes();
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+    });
+    return response.minutes;
+}
+
+export async function updateMeetingMinutes(id: number, input: CreateMeetingMinutesInput): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+    });
+    return response.minutes;
+}
+
+export async function deleteMeetingMinutes(id: number): Promise<void> {
+    await fetchWithAuth(`/api/v1/meeting-minutes/${id}`, { method: 'DELETE' });
+}
+
+/** 등록 — 참석자에게 서명 요청 푸시가 나간다 */
+export async function registerMeetingMinutes(id: number): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}/register`, { method: 'POST' });
+    return response.minutes;
+}
+
+/** 미서명자 재알림 */
+export async function remindMeetingMinutes(id: number): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}/remind`, { method: 'POST' });
+    return response.minutes;
+}
+
+/** 본인 서명 (signatureBase64 없으면 등록 서명 자동 사용) */
+export async function signMeetingMinutes(
+    id: number,
+    attendeeId: number,
+    signatureBase64?: string | null,
+): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}/attendees/${attendeeId}/sign`, {
+        method: 'POST',
+        body: JSON.stringify(signatureBase64 ? { signatureBase64 } : {}),
+    });
+    return response.minutes;
+}
+
+/** 입회 서명 — 관리자/작성자 화면에서 참석자가 직접 그린다 */
+export async function guestSignMeetingMinutes(
+    id: number,
+    attendeeId: number,
+    signatureBase64: string,
+): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}/attendees/${attendeeId}/guest-sign`, {
+        method: 'POST',
+        body: JSON.stringify({ signatureBase64 }),
+    });
+    return response.minutes;
+}
+
+/** 완료 — 결재함에 완결 문서로 등록 (멱등) */
+export async function completeMeetingMinutes(id: number): Promise<MeetingMinutesModel> {
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/${id}/complete`, { method: 'POST' });
+    return response.minutes;
+}
+
+/** 실시간 전사문 주기 저장 (누적 전문을 통째로 보낸다) */
+export async function saveMeetingMinutesTranscript(id: number, transcript: string): Promise<void> {
+    await fetchWithAuth(`/api/v1/meeting-minutes/${id}/transcript`, {
+        method: 'PUT',
+        body: JSON.stringify({ transcript }),
+    });
+}
+
+/** 녹음 조각 등록 (파일은 uploadFileToServer(category:'meetings')로 먼저 올린다) */
+export async function addMeetingMinutesAudioChunk(
+    id: number,
+    chunk: { seq: number; filePath: string; durationSec?: number | null },
+): Promise<void> {
+    await fetchWithAuth(`/api/v1/meeting-minutes/${id}/audio-chunks`, {
+        method: 'POST',
+        body: JSON.stringify(chunk),
+    });
+}
+
+/** 기관 회의록 양식(섹션 구성) — 커스텀이 없으면 기본값이 온다 */
+export async function getMeetingMinutesTemplate(): Promise<MinutesSection[]> {
+    const companyId = requireCompanyIdForMinutes();
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/template?companyId=${companyId}`);
+    try {
+        const parsed = JSON.parse(response?.sections || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+export async function saveMeetingMinutesTemplate(sections: MinutesSection[]): Promise<void> {
+    const companyId = requireCompanyIdForMinutes();
+    await fetchWithAuth(`/api/v1/meeting-minutes/template?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ sections: JSON.stringify(sections) }),
+    });
+}
+
+/** 실시간 전사용 Deepgram 단명 토큰 */
+export async function getSttToken(): Promise<{ accessToken: string; expiresIn: number }> {
+    return fetchWithAuth('/api/v1/meeting-minutes-stt-token', { method: 'POST', body: JSON.stringify({}) });
+}
+
+/** AI 자동 정리 — 메모+전사문을 섹션별 개조식으로 */
+export async function summarizeMeetingMinutes(input: {
+    sections: MinutesSection[];
+    rawNotes?: string;
+    transcript?: string;
+    title?: string;
+}): Promise<MinutesSectionContent[]> {
+    const response = await fetchWithAuth('/api/v1/meeting-minutes-ai', {
+        method: 'POST',
+        body: JSON.stringify(input),
+    });
+    return Array.isArray(response?.sections) ? response.sections : [];
+}
