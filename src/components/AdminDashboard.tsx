@@ -62,6 +62,7 @@ import {
   deleteScheduleTask, getScheduleLabels, getScheduleCategorySettings } from '@/lib/apiService';
 import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS } from '@/types/schedule';
 import { useConfirm } from '@/components/ConfirmDialog';
+import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { buildWeekBarLayouts, WEEK_GRID_COLUMNS } from '@/lib/scheduleBars';
 import {
   buildBarSegments,
@@ -91,8 +92,6 @@ import { Selector } from '@astryxdesign/core/Selector';
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
   isAdmin?: boolean;
-  /** 달력에서 고른 날짜로 바로 일정을 등록하러 간다 (월간일정 탭 + 등록 모달) */
-  onAddSchedule?: (date: Date) => void;
 }
 
 interface VacationItem {
@@ -222,7 +221,7 @@ const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => 
   color: 'var(--color-icon-secondary)',
 });
 
-export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSchedule }: AdminDashboardProps) {
+export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [isLoading, setIsLoading] = useState(true);
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -237,6 +236,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSched
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [monthlySchedules, setMonthlySchedules] = useState<ScheduleItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  /** 대시보드에서 바로 여는 일정 등록 다이얼로그 */
+  const [showCreateSchedule, setShowCreateSchedule] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
   const [showDaySchedules, setShowDaySchedules] = useState(false);
   // 일정 상세 모달의 할 일 관리 (월간일정 탭과 동일한 UX)
@@ -489,6 +490,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSched
     saveCalendarPane(next);
   };
 
+  // 등록 다이얼로그에서 일정을 만들면 이 값을 올려 아래 effect가 같은 달을 다시 읽는다
+  const [monthReloadKey, setMonthReloadKey] = useState(0);
+  const reloadCalendarMonth = () => setMonthReloadKey((key) => key + 1);
+
   // 달력이 보고 있는 달의 일정·휴무자. 달을 넘길 때마다 다시 불러온다.
   useEffect(() => {
     let cancelled = false;
@@ -518,7 +523,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSched
     return () => {
       cancelled = true;
     };
-  }, [calendarMonth]);
+    // monthReloadKey: 일정 등록 직후 새로고침 신호
+  }, [calendarMonth, monthReloadKey]);
 
   const pendingVacationCount = vacationRequests.filter(
     (v) => v.status === 'pending' || v.status === 'PENDING'
@@ -1646,18 +1652,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSched
                     variant="secondary"
                     onClick={() => setShowDaySchedules(false)}
                   />
-                  {/* 이 날짜로 바로 등록하러 간다 — 월간일정 탭에서 날짜를 다시 고를 필요가 없다 */}
-                  {onAddSchedule && (
-                    <Button
-                      label="일정 추가"
-                      variant="primary"
-                      icon={<Icon icon={IconPlus} size="sm" />}
-                      onClick={() => {
-                        setShowDaySchedules(false);
-                        onAddSchedule(selectedDate);
-                      }}
-                    />
-                  )}
+                  {/* 탭 이동 없이 이 자리에서 바로 등록한다 — 날짜는 이미 채워져 있다 */}
+                  <Button
+                    label="일정 추가"
+                    variant="primary"
+                    icon={<Icon icon={IconPlus} size="sm" />}
+                    onClick={() => {
+                      setShowDaySchedules(false);
+                      setShowCreateSchedule(true);
+                    }}
+                  />
                 </HStack>
               </HStack>
             </LayoutFooter>
@@ -2098,6 +2102,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSched
       </Dialog>
 
       <ConfirmContainer />
+      <ScheduleCreateDialog
+        isOpen={showCreateSchedule}
+        initialDate={selectedDate}
+        onClose={() => setShowCreateSchedule(false)}
+        onCreated={reloadCalendarMonth}
+      />
     </div>
   );
 }
