@@ -39,8 +39,14 @@ interface MeetingMinutesFormProps {
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
+/** 로컬 기준 오늘 날짜 — toISOString은 UTC라 자정 전후로 어제 날짜가 나온다 */
+function todayLocal(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function toDatePart(iso: string | null | undefined): string {
-  return iso ? iso.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  return iso ? iso.slice(0, 10) : todayLocal();
 }
 
 function toTimePart(iso: string | null | undefined): string {
@@ -230,7 +236,7 @@ export default function MeetingMinutesForm({
           label="회의 날짜"
           isRequired
           value={date ? (date as never) : undefined}
-          onChange={(value) => setDate(value || new Date().toISOString().slice(0, 10))}
+          onChange={(value) => setDate(value || todayLocal())}
         />
         <TimeInput
           label="시작 시간"
