@@ -449,6 +449,22 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                 value={dateFilter.endDate as ISODateString}
                 onChange={(value) => setDateFilter(prev => ({ ...prev, endDate: value || '' }))}
               />
+              {/* 양식 필터는 기간과 같은 '범위를 좁히는 조건'이라 날짜 옆에 둔다.
+                  아래 따로 떨어져 있을 때는 목록을 좁히는 손잡이가 두 곳에 나뉘어 있었다. */}
+              {templateOptions.length > 1 && (
+                <div style={{ width: 220 }}>
+                  <Selector
+                    label="양식"
+                    placeholder="양식 전체"
+                    value={templateFilter}
+                    options={templateOptions}
+                    hasClear
+                    hasSearch={templateOptions.length > 8}
+                    searchPlaceholder="양식 이름 검색"
+                    onChange={(value) => setTemplateFilter(value || '')}
+                  />
+                </div>
+              )}
             </HStack>
             <div style={{ flex: 1, minWidth: 200 }}>
               <TextInput
@@ -484,22 +500,6 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
               />
             ))}
           </HStack>
-        )}
-
-        {/* 양식별 필터 */}
-        {templateOptions.length > 1 && (
-          <div style={{ maxWidth: 320 }}>
-            <Selector
-              label="양식"
-              placeholder="양식 전체"
-              value={templateFilter}
-              options={templateOptions}
-              hasClear
-              hasSearch={templateOptions.length > 8}
-              searchPlaceholder="양식 이름 검색"
-              onChange={(value) => setTemplateFilter(value || '')}
-            />
-          </div>
         )}
 
         {/* 일괄 액션 */}

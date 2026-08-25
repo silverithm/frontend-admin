@@ -1792,6 +1792,11 @@ export interface ApprovalRequestPayload {
     approvalLine?: Array<{ approverType: 'ADMIN' | 'MEMBER'; approverId: number }>;
     /** true면 상신하지 않고 임시저장만 한다 (결재함에 뜨지 않고 알림도 안 나간다) */
     draft?: boolean;
+    /**
+     * 반려된 기안을 고쳐 올리는 경우 그 원본 id.
+     * 주면 서버가 새 기안을 그 문서의 다음 차수로 잇는다 — 원본은 반려 그대로 남는다.
+     */
+    revisedFromId?: number;
 }
 
 // 백엔드 DTO의 formData는 String(JSON) — 객체를 그대로 보내면 역직렬화에 실패한다

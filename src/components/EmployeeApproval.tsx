@@ -70,6 +70,8 @@ export default function EmployeeApproval() {
   const [showPreview, setShowPreview] = useState(false);
   /** 이어쓰는 중인 임시저장 문서 id — 새로 쓰는 중이면 null */
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  /** 반려된 기안을 고쳐 쓰는 중이면 그 원본. 작성 화면에 반려 사유를 띄우는 데 쓴다 */
+  const [revisedFrom, setRevisedFrom] = useState<ApprovalRequest | null>(null);
 
   // 문서 뷰어/웹 작성 모달 상태 — authoring이면 편집 후 저장 시 파일로 첨부,
   // templateId가 있으면 저장 시 해당 양식으로 새 기안 작성 모달을 자동으로 열고,
@@ -478,6 +480,8 @@ export default function EmployeeApproval() {
           attachmentFileSize: uploadResult.fileSize,
         } : {}),
         approvalLine: buildApprovalLinePayload(),
+        // 반려 건을 고쳐 올리는 중이면 원본에 잇는다 — 서버가 다음 차수로 기록한다
+        ...(revisedFrom ? { revisedFromId: Number(revisedFrom.id) } : {}),
       });
 
       showAlert({
@@ -548,6 +552,8 @@ export default function EmployeeApproval() {
           attachmentFileSize: uploadResult.fileSize,
         } : {}),
         approvalLine: buildApprovalLinePayload(),
+        // 반려 건을 고쳐 올리는 중이면 원본에 잇는다 — 서버가 다음 차수로 기록한다
+        ...(revisedFrom ? { revisedFromId: Number(revisedFrom.id) } : {}),
       });
 
       showAlert({
@@ -608,6 +614,7 @@ export default function EmployeeApproval() {
     setFormData(null);
     setApprovalLine([]);
     setEditingDraftId(null);
+    setRevisedFrom(null);
   };
 
   /**
@@ -662,6 +669,12 @@ export default function EmployeeApproval() {
     }
   };
 
+  /** 고쳐 올린 새 차수가 존재하는 원본 id 모음 — 목록 안에서만 계산한다(추가 조회 없음) */
+  const revisedAwayIds = useMemo(
+    () => new Set(approvals.map((a) => (a.revisedFromId != null ? String(a.revisedFromId) : '')).filter(Boolean)),
+    [approvals],
+  );
+
   /** 임시저장 문서를 작성 모달로 다시 불러온다 */
   const openDraft = (approval: ApprovalRequest) => {
     setEditingDraftId(String(approval.id));
@@ -672,6 +685,28 @@ export default function EmployeeApproval() {
     });
     setFormData(parseFormData(approval.formData));
     setApprovalLine(toApproverCandidates(approval));
+    setShowNewApproval(true);
+  };
+
+  /**
+   * 반려된 기안을 고쳐서 다시 올린다.
+   *
+   * 같은 문서를 되살려 상신하지 않는 이유: 반려는 지워지면 안 되는 기록이다.
+   * 무엇이 반려됐고 왜 반려됐는지가 남아 있어야 다시 올린 문서가 설명된다.
+   * 그래서 내용만 복사해 '새 기안'으로 열고(editingDraftId 없음), 원본은 반려 상태로 둔다.
+   */
+  const reviseRejected = (approval: ApprovalRequest) => {
+    setEditingDraftId(null);
+    setApprovalForm({
+      templateId: String(approval.templateId ?? ''),
+      title: approval.title ?? '',
+      // 첨부는 복사하지 않는다 — 파일은 서버에 있고, 고쳐 올릴 때 다시 고르는 게 맞다
+      file: null,
+    });
+    setFormData(parseFormData(approval.formData));
+    setApprovalLine(toApproverCandidates(approval));
+    setRevisedFrom(approval);
+    setSelectedApproval(null);
     setShowNewApproval(true);
   };
 
@@ -1053,6 +1088,14 @@ export default function EmployeeApproval() {
                         <VStack gap={1}>
                           <HStack gap={2} vAlign="center">
                             <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                            {(approval.revision ?? 1) > 1 && (
+                              <Badge variant="neutral" label={`${approval.revision}차`} />
+                            )}
+                            {/* 반려 뒤 고쳐 올린 건이 목록에 있으면, 원본 쪽에도 그 사실을 남긴다 —
+                                안 그러면 반려 건만 보고 "그래서 어떻게 됐나"를 알 수 없다 */}
+                            {revisedAwayIds.has(String(approval.id)) && (
+                              <Text type="supporting" color="secondary">다시 올림</Text>
+                            )}
                             <Text type="supporting" color="disabled">{approval.templateName}</Text>
                           </HStack>
                           <Text weight="semibold" color="primary">{approval.title}</Text>
@@ -1090,13 +1133,26 @@ export default function EmployeeApproval() {
         <Layout
           header={
             <DialogHeader
-              title="새 기안 작성"
+              title={revisedFrom ? '반려 기안 고쳐 올리기' : editingDraftId ? '임시저장 이어쓰기' : '새 기안 작성'}
               onOpenChange={(open) => { if (!open) closeNewApprovalModal(); }}
             />
           }
           content={
             <LayoutContent>
               <VStack gap={4}>
+                {/* 반려 건을 고쳐 쓰는 중이면 사유를 맨 위에 둔다 — 무엇을 고쳐야 하는지가
+                    다른 화면에 있으면 고쳐 쓰라는 기능이 반쪽이 된다 */}
+                {revisedFrom && (
+                  <Banner
+                    status="warning"
+                    title="반려된 기안을 고쳐 새로 올립니다"
+                    description={
+                      revisedFrom.rejectReason
+                        || revisedFrom.approvalLine?.find((step) => step.status === 'REJECTED')?.rejectReason
+                        || '반려 사유가 기록되지 않았습니다. 결재자에게 확인해주세요.'
+                    }
+                  />
+                )}
                 <Text type="supporting" color="secondary">
                   {selectedTemplateInfo?.templateType === 'form'
                     ? '온라인 양식을 작성하세요'
@@ -1355,8 +1411,18 @@ export default function EmployeeApproval() {
                   {/* 상태 + 양식명 */}
                   <HStack gap={2} vAlign="center">
                     <Badge variant={getStatusVariant(selectedApproval.status)} label={getStatusText(selectedApproval.status)} />
+                    {(selectedApproval.revision ?? 1) > 1 && (
+                      <Badge variant="neutral" label={`${selectedApproval.revision}차`} />
+                    )}
                     <Text type="supporting" color="secondary">{selectedApproval.templateName}</Text>
                   </HStack>
+                  {selectedApproval.revisedFromRejectReason && (
+                    <Banner
+                      status="info"
+                      title={`${(selectedApproval.revision ?? 2) - 1}차가 반려되어 고쳐 올린 기안입니다`}
+                      description={selectedApproval.revisedFromRejectReason}
+                    />
+                  )}
 
                   {/* 공문 본문 */}
                   <div style={{ background: 'var(--color-background-muted)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-inner)', overflowX: 'auto' }}>
@@ -1420,6 +1486,14 @@ export default function EmployeeApproval() {
                       label="기안 취소"
                       variant="destructive"
                       onClick={() => handleCancelApproval(selectedApproval.id)}
+                    />
+                  )}
+                  {selectedApproval.status === 'REJECTED' && (
+                    <Button
+                      label="수정해서 다시 올리기"
+                      variant="secondary"
+                      icon={<Icon icon={FiEdit3} size="sm" />}
+                      onClick={() => reviseRejected(selectedApproval)}
                     />
                   )}
                   <Button

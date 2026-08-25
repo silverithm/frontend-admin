@@ -136,6 +136,12 @@ export interface ApprovalRequest {
   approvalLine?: ApprovalStep[];
   docNumber?: string;
   docNumberDisplay?: string;
+  /** 차수. 처음 올린 기안이 1 */
+  revision?: number;
+  /** 이 기안이 고쳐 올린 원본(반려 건) id */
+  revisedFromId?: number | string;
+  /** 원본이 반려된 사유 — 서버가 함께 실어 준다 */
+  revisedFromRejectReason?: string;
   companySealUrl?: string;      // 최종 승인된 결재선 문서에만 존재
   documentFooter?: DocumentFooter;
   /** 열람 대상 — 관리자·기안자·결재선 참여자는 여기에 없어도 볼 수 있다 */
