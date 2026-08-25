@@ -30,7 +30,7 @@ import { Loading } from '@/components/Loading';
 import { ApprovalRequest } from '@/types/approval';
 import { fetchChatRooms, sendChatMessage, updateChatRoomNotice, uploadChatFile } from '@/lib/apiService';
 import { getMyChatUserId } from '@/lib/chatIdentity';
-import { buildApprovalDocumentFile } from '@/lib/approvalDocumentFile';
+import { buildApprovalDocumentFile, generateOfficialDocumentJpegPages } from '@/lib/approvalDocumentFile';
 
 interface ChatRoomOption {
     id: number;
@@ -144,6 +144,16 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
             fileIssueMessage = '공문 파일을 준비하지 못해 요약 내용만 공지로 등록됩니다';
         }
 
+        // 공문을 장 단위 JPG로도 만든다 — 받는 쪽이 내려받지 않고 채팅방에서 바로 본다.
+        // 온라인 폼형만 가능하다(렌더된 공문 DOM 기준). HWP 첨부형은 DOM이 없어 건너뛴다.
+        let documentImages: File[] = [];
+        try {
+            documentImages = await generateOfficialDocumentJpegPages(approval);
+        } catch (e) {
+            // 이미지는 부가물이다 — 실패해도 파일·텍스트 공지는 그대로 간다
+            console.warn('공문 이미지 준비 건너뜀:', e);
+        }
+
         const succeeded: string[] = [];
         const failed: string[] = [];
         let fileUploadFailedCount = 0;
@@ -155,6 +165,17 @@ export default function ApprovalAnnounceDialog({ approval, onClose, onDone }: Ap
             const roomName = room?.name || `방 ${roomId}`;
             setProgressLabel(`${roomName}에 올리는 중... (${i + 1}/${selectedRoomIds.length})`);
             try {
+                // 이미지 → 원본 파일 → 요약 텍스트(공지 고정) 순서로 올린다.
+                // 이미지가 먼저 와야 방을 열었을 때 문서가 바로 보이고, 그 아래 원본과 요약이 따라온다.
+                for (const image of documentImages) {
+                    try {
+                        await uploadChatFile(Number(roomId), image, senderId, senderName);
+                    } catch (imageError) {
+                        // 이미지 한 장 실패로 공지를 멈추지 않는다
+                        console.error(`공문 이미지 업로드 실패 (roomId=${roomId}):`, imageError);
+                    }
+                }
+
                 let fileMessageId: number | null = null;
                 if (documentFile) {
                     try {

@@ -128,6 +128,71 @@ export async function generateOfficialDocumentPdf(approval: ApprovalRequest): Pr
   return new File([blob], buildDocumentFileName(approval, 'pdf'), { type: 'application/pdf' });
 }
 
+/**
+ * 렌더된 공문을 A4 비율의 JPG 여러 장으로 자른다.
+ *
+ * 채팅 공지에 PDF만 올리면 받는 쪽이 한 번 더 내려받아 열어야 한다. IMAGE 메시지는
+ * 웹·앱 모두 채팅방에서 바로 펼쳐 보이므로, 문서를 장 단위 이미지로도 함께 올린다.
+ * 문서가 길면 A4 비율(297/210)로 끊어 여러 장이 된다.
+ */
+export async function generateOfficialDocumentJpegPages(approval: ApprovalRequest): Promise<File[]> {
+  const element = document.querySelector<HTMLElement>(OFFICIAL_DOC_SELECTOR);
+  if (!element) {
+    throw new Error('공문 화면을 찾을 수 없습니다');
+  }
+
+  const restoreImages = await inlineCrossOriginImages(element);
+  let canvas: HTMLCanvasElement;
+  try {
+    canvas = await htmlToImage.toCanvas(element, {
+      backgroundColor: '#ffffff',
+      pixelRatio: 2,
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      filter: (node) => !(node instanceof HTMLElement && node.classList.contains('carev-doc-noprint')),
+    });
+  } finally {
+    restoreImages();
+  }
+
+  const pageHeight = Math.round(canvas.width * (297 / 210));   // A4 세로 비율
+  // 마지막 조각이 반의 반 장도 안 되면 앞 장에 흡수한다 — 꼬리 몇 줄 때문에 한 장을 더 만들지 않는다
+  const pageCount = Math.max(1, Math.round(canvas.height / pageHeight + 0.25));
+
+  const files: File[] = [];
+  for (let page = 0; page < pageCount; page++) {
+    const sliceTop = page * pageHeight;
+    const sliceHeight = page === pageCount - 1 ? canvas.height - sliceTop : pageHeight;
+    if (sliceHeight <= 0) break;
+
+    const slice = document.createElement('canvas');
+    slice.width = canvas.width;
+    slice.height = sliceHeight;
+    const context = slice.getContext('2d');
+    if (!context) throw new Error('이미지를 만들 수 없습니다');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, slice.width, slice.height);
+    context.drawImage(canvas, 0, sliceTop, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      slice.toBlob(
+        (result) => (result ? resolve(result) : reject(new Error('이미지 변환에 실패했습니다'))),
+        'image/jpeg',
+        0.9,
+      ),
+    );
+
+    const suffix = pageCount > 1 ? `_${page + 1}` : '';
+    files.push(new File(
+      [blob],
+      `공문_${sanitizeFileNamePart(approval.title)}_${formatFileDate(approval.processedAt)}${suffix}.jpg`,
+      { type: 'image/jpeg' },
+    ));
+  }
+
+  return files;
+}
+
 // S3 URL에서 상대 경로 추출 (ApprovalDetail.tsx의 handleDownloadAttachment와 동일한 규칙)
 function extractRelativePath(url: string): string {
   if (url.startsWith('https://') || url.startsWith('http://')) {
