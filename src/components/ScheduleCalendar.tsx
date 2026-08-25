@@ -129,6 +129,10 @@ interface ScheduleCalendarProps {
   mode?: 'schedule' | 'dispatch';
   /** 연간일정에서 특정 달을 눌러 들어온 경우 그 달을 펼친 채로 연다. */
   initialMonth?: Date | null;
+  /** 대시보드에서 "일정 추가"로 넘어온 경우 — 이 날짜로 등록 모달을 바로 연다. */
+  initialCreateDate?: Date | null;
+  /** 등록 모달을 열고 나면 부모 상태를 비워달라는 신호 (안 비우면 탭을 오갈 때마다 다시 열린다) */
+  onInitialCreateDateConsumed?: () => void;
   onNotification?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -150,7 +154,7 @@ interface ScheduleFormData {
   labelId: string;
 }
 
-export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, onNotification }: ScheduleCalendarProps) {
+export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, initialCreateDate = null, onInitialCreateDateConsumed, onNotification }: ScheduleCalendarProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [currentDate, setCurrentDate] = useState(() => initialMonth ?? new Date());
@@ -682,6 +686,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   };
 
   // 일정 생성 모달 열기
+  // 대시보드 "일정 추가"에서 날짜를 들고 넘어온 경우 — 그 달을 펴고 등록 모달을 바로 연다.
+  // 탭 전환 시 이 컴포넌트는 새로 마운트되므로 마운트 한 번이면 충분하고,
+  // 소비 신호를 보내 부모가 비우게 해 재방문 때 다시 열리지 않게 한다.
+  useEffect(() => {
+    if (!initialCreateDate || mode !== 'schedule') return;
+    setCurrentDate(startOfMonth(initialCreateDate));
+    openCreateModal(initialCreateDate);
+    onInitialCreateDateConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openCreateModal = (date?: Date) => {
     const targetDate = date || selectedDate || new Date();
     setFormData({

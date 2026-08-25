@@ -91,6 +91,8 @@ import { Selector } from '@astryxdesign/core/Selector';
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
   isAdmin?: boolean;
+  /** 달력에서 고른 날짜로 바로 일정을 등록하러 간다 (월간일정 탭 + 등록 모달) */
+  onAddSchedule?: (date: Date) => void;
 }
 
 interface VacationItem {
@@ -220,7 +222,7 @@ const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => 
   color: 'var(--color-icon-secondary)',
 });
 
-export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
+export default function AdminDashboard({ onTabChange, isAdmin = true, onAddSchedule }: AdminDashboardProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [isLoading, setIsLoading] = useState(true);
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -1638,11 +1640,25 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                     onTabChange('schedule');
                   }}
                 />
-                <Button
-                  label="닫기"
-                  variant="secondary"
-                  onClick={() => setShowDaySchedules(false)}
-                />
+                <HStack gap={2}>
+                  <Button
+                    label="닫기"
+                    variant="secondary"
+                    onClick={() => setShowDaySchedules(false)}
+                  />
+                  {/* 이 날짜로 바로 등록하러 간다 — 월간일정 탭에서 날짜를 다시 고를 필요가 없다 */}
+                  {onAddSchedule && (
+                    <Button
+                      label="일정 추가"
+                      variant="primary"
+                      icon={<Icon icon={IconPlus} size="sm" />}
+                      onClick={() => {
+                        setShowDaySchedules(false);
+                        onAddSchedule(selectedDate);
+                      }}
+                    />
+                  )}
+                </HStack>
               </HStack>
             </LayoutFooter>
           }

@@ -153,6 +153,8 @@ export default function AdminPage() {
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
     // 연간일정에서 특정 달을 누르면 그 달을 펼친 채로 월간일정으로 넘어간다.
     const [scheduleFocusMonth, setScheduleFocusMonth] = useState<Date | null>(null);
+    // 대시보드 달력에서 "일정 추가"로 넘어올 때 들고 오는 날짜 — 월간일정이 등록 모달을 바로 연다
+    const [scheduleCreateDate, setScheduleCreateDate] = useState<Date | null>(null);
     const [activeTool, setActiveTool] = useState<ToolKey>("dispatch");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -1376,7 +1378,12 @@ export default function AdminPage() {
                                 if (tab === 'approval' && isAdmin) {
                                     setApprovalSubTab('management');
                                 }
-                            }} isAdmin={isAdmin} />
+                            }} isAdmin={isAdmin}
+                            onAddSchedule={(date) => {
+                                setScheduleCreateDate(date);
+                                setScheduleMode('schedule');
+                                setActiveMainTab('schedule');
+                            }} />
                         </motion.div>
                     ) : activeMainTab === "notice" ? (
                         <motion.div
@@ -1421,6 +1428,8 @@ export default function AdminPage() {
                                     isAdmin={isAdmin}
                                     mode={scheduleMode}
                                     initialMonth={scheduleFocusMonth}
+                                    initialCreateDate={scheduleCreateDate}
+                                    onInitialCreateDateConsumed={() => setScheduleCreateDate(null)}
                                     onNotification={showNotification}
                                 />
                             )}
