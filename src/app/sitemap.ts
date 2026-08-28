@@ -32,8 +32,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      // FAQ는 홈·가이드와 따로 갱신된다 (2026-08-29 기관 유형·요금·근무표 문항 추가).
+      // 공유 상수를 쓰면 바뀌지 않은 페이지의 날짜까지 함께 부풀려진다.
       url: `${SITE_URL}/faq`,
-      lastModified: CONTENT_UPDATED,
+      lastModified: '2026-08-29',
       changeFrequency: 'monthly',
       priority: 0.9,
     },

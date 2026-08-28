@@ -910,6 +910,16 @@ html {
 .carev-blogpost-prose a { color: var(--color-text-accent); text-decoration: none; }
 @media (hover: hover) { .carev-blogpost-prose a:hover { color: var(--color-text-blue); } }
 
+/* 본문 표 — 넓은 표가 페이지를 가로로 늘리지 않도록 자기 안에서만 스크롤한다. */
+.carev-blogpost-tablewrap { overflow-x: auto; margin: var(--spacing-5) 0; border: 1px solid var(--color-border); border-radius: var(--radius-element); }
+.carev-blogpost-prose table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+.carev-blogpost-prose th,
+.carev-blogpost-prose td { padding: var(--spacing-2) var(--spacing-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-border); }
+.carev-blogpost-prose th { background: var(--color-background-muted); color: var(--color-text-primary); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.carev-blogpost-prose td { color: var(--color-text-secondary); }
+.carev-blogpost-prose tbody tr:last-child th,
+.carev-blogpost-prose tbody tr:last-child td { border-bottom: none; }
+
 /* ── Phase 11: 누락 파일 정리 ── */
 
 /* FloatingChatRoomList / FieldTypeSelector hover */

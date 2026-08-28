@@ -4,8 +4,8 @@ import { OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@
 
 export const metadata: Metadata = {
   title: '자주 묻는 질문',
-  description: '케어브이 이용 요금, 가입 방법, 지원 시설 종류 등 요양기관 근무표 프로그램에 대해 가장 많이 묻는 질문을 모았습니다.',
-  keywords: '케어브이 FAQ, 요양기관 근무표 질문, 주간보호센터 프로그램 문의, 장기요양기관 스케줄 관리, 근무표 프로그램 요금',
+  description: '어떤 기관에서 쓸 수 있는지, 요금이 인원에 따라 늘어나는지, 엑셀 근무표를 대신할 수 있는지, 3교대 편성이 되는지 등 도입 전에 가장 많이 묻는 질문을 모았습니다.',
+  keywords: '케어브이 FAQ, 요양기관 근무표 질문, 주간보호센터 프로그램 문의, 요양원 3교대 근무표, 근무표 엑셀 대체, 장기요양기관 스케줄 관리, 근무표 프로그램 요금',
   openGraph: {
     title: '자주 묻는 질문 | 케어브이',
     description: '케어브이 이용 요금, 가입 방법, 지원 시설 종류 등 가장 많이 묻는 질문을 모았습니다.',
