@@ -7,6 +7,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { Divider } from '@astryxdesign/core/Divider';
 import { FileInput } from '@astryxdesign/core/FileInput';
+import { Selector } from '@astryxdesign/core/Selector';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TimeInput } from '@astryxdesign/core/TimeInput';
@@ -26,13 +27,13 @@ import {
   CreateMeetingMinutesInput,
   MeetingMinutes,
   MinutesAttendeeEntry,
-  MinutesSection,
   MinutesSectionContent,
+  MinutesTemplate,
 } from '@/types/meetingMinutes';
 
 interface MeetingMinutesFormProps {
-  /** 기관 양식(섹션 구성) — 새 회의록의 뼈대 */
-  templateSections: MinutesSection[];
+  /** 회사에 저장된 회의록 양식들 — 섹션 구성 + AI 정리 지시를 함께 담는다. 최소 1개(애플리케이션 기본값)는 항상 온다 */
+  templates: MinutesTemplate[];
   /** 수정 모드면 기존 회의록 */
   initial: MeetingMinutes | null;
   onDone: (minutes: MeetingMinutes, registered: boolean) => void;
@@ -54,15 +55,25 @@ function toTimePart(iso: string | null | undefined): string {
   return iso.slice(11, 16);
 }
 
-/** 문서의 섹션 스냅샷이 있으면 그걸, 없으면 기관 양식으로 빈 내용을 만든다 */
-function initialSections(initial: MeetingMinutes | null, template: MinutesSection[]): MinutesSectionContent[] {
+/** Selector는 문자열 value만 받는다 — 저장 안 된 애플리케이션 기본 양식은 id가 null이라 'default'로 대신한다 */
+function templateKey(template: MinutesTemplate): string {
+  return template.id != null ? String(template.id) : 'default';
+}
+
+function pickDefaultTemplate(templates: MinutesTemplate[]): MinutesTemplate | null {
+  return templates.find((t) => t.isDefault) ?? templates[0] ?? null;
+}
+
+/** 문서의 섹션 스냅샷이 있으면 그걸, 없으면 기본 양식으로 빈 내용을 만든다 */
+function initialSections(initial: MeetingMinutes | null, templates: MinutesTemplate[]): MinutesSectionContent[] {
   if (initial?.sectionsJson) {
     try {
       const parsed = JSON.parse(initial.sectionsJson);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     } catch { /* 깨진 스냅샷이면 양식으로 */ }
   }
-  return template.map((section) => ({ ...section, content: '' }));
+  const template = pickDefaultTemplate(templates);
+  return (template?.sections ?? []).map((section) => ({ ...section, content: '' }));
 }
 
 function initialAttendees(initial: MeetingMinutes | null): MinutesAttendeeEntry[] {
@@ -77,10 +88,11 @@ function initialAttendees(initial: MeetingMinutes | null): MinutesAttendeeEntry[
 /**
  * 회의록 작성 화면.
  * 회의 중에는 녹음(실시간 자막)과 메모를 쌓고, 끝나면 AI 자동 정리로 섹션별 개조식 회의록을 만든 뒤
- * 등록해 참석자들에게 서명 요청을 보낸다.
+ * 등록해 참석자들에게 서명 요청을 보낸다. 양식(편의기능 > 회의록 > 양식 관리에서 만든 것)을 고르면
+ * 그 양식의 섹션 구성과 AI 정리 지시·형식 예시가 함께 적용된다.
  */
 export default function MeetingMinutesForm({
-  templateSections,
+  templates,
   initial,
   onDone,
   onNotification,
@@ -92,7 +104,7 @@ export default function MeetingMinutesForm({
   const [endTime, setEndTime] = useState(toTimePart(initial?.meetingEndAt));
   const [attendees, setAttendees] = useState<MinutesAttendeeEntry[]>(initialAttendees(initial));
   const [sections, setSections] = useState<MinutesSectionContent[]>(
-    () => initialSections(initial, templateSections),
+    () => initialSections(initial, templates),
   );
   const [rawNotes, setRawNotes] = useState(initial?.rawNotes ?? '');
   const [transcript, setTranscript] = useState(initial?.transcript ?? '');
@@ -102,6 +114,34 @@ export default function MeetingMinutesForm({
   const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [registering, setRegistering] = useState(false);
+  // 이번 회의록에 쓸 양식 — AI 자동 정리가 이 양식의 지시·예시를 따른다.
+  // 새 회의록이면 양식을 바꿀 때 섹션 구성도 함께 새로 채운다(내용은 비운다).
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
+    () => {
+      const def = pickDefaultTemplate(templates);
+      return def ? templateKey(def) : '';
+    },
+  );
+
+  const selectedTemplate = useMemo(
+    () => templates.find((t) => templateKey(t) === selectedTemplateId) ?? null,
+    [templates, selectedTemplateId],
+  );
+
+  const templateOptions = useMemo(
+    () => templates.map((t) => ({ value: templateKey(t), label: t.isDefault ? `${t.name} (기본)` : t.name })),
+    [templates],
+  );
+
+  const handleTemplateChange = useCallback((value: string) => {
+    setSelectedTemplateId(value);
+    // 수정 중인 회의록은 이미 정해진 섹션 구조를 함부로 갈아엎지 않는다 — 양식은 AI 지시만 바꾼다.
+    if (initial) return;
+    const template = templates.find((t) => templateKey(t) === value);
+    if (template) {
+      setSections(template.sections.map((section) => ({ ...section, content: '' })));
+    }
+  }, [initial, templates]);
 
   // 녹음 시작 시 자동 생성에서 최신 입력값을 쓰기 위한 참조
   const stateRef = useRef({ title, location, date, startTime, endTime, attendees, sections, rawNotes });
@@ -164,6 +204,8 @@ export default function MeetingMinutesForm({
         rawNotes,
         transcript,
         title,
+        customInstruction: selectedTemplate?.aiInstruction || undefined,
+        formatExample: selectedTemplate?.formatExample || undefined,
       });
       if (result.length > 0) {
         setSections(result);
@@ -174,7 +216,7 @@ export default function MeetingMinutesForm({
     } finally {
       setAiLoading(false);
     }
-  }, [rawNotes, transcript, sections, title, onNotification]);
+  }, [rawNotes, transcript, sections, title, selectedTemplate, onNotification]);
 
   const save = useCallback(async (registered: boolean) => {
     if (registered && attendees.length === 0) {
@@ -215,8 +257,17 @@ export default function MeetingMinutesForm({
 
   return (
     <VStack gap={4}>
-      {/* 기본 정보 */}
+      {/* 양식 선택 */}
       <Grid columns={2} gap={3}>
+        <Selector
+          label="양식"
+          description={initial
+            ? '이미 정해진 섹션 구조는 그대로 두고, AI 자동 정리가 따를 지시·예시만 이 양식대로 바뀝니다.'
+            : '섹션 구성과 AI 자동 정리 지시를 함께 담고 있어요. 편의기능 > 회의록 > 양식 관리에서 만들 수 있어요.'}
+          options={templateOptions}
+          value={selectedTemplateId}
+          onChange={(value) => handleTemplateChange(value)}
+        />
         <TextInput
           label="주제"
           isRequired
@@ -224,32 +275,38 @@ export default function MeetingMinutesForm({
           onChange={(value) => setTitle(value)}
           placeholder="예: 8월 4주차 전체 회의"
         />
+      </Grid>
+      <Grid columns={3} gap={3}>
         <TextInput
           label="회의 장소"
           value={location}
           onChange={(value) => setLocation(value)}
           placeholder="예: 2층 프로그램실"
         />
-      </Grid>
-      <Grid columns={3} gap={3}>
         <DateInput
           label="회의 날짜"
           isRequired
           value={date ? (date as never) : undefined}
           onChange={(value) => setDate(value || todayLocal())}
         />
-        <TimeInput
-          label="시작 시간"
-          hourFormat="24h"
-          value={startTime ? (startTime as never) : undefined}
-          onChange={(value) => setStartTime(value || '')}
-        />
-        <TimeInput
-          label="종료 시간"
-          hourFormat="24h"
-          value={endTime ? (endTime as never) : undefined}
-          onChange={(value) => setEndTime(value || '')}
-        />
+        <HStack gap={2}>
+          <StackItem size="fill">
+            <TimeInput
+              label="시작 시간"
+              hourFormat="24h"
+              value={startTime ? (startTime as never) : undefined}
+              onChange={(value) => setStartTime(value || '')}
+            />
+          </StackItem>
+          <StackItem size="fill">
+            <TimeInput
+              label="종료 시간"
+              hourFormat="24h"
+              value={endTime ? (endTime as never) : undefined}
+              onChange={(value) => setEndTime(value || '')}
+            />
+          </StackItem>
+        </HStack>
       </Grid>
 
       <Divider />
@@ -290,7 +347,9 @@ export default function MeetingMinutesForm({
           onClick={() => void runAiSummarize()}
         />
         <Text type="supporting" color="secondary">
-          메모·자막을 아래 섹션에 개조식으로 정리합니다. 원문은 지워지지 않아요.
+          {selectedTemplate?.aiInstruction || selectedTemplate?.formatExample
+            ? `"${selectedTemplate.name}" 양식의 지시대로 정리합니다. 원문은 지워지지 않아요.`
+            : '메모·자막을 아래 섹션에 개조식으로 정리합니다. 원문은 지워지지 않아요.'}
         </Text>
       </HStack>
 

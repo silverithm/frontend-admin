@@ -24,10 +24,17 @@ interface MinutesAiRequest {
   rawNotes?: string;
   transcript?: string;
   title?: string;
+  /** 이번 정리에만 적용할 자유 지시 — 예: "존댓말로", "담당자 이름을 앞에 붙여줘" */
+  customInstruction?: string;
+  /** 원하는 출력 형식을 보여주는 few-shot 예시 — 있으면 그 문체·형식을 최우선으로 따른다 */
+  formatExample?: string;
 }
 
 // 전사문이 아주 길어도 요청이 터지지 않게 자른다 (2시간 회의 ≈ 3~4만 자)
 const MAX_SOURCE_LENGTH = 120_000;
+// 자유 지시·형식 예시는 짧은 텍스트라 훨씬 낮게 자른다 (프롬프트 인젝션·과금 방어)
+const MAX_INSTRUCTION_LENGTH = 1_000;
+const MAX_FORMAT_EXAMPLE_LENGTH = 4_000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,7 +70,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '정리할 메모나 녹음 전사문이 없습니다.' }, { status: 400, headers });
     }
 
+    const customInstruction = (body.customInstruction || '').trim().slice(0, MAX_INSTRUCTION_LENGTH);
+    const formatExample = (body.formatExample || '').trim().slice(0, MAX_FORMAT_EXAMPLE_LENGTH);
+
     const sectionList = sections.map((s) => `- ${s.label} (key: ${s.key})`).join('\n');
+
+    // 둘 다 없으면 빈 문자열 — 기존 프롬프트와 완전히 동일하게 동작한다
+    const extraBlocks: string[] = [];
+    if (customInstruction) {
+      extraBlocks.push(`[사용자가 이번 정리에 추가로 요청한 지시]\n${customInstruction}`);
+    }
+    if (formatExample) {
+      extraBlocks.push(
+        `[사용자가 원하는 출력 형식 예시 — 이 예시의 문체·형식을 최대한 따라 정리하세요]\n${formatExample}`,
+      );
+    }
+    const extraBlock = extraBlocks.length > 0 ? `\n${extraBlocks.join('\n\n')}\n` : '';
 
     const prompt = `당신은 주간보호센터(어르신 데이케어센터)의 회의록 서기입니다.
 회의 중 실시간으로 받아 적은 메모와 녹음 전사문을 읽고, 아래 섹션 구성에 맞춰 회의록을 정리하세요.
@@ -79,12 +101,12 @@ ${sectionList}
 - 전사문의 잡담·인사말·반복은 걸러내고 업무 결정사항·전달사항·특이사항만 남긴다.
 - 어르신 성함이 언급되면 "홍길동어르신"처럼 이름 뒤에 '어르신'을 붙여 쓴다.
 - 메모와 전사문에 실제로 있는 내용만 쓴다. 없는 내용을 지어내지 않는다.
-- 반드시 한국어로 작성한다.
+- 반드시 한국어로 작성한다.${extraBlocks.length > 0 ? '\n- 사용자가 추가 지시나 출력 형식 예시를 제공했다면, 위 규칙보다 그 지시·예시의 문체와 형식을 최우선으로 따른다(단, "없는 내용을 지어내지 않는다"는 원칙은 지시가 있어도 항상 지킨다).' : ''}
 
 [예시 출력 형태]
 * 내일 가랜드 만들기 수업 마무리 예정.
 * 금일부터 9월 근무표 작성 예정이며 다음 달부터는 휴무 확정 후 연차를 추가하는 방식으로 진행 예정.
-
+${extraBlock}
 [회의 중 받아 적은 메모]
 ${rawNotes.trim() || '(없음)'}
 

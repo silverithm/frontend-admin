@@ -18,12 +18,12 @@ import MeetingMinutesTemplateSettings from '@/components/meetingMinutes/MeetingM
 import {
   getMeetingMinutesById,
   getMeetingMinutesList,
-  getMeetingMinutesTemplate,
+  listMeetingMinutesTemplates,
 } from '@/lib/apiService';
 import {
   MEETING_MINUTES_STATUS_LABEL,
   MeetingMinutes as MeetingMinutesModel,
-  MinutesSection,
+  MinutesTemplate,
 } from '@/types/meetingMinutes';
 
 interface MeetingMinutesProps {
@@ -49,18 +49,18 @@ function formatWhen(minutes: MeetingMinutesModel): string {
  */
 export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) {
   const [items, setItems] = useState<MeetingMinutesModel[]>([]);
-  const [sections, setSections] = useState<MinutesSection[]>([]);
+  const [templates, setTemplates] = useState<MinutesTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialog, setDialog] = useState<DialogMode>({ kind: 'closed' });
 
   const reload = useCallback(async () => {
     try {
-      const [list, template] = await Promise.all([
+      const [list, templateList] = await Promise.all([
         getMeetingMinutesList(),
-        getMeetingMinutesTemplate(),
+        listMeetingMinutesTemplates(),
       ]);
       setItems(list);
-      setSections(template);
+      setTemplates(templateList);
     } catch (error) {
       console.error('회의록 목록 로드 실패:', error);
       onNotification('회의록을 불러오지 못했어요. 잠시 후 새로고침해 주세요.', 'error');
@@ -103,7 +103,7 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
         </VStack>
         <HStack gap={2}>
           <Button
-            label="양식 설정"
+            label="양식 관리"
             variant="ghost"
             icon={<FiSettings />}
             onClick={() => setDialog({ kind: 'template' })}
@@ -176,7 +176,7 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
             <LayoutContent>
               {dialog.kind === 'form' && (
                 <MeetingMinutesForm
-                  templateSections={sections}
+                  templates={templates}
                   initial={dialog.initial}
                   onDone={() => closeAndReload()}
                   onNotification={onNotification}
@@ -217,29 +217,25 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
         />
       </Dialog>
 
-      {/* 양식 설정 */}
+      {/* 양식 관리 — 회의 성격별로 여러 양식을 만들어 골라 쓴다 */}
       <Dialog
         isOpen={dialog.kind === 'template'}
-        onOpenChange={(open) => { if (!open) setDialog({ kind: 'closed' }); }}
+        onOpenChange={(open) => { if (!open) closeAndReload(); }}
         purpose="form"
-        width={480}
+        width={800}
       >
         <Layout
           header={
             <DialogHeader
-              title="회의록 양식 설정"
-              onOpenChange={(open) => { if (!open) setDialog({ kind: 'closed' }); }}
+              title="회의록 양식 관리"
+              onOpenChange={(open) => { if (!open) closeAndReload(); }}
             />
           }
           content={
             <LayoutContent>
               {dialog.kind === 'template' && (
                 <MeetingMinutesTemplateSettings
-                  sections={sections}
-                  onSaved={(next) => {
-                    setSections(next);
-                    setDialog({ kind: 'closed' });
-                  }}
+                  onClose={closeAndReload}
                   onNotification={onNotification}
                 />
               )}

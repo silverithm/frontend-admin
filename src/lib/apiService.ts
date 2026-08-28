@@ -2961,3 +2961,76 @@ export async function leaveChatRoom(roomId: number) {
         body: JSON.stringify({ userId }),
     });
 }
+
+// ================== 회의록 양식 (회사당 여러 개, V1.85) ==================
+
+import { MinutesTemplate, parseTemplateResponse } from '@/types/meetingMinutes';
+
+interface RawTemplateResponse {
+    id: number | null;
+    name: string;
+    sectionsJson: string;
+    aiInstruction: string | null;
+    formatExample: string | null;
+    isDefault: boolean;
+    sortOrder: number;
+}
+
+export interface SaveMeetingMinutesTemplateInput {
+    name: string;
+    sections: MinutesSection[];
+    aiInstruction?: string | null;
+    formatExample?: string | null;
+    isDefault?: boolean;
+    sortOrder?: number;
+}
+
+/** 회사의 회의록 양식 목록 — 저장된 게 하나도 없으면 애플리케이션 기본값 1개를 돌려받는다(서버가 채워준다) */
+export async function listMeetingMinutesTemplates(): Promise<MinutesTemplate[]> {
+    const companyId = requireCompanyIdForMinutes();
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/templates?companyId=${companyId}`);
+    const templates = Array.isArray(response?.templates) ? response.templates as RawTemplateResponse[] : [];
+    return templates.map(parseTemplateResponse);
+}
+
+function templateInputToBody(input: SaveMeetingMinutesTemplateInput) {
+    return {
+        name: input.name,
+        sectionsJson: JSON.stringify(input.sections),
+        aiInstruction: input.aiInstruction ?? null,
+        formatExample: input.formatExample ?? null,
+        isDefault: input.isDefault ?? null,
+        sortOrder: input.sortOrder ?? null,
+    };
+}
+
+/** 양식 생성 (관리자만) */
+export async function createMeetingMinutesTemplate(input: SaveMeetingMinutesTemplateInput): Promise<MinutesTemplate> {
+    const companyId = requireCompanyIdForMinutes();
+    const response = await fetchWithAuth(`/api/v1/meeting-minutes/templates?companyId=${companyId}`, {
+        method: 'POST',
+        body: JSON.stringify(templateInputToBody(input)),
+    });
+    return parseTemplateResponse(response.template as RawTemplateResponse);
+}
+
+/** 양식 수정 (관리자만) */
+export async function updateMeetingMinutesTemplate(
+    templateId: number,
+    input: SaveMeetingMinutesTemplateInput,
+): Promise<MinutesTemplate> {
+    const companyId = requireCompanyIdForMinutes();
+    const response = await fetchWithAuth(
+        `/api/v1/meeting-minutes/templates/${templateId}?companyId=${companyId}`,
+        { method: 'PUT', body: JSON.stringify(templateInputToBody(input)) },
+    );
+    return parseTemplateResponse(response.template as RawTemplateResponse);
+}
+
+/** 양식 삭제 (관리자만) */
+export async function deleteMeetingMinutesTemplate(templateId: number): Promise<void> {
+    const companyId = requireCompanyIdForMinutes();
+    await fetchWithAuth(`/api/v1/meeting-minutes/templates/${templateId}?companyId=${companyId}`, {
+        method: 'DELETE',
+    });
+}
