@@ -2921,16 +2921,43 @@ export async function getSttToken(): Promise<{ accessToken: string; expiresIn: n
     return fetchWithAuth('/api/v1/meeting-minutes-stt-token', { method: 'POST', body: JSON.stringify({}) });
 }
 
-/** AI 자동 정리 — 메모+전사문을 섹션별 개조식으로 */
+/** AI 자동 정리 — 메모+전사문을 섹션별 개조식으로. customInstruction/formatExample은 이번 정리에만 적용되는 선택 지시 */
 export async function summarizeMeetingMinutes(input: {
     sections: MinutesSection[];
     rawNotes?: string;
     transcript?: string;
     title?: string;
+    customInstruction?: string;
+    formatExample?: string;
 }): Promise<MinutesSectionContent[]> {
     const response = await fetchWithAuth('/api/v1/meeting-minutes-ai', {
         method: 'POST',
         body: JSON.stringify(input),
     });
     return Array.isArray(response?.sections) ? response.sections : [];
+}
+
+// ================== 전자결재 양식 순서 변경 API ==================
+
+/** 양식 관리 화면의 드래그·위/아래 이동 결과를 저장한다. 넘긴 순서 그대로 sortOrder가 매겨진다 */
+export async function reorderApprovalTemplates(orderedTemplateIds: (string | number)[]) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/approval-templates/reorder?companyId=${companyId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ orderedTemplateIds: orderedTemplateIds.map((id) => Number(id)) }),
+    });
+}
+
+// ================== 채팅방 나가기 ==================
+
+/** 채팅방 나가기 — 삭제(방 자체가 사라짐)와 달리 나만 참가자 목록에서 빠진다. 되돌릴 수 없다 */
+export async function leaveChatRoom(roomId: number) {
+    const userId = getMyChatUserId() || '';
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/leave?userId=${encodeURIComponent(userId)}`, {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+    });
 }

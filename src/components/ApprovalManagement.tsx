@@ -8,6 +8,7 @@ import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiU
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import { Badge } from '@astryxdesign/core/Badge';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -118,6 +119,13 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     if (!approval.approvalLine || approval.approvalLine.length === 0) return null;
     const approved = approval.approvalLine.filter((step) => step.status === 'APPROVED').length;
     return `결재 ${approved}/${approval.approvalLine.length}`;
+  };
+
+  // 지금 결재 차례인 사람 이름 (결재선 없으면 null) — 내 차례가 아닌 문서에서
+  // "누가 처리해야 하는지"를 관리자에게 알려주는 데 쓴다.
+  const getCurrentApproverName = (approval: ApprovalRequest) => {
+    const currentStep = approval.approvalLine?.find((step) => step.status === 'PENDING');
+    return currentStep?.approverName ?? null;
   };
 
   useEffect(() => {
@@ -613,27 +621,58 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                           icon={<Icon icon={FiEye} />}
                           onClick={() => handleOpenDetail(approval)}
                         />
-                        {approval.status === 'PENDING' && (canManage || isActionable(approval)) && (
+                        {approval.status === 'PENDING' && isActionable(approval) && (
                           <>
-                            {/* 내 차례가 아니어도 관리자는 직권 승인(전결)·직권 반려 가능 */}
+                            {/* 내 차례인 문서 — 정상 흐름, 1차 액션으로 그대로 노출 */}
                             <Button
-                              label={isActionable(approval) ? '승인' : '직권 승인'}
+                              label="승인"
                               variant="primary"
                               size="sm"
                               icon={<Icon icon={FiCheck} />}
                               isDisabled={isProcessing}
-                              onClick={async () => {
-                                if (!isActionable(approval) && !(await confirmForceApprove(approval))) return;
-                                setQuickApproveTarget(approval);
-                              }}
+                              onClick={() => setQuickApproveTarget(approval)}
                             />
                             <Button
-                              label={isActionable(approval) ? '반려' : '직권 반려'}
+                              label="반려"
                               variant="destructive"
                               size="sm"
                               icon={<Icon icon={FiX} />}
                               isDisabled={isProcessing}
                               onClick={() => handleOpenDetail(approval)}
+                            />
+                          </>
+                        )}
+                        {approval.status === 'PENDING' && canManage && !isActionable(approval) && (
+                          <>
+                            {/* 내 차례가 아닌 문서 — 지금 누구 차례인지 보여주고, 직권 처리는
+                                더보기 메뉴로 한 단계 뒤로 뺀다. 관리자가 매번 직권 승인을 1차
+                                버튼으로 누르는 바람에 정작 담당 직원이 처리할 문서가 없어지던
+                                문제(직원 결재 가시성 버그의 원인) 대응. */}
+                            {getCurrentApproverName(approval) && (
+                              <Badge
+                                variant="neutral"
+                                label={`${getCurrentApproverName(approval)}님 결재 대기 중`}
+                              />
+                            )}
+                            <MoreMenu
+                              label="직권 처리"
+                              items={[
+                                {
+                                  label: '직권 승인',
+                                  icon: FiCheck,
+                                  isDisabled: isProcessing,
+                                  onClick: async () => {
+                                    if (!(await confirmForceApprove(approval))) return;
+                                    setQuickApproveTarget(approval);
+                                  },
+                                },
+                                {
+                                  label: '직권 반려',
+                                  icon: FiX,
+                                  isDisabled: isProcessing,
+                                  onClick: () => handleOpenDetail(approval),
+                                },
+                              ]}
                             />
                           </>
                         )}

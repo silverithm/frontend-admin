@@ -290,9 +290,12 @@ export default function MeetingMinutesDetail({
           ))}
         </Grid>
         {minutes.status === 'REGISTERED' && (
-          <Text type="supporting" color="secondary">
-            직원은 앱 알림으로 각자 서명하고, 앱이 없는 참석자는 이 화면의 현장 서명으로 받으면 됩니다.
-          </Text>
+          <Banner
+            status="info"
+            container="card"
+            title="참석자는 어디서 서명하나요?"
+            description="직원은 케어브이 앱 알림을 받고 앱의 '회의록'에서 서명하거나, 웹에서는 좌측 '편의기능 > 회의록'에서 서명할 수 있습니다. 앱·웹이 없는 참석자(외부인 등)는 이 화면의 '현장 서명'으로 그 자리에서 받아주세요."
+          />
         )}
       </VStack>
 

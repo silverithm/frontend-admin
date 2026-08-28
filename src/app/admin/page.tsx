@@ -23,7 +23,9 @@ import {
     bulkDeleteVacations,
     getMemberUsers,
     getPositions,
+    getApprovalRequests,
 } from "@/lib/apiService";
+import { useVisiblePolling } from "@/lib/useVisiblePolling";
 import {motion, AnimatePresence} from "framer-motion";
 import VacationCalendar from "@/components/VacationCalendar";
 import ScheduleCalendar from "@/components/ScheduleCalendar";
@@ -139,6 +141,8 @@ export default function AdminPage() {
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
     /** 우측 레일에서 고른 대화방 — 채팅 탭이 열릴 때 이 방을 편다 */
     const [railRoomId, setRailRoomId] = useState<number | null>(null);
+    /** 채팅 탭 안에서 지금 실제로 보고 있는 방 — 그 방의 새 메시지는 토스트를 띄우지 않는다 */
+    const [activeChatRoomId, setActiveChatRoomId] = useState<number | null>(null);
     const [showTour, setShowTour] = useState(false);
     // 인라인 함수를 넘기면 투어 쪽 효과가 매 렌더 재실행되어 대상 탐색이 취소된다
     const handleTourNavigate = useCallback((tab: string) => setActiveMainTab(tab as MainTab), []);
@@ -1037,6 +1041,46 @@ export default function AdminPage() {
         toast({ body: message, type: type === "error" ? "error" : "info" });
     };
 
+    /** 클릭하면 해당 화면으로 이동하는 실시간 알림 토스트 (새 메시지·새 결재) */
+    const showActionToast = (message: string, onGo: () => void) => {
+        toast({
+            body: message,
+            type: "info",
+            endContent: (
+                <Button label="이동" size="sm" variant="ghost" onClick={onGo} />
+            ),
+        });
+    };
+
+    /**
+     * 결재 도착 알림 — 채팅과 달리 실시간 채널이 없어 가벼운 폴링으로 대신한다.
+     * useVisiblePolling이 탭이 백그라운드면 스스로 멈춘다. 60초면 충분히 넉넉하다.
+     * 첫 응답은 '지금 이만큼 있다'이지 '새로 왔다'가 아니므로 토스트를 띄우지 않는다.
+     */
+    const seenPendingApprovalIdsRef = useRef<Set<string> | null>(null);
+    useVisiblePolling(async () => {
+        if (!isAdmin) return;
+        try {
+            const data = await getApprovalRequests({ status: 'PENDING' });
+            const list = Array.isArray(data) ? data : (data?.approvals || data?.content || data?.data || []);
+            const ids = new Set<string>(list.map((a: { id: string | number }) => String(a.id)));
+            if (seenPendingApprovalIdsRef.current) {
+                for (const a of list as { id: string | number; title?: string; templateName?: string; requesterName?: string }[]) {
+                    if (!seenPendingApprovalIdsRef.current.has(String(a.id))) {
+                        const who = a.requesterName ? `${a.requesterName}님의 ` : '';
+                        showActionToast(`${who}새로운 결재가 도착했습니다`, () => {
+                            setActiveMainTab('approval');
+                            setApprovalSubTab('management');
+                        });
+                    }
+                }
+            }
+            seenPendingApprovalIdsRef.current = ids;
+        } catch (error) {
+            console.error('[알림] 결재 대기 목록 조회 실패:', error);
+        }
+    }, 60000);
+
     const toggleStatusFilter = (
         status: "all" | "pending" | "approved" | "rejected"
     ) => setStatusFilter(status);
@@ -1401,7 +1445,7 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <ChatManagement onNotification={showNotification} initialRoomId={railRoomId} onUnreadChange={setChatUnread} />
+                            <ChatManagement onNotification={showNotification} initialRoomId={railRoomId} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
                         </motion.div>
                     ) : activeMainTab === "schedule" ? (
                         <motion.div
@@ -1855,17 +1899,24 @@ export default function AdminPage() {
 
             </main>
 
-            {/* 채팅 탭에서는 레일을 띄우지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다 */}
-            {activeMainTab !== "chat" && (
-                <ChatRail
-                    onOpenRoom={(roomId) => {
-                        setRailRoomId(roomId);
+            {/* 채팅 탭에서는 레일을 그리지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다.
+                다만 언마운트는 하지 않는다 — 폴링(새 메시지 토스트 감지)이 다른 탭에서도 계속 돌아야 한다. */}
+            <ChatRail
+                hidden={activeMainTab === "chat"}
+                currentRoomId={activeMainTab === "chat" ? activeChatRoomId : null}
+                onOpenRoom={(roomId) => {
+                    setRailRoomId(roomId);
+                    setActiveMainTab("chat");
+                }}
+                onOpenChatTab={() => setActiveMainTab("chat")}
+                onUnreadChange={setChatUnread}
+                onNewMessage={(room) => {
+                    showActionToast(`${room.name} — 새로운 메시지가 왔습니다`, () => {
+                        setRailRoomId(room.id);
                         setActiveMainTab("chat");
-                    }}
-                    onOpenChatTab={() => setActiveMainTab("chat")}
-                    onUnreadChange={setChatUnread}
-                />
-            )}
+                    });
+                }}
+            />
             </div>
 
             {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}

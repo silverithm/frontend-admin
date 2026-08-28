@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { uploadFileToServer } from '@/lib/apiService';
 import { FormSchema, FormFieldSchema, AGGREGATE_LABEL } from '@/types/formSchema';
 import {
   FormValues,
@@ -28,6 +29,94 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { FieldStatus } from '@astryxdesign/core/FieldStatus';
 import { Icon } from '@astryxdesign/core/Icon';
 import { IconPlus, IconTrash, IconCalculator } from '@tabler/icons-react';
+import ApprovalImageValue from './ApprovalImageValue';
+
+/** 이미지 필드 값 — 업로드된 파일의 서버 경로. 문서 본문에 그대로 그려진다(첨부 목록이 아님) */
+export interface ImageFieldValue {
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number;
+}
+
+const IMAGE_ACCEPT = 'image/jpeg,image/png';
+
+function isImageFile(file: File): boolean {
+  if (IMAGE_ACCEPT.split(',').includes(file.type)) return true;
+  return /\.(jpe?g|png)$/i.test(file.name);
+}
+
+/** 이미지 필드 입력 — 선택 즉시 업로드하고, 문서에 그려질 경로만 formValues에 남긴다 */
+function ImageFieldControl({
+  field,
+  value,
+  error,
+  readOnly,
+  onChange,
+  compact = false,
+}: {
+  field: FormFieldSchema;
+  value: ImageFieldValue | null | undefined;
+  error?: string;
+  readOnly: boolean;
+  onChange: (val: ImageFieldValue | null) => void;
+  compact?: boolean;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | undefined>(undefined);
+  const displayLabel = field.label || '(레이블 없음)';
+
+  const handleSelect = async (files: File | File[] | null) => {
+    const file = Array.isArray(files) ? files[0] : files;
+    if (!file) return;
+    if (!isImageFile(file)) {
+      setUploadError('jpg 또는 png 이미지만 올릴 수 있습니다.');
+      return;
+    }
+    setUploadError(undefined);
+    setIsUploading(true);
+    try {
+      const uploaded = await uploadFileToServer(file, { category: 'approvals' });
+      onChange({ fileUrl: uploaded.filePath, fileName: uploaded.fileName, fileSize: uploaded.fileSize });
+    } catch (err) {
+      console.error('이미지 업로드 실패:', err);
+      setUploadError(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  if (value) {
+    return (
+      <VStack gap={1.5} vAlign="start">
+        {!compact && <Text type="label" weight="medium">{displayLabel}{field.required && <span style={{ color: 'var(--color-text-red)', marginLeft: 'var(--spacing-0-5)' }} aria-hidden> *</span>}</Text>}
+        <ApprovalImageValue fileUrl={value.fileUrl} fileName={value.fileName} maxWidth={compact ? 160 : 240} maxHeight={compact ? 160 : 240} />
+        {!readOnly && (
+          <HStack gap={2} vAlign="center">
+            <Text type="supporting" color="secondary" maxLines={1}>{value.fileName}</Text>
+            <Button label="다른 이미지로 바꾸기" variant="ghost" size="sm" onClick={() => onChange(null)} />
+          </HStack>
+        )}
+      </VStack>
+    );
+  }
+
+  return (
+    <FileInput
+      label={displayLabel}
+      isLabelHidden={compact}
+      isRequired={field.required}
+      isDisabled={readOnly}
+      description={compact ? undefined : field.description}
+      mode="dropzone"
+      accept={IMAGE_ACCEPT}
+      placeholder={field.placeholder || '클릭하거나 끌어놓아 jpg·png 이미지 첨부'}
+      isLoading={isUploading}
+      value={null}
+      onChange={handleSelect}
+      status={error || uploadError ? { type: 'error', message: error || uploadError } : undefined}
+    />
+  );
+}
 
 interface FormRendererProps {
   schema: FormSchema;
@@ -123,6 +212,19 @@ function FieldControl({
           <RadioListItem key={opt.value} label={opt.label} value={opt.value} />
         ))}
       </RadioList>
+    );
+  }
+
+  if (type === 'image') {
+    return (
+      <ImageFieldControl
+        field={field}
+        value={value as ImageFieldValue | null | undefined}
+        error={error}
+        readOnly={readOnly}
+        onChange={onChange}
+        compact={compact}
+      />
     );
   }
 

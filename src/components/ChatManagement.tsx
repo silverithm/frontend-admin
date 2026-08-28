@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, deleteChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
@@ -30,7 +31,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Timestamp } from '@astryxdesign/core/Timestamp';
-import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLogOut, FiCalendar } from 'react-icons/fi';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 
@@ -44,6 +45,8 @@ interface ChatManagementProps {
      * 내려가 있어(같은 목록 중복) 이 화면이 배지 숫자를 책임진다.
      */
     onUnreadChange?: (total: number) => void;
+    /** 지금 화면에 펴 둔 방이 바뀔 때마다 알려준다 — 셸이 그 방의 새 메시지 토스트를 건너뛰는 데 쓴다 */
+    onActiveRoomChange?: (roomId: number | null) => void;
 }
 
 interface ReactionSummary {
@@ -189,7 +192,7 @@ function formatDateSeparator(dateStr: string): string {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
-export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, onUnreadChange }: ChatManagementProps) {
+export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, onUnreadChange, onActiveRoomChange }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<number | null>(initialRoomId);
 
@@ -284,9 +287,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<number | null>(null);
+    /** 메시지 우클릭 → 일정 등록 — 이 메시지의 내용을 제목 초기값으로 다이얼로그를 연다 */
+    const [scheduleSourceMessage, setScheduleSourceMessage] = useState<ChatMessage | null>(null);
 
     /** 헤더 우측 더보기(⋯) 메뉴 — 앱의 채팅방 ⋮ 메뉴와 같은 자리다 */
     const [showRoomMenu, setShowRoomMenu] = useState(false);
+    /** 채팅방 나가기 확인 */
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    const [isLeavingRoom, setIsLeavingRoom] = useState(false);
 
     // 열린 메시지 메뉴는 Escape로 닫는다.
     // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
@@ -965,6 +973,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (selectedRoom) fetchParticipants(selectedRoom);
     }, [selectedRoom, fetchParticipants]);
 
+    // 셸에 지금 보고 있는 방을 알린다 — 우측 레일의 새 메시지 토스트가 이 방만 건너뛴다
+    useEffect(() => {
+        onActiveRoomChange?.(selectedRoom);
+        return () => onActiveRoomChange?.(null);
+    }, [selectedRoom, onActiveRoomChange]);
+
     const deleteRoom = async () => {
         if (!selectedRoom) return;
 
@@ -983,6 +997,28 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             onNotification("채팅방 삭제에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
         } finally {
             setIsDeletingRoom(false);
+        }
+    };
+
+    /** 나가기 — 방은 그대로 남고 나만 참가자 목록에서 빠진다. 삭제와 달리 되돌릴 수 없다는 문구를 확인받는다 */
+    const leaveRoom = async () => {
+        if (!selectedRoom) return;
+
+        setIsLeavingRoom(true);
+        try {
+            await leaveChatRoom(selectedRoom);
+
+            onNotification("채팅방에서 나갔습니다", "success");
+            setShowLeaveConfirm(false);
+            setShowDrawer(false);
+            setSelectedRoom(null);
+            setMessages([]);
+            fetchRooms();
+        } catch (error) {
+            console.error("Error leaving room:", error);
+            onNotification("채팅방 나가기에 실패했습니다. 잠시 후 다시 시도해주세요", "error");
+        } finally {
+            setIsLeavingRoom(false);
         }
     };
 
@@ -1236,36 +1272,45 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                   검색·파일·정보는 웹에선 화면이 넓어 아이콘으로 바로 꺼내 두고,
                                   되돌릴 수 없는 삭제만 이 메뉴 안에 넣는다.
                                 */}
-                                {isAdmin && (
-                                    <div style={{ position: "relative" }}>
-                                        <IconButton
-                                            label="더보기"
-                                            variant={showRoomMenu ? 'secondary' : 'ghost'}
-                                            icon={<Icon icon="moreHorizontal" />}
-                                            onClick={() => setShowRoomMenu(!showRoomMenu)}
-                                        />
-                                        {showRoomMenu && (
-                                            <>
-                                                {/* 바깥 아무 데나 누르면 닫힌다 */}
-                                                <div
-                                                    style={{ position: "fixed", inset: 0, zIndex: 30 }}
-                                                    onClick={() => setShowRoomMenu(false)}
+                                <div style={{ position: "relative" }}>
+                                    <IconButton
+                                        label="더보기"
+                                        variant={showRoomMenu ? 'secondary' : 'ghost'}
+                                        icon={<Icon icon="moreHorizontal" />}
+                                        onClick={() => setShowRoomMenu(!showRoomMenu)}
+                                    />
+                                    {showRoomMenu && (
+                                        <>
+                                            {/* 바깥 아무 데나 누르면 닫힌다 */}
+                                            <div
+                                                style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                                                onClick={() => setShowRoomMenu(false)}
+                                            />
+                                            <div
+                                                style={{
+                                                    position: "absolute",
+                                                    zIndex: 40,
+                                                    top: "100%",
+                                                    right: 0,
+                                                    marginTop: 'var(--spacing-1)',
+                                                    minWidth: 160,
+                                                    background: C.card,
+                                                    border: `1px solid ${C.border}`,
+                                                    borderRadius: 'var(--radius-element)',
+                                                    boxShadow: 'var(--shadow-high)',
+                                                    overflow: "hidden",
+                                                }}
+                                            >
+                                                {/* 나가기 — 나만 방에서 빠진다. 방·메시지는 그대로 남는다 (삭제와 다르다) */}
+                                                <Button
+                                                    label="채팅방 나가기"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    icon={<Icon icon={FiLogOut} size="sm" />}
+                                                    onClick={() => { setShowRoomMenu(false); setShowLeaveConfirm(true); }}
+                                                    style={{ width: "100%", justifyContent: "flex-start" }}
                                                 />
-                                                <div
-                                                    style={{
-                                                        position: "absolute",
-                                                        zIndex: 40,
-                                                        top: "100%",
-                                                        right: 0,
-                                                        marginTop: 'var(--spacing-1)',
-                                                        minWidth: 160,
-                                                        background: C.card,
-                                                        border: `1px solid ${C.border}`,
-                                                        borderRadius: 'var(--radius-element)',
-                                                        boxShadow: 'var(--shadow-high)',
-                                                        overflow: "hidden",
-                                                    }}
-                                                >
+                                                {isAdmin && (
                                                     <Button
                                                         label="채팅 삭제"
                                                         variant="ghost"
@@ -1274,11 +1319,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         onClick={() => { setShowRoomMenu(false); setShowDeleteConfirm(true); }}
                                                         style={{ width: "100%", justifyContent: "flex-start" }}
                                                     />
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </HStack>
                         </div>
 
@@ -1645,18 +1690,35 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         )}
                                                     </div>
 
-                                                    {/* 리액션 표시 */}
+                                                    {/* 리액션 표시 — 흰 배경 알약으로 감싸고, 내가 단 반응은 브랜드색으로 강조한다.
+                                                        여러 개면 줄바꿈되도록 flexWrap을 둔다. */}
                                                     {message.reactions && message.reactions.length > 0 && (
                                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 'var(--spacing-1)', marginTop: 'var(--spacing-1)' }}>
                                                             {message.reactions.map((reaction) => (
-                                                                <Button
+                                                                <button
                                                                     key={reaction.emoji}
-                                                                    size="sm"
-                                                                    variant={reaction.myReaction ? "secondary" : "ghost"}
-                                                                    label={`${reaction.emoji} ${reaction.count}`}
-                                                                    tooltip={reaction.userNames?.join(", ")}
+                                                                    type="button"
+                                                                    className="carev-reaction-badge"
+                                                                    title={reaction.userNames?.join(", ")}
                                                                     onClick={() => handleToggleReaction(message.id, reaction.emoji)}
-                                                                />
+                                                                    style={{
+                                                                        display: "inline-flex",
+                                                                        alignItems: "center",
+                                                                        gap: 'var(--spacing-1)',
+                                                                        padding: "2px var(--spacing-2)",
+                                                                        borderRadius: 'var(--radius-full)',
+                                                                        fontSize: 'var(--font-size-xs)',
+                                                                        lineHeight: 1.4,
+                                                                        cursor: "pointer",
+                                                                        background: reaction.myReaction ? 'var(--color-accent-muted)' : 'var(--color-background-surface)',
+                                                                        border: reaction.myReaction ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                                                                        color: reaction.myReaction ? 'var(--color-text-accent, var(--color-accent))' : 'var(--color-text-primary)',
+                                                                        boxShadow: 'var(--shadow-low)',
+                                                                    }}
+                                                                >
+                                                                    <span>{reaction.emoji}</span>
+                                                                    <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{reaction.count}</span>
+                                                                </button>
                                                             ))}
                                                         </div>
                                                     )}
@@ -1696,6 +1758,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     onClick={() => changeNotice(message.id)}
                                                                     style={{ width: "100%", justifyContent: "flex-start" }}
                                                                 />
+                                                                {/* 메시지 내용을 제목 초기값으로 넘겨 일정 등록 다이얼로그를 연다 — 제목은 그 안에서 자유롭게 수정 가능 */}
+                                                                {!message.isDeleted && (
+                                                                    <Button
+                                                                        label="일정 등록"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        icon={<Icon icon={FiCalendar} size="sm" />}
+                                                                        onClick={() => { setScheduleSourceMessage(message); setContextMenuMessageId(null); }}
+                                                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                                                    />
+                                                                )}
                                                                 {/* 삭제는 내가 보낸 것만. 지우면 그 자리에 '삭제된 메시지입니다'가 남는다 */}
                                                                 {isMyMessage && !message.isDeleted && (
                                                                     pendingDeleteMessageId === message.id ? (
@@ -2125,6 +2198,66 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     }
                 />
             </Dialog>
+
+            {/* Leave Room Confirm Modal — 삭제와 달리 방은 그대로 남고 나만 빠진다 */}
+            <Dialog
+                isOpen={showLeaveConfirm}
+                onOpenChange={(open) => { if (!open) setShowLeaveConfirm(false); }}
+                purpose="required"
+                width={400}
+            >
+                <Layout
+                    header={
+                        <DialogHeader
+                            title="채팅방 나가기"
+                            onOpenChange={(open) => { if (!open) setShowLeaveConfirm(false); }}
+                        />
+                    }
+                    content={
+                        <LayoutContent>
+                            <VStack gap={3}>
+                                <Text type="body">
+                                    <strong>{rooms.find(r => r.id === selectedRoom)?.name}</strong> 채팅방에서 나가시겠습니까?
+                                </Text>
+                                <Banner status="warning" title="나가면 대화 내용을 더 볼 수 없고, 되돌릴 수 없습니다. (방과 메시지 자체는 삭제되지 않습니다)" />
+                            </VStack>
+                        </LayoutContent>
+                    }
+                    footer={
+                        <LayoutFooter hasDivider>
+                            <HStack gap={2} hAlign="end">
+                                <Button
+                                    label="취소"
+                                    variant="ghost"
+                                    onClick={() => setShowLeaveConfirm(false)}
+                                    isDisabled={isLeavingRoom}
+                                />
+                                <Button
+                                    label={isLeavingRoom ? "나가는 중..." : "나가기"}
+                                    variant="destructive"
+                                    onClick={leaveRoom}
+                                    isLoading={isLeavingRoom}
+                                    isDisabled={isLeavingRoom}
+                                />
+                            </HStack>
+                        </LayoutFooter>
+                    }
+                />
+            </Dialog>
+
+            {/* 메시지 우클릭 → 일정 등록 — 기존 등록 다이얼로그를 그대로 재사용하고 제목만 메시지 내용으로 초기화한다 */}
+            {scheduleSourceMessage && (
+                <ScheduleCreateDialog
+                    isOpen
+                    initialDate={new Date()}
+                    initialTitle={scheduleSourceMessage.content}
+                    onClose={() => setScheduleSourceMessage(null)}
+                    onCreated={() => {
+                        setScheduleSourceMessage(null);
+                        onNotification("일정이 등록되었습니다", "success");
+                    }}
+                />
+            )}
 
             {/* 받은 문서 바로 보기 — 결재 첨부와 같은 뷰어를 재사용한다 */}
             {viewerFile && (

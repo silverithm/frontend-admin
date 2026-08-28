@@ -431,14 +431,15 @@ export function FloatingChatMessages({
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 'var(--spacing-0-5)',
-                            padding: "1px var(--spacing-1-5)",
+                            padding: "2px var(--spacing-2)",
                             borderRadius: 'var(--radius-full)',
                             fontSize: 'var(--font-size-xs)',
                             cursor: "pointer",
                             transition: 'background-color var(--duration-fast-min) var(--ease-standard)',
-                            border: reaction.myReaction ? "1px solid var(--color-border-teal)" : `1px solid ${C.border}`,
-                            background: reaction.myReaction ? 'var(--color-background-blue)' : C.bgGray50,
-                            color: reaction.myReaction ? 'var(--color-text-blue)' : 'var(--color-text-primary)',
+                            border: reaction.myReaction ? "1px solid var(--color-accent)" : `1px solid ${C.border}`,
+                            background: reaction.myReaction ? 'var(--color-accent-muted)' : 'var(--color-background-surface)',
+                            color: reaction.myReaction ? 'var(--color-text-accent, var(--color-accent))' : 'var(--color-text-primary)',
+                            boxShadow: 'var(--shadow-low)',
                         }}
                     >
                         <span>{reaction.emoji}</span>

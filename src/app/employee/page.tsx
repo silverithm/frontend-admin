@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logout as apiLogout, getMemberPermissions } from '@/lib/apiService';
@@ -21,6 +21,7 @@ import ApprovalManagement from '@/components/ApprovalManagement';
 import ApprovalTemplateManager from '@/components/ApprovalTemplateManager';
 import UserManagement from '@/components/UserManagement';
 import DispatchManagement from '@/components/DispatchManagement';
+import EmployeeMeetingMinutes from '@/components/meetingMinutes/EmployeeMeetingMinutes';
 import Image from 'next/image';
 import type { Permission } from '@/types/auth';
 import { Button } from '@astryxdesign/core/Button';
@@ -51,14 +52,17 @@ type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 // 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
-type ToolKey = 'dispatch';
+type ToolKey = 'dispatch' | 'meetingMinutes';
 
 export default function EmployeePage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('dashboard');
   const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>('submit');
-  const [activeTool, setActiveTool] = useState<ToolKey>('dispatch');
+  // 편의기능 탭을 처음 열었을 때 보여줄 도구 — 권한을 읽기 전 임시값이며, 아래 effect에서
+  // 배차 권한이 있으면 'dispatch'(기존 동작 유지)로, 없으면 'meetingMinutes'로 한 번만 확정한다.
+  const [activeTool, setActiveTool] = useState<ToolKey>('meetingMinutes');
+  const toolInitializedRef = useRef(false);
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -75,10 +79,20 @@ export default function EmployeePage() {
     const company = localStorage.getItem('companyName') || '';
     setUserName(name);
     setCompanyName(company);
+    // 배차 권한이 있으면 기존처럼 '배차관리'가 먼저 뜨고, 없는 직원만 '회의록'이 먼저 뜬다.
+    // 권한을 아직 모르는 시점에 한 번만 정하고, 이후 권한이 새로고침돼도 사용자가 고른 탭을 덮어쓰지 않는다.
+    const initTool = (perms: Permission[]) => {
+      if (toolInitializedRef.current) return;
+      toolInitializedRef.current = true;
+      setActiveTool(perms.includes('SCHEDULE_DISPATCH') ? 'dispatch' : 'meetingMinutes');
+    };
+
     try {
       const storedPerms = localStorage.getItem('permissions');
       if (storedPerms) {
-        setPermissions(JSON.parse(storedPerms));
+        const parsed = JSON.parse(storedPerms) as Permission[];
+        setPermissions(parsed);
+        initTool(parsed);
       }
     } catch {
       setPermissions([]);
@@ -93,6 +107,8 @@ export default function EmployeePage() {
           const freshPerms = (data?.permissions || []) as Permission[];
           setPermissions(freshPerms);
           localStorage.setItem('permissions', JSON.stringify(freshPerms));
+          // localStorage에 캐시된 권한이 없어 위에서 못 정했을 경우를 대비한 두 번째 기회
+          initTool(freshPerms);
         })
         .catch(() => {
           // 조회 실패 시 로그인 시점에 저장된 권한 유지
@@ -135,6 +151,8 @@ export default function EmployeePage() {
     ...(hasPermission('SCHEDULE_DISPATCH') ? [
       { key: 'dispatch' as const, label: '배차관리' },
     ] : []),
+    // 회의록은 참석자로 지정된 사람만 서버가 걸러 보여주므로 권한 게이팅 없이 항상 노출한다.
+    { key: 'meetingMinutes' as const, label: '회의록' },
   ] as { key: ToolKey; label: string }[]);
 
   // 관리자 화면과 같은 순서: 커뮤니티를 맨 위에 두고 그 아래가 기관 업무 메뉴다.
@@ -332,6 +350,9 @@ export default function EmployeePage() {
                   {/* 새 편의기능은 여기에 분기를 추가한다 */}
                   {activeTool === 'dispatch' && hasPermission('SCHEDULE_DISPATCH') && (
                     <DispatchManagement onNotification={showNotification} />
+                  )}
+                  {activeTool === 'meetingMinutes' && (
+                    <EmployeeMeetingMinutes onNotification={showNotification} />
                   )}
                 </motion.div>
               ) : activeMainTab === 'approval' ? (

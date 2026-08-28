@@ -48,6 +48,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   radio: '라디오',
   checkbox: '체크박스',
   file: '파일 첨부',
+  image: '이미지',
   section: '구분선',
   computed: '자동 계산',
   repeater: '반복 항목',
@@ -65,7 +66,7 @@ export default function FormFieldEditor({ field, onChange, schema }: FormFieldEd
   };
 
   const hasOptions = field.type === 'select' || field.type === 'radio' || field.type === 'checkbox';
-  const hasPlaceholder = !['section', 'file'].includes(field.type);
+  const hasPlaceholder = !['section', 'file', 'image'].includes(field.type);
   const hasWidth = field.type !== 'section';
   const hasTextValidation = field.type === 'text' || field.type === 'textarea';
   const hasNumberValidation = field.type === 'number';

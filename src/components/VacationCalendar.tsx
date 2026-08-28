@@ -742,7 +742,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </div>
       )}
       <div ref={calendarRef} className="carev-vaccal-body" style={{ padding: 'var(--spacing-5)', display: 'flex', flexDirection: 'column' }}>
-        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%">
+        {/* 헤더(월 표시·조작)와 달력 그리드 사이 구분선 — 일정·대시보드 달력 카드와 같은 문법으로 맞춘다 */}
+        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%" style={{ paddingBottom: 'var(--spacing-4)', marginBottom: 'var(--spacing-4)', borderBottom: '1px solid var(--color-border)' }}>
           <HStack gap={2} vAlign="center">
             <Icon icon="calendar" size="sm" color="secondary" />
             <VStack gap={0.5}>

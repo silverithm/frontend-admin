@@ -32,6 +32,7 @@ import {
   IconCircleDot,
   IconSquareCheck,
   IconPaperclip,
+  IconPhoto,
   IconSeparator,
   IconX,
   IconCalculator,
@@ -63,6 +64,7 @@ const FIELD_TYPE_ICONS: Record<FieldType, React.ReactNode> = {
   radio: <IconCircleDot size={14} stroke={1.5} />,
   checkbox: <IconSquareCheck size={14} stroke={1.5} />,
   file: <IconPaperclip size={14} stroke={1.5} />,
+  image: <IconPhoto size={14} stroke={1.5} />,
   section: <IconSeparator size={14} stroke={1.5} />,
   computed: <IconCalculator size={14} stroke={1.5} />,
   repeater: <IconTable size={14} stroke={1.5} />,
@@ -103,6 +105,7 @@ const DEFAULT_FIELD_BY_TYPE: Record<FieldType, Partial<FormFieldSchema>> = {
     ],
   },
   file: { label: '파일 첨부', width: 'full', required: false },
+  image: { label: '이미지', width: 'full', required: false },
   section: { label: '구분선', required: false },
   computed: {
     label: '합계',

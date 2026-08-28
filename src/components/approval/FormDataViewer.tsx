@@ -12,6 +12,7 @@ import { Grid, GridSpan } from '@astryxdesign/core/Grid';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
 import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
+import ApprovalImageValue from './ApprovalImageValue';
 
 function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -65,6 +66,10 @@ function formatValue(field: FormFieldSchema, value: any): React.ReactNode {
           })}
         </HStack>
       );
+    }
+
+    case 'image': {
+      return <ApprovalImageValue fileUrl={value?.fileUrl} fileName={value?.fileName} maxWidth={240} maxHeight={240} />;
     }
 
     case 'file': {

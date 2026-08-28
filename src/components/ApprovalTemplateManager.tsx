@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates, uploadFileToServer } from '@/lib/apiService';
+import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates, uploadFileToServer, reorderApprovalTemplates } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { FormSchema } from '@/types/formSchema';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
@@ -31,6 +31,7 @@ import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
 import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder } from 'react-icons/fi';
+import { IconGripVertical, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
   DEFAULT_TEMPLATE_CATEGORIES,
@@ -99,6 +100,10 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
   const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
   /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
   const [companyName, setCompanyName] = useState('');
+  // 양식 순서 조정(드래그 + 위/아래 이동)
+  const [draggingTemplateId, setDraggingTemplateId] = useState<string | number | null>(null);
+  const [dropTargetTemplateId, setDropTargetTemplateId] = useState<string | number | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // 템플릿 로드
   useEffect(() => {
@@ -240,6 +245,12 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     if (categoryFilter === UNCATEGORIZED_LABEL) return templates.filter((t) => !(t.category || '').trim());
     return templates.filter((t) => (t.category || '').trim() === categoryFilter);
   }, [templates, categoryFilter]);
+
+  /**
+   * 순서 조정은 전체 목록 기준으로만 허용한다 — 대분류로 걸러진 상태에서 바꾸면
+   * 화면에 안 보이는 나머지 양식들과 순서가 뒤섞인다(sortOrder는 회사 전체 공유값).
+   */
+  const canReorder = isAdmin && categoryFilter === '';
 
   /** 대분류 이름 일괄 변경 — 그 분류의 모든 양식 category를 새 이름으로 바꾼다 */
   const handleRenameCategories = async () => {
@@ -437,6 +448,49 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
     }
   };
 
+  /**
+   * 새 순서를 저장한다. 화면은 먼저 바꾸고(낙관적 업데이트), 저장이 실패하면 원래 순서로 되돌린다.
+   * 순서는 전체 양식 기준으로만 관리하므로(백엔드 sortOrder가 회사 전체를 공유),
+   * 대분류 필터가 걸려 일부만 보이는 상태에서는 순서를 바꾸지 않는다(canReorder로 막음).
+   */
+  const persistOrder = async (newOrder: ApprovalTemplate[]) => {
+    const previous = templates;
+    setTemplates(newOrder);
+    setIsSavingOrder(true);
+    try {
+      await reorderApprovalTemplates(newOrder.map((t) => t.id));
+    } catch (error) {
+      console.error('양식 순서 저장 실패:', error);
+      setTemplates(previous);
+      showAlert({ type: 'error', title: '순서 변경 실패', message: '양식 순서를 저장하지 못했습니다. 다시 시도해주세요.' });
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  // 위/아래 이동 버튼 — 드래그가 어려운 터치·모바일 환경을 위한 접근성 대안
+  const moveTemplate = (id: string | number, direction: 'up' | 'down') => {
+    const index = templates.findIndex((t) => String(t.id) === String(id));
+    if (index < 0) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= templates.length) return;
+    const next = [...templates];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+    persistOrder(next);
+  };
+
+  // 드래그로 순서 바꾸기 — 놓은 위치 앞에 끼워 넣는다 (FormSchemaBuilder의 필드 순서 변경과 같은 방식)
+  const reorderTemplatesByDrag = (fromId: string | number, toId: string | number) => {
+    if (String(fromId) === String(toId)) return;
+    const next = [...templates];
+    const fromIndex = next.findIndex((t) => String(t.id) === String(fromId));
+    const toIndex = next.findIndex((t) => String(t.id) === String(toId));
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    persistOrder(next);
+  };
+
   // 편집 모달 열기
   const openEditModal = (template: ApprovalTemplate) => {
     setEditingTemplate(template);
@@ -604,6 +658,12 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           </HStack>
         )}
 
+        {isAdmin && !isLoading && templates.length > 1 && !canReorder && (
+          <Text type="supporting" color="secondary">
+            순서 조정은 '전체' 보기에서만 할 수 있습니다. 대분류 필터를 해제해주세요.
+          </Text>
+        )}
+
         {/* 템플릿 목록 */}
         <Card padding={0}>
           {isLoading ? (
@@ -615,6 +675,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
               <Table hasHover dividers="rows">
                 <thead>
                   <TableRow isHeaderRow>
+                    {isAdmin && <TableHeaderCell>순서</TableHeaderCell>}
                     <TableHeaderCell>양식명</TableHeaderCell>
                     <TableHeaderCell>대분류</TableHeaderCell>
                     <TableHeaderCell>설명</TableHeaderCell>
@@ -626,8 +687,66 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                   </TableRow>
                 </thead>
                 <tbody>
-                  {filteredTemplates.map((template) => (
-                    <TableRow key={template.id}>
+                  {filteredTemplates.map((template, rowIndex) => (
+                    <TableRow
+                      key={template.id}
+                      draggable={canReorder}
+                      onDragStart={canReorder ? () => setDraggingTemplateId(template.id) : undefined}
+                      onDragEnd={canReorder ? () => { setDraggingTemplateId(null); setDropTargetTemplateId(null); } : undefined}
+                      onDragOver={canReorder ? (e) => { e.preventDefault(); setDropTargetTemplateId(template.id); } : undefined}
+                      onDragLeave={canReorder ? () => setDropTargetTemplateId((prev) => (String(prev) === String(template.id) ? null : prev)) : undefined}
+                      onDrop={
+                        canReorder
+                          ? (e) => {
+                              e.preventDefault();
+                              if (draggingTemplateId != null) reorderTemplatesByDrag(draggingTemplateId, template.id);
+                              setDraggingTemplateId(null);
+                              setDropTargetTemplateId(null);
+                            }
+                          : undefined
+                      }
+                      style={{
+                        opacity: canReorder && String(draggingTemplateId) === String(template.id) ? 0.5 : 1,
+                        boxShadow:
+                          canReorder && String(dropTargetTemplateId) === String(template.id) && String(draggingTemplateId) !== String(template.id)
+                            ? 'inset 0 2px 0 0 var(--color-accent)'
+                            : undefined,
+                      }}
+                    >
+                      {isAdmin && (
+                        <TableCell>
+                          <HStack gap={0.5} vAlign="center">
+                            <span
+                              aria-hidden
+                              style={{
+                                display: 'inline-flex',
+                                color: canReorder ? 'var(--color-icon-secondary)' : 'var(--color-icon-disabled)',
+                                cursor: canReorder ? 'grab' : 'default',
+                              }}
+                            >
+                              <IconGripVertical size={16} stroke={1.5} />
+                            </span>
+                            <VStack gap={0}>
+                              <IconButton
+                                label="위로 이동"
+                                variant="ghost"
+                                size="sm"
+                                icon={<Icon icon={IconChevronUp} size="sm" />}
+                                isDisabled={!canReorder || rowIndex === 0 || isSavingOrder}
+                                onClick={() => moveTemplate(template.id, 'up')}
+                              />
+                              <IconButton
+                                label="아래로 이동"
+                                variant="ghost"
+                                size="sm"
+                                icon={<Icon icon={IconChevronDown} size="sm" />}
+                                isDisabled={!canReorder || rowIndex === filteredTemplates.length - 1 || isSavingOrder}
+                                onClick={() => moveTemplate(template.id, 'down')}
+                              />
+                            </VStack>
+                          </HStack>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Text weight="semibold">{template.name}</Text>
                       </TableCell>

@@ -58,6 +58,10 @@ export interface MeetingMinutes {
   createdAt: string;
   signedCount: number;
   attendeeCount: number;
+  /** 호출자 본인의 참석자 행 id — 참석자가 아니면 null (목록/상세 공통) */
+  myAttendeeId: number | null;
+  /** 호출자 본인의 서명 시각 — null이면 아직 미서명 */
+  mySignedAt: string | null;
   attendees?: MeetingMinutesAttendee[];
   audioChunks?: MeetingMinutesAudioChunk[];
   attachments?: MeetingMinutesAttachment[];

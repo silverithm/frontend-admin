@@ -27,6 +27,62 @@ const KEEPALIVE_MS = 8_000;
 
 export type RecorderPhase = 'idle' | 'recording' | 'paused' | 'stopping';
 
+/** 마이크를 못 쓰는 구체적인 이유 — 뭉뚱그린 토스트 하나로 끝내지 않고 원인별로 다르게 안내한다 */
+type MicIssueKind = 'denied' | 'not-found' | 'security' | 'in-use' | 'no-api' | 'unknown';
+
+function classifyMicError(error: unknown): MicIssueKind {
+  if (typeof navigator !== 'undefined' && !navigator.mediaDevices?.getUserMedia) {
+    return 'no-api';
+  }
+  if (error instanceof DOMException) {
+    switch (error.name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+        return 'denied';
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'not-found';
+      case 'SecurityError':
+        return 'security';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'in-use';
+      default:
+        return 'unknown';
+    }
+  }
+  return 'unknown';
+}
+
+/** 브라우저별로 차단 해제 방법이 달라서, 대략적인 UA로 골라 안내한다. 모르면 크롬 기준으로 보여준다 */
+function detectBrowserHint(): 'safari' | 'chrome' {
+  if (typeof navigator === 'undefined') return 'chrome';
+  const ua = navigator.userAgent;
+  const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg\//.test(ua);
+  return isSafari ? 'safari' : 'chrome';
+}
+
+/** 실패 직후 짧게 띄우는 토스트 — 자세한 해결 방법은 아래 배너에 남는다 */
+const MIC_ISSUE_TOAST: Record<MicIssueKind, string> = {
+  denied: '브라우저가 마이크를 차단해 두었습니다. 아래 안내대로 허용으로 바꿔주세요.',
+  'not-found': '이 기기에서 마이크를 찾지 못했습니다.',
+  security: '브라우저 보안 정책이 마이크를 막고 있습니다.',
+  'in-use': '다른 프로그램이 마이크를 쓰고 있는 것 같습니다.',
+  'no-api': '이 브라우저는 녹음 기능을 지원하지 않습니다.',
+  unknown: '마이크를 사용할 수 없어요.',
+};
+
+/** navigator.permissions로 미리 상태를 읽는다 — 없는 브라우저(Safari 등)는 조용히 'unsupported' */
+async function queryMicPermissionState(): Promise<PermissionState | 'unsupported'> {
+  try {
+    if (!navigator.permissions?.query) return 'unsupported';
+    const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+    return status.state;
+  } catch {
+    return 'unsupported';
+  }
+}
+
 interface MeetingRecorderProps {
   /** 회의록 id — 아직 없으면 녹음 시작 시 만들어 받는다 */
   minutesId: number | null;
@@ -55,6 +111,31 @@ export default function MeetingRecorder({
   const [elapsedSec, setElapsedSec] = useState(0);
   const [interim, setInterim] = useState('');
   const [sttDown, setSttDown] = useState(false);
+  /** 버튼을 누르기 전에 미리 읽어두는 권한 상태 — 'unsupported'면 Safari 등 조회 자체를 못 하는 브라우저 */
+  const [micPermission, setMicPermission] = useState<PermissionState | 'unsupported'>('unsupported');
+  /** getUserMedia가 실제로 실패했을 때의 구체적인 원인 — idle로 돌아가도 안내는 남겨둔다 */
+  const [micIssue, setMicIssue] = useState<MicIssueKind | null>(null);
+
+  // 마이크 권한 상태를 미리 읽어 버튼을 누르기 전에 안내한다. 지원 브라우저면 설정 변경도 실시간 반영.
+  useEffect(() => {
+    let status: PermissionStatus | null = null;
+    let cancelled = false;
+    (async () => {
+      const state = await queryMicPermissionState();
+      if (cancelled) return;
+      setMicPermission(state);
+      if (state !== 'unsupported' && navigator.permissions?.query) {
+        try {
+          status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          status.onchange = () => setMicPermission(status!.state);
+        } catch { /* 조회 실패 시 무시 — 버튼을 눌렀을 때 실제 결과로 판단한다 */ }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (status) status.onchange = null;
+    };
+  }, []);
 
   const streamRef = useRef<MediaStream | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -208,13 +289,20 @@ export default function MeetingRecorder({
 
     let stream: MediaStream;
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('getUserMedia unsupported');
+      }
       stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
       });
-    } catch {
-      onNotification('마이크를 사용할 수 없어요. 브라우저의 마이크 권한을 허용해 주세요.', 'error');
+    } catch (error) {
+      const kind = classifyMicError(error);
+      setMicIssue(kind);
+      // 원인별로 다른 안내를 배너로 남기고(아래 렌더링), 토스트는 짧게만
+      onNotification(MIC_ISSUE_TOAST[kind], 'error');
       return;
     }
+    setMicIssue(null);
     streamRef.current = stream;
 
     await connectStt();
@@ -348,6 +436,8 @@ export default function MeetingRecorder({
         )}
       </HStack>
 
+      <MicGuidanceBanner phase={phase} micPermission={micPermission} micIssue={micIssue} />
+
       {sttDown && phase !== 'idle' && (
         <Banner
           status="warning"
@@ -382,4 +472,114 @@ export default function MeetingRecorder({
       )}
     </VStack>
   );
+}
+
+interface MicGuidanceBannerProps {
+  phase: RecorderPhase;
+  micPermission: PermissionState | 'unsupported';
+  micIssue: MicIssueKind | null;
+}
+
+/**
+ * 마이크를 못 쓰는 이유를 하나로 뭉뚱그리지 않고 상황별로 안내한다.
+ * 실제 실패(micIssue)가 있으면 그걸 우선하고, 없으면 미리 읽어둔 권한 상태(micPermission)로
+ * 아직 시작 전인 사용자에게 무엇이 뜰지 미리 알려준다.
+ */
+function MicGuidanceBanner({ phase, micPermission, micIssue }: MicGuidanceBannerProps) {
+  const browser = detectBrowserHint();
+
+  if (micIssue === 'denied' || (!micIssue && micPermission === 'denied' && phase === 'idle')) {
+    return (
+      <Banner
+        status="warning"
+        container="section"
+        title="브라우저가 마이크를 차단해 두었습니다."
+        description="버튼을 눌러도 허용 팝업이 뜨지 않는다면, 이미 '차단'으로 저장돼 있는 경우입니다. 아래 순서대로 직접 풀어주세요."
+        defaultIsExpanded
+      >
+        {browser === 'safari' ? (
+          <VStack gap={1}>
+            <Text type="supporting">1. 주소창 왼쪽의 "aA" 아이콘(또는 Safari 메뉴 &gt; 이 웹 사이트 설정)을 누르세요.</Text>
+            <Text type="supporting">2. "마이크"를 "허용"으로 바꾸세요.</Text>
+            <Text type="supporting">3. 페이지를 새로고침한 뒤 다시 "회의 녹음 시작"을 눌러주세요.</Text>
+          </VStack>
+        ) : (
+          <VStack gap={1}>
+            <Text type="supporting">1. 주소창 왼쪽의 자물쇠(또는 정보 ⓘ) 아이콘을 누르세요.</Text>
+            <Text type="supporting">2. "마이크" 항목을 찾아 "차단"을 "허용"으로 바꾸세요.</Text>
+            <Text type="supporting">3. 페이지를 새로고침한 뒤 다시 "회의 녹음 시작"을 눌러주세요.</Text>
+          </VStack>
+        )}
+      </Banner>
+    );
+  }
+
+  if (micIssue === 'not-found') {
+    return (
+      <Banner
+        status="error"
+        container="section"
+        title="이 기기에서 마이크를 찾지 못했습니다."
+        description="마이크가 연결돼 있는지, 이 컴퓨터/기기에 내장 마이크가 있는지 확인한 뒤 다시 시도해주세요."
+      />
+    );
+  }
+
+  if (micIssue === 'security') {
+    return (
+      <Banner
+        status="error"
+        container="section"
+        title="브라우저 보안 정책이 마이크를 막고 있습니다."
+        description="이 문제는 직접 해결할 수 없는 설정입니다 — 관리자에게 알려주세요."
+      />
+    );
+  }
+
+  if (micIssue === 'in-use') {
+    return (
+      <Banner
+        status="warning"
+        container="section"
+        title="다른 프로그램이 마이크를 사용 중인 것 같습니다."
+        description="화상회의 앱 등 마이크를 쓰는 다른 프로그램·탭을 닫은 뒤 다시 시도해주세요."
+      />
+    );
+  }
+
+  if (micIssue === 'no-api') {
+    return (
+      <Banner
+        status="error"
+        container="section"
+        title="이 브라우저에서는 녹음 기능을 지원하지 않습니다."
+        description="최신 Chrome, Edge, Safari로 다시 시도해주세요."
+      />
+    );
+  }
+
+  if (micIssue === 'unknown') {
+    return (
+      <Banner
+        status="error"
+        container="section"
+        title="마이크를 사용할 수 없습니다."
+        description="잠시 후 다시 시도해주세요. 계속되면 관리자에게 알려주세요."
+      />
+    );
+  }
+
+  // 아직 실패한 적은 없지만, 처음이라 브라우저가 허용을 물어볼 거라는 걸 미리 알려준다
+  if (!micIssue && micPermission === 'prompt' && phase === 'idle') {
+    return (
+      <Banner
+        status="info"
+        container="section"
+        title="버튼을 누르면 마이크 허용 팝업이 뜹니다."
+        description="처음 한 번만 물어봐요 — 팝업에서 '허용'을 눌러야 녹음을 시작할 수 있어요."
+      />
+    );
+  }
+
+  return null;
 }

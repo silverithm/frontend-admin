@@ -125,7 +125,7 @@ export function createEmptyRow(field: FormFieldSchema): Record<string, any> {
 }
 
 function isValueEmpty(value: unknown, type: string): boolean {
-  if (type === 'file') return !value;
+  if (type === 'file' || type === 'image') return !value;
   if (Array.isArray(value)) return value.length === 0;
   return value === '' || value === null || value === undefined;
 }

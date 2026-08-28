@@ -40,6 +40,8 @@ interface ScheduleCreateDialogProps {
   onClose: () => void;
   /** 등록에 성공하면 호출 — 부모가 달력을 다시 읽는다 */
   onCreated?: () => void;
+  /** 제목 초기값 — 채팅 메시지에서 바로 일정을 등록할 때처럼, 열릴 때 채워두되 자유롭게 수정 가능하다 */
+  initialTitle?: string;
 }
 
 interface MemberLike {
@@ -66,7 +68,7 @@ const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
  * 직원·구분 목록은 스스로 불러오므로 부모는 날짜와 성공 콜백만 넘기면 된다.
  * (월간일정 탭의 폼과 항목이 같아야 한다 — 필드를 바꿀 땐 ScheduleCalendar 쪽도 함께.)
  */
-export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onCreated }: ScheduleCreateDialogProps) {
+export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onCreated, initialTitle }: ScheduleCreateDialogProps) {
   const { showAlert, AlertContainer } = useAlert();
 
   const [members, setMembers] = useState<MemberLike[]>([]);
@@ -77,7 +79,7 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
 
   const dateStr = format(initialDate, 'yyyy-MM-dd');
   const [formData, setFormData] = useState({
-    title: '',
+    title: initialTitle || '',
     category: 'MEETING' as ScheduleCategory,
     color: '',
     location: '',
@@ -97,11 +99,12 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
     if (!isOpen) return;
     const nextDate = format(initialDate, 'yyyy-MM-dd');
     setFormData({
-      title: '', category: 'MEETING', color: '', location: '',
+      title: initialTitle || '', category: 'MEETING', color: '', location: '',
       startDate: nextDate, startTime: '09:00', endDate: nextDate, endTime: '10:00',
       isAllDay: false, sendNotification: true, participantIds: [], managerId: '', labelId: '',
     });
     setParticipantRoleFilter([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialDate]);
 
   // 직원·구분 목록 — 다이얼로그가 처음 열릴 때 한 번

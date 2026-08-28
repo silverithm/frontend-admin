@@ -54,6 +54,15 @@ interface ChatRailProps {
     onOpenChatTab: () => void;
     /** 전체 안 읽은 메시지 수를 셸에 알린다 — 사이드바 채팅 탭 배지가 이 값을 쓴다 */
     onUnreadChange?: (total: number) => void;
+    /**
+     * 화면엔 그리지 않되(다른 탭 위에 겹치지 않게) 폴링은 계속 돈다 — 채팅 탭 안에서도
+     * '지금 보는 방이 아닌 다른 방'의 새 메시지 토스트를 띄우려면 언마운트하면 안 된다.
+     */
+    hidden?: boolean;
+    /** 지금 실제로 들여다보고 있는 방 — 이 방의 새 메시지는 토스트를 띄우지 않는다 */
+    currentRoomId?: number | null;
+    /** 어떤 방이든 안읽음 수가 늘면(내가 보고 있는 방 제외) 호출한다 — 셸이 토스트를 띄운다 */
+    onNewMessage?: (room: RailRoom) => void;
 }
 
 type RailState = { isOpen: boolean; showPeople: boolean; showRooms: boolean };
@@ -78,7 +87,7 @@ function readStoredState(): RailState {
  * 레일 자체와 두 구역을 각각 접을 수 있고, 접힌 상태는 기억한다.
  * 대화 내용은 여기 담지 않는다 — 폭이 좁아 읽기 어렵고, 이미 채팅 화면이 그 일을 한다.
  */
-export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange }: ChatRailProps) {
+export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, currentRoomId, onNewMessage }: ChatRailProps) {
     const [state, setState] = useState<RailState>(DEFAULT_STATE);
     const [hydrated, setHydrated] = useState(false);
 
@@ -123,13 +132,40 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange }: ChatRail
 
     /** 첫 방 목록을 받기 전에는 안읽음 수를 셸에 보고하지 않기 위한 표식 */
     const hasLoadedRoomsRef = useRef(false);
+    /** 직전 폴링 결과 — 안읽음 수 증가를 비교하려면 setRooms로 인한 재렌더를 기다리지 않고 바로 필요하다 */
+    const prevRoomsRef = useRef<RailRoom[]>([]);
+    /** 최신 currentRoomId/onNewMessage/dockRoomId를 ref로 들고 있는다 — loadRooms를 매번 새로 만들지 않기 위해서다 */
+    const currentRoomIdRef = useRef(currentRoomId);
+    currentRoomIdRef.current = currentRoomId;
+    const onNewMessageRef = useRef(onNewMessage);
+    onNewMessageRef.current = onNewMessage;
+    const dockRoomIdRef = useRef<number | null>(null);
+    dockRoomIdRef.current = dockRoomId;
 
     const loadRooms = useCallback(async () => {
         if (!companyId || !userId) return;
         try {
             const data = await fetchChatRooms();
             const list = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
+
+            // 새 메시지 감지 — 안읽음 수가 늘어난 방(내가 지금 보고 있는 방/작은 창으로 띄운 방은 제외)만 알린다.
+            // 첫 로드는 '증가'가 아니라 '처음 안다'이므로 여기서 토스트를 띄우지 않는다.
+            if (hasLoadedRoomsRef.current) {
+                const prevMap = new Map(prevRoomsRef.current.map((r) => [r.id, r]));
+                for (const room of list as RailRoom[]) {
+                    const prevUnread = prevMap.get(room.id)?.unreadCount ?? 0;
+                    if (
+                        room.unreadCount > prevUnread &&
+                        room.id !== currentRoomIdRef.current &&
+                        room.id !== dockRoomIdRef.current
+                    ) {
+                        onNewMessageRef.current?.(room);
+                    }
+                }
+            }
+
             hasLoadedRoomsRef.current = true; // setRooms로 인한 재렌더에서 배지 보고가 열리도록 먼저 세운다
+            prevRoomsRef.current = list;
             setRooms(list);
         } catch (error) {
             console.error("[ChatRail] 대화방 목록 로드 실패:", error);
@@ -234,6 +270,9 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange }: ChatRail
     };
 
     if (!companyId || !userId || !userName) return null;
+    // 채팅 탭 안에서는 화면을 그리지 않는다 — 위의 훅들(폴링·STOMP)은 계속 살아 있어야 하므로
+    // 컴포넌트를 언마운트하지 않고 여기서만 렌더를 건너뛴다.
+    if (hidden) return null;
 
     // 하이드레이션 전에는 저장된 접힘 상태를 모르므로 펼친 모습으로 그린다 (기본값과 동일)
     const isOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;

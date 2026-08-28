@@ -8,6 +8,8 @@ export type FieldType =
   | 'radio'
   | 'checkbox'
   | 'file'
+  /** jpg/png 이미지를 올리면 첨부 목록이 아니라 문서 본문에 그림으로 그려지는 필드 */
+  | 'image'
   | 'section'
   /** 다른 숫자 필드를 집계해 자동으로 값이 채워지는 필드 */
   | 'computed'

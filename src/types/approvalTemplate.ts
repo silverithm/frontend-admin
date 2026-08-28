@@ -12,6 +12,7 @@ export interface ApprovalTemplate {
   fileName: string;          // 원본 파일명
   fileSize: number;          // 파일 크기 (바이트)
   isActive: boolean;         // 활성화 여부
+  sortOrder?: number;        // 양식 관리 화면 표시 순서 (오름차순)
   createdAt: string;
   updatedAt: string;
   formSchema?: FormSchema;

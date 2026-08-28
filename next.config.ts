@@ -40,6 +40,20 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // 회의록 녹음(admin·employee 편의기능)은 마이크가 필요하다. 전역 규칙이 microphone=()로
+        // 완전히 막아버려서 getUserMedia가 브라우저 권한 팝업조차 띄우지 못하고 바로 실패했다
+        // (Permissions-Policy가 API 자체를 차단 — 사용자가 무엇을 눌러도 소용없었다).
+        // 이 두 경로만 같은 출처(self)에서 마이크를 허용한다. Next.js는 같은 헤더 키가 겹치면
+        // 배열에서 나중에 오는 규칙이 앞의 값을 덮어쓴다.
+        source: '/(admin|employee)/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=()',
+          },
+        ],
+      },
+      {
         // 관리자 및 결제 페이지에만 강한 보안 적용
         source: '/(admin|payment)/:path*',
         headers: [

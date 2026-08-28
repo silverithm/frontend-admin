@@ -61,7 +61,8 @@ export function formatFieldValueText(
         .join(', ');
     }
 
-    case 'file': {
+    case 'file':
+    case 'image': {
       return value?.fileName || value?.name || String(value);
     }
 

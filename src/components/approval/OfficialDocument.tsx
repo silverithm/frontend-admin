@@ -8,9 +8,10 @@ import { Button } from '@astryxdesign/core/Button';
 import { HStack } from '@astryxdesign/core/Stack';
 import { ApprovalRequest, ApprovalStep, DocumentFooter } from '@/types/approval';
 import { FormSchema, FormFieldSchema } from '@/types/formSchema';
-import { chunkRowForDocTable, docRowColumnTemplate, formatFieldValueText, groupFieldsIntoRows } from './formValueFormat';
+import { chunkRowForDocTable, docRowColumnTemplate, formatFieldValueText, groupFieldsIntoRows, resolveFieldValue } from './formValueFormat';
 import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
+import ApprovalImageValue from './ApprovalImageValue';
 
 interface OfficialDocumentProps {
   approval: ApprovalRequest;
@@ -167,7 +168,16 @@ function DocumentFieldsTable({
             {row.map((field) => (
               <Fragment key={field.id}>
                 <div className="carev-doc-field-label">{field.label}</div>
-                <div className="carev-doc-field-value">{formatFieldValueText(field, formData)}</div>
+                <div className="carev-doc-field-value">
+                  {field.type === 'image' ? (
+                    (() => {
+                      const imageValue = resolveFieldValue(field, formData) as { fileUrl?: string; fileName?: string } | undefined;
+                      return <ApprovalImageValue fileUrl={imageValue?.fileUrl} fileName={imageValue?.fileName} />;
+                    })()
+                  ) : (
+                    formatFieldValueText(field, formData)
+                  )}
+                </div>
               </Fragment>
             ))}
           </div>

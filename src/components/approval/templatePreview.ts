@@ -45,6 +45,9 @@ export function buildSampleApproval(
       case 'file':
         formData[field.id] = { fileName: '첨부파일_예시.pdf' };
         break;
+      case 'image':
+        // 실제 업로드된 파일이 없어 그릴 이미지가 없다 — 미리보기에서는 빈칸으로 둔다
+        break;
       default:
         formData[field.id] = `${field.label} 예시`;
     }

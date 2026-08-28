@@ -20,6 +20,7 @@ import {
   IconSeparator,
   IconCalculator,
   IconTable,
+  IconPhoto,
 } from '@tabler/icons-react';
 
 interface FieldTypeSelectorProps {
@@ -42,6 +43,7 @@ const FIELD_TYPE_OPTIONS: FieldTypeOption[] = [
   { type: 'dateRange', label: '날짜 범위', icon: <IconCalendarEvent size={20} stroke={1.5} /> },
   { type: 'radio', label: '라디오', icon: <IconCircleDot size={20} stroke={1.5} /> },
   { type: 'file', label: '파일 첨부', icon: <IconPaperclip size={20} stroke={1.5} /> },
+  { type: 'image', label: '이미지', icon: <IconPhoto size={20} stroke={1.5} /> },
   { type: 'checkbox', label: '체크박스', icon: <IconSquareCheck size={20} stroke={1.5} /> },
   { type: 'section', label: '구분선', icon: <IconSeparator size={20} stroke={1.5} /> },
   { type: 'computed', label: '자동 계산', icon: <IconCalculator size={20} stroke={1.5} /> },
