@@ -18,7 +18,7 @@
 
 - [주간보호센터 근무표 작성법](https://carev.kr/blog/day-care-center-work-schedule-guide): 근무표 작성 6단계, 체크리스트, 자주 하는 실수
 - [방문요양 스케줄 관리](https://carev.kr/blog/home-care-visit-schedule-guide): 재가·방문요양의 이용자별 일정과 종사자별 근무를 함께 맞추는 방법, 입소시설과의 차이
-- [요양원 3교대 근무표 짜는 법](https://carev.kr/blog/nursing-home-three-shift-schedule): 데이·이브닝·나이트 편성 순서, 나이트 배분 원칙, 근무 간 휴식
+- [요양원 근무표 짜는 법](https://carev.kr/blog/nursing-home-three-shift-schedule): 2교대(주주야야비비)·24시간 격일·3교대의 차이, 편성 순서, 야간 배분 원칙, 근무 간 휴식
 - [요양보호사 결원·대체근무 대응](https://carev.kr/blog/caregiver-absence-and-substitute-staffing): 공백 발생 시 확인 순서와 대체 인력 명단 관리
 - [근무표를 엑셀로 관리할 때 한계가 오는 지점](https://carev.kr/blog/excel-work-schedule-limits): 엑셀이 감당하는 일과 못하는 일, 전환 시점 판단 신호 6가지
 - [요양기관 관리 프로그램 고르는 법](https://carev.kr/blog/choosing-ltc-management-program): 통합 관리형과 근무·운영 특화형의 구분, 공통 확인 항목 7가지
