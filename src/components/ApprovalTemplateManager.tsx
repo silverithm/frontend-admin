@@ -660,7 +660,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
 
         {isAdmin && !isLoading && templates.length > 1 && !canReorder && (
           <Text type="supporting" color="secondary">
-            순서 조정은 '전체' 보기에서만 할 수 있습니다. 대분류 필터를 해제해주세요.
+            순서 조정은 ‘전체’ 보기에서만 할 수 있습니다. 대분류 필터를 해제해주세요.
           </Text>
         )}
 

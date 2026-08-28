@@ -499,15 +499,15 @@ function MicGuidanceBanner({ phase, micPermission, micIssue }: MicGuidanceBanner
       >
         {browser === 'safari' ? (
           <VStack gap={1}>
-            <Text type="supporting">1. 주소창 왼쪽의 "aA" 아이콘(또는 Safari 메뉴 &gt; 이 웹 사이트 설정)을 누르세요.</Text>
-            <Text type="supporting">2. "마이크"를 "허용"으로 바꾸세요.</Text>
-            <Text type="supporting">3. 페이지를 새로고침한 뒤 다시 "회의 녹음 시작"을 눌러주세요.</Text>
+            <Text type="supporting">1. 주소창 왼쪽의 ‘aA’ 아이콘(또는 Safari 메뉴 &gt; 이 웹 사이트 설정)을 누르세요.</Text>
+            <Text type="supporting">2. ‘마이크’를 ‘허용’으로 바꾸세요.</Text>
+            <Text type="supporting">3. 페이지를 새로고침한 뒤 다시 ‘회의 녹음 시작’을 눌러주세요.</Text>
           </VStack>
         ) : (
           <VStack gap={1}>
             <Text type="supporting">1. 주소창 왼쪽의 자물쇠(또는 정보 ⓘ) 아이콘을 누르세요.</Text>
-            <Text type="supporting">2. "마이크" 항목을 찾아 "차단"을 "허용"으로 바꾸세요.</Text>
-            <Text type="supporting">3. 페이지를 새로고침한 뒤 다시 "회의 녹음 시작"을 눌러주세요.</Text>
+            <Text type="supporting">2. ‘마이크’ 항목을 찾아 ‘차단’을 ‘허용’으로 바꾸세요.</Text>
+            <Text type="supporting">3. 페이지를 새로고침한 뒤 다시 ‘회의 녹음 시작’을 눌러주세요.</Text>
           </VStack>
         )}
       </Banner>
