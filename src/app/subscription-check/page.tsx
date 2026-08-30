@@ -51,10 +51,14 @@ export default function SubscriptionCheckPage() {
     } catch (err: any) {
       console.error('구독 확인 실패:', err);
 
-      // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
-      if (err.status === 404 &&
-          (err.message === 'No subscription found' ||
-           err.data?.error === 'No subscription found')) {
+      // 404면 "아직 구독이 없는 계정"이다 — 무료체험/결제를 고르는 화면을 보여준다.
+      //
+      // 예전에는 메시지가 정확히 'No subscription found'일 때만 이 분기를 탔다.
+      // 백엔드가 문구를 한글화("구독 정보가 없습니다")하면서 매칭이 조용히 깨졌고,
+      // 구독이 없는 정상적인 신규 계정이 "구독 정보 확인에 실패했습니다" 오류 화면을
+      // 보게 됐다. SubscriptionGuard는 같은 이유로 이미 상태 코드 판정으로 옮겼는데
+      // 이 화면만 남아 있었다. 문구는 또 바뀔 수 있으므로 상태 코드로만 판단한다.
+      if (err.status === 404) {
         setHasSubscription(false);
       } else {
         // 서버 오류인 경우 에러 메시지 표시
