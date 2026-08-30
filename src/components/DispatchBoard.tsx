@@ -132,8 +132,9 @@ export default function DispatchBoard({
 
     setIsCapturing(true);
 
-    // 화면에서는 남는 공간을 채우려고 늘어나 있다. 그대로 찍으면 표 아래로
-    // 빈 여백이 길게 붙은 이미지가 나오므로, 찍는 동안만 내용 높이로 줄인다.
+    // 화면에서는 표가 스크롤 상자 안에 갇혀 남는 공간에 맞춰 늘어나 있다.
+    // 그대로 찍으면 (1) 스크롤로 가려진 차량이 잘리고 (2) 표 아래로 빈 여백이
+    // 길게 붙는다. 찍는 동안만 상자를 풀어 내용 전체가 제 높이로 펼쳐지게 한다.
     const savedNodeHeight = node.style.height;
     const savedScrollerFlex = scroller?.style.flex ?? "";
     const savedScrollerOverflow = scroller?.style.overflowY ?? "";
@@ -143,16 +144,31 @@ export default function DispatchBoard({
       scroller.style.overflowY = "visible";
     }
 
+    // 바뀐 레이아웃을 즉시 반영시키고 페인트 여유를 준다.
+    // (requestAnimationFrame은 탭이 가려지면 멈추므로 타이머를 쓴다 —
+    //  같은 이유로 캡처가 멈추는 것을 이미 겪었다)
+    void node.offsetHeight;
+    await new Promise<void>((resolve) => setTimeout(resolve, 60));
+
     try {
       const fontEmbedCSS = await resolveFontEmbedCSS(node);
 
       // 배경을 명시하지 않으면 투명 PNG가 나와 카톡에서 글자가 안 보인다.
       //
+      // 크기를 scrollWidth/Height로 못박아야 화면 밖으로 넘어간 부분까지 담긴다.
+      // 배율은 pixelRatio가 맡는다 — 크기에 직접 2를 곱하면 이중 적용돼 잘린다.
+      //
       // toPng은 만든 SVG를 <img>로 다시 읽어들이는데, 그 로드가 끝나지 않으면
       // 아무 일도 일어나지 않은 채 버튼만 계속 로딩으로 남는다. 그 상태로 두면
       // 사용자는 왜 안 되는지 알 수 없으므로 시간을 끊고 알려 준다.
       const dataUrl = await withTimeout(
-        toPng(node, { pixelRatio: 2, backgroundColor: "#ffffff", fontEmbedCSS }),
+        toPng(node, {
+          pixelRatio: 2,
+          backgroundColor: "#ffffff",
+          width: node.scrollWidth,
+          height: node.scrollHeight,
+          fontEmbedCSS,
+        }),
         CAPTURE_TIMEOUT_MS
       );
 
