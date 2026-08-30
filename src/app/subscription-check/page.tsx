@@ -347,11 +347,11 @@ export default function SubscriptionCheckPage() {
           >
             <VStack gap={6}>
               <VStack gap={3}>
-                <div style={{ color: 'var(--color-background-muted)' }}>
-                  <Text type="display-2" weight="bold" justify="center" color="inherit">
-                    {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
-                  </Text>
-                </div>
+                {/* 배경색 토큰(--color-background-muted)이 글자색으로 들어가 있어
+                    흰 배경에서 제목이 거의 안 보였다. 본문 색을 쓴다. */}
+                <Text type="display-2" weight="bold" justify="center" color="primary">
+                  {!canUseFreeSubscription ? '구독 플랜을 선택해주세요' : '케어브이에 오신 것을 환영합니다!'}
+                </Text>
                 <div>
                   <Text type="large" justify="center" color="secondary">
                     {hasUsedFreeTrial
