@@ -12,7 +12,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Loading } from '@/components/Loading';
 import { Icon } from '@astryxdesign/core/Icon';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 import { duration } from '@/theme/motion';
@@ -404,14 +404,19 @@ export default function SubscriptionCheckPage() {
                         케어브이의 모든 기능을 30일간 무료로 체험해보세요
                       </Text>
 
-                      <VStack gap={2}>
-                        {['모든 휴가 관리 기능', '직원 등록 및 관리', '실시간 알림 및 승인'].map((feature) => (
-                          <HStack key={feature} gap={2} vAlign="center">
-                            <Icon icon="check" color="success" size="sm" />
-                            <Text type="body" color="secondary">{feature}</Text>
-                          </HStack>
-                        ))}
-                      </VStack>
+                      {/* 남는 공간을 이 목록이 먹어야 두 카드의 버튼이 같은 높이에 선다.
+                          오른쪽 카드에는 "추천 플랜" 배지가 하나 더 있고 설명도 한 줄 길어서,
+                          그냥 두면 버튼이 서로 어긋난 자리에 놓인다. */}
+                      <StackItem size="fill">
+                        <VStack gap={2}>
+                          {['모든 휴가 관리 기능', '직원 등록 및 관리', '실시간 알림 및 승인'].map((feature) => (
+                            <HStack key={feature} gap={2} vAlign="center">
+                              <Icon icon="check" color="success" size="sm" />
+                              <Text type="body" color="secondary">{feature}</Text>
+                            </HStack>
+                          ))}
+                        </VStack>
+                      </StackItem>
 
                       <Button
                         label={creatingFree
@@ -471,14 +476,16 @@ export default function SubscriptionCheckPage() {
                         }
                       </Text>
 
-                      <VStack gap={2}>
-                        {['모든 휴가 관리 기능', '무제한 직원 등록', '우선 고객 지원'].map((feature) => (
-                          <HStack key={feature} gap={2} vAlign="center">
-                            <Icon icon="check" color="accent" size="sm" />
-                            <Text type="body" color="secondary">{feature}</Text>
-                          </HStack>
-                        ))}
-                      </VStack>
+                      <StackItem size="fill">
+                        <VStack gap={2}>
+                          {['모든 휴가 관리 기능', '무제한 직원 등록', '우선 고객 지원'].map((feature) => (
+                            <HStack key={feature} gap={2} vAlign="center">
+                              <Icon icon="check" color="accent" size="sm" />
+                              <Text type="body" color="secondary">{feature}</Text>
+                            </HStack>
+                          ))}
+                        </VStack>
+                      </StackItem>
 
                       <Button
                         label="결제하기"
@@ -494,6 +501,15 @@ export default function SubscriptionCheckPage() {
               {error && (
                 <Banner status="error" title={error} />
               )}
+
+              {/* 지금 고르지 않고 나갈 길을 남긴다 — 없으면 이 화면이 막다른 길이 된다 */}
+              <HStack hAlign="center">
+                <Button
+                  label="메인 홈으로 돌아가기"
+                  variant="ghost"
+                  onClick={() => router.push('/')}
+                />
+              </HStack>
             </VStack>
           </motion.div>
         )}
