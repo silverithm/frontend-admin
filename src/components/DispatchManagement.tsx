@@ -41,6 +41,8 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
   // 로컬 상태
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("board");
+  // 배차표와 출결관리가 같은 날짜를 본다 (탭을 옮길 때마다 다시 고르지 않도록)
+  const [boardDate, setBoardDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDayDetail, setShowDayDetail] = useState(false);
@@ -224,7 +226,11 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
                 vacations={vacations}
                 attendances={attendances}
                 onNotification={onNotification}
-                onDateChange={(d) => loadRange(d, d)}
+                date={boardDate}
+                onDateChange={(d) => {
+                  setBoardDate(d);
+                  loadRange(d, d);
+                }}
               />
             </motion.div>
           )}
@@ -270,7 +276,11 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: duration.fast }}
             >
-              <ElderAttendanceManagement onNotification={onNotification} />
+              <ElderAttendanceManagement
+                onNotification={onNotification}
+                date={boardDate}
+                onDateChange={setBoardDate}
+              />
             </motion.div>
           )}
         </AnimatePresence>

@@ -45,6 +45,7 @@ import CalendarVacationPane from '@/components/CalendarVacationPane';
 import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import { useElderAttendanceStore, migrateLegacyAbsences } from '@/lib/elderAttendanceStore';
+import { loadDispatchSettings, startDispatchAutoSave } from '@/lib/dispatchSync';
 import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
 import type { VacationRequest } from '@/types/vacation';
 import { getDailyDispatch, getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
@@ -180,6 +181,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [showDispatchSettings, setShowDispatchSettings] = useState(false);
   const [dispatchSelectedDate, setDispatchSelectedDate] = useState<Date | null>(null);
   const [dispatchSubTab, setDispatchSubTab] = useState<'board' | 'calendar' | 'list' | 'attendance'>('board');
+  // 배차표와 출결관리가 같은 날짜를 본다. 각자 들고 있으면 탭을 옮길 때마다 다시 골라야 한다.
+  const [dispatchBoardDate, setDispatchBoardDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const isDispatchMode = mode === 'dispatch';
 
@@ -335,6 +338,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       console.error('휴무 데이터 로드 실패:', error);
     }
   }, []);
+
+  // 배차 설정은 서버가 원본이다.
+  //
+  // 이 화면은 예전에 서버를 읽지도 쓰지도 않고 이 브라우저의 localStorage만 봤다.
+  // 그래서 관리자가 다른 PC에서 열면 노선이 비어 보였고, 여기서 고친 노선·회차가
+  // 직원 앱에 반영되지 않았다. 직원 화면(DispatchManagement)과 같은 동기화를 건다.
+  useEffect(() => {
+    if (!isDispatchMode) return;
+    loadDispatchSettings();
+    return startDispatchAutoSave();
+  }, [isDispatchMode]);
 
   useEffect(() => {
     if (isDispatchMode) {
@@ -1190,7 +1204,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           onNotification={(message, type) =>
             showAlert({ type: type === 'error' ? 'error' : 'success', title: '배차표', message })
           }
-          onDateChange={(d) => loadAttendanceRange(d, d)}
+          date={dispatchBoardDate}
+          onDateChange={(d) => {
+            setDispatchBoardDate(d);
+            loadAttendanceRange(d, d);
+          }}
         />
       )}
 
@@ -1209,6 +1227,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           onNotification={(message, type) =>
             showAlert({ type: type === 'error' ? 'error' : 'success', title: '출결', message })
           }
+          date={dispatchBoardDate}
+          onDateChange={setDispatchBoardDate}
         />
       )}
 

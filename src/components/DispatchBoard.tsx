@@ -71,6 +71,11 @@ interface DispatchBoardProps {
   vacations: VacationRequest[];
   attendances: ElderDayAttendance[];
   onNotification?: (message: string, type: "success" | "error" | "info") => void;
+  /**
+   * 배차 화면이 날짜를 들고 있을 때 넘긴다.
+   * 배차표와 출결관리가 같은 날짜를 봐야 탭을 옮길 때마다 다시 고르지 않는다.
+   */
+  date?: string;
   /** 날짜가 바뀌면 그날 출결을 받아오라고 알린다 */
   onDateChange?: (date: string) => void;
 }
@@ -80,9 +85,11 @@ export default function DispatchBoard({
   vacations,
   attendances,
   onNotification,
+  date: externalDate,
   onDateChange,
 }: DispatchBoardProps) {
-  const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [internalDate, setInternalDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const date = externalDate ?? internalDate;
   const [routeType, setRouteType] = useState<RouteType>("등원");
   const [isCapturing, setIsCapturing] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
@@ -105,7 +112,7 @@ export default function DispatchBoard({
   const totalAttending = countAttending(daily, routeType);
 
   const handleDateChange = (value: string) => {
-    setDate(value);
+    if (externalDate === undefined) setInternalDate(value);
     onDateChange?.(value);
   };
 
