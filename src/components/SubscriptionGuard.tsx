@@ -68,11 +68,13 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     } catch (error: any) {
       console.error('구독 확인 실패:', error);
 
-      // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
-      // 백엔드 GlobalExceptionHandler의 error 필드 확인
-      if (error.status === 404 &&
-          (error.message === 'No subscription found' ||
-           error.data?.error === 'No subscription found')) {
+      // 구독 조회가 404면 "아직 구독이 없는 계정"이다 — 무료체험 시작/결제 화면으로 보낸다.
+      //
+      // 예전에는 메시지가 정확히 'No subscription found'일 때만 이 분기를 탔는데,
+      // 백엔드가 에러 메시지를 한글화("구독 정보가 없습니다")하면서 매칭이 조용히 깨졌다.
+      // 그 뒤로 신규 가입자가 결제 안내를 못 보고 관리자 화면으로 그냥 들어왔다.
+      // 문구는 언제든 또 바뀔 수 있으므로 상태 코드로만 판단한다.
+      if (error.status === 404) {
         router.push('/subscription-check');
         return;
       }

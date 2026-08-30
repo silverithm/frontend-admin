@@ -114,10 +114,9 @@ export default function LoginPage() {
       }
     } catch (error: any) {
 
-      // 404 에러이고 "No subscription found" 메시지인 경우에만 구독이 없다고 판단
-      if (error.status === 404 &&
-          (error.message === 'No subscription found' ||
-           error.data?.error === 'No subscription found')) {
+      // 구독이 없는 계정(404) — 무료체험 시작/결제 화면으로. 문구가 아니라 상태 코드로 판단한다
+      // (백엔드 메시지 한글화 때 문자열 매칭이 깨져 결제 안내가 통째로 건너뛰어진 적이 있다)
+      if (error.status === 404) {
         router.push('/subscription-check');
       } else if (error.status >= 500) {
         // 500 에러 시 에러 메시지 표시 후 랜딩페이지로
