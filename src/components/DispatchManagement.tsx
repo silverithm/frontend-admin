@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@astryxdesign/core/Card";
 import { Button } from "@astryxdesign/core/Button";
@@ -10,8 +11,9 @@ import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Loading } from "@/components/Loading";
-import { IconCalendar, IconList, IconUsers, IconSettings } from "@tabler/icons-react";
+import { IconCalendar, IconList, IconUsers, IconSettings, IconClipboardList } from "@tabler/icons-react";
 import { useDispatchStore } from "@/lib/dispatchStore";
+import { useElderAttendanceStore, migrateLegacyAbsences } from "@/lib/elderAttendanceStore";
 import { loadDispatchSettings, startDispatchAutoSave } from "@/lib/dispatchSync";
 import type { DailyDispatch, DispatchDaySummary } from "@/types/dispatch";
 import type { VacationRequest } from "@/types/vacation";
@@ -21,21 +23,24 @@ import DispatchCalendar from "./DispatchCalendar";
 import DispatchListView from "./DispatchListView";
 import DispatchDayDetail from "./DispatchDayDetail";
 import DispatchSettings from "./DispatchSettings";
-import SeniorAbsenceManagement from "./SeniorAbsenceManagement";
+import DispatchBoard from "./DispatchBoard";
+import ElderAttendanceManagement from "./ElderAttendanceManagement";
 import { duration } from '@/theme/motion';
 
 interface DispatchManagementProps {
   onNotification: (message: string, type: "success" | "error" | "info") => void;
 }
 
-type SubTab = "calendar" | "list" | "absence";
+type SubTab = "board" | "calendar" | "list" | "attendance";
 
 export default function DispatchManagement({ onNotification }: DispatchManagementProps) {
   // Zustand 스토어
   const { settings, seniorAbsences, isHydrated } = useDispatchStore();
+  // 출결은 백엔드 elder_attendance가 원본이다 ([[elderAttendanceStore]])
+  const { records: attendances, loadRange } = useElderAttendanceStore();
 
   // 로컬 상태
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>("calendar");
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>("board");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDayDetail, setShowDayDetail] = useState(false);
@@ -74,6 +79,19 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
     return startDispatchAutoSave();
   }, []);
 
+  // 보고 있는 달의 출결을 한 번에 받는다 (날짜별로 부르면 30번 왕복한다)
+  useEffect(() => {
+    const first = startOfMonth(currentDate);
+    const last = endOfMonth(currentDate);
+    loadRange(format(first, "yyyy-MM-dd"), format(last, "yyyy-MM-dd"));
+  }, [currentDate, loadRange]);
+
+  // 배차설정 JSON에 남아 있던 옛 결석을 백엔드 출결로 한 번만 옮긴다
+  useEffect(() => {
+    if (!isHydrated) return;
+    migrateLegacyAbsences(seniorAbsences, settings.seniors);
+  }, [isHydrated, seniorAbsences, settings.seniors]);
+
   // 월간 요약 정보 계산 (일요일 = 휴일, 나머지 = 정상 운행)
   useEffect(() => {
     if (isHydrated && settings.routes.length > 0) {
@@ -83,11 +101,11 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
         currentDate.getMonth(),
         settings,
         vacations,
-        seniorAbsences
+        attendances
       );
       setMonthlySummary(summary);
     }
-  }, [currentDate, settings, vacations, seniorAbsences, isHydrated]);
+  }, [currentDate, settings, vacations, attendances, isHydrated]);
 
   // 날짜 선택 핸들러
   const handleDateSelect = (date: Date) => {
@@ -98,7 +116,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
   // 일일 배차 정보 가져오기
   const getSelectedDayDispatch = (): DailyDispatch | null => {
     if (!selectedDate) return null;
-    return getDailyDispatch(selectedDate, settings, vacations, seniorAbsences);
+    return getDailyDispatch(selectedDate, settings, vacations, attendances);
   };
 
   // 설정이 비어있는지 확인
@@ -122,6 +140,11 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               label="배차 관리 뷰"
             >
               <SegmentedControlItem
+                value="board"
+                label="배차표"
+                icon={<Icon icon={IconClipboardList} size="sm" />}
+              />
+              <SegmentedControlItem
                 value="calendar"
                 label="캘린더 뷰"
                 icon={<Icon icon={IconCalendar} size="sm" />}
@@ -132,8 +155,8 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
                 icon={<Icon icon={IconList} size="sm" />}
               />
               <SegmentedControlItem
-                value="absence"
-                label="결석 관리"
+                value="attendance"
+                label="출결 관리"
                 icon={<Icon icon={IconUsers} size="sm" />}
               />
             </SegmentedControl>
@@ -188,6 +211,24 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
       {/* 메인 컨텐츠 */}
       {!isSettingsEmpty && (
         <AnimatePresence mode="wait">
+          {activeSubTab === "board" && (
+            <motion.div
+              key="board"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: duration.fast }}
+            >
+              <DispatchBoard
+                settings={settings}
+                vacations={vacations}
+                attendances={attendances}
+                onNotification={onNotification}
+                onDateChange={(d) => loadRange(d, d)}
+              />
+            </motion.div>
+          )}
+
           {activeSubTab === "calendar" && (
             <motion.div
               key="calendar"
@@ -216,20 +257,20 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               <DispatchListView
                 settings={settings}
                 vacations={vacations}
-                seniorAbsences={seniorAbsences}
+                attendances={attendances}
               />
             </motion.div>
           )}
 
-          {activeSubTab === "absence" && (
+          {activeSubTab === "attendance" && (
             <motion.div
-              key="absence"
+              key="attendance"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: duration.fast }}
             >
-              <SeniorAbsenceManagement />
+              <ElderAttendanceManagement onNotification={onNotification} />
             </motion.div>
           )}
         </AnimatePresence>

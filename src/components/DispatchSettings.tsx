@@ -7,6 +7,8 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { Switch } from "@astryxdesign/core/Switch";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -124,7 +126,13 @@ export default function DispatchSettings({
     if (!selectedRouteId) return [];
     return settings.seniors
       .filter(s => s.routeId === selectedRouteId)
-      .sort((a, b) => a.boardingOrder - b.boardingOrder);
+      .sort((a, b) => {
+        // 회차 먼저, 같은 회차 안에서 탑승순서
+        const at = a.tripOrder ?? 0;
+        const bt = b.tripOrder ?? 0;
+        if (at !== bt) return at - bt;
+        return a.boardingOrder - b.boardingOrder;
+      });
   }, [selectedRouteId, settings.seniors]);
 
   // 자동완성용: 기존에 사용된 운전자 이름들
@@ -326,6 +334,11 @@ export default function DispatchSettings({
     if (!selected) return;
 
     const maxOrder = Math.max(0, ...selectedRouteSeniors.map(s => s.boardingOrder));
+    // 회차를 쓰는 노선이면 마지막 회차 뒤에 붙인다
+    const lastTrip = selectedRouteSeniors.reduce<number | undefined>(
+      (max, s) => (s.tripOrder !== undefined && (max === undefined || s.tripOrder > max) ? s.tripOrder : max),
+      undefined
+    );
 
     const newSenior: Senior = {
       id: generateId(),
@@ -333,12 +346,19 @@ export default function DispatchSettings({
       routeId: selectedRouteId,
       boardingOrder: maxOrder + 1,
       elderlyId: selected.id,
+      ...(lastTrip !== undefined ? { tripOrder: lastTrip as 1 | 2 } : {}),
     };
 
     addSenior(newSenior);
     setSelectedSeniorId("");
     onNotification(`${newSenior.name} 어르신이 추가되었습니다.`, "success");
   };
+
+  // 어르신은 가나다순으로 고른다 (백엔드 응답 순서는 등록순이라 찾기 어렵다)
+  const sortedCompanySeniors = useMemo(
+    () => [...companySeniors].sort((a, b) => a.name.localeCompare(b.name, "ko")),
+    [companySeniors]
+  );
 
   // 현재 노선에 이미 배정된 어르신 ID 목록 (중복 방지)
   const assignedElderlyIds = useMemo(() => {
@@ -366,6 +386,22 @@ export default function DispatchSettings({
 
     deleteSenior(String(senior.id));
     onNotification("어르신이 삭제되었습니다.", "success");
+  };
+
+  // 이 노선이 회차(1차/2차)를 쓰는가
+  const usesTripOrder = useMemo(
+    () => selectedRouteSeniors.some((s) => s.tripOrder !== undefined),
+    [selectedRouteSeniors]
+  );
+
+  /**
+   * 노선 전체의 회차 사용을 켜고 끈다.
+   * 켜면 전원을 1차로 놓고, 끄면 회차를 지운다(명단 자체는 그대로 둔다).
+   */
+  const handleToggleTripOrder = (enabled: boolean) => {
+    selectedRouteSeniors.forEach((senior) => {
+      updateSenior(senior.id, { tripOrder: enabled ? (senior.tripOrder ?? 1) : undefined });
+    });
   };
 
   // 어르신 순서 변경
@@ -640,6 +676,8 @@ export default function DispatchSettings({
                                   options={driverOptions}
                                   value={driver.driverId || ""}
                                   hasClear
+                                  hasSearch
+                                  searchPlaceholder="이름으로 찾기"
                                   onChange={(value) =>
                                     handleSelectMemberForRoute(
                                       selectedRoute.id,
@@ -692,9 +730,20 @@ export default function DispatchSettings({
 
                   {/* 어르신 목록 */}
                   <VStack gap={2}>
-                    <Text type="label">
-                      탑승 어르신 ({selectedRouteSeniors.length}명)
-                    </Text>
+                    <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+                      <Text type="label">
+                        탑승 어르신 ({selectedRouteSeniors.length}명)
+                      </Text>
+                      {/* 한 차가 하루 두 번 도는 노선은 회차를 켜서 1차/2차로 나눈다 */}
+                      <Switch
+                        label="회차(1차/2차) 사용"
+                        labelPosition="start"
+                        labelSpacing="spread"
+                        value={usesTripOrder}
+                        isDisabled={selectedRouteSeniors.length === 0}
+                        onChange={handleToggleTripOrder}
+                      />
+                    </HStack>
 
                     {/* 어르신 추가 (드롭다운) */}
                     <HStack gap={2} vAlign="end">
@@ -703,7 +752,7 @@ export default function DispatchSettings({
                           label="어르신 선택"
                           isLabelHidden
                           placeholder="어르신 선택"
-                          options={companySeniors
+                          options={sortedCompanySeniors
                             .filter((s) => !assignedElderlyIds.has(s.id))
                             .map((senior) => ({
                               value: String(senior.id),
@@ -712,6 +761,8 @@ export default function DispatchSettings({
                               }`,
                             }))}
                           value={selectedSeniorId}
+                          hasSearch
+                          searchPlaceholder="이름으로 찾기"
                           onChange={(value) => setSelectedSeniorId(value ?? "")}
                         />
                       </div>
@@ -739,12 +790,45 @@ export default function DispatchSettings({
                       <VStack gap={2}>
                         {selectedRouteSeniors.map((senior, index) => (
                           <Card key={senior.id} variant="muted" padding={3}>
-                            <HStack hAlign="between" vAlign="center">
-                              <HStack gap={3} vAlign="center">
+                            <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+                              <HStack gap={3} vAlign="center" wrap="wrap">
                                 <Badge variant="neutral" label={index + 1} />
                                 <Text type="body" weight="medium">
                                   {senior.name}
                                 </Text>
+
+                                {usesTripOrder && (
+                                  <SegmentedControl
+                                    label={`${senior.name} 회차`}
+                                    size="sm"
+                                    value={String(senior.tripOrder ?? 1)}
+                                    onChange={(value) =>
+                                      updateSenior(senior.id, {
+                                        tripOrder: Number(value) as 1 | 2,
+                                      })
+                                    }
+                                  >
+                                    <SegmentedControlItem value="1" label="1차" />
+                                    <SegmentedControlItem value="2" label="2차" />
+                                  </SegmentedControl>
+                                )}
+
+                                <CheckboxInput
+                                  label={selectedRoute.type === "등원" ? "항상 개인등원" : "항상 개인하원"}
+                                  value={
+                                    selectedRoute.type === "등원"
+                                      ? !!senior.personalPickup
+                                      : !!senior.personalDropoff
+                                  }
+                                  onChange={(checked) =>
+                                    updateSenior(
+                                      senior.id,
+                                      selectedRoute.type === "등원"
+                                        ? { personalPickup: checked }
+                                        : { personalDropoff: checked }
+                                    )
+                                  }
+                                />
                               </HStack>
                               <HStack gap={1} vAlign="center">
                                 {/* 어르신이 여러 명일 때 스크린리더가 대상을 구분하도록 이름을 aria-label에 포함 */}

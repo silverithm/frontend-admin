@@ -24,7 +24,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
-import { IconList, IconUsers, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck } from '@tabler/icons-react';
+import { IconList, IconUsers, IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck } from '@tabler/icons-react';
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
@@ -44,13 +44,15 @@ import { fetchMonthVacations, vacationKindBadgeStyle, type VacationPerson } from
 import CalendarVacationPane from '@/components/CalendarVacationPane';
 import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
+import { useElderAttendanceStore, migrateLegacyAbsences } from '@/lib/elderAttendanceStore';
 import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
 import type { VacationRequest } from '@/types/vacation';
 import { getDailyDispatch, getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
 import DispatchDayDetail from './DispatchDayDetail';
 import DispatchSettings from './DispatchSettings';
 import DispatchListView from './DispatchListView';
-import SeniorAbsenceManagement from './SeniorAbsenceManagement';
+import ElderAttendanceManagement from './ElderAttendanceManagement';
+import DispatchBoard from './DispatchBoard';
 import { duration } from '@/theme/motion';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -170,12 +172,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   // 배차 모드 관련 상태
   const { settings: dispatchSettings, seniorAbsences, isHydrated } = useDispatchStore();
+  // 출결은 백엔드 elder_attendance가 원본이다 ([[elderAttendanceStore]])
+  const { records: dispatchAttendances, loadRange: loadAttendanceRange } = useElderAttendanceStore();
   const [dispatchMonthlySummary, setDispatchMonthlySummary] = useState<Map<string, DispatchDaySummary>>(new Map());
   const [dispatchVacations, setDispatchVacations] = useState<VacationRequest[]>([]);
   const [showDispatchDayDetail, setShowDispatchDayDetail] = useState(false);
   const [showDispatchSettings, setShowDispatchSettings] = useState(false);
   const [dispatchSelectedDate, setDispatchSelectedDate] = useState<Date | null>(null);
-  const [dispatchSubTab, setDispatchSubTab] = useState<'calendar' | 'list' | 'absence'>('calendar');
+  const [dispatchSubTab, setDispatchSubTab] = useState<'board' | 'calendar' | 'list' | 'attendance'>('board');
 
   const isDispatchMode = mode === 'dispatch';
 
@@ -347,16 +351,30 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         currentDate.getMonth(),
         dispatchSettings,
         dispatchVacations,
-        seniorAbsences
+        dispatchAttendances
       );
       setDispatchMonthlySummary(summary);
     }
-  }, [isDispatchMode, currentDate, dispatchSettings, dispatchVacations, seniorAbsences, isHydrated]);
+  }, [isDispatchMode, currentDate, dispatchSettings, dispatchVacations, dispatchAttendances, isHydrated]);
+
+  // 배차 모드: 보고 있는 달의 출결을 한 번에 받는다
+  useEffect(() => {
+    if (!isDispatchMode) return;
+    const first = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const last = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    loadAttendanceRange(format(first, 'yyyy-MM-dd'), format(last, 'yyyy-MM-dd'));
+  }, [isDispatchMode, currentDate, loadAttendanceRange]);
+
+  // 배차설정 JSON에 남아 있던 옛 결석을 백엔드 출결로 한 번만 옮긴다
+  useEffect(() => {
+    if (!isDispatchMode || !isHydrated) return;
+    migrateLegacyAbsences(seniorAbsences, dispatchSettings.seniors);
+  }, [isDispatchMode, isHydrated, seniorAbsences, dispatchSettings.seniors]);
 
   // 배차 모드: 선택된 날짜의 일일 배차 정보
   const getSelectedDayDispatch = (): DailyDispatch | null => {
     if (!dispatchSelectedDate) return null;
-    return getDailyDispatch(dispatchSelectedDate, dispatchSettings, dispatchVacations, seniorAbsences);
+    return getDailyDispatch(dispatchSelectedDate, dispatchSettings, dispatchVacations, dispatchAttendances);
   };
 
   // 배차 날짜별 상태 배경 색상
@@ -1152,14 +1170,28 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         <div style={{ marginBottom: 'var(--spacing-4)' }}>
           <SegmentedControl
             value={dispatchSubTab}
-            onChange={(v) => setDispatchSubTab(v as 'calendar' | 'list' | 'absence')}
+            onChange={(v) => setDispatchSubTab(v as 'board' | 'calendar' | 'list' | 'attendance')}
             label="배차 보기 모드"
           >
+            <SegmentedControlItem value="board" label="배차표" icon={<Icon icon={IconClipboardList} size="sm" />} />
             <SegmentedControlItem value="calendar" label="달력" icon={<Icon icon="calendar" size="sm" />} />
             <SegmentedControlItem value="list" label="목록" icon={<Icon icon={IconList} size="sm" />} />
-            <SegmentedControlItem value="absence" label="결석 관리" icon={<Icon icon={IconUsers} size="sm" />} />
+            <SegmentedControlItem value="attendance" label="출결 관리" icon={<Icon icon={IconUsers} size="sm" />} />
           </SegmentedControl>
         </div>
+      )}
+
+      {/* 배차 모드: 노선배차표 (카톡 공지 그대로 한 화면) */}
+      {isDispatchMode && dispatchSubTab === 'board' && (
+        <DispatchBoard
+          settings={dispatchSettings}
+          vacations={dispatchVacations}
+          attendances={dispatchAttendances}
+          onNotification={(message, type) =>
+            showAlert({ type: type === 'error' ? 'error' : 'success', title: '배차표', message })
+          }
+          onDateChange={(d) => loadAttendanceRange(d, d)}
+        />
       )}
 
       {/* 배차 모드: 목록 뷰 */}
@@ -1167,13 +1199,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         <DispatchListView
           settings={dispatchSettings}
           vacations={dispatchVacations}
-          seniorAbsences={seniorAbsences}
+          attendances={dispatchAttendances}
         />
       )}
 
-      {/* 배차 모드: 결석 관리 */}
-      {isDispatchMode && dispatchSubTab === 'absence' && (
-        <SeniorAbsenceManagement />
+      {/* 배차 모드: 출결 관리 */}
+      {isDispatchMode && dispatchSubTab === 'attendance' && (
+        <ElderAttendanceManagement
+          onNotification={(message, type) =>
+            showAlert({ type: type === 'error' ? 'error' : 'success', title: '출결', message })
+          }
+        />
       )}
 
       {/* 달력 뷰 (일정 모드 항상 / 배차 모드는 달력 서브탭일 때만) */}

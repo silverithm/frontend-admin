@@ -21,20 +21,21 @@ import {
   TableHeaderCell,
 } from "@astryxdesign/core/Table";
 import type { ISODateString } from "@astryxdesign/core/Calendar";
-import type { DispatchSettings, SeniorAbsence, DailyDispatch } from "@/types/dispatch";
+import type { DispatchSettings } from "@/types/dispatch";
+import type { ElderDayAttendance } from "@/types/attendance";
 import type { VacationRequest } from "@/types/vacation";
 import { getDispatchForDateRange } from "@/lib/dispatchAlgorithm";
 
 interface DispatchListViewProps {
   settings: DispatchSettings;
   vacations: VacationRequest[];
-  seniorAbsences: SeniorAbsence[];
+  attendances: ElderDayAttendance[];
 }
 
 export default function DispatchListView({
   settings,
   vacations,
-  seniorAbsences,
+  attendances,
 }: DispatchListViewProps) {
   const [startDate, setStartDate] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
@@ -44,8 +45,8 @@ export default function DispatchListView({
   // 배차 데이터 계산
   const dispatches = useMemo(() => {
     if (!startDate || !endDate) return [];
-    return getDispatchForDateRange(startDate, endDate, settings, vacations, seniorAbsences);
-  }, [startDate, endDate, settings, vacations, seniorAbsences]);
+    return getDispatchForDateRange(startDate, endDate, settings, vacations, attendances);
+  }, [startDate, endDate, settings, vacations, attendances]);
 
   // 필터링된 데이터
   const filteredDispatches = useMemo(() => {

@@ -2508,10 +2508,24 @@ export async function checkEmployeeAttendance(data: {
     });
 }
 
+// 어르신 출결 기간 조회 (배차 캘린더/리스트가 월 단위로 읽는다)
+export async function getElderAttendanceRange(startDate: string, endDate: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(
+        `/v1/attendance/elder/range?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`
+    );
+}
+
 // 어르신 출석 체크
 export async function checkElderAttendance(data: {
     elderlyId: number;
+    date?: string;
     status: string;
+    personalPickup?: boolean;
+    personalDropoff?: boolean;
     note?: string;
 }) {
     const companyId = getCompanyId();
@@ -2543,7 +2557,10 @@ export async function bulkCheckEmployeeAttendance(data: Array<{
 // 어르신 일괄 출석 체크
 export async function bulkCheckElderAttendance(data: Array<{
     elderlyId: number;
+    date?: string;
     status: string;
+    personalPickup?: boolean;
+    personalDropoff?: boolean;
     note?: string;
 }>) {
     const companyId = getCompanyId();

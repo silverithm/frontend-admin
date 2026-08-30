@@ -19,6 +19,9 @@ export interface Route {
   routeDrivers: RouteDriver[]; // [주운전자, 부1, 부2, ...] - 운전자+차량 정보 직접 포함
 }
 
+// 회차 (한 차량이 하루에 두 번 도는 경우 1차/2차로 나눈다)
+export type TripOrder = 1 | 2;
+
 // 어르신 정보
 export interface Senior {
   id: string;
@@ -26,9 +29,15 @@ export interface Senior {
   routeId: string; // 배정된 노선 ID (등원/하원 별도)
   boardingOrder: number; // 탑승 순서 (1부터 시작)
   elderlyId?: number; // 백엔드 Elderly 엔티티 ID (회원관리 연동)
+  tripOrder?: TripOrder; // 회차. 비어 있으면 회차 구분 없는 노선
+  personalPickup?: boolean; // 고정 설정: 항상 개인등원(보호자가 데려옴)
+  personalDropoff?: boolean; // 고정 설정: 항상 개인하원(보호자가 데려감)
 }
 
-// 어르신 결석 정보
+/**
+ * @deprecated 출결은 백엔드 ElderAttendance로 통합됐다(ElderDayAttendance).
+ * 구버전 앱이 배차설정 JSON의 seniorAbsences를 아직 읽고 있어 타입만 남겨둔다.
+ */
 export interface SeniorAbsence {
   seniorId: string;
   date: string; // yyyy-MM-dd 형식
@@ -52,18 +61,28 @@ export interface RouteDispatch {
   routeId: string;
   routeName: string;
   routeType: RouteType; // 등원/하원 구분
-  driver: RouteDriver | null; // 운전자+차량 정보
+  driver: RouteDriver | null; // 그날 운전대를 잡는 사람 (주운전자 또는 대체 부운전자)
+  crew: RouteDriver[]; // 그날 그 차에 함께 타는 배정 인력 전원 (휴무자 제외). 공지 헤드라인용
   driverRole: DriverRole;
   status: DispatchStatus;
-  passengers: Senior[]; // 탑승 어르신 목록 (결석자 제외)
+  passengers: Senior[]; // 탑승 어르신 목록 (결석·개인등하원 제외)
+  tripGroups: TripGroup[]; // 회차별 탑승 명단. 회차 미사용 노선은 tripOrder 없는 그룹 1개
   originalMainDriver?: RouteDriver; // 대체 운행 시 원래 주운전자 정보
   reason?: string; // 배차 상태 사유 (예: "주운전자 홍길동 휴무로 부운전자 대체")
+}
+
+// 회차별 탑승 명단
+export interface TripGroup {
+  tripOrder?: TripOrder; // 없으면 회차 구분 없는 노선
+  seniors: Senior[];
 }
 
 // 일일 배차 결과
 export interface DailyDispatch {
   date: string; // yyyy-MM-dd 형식
   routeDispatches: RouteDispatch[];
+  personalPickupSeniors: Senior[]; // 그날 개인등원인 어르신 (등원 배차표 헤더용)
+  personalDropoffSeniors: Senior[]; // 그날 개인하원인 어르신 (하원 배차표 헤더용)
 }
 
 // 캘린더 셀 요약 정보
