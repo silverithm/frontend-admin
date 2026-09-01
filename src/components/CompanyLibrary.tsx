@@ -29,7 +29,8 @@ import {
 } from '@/lib/apiService';
 
 interface CompanyLibraryProps {
-  isAdmin?: boolean;
+  /** 자료 업로드·삭제 권한. 열람은 canManage와 무관하게 누구나 가능하다. */
+  canManage?: boolean;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -74,7 +75,7 @@ const normalizeCategory = (category?: string | null): string => (category || '')
  * 커뮤니티(광장) 자료실은 전체 기관이 함께 쓰지만 여기는 우리 기관 안에서만 보인다.
  * 근무 매뉴얼·서식처럼 밖으로 나가면 안 되는 자료를 두는 곳.
  */
-export default function CompanyLibrary({ isAdmin = true, onNotification }: CompanyLibraryProps) {
+export default function CompanyLibrary({ canManage = true, onNotification }: CompanyLibraryProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -225,7 +226,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
               우리 기관 직원만 보는 문서함입니다. 근무 매뉴얼·서식·교육자료를 올려두고 함께 쓰세요.
             </Text>
           </VStack>
-          {isAdmin && (
+          {canManage && (
             <Button
               label="자료 올리기"
               variant="primary"
@@ -276,7 +277,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
                   title={items.length === 0 ? '올려둔 자료가 없습니다' : '이 분류에 자료가 없습니다'}
                   description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요.' : undefined}
                   actions={
-                    items.length === 0 && isAdmin
+                    items.length === 0 && canManage
                       ? <Button label="자료 올리기" variant="primary" size="sm" icon={<Icon icon={FiPlus} size="sm" />} onClick={() => setShowUpload(true)} />
                       : items.length > 0
                         ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
@@ -326,7 +327,7 @@ export default function CompanyLibrary({ isAdmin = true, onNotification }: Compa
                       icon={<Icon icon={FiDownload} size="sm" />}
                       onClick={() => handleDownload(item)}
                     />
-                    {isAdmin && (
+                    {canManage && (
                       <IconButton
                         label="삭제"
                         tooltip="삭제"

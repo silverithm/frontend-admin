@@ -1,52 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 백엔드 API URL
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
-// 기본 CORS 헤더 설정
 const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
 };
 
 export async function OPTIONS() {
   return NextResponse.json({}, { headers });
 }
 
-export async function GET(request: NextRequest) {
+// 메시지 하나를 기준으로 그 앞뒤를 조회 — 검색 결과 등 지금 로드된 목록 밖의 메시지로 이동할 때 쓴다.
+// messageId/size/userId를 하나씩 뽑아 넘기면 나중에 파라미터가 늘어날 때마다 이 라우트를
+// 다시 고쳐야 한다. 원본 쿼리스트링을 그대로 백엔드에 전달해 그럴 일을 없앤다.
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ roomId: string }> }
+) {
   try {
+    const { roomId } = await params;
     const url = new URL(request.url);
-    const companyId = url.searchParams.get('companyId');
-
-    if (!companyId) {
-      return NextResponse.json({
-        error: 'companyId 파라미터가 필요합니다.'
-      }, { status: 400, headers });
-    }
 
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    // companyId만 뽑아 넘기면 앞으로 추가되는 쿼리 파라미터(예: includeAdmins)가 매번
-    // 여기서 잘려나간다. 원본 쿼리스트링을 그대로 백엔드에 넘겨 새 파라미터가 생겨도
-    // 이 라우트를 다시 고칠 필요가 없게 한다.
-    const backendUrl = new URL(`${BACKEND_URL}/api/v1/members`);
+    const backendUrl = new URL(`${BACKEND_URL}/api/v1/chat/rooms/${roomId}/messages/around`);
     url.searchParams.forEach((value, key) => backendUrl.searchParams.set(key, value));
+
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    if (token) {
+      backendHeaders['Authorization'] = `Bearer ${token}`;
+    }
 
     const backendResponse = await fetch(backendUrl.toString(), {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
+      headers: backendHeaders,
     });
 
     if (!backendResponse.ok) {
-      const errorText = await backendResponse.text();
+      console.error(`[Chat API] around 백엔드 응답 오류: ${backendResponse.status}`);
       return NextResponse.json({
         error: `백엔드 서버 오류: ${backendResponse.status}`
       }, { status: backendResponse.status, headers });
@@ -54,10 +55,11 @@ export async function GET(request: NextRequest) {
 
     const data = await backendResponse.json();
     return NextResponse.json(data, { headers });
-      
+
   } catch (error) {
+    console.error('[Chat API] around GET 오류:', error);
     return NextResponse.json({
       error: '서버 내부 오류가 발생했습니다.'
     }, { status: 500, headers });
   }
-} 
+}

@@ -178,6 +178,8 @@ interface ScheduleItem {
   authorName?: string;
   managerId?: number | null;
   managerName?: string | null;
+  /** 담당자 종류. "MEMBER"(직원) | "ADMIN"(관리자) */
+  managerType?: string | null;
   /** 일정에 등록된 할 일 수 / 그중 완료된 수 */
   taskTotal?: number;
   taskCompleted?: number;
@@ -582,7 +584,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const isMySchedule = (schedule: ScheduleItem) => {
     if (schedule.authorId && schedule.authorId === currentUserEmail) return true;
     if (currentMemberId == null) return false;
-    if (schedule.managerId != null && Number(schedule.managerId) === currentMemberId) return true;
+    // managerId는 managerType이 MEMBER일 때만 members.id 공간이다 — ADMIN이면 app_user.id라
+    // currentMemberId(항상 members.id)와 비교하면 우연히 겹칠 수 있다(V1.88 사고 참고).
+    if (schedule.managerId != null && (schedule.managerType || 'MEMBER') === 'MEMBER'
+        && Number(schedule.managerId) === currentMemberId) return true;
     if (myTasks.some((task) => String(task.scheduleId) === String(schedule.id))) return true;
     return !!schedule.participants?.some((p) => {
       const participant = p as { memberId?: number; userId?: number; id?: number };
@@ -689,9 +694,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
 
   // 수행완료 권한: 담당자가 지정된 일정은 담당자 본인만, 미지정 일정은 관리자/작성자
   // (월간일정 화면 ScheduleCalendar와 동일한 규칙)
+  //
+  // managerId는 managerType이 MEMBER일 때만 members.id 공간이다 — ADMIN이면 app_user.id라
+  // currentMemberId(항상 members.id)와 비교하면 우연히 겹칠 수 있다(V1.88 사고 참고).
   const canToggleCompletion = (schedule: ScheduleItem) =>
     schedule.managerId != null
-      ? Number(schedule.managerId) === currentMemberId
+      ? (schedule.managerType || 'MEMBER') === 'MEMBER' && Number(schedule.managerId) === currentMemberId
       : canManageSchedule(schedule);
 
   // 할 일이 등록된 일정은 일정 자체를 직접 완료 처리하지 않는다.

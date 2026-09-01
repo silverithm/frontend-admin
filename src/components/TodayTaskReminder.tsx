@@ -61,7 +61,14 @@ export default function TodayTaskReminder({ onOpenSchedule }: TodayTaskReminderP
       // 백엔드 응답은 래퍼 객체로 온다 — 배열을 직접 상태에 넣지 않는다.
       const list: Schedule[] = Array.isArray(data) ? data : data.schedules || [];
       setPending(
-        list.filter((s) => s.managerId != null && Number(s.managerId) === memberId && !s.isCompleted),
+        list.filter((s) => (
+          s.managerId != null
+          // managerType이 MEMBER일 때만 managerId가 members.id 공간이다 — ADMIN이면
+          // app_user.id라 로그인한 직원의 memberId와 우연히 겹칠 수 있다(V1.88 사고 참고).
+          && (s.managerType || 'MEMBER') === 'MEMBER'
+          && Number(s.managerId) === memberId
+          && !s.isCompleted
+        )),
       );
     } catch (error) {
       // 알림은 부가 기능이라 실패해도 화면을 방해하지 않는다.

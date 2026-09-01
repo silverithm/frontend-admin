@@ -13,7 +13,7 @@ import { Loading } from "@/components/Loading";
 import DocumentViewerModal from "@/components/DocumentViewerModal";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage } from '@/lib/apiService';
-import { MAX_CHAT_FILE_SIZE, isViewableDocument } from '@/lib/chatAttachments';
+import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl } from '@/lib/chatAttachments';
 
 interface ChatParticipant {
     userId: string;
@@ -699,7 +699,7 @@ export function FloatingChatMessages({
                                                     >
                                                         <img
                                                             className="carev-chat-image"
-                                                            src={message.fileUrl}
+                                                            src={chatListImageUrl(message)}
                                                             alt={message.fileName || "이미지"}
                                                             style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', display: "block" }}
                                                         />
@@ -995,7 +995,7 @@ export function FloatingChatMessages({
                                         >
                                             <img
                                                 className="carev-chat-image"
-                                                src={m.fileUrl!}
+                                                src={chatListImageUrl(m)}
                                                 alt={m.fileName || "사진"}
                                                 style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)' }}
                                             />

@@ -1235,6 +1235,19 @@ export async function getAllMembers() {
     return fetchWithAuth(`/admin/users/members?companyId=${companyId}`);
 }
 
+// 일정 담당자 후보 조회 — 직원(members) + 관리자(시설장) 계정을 함께 내려준다.
+// getAllMembers()와 같은 응답 모양이지만 관리자가 role: 'facility_admin'으로 섞여 온다.
+// 다른 화면(AdminDashboard, ScheduleCalendar 등)은 여전히 getAllMembers()를 써서
+// 관리자가 안 섞인 기존 동작을 유지한다 — 일정 등록 화면에서만 옵트인.
+export async function getScheduleManagerCandidates() {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+
+    return fetchWithAuth(`/admin/users/members?companyId=${companyId}&includeAdmins=true`);
+}
+
 // 역할별 회원 조회 (companyId 추가)
 export async function getMembersByRole(role: string) {
     const companyId = getCompanyId();
@@ -2232,6 +2245,8 @@ export async function createSchedule(data: {
     sendNotification: boolean;
     participantIds?: string[];
     managerId?: string | number | null;
+    /** 담당자 종류. "MEMBER"(직원) | "ADMIN"(관리자). 비어 있으면 서버가 MEMBER로 본다. */
+    managerType?: string | null;
     attachments?: {
         fileName: string;
         fileUrl: string;
@@ -2266,6 +2281,8 @@ export async function updateSchedule(id: string, data: {
     sendNotification?: boolean;
     participantIds?: string[];
     managerId?: string | number | null;
+    /** 담당자 종류. "MEMBER"(직원) | "ADMIN"(관리자). 비어 있으면 서버가 MEMBER로 본다. */
+    managerType?: string | null;
     attachments?: {
         fileName: string;
         fileUrl: string;
@@ -2589,6 +2606,19 @@ export async function fetchChatMessages(roomId: number, page = 0, size = 50) {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (userId) params.append('userId', userId);
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages?${params.toString()}`);
+}
+
+/**
+ * 메시지 하나를 기준으로 그 앞뒤를 조회한다.
+ *
+ * 검색 결과 등 지금 화면에 로드된 최근 목록 밖에 있는 메시지로 이동할 때 쓴다.
+ * 응답의 messages는 기존 `/messages` 조회와 같은 ChatMessageDTO 배열·같은 최신순 정렬이다.
+ */
+export async function fetchChatMessagesAround(roomId: number, messageId: number, size = 50) {
+    const userId = getMyChatUserId() || '';
+    const params = new URLSearchParams({ messageId: String(messageId), size: String(size) });
+    if (userId) params.append('userId', userId);
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/around?${params.toString()}`);
 }
 
 // 채팅 읽음 처리

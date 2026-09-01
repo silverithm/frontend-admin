@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
-import { MAX_CHAT_FILE_SIZE, isViewableDocument } from '@/lib/chatAttachments';
+import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl } from '@/lib/chatAttachments';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import MemberItem from '@/components/MemberItem';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
@@ -65,6 +65,8 @@ interface ChatMessage {
     type: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
     content: string;
     fileUrl?: string;
+    /** 목록에 그릴 축소본 — 기존 메시지엔 없을 수 있어 옵셔널 (그럴 땐 원본으로 대체) */
+    thumbnailUrl?: string;
     fileName?: string;
     createdAt: string;
     isDeleted: boolean;
@@ -120,8 +122,9 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.si
  * 숫자만 덩그러니 두면 무슨 수인지 알 수 없어 화면 낭독기용 설명을 함께 준다.
  * 모두 읽으면(0) 아무것도 그리지 않는다 — 카카오톡과 같다.
  */
-function UnreadCount({ count }: { count: number }) {
-    if (count <= 0) return null;
+function UnreadCount({ count }: { count: number | null }) {
+    // null = 참가자를 아직 못 받아온 상태(모른다) — '다 읽음'과 구분해 아무것도 그리지 않는다
+    if (count === null || count <= 0) return null;
     return (
         <Text type="supporting" color="accent" aria-label={`${count}명이 아직 읽지 않음`}>
             {count}
@@ -171,6 +174,9 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
         ),
     );
 }
+
+// 목록(말풍선·정보 서랍 사진 그리드) 이미지 URL 고르기는 chatListImageUrl(@/lib/chatAttachments)로
+// 옮겨 플로팅 채팅(FloatingChat)과 같은 규칙을 공유한다.
 
 function getDateKey(dateStr: string): string {
     const d = new Date(dateStr);
@@ -229,6 +235,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+    /** 지금 방의 참가자를 한 번이라도 받아왔는지 — '아직 모른다'와 '읽음 0명'을 가르는 값 */
+    const [participantsReady, setParticipantsReady] = useState(false);
 
     // 메시지 발신자 아바타 표시용 — 참여자의 profileImageUrl을 미리 조회해둔다
     const participantAvatarMap = useMemo(() => {
@@ -245,12 +253,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
      * 서버는 전송 시 읽음 행만 남기고 참가자 포인터는 옮기지 않는다.
      * 0이면 모두 읽었다는 뜻이라 숫자를 지운다.
      */
-    const countUnreadReaders = useCallback((message: ChatMessage): number => {
-        if (participants.length === 0) return 0;
+    const countUnreadReaders = useCallback((message: ChatMessage): number | null => {
+        // 참가자를 아직 못 받아온 상태('모른다')와 '정말 다 읽음'(0)을 구분한다.
+        // 구분하지 않으면 탭 재진입 직후 participants가 빈 배열로 시작해 잠깐 모두 읽은 것처럼 보인다.
+        if (!participantsReady) return null;
         return participants.filter(p =>
             p.userId !== String(message.senderId) && (p.lastReadMessageId ?? 0) < message.id
         ).length;
-    }, [participants]);
+    }, [participants, participantsReady]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeletingRoom, setIsDeletingRoom] = useState(false);
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -262,6 +272,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** null = 아직 검색 안 함 (빈 배열은 '결과 없음') */
     const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null);
     const [isSearching, setIsSearching] = useState(false);
+    /** 검색 결과를 눌러 이동한 메시지 — 잠깐 배경을 강조했다가 지운다 */
+    const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+    /**
+     * 검색 결과를 눌러 오래된 구간으로 점프한 상태 — 이 상태에선 messages가 최신 대화의
+     * 꼬리가 아니라 그 메시지 주변 구간이므로, 웹소켓으로 오는 새 메시지를 이어붙이면
+     * 안 되고(사이 구간이 비어 대화가 끊겨 보인다) "최신으로 돌아가기"로만 벗어난다.
+     */
+    const [isJumpedToOlder, setIsJumpedToOlder] = useState(false);
+    // 웹소켓 구독 콜백(아래)이 매번 재구독되지 않도록 최신 값을 ref로도 들고 있는다
+    const isJumpedToOlderRef = useRef(false);
+    useEffect(() => { isJumpedToOlderRef.current = isJumpedToOlder; }, [isJumpedToOlder]);
     const [sharedFiles, setSharedFiles] = useState<ChatMessage[]>([]);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     /** @를 입력하면 뜨는 참가자 추천 — null이면 닫힘 */
@@ -327,6 +348,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     useEffect(() => { setShowRoomMenu(false); }, [selectedRoom]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    /** 메시지 스크롤 영역 — 지금 맨 아래 근처를 보고 있는지 판단하는 데 쓴다 */
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    /** 남이 보낸 메시지가 왔는데 내가 위쪽을 보고 있을 때 띄우는 배지 */
+    const [showNewMessageBadge, setShowNewMessageBadge] = useState(false);
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
     const longPressTimerRef2 = useRef<NodeJS.Timeout | null>(null);
@@ -338,6 +363,19 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        setShowNewMessageBadge(false);
+    };
+
+    /** 지금 스크롤이 맨 아래에서 120px 이내인지 — 이 안쪽일 때만 새 메시지를 따라 내려간다 */
+    const isNearBottom = () => {
+        const el = messagesContainerRef.current;
+        if (!el) return true;
+        return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    };
+
+    /** 메시지 목록을 손으로 끝까지 내리면 배지를 치운다 */
+    const handleMessagesScroll = () => {
+        if (showNewMessageBadge && isNearBottom()) setShowNewMessageBadge(false);
     };
 
     // 읽음 처리 API 호출 (lastMsgId는 반드시 인자로 전달)
@@ -380,7 +418,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     }, [companyId, userId, onNotification]);
 
-    // 메시지 로드 후 마지막 메시지 ID 반환
+    // 메시지 로드 후 마지막 메시지 ID 반환 — 항상 '최신 대화'를 불러오는 경로이므로
+    // 검색으로 오래된 구간에 점프해 있던 상태(isJumpedToOlder)도 여기서 함께 벗어난다
     const fetchMessages = useCallback(async (roomId: number): Promise<number | null> => {
         setIsLoadingMessages(true);
         try {
@@ -389,6 +428,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             // 백엔드가 createdAt DESC(최신순)로 반환하므로 뒤집어서 오래된 메시지가 위로
             const sorted = [...msgList].reverse();
             setMessages(sorted);
+            setIsJumpedToOlder(false);
             setTimeout(scrollToBottom, 100);
             // DESC 기준 첫 번째(= 가장 최신) 메시지의 ID 반환
             return msgList.length > 0 ? msgList[0].id : null;
@@ -497,15 +537,46 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     }
 
                     if (wsMessage.type === "MESSAGE" && wsMessage.message) {
-                        setMessages(prev => {
-                            // 중복 방지
-                            if (prev.some(m => m.id === wsMessage.message!.id)) return prev;
-                            return [...prev, wsMessage.message!];
-                        });
-                        setTimeout(scrollToBottom, 100);
+                        // 메시지가 목록에 붙기 전, 지금 스크롤 위치를 먼저 봐둔다
+                        // (붙인 뒤에 재면 스크롤 높이가 이미 늘어나 있어 판단이 어긋난다)
+                        const isMine = wsMessage.message.senderId === userId;
+                        const wasNearBottom = isNearBottom();
 
-                        // 현재 보고 있는 방이면 바로 읽음 처리
-                        markAsRead(wsMessage.roomId, wsMessage.message.id);
+                        // 남이 보낸 메시지는, 내가 옛 구간에 점프해 있는 동안은 이어붙이지 않는다
+                        // (붙이면 그 사이 구간이 빠진 채 이어져 보인다) — 배지로만 알리고 끝낸다.
+                        if (!isMine && isJumpedToOlderRef.current) {
+                            setShowNewMessageBadge(true);
+                            markAsRead(wsMessage.roomId, wsMessage.message.id);
+                            return;
+                        }
+
+                        // 내가 보낸 메시지는 절대 놓치지 않는다. sendMessage/sendFileMessage가
+                        // 보내기 전에 미리 최신으로 돌아가 두지만, 경합으로 그 복귀가 아직
+                        // 끝나지 않은 채 이 메시지가 먼저 도착했을 수 있다 — 그때는 옛 구간
+                        // 위에 내 메시지만 덜렁 붙이는 대신, 최신 목록을 통째로 다시 받아
+                        // (이미 서버에 저장돼 있으니 그 안에 포함돼 있다) 자연스럽게 잇는다.
+                        if (isMine && isJumpedToOlderRef.current) {
+                            markAsRead(wsMessage.roomId, wsMessage.message.id);
+                            fetchMessages(wsMessage.roomId);
+                        } else {
+                            setMessages(prev => {
+                                // 중복 방지
+                                if (prev.some(m => m.id === wsMessage.message!.id)) return prev;
+                                return [...prev, wsMessage.message!];
+                            });
+
+                            // 내가 보낸 메시지는 항상 따라 내려간다. 남이 보낸 메시지는 내가 이미
+                            // 맨 아래 근처를 보고 있을 때만 따라 내려가고, 아니면 배지로만 알린다
+                            // (위쪽 대화를 읽던 중에 화면이 갑자기 끝으로 튀는 것을 막는다)
+                            if (isMine || wasNearBottom) {
+                                setTimeout(scrollToBottom, 100);
+                            } else {
+                                setShowNewMessageBadge(true);
+                            }
+
+                            // 현재 보고 있는 방이면 바로 읽음 처리
+                            markAsRead(wsMessage.roomId, wsMessage.message.id);
+                        }
 
                         // 방 목록의 마지막 메시지도 업데이트
                         setRooms(prevRooms => prevRooms.map(room => {
@@ -611,6 +682,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const sendMessage = async () => {
         if (!messageInput.trim() || !selectedRoom || !userId || !userName) return;
 
+        // 옛 대화 구간에 점프해 있는 채로 보내면 카톡처럼 자동으로 최신 대화로 돌아간다.
+        // (발행 전에 미리 돌아가 둔다 — 아래 웹소켓 핸들러도 내 메시지는 안전망으로
+        // 절대 버리지 않지만, 그것만 믿으면 옛 구간 위에 내 메시지만 덜렁 붙어 그 사이
+        // 구간이 빠진 채로 보이게 된다)
+        if (isJumpedToOlderRef.current) {
+            await returnToLatestMessages();
+        }
+
         const replyToId = replyTo?.id || null;
         const client = stompClientRef.current;
 
@@ -685,6 +764,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (file.size > MAX_CHAT_FILE_SIZE) {
             onNotification(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`, "error");
             return;
+        }
+
+        // 텍스트 전송과 같은 이유로, 옛 대화 구간에서 파일을 보내도 최신 대화로 돌아간다
+        if (isJumpedToOlderRef.current) {
+            await returnToLatestMessages();
         }
 
         setIsUploadingFile(true);
@@ -802,6 +886,63 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         } finally {
             setIsSearching(false);
         }
+    };
+
+    /** 메시지 하나로 스크롤 + 잠깐 강조 (검색 패널이 접히는 레이아웃 변화가 끝난 뒤 스크롤한다) */
+    const scrollToMessageAndHighlight = (messageId: number) => {
+        setTimeout(() => {
+            document.getElementById(`chat-message-${messageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 50);
+        setHighlightedMessageId(messageId);
+        setTimeout(() => setHighlightedMessageId(null), 2000);
+    };
+
+    /**
+     * 검색 결과를 눌러 그 메시지로 이동한다.
+     *
+     * 지금 로드된 목록(최근 50건)에 있으면 그냥 스크롤해서 보여주고 잠깐 강조한다.
+     * 더 오래된 메시지라 목록에 없으면, 그 메시지를 중심으로 앞뒤를 불러오는
+     * `/messages/around` API로 목록을 통째로 그 구간으로 바꿔치기한다.
+     * 그 구간 뒤로 더 최신 메시지가 남아 있으면(hasAfter) 지금 화면이 대화의 꼬리가
+     * 아니라는 뜻이라 '최신 대화로 돌아가기'를 띄운다.
+     */
+    const handleSearchResultClick = async (message: ChatMessage) => {
+        setSidePanel(null);
+
+        if (messages.some(m => m.id === message.id)) {
+            scrollToMessageAndHighlight(message.id);
+            return;
+        }
+
+        if (!selectedRoom) return;
+        setIsLoadingMessages(true);
+        try {
+            const data = await fetchChatMessagesAround(selectedRoom, message.id, 50);
+            const msgList: ChatMessage[] = Array.isArray(data) ? data : (data.messages || []);
+            if (msgList.length === 0) throw new Error("빈 응답");
+            // 기존 /messages와 같은 최신순(DESC) 정렬 — 뒤집어야 오래된 메시지가 위로 온다
+            const sorted = [...msgList].reverse();
+            setMessages(sorted);
+            setIsJumpedToOlder(Boolean(data?.hasAfter));
+            scrollToMessageAndHighlight(message.id);
+        } catch (error) {
+            console.error("메시지 주변 조회 실패:", error);
+            // 403(참가자 아님)·404(지운 메시지 등)·네트워크 오류 모두 같은 안내로 폴백한다
+            onNotification("더 오래된 대화에 있는 메시지라 지금은 이동할 수 없습니다. 잠시 후 다시 시도해주세요", "error");
+        } finally {
+            setIsLoadingMessages(false);
+        }
+    };
+
+    /**
+     * 점프해 있던 구간을 접고 최신 대화로 돌아간다.
+     * 메시지 전송 앞에서 이 완료를 기다려 쓰기도 하므로(끝난 뒤에야 isJumpedToOlder가
+     * false가 됨을 보장) Promise를 그대로 반환한다.
+     */
+    const returnToLatestMessages = () => {
+        if (!selectedRoom) return Promise.resolve(null);
+        setHighlightedMessageId(null);
+        return fetchMessages(selectedRoom); // 내부에서 isJumpedToOlder도 false로 되돌리고 맨 아래로 스크롤한다
     };
 
     /** 방에서 주고받은 파일 모아보기 */
@@ -960,6 +1101,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             const data = await fetchChatParticipants(roomId);
             const list = Array.isArray(data) ? data : (data.participants || data.content || data.data || []);
             setParticipants(list);
+            setParticipantsReady(true);
         } catch (error) {
             console.error("Error fetching participants:", error);
         } finally {
@@ -970,6 +1112,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     // 방을 열면 참가자를 받아둔다 — 메시지 옆 '안 읽은 수'를 참가자별 읽음 위치로 세므로
     // 참가자 서랍을 열지 않아도 필요하다
     useEffect(() => {
+        // 방을 바꾸는 순간부터는 이전 방의 참가자 값이라 '모른다' 상태로 되돌린다
+        // (재조회가 끝나기 전까지 이전 방 기준 안읽음 수가 잘못 보이는 것을 막는다)
+        setParticipantsReady(false);
         if (selectedRoom) fetchParticipants(selectedRoom);
     }, [selectedRoom, fetchParticipants]);
 
@@ -1358,12 +1503,22 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 <VStack gap={1}>
                                                     <Text type="supporting" color="secondary">{searchResults.length}건</Text>
                                                     {searchResults.map((m) => (
-                                                        <div key={m.id} style={{ padding: 'var(--spacing-2)', background: C.card, border: `1px solid ${C.border}`, borderRadius: 'var(--radius-inner)' }}>
+                                                        <button
+                                                            key={m.id}
+                                                            type="button"
+                                                            onClick={() => handleSearchResultClick(m)}
+                                                            style={{
+                                                                display: "block", width: "100%", textAlign: "left",
+                                                                padding: 'var(--spacing-2)', background: C.card,
+                                                                border: `1px solid ${C.border}`, borderRadius: 'var(--radius-inner)',
+                                                                cursor: "pointer",
+                                                            }}
+                                                        >
                                                             <Text type="supporting" weight="semibold" color="primary">
                                                                 {m.senderName} · {formatMessageTime(m.createdAt)}
                                                             </Text>
                                                             <Text type="supporting" color="primary" maxLines={2}>{m.content}</Text>
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                 </VStack>
                                             )}
@@ -1488,7 +1643,20 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                         )}
 
                         {/* Messages */}
-                        <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray }}>
+                        <div
+                            ref={messagesContainerRef}
+                            onScroll={handleMessagesScroll}
+                            style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray, position: "relative" }}
+                        >
+                            {/* 검색으로 오래된 구간에 점프해 있는 동안의 안내 — 스크롤 맨 위에 붙어(sticky) 계속 보인다 */}
+                            {isJumpedToOlder && (
+                                <div style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", justifyContent: "center", marginBottom: 'var(--spacing-1)' }}>
+                                    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 'var(--radius-full)', boxShadow: 'var(--shadow-low)', padding: "var(--spacing-1) var(--spacing-1) var(--spacing-1) var(--spacing-3)", display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                                        <Text type="supporting" color="secondary">지난 대화 구간을 보고 있습니다</Text>
+                                        <Button label="최신 대화로 돌아가기" variant="secondary" size="sm" onClick={returnToLatestMessages} />
+                                    </div>
+                                </div>
+                            )}
                             {isLoadingMessages ? (
                                 <Loading height="100%" label="메시지를 불러오는 중..." />
                             ) : messages.length === 0 ? (
@@ -1539,7 +1707,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     return (
                                         <Fragment key={message.id}>
                                             {dateSeparator}
-                                            <div style={{ display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
+                                            <div
+                                                id={`chat-message-${message.id}`}
+                                                style={{
+                                                    display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 'var(--spacing-2)',
+                                                    borderRadius: 'var(--radius-container)',
+                                                    transition: "background-color 0.3s ease",
+                                                    // 검색 결과에서 찾아온 메시지를 잠깐 배경으로 알려준다
+                                                    backgroundColor: highlightedMessageId === message.id ? 'var(--color-background-yellow)' : "transparent",
+                                                }}
+                                            >
                                                 {!isMyMessage && (
                                                     <Avatar
                                                         src={participantAvatarMap.get(message.senderId || '') || undefined}
@@ -1630,7 +1807,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 >
                                                                     <img
                                                                         className="carev-chat-image"
-                                                                        src={message.fileUrl}
+                                                                        src={chatListImageUrl(message)}
                                                                         alt={message.fileName || "이미지"}
                                                                         style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)' }}
                                                                     />
@@ -1814,6 +1991,20 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 })
                             )}
                             <div ref={messagesEndRef} />
+                            {/* 새 메시지 배지 — 스크롤 컨테이너 하단에 붙어(sticky) 늘 보이는 자리에 뜬다.
+                                남이 보낸 메시지가 왔는데 내가 위쪽을 보고 있을 때만 나타난다 */}
+                            {showNewMessageBadge && (
+                                <div style={{ position: "sticky", bottom: 'var(--spacing-1)', display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+                                    <div style={{ pointerEvents: "auto" }}>
+                                        <Button
+                                            label="새 메시지 ↓"
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={scrollToBottom}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* 답글 미리보기 바 */}
@@ -1884,18 +2075,22 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     isDisabled={isUploadingFile || isSendingMessage}
                                     onClick={() => fileInputRef.current?.click()}
                                 />
-                                <div style={{ flex: 1 }}>
-                                    <TextInput
+                                {/*
+                                  Astryx TextArea는 onKeyDown을 지원하지 않아(docs.mjs 확인) 래퍼 div에 건다 —
+                                  keydown은 textarea에서 이 div까지 그대로 버블링된다.
+                                  줄 수(rows)는 입력된 줄바꿈 수만큼 최대 5줄까지 늘어난다.
+                                */}
+                                <div style={{ flex: 1 }} onKeyDown={handleKeyDown}>
+                                    <TextArea
                                         label="메시지 입력"
                                         isLabelHidden
-                                        type="text"
                                         value={messageInput}
                                         onChange={handleMessageInputChange}
-                                        onKeyDown={handleKeyDown}
+                                        rows={Math.min(5, Math.max(1, messageInput.split("\n").length))}
                                         placeholder={
                                             isUploadingFile ? "파일을 보내는 중..."
-                                                : replyTo ? `${replyTo.senderName}에게 답장...`
-                                                : "메시지 입력 (사진은 붙여넣기·끌어놓기로도 보낼 수 있어요)"
+                                                : replyTo ? `${replyTo.senderName}에게 답장... (Shift+Enter로 줄바꿈)`
+                                                : "메시지 입력 (Shift+Enter로 줄바꿈, 사진은 붙여넣기·끌어놓기로도 보낼 수 있어요)"
                                         }
                                         isDisabled={isSendingMessage || isUploadingFile}
                                     />
@@ -1978,7 +2173,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
                                                     >
                                                         <img
-                                                            src={m.fileUrl!}
+                                                            src={chatListImageUrl(m)}
                                                             alt={m.fileName || "사진"}
                                                             className="carev-chat-photo"
                                                             style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)' }}

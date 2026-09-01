@@ -25,3 +25,17 @@ export const isViewableDocument = (fileName?: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
     return !!ext && VIEWABLE_DOC_EXTENSIONS.includes(ext);
 };
+
+/**
+ * 채팅 메시지 목록(말풍선·사진 그리드)에 그릴 이미지 URL을 고르는 단일 지점.
+ * 관리자 채팅(ChatManagement)·직원 플로팅 채팅(FloatingChat)이 같은 규칙을 쓴다.
+ *
+ * 썸네일이 있으면 그걸 쓰고, 없으면(막 올린 사진이라 서버가 아직 못 만들었거나
+ * 옛 메시지라 애초에 없는 경우) 원본으로 대체해 빈칸이 되지 않게 한다.
+ * 확대·원본 보기·다운로드는 이 함수를 거치지 않고 항상 fileUrl을 직접 써야 한다.
+ * 두 컴포넌트가 ChatMessage 타입을 각자 갖고 있어(합치면 더 지저분해져 그대로 둠) 필요한
+ * 두 필드만 구조적으로 받는다.
+ */
+export function chatListImageUrl(message: { thumbnailUrl?: string; fileUrl?: string }): string | undefined {
+    return message.thumbnailUrl || message.fileUrl;
+}

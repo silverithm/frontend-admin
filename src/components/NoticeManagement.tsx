@@ -68,7 +68,8 @@ interface NoticeStats {
 }
 
 interface NoticeManagementProps {
-  isAdmin?: boolean;
+  /** 공지 작성·수정·삭제 및 미게시(DRAFT) 공지 열람 권한. 관리자는 로그인 타입, 직원은 NOTICE_MANAGE 권한 보유 여부로 넘겨받는다. */
+  canManage?: boolean;
   /**
    * 커뮤니티 [운영] 공지를 열 때 호출. 셸 안에 커뮤니티 탭이 있으면 그쪽으로 넘긴다.
    * 넘겨주지 않으면 새 탭으로 커뮤니티를 연다(직원 화면 등 커뮤니티 탭이 없는 곳).
@@ -76,7 +77,7 @@ interface NoticeManagementProps {
   onOpenPlazaPost?: (postId: number) => void;
 }
 
-export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: NoticeManagementProps) {
+export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: NoticeManagementProps) {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
@@ -153,13 +154,13 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
     try {
       const filter: { status?: string; searchQuery?: string } = {};
       // 비관리자는 미게시(DRAFT)·보관 공지를 볼 권한이 없다 — 탭 상태와 무관하게 항상 게시된 공지만 조회한다
-      if (!isAdmin || activeTab === 'published') filter.status = 'PUBLISHED';
+      if (!canManage || activeTab === 'published') filter.status = 'PUBLISHED';
       if (debouncedSearchQuery) filter.searchQuery = debouncedSearchQuery;
 
       const response = await getNotices(filter);
       if (response.notices) {
         const filteredNotices = response.notices.filter(
-          (n: NoticeData) => n.status === 'PUBLISHED' || (isAdmin && activeTab === 'all')
+          (n: NoticeData) => n.status === 'PUBLISHED' || (canManage && activeTab === 'all')
         );
         setNotices(filteredNotices);
       }
@@ -385,7 +386,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                 isDisabled={isLoading}
                 isLoading={isLoading}
               />
-              {isAdmin && (
+              {canManage && (
                 <Button
                   label="새 공지 작성"
                   variant="primary"
@@ -401,7 +402,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
           <div className="carev-notice-listwrap" style={{ width: '100%' }}>
             <Card padding={0} height="100%">
               {/* 탭 — 비관리자는 항상 게시된 공지만 보이므로 전체/게시 구분이 무의미해 탭 자체를 숨긴다 */}
-              {isAdmin && (
+              {canManage && (
                 <>
                   <div style={{ padding: 'var(--spacing-4)' }}>
                     <SegmentedControl
@@ -534,7 +535,7 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                         description="아직 등록된 공지사항이 없습니다"
                       />
                     </div>
-                    {isAdmin && (
+                    {canManage && (
                       <Button
                         label="새 공지 작성"
                         variant="primary"
@@ -568,10 +569,10 @@ export default function NoticeManagement({ isAdmin = true, onOpenPlazaPost }: No
                 </HStack>
               ) : (
                 <HStack gap={2} vAlign="center">
-                  {isAdmin && (
+                  {canManage && (
                     <Button label="삭제" variant="destructive" onClick={() => setShowDeleteConfirm(true)} />
                   )}
-                  {isAdmin && (
+                  {canManage && (
                     <Button label="수정" variant="primary" onClick={() => setIsEditing(true)} />
                   )}
                 </HStack>

@@ -120,6 +120,8 @@ export interface Schedule {
   /** 담당자 (참석자와 구분되는 단일 지정, 미지정 가능) */
   managerId?: number | null;
   managerName?: string | null;
+  /** 담당자 종류. "MEMBER"(직원) | "ADMIN"(관리자) */
+  managerType?: string | null;
   participants?: ScheduleParticipant[];
   tasks?: ScheduleTask[];
   /** 할 일 총 개수 / 완료 개수 (서버 계산값) */

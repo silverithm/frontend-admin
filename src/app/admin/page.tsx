@@ -1434,7 +1434,8 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <NoticeManagement isAdmin={isAdmin} onOpenPlazaPost={handleOpenPlazaPost} />
+                            {/* 관리자는 로그인 타입 자체가 공지 관리 권한이다 */}
+                            <NoticeManagement canManage={isAdmin} onOpenPlazaPost={handleOpenPlazaPost} />
                         </motion.div>
                     ) : activeMainTab === "chat" ? (
                         <motion.div
@@ -1445,7 +1446,9 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <ChatManagement onNotification={showNotification} initialRoomId={railRoomId} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
+                            {/* ChatManagement의 isAdmin prop은 실제로는 "채팅방 생성·삭제 권한"이다(다른 작업자가 수정 중이라 이 파일은 손대지 않는다).
+                                관리자는 로그인 타입 자체가 그 권한이므로 명시적으로 넘긴다. */}
+                            <ChatManagement onNotification={showNotification} isAdmin={isAdmin} initialRoomId={railRoomId} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
                         </motion.div>
                     ) : activeMainTab === "schedule" ? (
                         <motion.div
@@ -1514,7 +1517,7 @@ export default function AdminPage() {
                             {approvalSubTab === "management" && isAdmin ? (
                                 <ApprovalManagement />
                             ) : approvalSubTab === "templates" && isAdmin ? (
-                                <ApprovalTemplateManager isAdmin={isAdmin} />
+                                <ApprovalTemplateManager canManage={isAdmin} />
                             ) : (
                                 <EmployeeApproval />
                             )}
@@ -1876,7 +1879,7 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
-                            <CompanyLibrary isAdmin={isAdmin} onNotification={showNotification} />
+                            <CompanyLibrary canManage={isAdmin} onNotification={showNotification} />
                         </motion.div>
                     ) : activeMainTab === "members" ? (
                         <motion.div
@@ -1890,7 +1893,7 @@ export default function AdminPage() {
                             <UserManagement
                                 organizationName={companyName || undefined}
                                 onNotification={showNotification}
-                                isAdmin={isAdmin}
+                                canManage={isAdmin}
                                 onPendingCountChange={onMembersPendingChange}
                             />
                         </motion.div>

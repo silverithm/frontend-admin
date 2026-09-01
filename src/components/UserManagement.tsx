@@ -81,12 +81,13 @@ interface SeniorRow extends ElderlyInfo, Record<string, unknown> {}
 interface UserManagementProps {
   organizationName?: string;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
-  isAdmin?: boolean;
+  /** 회원 승인·거절·상태변경·권한설정 권한. 관리자는 로그인 타입, 직원은 MEMBER_MANAGE 권한 보유 여부로 넘겨받는다. */
+  canManage?: boolean;
   /** 가입 승인 대기 수를 셸에 알린다 — 사이드바 회원관리 탭 배지가 이 값을 쓴다 */
   onPendingCountChange?: (count: number) => void;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, isAdmin = true, onPendingCountChange }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, canManage = true, onPendingCountChange }) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'roles' | 'seniors'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
 
@@ -670,7 +671,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
             >
               <SegmentedControlItem value="pending" label={`가입 신청 (${pendingUsers.length})`} icon={<Icon icon={FiUserPlus} size="sm" />} />
               <SegmentedControlItem value="members" label={`기존 회원 (${members.length + adminAccounts.length})`} icon={<Icon icon={FiUsers} size="sm" />} />
-              {isAdmin && <SegmentedControlItem value="roles" label="역할 관리" icon={<Icon icon={FiBriefcase} size="sm" />} />}
+              {canManage && <SegmentedControlItem value="roles" label="역할 관리" icon={<Icon icon={FiBriefcase} size="sm" />} />}
               <SegmentedControlItem value="seniors" label={`어르신 관리 (${seniors.length})`} icon={<Icon icon={FiHeart} size="sm" />} />
             </SegmentedControl>
           </HStack>
@@ -694,7 +695,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         hasClear
                       />
                     </StackItem>
-                    {isAdmin && (
+                    {canManage && (
                       <>
                         <Button
                           label="엑셀 등록"
@@ -776,7 +777,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         icon={<Icon icon={FiHeart} size="lg" color="disabled" />}
                         title="등록된 어르신이 없습니다"
                         description="어르신을 추가하여 관리를 시작하세요."
-                        actions={isAdmin ? (
+                        actions={canManage ? (
                           <Button
                             label="어르신 추가"
                             variant="primary"
@@ -811,7 +812,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               : <Text type="supporting" color="disabled">주소 미등록</Text>
                           ),
                         },
-                        ...(isAdmin ? [{
+                        ...(canManage ? [{
                           key: 'actions',
                           header: '',
                           renderCell: (s: SeniorRow) => (
@@ -837,7 +838,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   <PositionManagement
                     organizationName={organizationName}
                     onNotification={onNotification}
-                    isAdmin={isAdmin}
+                    isAdmin={canManage}
                   />
                 </motion.div>
               ) : activeTab === 'pending' ? (
@@ -897,7 +898,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               : <Text type="supporting" color="disabled">-</Text>
                           ),
                         },
-                        ...(isAdmin ? [{
+                        ...(canManage ? [{
                           key: 'actions',
                           header: '',
                           renderCell: (u: UserRow) => (
@@ -993,7 +994,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           header: '직책',
                           renderCell: (u) => {
                             // 관리자 직책은 본인만 바꿀 수 있다 (백엔드가 '내 직책' API만 연다)
-                            const canEdit = u.isAdminAccount ? isMyAdminRow(u) : isAdmin;
+                            const canEdit = u.isAdminAccount ? isMyAdminRow(u) : canManage;
                             if (!canEdit) {
                               return u.position ? (
                                 <Badge variant="orange" label={u.position} />
@@ -1037,7 +1038,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             )
                           ),
                         },
-                        ...(isAdmin ? [{
+                        ...(canManage ? [{
                           key: 'actions',
                           header: '',
                           renderCell: (u: UserRow) => (

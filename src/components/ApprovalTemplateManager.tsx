@@ -56,7 +56,8 @@ function parseDefaultLine(value: unknown): ApproverCandidate[] | undefined {
   return undefined;
 }
 
-export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: boolean }) {
+/** canManage: 양식 생성·수정·삭제·순서변경 권한. 관리자는 로그인 타입, 직원은 APPROVAL_TEMPLATE 권한 보유 여부로 넘겨받는다. */
+export default function ApprovalTemplateManager({ canManage = true }: { canManage?: boolean }) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([]);
@@ -180,7 +181,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
 
   // 양식이 하나도 없는 신규 기관이면 기본 양식을 자동으로 넣어준다 (세션당 1회만 시도)
   useEffect(() => {
-    if (!isAdmin || isLoading || didAutoSeedRef.current) return;
+    if (!canManage || isLoading || didAutoSeedRef.current) return;
     // 조회 자체가 실패했으면 '양식 없음'이라고 단정할 수 없다 — 시딩하지 않는다
     if (!loadSucceededRef.current) return;
     if (templates.length > 0) {
@@ -205,7 +206,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
       }
     })();
     // templates/isLoading이 바뀔 때만 판단하면 충분하다 (ref로 1회 보장)
-  }, [isAdmin, isLoading, templates.length]);
+  }, [canManage, isLoading, templates.length]);
 
   // 수동 "기본 양식 불러오기"
   const handleSeedDefaults = async () => {
@@ -250,7 +251,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
    * 순서 조정은 전체 목록 기준으로만 허용한다 — 대분류로 걸러진 상태에서 바꾸면
    * 화면에 안 보이는 나머지 양식들과 순서가 뒤섞인다(sortOrder는 회사 전체 공유값).
    */
-  const canReorder = isAdmin && categoryFilter === '';
+  const canReorder = canManage && categoryFilter === '';
 
   /** 대분류 이름 일괄 변경 — 그 분류의 모든 양식 category를 새 이름으로 바꾼다 */
   const handleRenameCategories = async () => {
@@ -591,7 +592,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
             <Text as="h2" type="display-3" weight="bold">양식 관리</Text>
             <Text type="supporting">전자결재 양식 파일을 관리합니다</Text>
           </VStack>
-          {isAdmin && (
+          {canManage && (
             <HStack gap={2}>
               <Button
                 label="기본 양식 불러오기"
@@ -643,7 +644,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                 onClick={() => setCategoryFilter(UNCATEGORIZED_LABEL)}
               />
             )}
-            {isAdmin && usedCategories.length > 0 && (
+            {canManage && usedCategories.length > 0 && (
               <Button
                 label="대분류 이름 변경"
                 variant="ghost"
@@ -658,7 +659,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
           </HStack>
         )}
 
-        {isAdmin && !isLoading && templates.length > 1 && !canReorder && (
+        {canManage && !isLoading && templates.length > 1 && !canReorder && (
           <Text type="supporting" color="secondary">
             순서 조정은 ‘전체’ 보기에서만 할 수 있습니다. 대분류 필터를 해제해주세요.
           </Text>
@@ -675,7 +676,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
               <Table hasHover dividers="rows">
                 <thead>
                   <TableRow isHeaderRow>
-                    {isAdmin && <TableHeaderCell>순서</TableHeaderCell>}
+                    {canManage && <TableHeaderCell>순서</TableHeaderCell>}
                     <TableHeaderCell>양식명</TableHeaderCell>
                     <TableHeaderCell>대분류</TableHeaderCell>
                     <TableHeaderCell>설명</TableHeaderCell>
@@ -683,7 +684,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                     <TableHeaderCell>파일</TableHeaderCell>
                     <TableHeaderCell>상태</TableHeaderCell>
                     <TableHeaderCell>수정일</TableHeaderCell>
-                    {isAdmin && <TableHeaderCell>액션</TableHeaderCell>}
+                    {canManage && <TableHeaderCell>액션</TableHeaderCell>}
                   </TableRow>
                 </thead>
                 <tbody>
@@ -713,7 +714,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                             : undefined,
                       }}
                     >
-                      {isAdmin && (
+                      {canManage && (
                         <TableCell>
                           <HStack gap={0.5} vAlign="center">
                             <span
@@ -795,7 +796,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                       </TableCell>
                       <TableCell>
                         <HStack>
-                          {isAdmin ? (
+                          {canManage ? (
                             // 평소엔 현재 상태를, 마우스를 올리면 누르면 될 결과를 보여준다
                             // (버튼 라벨이 상태인지 동작인지 헷갈리지 않게)
                             <span
@@ -835,7 +836,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                           </Text>
                         </HStack>
                       </TableCell>
-                      {isAdmin && (
+                      {canManage && (
                         <TableCell>
                           <HStack gap={1}>
                             <IconButton
@@ -885,7 +886,7 @@ export default function ApprovalTemplateManager({ isAdmin = true }: { isAdmin?: 
                 <FiFileText size={48} style={{ color: 'var(--color-icon-disabled)' }} />
                 <Text type="large" color="secondary">등록된 양식이 없습니다</Text>
                 <Text type="supporting">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</Text>
-                {isAdmin && (
+                {canManage && (
                   <Button
                     label="기본 양식 불러오기"
                     variant="primary"

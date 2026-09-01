@@ -20,6 +20,7 @@ import ExternalLinksNav from '@/components/ExternalLinksNav';
 import ApprovalManagement from '@/components/ApprovalManagement';
 import ApprovalTemplateManager from '@/components/ApprovalTemplateManager';
 import UserManagement from '@/components/UserManagement';
+import CompanyLibrary from '@/components/CompanyLibrary';
 import DispatchManagement from '@/components/DispatchManagement';
 import EmployeeMeetingMinutes from '@/components/meetingMinutes/EmployeeMeetingMinutes';
 import Image from 'next/image';
@@ -44,11 +45,14 @@ import {
   IconUser,
   IconUsersGroup,
   IconMailbox,
+  IconFolder,
 } from '@tabler/icons-react';
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
 
-type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza' | 'voice' | 'tools';
+// 탭 구성은 관리자 화면(src/app/admin/page.tsx)과 같은 순서·라벨·아이콘을 따른다.
+// 관리자 전용 기능(회원관리·편의기능 등)만 권한으로 항목을 숨긴다.
+type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza' | 'voice' | 'tools' | 'library';
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 // 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
@@ -164,7 +168,11 @@ export default function EmployeePage() {
     { key: 'schedule', label: '일정', icon: IconCalendar },
     { key: 'approval', label: '전자결재', icon: IconFileText },
     { key: 'work', label: '근무조정', icon: IconCalendarStats },
-    { key: 'voice', label: '고충·건의', icon: IconMailbox },
+    // 고충·건의함 — 직원 본인이 제출하는 화면이라 관리자 화면과 달리 권한 검사 없이 항상 연다
+    { key: 'voice', label: '고충·건의함', icon: IconMailbox },
+    // 자료실 — 관리자 화면과 동일하게 열람은 누구나, 업로드·삭제만 별도 권한(canManage)으로 가린다.
+    // 전용 권한이 없어 기본적으로 모두에게 연다.
+    { key: 'library', label: '자료실', icon: IconFolder },
     // 권한이 있는 경우에만 회원관리 탭 표시
     ...(hasAnyPermission('MEMBER_VIEW', 'MEMBER_MANAGE') ? [
       { key: 'members', label: '회원관리', icon: IconUsers },
@@ -300,7 +308,8 @@ export default function EmployeePage() {
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  <NoticeManagement isAdmin={hasPermission('NOTICE_MANAGE')} />
+                  {/* 직원은 NOTICE_MANAGE 권한 보유 여부가 공지 관리 권한이다 */}
+                  <NoticeManagement canManage={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
               ) : activeMainTab === 'chat' ? (
                 <motion.div
@@ -311,6 +320,9 @@ export default function EmployeePage() {
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
+                  {/* ChatManagement의 isAdmin prop은 실제로는 "채팅방 생성·삭제 권한"이다. 전용 채팅 권한이 없어
+                      공지 관리 권한(NOTICE_MANAGE)을 대신 기준으로 쓰고 있다 — 기존 동작 유지, 이 컴포넌트는 다른
+                      작업자가 수정 중이라 손대지 않는다. */}
                   <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} />
                 </motion.div>
               ) : activeMainTab === 'schedule' ? (
@@ -397,7 +409,8 @@ export default function EmployeePage() {
                   ) : approvalSubTab === 'management' ? (
                     <ApprovalManagement canManage={hasPermission('APPROVAL_MANAGE')} />
                   ) : approvalSubTab === 'templates' ? (
-                    <ApprovalTemplateManager />
+                    // 이 서브탭 버튼 자체가 APPROVAL_TEMPLATE 권한으로 가려져 있어 항상 true지만, 의도를 명시적으로 남긴다
+                    <ApprovalTemplateManager canManage={hasPermission('APPROVAL_TEMPLATE')} />
                   ) : null}
                 </motion.div>
               ) : activeMainTab === 'plaza' ? (
@@ -433,6 +446,18 @@ export default function EmployeePage() {
                 >
                   <EmployeeCalendar />
                 </motion.div>
+              ) : activeMainTab === 'library' ? (
+                <motion.div
+                  key="library"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: duration.fast }}
+                  style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+                >
+                  {/* 전용 권한이 없어 열람은 모두 열고, 업로드·삭제만 canManage=false로 막는다(관리자만 자료 관리) */}
+                  <CompanyLibrary canManage={false} onNotification={showNotification} />
+                </motion.div>
               ) : activeMainTab === 'members' ? (
                 <motion.div
                   key="members"
@@ -444,7 +469,7 @@ export default function EmployeePage() {
                 >
                   <UserManagement
                     onNotification={showNotification}
-                    isAdmin={hasPermission('MEMBER_MANAGE')}
+                    canManage={hasPermission('MEMBER_MANAGE')}
                   />
                 </motion.div>
               ) : null}

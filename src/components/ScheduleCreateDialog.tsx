@@ -23,6 +23,7 @@ import {
   getAllMembers,
   getScheduleCategorySettings,
   getScheduleLabels,
+  getScheduleManagerCandidates,
 } from '@/lib/apiService';
 import { getMemberRoleName, getRoleDisplayName } from '@/lib/roleUtils';
 import {
@@ -52,6 +53,23 @@ interface MemberLike {
   profileImageUrl?: string | null;
 }
 
+/** 관리자(시설장) 계정 구분자. MemberDTO.fromAppUser가 내려주는 값과 일치해야 한다. */
+const ADMIN_ROLE = 'facility_admin';
+
+/**
+ * 담당자 Selector는 members.id/app_user.id가 우연히 겹칠 수 있어 값만으로 구분할 수 없다.
+ * "MEMBER:9" / "ADMIN:3"처럼 종류를 값에 함께 인코딩해 옵션을 유일하게 만들고,
+ * 제출 시 이 값에서 managerId/managerType을 다시 뽑아낸다.
+ */
+const managerOptionValue = (member: MemberLike) => (
+  `${member.role === ADMIN_ROLE ? 'ADMIN' : 'MEMBER'}:${member.id}`
+);
+
+const managerOptionLabel = (member: MemberLike) => {
+  const roleText = member.position || (member.role === ADMIN_ROLE ? '관리자' : undefined);
+  return `${member.name}${roleText ? ` (${roleText})` : ''}`;
+};
+
 const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
   height: 28,
   borderRadius: 'var(--radius-inner)',
@@ -72,6 +90,8 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
   const { showAlert, AlertContainer } = useAlert();
 
   const [members, setMembers] = useState<MemberLike[]>([]);
+  /** 담당자 후보 — 직원 + 관리자(시설장). 참석자 후보(members)와 달리 관리자가 섞여 있다. */
+  const [managerCandidates, setManagerCandidates] = useState<MemberLike[]>([]);
   const [customCategories, setCustomCategories] = useState<ScheduleLabel[]>([]);
   const [baseCategories, setBaseCategories] = useState<ScheduleCategorySetting[]>(DEFAULT_CATEGORY_SETTINGS);
   const [participantRoleFilter, setParticipantRoleFilter] = useState<string[]>([]);
@@ -113,8 +133,9 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
     let cancelled = false;
     (async () => {
       try {
-        const [memberData, labelData, categoryData] = await Promise.allSettled([
+        const [memberData, managerData, labelData, categoryData] = await Promise.allSettled([
           getAllMembers(),
+          getScheduleManagerCandidates(),
           getScheduleLabels(),
           getScheduleCategorySettings(),
         ]);
@@ -125,6 +146,16 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
           const raw = memberData.value;
           const list = Array.isArray(raw) ? raw : (raw?.members || raw?.content || raw?.data || []);
           setMembers((list as MemberLike[]).filter((m) => m.id != null && m.name));
+        }
+        if (managerData.status === 'fulfilled') {
+          const raw = managerData.value;
+          const list = Array.isArray(raw) ? raw : (raw?.members || raw?.content || raw?.data || []);
+          setManagerCandidates((list as MemberLike[]).filter((m) => m.id != null && m.name));
+        } else if (memberData.status === 'fulfilled') {
+          // 관리자 포함 조회가 실패해도 담당자 지정 자체는 직원만으로 계속 동작해야 한다
+          const raw = memberData.value;
+          const list = Array.isArray(raw) ? raw : (raw?.members || raw?.content || raw?.data || []);
+          setManagerCandidates((list as MemberLike[]).filter((m) => m.id != null && m.name));
         }
         if (labelData.status === 'fulfilled') {
           const raw = labelData.value;
@@ -186,6 +217,10 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
       return;
     }
 
+    // 담당자 값은 "MEMBER:9" / "ADMIN:3"처럼 종류가 인코딩돼 있다 — id 공간이 서로 달라
+    // (members.id와 app_user.id) 종류 없이 숫자만 보내면 엉뚱한 사람이 저장될 수 있다.
+    const [managerType, managerIdRaw] = formData.managerId ? formData.managerId.split(':') : [undefined, undefined];
+
     setIsSubmitting(true);
     try {
       await createSchedule({
@@ -201,7 +236,8 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
         isAllDay: formData.isAllDay,
         sendNotification: formData.sendNotification,
         participantIds: formData.participantIds.length > 0 ? formData.participantIds : undefined,
-        managerId: formData.managerId ? Number(formData.managerId) : null,
+        managerId: managerIdRaw ? Number(managerIdRaw) : null,
+        managerType: managerType || null,
       });
 
       showAlert({ type: 'success', title: '생성 완료', message: '일정이 등록되었습니다.' });
@@ -365,7 +401,7 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                   hasClear
                   value={formData.managerId || null}
                   onChange={(value) => setFormData(prev => ({ ...prev, managerId: value || '' }))}
-                  options={members.map((m) => ({ value: String(m.id), label: `${m.name}${getMemberRoleText(m) ? ` (${getMemberRoleText(m)})` : ''}` }))}
+                  options={managerCandidates.map((m) => ({ value: managerOptionValue(m), label: managerOptionLabel(m) }))}
                 />
 
                 {/* 참석자 선택 — 직종으로 좁혀 보고, 직종 단위로 한꺼번에 고를 수 있다 */}
