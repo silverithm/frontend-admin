@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:chat": "node --test src/lib/chatMessageGrouping.test.ts"
   },
   "dependencies": {
     "@astryxdesign/core": "^0.1.2",

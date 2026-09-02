@@ -1300,3 +1300,7 @@ html {
   cursor: pointer;
 }
 .carev-richtext-size-menu button:hover { background: var(--color-background-muted); }
+
+/* 채팅 사진 묶음(격자) 칸 — 마우스를 올리면 살짝 어두워져 누를 수 있음을 알린다 */
+.carev-chat-gridphoto { transition: filter var(--duration-fast-min) var(--ease-standard); }
+@media (hover: hover) { .carev-chat-gridphoto:hover { filter: brightness(0.9); } }

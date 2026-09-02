@@ -7,14 +7,16 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
-import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
-import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Loading } from "@/components/Loading";
 import DocumentViewerModal from "@/components/DocumentViewerModal";
+import { ChatPhotoGroup } from "@/components/chat/ChatPhotoGroup";
+import { ChatImageLightbox, type ChatLightboxItem } from "@/components/chat/ChatImageLightbox";
+import { ChatVideoBubble } from "@/components/chat/ChatVideoBubble";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage } from '@/lib/apiService';
-import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl } from '@/lib/chatAttachments';
+import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
+import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
 import { useOlderChatMessages } from '@/lib/useOlderChatMessages';
 
 interface ChatParticipant {
@@ -38,25 +40,8 @@ const C = {
     accent: 'var(--color-icon-teal)',       // teal-600
 };
 
-function getDateKey(dateStr: string): string {
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function formatDateSeparator(dateStr: string): string {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.round((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "오늘";
-    if (diffDays === 1) return "어제";
-    if (date.getFullYear() === now.getFullYear()) {
-        return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-    }
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-}
+// 날짜 구분선(getDateKey/formatDateSeparator)과 사진 묶음 규칙은
+// @/lib/chatMessageGrouping으로 옮겨 관리자 채팅 탭과 같은 규칙을 공유한다.
 
 interface FloatingChatMessagesProps {
     roomId: number;
@@ -139,7 +124,8 @@ export function FloatingChatMessages({
     const [uploadError, setUploadError] = useState<string | null>(null);
     /** 문서는 이 창 안에서 바로 열어본다 (이미지는 아래 확대 보기로) */
     const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
-    const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
+    /** 사진 크게 보기 — 묶음에서 열면 그 묶음 전체가 들어와 좌우로 넘길 수 있다 (한 장이면 길이 1) */
+    const [imagePreview, setImagePreview] = useState<{ items: ChatLightboxItem[]; index: number } | null>(null);
     /** 파일을 창 위로 끌어왔을 때만 안내를 띄운다 */
     const [isDraggingFile, setIsDraggingFile] = useState(false);
     /** 자식 위를 지날 때마다 dragleave가 튀어서, 진입 횟수를 세어 상쇄한다 */
@@ -332,11 +318,15 @@ export function FloatingChatMessages({
         sendFiles(files);
     };
 
-    /** 받은 첨부 열기 — 사진은 확대 보기, 열람 가능한 문서는 뷰어, 나머지는 새 탭 */
+    /** 받은 첨부 열기 — 사진은 확대 보기, 동영상은 새 탭, 열람 가능한 문서는 뷰어, 나머지는 새 탭 */
     const openAttachment = (message: ChatMessage) => {
         if (!message.fileUrl) return;
-        if (message.type === "IMAGE") {
-            setImagePreview({ fileUrl: message.fileUrl, fileName: message.fileName || "이미지" });
+        const media = chatMediaType(message);
+        if (media === "IMAGE") {
+            setImagePreview({ items: [{ fileUrl: message.fileUrl, fileName: message.fileName || "이미지" }], index: 0 });
+        } else if (media === "VIDEO") {
+            // 문서 뷰어는 동영상을 그릴 줄 모른다 — 브라우저 기본 재생기에 넘긴다
+            window.open(message.fileUrl, "_blank", "noopener");
         } else if (isViewableDocument(message.fileName)) {
             setViewerFile({ fileUrl: message.fileUrl, fileName: message.fileName || "문서" });
         } else {
@@ -496,7 +486,10 @@ export function FloatingChatMessages({
                 </Text>
                 <div style={{ opacity: 0.8 }}>
                     <Text type="supporting" color="inherit" maxLines={1}>
-                        {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                        {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
+                        {message.replyToMediaType === "VIDEO" ? "🎬 동영상"
+                            : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? "📷 사진"
+                                : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
                     </Text>
                 </div>
             </div>
@@ -606,12 +599,17 @@ export function FloatingChatMessages({
                         <Text type="body" color="secondary">메시지가 없습니다</Text>
                     </div>
                 ) : (
-                    messages.map((message, index) => {
+                    buildChatRenderItems(messages).map((item) => {
+                        // 연달아 온 사진은 한 말풍선(격자)으로 접힌다.
+                        // 대표 메시지는 묶음의 '마지막(가장 최신)' 장 — 시각 표시가 묶음이 끝난 시각이어야 하고,
+                        // 답장·반응 메뉴도 이 메시지를 대상으로 삼는다.
+                        // (이 화면은 원래 '안 읽은 수'를 그리지 않으므로 묶음에도 새로 넣지 않는다)
+                        const message = item.kind === "photos" ? item.messages[item.messages.length - 1] : item.message;
+                        const photoGroup = item.kind === "photos" ? item.messages : null;
                         const isMyMessage = message.senderId === userId;
                         const isSystemMessage = message.type === "SYSTEM";
-                        const showDateSeparator =
-                            index === 0 ||
-                            getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
+                        const showDateSeparator = item.showDateSeparator;
+                        const mediaType = chatMediaType(message);
 
                         const dateSeparator = showDateSeparator ? (
                             <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "var(--spacing-3) 0" }}>
@@ -732,7 +730,17 @@ export function FloatingChatMessages({
                                                 {/* 답글 원본 미리보기 */}
                                                 {renderReplyPreview(message)}
 
-                                                {message.type === "IMAGE" && message.fileUrl ? (
+                                                {photoGroup ? (
+                                                    // 연달아 온 사진 묶음 — 격자로 그리고, 누르면 그 묶음 안에서 좌우로 넘길 수 있다
+                                                    <ChatPhotoGroup
+                                                        messages={photoGroup}
+                                                        maxWidth={240}
+                                                        onOpen={(openIndex) => setImagePreview({
+                                                            items: photoGroup.map(m => ({ fileUrl: m.fileUrl!, fileName: m.fileName || "이미지" })),
+                                                            index: openIndex,
+                                                        })}
+                                                    />
+                                                ) : mediaType === "IMAGE" && message.fileUrl ? (
                                                     // img는 네이티브로 포커스를 못 받으므로 button으로 감싸 키보드로도 크게 보기를 열 수 있게 한다
                                                     <button
                                                         type="button"
@@ -747,6 +755,13 @@ export function FloatingChatMessages({
                                                             style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', display: "block" }}
                                                         />
                                                     </button>
+                                                ) : mediaType === "VIDEO" && message.fileUrl ? (
+                                                    <ChatVideoBubble
+                                                        fileUrl={message.fileUrl}
+                                                        fileName={message.fileName || message.content}
+                                                        posterUrl={message.thumbnailUrl}
+                                                        maxHeight={160}
+                                                    />
                                                 ) : message.type === "FILE" && message.fileUrl ? (
                                                     <button
                                                         type="button"
@@ -1108,22 +1123,15 @@ export function FloatingChatMessages({
                 />
             )}
 
-            {/* 사진 크게 보기 */}
+            {/* 사진 크게 보기 — 묶음에서 열면 좌우 화살표로 넘긴다 */}
             {imagePreview && (
-                <Dialog isOpen onOpenChange={(open) => { if (!open) setImagePreview(null); }} purpose="info" width={720}>
-                    <Layout
-                        header={<DialogHeader title={imagePreview.fileName} onOpenChange={(open) => { if (!open) setImagePreview(null); }} />}
-                        content={
-                            <LayoutContent>
-                                <img
-                                    src={imagePreview.fileUrl}
-                                    alt={imagePreview.fileName}
-                                    style={{ width: "100%", height: "auto", display: "block", borderRadius: 'var(--radius-inner)' }}
-                                />
-                            </LayoutContent>
-                        }
-                    />
-                </Dialog>
+                <ChatImageLightbox
+                    items={imagePreview.items}
+                    index={imagePreview.index}
+                    onIndexChange={(next) => setImagePreview(prev => (prev ? { ...prev, index: next } : prev))}
+                    onClose={() => setImagePreview(null)}
+                    width={720}
+                />
             )}
         </div>
     );

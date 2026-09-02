@@ -39,3 +39,14 @@ export const isViewableDocument = (fileName?: string) => {
 export function chatListImageUrl(message: { thumbnailUrl?: string; fileUrl?: string }): string | undefined {
     return message.thumbnailUrl || message.fileUrl;
 }
+
+/**
+ * 첨부 종류 판정(사진/동영상/일반 파일)은 chatMessageGrouping.ts에 있다.
+ * 사진 묶음 판정이 그 함수를 쓰는데, 그 파일은 Node 내장 테스트 러너로 직접 돌리기 위해
+ * **다른 모듈을 하나도 import 하지 않는 잎(leaf) 파일**로 유지해야 한다
+ * (Node의 ESM 해석기는 확장자를 붙여주지 않아, 앱 코드에 '.ts' 확장자를 박는
+ *  방법밖에 없어지고 그건 번들러에 불필요한 위험이 된다).
+ * 그래서 정의는 그쪽에 두고, 여기서는 기존 호출부가 그대로 쓰도록 다시 내보내기만 한다.
+ */
+export { VIDEO_EXTENSIONS, chatMediaType } from './chatMessageGrouping';
+export type { ChatMediaType } from './chatMessageGrouping';

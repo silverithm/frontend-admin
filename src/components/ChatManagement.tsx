@@ -9,8 +9,12 @@ import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
-import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl } from '@/lib/chatAttachments';
+import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
+import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
+import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
+import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/ChatImageLightbox';
+import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
 import { Button } from '@astryxdesign/core/Button';
@@ -70,6 +74,10 @@ interface ChatMessage {
     /** 목록에 그릴 축소본 — 기존 메시지엔 없을 수 있어 옵셔널 (그럴 땐 원본으로 대체) */
     thumbnailUrl?: string;
     fileName?: string;
+    /** 서버가 판단한 첨부 종류 — 저장된 type은 그대로 두고 파생만 내려온다 (동영상도 type은 FILE) */
+    mediaType?: "IMAGE" | "VIDEO" | "FILE";
+    mimeType?: string;
+    fileSize?: number;
     createdAt: string;
     isDeleted: boolean;
     readCount: number;
@@ -78,6 +86,8 @@ interface ChatMessage {
     replyToSenderName?: string;
     replyToContent?: string;
     replyToType?: string;
+    /** 답글 미리보기용 — 원본이 동영상인지 사진인지 (없으면 replyToType으로 대체 판단) */
+    replyToMediaType?: string;
 }
 
 interface ChatRoom {
@@ -182,25 +192,8 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
 // 목록(말풍선·정보 서랍 사진 그리드) 이미지 URL 고르기는 chatListImageUrl(@/lib/chatAttachments)로
 // 옮겨 플로팅 채팅(FloatingChat)과 같은 규칙을 공유한다.
 
-function getDateKey(dateStr: string): string {
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function formatDateSeparator(dateStr: string): string {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.round((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "오늘";
-    if (diffDays === 1) return "어제";
-    if (date.getFullYear() === now.getFullYear()) {
-        return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-    }
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-}
+// 날짜 구분선(getDateKey/formatDateSeparator)과 사진 묶음 규칙은
+// @/lib/chatMessageGrouping으로 옮겨 플로팅 채팅과 같은 규칙을 공유한다.
 
 export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, onUnreadChange, onActiveRoomChange }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -308,7 +301,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const dragDepthRef = useRef(0);
     /** 채팅에서 받은 문서를 앱 안에서 바로 여는 뷰어 (이미지는 자체 확대 보기로 처리) */
     const [viewerFile, setViewerFile] = useState<{ fileUrl: string; fileName: string } | null>(null);
-    const [imagePreview, setImagePreview] = useState<{ fileUrl: string; fileName: string } | null>(null);
+    /** 사진 크게 보기 — 묶음에서 열면 그 묶음 전체가 들어와 좌우로 넘길 수 있다 (한 장이면 길이 1) */
+    const [imagePreview, setImagePreview] = useState<{ items: ChatLightboxItem[]; index: number } | null>(null);
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<number | null>(null);
@@ -1559,7 +1553,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         type="button"
                                                         onClick={() => {
                                                             if (!m.fileUrl) return;
-                                                            if (m.type === "IMAGE") setImagePreview({ fileUrl: m.fileUrl, fileName: m.fileName || "이미지" });
+                                                            const media = chatMediaType(m);
+                                                            if (media === "IMAGE") setImagePreview({ items: [{ fileUrl: m.fileUrl, fileName: m.fileName || "이미지" }], index: 0 });
+                                                            // 동영상은 뷰어가 그릴 줄 모른다 — 새 탭에서 브라우저 기본 재생기로 연다
+                                                            else if (media === "VIDEO") window.open(m.fileUrl, "_blank", "noopener");
                                                             else if (isViewableDocument(m.fileName)) setViewerFile({ fileUrl: m.fileUrl, fileName: m.fileName || "문서" });
                                                             else window.open(m.fileUrl, "_blank", "noopener");
                                                         }}
@@ -1569,7 +1566,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             borderRadius: 'var(--radius-inner)', cursor: "pointer", textAlign: "left",
                                                         }}
                                                     >
-                                                        <span>{m.type === "IMAGE" ? "📷" : "📎"}</span>
+                                                        <span>{chatMediaType(m) === "IMAGE" ? "📷" : chatMediaType(m) === "VIDEO" ? "🎬" : "📎"}</span>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
                                                                 {m.fileName || m.content}
@@ -1702,12 +1699,25 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     />
                                 </div>
                             ) : (
-                                messages.map((message, index) => {
+                                buildChatRenderItems(messages).map((item) => {
+                                    // 연달아 온 사진은 한 말풍선(격자)으로 접힌다.
+                                    // 대표 메시지는 묶음의 '마지막(가장 최신)' 장 — 시각 표시가 묶음이 끝난 시각이어야 하고,
+                                    // 답장·반응·공지 등 메뉴도 이 메시지를 대상으로 삼는다.
+                                    const message = item.kind === "photos" ? item.messages[item.messages.length - 1] : item.message;
+                                    const photoGroup = item.kind === "photos" ? item.messages : null;
                                     const isMyMessage = message.senderId === userId;
                                     const isSystemMessage = message.type === "SYSTEM";
-                                    const showDateSeparator =
-                                        index === 0 ||
-                                        getDateKey(message.createdAt) !== getDateKey(messages[index - 1].createdAt);
+                                    const showDateSeparator = item.showDateSeparator;
+                                    // 묶음의 '안 읽은 사람 수'는 가장 덜 읽힌 장 기준(최댓값) — 넉넉하게 잡는 쪽이 정직하다.
+                                    // 참가자를 아직 못 받아온 장이 하나라도 있으면(null = 모른다) 0으로 눌러 쓰지 않고 그대로 null을 넘긴다.
+                                    const groupUnread: number | null = photoGroup
+                                        ? photoGroup.reduce<number | null>((acc, m) => {
+                                            if (acc === null) return null;
+                                            const each = countUnreadReaders(m);
+                                            return each === null ? null : Math.max(acc, each);
+                                        }, 0)
+                                        : countUnreadReaders(message);
+                                    const mediaType = chatMediaType(message);
 
                                     const dateSeparator = showDateSeparator ? (
                                         <div style={{ margin: "var(--spacing-3) 0" }}>
@@ -1786,7 +1796,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
                                                                     />
                                                                 </span>
-                                                                <UnreadCount count={countUnreadReaders(message)} />
+                                                                <UnreadCount count={groupUnread} />
                                                                 <Text type="supporting">
                                                                     {formatMessageTime(message.createdAt)}
                                                                 </Text>
@@ -1827,16 +1837,29 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 >
                                                                     <div style={{ fontWeight: 'var(--font-weight-semibold)', overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.replyToSenderName}</div>
                                                                     <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.8 }}>
-                                                                        {message.replyToType === "IMAGE" ? "📷 사진" : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                                                                        {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
+                                                                        {message.replyToMediaType === "VIDEO" ? "🎬 동영상"
+                                                                            : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? "📷 사진"
+                                                                                : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
                                                                     </div>
                                                                 </div>
                                                             )}
 
-                                                            {message.type === "IMAGE" && message.fileUrl ? (
+                                                            {photoGroup ? (
+                                                                // 연달아 온 사진 묶음 — 격자로 그리고, 누르면 그 묶음 안에서 좌우로 넘길 수 있다
+                                                                <ChatPhotoGroup
+                                                                    messages={photoGroup}
+                                                                    maxWidth={360}
+                                                                    onOpen={(openIndex) => setImagePreview({
+                                                                        items: photoGroup.map(m => ({ fileUrl: m.fileUrl!, fileName: m.fileName || "이미지" })),
+                                                                        index: openIndex,
+                                                                    })}
+                                                                />
+                                                            ) : mediaType === "IMAGE" && message.fileUrl ? (
                                                                 // img는 네이티브로 포커스를 못 받으므로 button으로 감싸 키보드로도 크게 보기를 열 수 있게 한다
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => setImagePreview({ fileUrl: message.fileUrl!, fileName: message.fileName || "이미지" })}
+                                                                    onClick={() => setImagePreview({ items: [{ fileUrl: message.fileUrl!, fileName: message.fileName || "이미지" }], index: 0 })}
                                                                     aria-label={`${message.fileName || "이미지"} 크게 보기`}
                                                                     style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}
                                                                 >
@@ -1847,6 +1870,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)' }}
                                                                     />
                                                                 </button>
+                                                            ) : mediaType === "VIDEO" && message.fileUrl ? (
+                                                                <ChatVideoBubble
+                                                                    fileUrl={message.fileUrl}
+                                                                    fileName={message.fileName || message.content}
+                                                                    posterUrl={message.thumbnailUrl}
+                                                                    maxHeight={240}
+                                                                />
                                                             ) : message.type === "FILE" && message.fileUrl ? (
                                                                 // 문서는 새 탭으로 내보내지 않고 화면 안에서 바로 연다
                                                                 <button
@@ -1882,7 +1912,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         </div>
                                                         {!isMyMessage && (
                                                             <>
-                                                                <UnreadCount count={countUnreadReaders(message)} />
+                                                                <UnreadCount count={groupUnread} />
                                                                 <Text type="supporting">
                                                                     {formatMessageTime(message.createdAt)}
                                                                 </Text>
@@ -2051,7 +2081,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     </div>
                                     <div>
                                         <Text type="supporting" maxLines={1}>
-                                            {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
+                                            {chatMediaType(replyTo) === "IMAGE" ? "📷 사진" : chatMediaType(replyTo) === "VIDEO" ? "🎬 동영상" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
                                         </Text>
                                     </div>
                                 </div>
@@ -2498,35 +2528,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 />
             )}
 
-            {/* 사진 크게 보기 */}
+            {/* 사진 크게 보기 — 묶음에서 열면 좌우 화살표로 넘긴다 */}
             {imagePreview && (
-                <Dialog isOpen onOpenChange={(open) => { if (!open) setImagePreview(null); }} purpose="info" width={900}>
-                    <Layout
-                        header={<DialogHeader title={imagePreview.fileName} onOpenChange={(open) => { if (!open) setImagePreview(null); }} />}
-                        content={
-                            <LayoutContent>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={imagePreview.fileUrl}
-                                    alt={imagePreview.fileName}
-                                    style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", borderRadius: 'var(--radius-inner)' }}
-                                />
-                            </LayoutContent>
-                        }
-                        footer={
-                            <LayoutFooter hasDivider>
-                                <HStack gap={2} hAlign="end">
-                                    <Button
-                                        label="새 창에서 열기"
-                                        variant="secondary"
-                                        onClick={() => window.open(imagePreview.fileUrl, "_blank", "noopener")}
-                                    />
-                                    <Button label="닫기" variant="ghost" onClick={() => setImagePreview(null)} />
-                                </HStack>
-                            </LayoutFooter>
-                        }
-                    />
-                </Dialog>
+                <ChatImageLightbox
+                    items={imagePreview.items}
+                    index={imagePreview.index}
+                    onIndexChange={(next) => setImagePreview(prev => (prev ? { ...prev, index: next } : prev))}
+                    onClose={() => setImagePreview(null)}
+                    width={900}
+                    showOpenInNewTab
+                />
             )}
         </div>
     );
