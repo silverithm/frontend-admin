@@ -43,6 +43,37 @@ const CHANNEL_GUIDE: Record<'band' | 'blog', string> = {
 - 마지막 문단에 기관을 소개하고 방문·상담을 부드럽게 안내하는 한두 문장을 넣는다.`,
 };
 
+// 토큰이 우리 서비스의 유효한 로그인인지 백엔드에 물어본다.
+//
+// 계정이 두 테이블로 나뉘어 있어서 확인 경로도 둘이다.
+// - /users/info 는 AppUser(기관 관리자)만 해석한다. JWT subject를 AppUser.email로 조회하는데,
+//   직원 토큰의 subject는 Member.username이라 여기서 404가 난다.
+// - /users/company-homepage 는 CallerCompanyResolver로 Member·AppUser 양쪽을 해석한다
+//   ("직원도 볼 수 있어야 한다"고 백엔드에 명시돼 있다).
+//
+// 그래서 관리자용을 먼저 보고, 실패하면 직원도 통과하는 쪽으로 한 번 더 확인한다.
+// 두 경로 모두 인증이 필요한(permitAll이 아닌) 엔드포인트라, 서명이 깨졌거나 만료된
+// 토큰은 백엔드 시큐리티 필터가 401로 먼저 끊는다 — 느슨해지지 않는다.
+const VERIFY_PATHS = ['/api/v1/users/info', '/api/v1/users/company-homepage'];
+
+async function isAuthenticatedCaller(authHeader: string): Promise<boolean> {
+  for (const path of VERIFY_PATHS) {
+    try {
+      const response = await fetch(`${BACKEND_URL}${path}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json', Authorization: authHeader },
+      });
+      if (response.ok) return true;
+      // 401/403이면 토큰 자체가 무효다 — 다음 경로를 봐도 통과할 리 없으니 즉시 끝낸다.
+      if (response.status === 401 || response.status === 403) return false;
+      // 404 등은 "이 경로가 이 계정 종류를 해석하지 못한다"는 뜻이라 다음 경로로 넘어간다.
+    } catch (error) {
+      console.error(`[AI 글쓰기] 토큰 검증 요청 실패 (${path}):`, error);
+    }
+  }
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!GEMINI_API_KEY) {
@@ -57,11 +88,7 @@ export async function POST(request: NextRequest) {
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401, headers });
     }
-    const verifyResponse = await fetch(`${BACKEND_URL}/api/v1/users/info`, {
-      method: 'GET',
-      headers: { Accept: 'application/json', Authorization: authHeader },
-    });
-    if (!verifyResponse.ok) {
+    if (!(await isAuthenticatedCaller(authHeader))) {
       return NextResponse.json({ error: '로그인이 만료되었습니다. 다시 로그인해주세요.' }, { status: 401, headers });
     }
 

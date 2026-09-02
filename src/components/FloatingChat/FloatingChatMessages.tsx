@@ -9,11 +9,13 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { Spinner } from "@astryxdesign/core/Spinner";
 import { Loading } from "@/components/Loading";
 import DocumentViewerModal from "@/components/DocumentViewerModal";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage } from '@/lib/apiService';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl } from '@/lib/chatAttachments';
+import { useOlderChatMessages } from '@/lib/useOlderChatMessages';
 
 interface ChatParticipant {
     userId: string;
@@ -28,6 +30,7 @@ const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 // 잔여 스타일용 색상 상수 (Astryx 컴포넌트로 표현 불가한 레이아웃/버블 색상)
 const C = {
     border: "var(--color-border)",       // gray-200
+    borderStrong: 'var(--color-border-emphasized)', // 남의 말풍선 경계선
     borderLight: 'var(--color-border)',  // gray-100
     bgGray50: 'var(--color-background-muted)',     // gray-50
     bubbleMine: 'var(--color-icon-teal)',   // teal-600
@@ -70,6 +73,12 @@ interface FloatingChatMessagesProps {
     onToggleReaction?: (messageId: number, emoji: string) => void;
     onMessagesUpdate?: (messages: ChatMessage[]) => void;
     /**
+     * 위로 스크롤해 받아온 옛 메시지를 목록 앞에 붙여 달라는 요청.
+     * 목록 상태는 부모(플로팅 채팅 / 도크)가 들고 있으므로 여기서 직접 못 붙인다.
+     * 안 넘기면 '이전 대화 더 불러오기'가 꺼진다.
+     */
+    onPrependOlder?: (older: ChatMessage[]) => void;
+    /**
      * 머리줄 오른쪽, '채팅방 정보' 왼쪽에 끼워 넣을 버튼.
      * 관리자 셸의 도크는 여기에 '크게 보기'를 넣는다 — 예전처럼 머리 위에 절대좌표로 얹으면
      * 다른 버튼들과 높이가 어긋난다. 안 넘기면 아무것도 안 그린다(직원 플로팅 채팅).
@@ -100,9 +109,12 @@ export function FloatingChatMessages({
     onSendMessage,
     onToggleReaction,
     onMessagesUpdate,
+    onPrependOlder,
     headerAction,
 }: FloatingChatMessagesProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    /** 스크롤 영역 — 위로 올려 옛 대화를 이어 붙일 때 기준이 된다 */
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
@@ -182,13 +194,27 @@ export function FloatingChatMessages({
         return map;
     }, [participants]);
 
+    /**
+     * 옛 대화 이어 붙이기 — 관리자 채팅 탭과 같은 훅을 쓴다. [[useOlderChatMessages]]
+     * 목록 상태는 부모가 들고 있어서 받아온 메시지는 onPrependOlder로 넘긴다.
+     */
+    const { isLoadingOlder, hasMoreOlder, scrollAreaProps: olderScrollProps } = useOlderChatMessages<ChatMessage>({
+        roomId: onPrependOlder ? roomId : null,
+        messages,
+        containerRef: messagesContainerRef,
+        onPrepend: (older) => onPrependOlder?.(older),
+    });
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    // 맨 아래로 따라가는 것은 '새 메시지가 끝에 붙었을 때'만이다.
+    // messages 전체를 보면 위에 옛 대화를 이어 붙일 때도 끝으로 튕겨 나간다.
+    const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [lastMessageId, roomId]);
 
     useEffect(() => {
         setShowDrawer(false);
@@ -549,6 +575,8 @@ export function FloatingChatMessages({
 
             {/* Messages */}
             <div
+                ref={messagesContainerRef}
+                {...olderScrollProps}
                 style={{
                     flex: 1,
                     overflowY: "auto",
@@ -558,6 +586,19 @@ export function FloatingChatMessages({
                     gap: 'var(--spacing-2)',
                 }}
             >
+                {/* 위로 더 올라갈 대화가 있는지 알려주는 줄 — 불러오는 중이면 로딩, 끝이면 시작 안내 */}
+                {onPrependOlder && !isLoadingMessages && messages.length > 0 && (
+                    isLoadingOlder ? (
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 'var(--spacing-2)', padding: "var(--spacing-1) 0", flexShrink: 0 }}>
+                            <Spinner size="sm" aria-label="이전 대화를 불러오는 중" />
+                            <Text type="supporting" color="secondary">이전 대화를 불러오는 중...</Text>
+                        </div>
+                    ) : !hasMoreOlder ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: "var(--spacing-1) 0", flexShrink: 0 }}>
+                            <Text type="supporting" color="disabled">대화의 시작입니다</Text>
+                        </div>
+                    ) : null
+                )}
                 {isLoadingMessages ? (
                     <Loading height="100%" label="메시지를 불러오는 중..." />
                 ) : messages.length === 0 ? (
@@ -676,6 +717,8 @@ export function FloatingChatMessages({
                                                     whiteSpace: "pre-wrap",
                                                     wordBreak: "break-word",
                                                     background: isMyMessage ? C.bubbleMine : C.bubbleOther,
+                                                    // 남의 말풍선은 흰 배경 위에 muted 배경만으로는 경계가 안 보여 한 단계 진한 테두리를 준다
+                                                    border: isMyMessage ? "1px solid transparent" : `1px solid ${C.borderStrong}`,
                                                     color: isMyMessage ? 'var(--color-on-accent)' : 'var(--color-text-primary)',
                                                 }}
                                                 onTouchStart={() => handleTouchStart(message.id)}

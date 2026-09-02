@@ -12,6 +12,7 @@ import { FiMaximize2 } from "react-icons/fi";
 import { FloatingChatMessages } from "@/components/FloatingChat/FloatingChatMessages";
 import { ChatMessage, WebSocketMessage } from "@/components/FloatingChat/floatingChatTypes";
 import { fetchChatMessages, markChatAsRead, sendChatMessage } from "@/lib/apiService";
+import { CHAT_PAGE_SIZE, prependUniqueMessages } from "@/lib/useOlderChatMessages";
 import { getMyChatUserId } from "@/lib/chatIdentity";
 import { duration } from "@/theme/motion";
 
@@ -78,7 +79,7 @@ export default function ChatDock({
     useEffect(() => {
         let cancelled = false;
         setIsLoadingMessages(true);
-        fetchChatMessages(roomId, 0, 50)
+        fetchChatMessages(roomId, 0, CHAT_PAGE_SIZE)
             .then((data) => {
                 if (cancelled) return;
                 const list = Array.isArray(data) ? data : (data.messages || data.content || data.data || []);
@@ -248,6 +249,7 @@ export default function ChatDock({
                 onBack={onClose}
                 onSendMessage={sendMessage}
                 onMessagesUpdate={setMessages}
+                onPrependOlder={(older) => setMessages(prev => prependUniqueMessages(prev, older))}
             />
         </motion.div>
     );

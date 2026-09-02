@@ -11,6 +11,7 @@ import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
 import { FloatingChatRoomList, FloatingChatListTab } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
+import { CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { DirectChatMember, openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
@@ -94,7 +95,7 @@ export function FloatingChat() {
     const fetchMessages = useCallback(async (roomId: number): Promise<number | null> => {
         setIsLoadingMessages(true);
         try {
-            const data = await fetchChatMessages(roomId, 0, 50);
+            const data = await fetchChatMessages(roomId, 0, CHAT_PAGE_SIZE);
             const msgList = Array.isArray(data) ? data : (data.messages || data.content || data.data || []);
             const sorted = [...msgList].reverse();
             setMessages(sorted);
@@ -586,6 +587,7 @@ export function FloatingChat() {
                                             onBack={handleBack}
                                             onSendMessage={sendMessage}
                                             onMessagesUpdate={setMessages}
+                                            onPrependOlder={(older) => setMessages(prev => prependUniqueMessages(prev, older))}
                                         />
                                     </motion.div>
                                 )}

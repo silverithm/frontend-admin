@@ -23,6 +23,7 @@ import UserManagement from '@/components/UserManagement';
 import CompanyLibrary from '@/components/CompanyLibrary';
 import DispatchManagement from '@/components/DispatchManagement';
 import EmployeeMeetingMinutes from '@/components/meetingMinutes/EmployeeMeetingMinutes';
+import AiPostWriter from '@/components/AiPostWriter';
 import Image from 'next/image';
 import type { Permission } from '@/types/auth';
 import { Button } from '@astryxdesign/core/Button';
@@ -56,7 +57,7 @@ type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 // 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
-type ToolKey = 'dispatch' | 'meetingMinutes';
+type ToolKey = 'dispatch' | 'aipost' | 'meetingMinutes';
 
 export default function EmployeePage() {
   const router = useRouter();
@@ -157,6 +158,9 @@ export default function EmployeePage() {
     ] : []),
     // 회의록은 참석자로 지정된 사람만 서버가 걸러 보여주므로 권한 게이팅 없이 항상 노출한다.
     { key: 'meetingMinutes' as const, label: '회의록' },
+    // AI 글쓰기 — 사진을 찍는 사람이 선생님이라 직원에게도 열어야 의미가 있는 기능이다.
+    // 대응하는 세부 권한이 없고 남의 데이터를 건드리지도 않으므로 회의록과 같이 권한 게이팅 없이 낸다.
+    { key: 'aipost' as const, label: 'AI 글쓰기' },
   ] as { key: ToolKey; label: string }[]);
 
   // 관리자 화면과 같은 순서: 커뮤니티를 맨 위에 두고 그 아래가 기관 업무 메뉴다.
@@ -365,6 +369,9 @@ export default function EmployeePage() {
                   )}
                   {activeTool === 'meetingMinutes' && (
                     <EmployeeMeetingMinutes onNotification={showNotification} />
+                  )}
+                  {activeTool === 'aipost' && (
+                    <AiPostWriter companyName={companyName} onNotification={showNotification} />
                   )}
                 </motion.div>
               ) : activeMainTab === 'approval' ? (

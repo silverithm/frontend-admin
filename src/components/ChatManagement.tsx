@@ -7,6 +7,7 @@ import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, markChatAsR
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
+import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl } from '@/lib/chatAttachments';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
@@ -25,6 +26,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { Item } from '@astryxdesign/core/Item';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Spinner } from '@astryxdesign/core/Spinner';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -136,6 +138,8 @@ function UnreadCount({ count }: { count: number | null }) {
 const C = {
     accent: 'var(--color-accent)',
     border: 'var(--color-border)',
+    // 남의 말풍선 테두리 — 흰 말풍선이 muted 배경(#f1f1f1) 위에서도 경계가 보이게 한 단계 진한 선을 쓴다
+    borderStrong: 'var(--color-border-emphasized)',
     bgGray: 'var(--color-background-muted)',
     gray100: 'var(--color-background-muted)',
     gray300: 'var(--color-border-emphasized)',
@@ -352,6 +356,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     /** 남이 보낸 메시지가 왔는데 내가 위쪽을 보고 있을 때 띄우는 배지 */
     const [showNewMessageBadge, setShowNewMessageBadge] = useState(false);
+    /**
+     * 위로 올려 옛 대화를 이어 붙이는 일은 플로팅 채팅과 공유하는 훅이 맡는다
+     * (id 기준 around 조회 + 화면 튐 보정). [[useOlderChatMessages]]
+     */
+    const { isLoadingOlder, hasMoreOlder, resetWindow: resetOlderWindow, scrollAreaProps: olderScrollProps } =
+        useOlderChatMessages<ChatMessage>({
+            roomId: selectedRoom,
+            messages,
+            containerRef: messagesContainerRef,
+            onPrepend: (older) => setMessages(prev => prependUniqueMessages(prev, older)),
+            onError: () => onNotification("이전 대화를 불러오지 못했습니다. 잠시 후 다시 시도해주세요", "error"),
+        });
     const stompClientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
     const longPressTimerRef2 = useRef<NodeJS.Timeout | null>(null);
@@ -373,7 +389,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     };
 
-    /** 메시지 목록을 손으로 끝까지 내리면 배지를 치운다 */
+    /** 끝까지 내리면 새 메시지 배지를 치운다 (맨 위에서 옛 대화를 잇는 것은 훅이 맡는다) */
     const handleMessagesScroll = () => {
         if (showNewMessageBadge && isNearBottom()) setShowNewMessageBadge(false);
     };
@@ -422,12 +438,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     // 검색으로 오래된 구간에 점프해 있던 상태(isJumpedToOlder)도 여기서 함께 벗어난다
     const fetchMessages = useCallback(async (roomId: number): Promise<number | null> => {
         setIsLoadingMessages(true);
+        resetOlderWindow();
         try {
-            const data = await fetchChatMessages(roomId, 0, 50);
+            const data = await fetchChatMessages(roomId, 0, CHAT_PAGE_SIZE);
             const msgList = Array.isArray(data) ? data : (data.messages || data.content || data.data || []);
             // 백엔드가 createdAt DESC(최신순)로 반환하므로 뒤집어서 오래된 메시지가 위로
             const sorted = [...msgList].reverse();
             setMessages(sorted);
+            // 요청한 만큼 꽉 찼으면 더 있다고 본다 (서버의 hasMore와 같은 관례)
+            resetOlderWindow(data?.hasMore !== undefined ? Boolean(data.hasMore) : null);
             setIsJumpedToOlder(false);
             setTimeout(scrollToBottom, 100);
             // DESC 기준 첫 번째(= 가장 최신) 메시지의 ID 반환
@@ -916,13 +935,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
         if (!selectedRoom) return;
         setIsLoadingMessages(true);
+        resetOlderWindow();
         try {
-            const data = await fetchChatMessagesAround(selectedRoom, message.id, 50);
+            const data = await fetchChatMessagesAround(selectedRoom, message.id, CHAT_PAGE_SIZE);
             const msgList: ChatMessage[] = Array.isArray(data) ? data : (data.messages || []);
             if (msgList.length === 0) throw new Error("빈 응답");
             // 기존 /messages와 같은 최신순(DESC) 정렬 — 뒤집어야 오래된 메시지가 위로 온다
             const sorted = [...msgList].reverse();
             setMessages(sorted);
+            resetOlderWindow(Boolean(data?.hasBefore));
             setIsJumpedToOlder(Boolean(data?.hasAfter));
             scrollToMessageAndHighlight(message.id);
         } catch (error) {
@@ -1645,7 +1666,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                         {/* Messages */}
                         <div
                             ref={messagesContainerRef}
-                            onScroll={handleMessagesScroll}
+                            {...olderScrollProps}
+                            onScroll={() => { handleMessagesScroll(); olderScrollProps.onScroll(); }}
                             style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray, position: "relative" }}
                         >
                             {/* 검색으로 오래된 구간에 점프해 있는 동안의 안내 — 스크롤 맨 위에 붙어(sticky) 계속 보인다 */}
@@ -1656,6 +1678,19 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         <Button label="최신 대화로 돌아가기" variant="secondary" size="sm" onClick={returnToLatestMessages} />
                                     </div>
                                 </div>
+                            )}
+                            {/* 위로 더 올라갈 대화가 있는지 알려주는 줄 — 불러오는 중이면 로딩, 끝이면 시작 안내 */}
+                            {!isLoadingMessages && messages.length > 0 && (
+                                isLoadingOlder ? (
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 'var(--spacing-2)', padding: "var(--spacing-2) 0", flexShrink: 0 }}>
+                                        <Spinner size="sm" aria-label="이전 대화를 불러오는 중" />
+                                        <Text type="supporting" color="secondary">이전 대화를 불러오는 중...</Text>
+                                    </div>
+                                ) : !hasMoreOlder ? (
+                                    <div style={{ display: "flex", justifyContent: "center", padding: "var(--spacing-2) 0", flexShrink: 0 }}>
+                                        <Text type="supporting" color="disabled">대화의 시작입니다</Text>
+                                    </div>
+                                ) : null
                             )}
                             {isLoadingMessages ? (
                                 <Loading height="100%" label="메시지를 불러오는 중..." />
@@ -1764,7 +1799,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 ...(isMyMessage
                                                                     // 저대비로 기각된 하드코딩 색 대신 테마 accent 토큰 사용 (AA 대비 확보)
                                                                     ? { background: C.accent, color: 'var(--color-on-accent)', borderRadius: 'var(--radius-container) var(--radius-inner) var(--radius-container) var(--radius-container)' }
-                                                                    : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: 'var(--radius-inner) var(--radius-container) var(--radius-container) var(--radius-container)' }),
+                                                                    : { background: C.card, border: `1px solid ${C.borderStrong}`, color: C.gray900, borderRadius: 'var(--radius-inner) var(--radius-container) var(--radius-container) var(--radius-container)' }),
                                                             }}
                                                             onTouchStart={() => {
                                                                 longPressTimerRef2.current = setTimeout(() => setContextMenuMessageId(message.id), 500);

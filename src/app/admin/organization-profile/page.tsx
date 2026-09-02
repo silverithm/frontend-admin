@@ -948,8 +948,8 @@ export default function OrganizationProfilePage() {
               return;
             }
 
-            if (passwordForm.newPassword.length < 6) {
-              setPasswordError('비밀번호는 6자 이상이어야 합니다.');
+            if (passwordForm.newPassword.length < 8) {
+              setPasswordError('비밀번호는 8자 이상이어야 합니다.');
               return;
             }
 
