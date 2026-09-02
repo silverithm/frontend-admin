@@ -40,10 +40,22 @@ html {
   text-size-adjust: 100%;
 }
 
-/* 텍스트 선택 색상 - 브랜드 컬러 */
+/* 텍스트 선택 색상 — 끌어서 고른 자리가 눈에 보여야 한다.
+   예전 값(accent 15% + color:inherit)은 흰 배경 위에서도 거의 안 보였고,
+   내 채팅 말풍선처럼 배경이 accent 그 자체인 곳에서는 accent 위에 accent를
+   15%로 얹는 셈이라 아예 표시가 없었다. "웹에서 드래그가 안 된다"는 신고의
+   실체가 이것이다 — 선택도 복사도 되는데 고른 자리가 안 보여 안 된 줄 알게 된다. */
 ::selection {
-  background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
-  color: inherit;
+  background-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-background-card));
+  color: var(--color-text-primary);
+}
+
+/* accent 배경 위(내 말풍선 등)에서는 위 규칙이 배경과 같은 색이라 보이지 않는다.
+   자리를 흰색으로 뒤집고 글자를 accent로 바꿔 확실히 드러낸다. */
+.carev-selection-on-accent::selection,
+.carev-selection-on-accent ::selection {
+  background-color: var(--color-on-accent);
+  color: var(--color-accent);
 }
 
 /* 포커스 링 스타일 통일 */

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useRef, useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
-import { FiSend, FiCornerUpLeft, FiPaperclip, FiTrash2 } from "react-icons/fi";
+import { FiSend, FiCornerUpLeft, FiPaperclip, FiTrash2, FiEdit2, FiCheck } from "react-icons/fi";
 import { Text } from "@astryxdesign/core/Text";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Button } from "@astryxdesign/core/Button";
@@ -14,7 +14,7 @@ import { ChatPhotoGroup } from "@/components/chat/ChatPhotoGroup";
 import { ChatImageLightbox, type ChatLightboxItem } from "@/components/chat/ChatImageLightbox";
 import { ChatVideoBubble } from "@/components/chat/ChatVideoBubble";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
-import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage } from '@/lib/apiService';
+import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage, editChatMessage } from '@/lib/apiService';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
 import { useOlderChatMessages } from '@/lib/useOlderChatMessages';
@@ -112,6 +112,16 @@ export function FloatingChatMessages({
 
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+
+    /** 지금 고치고 있는 메시지 — null이면 평소의 새 메시지 입력 상태 */
+    const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    /** 방이 바뀔 때 '수정 중이었는지'만 보기 위한 참조 (effect 의존성을 늘리지 않는다) */
+    const editingMessageRef = useRef<ChatMessage | null>(null);
+    /** 입력창 비우기도 같은 이유로 참조로 부른다 — 부모가 매번 새 함수를 넘겨도 effect가 다시 돌면 안 된다 */
+    const onMessageInputChangeRef = useRef(onMessageInputChange);
+    /** 수정 실패 안내 — 이 패널엔 토스트가 없어 입력창 위에 한 줄로 띄운다 (업로드 오류와 같은 자리) */
+    const [editError, setEditError] = useState<string | null>(null);
 
     // 꾹 누르기(롱프레스) 관련
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -212,6 +222,13 @@ export function FloatingChatMessages({
         setImagePreview(null);
         setIsDraggingFile(false);
         dragDepthRef.current = 0;
+        // 방을 옮기면 수정 중이던 상태는 의미가 없다 — 남겨두면 다른 방 메시지를 고치게 된다.
+        // 수정 중이 아니었다면 입력창은 손대지 않는다 (쓰던 새 메시지 초안이 사라지면 안 된다)
+        setEditError(null);
+        if (editingMessageRef.current) {
+            setEditingMessage(null);
+            onMessageInputChangeRef.current("");
+        }
     }, [roomId]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -224,6 +241,11 @@ export function FloatingChatMessages({
     };
 
     const handleSendMessage = () => {
+        // 수정 중이면 새로 보내는 대신 그 메시지를 고친다
+        if (editingMessage) {
+            void submitEditingMessage();
+            return;
+        }
         onSendMessage(replyTo?.id);
         setReplyTo(null);
     };
@@ -406,6 +428,71 @@ export function FloatingChatMessages({
             onMessagesUpdate?.(messages.map(msg => (msg.id === messageId ? { ...msg, isDeleted: false } : msg)));
         }
     };
+
+    /**
+     * 메시지 수정 시작 — 입력창에 원래 내용을 담고 '수정 중' 상태로 바꾼다.
+     * 답장과는 동시에 성립하지 않으므로(답장은 새 메시지를 만드는 일이다) 답장 상태는 접는다.
+     */
+    const startEditingMessage = (message: ChatMessage) => {
+        setLongPressMenuMessageId(null);
+        setPendingDeleteId(null);
+        setReplyTo(null);
+        setEditError(null);
+        setEditingMessage(message);
+        onMessageInputChange(message.content ?? "");
+    };
+
+    /** 수정 취소 — 입력창을 비우고 평소 상태로 되돌린다 */
+    const cancelEditingMessage = () => {
+        setEditingMessage(null);
+        setEditError(null);
+        onMessageInputChange("");
+    };
+
+    /**
+     * 수정 저장. 서버가 본인 여부·삭제 여부·텍스트 여부를 다시 확인하므로
+     * 화면의 조건은 편의일 뿐이고, 실패하면 원래 내용으로 되돌린다.
+     */
+    const submitEditingMessage = async () => {
+        if (!editingMessage) return;
+        const next = messageInput.trim();
+        // 빈 내용은 '삭제'와 다른 일이다 — 지우고 싶으면 삭제를 쓰게 한다
+        if (!next) {
+            setEditError("수정할 내용을 입력해주세요. 지우려면 삭제를 사용해주세요");
+            return;
+        }
+        // 그대로면 서버를 부르지 않는다 — 괜히 '수정됨' 표시만 남는다
+        if (next === (editingMessage.content ?? "")) {
+            cancelEditingMessage();
+            return;
+        }
+
+        const targetId = editingMessage.id;
+        const previous = editingMessage;
+        setIsSavingEdit(true);
+        setEditError(null);
+        // 낙관적 업데이트 — 왕복을 기다리는 동안 눌린 게 반영 안 된 것처럼 보이지 않게.
+        // 업로드와 같은 이유로 항상 '지금의' 최신 목록에 적용한다 (그 사이 소켓으로 새 메시지가 들어올 수 있다)
+        onMessagesUpdate?.(messagesRef.current.map(msg => (msg.id === targetId ? { ...msg, content: next, editedAt: new Date().toISOString() } : msg)));
+        cancelEditingMessage();
+        try {
+            const response = await editChatMessage(roomId, targetId, next);
+            const saved = response?.message || response;
+            if (saved && typeof saved === "object" && "id" in saved) {
+                onMessagesUpdate?.(messagesRef.current.map(msg => (msg.id === targetId ? saved : msg)));
+            }
+        } catch (error) {
+            console.error("[FloatingChat] 메시지 수정 실패:", error);
+            // 건드린 한 건만 원래대로 돌린다 (목록을 통째로 되돌리면 그 사이 온 메시지가 사라진다)
+            onMessagesUpdate?.(messagesRef.current.map(msg => (msg.id === targetId ? { ...msg, content: previous.content, editedAt: previous.editedAt ?? null } : msg)));
+            setEditError("메시지를 수정하지 못했습니다. 잠시 후 다시 시도해주세요");
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    useEffect(() => { editingMessageRef.current = editingMessage; }, [editingMessage]);
+    useEffect(() => { onMessageInputChangeRef.current = onMessageInputChange; }, [onMessageInputChange]);
 
     // 롱프레스 핸들러
     const handleTouchStart = (messageId: number) => {
@@ -706,6 +793,7 @@ export function FloatingChatMessages({
                                                 </>
                                             )}
                                             <div
+                                                className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                 style={{
                                                     position: "relative",
                                                     padding: "var(--spacing-1-5) var(--spacing-3)",
@@ -783,7 +871,16 @@ export function FloatingChatMessages({
                                                         <Text type="supporting" color="inherit">{message.fileName || message.content}</Text>
                                                     </button>
                                                 ) : (
-                                                    <Text color="inherit">{message.content}</Text>
+                                                    <Text color="inherit">
+                                                        {message.content}
+                                                        {/* 고쳐진 대화라는 사실은 기록으로 남아야 한다 — 말풍선 색이 달라도 읽히도록
+                                                            글자색은 말풍선 글자색을 물려받고 흐리기만 한다 */}
+                                                        {message.editedAt && (
+                                                            <span style={{ marginLeft: 'var(--spacing-1)', fontSize: 'var(--font-size-sm)', opacity: 0.7 }}>
+                                                                수정됨
+                                                            </span>
+                                                        )}
+                                                    </Text>
                                                 )}
                                             </div>
                                             {!isMyMessage && (
@@ -849,6 +946,17 @@ export function FloatingChatMessages({
                                                             icon={<Icon icon={FiCornerUpLeft} size="sm" />}
                                                             onClick={() => handleReply(message)}
                                                         />
+                                                        {/* 수정은 내가 보낸 '글' 메시지만. 사진·파일은 고칠 내용이 없고,
+                                                            지워진 메시지는 되살리는 일이 되므로 대상이 아니다. */}
+                                                        {isMyMessage && !message.isDeleted && message.type === "TEXT" && (
+                                                            <Button
+                                                                label="수정"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                icon={<Icon icon={FiEdit2} size="sm" />}
+                                                                onClick={() => startEditingMessage(message)}
+                                                            />
+                                                        )}
                                                         {isMyMessage && !message.isDeleted && (
                                                             pendingDeleteId === message.id ? (
                                                                 <>
@@ -924,8 +1032,45 @@ export function FloatingChatMessages({
                 </div>
             )}
 
+            {/* 수정 중 안내 — 지금 입력창에 있는 글이 '새 메시지'가 아니라
+                '이미 보낸 메시지를 고치는 중'임을 분명히 알린다 */}
+            {editingMessage && (
+                <div
+                    style={{
+                        padding: "var(--spacing-2) var(--spacing-3)",
+                        borderTop: `1px solid ${C.border}`,
+                        background: 'var(--color-background-muted)',
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 'var(--spacing-2)',
+                        flexShrink: 0,
+                    }}
+                >
+                    <Icon icon={FiEdit2} size="sm" color="accent" />
+                    <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${C.accent}`, paddingLeft: 'var(--spacing-2)' }}>
+                        <Text type="supporting" weight="semibold" color="accent" maxLines={1}>메시지 수정 중</Text>
+                        <div>
+                            <Text type="supporting" color="secondary" maxLines={1}>{editingMessage.content}</Text>
+                        </div>
+                    </div>
+                    <Button
+                        label="수정 취소"
+                        isIconOnly
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon="close" size="sm" />}
+                        onClick={cancelEditingMessage}
+                    />
+                </div>
+            )}
+
             {/* Input Area */}
             <div style={{ padding: "var(--spacing-2) var(--spacing-3)", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+                {editError && (
+                    <div style={{ paddingBottom: 'var(--spacing-1)', color: 'var(--color-error)' }}>
+                        <Text type="supporting" color="inherit">{editError}</Text>
+                    </div>
+                )}
                 {uploadError && (
                     <div style={{ paddingBottom: 'var(--spacing-1)', color: 'var(--color-error)' }}>
                         <Text type="supporting" color="inherit">{uploadError}</Text>
@@ -956,20 +1101,22 @@ export function FloatingChatMessages({
                             value={messageInput}
                             onChange={(value) => onMessageInputChange(value)}
                             placeholder={
-                                isUploadingFile ? "파일을 보내는 중..."
+                                editingMessage ? "메시지를 고친 뒤 저장하세요"
+                                    : isUploadingFile ? "파일을 보내는 중..."
                                     : replyTo ? `${replyTo.senderName}에게 답장...`
                                     : "메시지 입력 (사진 붙여넣기 가능)"
                             }
-                            isDisabled={isSendingMessage || isUploadingFile}
+                            isDisabled={isSendingMessage || isUploadingFile || isSavingEdit}
                         />
                     </div>
                     <Button
-                        label="전송"
+                        label={editingMessage ? "수정 저장" : "전송"}
                         isIconOnly
                         variant="primary"
-                        icon={<Icon icon={FiSend} size="sm" />}
+                        icon={<Icon icon={editingMessage ? FiCheck : FiSend} size="sm" />}
                         onClick={handleSendMessage}
-                        isDisabled={!messageInput.trim() || isSendingMessage || isUploadingFile}
+                        isDisabled={!messageInput.trim() || isSendingMessage || isUploadingFile || isSavingEdit}
+                        isLoading={isSavingEdit}
                     />
                 </div>
             </div>

@@ -2761,6 +2761,19 @@ export async function deleteChatMessage(roomId: number, messageId: number) {
     });
 }
 
+/**
+ * 채팅 메시지 수정 — 본인이 보낸 글 메시지만.
+ *
+ * 권한·삭제 여부·글 메시지 여부는 모두 서버가 다시 확인한다(화면에서만 가리면 API를 직접 불러 뚫린다).
+ * 고쳐진 메시지에는 editedAt이 찍혀 내려오고, 다른 참가자에게는 웹소켓 EDIT 이벤트로 전달된다.
+ */
+export async function editChatMessage(roomId: number, messageId: number, content: string) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/${messageId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+    });
+}
+
 // 채팅방 생성
 export async function createChatRoom(data: { name: string; description?: string; creatorId: string; creatorName: string; participantIds: string[] }) {
     const companyId = getCompanyId();

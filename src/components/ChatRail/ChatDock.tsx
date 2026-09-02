@@ -120,6 +120,12 @@ export default function ChatDock({
                             setMessages((prev) => prev.map((m) => (m.id === deleted.id ? deleted : m)));
                             return;
                         }
+                        // 누가 메시지를 고치면 그 자리만 새 내용으로 갈아끼운다 (삭제와 같은 방식)
+                        if (wsMessage.type === "EDIT" && wsMessage.message) {
+                            const edited = wsMessage.message;
+                            setMessages((prev) => prev.map((m) => (m.id === edited.id ? edited : m)));
+                            return;
+                        }
                         if (wsMessage.type !== "MESSAGE" || !wsMessage.message) return;
                         const msg = wsMessage.message;
                         setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));

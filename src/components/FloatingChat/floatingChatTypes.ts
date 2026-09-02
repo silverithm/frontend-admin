@@ -33,6 +33,8 @@ export interface ChatMessage {
     fileSize?: number;
     createdAt: string;
     isDeleted: boolean;
+    /** 수정된 시각 — null/undefined면 한 번도 고치지 않은 메시지 */
+    editedAt?: string | null;
     readCount: number;
     reactions?: ReactionSummary[];
     // 답글 관련
@@ -45,7 +47,7 @@ export interface ChatMessage {
 }
 
 export interface WebSocketMessage {
-    type: "MESSAGE" | "TYPING" | "READ" | "JOIN" | "LEAVE" | "DELETE";
+    type: "MESSAGE" | "TYPING" | "READ" | "JOIN" | "LEAVE" | "DELETE" | "EDIT";
     roomId: number;
     senderId?: string;
     senderName?: string;

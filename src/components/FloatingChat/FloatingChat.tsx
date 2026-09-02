@@ -239,6 +239,15 @@ export function FloatingChat() {
                         }
                         return;
                     }
+                    // 누가 메시지를 고치면 그 자리만 새 내용으로 갈아끼운다 (삭제와 같은 방식).
+                    // 안 보고 있는 방은 다시 열 때 서버에서 받아오므로 여기서 할 일이 없다.
+                    if (wsMessage.type === "EDIT" && wsMessage.message) {
+                        const edited = wsMessage.message;
+                        if (isOpenRef.current && selectedRoomIdRef.current === roomId) {
+                            setMessages(prev => prev.map(m => (m.id === edited.id ? edited : m)));
+                        }
+                        return;
+                    }
                     if (wsMessage.type !== "MESSAGE" || !wsMessage.message) return;
 
                     const msg = wsMessage.message;
