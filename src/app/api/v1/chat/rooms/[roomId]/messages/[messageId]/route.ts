@@ -15,6 +15,60 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers });
 }
 
+/**
+ * 메시지 수정.
+ *
+ * 이 함수가 없어서 "메신저 수정 시 오류로 수정불가"가 났다. 화면도 API 함수도 백엔드도
+ * 모두 PUT으로 맞춰져 있었는데, 이 파일만 DELETE를 내보내고 있어 PUT은 405/404로 죽었다.
+ * 채팅방 나가기와 똑같은 형태의 누락이다.
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ roomId: string; messageId: string }> }
+) {
+  try {
+    const { roomId, messageId } = await params;
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    const body = await request.json();
+
+    const backendHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    if (token) {
+      backendHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const backendResponse = await fetch(
+      `${BACKEND_URL}/api/v1/chat/rooms/${roomId}/messages/${messageId}`,
+      {
+        method: 'PUT',
+        headers: backendHeaders,
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!backendResponse.ok) {
+      console.error(`[Chat API] 메시지 수정 백엔드 응답 오류: ${backendResponse.status}`);
+      return NextResponse.json({
+        error: `백엔드 서버 오류: ${backendResponse.status}`
+      }, { status: backendResponse.status, headers });
+    }
+
+    const data = await backendResponse.json();
+    return NextResponse.json(data, { headers });
+
+  } catch (error) {
+    console.error('[Chat API] 메시지 수정 오류:', error);
+    return NextResponse.json({
+      error: '서버 내부 오류가 발생했습니다.'
+    }, { status: 500, headers });
+  }
+}
+
 // 메시지 삭제
 export async function DELETE(
   request: NextRequest,
