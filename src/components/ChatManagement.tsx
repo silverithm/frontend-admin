@@ -8,6 +8,8 @@ import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
+import { mergeMissedMessages, hasMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
+import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
@@ -16,6 +18,7 @@ import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
 import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/ChatImageLightbox';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
+import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -107,6 +110,8 @@ interface ChatRoom {
     noticeAt?: string | null;
     noticeFileName?: string | null;
     noticeFileUrl?: string | null;
+    /** 방 아이콘에 겹쳐 그릴 참여자(최대 4명, 나는 빠져 있다) — 서버가 목록에 실어 준다 */
+    avatars?: ChatRoomAvatarPerson[];
 }
 
 interface WebSocketMessage {
@@ -216,6 +221,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (initialRoomId != null) setSelectedRoom(initialRoomId);
     }, [initialRoomId]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    /** 지금 화면이 들고 있는 메시지 — effect 안에서 최신값을 보기 위한 거울 */
+    const messagesRef = useRef<ChatMessage[]>([]);
+    useEffect(() => { messagesRef.current = messages; }, [messages]);
     const [messageInput, setMessageInput] = useState("");
     const [isLoadingRooms, setIsLoadingRooms] = useState(false);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -231,6 +239,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [inviteIds, setInviteIds] = useState<string[]>([]);
     const [isInviting, setIsInviting] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    /**
+     * 연결 '세대' 번호 — 소켓이 붙을 때마다 1씩 오른다.
+     *
+     * 구독 effect를 불리언 isConnected에 매달면, 끊겼다 다시 붙었을 때 값이 true 그대로라
+     * effect가 다시 돌지 않아 방 구독이 영영 안 붙는다(= 새 메시지가 안 온다).
+     * 세대 번호는 붙을 때마다 반드시 달라지므로 매 연결마다 확실히 다시 구독한다. [[chatReconnect]]
+     */
+    const [connectionEpoch, setConnectionEpoch] = useState(0);
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
@@ -318,6 +334,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [showRoomMenu, setShowRoomMenu] = useState(false);
     /** 채팅방 나가기 확인 */
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    /* 목록에서 방 자체를 눌러 나가기까지 갈 수 있어야 한다.
+       앱은 목록 길게 누르기·방 ⋯·정보 화면 세 곳에서 나갈 수 있는데 웹은 방 머리의 ⋯ 하나뿐이라,
+       "컴퓨터로는 나가기가 안 된다"는 이야기가 나왔다. 목록에도 같은 입구를 둔다. */
+    const [roomMenuId, setRoomMenuId] = useState<number | null>(null);
     const [isLeavingRoom, setIsLeavingRoom] = useState(false);
 
     // 열린 메시지 메뉴는 Escape로 닫는다.
@@ -364,6 +384,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     /** 남이 보낸 메시지가 왔는데 내가 위쪽을 보고 있을 때 띄우는 배지 */
     const [showNewMessageBadge, setShowNewMessageBadge] = useState(false);
+    /** 위로 올릴 때 "지금 며칠 대화인지" 알려주는 떠 있는 배지 [[ChatScrollDateBadge]] */
+    const { dateBadgeLabel, updateDateBadge } = useChatScrollDateBadge(messagesContainerRef);
     /**
      * 위로 올려 옛 대화를 이어 붙이는 일은 플로팅 채팅과 공유하는 훅이 맡는다
      * (id 기준 around 조회 + 화면 튐 보정). [[useOlderChatMessages]]
@@ -400,6 +422,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** 끝까지 내리면 새 메시지 배지를 치운다 (맨 위에서 옛 대화를 잇는 것은 훅이 맡는다) */
     const handleMessagesScroll = () => {
         if (showNewMessageBadge && isNearBottom()) setShowNewMessageBadge(false);
+        updateDateBadge();
     };
 
     // 읽음 처리 API 호출 (lastMsgId는 반드시 인자로 전달)
@@ -482,6 +505,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             onConnect: () => {
                 // 연결 상태는 isConnected로 화면에 이미 드러나므로 콘솔 로그는 남기지 않는다
                 setIsConnected(true);
+                // 붙을 때마다 반드시 값이 달라져야 구독 effect가 다시 돈다 (재연결 포함)
+                setConnectionEpoch(n => n + 1);
 
                 // 접속 상태 — 내가 붙었음을 알리고, 다른 사람의 상태 변화를 받는다.
                 // (연결이 끊기면 서버가 알아서 오프라인 처리하므로 나갈 때 보낼 것은 없다)
@@ -503,6 +528,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             onDisconnect: () => {
                 setIsConnected(false);
             },
+            // 정상 종료가 아닌 끊김(와이파이 변경·절전·서버 재시작)은 onDisconnect가 아니라
+            // 여기로 온다. 이걸 안 받으면 소켓이 죽어도 '연결됨'으로 남는다. [[chatReconnect]]
+            onWebSocketClose: () => {
+                setIsConnected(false);
+            },
             onStompError: (frame) => {
                 console.error("[Chat WebSocket] STOMP 오류:", frame.headers["message"]);
             },
@@ -521,7 +551,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         };
     }, [userId, companyId, setPresence]);
 
-    // 방 선택 시 또는 WebSocket 재연결 시 메시지 로드 → 읽음 처리
+    // 방 선택 시 메시지 로드 → 읽음 처리
     useEffect(() => {
         if (!selectedRoom) return;
         (async () => {
@@ -530,7 +560,48 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 markAsRead(selectedRoom, lastMsgId);
             }
         })();
-    }, [selectedRoom, isConnected, fetchMessages, markAsRead]);
+    }, [selectedRoom, fetchMessages, markAsRead]);
+
+    /**
+     * 끊겼다 다시 붙은 순간, 끊겨 있던 사이에 온 메시지를 메운다.
+     * 아래 구독 effect가 구독을 새로 붙이지만 그것은 '앞으로 올 것'만 받는다 —
+     * 끊겨 있던 동안 지나간 메시지는 이렇게 따로 받아와야 한다.
+     *
+     * 첫 연결(1세대)은 위 '방 선택' 경로가 이미 불러왔으므로 건너뛴다.
+     */
+    useEffect(() => {
+        if (connectionEpoch < 2 || !selectedRoom) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await fetchChatMessages(selectedRoom, 0, CHAT_PAGE_SIZE);
+                if (cancelled) return;
+                const latest = readAscendingMessages<ChatMessage>(data);
+                if (latest.length === 0) return;
+
+                // 옛 대화 구간에 점프해 있는 동안은 목록을 건드리지 않는다 — 그 사이 구간이
+                // 빠진 채 이어져 보인다. 실시간 수신과 같은 규칙으로 배지로만 알린다.
+                if (isJumpedToOlderRef.current) {
+                    if (hasMissedMessages(messagesRef.current, latest)) setShowNewMessageBadge(true);
+                    return;
+                }
+
+                // 붙이기 전에 스크롤 위치를 먼저 봐둔다 (붙인 뒤엔 높이가 이미 늘어나 있다)
+                const wasNearBottom = isNearBottom();
+                const missed = hasMissedMessages(messagesRef.current, latest);
+                setMessages(prev => mergeMissedMessages(prev, latest));
+                if (missed) {
+                    markAsRead(selectedRoom, latest[latest.length - 1].id);
+                    // 맨 아래를 보고 있었으면 따라 내려가고, 위쪽을 읽던 중이면 배지로만 알린다
+                    if (wasNearBottom) setTimeout(scrollToBottom, 100);
+                    else setShowNewMessageBadge(true);
+                }
+            } catch (error) {
+                console.error("[Chat WebSocket] 재연결 후 놓친 메시지 보충 실패:", error);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [connectionEpoch, selectedRoom, markAsRead]);
 
     // 기관 인원 목록 + 지금 접속 중인 사람 (첫 화면용 — 이후 변화는 WebSocket으로 받는다).
     // 이미 받았거나 받는 중이면 load()가 알아서 넘긴다
@@ -539,9 +610,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         loadOrgPresence(companyId);
     }, [companyId, loadOrgPresence]);
 
-    // 방 선택 시 WebSocket 구독 변경
+    // 방 선택 시 / 소켓이 새로 붙을 때 WebSocket 구독 변경.
+    // connectionEpoch에 매다는 것이 핵심이다 — isConnected(불리언)에 매달면 끊겼다 다시
+    // 붙어도 값이 true 그대로라 이 effect가 안 돌고, 방 구독이 영영 안 붙는다. [[chatReconnect]]
     useEffect(() => {
-        if (!selectedRoom || !stompClientRef.current || !isConnected) return;
+        if (!selectedRoom || !stompClientRef.current || connectionEpoch === 0) return;
 
         // 이전 구독 해제
         if (subscriptionRef.current) {
@@ -663,7 +736,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             subscription.unsubscribe();
             readSubscription.unsubscribe();
         };
-    }, [selectedRoom, isConnected, fetchMessages, markAsRead, userId]);
+    }, [selectedRoom, connectionEpoch, fetchMessages, markAsRead, userId]);
 
     const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 
@@ -1410,11 +1483,23 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             const isSelected = selectedRoom === room.id;
                             const roomTime = room.lastMessageAt || room.lastMessage?.createdAt;
                             return (
-                                <Item
+                                <div
                                     key={room.id}
+                                    className="carev-chat-roomrow"
+                                    style={{ position: "relative" }}
+                                    onContextMenu={(e) => { e.preventDefault(); setRoomMenuId(room.id); }}
+                                >
+                                <Item
                                     onClick={() => { setSelectedRoom(room.id); setShowDrawer(false); }}
                                     isSelected={isSelected}
                                     align="start"
+                                    startContent={
+                                        <ChatRoomAvatarStack
+                                            roomName={room.name}
+                                            people={room.avatars || []}
+                                            size={36}
+                                        />
+                                    }
                                     label={room.name}
                                     labelLines={1}
                                     description={
@@ -1441,6 +1526,72 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         </VStack>
                                     }
                                 />
+                                {/* 마우스를 올리면 나타나는 ⋯ — 오른쪽 버튼으로도 같은 메뉴가 열린다 */}
+                                <div
+                                    className="carev-chat-roomrow-actions"
+                                    /* 아래쪽 오른편 — 위쪽 오른편은 시간이 이미 쓰고 있어 겹친다 */
+                                    style={{ position: "absolute", bottom: 'var(--spacing-1)', right: 'var(--spacing-2)', zIndex: 10 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <IconButton
+                                        label={`${room.name} 채팅방 메뉴`}
+                                        variant="ghost"
+                                        size="sm"
+                                        icon={<Icon icon="moreHorizontal" size="sm" />}
+                                        onClick={() => setRoomMenuId(roomMenuId === room.id ? null : room.id)}
+                                    />
+                                </div>
+                                {roomMenuId === room.id && (
+                                    <>
+                                        <div
+                                            style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                                            onClick={() => setRoomMenuId(null)}
+                                        />
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                zIndex: 40,
+                                                top: "100%",
+                                                right: 'var(--spacing-2)',
+                                                minWidth: 160,
+                                                background: C.card,
+                                                border: `1px solid ${C.border}`,
+                                                borderRadius: 'var(--radius-element)',
+                                                boxShadow: 'var(--shadow-high)',
+                                                overflow: "hidden",
+                                            }}
+                                        >
+                                            <Button
+                                                label="채팅방 나가기"
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={<Icon icon={FiLogOut} size="sm" />}
+                                                onClick={() => {
+                                                    /* 확인창이 selectedRoom을 기준으로 이름을 보여준다 — 먼저 그 방을 고른다 */
+                                                    setSelectedRoom(room.id);
+                                                    setRoomMenuId(null);
+                                                    setShowLeaveConfirm(true);
+                                                }}
+                                                style={{ width: "100%", justifyContent: "flex-start" }}
+                                            />
+                                            {isAdmin && (
+                                                <Button
+                                                    label="채팅 삭제"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    icon={<Icon icon={FiTrash2} size="sm" color="error" />}
+                                                    onClick={() => {
+                                                        setSelectedRoom(room.id);
+                                                        setRoomMenuId(null);
+                                                        setShowDeleteConfirm(true);
+                                                    }}
+                                                    style={{ width: "100%", justifyContent: "flex-start" }}
+                                                />
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                                </div>
                             );
                         })
                     )}
@@ -1756,6 +1907,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             onScroll={() => { handleMessagesScroll(); olderScrollProps.onScroll(); }}
                             style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray, position: "relative" }}
                         >
+                            {/* 위로 올리는 동안 "며칠 대화인지" 알려주는 떠 있는 배지 (멈추면 사라진다) */}
+                            <ChatScrollDateBadge
+                                label={dateBadgeLabel}
+                                offsetTop={isJumpedToOlder ? "var(--spacing-10)" : "0px"}
+                            />
                             {/* 검색으로 오래된 구간에 점프해 있는 동안의 안내 — 스크롤 맨 위에 붙어(sticky) 계속 보인다 */}
                             {isJumpedToOlder && (
                                 <div style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", justifyContent: "center", marginBottom: 'var(--spacing-1)' }}>
@@ -1797,6 +1953,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     const isMyMessage = message.senderId === userId;
                                     const isSystemMessage = message.type === "SYSTEM";
                                     const showDateSeparator = item.showDateSeparator;
+                                    // 아바타와 이름줄은 보낸 사람이 바뀌는 지점에만 그린다(앱과 같은 규칙).
+                                    const isGroupStart = item.showSenderHeader;
                                     // 묶음의 '안 읽은 사람 수'는 가장 덜 읽힌 장 기준(최댓값) — 넉넉하게 잡는 쪽이 정직하다.
                                     // 참가자를 아직 못 받아온 장이 하나라도 있으면(null = 모른다) 0으로 눌러 쓰지 않고 그대로 null을 넘긴다.
                                     const groupUnread: number | null = photoGroup
@@ -1808,9 +1966,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         : countUnreadReaders(message);
                                     const mediaType = chatMediaType(message);
 
-                                    const dateSeparator = showDateSeparator ? (
-                                        <div style={{ margin: "var(--spacing-3) 0" }}>
-                                            <Divider label={formatDateSeparator(message.createdAt)} />
+                                    // 구분선에 문구를 표시로 달아 둔다 — 떠 있는 날짜 배지가 이걸 읽는다
+                                    const separatorLabel = showDateSeparator ? formatDateSeparator(message.createdAt) : null;
+                                    const dateSeparator = separatorLabel ? (
+                                        <div style={{ margin: "var(--spacing-3) 0" }} {...chatDateMarkerProps(separatorLabel)}>
+                                            <Divider label={separatorLabel} />
                                         </div>
                                     ) : null;
 
@@ -1844,29 +2004,35 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                             <div
                                                 id={`chat-message-${message.id}`}
                                                 style={{
-                                                    display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 'var(--spacing-2)',
+                                                    display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start", alignItems: "flex-start", gap: 'var(--spacing-2)',
                                                     borderRadius: 'var(--radius-container)',
                                                     transition: "background-color 0.3s ease",
                                                     // 검색 결과에서 찾아온 메시지를 잠깐 배경으로 알려준다
                                                     backgroundColor: highlightedMessageId === message.id ? 'var(--color-background-yellow)' : "transparent",
                                                 }}
                                             >
+                                                {/* 아바타는 묶음의 첫 메시지에만 그린다. 이어지는 메시지는 같은 폭을
+                                                    빈 자리로 차지해 말풍선이 세로로 가지런히 선다. */}
                                                 {!isMyMessage && (
-                                                    <Avatar
-                                                        src={participantAvatarMap.get(message.senderId || '') || undefined}
-                                                        name={message.senderName || "?"}
-                                                        size="small"
-                                                    />
+                                                    isGroupStart ? (
+                                                        <Avatar
+                                                            src={participantAvatarMap.get(message.senderId || '') || undefined}
+                                                            name={message.senderName || "?"}
+                                                            size="small"
+                                                        />
+                                                    ) : (
+                                                        <div style={{ width: 32, flexShrink: 0 }} aria-hidden />
+                                                    )
                                                 )}
                                                 <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isMyMessage ? "flex-end" : "flex-start" }}>
-                                                    {!isMyMessage && (
+                                                    {/* 이름과 직종은 한 문단으로 그린다 — 둘로 나누면 가로폭을 반씩
+                                                        나눠 갖느라 "주간보호센터장" 같은 긴 직종이 먼저 잘린다. */}
+                                                    {!isMyMessage && isGroupStart && (
                                                         <div style={{ marginBottom: 'var(--spacing-1)' }}>
                                                             <Text type="supporting" weight="medium" color="primary">
                                                                 {message.senderName}
+                                                                {message.senderPosition ? ` (${message.senderPosition})` : ""}
                                                             </Text>
-                                                            {message.senderPosition && (
-                                                                <Text type="supporting"> ({message.senderPosition})</Text>
-                                                            )}
                                                         </div>
                                                     )}
                                                     <div className="carev-chat-msgrow" style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>

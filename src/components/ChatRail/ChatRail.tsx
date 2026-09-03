@@ -18,6 +18,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { FiMessageCircle, FiUsers, FiChevronDown, FiChevronRight, FiChevronsRight } from "react-icons/fi";
 
 import MemberItem from "@/components/MemberItem";
+import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from "@/components/chat/ChatRoomAvatarStack";
 import ChatDock from "@/components/ChatRail/ChatDock";
 import { Loading } from "@/components/Loading";
 import { fetchChatRooms } from "@/lib/apiService";
@@ -42,6 +43,8 @@ interface RailRoom {
     unreadCount: number;
     participantCount: number;
     lastMessage?: { content: string; senderName: string } | null;
+    /** 방 아이콘에 겹쳐 그릴 참여자(최대 4명, 나는 빠져 있다) — 서버가 목록에 실어 준다 */
+    avatars?: ChatRoomAvatarPerson[];
 }
 
 interface ChatRailProps {
@@ -446,7 +449,13 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                                         ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
                                         : undefined
                                 }
-                                startContent={<Avatar name={room.name || "?"} size="xsmall" />}
+                                startContent={
+                                    <ChatRoomAvatarStack
+                                        roomName={room.name}
+                                        people={room.avatars || []}
+                                        size={28}
+                                    />
+                                }
                                 endContent={
                                     room.unreadCount > 0 ? (
                                         <Badge
