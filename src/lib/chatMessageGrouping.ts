@@ -64,8 +64,8 @@ export const PHOTO_GROUP_MAX_GAP_MS = 60_000;
 export const PHOTO_GROUP_MAX_COUNT = 9;
 
 export type ChatRenderItem<M extends GroupableChatMessage = GroupableChatMessage> =
-    | { kind: "single"; message: M; showDateSeparator: boolean }
-    | { kind: "photos"; messages: M[]; showDateSeparator: boolean };
+    | { kind: "single"; message: M; showDateSeparator: boolean; showSenderHeader: boolean }
+    | { kind: "photos"; messages: M[]; showDateSeparator: boolean; showSenderHeader: boolean };
 
 /** 이 메시지가 '사진 묶음에 들어갈 수 있는 사진'인가 */
 function isGroupablePhoto(message: GroupableChatMessage): boolean {
@@ -83,6 +83,41 @@ function isGroupablePhoto(message: GroupableChatMessage): boolean {
  * 23:59:50 → 00:00:10은 20초 차이지만 사이에 날짜 구분선이 들어가야 하고,
  * 묶음이 구분선을 타고 넘으면 구분선이 사라져 버린다.
  */
+
+/** 항목의 첫 메시지 (사진 묶음이면 그 묶음의 첫 장) */
+function firstOf<M extends GroupableChatMessage>(item: ChatRenderItem<M>): M {
+    return item.kind === "photos" ? item.messages[0] : item.message;
+}
+
+/** 항목의 마지막 메시지 (사진 묶음이면 그 묶음의 마지막 장) */
+function lastOf<M extends GroupableChatMessage>(item: ChatRenderItem<M>): M {
+    return item.kind === "photos" ? item.messages[item.messages.length - 1] : item.message;
+}
+
+/**
+ * 각 항목이 '보낸 사람 묶음의 첫 항목'인지 표시한다 — 아바타와 이름줄은 여기에만 그린다.
+ *
+ * 앱의 isSenderGroupStart(lib/utils/chat_message_grouping.dart)와 같은 규칙이다.
+ * 사람이 바뀌거나, 날짜가 바뀌거나, 사이에 시스템 메시지가 끼면 묶음을 끊는다.
+ * 규칙이 어긋나면 같은 대화가 두 화면에서 다르게 묶인다.
+ */
+function markSenderHeaders<M extends GroupableChatMessage>(items: ChatRenderItem<M>[]): ChatRenderItem<M>[] {
+    return items.map((item, index) => {
+        if (index === 0) return { ...item, showSenderHeader: true };
+
+        const current = firstOf(item);
+        const previous = lastOf(items[index - 1]);
+
+        const changed =
+            current.type === "SYSTEM" ||
+            previous.type === "SYSTEM" ||
+            previous.senderId !== current.senderId ||
+            getDateKey(previous.createdAt) !== getDateKey(current.createdAt);
+
+        return { ...item, showSenderHeader: changed };
+    });
+}
+
 export function buildChatRenderItems<M extends GroupableChatMessage>(messages: M[]): ChatRenderItem<M>[] {
     const items: ChatRenderItem<M>[] = [];
     let group: M[] = [];
@@ -92,9 +127,9 @@ export function buildChatRenderItems<M extends GroupableChatMessage>(messages: M
     const flush = () => {
         if (group.length === 0) return;
         if (group.length === 1) {
-            items.push({ kind: "single", message: group[0], showDateSeparator: groupShowsSeparator });
+            items.push({ kind: "single", message: group[0], showDateSeparator: groupShowsSeparator, showSenderHeader: false });
         } else {
-            items.push({ kind: "photos", messages: group, showDateSeparator: groupShowsSeparator });
+            items.push({ kind: "photos", messages: group, showDateSeparator: groupShowsSeparator, showSenderHeader: false });
         }
         group = [];
         groupShowsSeparator = false;
@@ -109,7 +144,7 @@ export function buildChatRenderItems<M extends GroupableChatMessage>(messages: M
 
         if (!isGroupablePhoto(message)) {
             flush();
-            items.push({ kind: "single", message, showDateSeparator });
+            items.push({ kind: "single", message, showDateSeparator, showSenderHeader: false });
             continue;
         }
 
@@ -129,7 +164,8 @@ export function buildChatRenderItems<M extends GroupableChatMessage>(messages: M
     }
     flush();
 
-    return items;
+    // 보낸 사람이 바뀌는 지점을 표시한다 — 아바타와 이름줄은 거기에만 그린다.
+    return markSenderHeaders(items);
 }
 
 // ---------------------------------------------------------------------------

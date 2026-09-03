@@ -17,6 +17,7 @@ import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage, editChatMessage } from '@/lib/apiService';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
+import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOlderChatMessages } from '@/lib/useOlderChatMessages';
 
 interface ChatParticipant {
@@ -200,6 +201,9 @@ export function FloatingChatMessages({
         containerRef: messagesContainerRef,
         onPrepend: (older) => onPrependOlder?.(older),
     });
+
+    /** 위로 올릴 때 "지금 며칠 대화인지" 알려주는 떠 있는 배지 [[ChatScrollDateBadge]] */
+    const { dateBadgeLabel, updateDateBadge } = useChatScrollDateBadge(messagesContainerRef);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -657,6 +661,7 @@ export function FloatingChatMessages({
             <div
                 ref={messagesContainerRef}
                 {...olderScrollProps}
+                onScroll={() => { olderScrollProps.onScroll(); updateDateBadge(); }}
                 style={{
                     flex: 1,
                     overflowY: "auto",
@@ -666,6 +671,8 @@ export function FloatingChatMessages({
                     gap: 'var(--spacing-2)',
                 }}
             >
+                {/* 위로 올리는 동안 "며칠 대화인지" 알려주는 떠 있는 배지 (멈추면 사라진다) */}
+                <ChatScrollDateBadge label={dateBadgeLabel} listGap="var(--spacing-2)" />
                 {/* 위로 더 올라갈 대화가 있는지 알려주는 줄 — 불러오는 중이면 로딩, 끝이면 시작 안내 */}
                 {onPrependOlder && !isLoadingMessages && messages.length > 0 && (
                     isLoadingOlder ? (
@@ -696,14 +703,21 @@ export function FloatingChatMessages({
                         const isMyMessage = message.senderId === userId;
                         const isSystemMessage = message.type === "SYSTEM";
                         const showDateSeparator = item.showDateSeparator;
+                        // 아바타와 이름줄은 보낸 사람이 바뀌는 지점에만 그린다(앱·관리자 채팅탭과 같은 규칙).
+                        const isGroupStart = item.showSenderHeader;
                         const mediaType = chatMediaType(message);
 
-                        const dateSeparator = showDateSeparator ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "var(--spacing-3) 0" }}>
+                        // 구분선에 문구를 표시로 달아 둔다 — 떠 있는 날짜 배지가 이걸 읽는다
+                        const separatorLabel = showDateSeparator ? formatDateSeparator(message.createdAt) : null;
+                        const dateSeparator = separatorLabel ? (
+                            <div
+                                style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "var(--spacing-3) 0" }}
+                                {...chatDateMarkerProps(separatorLabel)}
+                            >
                                 <div style={{ flex: 1, height: 1, background: C.border }} />
                                 <div style={{ whiteSpace: "nowrap" }}>
                                     <Text type="supporting" color="secondary" weight="medium">
-                                        {formatDateSeparator(message.createdAt)}
+                                        {separatorLabel}
                                     </Text>
                                 </div>
                                 <div style={{ flex: 1, height: 1, background: C.border }} />
@@ -747,17 +761,23 @@ export function FloatingChatMessages({
                                     style={{
                                         display: "flex",
                                         justifyContent: isMyMessage ? "flex-end" : "flex-start",
-                                        alignItems: "flex-end",
+                                        alignItems: "flex-start",
                                         gap: 'var(--spacing-1-5)',
                                         position: "relative",
                                     }}
                                 >
+                                    {/* 아바타는 묶음의 첫 메시지에만. 이어지는 메시지는 같은 폭을 빈 자리로
+                                        차지해 말풍선이 세로로 가지런히 선다. */}
                                     {!isMyMessage && (
-                                        <Avatar
-                                            src={participantAvatarMap.get(message.senderId)}
-                                            name={message.senderName || "?"}
-                                            size="xsmall"
-                                        />
+                                        isGroupStart ? (
+                                            <Avatar
+                                                src={participantAvatarMap.get(message.senderId)}
+                                                name={message.senderName || "?"}
+                                                size="xsmall"
+                                            />
+                                        ) : (
+                                            <div style={{ width: 24, flexShrink: 0 }} aria-hidden />
+                                        )
                                     )}
                                     <div
                                         style={{
@@ -767,12 +787,14 @@ export function FloatingChatMessages({
                                             alignItems: isMyMessage ? "flex-end" : "flex-start",
                                         }}
                                     >
-                                        {!isMyMessage && (
+                                        {/* 이름과 직종은 한 문단으로 — 둘로 나누면 가로폭을 반씩 나눠 갖느라
+                                            "주간보호센터장" 같은 긴 직종이 먼저 잘린다. */}
+                                        {!isMyMessage && isGroupStart && (
                                             <div style={{ marginBottom: 'var(--spacing-0-5)', marginLeft: 'var(--spacing-1)' }}>
-                                                <Text type="supporting" color="secondary">{message.senderName}</Text>
-                                                {message.senderPosition && (
-                                                    <Text type="supporting" color="disabled">{` (${message.senderPosition})`}</Text>
-                                                )}
+                                                <Text type="supporting" color="secondary">
+                                                    {message.senderName}
+                                                    {message.senderPosition ? ` (${message.senderPosition})` : ""}
+                                                </Text>
                                             </div>
                                         )}
                                         <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)' }}>

@@ -12,6 +12,7 @@ import { FloatingChatRoomList, FloatingChatListTab } from "./FloatingChatRoomLis
 import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
 import { CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
+import { mergeMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
 import { DirectChatMember, openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
@@ -41,6 +42,12 @@ export function FloatingChat() {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    /**
+     * 연결 '세대' 번호 — 소켓이 붙을 때마다 1씩 오른다.
+     * 구독 effect를 불리언 isConnected에 매달면 끊겼다 다시 붙어도 값이 true 그대로라
+     * effect가 안 돌고 방 구독이 영영 안 붙는다(= 새 메시지가 안 온다). [[chatReconnect]]
+     */
+    const [connectionEpoch, setConnectionEpoch] = useState(0);
     const [toasts, setToasts] = useState<ChatToast[]>([]);
 
     // 직원 목록 — 채팅 페이지와 같은 '대화 / 직원' 구성.
@@ -137,6 +144,8 @@ export function FloatingChat() {
             onConnect: () => {
                 console.log("[FloatingChat WebSocket] 연결됨");
                 setIsConnected(true);
+                // 붙을 때마다 반드시 값이 달라져야 구독 effect가 다시 돈다 (재연결 포함)
+                setConnectionEpoch(n => n + 1);
 
                 // 접속 상태 — 내가 붙었음을 알리고, 다른 사람의 상태 변화를 받는다.
                 // (연결이 끊기면 서버가 알아서 오프라인 처리하므로 나갈 때 보낼 것은 없다)
@@ -157,6 +166,11 @@ export function FloatingChat() {
             },
             onDisconnect: () => {
                 console.log("[FloatingChat WebSocket] 연결 해제됨");
+                setIsConnected(false);
+            },
+            // 정상 종료가 아닌 끊김(와이파이 변경·절전·서버 재시작)은 onDisconnect가 아니라
+            // 여기로 온다. 이걸 안 받으면 소켓이 죽어도 '연결됨'으로 남는다. [[chatReconnect]]
+            onWebSocketClose: () => {
                 setIsConnected(false);
             },
             onStompError: (frame) => {
@@ -208,7 +222,7 @@ export function FloatingChat() {
     // 방 목록 로드 + 30초 주기 갱신 (보고 있는 탭에서만)
     useVisiblePolling(fetchRooms, 30000);
 
-    // Room selection or WebSocket reconnection: fetch messages + mark as read
+    // 방 선택 시 메시지 로드 + 읽음 처리
     useEffect(() => {
         if (!selectedRoomId) return;
         (async () => {
@@ -217,13 +231,40 @@ export function FloatingChat() {
                 markAsRead(selectedRoomId, lastMsgId);
             }
         })();
-    }, [selectedRoomId, isConnected, fetchMessages, markAsRead]);
+    }, [selectedRoomId, fetchMessages, markAsRead]);
+
+    /**
+     * 끊겼다 다시 붙은 순간, 끊겨 있던 사이에 온 메시지를 메운다.
+     * 아래 구독 effect가 구독을 새로 붙이지만 그것은 '앞으로 올 것'만 받는다.
+     * 첫 연결(1세대)은 위 '방 선택' 경로가 이미 불러왔으므로 건너뛴다.
+     */
+    useEffect(() => {
+        if (connectionEpoch < 2) return;
+        let cancelled = false;
+        (async () => {
+            // 방 목록의 안 읽음 수·마지막 메시지도 끊긴 사이에 밀렸으므로 함께 되맞춘다
+            fetchRooms();
+            const roomId = selectedRoomIdRef.current;
+            if (!roomId) return;
+            try {
+                const data = await fetchChatMessages(roomId, 0, CHAT_PAGE_SIZE);
+                if (cancelled) return;
+                const latest = readAscendingMessages<ChatMessage>(data);
+                if (latest.length === 0) return;
+                setMessages(prev => mergeMissedMessages(prev, latest));
+                markAsRead(roomId, latest[latest.length - 1].id);
+            } catch (error) {
+                console.error("[FloatingChat WebSocket] 재연결 후 놓친 메시지 보충 실패:", error);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [connectionEpoch, fetchRooms, markAsRead]);
 
     // 참여 중인 모든 방 구독 — 안 보고 있는 방의 새 메시지는 뱃지 증가 + 토스트 알림
     const roomIdsKey = rooms.map(r => r.id).sort((a, b) => a - b).join(",");
     useEffect(() => {
         const client = stompClientRef.current;
-        if (!client || !isConnected || !roomIdsKey) return;
+        if (!client || connectionEpoch === 0 || !roomIdsKey) return;
 
         const subscriptions = roomIdsKey.split(",").map(idStr => {
             const roomId = Number(idStr);
@@ -302,11 +343,11 @@ export function FloatingChat() {
         return () => {
             subscriptions.forEach(s => s.unsubscribe());
         };
-    }, [isConnected, roomIdsKey, userId, markAsRead]);
+    }, [connectionEpoch, roomIdsKey, userId, markAsRead]);
 
     // 읽음 이벤트 구독 (보고 있는 방만)
     useEffect(() => {
-        if (!selectedRoomId || !stompClientRef.current || !isConnected) return;
+        if (!selectedRoomId || !stompClientRef.current || connectionEpoch === 0) return;
 
         if (subscriptionRef.current) {
             subscriptionRef.current.unsubscribe();
@@ -337,7 +378,7 @@ export function FloatingChat() {
         return () => {
             readSubscription.unsubscribe();
         };
-    }, [selectedRoomId, isConnected, userId]);
+    }, [selectedRoomId, connectionEpoch, userId]);
 
     // --- Send message ---
 

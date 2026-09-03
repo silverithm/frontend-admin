@@ -13,6 +13,7 @@ import { FloatingChatMessages } from "@/components/FloatingChat/FloatingChatMess
 import { ChatMessage, WebSocketMessage } from "@/components/FloatingChat/floatingChatTypes";
 import { fetchChatMessages, markChatAsRead, sendChatMessage } from "@/lib/apiService";
 import { CHAT_PAGE_SIZE, prependUniqueMessages } from "@/lib/useOlderChatMessages";
+import { mergeMissedMessages, readAscendingMessages } from "@/lib/chatReconnect";
 import { getMyChatUserId } from "@/lib/chatIdentity";
 import { duration } from "@/theme/motion";
 
@@ -53,6 +54,12 @@ export default function ChatDock({
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    /**
+     * 연결 '세대' 번호 — 소켓이 붙을 때마다 1씩 오른다.
+     * 불리언 isConnected는 갑작스러운 끊김에서 true로 남아(onDisconnect가 안 불린다)
+     * 재연결을 알아챌 수 없다. [[chatReconnect]]
+     */
+    const [connectionEpoch, setConnectionEpoch] = useState(0);
 
     const stompClientRef = useRef<Client | null>(null);
 
@@ -75,7 +82,7 @@ export default function ChatDock({
         }
     }, [roomId]);
 
-    // 방을 열면(또는 다시 연결되면) 최근 대화를 받아오고 읽음 처리한다
+    // 방을 열면 최근 대화를 받아오고 읽음 처리한다
     useEffect(() => {
         let cancelled = false;
         setIsLoadingMessages(true);
@@ -96,7 +103,32 @@ export default function ChatDock({
         return () => {
             cancelled = true;
         };
-    }, [roomId, isConnected, markAsRead]);
+    }, [roomId, markAsRead]);
+
+    /**
+     * 끊겼다 다시 붙은 순간, 끊겨 있던 사이에 온 메시지를 메운다.
+     * 구독은 onConnect가 새로 붙이지만 그것은 '앞으로 올 것'만 받는다.
+     * 첫 연결(1세대)은 위 '방 열기' 경로가 이미 불러왔으므로 건너뛴다.
+     * 위로 올려 이어붙인 옛 대화가 날아가지 않도록 갈아끼우지 않고 합친다.
+     */
+    useEffect(() => {
+        if (connectionEpoch < 2) return;
+        let cancelled = false;
+        fetchChatMessages(roomId, 0, CHAT_PAGE_SIZE)
+            .then((data) => {
+                if (cancelled) return;
+                const latest = readAscendingMessages<ChatMessage>(data);
+                if (latest.length === 0) return;
+                setMessages((prev) => mergeMissedMessages(prev, latest));
+                markAsRead(latest[latest.length - 1].id);
+            })
+            .catch((error) => {
+                console.error("[ChatDock] 재연결 후 놓친 메시지 보충 실패:", error);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [connectionEpoch, roomId, markAsRead]);
 
     // 이 방 하나만 구독한다
     useEffect(() => {
@@ -111,6 +143,7 @@ export default function ChatDock({
             heartbeatOutgoing: 10000,
             onConnect: () => {
                 setIsConnected(true);
+                setConnectionEpoch((n) => n + 1);
                 client.subscribe(`/topic/chat/${roomId}`, (frame: IMessage) => {
                     try {
                         const wsMessage: WebSocketMessage = JSON.parse(frame.body);
@@ -153,6 +186,8 @@ export default function ChatDock({
                 });
             },
             onDisconnect: () => setIsConnected(false),
+            // 정상 종료가 아닌 끊김은 onDisconnect가 아니라 여기로 온다 [[chatReconnect]]
+            onWebSocketClose: () => setIsConnected(false),
             onStompError: (frame) => console.error("[ChatDock] STOMP 오류:", frame.headers["message"]),
         });
 
