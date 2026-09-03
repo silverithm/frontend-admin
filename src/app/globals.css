@@ -742,7 +742,9 @@ html {
 }
 
 /* 본문과 우측 레일을 나란히 — 셸이 준 높이를 그대로 나눠 갖는다 */
-.carev-admin-body { flex: 1; min-height: 0; display: flex; }
+/* 본문 + 오른쪽 채팅 레일을 한 행에 세운다 — 관리자·직원 화면이 같은 구조다 */
+.carev-admin-body,
+.carev-emp-body { flex: 1; min-height: 0; display: flex; }
 
 /* 우측 상시 채팅 레일 (ChatRail)
    어느 탭을 보고 있든 누가 접속해 있는지가 보여야 해서 셸에 붙어 있다.
@@ -1316,3 +1318,12 @@ html {
 /* 채팅 사진 묶음(격자) 칸 — 마우스를 올리면 살짝 어두워져 누를 수 있음을 알린다 */
 .carev-chat-gridphoto { transition: filter var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-chat-gridphoto:hover { filter: brightness(0.9); } }
+
+/* 채팅방 목록 행의 ⋯ — 평소엔 숨어 있다가 마우스를 올리거나 키보드 포커스가 오면 나타난다.
+   손가락으로 쓰는 화면(hover가 없는 기기)에는 늘 보인다 — 숨기면 도달할 방법이 사라진다. */
+.carev-chat-roomrow-actions { opacity: 0; transition: opacity var(--duration-fast) var(--ease-standard); }
+.carev-chat-roomrow:hover .carev-chat-roomrow-actions,
+.carev-chat-roomrow:focus-within .carev-chat-roomrow-actions { opacity: 1; }
+@media (hover: none) {
+  .carev-chat-roomrow-actions { opacity: 1; }
+}

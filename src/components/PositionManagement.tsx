@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiBriefcase, FiPlus, FiEdit2, FiTrash2, FiSearch, FiRefreshCw, FiUsers, FiCheck, FiX } from 'react-icons/fi';
-import { getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMemberUsers } from '@/lib/apiService';
+import { getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMembersIncludingAdmins } from '@/lib/apiService';
 import type { Position } from '@/types/position';
 import { getMemberRoleName, getRoleDisplayName } from '@/lib/roleUtils';
 import { Card } from '@astryxdesign/core/Card';
@@ -28,11 +28,16 @@ interface Member {
     id: string;
     name: string;
     email: string;
+    /** 'facility_admin'이면 app_user(관리자) 계정이다 — members 테이블 소속이 아니다 */
     role: string;
     status: string;
     position?: string;
     positionId?: number;
 }
+
+/** 관리자(시설장) 계정 구분자. MemberDTO.fromAppUser가 내려주는 값과 일치해야 한다. */
+const FACILITY_ADMIN_ROLE = 'facility_admin';
+const isFacilityAdmin = (m: Member) => m.role === FACILITY_ADMIN_ROLE;
 
 interface PositionManagementProps {
     organizationName?: string;
@@ -69,7 +74,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
         try {
             const [posData, memData] = await Promise.all([
                 getPositions(),
-                getMemberUsers(),
+                getMembersIncludingAdmins(),
             ]);
 
             const posArray = posData?.positions || [];
@@ -425,16 +430,26 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                             ) : (
                                 <VStack gap={2}>
                                     {filteredMembers.map((member) => (
-                                        <Card key={member.id} padding={4}>
+                                        /* 관리자와 직원은 서로 다른 테이블이라 id가 겹칠 수 있다 — role을 키에 함께 쓴다 */
+                                        <Card key={`${member.role}-${member.id}`} padding={4}>
                                             <HStack hAlign="between" vAlign="center">
                                                 <VStack gap={0.5}>
                                                     <HStack gap={2} vAlign="center">
                                                         <Text weight="medium">{member.name}</Text>
                                                         <Badge variant="neutral" label={getMemberRoleLabel(member)} />
+                                                        {isFacilityAdmin(member) && <Badge variant="teal" label="관리자" />}
                                                     </HStack>
                                                     <Text type="supporting" color="secondary">{member.email}</Text>
                                                 </VStack>
                                                 <div style={{ minWidth: 140 }}>
+                                                    {isFacilityAdmin(member) ? (
+                                                        /* 배정 API는 members 테이블만 고친다. 관리자 id를 그대로 보내면
+                                                           같은 번호의 직원 역할이 바뀐다(V1.88 사고). 세기만 하고 배정은 막는다.
+                                                           관리자 역할은 기관 프로필에서 바꾼다. */
+                                                        <Text type="supporting" color="secondary">
+                                                            기관 프로필에서 변경
+                                                        </Text>
+                                                    ) : (
                                                     <Selector
                                                         label="역할 배정"
                                                         isLabelHidden
@@ -449,6 +464,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                             ...positions.map(pos => ({ value: pos.id.toString(), label: pos.name })),
                                                         ]}
                                                     />
+                                                    )}
                                                 </div>
                                             </HStack>
                                         </Card>

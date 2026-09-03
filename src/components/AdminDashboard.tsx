@@ -958,9 +958,58 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         <DashboardClock />
       </motion.div>
 
-      {/* 상단 통계 줄은 없앴다 — 같은 수치를 각 패널 안에서 보고 있어 한 줄을 통째로 쓰는 값이
-          아니었고, 그 높이를 월간일정에 넘기는 편이 훨씬 유용하다는 요청이 있었다.
-          당일 휴무인원만 월간일정 헤더 우측으로 옮겼다. */}
+      {/* 오늘 현황 — 수급자(총원·출석·결석)와 종사자(총원·근무·휴무).
+          예전에 있던 상단 통계 줄은 한 번 걷어냈지만, 문을 열 때 제일 먼저 봐야 하는 두 숫자라
+          다시 올렸다. 대신 한 줄 높이로만 쓴다 — 남는 높이는 월간일정이 그대로 가져간다.
+          숫자는 서버 요약을 그대로 쓴다(직접 세지 않는다). 종사자 '근무'에는 반차가 포함된다. */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: duration.mediumMin, delay: 0.1 }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-3)' }}
+      >
+        {[
+          {
+            key: 'elder',
+            title: '수급자',
+            icon: IconHeart,
+            stats: [
+              { label: '총원', value: elderAttendanceBase },
+              { label: '출석', value: elderAttendance.present },
+              { label: '결석', value: elderAttendance.absent },
+            ],
+          },
+          {
+            key: 'staff',
+            title: '종사자',
+            icon: IconUsers,
+            stats: [
+              { label: '총원', value: employeeAttendanceBase },
+              { label: '근무', value: employeeAttendance.present },
+              { label: '휴무', value: employeeAttendance.vacation },
+            ],
+          },
+        ].map((card) => (
+          <Card key={card.key} padding={4}>
+            <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
+              <HStack gap={2} vAlign="center">
+                <div style={iconBox('transparent')}>
+                  <Icon icon={card.icon} size="sm" color="inherit" />
+                </div>
+                <Text type="body" weight="bold" color="primary">{card.title}</Text>
+              </HStack>
+              <HStack gap={5} vAlign="center">
+                {card.stats.map((stat) => (
+                  <VStack key={stat.label} gap={0} align="center">
+                    <Text type="large" weight="bold" color="primary">{stat.value}</Text>
+                    <Text type="supporting" color="secondary">{stat.label}</Text>
+                  </VStack>
+                ))}
+              </HStack>
+            </HStack>
+          </Card>
+        ))}
+      </motion.div>
 
       {/* 3. Three-panel grid: 공지사항, 전자결재, 월간일정(하단 전체) */}
       <motion.div

@@ -1240,6 +1240,14 @@ export async function getAllMembers() {
 // 다른 화면(AdminDashboard, ScheduleCalendar 등)은 여전히 getAllMembers()를 써서
 // 관리자가 안 섞인 기존 동작을 유지한다 — 일정 등록 화면에서만 옵트인.
 export async function getScheduleManagerCandidates() {
+    return getMembersIncludingAdmins();
+}
+
+// 직원(members) + 관리자(app_user)를 함께 받는다.
+// 관리자는 role: 'facility_admin'으로 오고 id는 app_user PK라 members.id와 겹칠 수 있다.
+// 이 목록으로 무언가를 쓰려는 화면은 반드시 role을 함께 키로 써야 한다 — id만 믿으면
+// 시설장을 고치려다 같은 번호의 직원을 고치게 된다(V1.88 사고).
+export async function getMembersIncludingAdmins() {
     const companyId = getCompanyId();
     if (!companyId) {
         throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');

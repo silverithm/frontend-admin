@@ -11,7 +11,8 @@ import NoticeManagement from '@/components/NoticeManagement';
 import { ChatManagement } from '@/components/ChatManagement';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import NoticeRollingBanner from '@/components/NoticeRollingBanner';
-import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
+import { Badge } from '@astryxdesign/core/Badge';
+import { ChatRail } from '@/components/ChatRail/ChatRail';
 import TodayTaskReminder from '@/components/TodayTaskReminder';
 import AdminDashboard from '@/components/AdminDashboard';
 import PlazaManagement from '@/components/plaza/PlazaManagement';
@@ -71,6 +72,11 @@ export default function EmployeePage() {
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  /* 오른쪽 채팅 레일 — 관리자 화면에만 있던 것을 직원 화면에도 똑같이 둔다.
+     어느 탭을 보고 있든 누가 접속해 있는지가 보여야 한다는 이유는 두 화면이 같다. */
+  const [railRoomId, setRailRoomId] = useState<number | null>(null);
+  const [activeChatRoomId, setActiveChatRoomId] = useState<number | null>(null);
+  const [chatUnread, setChatUnread] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const toast = useToast();
 
@@ -213,6 +219,7 @@ export default function EmployeePage() {
                   size="md"
                   onClick={() => setActiveMainTab(tab.key as MainTab)}
                   icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? 'accent' : 'primary'} />}
+                  endContent={tab.key === 'chat' && chatUnread > 0 ? <Badge variant="error" label={chatUnread > 99 ? "99+" : String(chatUnread)} /> : undefined}
                   style={{ width: '100%', justifyContent: 'flex-start' }}
                 />
               </div>
@@ -289,7 +296,8 @@ export default function EmployeePage() {
           </div>
 
           {/* 메인 콘텐츠 */}
-          <main style={{ flexGrow: 1, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
+          <div className="carev-emp-body">
+          <main style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
             {/* 탭별 콘텐츠 */}
             <AnimatePresence mode="wait">
               {activeMainTab === 'dashboard' ? (
@@ -327,7 +335,7 @@ export default function EmployeePage() {
                   {/* ChatManagement의 isAdmin prop은 실제로는 "채팅방 생성·삭제 권한"이다. 전용 채팅 권한이 없어
                       공지 관리 권한(NOTICE_MANAGE)을 대신 기준으로 쓰고 있다 — 기존 동작 유지, 이 컴포넌트는 다른
                       작업자가 수정 중이라 손대지 않는다. */}
-                  <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} />
+                  <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} initialRoomId={railRoomId} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
                 </motion.div>
               ) : activeMainTab === 'schedule' ? (
                 <motion.div
@@ -483,6 +491,23 @@ export default function EmployeePage() {
             </AnimatePresence>
           </main>
 
+          {/* 채팅 탭에서는 레일을 그리지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다.
+              다만 언마운트는 하지 않는다 — 폴링(새 메시지 감지)이 다른 탭에서도 계속 돌아야 한다. */}
+          <ChatRail
+            hidden={activeMainTab === 'chat'}
+            currentRoomId={activeMainTab === 'chat' ? activeChatRoomId : null}
+            onOpenRoom={(roomId) => {
+              setRailRoomId(roomId);
+              setActiveMainTab('chat');
+            }}
+            onOpenChatTab={() => setActiveMainTab('chat')}
+            onUnreadChange={setChatUnread}
+            onNewMessage={(room) => {
+              showNotification(`${room.name} — 새로운 메시지가 왔습니다`, 'info');
+            }}
+          />
+          </div>
+
           {/* 푸터 */}
           <footer style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
             <div style={{ maxWidth: 1600, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
@@ -521,9 +546,6 @@ export default function EmployeePage() {
             </div>
           </footer>
         </div>
-
-        {/* 플로팅 채팅 위젯 */}
-        <FloatingChat />
 
         {/* 오늘 담당 일정을 아직 체크하지 않았으면 우측 아래에 알림 */}
         <TodayTaskReminder onOpenSchedule={() => setActiveMainTab('schedule')} />
