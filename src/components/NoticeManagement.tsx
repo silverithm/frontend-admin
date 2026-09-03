@@ -661,7 +661,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                       <HStack gap={3} wrap="wrap">
                         {readers.map((reader) => (
                           <HStack key={reader.id} gap={1.5} vAlign="center">
-                            <Avatar name={reader.userName || '?'} size="xsmall" />
+                            <Avatar name={reader.userName || '?'} src={reader.profileImageUrl || undefined} size="xsmall" />
                             <Text type="body">{reader.userName}</Text>
                             <Text type="supporting">{formatDate(reader.readAt, 'MM.dd HH:mm')}</Text>
                           </HStack>
@@ -708,7 +708,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                       <VStack gap={4} align="start" width="100%">
                         {comments.map((comment) => (
                           <HStack key={comment.id} gap={3} vAlign="start" width="100%">
-                            <Avatar name={comment.authorName || '?'} size="small" />
+                            <Avatar name={comment.authorName || '?'} src={comment.profileImageUrl || undefined} size="small" />
                             <StackItem size="fill">
                               <HStack gap={2} vAlign="center" width="100%">
                                 <Text type="body" weight="medium">{comment.authorName}</Text>

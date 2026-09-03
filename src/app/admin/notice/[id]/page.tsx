@@ -402,7 +402,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                             <div style={{ padding: 'var(--spacing-4)' }}>
                               <HStack gap={3} vAlign="start" hAlign="between" width="100%">
                                 <HStack gap={3} vAlign="start">
-                                  <Avatar name={comment.authorName || '?'} size="small" />
+                                  <Avatar name={comment.authorName || '?'} src={comment.profileImageUrl || undefined} size="small" />
                                   <VStack gap={1} align="start">
                                     <HStack gap={2} vAlign="center">
                                       <Text type="body" weight="medium">{comment.authorName}</Text>
@@ -450,7 +450,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                         <div style={{ padding: 'var(--spacing-4)' }}>
                           <HStack gap={3} vAlign="center" hAlign="between" width="100%">
                             <HStack gap={3} vAlign="center">
-                              <Avatar name={reader.userName || '?'} size="small" />
+                              <Avatar name={reader.userName || '?'} src={reader.profileImageUrl || undefined} size="small" />
                               <Text type="body" weight="medium">{reader.userName}</Text>
                             </HStack>
                             <Text type="supporting">{formatDate(reader.readAt, 'yyyy.MM.dd HH:mm')}</Text>

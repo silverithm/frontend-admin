@@ -22,6 +22,8 @@ export interface NoticeComment {
   noticeId: string;
   authorId: string;
   authorName: string;
+  /** 프로필 사진 — 서버가 채워 준다. 없으면 아바타가 이름 첫 글자로 그린다 */
+  profileImageUrl?: string | null;
   content: string;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +35,8 @@ export interface NoticeReader {
   noticeId: string;
   userId: string;
   userName: string;
+  /** 프로필 사진 — 서버가 채워 준다. 없으면 아바타가 이름 첫 글자로 그린다 */
+  profileImageUrl?: string | null;
   readAt: string;
 }
 

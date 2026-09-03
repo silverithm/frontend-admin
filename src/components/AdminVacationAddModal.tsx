@@ -274,7 +274,10 @@ const AdminVacationAddModal: React.FC<AdminVacationAddModalProps> = ({
                     {/* 선택된 직원 정보 */}
                     <Card variant="muted" padding={3}>
                       <HStack gap={3} vAlign="center">
-                        <Avatar name={selectedMember?.name} />
+                        <Avatar
+                          name={selectedMember?.name}
+                          src={selectedMember?.profileImageUrl || undefined}
+                        />
                         <VStack gap={0.5}>
                           <Text type="body" weight="medium">{selectedMember?.name}</Text>
                           <Text type="supporting" color="secondary">{selectedMember?.email}</Text>

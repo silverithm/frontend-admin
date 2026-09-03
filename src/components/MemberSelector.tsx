@@ -27,6 +27,8 @@ export interface Member extends MemberRoleSource {
   email: string;
   role: string;
   status: string;
+  /** 서버 MemberDTO가 늘 내려주는 값 — 안 받아 두면 아바타가 이름 첫 글자만 그린다 */
+  profileImageUrl?: string | null;
 }
 
 interface MemberSelectorProps {
