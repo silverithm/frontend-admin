@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -36,6 +36,7 @@ export function ChatImageLightbox({
     width: number;
     showOpenInNewTab?: boolean;
 }) {
+    const [isSavingAll, setIsSavingAll] = useState(false);
     const total = items.length;
     const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0));
     const current = items[safeIndex];
@@ -57,6 +58,45 @@ export function ChatImageLightbox({
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [safeIndex, total, onIndexChange]);
+
+    /**
+     * 사진 저장. 브라우저가 같은 출처가 아닌 이미지를 <a download>로 저장하지 못하므로
+     * 내려받아 blob으로 만들어 저장한다. 실패하면 새 창으로 열어 사용자가 직접 저장하게 둔다.
+     */
+    const saveOne = async (item: ChatLightboxItem) => {
+        try {
+            const res = await fetch(item.fileUrl);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = item.fileName || "사진";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch {
+            window.open(item.fileUrl, "_blank", "noopener");
+        }
+    };
+
+    /**
+     * 묶음을 한 번에 저장한다.
+     *
+     * 한꺼번에 다 밀면 브라우저가 일부를 막는다(연속 다운로드 차단). 한 장씩,
+     * 사이를 조금 띄워 받는다. 한 장이 실패해도 나머지는 계속 받는다.
+     */
+    const saveAll = async () => {
+        setIsSavingAll(true);
+        try {
+            for (const item of items) {
+                await saveOne(item);
+                await new Promise((r) => setTimeout(r, 250));
+            }
+        } finally {
+            setIsSavingAll(false);
+        }
+    };
 
     if (!current) return null;
 
@@ -102,18 +142,34 @@ export function ChatImageLightbox({
                     </LayoutContent>
                 }
                 footer={
-                    showOpenInNewTab ? (
-                        <LayoutFooter hasDivider>
-                            <HStack gap={2} hAlign="end">
+                    <LayoutFooter hasDivider>
+                        <HStack gap={2} hAlign="end" wrap="wrap">
+                            {/* 여러 장일 때만 — 한 장짜리에 '모두 저장'은 같은 버튼이 둘인 셈이다.
+                                서른 장을 한 장씩 누르게 두면 기능이 있으나 마나다. */}
+                            {total > 1 && (
+                                <Button
+                                    label={`${total}장 모두 저장`}
+                                    variant="secondary"
+                                    isLoading={isSavingAll}
+                                    isDisabled={isSavingAll}
+                                    onClick={saveAll}
+                                />
+                            )}
+                            <Button
+                                label="이 사진 저장"
+                                variant="secondary"
+                                onClick={() => saveOne(current)}
+                            />
+                            {showOpenInNewTab && (
                                 <Button
                                     label="새 창에서 열기"
                                     variant="secondary"
                                     onClick={() => window.open(current.fileUrl, "_blank", "noopener")}
                                 />
-                                <Button label="닫기" variant="ghost" onClick={onClose} />
-                            </HStack>
-                        </LayoutFooter>
-                    ) : undefined
+                            )}
+                            <Button label="닫기" variant="ghost" onClick={onClose} />
+                        </HStack>
+                    </LayoutFooter>
                 }
             />
         </Dialog>
