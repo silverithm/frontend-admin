@@ -17,6 +17,7 @@ import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage, editChatMessage } from '@/lib/apiService';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
+import { ChatMessageText } from "@/components/chat/ChatMessageText";
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOlderChatMessages } from '@/lib/useOlderChatMessages';
 
@@ -894,7 +895,10 @@ export function FloatingChatMessages({
                                                     </button>
                                                 ) : (
                                                     <Text color="inherit">
-                                                        {message.content}
+                                                        <ChatMessageText
+                                                            content={message.content ?? ""}
+                                                            isMyMessage={isMyMessage}
+                                                        />
                                                         {/* 고쳐진 대화라는 사실은 기록으로 남아야 한다 — 말풍선 색이 달라도 읽히도록
                                                             글자색은 말풍선 글자색을 물려받고 흐리기만 한다 */}
                                                         {message.editedAt && (

@@ -19,6 +19,7 @@ import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/Chat
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
+import { ChatMessageText } from '@/components/chat/ChatMessageText';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -2162,7 +2163,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 </button>
                                                             ) : (
                                                                 <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
-                                                                    {renderWithMentions(message.content, isMyMessage)}
+                                                                    <ChatMessageText content={message.content} isMyMessage={isMyMessage} />
                                                                     {/* 고쳐진 대화라는 사실은 기록으로 남아야 한다 — 말풍선 색이 달라도 읽히도록
                                                                         글자색은 말풍선 글자색을 물려받고 흐리기만 한다 */}
                                                                     {message.editedAt && (

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:chat": "node --test src/lib/chatMessageGrouping.test.ts src/lib/chatReconnect.test.ts",
-    "test": "node --test src/lib/chatMessageGrouping.test.ts src/lib/chatReconnect.test.ts src/lib/proxyRoutes.test.ts"
+    "test": "node --test src/lib/chatMessageGrouping.test.ts src/lib/chatReconnect.test.ts src/lib/proxyRoutes.test.ts src/lib/messageLinks.test.ts"
   },
   "dependencies": {
     "@astryxdesign/core": "^0.1.2",
