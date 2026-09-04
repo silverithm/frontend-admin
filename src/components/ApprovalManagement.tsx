@@ -62,6 +62,16 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
   const [selectedTemplateType, setSelectedTemplateType] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  /**
+   * 실제로 서버에 보내는 검색어. 입력값(searchQuery)과 따로 둔다.
+   *
+   * 한 글자마다 서버를 부르면 한글이 아예 안 쳐진다 — "ㄱ"을 누른 순간 조회가 돌고
+   * 화면이 다시 그려지면서 조합 중이던 글자가 끊긴다(자음 하나만 남는다).
+   * 타이핑이 멎고 300ms 뒤에만 조회한다.
+   */
+  const [appliedSearch, setAppliedSearch] = useState('');
+  /** 첫 로딩에만 화면 전체를 로딩으로 바꾼다 — 검색 중에는 목록만 흐려진다 */
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   /** 양식 목록 (양식별 필터 + 대분류 목록에 쓴다) */
   const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
   /** 대분류 필터 ('' = 전체) */
@@ -128,9 +138,15 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     return currentStep?.approverName ?? null;
   };
 
+  // 타이핑이 멎은 뒤에만 검색어를 반영한다 (한글 조합이 끊기지 않게)
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     loadApprovals();
-  }, [activeTab, dateFilter, searchQuery, categoryFilter, templateFilter]);
+  }, [activeTab, dateFilter, appliedSearch, categoryFilter, templateFilter]);
 
   // 대분류 필터용 — 결재 문서에는 templateId만 있어 양식 목록에서 분류를 끌어온다
   useEffect(() => {
@@ -183,7 +199,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         status: activeTab === 'all' ? 'ALL' : activeTab.toUpperCase(),
         startDate: dateFilter.startDate,
         endDate: dateFilter.endDate,
-        searchQuery: searchQuery || undefined,
+        searchQuery: appliedSearch || undefined,
         templateId: templateFilter || undefined,
         // 미분류는 "분류가 비어 있는 문서"라 서버가 알아듣는 약속된 값으로 바꿔 보낸다
         category: categoryFilter
@@ -204,6 +220,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
       console.error('결재 목록 로드 실패:', error);
     } finally {
       setIsLoading(false);
+      setIsFirstLoad(false);
     }
   };
 
@@ -380,7 +397,9 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     }
   };
 
-  if (isLoading) {
+  // 첫 로딩에만 화면을 로딩으로 덮는다.
+  // 검색할 때마다 덮으면 입력창이 통째로 사라졌다 나타나서 글자를 칠 수 없다.
+  if (isLoading && isFirstLoad) {
     return (
       <Loading label="결재 목록을 불러오는 중..." />
     );
