@@ -33,7 +33,7 @@ Scope: 사장님이 현장에서 확인하신 12건을 고치고, 각각 실제�
   EXPECT: date-badge-both-platforms
   EVIDENCE: automatic-evidence=v1; definition-sha256=cf23f2be3629c3d5aea13b7a7cdc90550d7d6e44b34cbc98dcc83d980b9e872f; exit=0; EXPECT=matched; output-sha256=f82d4329ab5a3481878bde39ca023da71a03fa7d6305c2a82c40997ff32c942e; output-bytes=26; shell=/bin/sh; cwd=/Users/gimjunhyeong/Develop/silverithm/frontend-admin; path=7156b96cfa87/39 entries
 
-- [ ] G2b: 위로 스크롤하면 상단에 날짜가 보인다 — 웹 확인 완료, 앱은 사장님 로그인 필요
+- [ ] G2b: 위로 스크롤하면 상단에 날짜가 보인다 — 웹 확인 완료, 앱은 화면 미확인
   EVIDENCE: 웹은 확인했다 — 채팅방에서 위로 올리자 화면 상단 가운데에 "8월 24일"이 떴다
   (verify/shots/02_date_badge_web.png). 앱 쪽은 시뮬레이터를 띄웠으나 로그인 화면에서 막혔다.
   나는 비밀번호를 입력하지 않는다. 사장님이 시뮬레이터에서 로그인해 주시면 바로 확인한다.
