@@ -308,11 +308,15 @@ export function FloatingChatMessages({
         }
     };
 
+    /**
+     * 첨부 버튼으로 고른 파일들을 보낸다.
+     * 관리자 채팅 탭과 같이 한 번에 여러 개를 고를 수 있고, 그 경우 알림도 한 번만 간다.
+     */
     const handleFilePick = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+        const files = Array.from(event.target.files ?? []);
         // 같은 파일을 연달아 보낼 수 있게 값을 비운다
         event.target.value = "";
-        if (file) sendFileMessage(file);
+        if (files.length > 0) sendFiles(files);
     };
 
     /** 창 위에 파일을 떨어뜨려 보내기 */
@@ -1113,6 +1117,7 @@ export function FloatingChatMessages({
                     <input
                         ref={fileInputRef}
                         type="file"
+                        multiple
                         onChange={handleFilePick}
                         style={{ display: "none" }}
                     />

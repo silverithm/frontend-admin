@@ -1159,11 +1159,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     };
 
+    /**
+     * 첨부 버튼으로 고른 파일들을 보낸다.
+     *
+     * 사진 서른 장을 서른 번 고르게 둘 수 없다 — 끌어다 놓기·붙여넣기와 마찬가지로
+     * 한 번에 여러 개를 고를 수 있고, 그 경우 알림도 한 번만 간다(sendFiles).
+     */
     const handleFilePick = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+        const files = Array.from(event.target.files ?? []);
         // 같은 파일을 연달아 보낼 수 있게 값을 비운다
         event.target.value = "";
-        if (file) sendFileMessage(file);
+        if (files.length > 0) sendFiles(files);
     };
 
     /**
@@ -2434,6 +2440,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 <input
                                     ref={fileInputRef}
                                     type="file"
+                                    multiple
                                     onChange={handleFilePick}
                                     style={{ display: "none" }}
                                 />

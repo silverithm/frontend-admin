@@ -30,15 +30,26 @@ export async function GET() {
     });
 
     let data;
+    let parsed = true;
     try {
       data = await response.json();
     } catch (jsonError) {
       console.error('Failed to parse response JSON:', jsonError);
+      parsed = false;
       data = { message: 'Failed to parse response from backend' };
     }
-    
 
     if (!response.ok) {
+      // 백엔드가 JSON이 아닌 것을 줬다면 백엔드가 아니라 그 앞단이 답한 것이다
+      // (서버가 죽어 프록시가 HTML 404를 주는 경우). 그 404를 그대로 넘기면
+      // 화면이 "구독이 없는 계정"으로 읽고 멀쩡한 구독자에게 결제 화면을 띄운다.
+      // 이건 구독 상태가 아니라 서버 장애이므로 502로 바꿔 올린다.
+      if (!parsed) {
+        return NextResponse.json(
+          { message: '구독 정보를 확인할 수 없습니다. 잠시 후 다시 시도해주세요.' },
+          { status: 502 }
+        );
+      }
       return NextResponse.json(data, { status: response.status });
     }
 
