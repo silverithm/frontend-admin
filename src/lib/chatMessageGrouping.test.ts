@@ -9,6 +9,8 @@ import {
     buildChatRenderItems,
     PHOTO_GROUP_MAX_COUNT,
     PHOTO_GROUP_MAX_GAP_MS,
+    chatAttachmentLabel,
+    lastMessagePreview,
     type GroupableChatMessage,
 } from './chatMessageGrouping.ts';
 
@@ -146,4 +148,46 @@ test('날짜 구분선 계산이 묶음 뒤에도 어긋나지 않는다', () =>
     ]);
     assert.deepEqual(items.map(i => i.kind), ['photos', 'single', 'photos', 'single']);
     assert.deepEqual(items.map(i => i.showDateSeparator), [true, false, true, false]);
+});
+
+/**
+ * 대화 밖에 보이는 이름 — 방 목록·파일 모아보기·사진 크게 보기 제목.
+ *
+ * 앱이 압축하며 붙인 임시 이름(compressed_1757….jpg)이 그대로 새어 나와
+ * 사진 한 장이 "compressed_1757…"으로 보이던 것을 막는다.
+ */
+test('압축기가 붙인 임시 이름은 종류로 말한다', () => {
+    assert.equal(chatAttachmentLabel({ type: 'IMAGE', fileName: 'compressed_1757012345678.jpg' }), '사진');
+    assert.equal(chatAttachmentLabel({ type: 'IMAGE', fileName: 'recompressed_2_1757012345678.jpg' }), '사진');
+    assert.equal(chatAttachmentLabel({ mediaType: 'VIDEO', fileName: '1757012345678.mp4' }), '동영상');
+    assert.equal(chatAttachmentLabel({ mediaType: 'VIDEO', fileName: 'VID_20260905_101112.mp4' }), '동영상');
+});
+
+test('사람이 붙인 이름은 그대로 살린다', () => {
+    assert.equal(chatAttachmentLabel({ type: 'IMAGE', fileName: '어르신_낙상보고.jpg' }), '어르신_낙상보고.jpg');
+    assert.equal(chatAttachmentLabel({ type: 'FILE', fileName: '9월 근무표.xlsx' }), '9월 근무표.xlsx');
+});
+
+test('이름이 없으면 종류로, 종류도 모르면 파일', () => {
+    assert.equal(chatAttachmentLabel({ type: 'IMAGE' }), '사진');
+    assert.equal(chatAttachmentLabel({ type: 'FILE', content: '메모.txt' }), '메모.txt');
+    assert.equal(chatAttachmentLabel({ type: 'FILE' }), '파일');
+});
+
+test('방 목록 미리보기는 서버가 정리해 준 말을 먼저 쓴다', () => {
+    assert.equal(
+        lastMessagePreview({ content: 'compressed_1757012345678.jpg', displayContent: '사진' }),
+        '사진',
+    );
+});
+
+test('서버가 아직 안 올라갔어도 파일 이름이 그대로 새지 않는다', () => {
+    assert.equal(
+        lastMessagePreview({ content: 'compressed_1757012345678.jpg', type: 'IMAGE', fileName: 'compressed_1757012345678.jpg' }),
+        '사진',
+    );
+});
+
+test('글 메시지는 내용 그대로 보인다', () => {
+    assert.equal(lastMessagePreview({ content: '오늘 3시에 뵙겠습니다' }), '오늘 3시에 뵙겠습니다');
 });

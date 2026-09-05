@@ -7,6 +7,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { chatAttachmentLabel } from "@/lib/chatMessageGrouping";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 
 export interface ChatLightboxItem {
@@ -146,8 +147,11 @@ export function ChatImageLightbox({
 
     if (!current) return null;
 
-    // 여러 장일 때만 '몇 번째인지'를 제목에 덧붙인다 — 한 장이면 지금까지처럼 파일 이름만 보인다
-    const title = total > 1 ? `${current.fileName} (${safeIndex + 1} / ${total})` : current.fileName;
+    // 제목은 사람이 읽을 이름일 때만 파일 이름을 쓴다. 앱이 압축하며 붙인
+    // compressed_1757….jpg 같은 이름이 제목으로 뜨면 아무 정보도 주지 못한다.
+    // (저장 파일 이름은 그대로 fileName을 쓴다 — 확장자가 필요하다.)
+    const name = chatAttachmentLabel({ type: "IMAGE", fileName: current.fileName });
+    const title = total > 1 ? `${name} (${safeIndex + 1} / ${total})` : name;
 
     return (
         <Dialog isOpen onOpenChange={(open) => { if (!open) onClose(); }} purpose="info" width={width}>

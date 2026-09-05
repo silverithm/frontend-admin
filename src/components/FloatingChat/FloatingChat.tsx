@@ -312,6 +312,12 @@ export function FloatingChat() {
                                 content: msg.content,
                                 senderName: msg.senderName,
                                 createdAt: msg.createdAt,
+                                // 없으면 사진을 받는 순간 목록만 파일 이름으로 되돌아간다
+                                displayContent: msg.displayContent,
+                                type: msg.type,
+                                mediaType: msg.mediaType,
+                                mimeType: msg.mimeType,
+                                fileName: msg.fileName,
                             },
                             lastMessageAt: msg.createdAt,
                             unreadCount: isViewing || isMine ? prevRooms[idx].unreadCount : prevRooms[idx].unreadCount + 1,

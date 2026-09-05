@@ -215,3 +215,54 @@ export function chatMediaType(message: {
     // 4) 아무 단서도 없으면 저장된 type을 그대로 따른다.
     return message.type === 'IMAGE' ? 'IMAGE' : 'FILE';
 }
+
+/**
+ * 기계가 붙인 임시 파일 이름인지.
+ *
+ * 앱은 사진을 올리기 전에 압축하면서 `compressed_1757012345678.jpg` 같은 이름을 붙였고,
+ * 동영상 압축기는 숫자만 남긴 이름을 뱉는다. 그 이름이 방 목록·파일 모아보기·알림처럼
+ * **대화 밖**까지 그대로 따라 나와서 사진 한 장이 "compressed_1757…"로 보였다.
+ * 사람이 붙인 이름(어르신_낙상보고.jpg)은 그대로 두고 이런 것만 가린다.
+ */
+const MACHINE_FILE_NAME = /^(re)?compressed[_-]|^\d{9,}\.[a-z0-9]+$|^vid[_-]?\d/i;
+
+/**
+ * 첨부를 한 줄로 가리키는 말. 이름이 쓸모없으면 종류로 말한다 — "사진", "동영상".
+ */
+export function chatAttachmentLabel(message: {
+    type?: string;
+    mediaType?: string;
+    mimeType?: string;
+    fileName?: string;
+    content?: string;
+}): string {
+    const media = chatMediaType(message);
+    const name = (message.fileName || '').trim();
+
+    if (name && !MACHINE_FILE_NAME.test(name)) {
+        return name;
+    }
+    if (media === 'IMAGE') return '사진';
+    if (media === 'VIDEO') return '동영상';
+    return name || message.content || '파일';
+}
+
+/**
+ * 방 목록에 한 줄로 보여줄 마지막 메시지.
+ *
+ * 서버가 이미 "사진"/"동영상"/파일명으로 정리해 준 displayContent가 있으면 그걸 쓴다.
+ * 없으면(백엔드가 아직 안 올라간 사이) 첨부 종류로 직접 말한다 — content에는 파일 이름이
+ * 들어 있어 그대로 쓰면 사진 한 장이 "compressed_1757…"으로 보인다.
+ */
+export function lastMessagePreview(lastMessage: {
+    content: string;
+    displayContent?: string;
+    type?: string;
+    mediaType?: string;
+    mimeType?: string;
+    fileName?: string;
+}): string {
+    if (lastMessage.displayContent) return lastMessage.displayContent;
+    if (lastMessage.fileName || lastMessage.mediaType) return chatAttachmentLabel(lastMessage);
+    return lastMessage.content;
+}

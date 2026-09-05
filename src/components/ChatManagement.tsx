@@ -12,7 +12,7 @@ import { mergeMissedMessages, hasMissedMessages, readAscendingMessages } from '@
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
-import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
+import { buildChatRenderItems, formatDateSeparator, chatAttachmentLabel, lastMessagePreview } from '@/lib/chatMessageGrouping';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
 import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/ChatImageLightbox';
@@ -74,6 +74,8 @@ interface ChatMessage {
     senderPosition?: string;
     type: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
     content: string;
+    /** 대화 밖에서 이 메시지를 가리키는 한 줄 — 서버가 정리해 준 "사진"/"동영상"/파일명 */
+    displayContent?: string;
     fileUrl?: string;
     /** 목록에 그릴 축소본 — 기존 메시지엔 없을 수 있어 옵셔널 (그럴 땐 원본으로 대체) */
     thumbnailUrl?: string;
@@ -100,7 +102,17 @@ interface ChatRoom {
     id: number;
     name: string;
     description?: string;
-    lastMessage?: { content: string; senderName: string; createdAt: string } | null;
+    /** 서버는 lastMessage로 메시지 전체를 준다 — 미리보기에는 displayContent("사진"/"동영상"/파일명)를 쓴다 */
+    lastMessage?: {
+        content: string;
+        senderName: string;
+        createdAt: string;
+        displayContent?: string;
+        type?: string;
+        mediaType?: string;
+        mimeType?: string;
+        fileName?: string;
+    } | null;
     lastMessageAt?: string;
     unreadCount: number;
     participantCount: number;
@@ -696,6 +708,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         content: wsMessage.message.content,
                                         senderName: wsMessage.message.senderName,
                                         createdAt: wsMessage.message.createdAt,
+                                        // 이게 없으면 사진을 받는 순간 목록만 파일 이름으로 되돌아간다
+                                        displayContent: wsMessage.message.displayContent,
+                                        type: wsMessage.message.type,
+                                        mediaType: wsMessage.message.mediaType,
+                                        mimeType: wsMessage.message.mimeType,
+                                        fileName: wsMessage.message.fileName,
                                     },
                                     lastMessageAt: wsMessage.message.createdAt,
                                 };
@@ -1521,7 +1539,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         <VStack gap={0.5}>
                                             <Text type="supporting" maxLines={1}>
                                                 {room.lastMessage
-                                                    ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
+                                                    ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
                                                     : "메시지가 없습니다"}
                                             </Text>
                                             <Text type="supporting">참여자 {room.participantCount}명</Text>
@@ -1824,7 +1842,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         <span>{chatMediaType(m) === "IMAGE" ? "📷" : chatMediaType(m) === "VIDEO" ? "🎬" : "📎"}</span>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
-                                                                {m.fileName || m.content}
+                                                                {chatAttachmentLabel(m)}
                                                             </Text>
                                                             <Text type="supporting" color="secondary">
                                                                 {m.senderName} · {formatMessageTime(m.createdAt)}
@@ -2584,7 +2602,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         rel="noopener noreferrer"
                                                         density="compact"
                                                         startContent={<Icon icon={FiPaperclip} size="sm" color="secondary" />}
-                                                        label={m.fileName || m.content}
+                                                        label={chatAttachmentLabel(m)}
                                                         labelLines={1}
                                                         description={<Text type="supporting">{formatMessageTime(m.createdAt)}</Text>}
                                                     />

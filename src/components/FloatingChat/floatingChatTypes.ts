@@ -2,7 +2,17 @@ export interface ChatRoom {
     id: number;
     name: string;
     description?: string;
-    lastMessage?: { content: string; senderName: string; createdAt: string } | null;
+    /** 서버는 메시지 전체를 준다 — 미리보기에는 displayContent("사진"/"동영상"/파일명)를 쓴다 */
+    lastMessage?: {
+        content: string;
+        senderName: string;
+        createdAt: string;
+        displayContent?: string;
+        type?: string;
+        mediaType?: string;
+        mimeType?: string;
+        fileName?: string;
+    } | null;
     lastMessageAt?: string;
     unreadCount: number;
     participantCount: number;
@@ -29,6 +39,8 @@ export interface ChatMessage {
     fileName?: string;
     /** 서버가 판단한 첨부 종류 — 저장된 type은 그대로 두고 파생만 내려온다 (동영상도 type은 FILE) */
     mediaType?: "IMAGE" | "VIDEO" | "FILE";
+    /** 대화 밖에서 이 메시지를 가리키는 한 줄 — 서버가 정리해 준 "사진"/"동영상"/파일명 */
+    displayContent?: string;
     mimeType?: string;
     fileSize?: number;
     createdAt: string;

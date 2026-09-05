@@ -1,5 +1,6 @@
 "use client";
 
+import { lastMessagePreview } from "@/lib/chatMessageGrouping";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Avatar } from "@astryxdesign/core/Avatar";
@@ -196,7 +197,7 @@ export function FloatingChatRoomList({
                                     label={room.name}
                                     description={
                                         room.lastMessage
-                                            ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
+                                            ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
                                             : "메시지가 없습니다"
                                     }
                                     startContent={<Avatar name={room.name || "?"} size="small" />}
