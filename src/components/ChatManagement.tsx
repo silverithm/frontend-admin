@@ -935,7 +935,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
      * 열람 가능한 절대 URL 변환까지 한 번에 처리해서 웹·앱이 같은 형식을 갖는다.
      * (일반 파일 업로드 API는 상대 경로를 돌려줘 이미지가 그대로 뜨지 않는다)
      */
-    const sendFileMessage = async (file: File) => {
+    const sendFileMessage = async (file: File, batch?: { id: string; size: number }) => {
         if (!selectedRoom || !userId || !userName) return;
         if (file.size > MAX_CHAT_FILE_SIZE) {
             onNotification(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`, "error");
@@ -949,7 +949,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
         setIsUploadingFile(true);
         try {
-            const response = await uploadChatFile(selectedRoom, file, userId, userName);
+            const response = await uploadChatFile(selectedRoom, file, userId, userName, batch);
             const newMessage = response.message || response;
             setMessages(prev => (prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]));
             setReplyTo(null);
@@ -1166,10 +1166,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (file) sendFileMessage(file);
     };
 
-    /** 여러 개를 한 번에 떨어뜨려도 보낸 순서가 뒤섞이지 않게 하나씩 올린다 */
+    /**
+     * 여러 개를 한 번에 떨어뜨려도 보낸 순서가 뒤섞이지 않게 하나씩 올린다.
+     *
+     * 한 번의 동작으로 보낸 것이므로 알림도 한 번이어야 한다. 같은 묶음 표시를 달아
+     * 보내면 서버가 마지막 장까지 올라온 뒤 "사진 5장" 알림을 한 번만 보낸다.
+     */
     const sendFiles = async (files: File[]) => {
+        const batch = files.length > 1
+            ? { id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, size: files.length }
+            : undefined;
         for (const file of files) {
-            await sendFileMessage(file);
+            await sendFileMessage(file, batch);
         }
     };
 

@@ -2664,11 +2664,27 @@ export async function sendChatMessage(roomId: number, data: {
  * 일반 파일 업로드 API와 달리 서버가 열람 가능한 절대 URL을 만들어 돌려주므로,
  * 웹·앱이 같은 형식의 파일 메시지를 갖게 된다.
  */
-export async function uploadChatFile(roomId: number, file: File, senderId: string, senderName: string) {
+/**
+ * 채팅 파일·사진 전송.
+ *
+ * batch는 사진 여러 장을 한 번에 보낼 때만 넘긴다. 서버가 마지막 장까지 올라온 뒤
+ * "사진 5장" 알림을 한 번만 보내게 하기 위한 것으로, 안 넘기면 장마다 알림이 나간다.
+ */
+export async function uploadChatFile(
+    roomId: number,
+    file: File,
+    senderId: string,
+    senderName: string,
+    batch?: { id: string; size: number },
+) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('senderId', senderId);
     formData.append('senderName', senderName);
+    if (batch && batch.size > 1) {
+        formData.append('batchId', batch.id);
+        formData.append('batchSize', String(batch.size));
+    }
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     const response = await fetch(`/api/v1/chat/rooms/${roomId}/files`, {

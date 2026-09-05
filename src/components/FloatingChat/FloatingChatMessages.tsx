@@ -266,7 +266,7 @@ export function FloatingChatMessages({
      * 관리자 채팅 탭과 같은 채팅 전용 업로드 엔드포인트를 쓴다 — 서버가 S3 저장부터
      * 메시지 생성, 열람 가능한 절대 URL 변환까지 처리해 웹·앱이 같은 형식을 갖는다.
      */
-    const sendFileMessage = async (file: File) => {
+    const sendFileMessage = async (file: File, batch?: { id: string; size: number }) => {
         if (!roomId || !userId) return;
         if (file.size > MAX_CHAT_FILE_SIZE) {
             setUploadError(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`);
@@ -277,7 +277,7 @@ export function FloatingChatMessages({
         setUploadError(null);
         setIsUploadingFile(true);
         try {
-            const response = await uploadChatFile(roomId, file, userId, userName);
+            const response = await uploadChatFile(roomId, file, userId, userName, batch);
             const newMessage: ChatMessage = response.message || response;
             if (onMessagesUpdate) {
                 const current = messagesRef.current;
@@ -295,10 +295,16 @@ export function FloatingChatMessages({
         }
     };
 
-    /** 여러 개를 한 번에 떨어뜨려도 보낸 순서가 뒤섞이지 않게 하나씩 올린다 */
+    /**
+     * 여러 개를 한 번에 떨어뜨려도 보낸 순서가 뒤섞이지 않게 하나씩 올린다.
+     * 한 번의 동작으로 보낸 것이므로 같은 묶음 표시를 달아 알림도 한 번만 가게 한다.
+     */
     const sendFiles = async (files: File[]) => {
+        const batch = files.length > 1
+            ? { id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, size: files.length }
+            : undefined;
         for (const file of files) {
-            await sendFileMessage(file);
+            await sendFileMessage(file, batch);
         }
     };
 
