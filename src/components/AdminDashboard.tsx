@@ -15,7 +15,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import {
   IconUsers,
@@ -991,21 +991,35 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           },
         ].map((card) => (
           <Card key={card.key} padding={4}>
-            <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-              <HStack gap={2} vAlign="center">
-                <div style={iconBox('transparent')}>
-                  <Icon icon={card.icon} size="sm" color="inherit" />
+            {/* 제목은 왼쪽에 고정하고, 남는 폭은 세 숫자가 똑같이 나눠 갖는다.
+                예전엔 숫자 셋이 오른쪽 끝에 몰려 카드 가운데가 비어 보였다. */}
+            <HStack gap={4} vAlign="center">
+              <StackItem size="static">
+                <HStack gap={2} vAlign="center">
+                  <div style={iconBox('transparent')}>
+                    <Icon icon={card.icon} size="sm" color="inherit" />
+                  </div>
+                  <Text type="body" weight="bold" color="primary">{card.title}</Text>
+                </HStack>
+              </StackItem>
+              <StackItem size="fill">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'center' }}>
+                  {card.stats.map((stat, i) => (
+                    <div
+                      key={stat.label}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
+                      }}
+                    >
+                      <Text type="large" weight="bold" color="primary">{stat.value}</Text>
+                      <Text type="supporting" color="secondary">{stat.label}</Text>
+                    </div>
+                  ))}
                 </div>
-                <Text type="body" weight="bold" color="primary">{card.title}</Text>
-              </HStack>
-              <HStack gap={5} vAlign="center">
-                {card.stats.map((stat) => (
-                  <VStack key={stat.label} gap={0} align="center">
-                    <Text type="large" weight="bold" color="primary">{stat.value}</Text>
-                    <Text type="supporting" color="secondary">{stat.label}</Text>
-                  </VStack>
-                ))}
-              </HStack>
+              </StackItem>
             </HStack>
           </Card>
         ))}
