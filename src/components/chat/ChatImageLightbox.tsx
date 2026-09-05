@@ -5,6 +5,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
+import { Banner } from "@astryxdesign/core/Banner";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 
@@ -37,6 +38,7 @@ export function ChatImageLightbox({
     showOpenInNewTab?: boolean;
 }) {
     const [isSavingAll, setIsSavingAll] = useState(false);
+    const [notice, setNotice] = useState<{ status: "success" | "error"; message: string } | null>(null);
     const total = items.length;
     const safeIndex = Math.min(Math.max(index, 0), Math.max(total - 1, 0));
     const current = items[safeIndex];
@@ -59,23 +61,52 @@ export function ChatImageLightbox({
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [safeIndex, total, onIndexChange]);
 
+    // 다른 사진으로 넘어가면 지난 저장 결과 안내는 치운다
+    useEffect(() => { setNotice(null); }, [safeIndex]);
+
     /**
-     * 사진 저장. 브라우저가 같은 출처가 아닌 이미지를 <a download>로 저장하지 못하므로
-     * 내려받아 blob으로 만들어 저장한다. 실패하면 새 창으로 열어 사용자가 직접 저장하게 둔다.
+     * 사진 한 장을 blob으로 받아온다.
+     *
+     * 사진은 S3(다른 출처)에 있어서 브라우저가 직접 fetch를 막는다(CORS). 그래서
+     * 결재 첨부·서명 이미지와 똑같이 **같은 출처 프록시**로 받는다. 백엔드가 절대 S3 URL을
+     * 상대 경로로 정규화해 주므로(FileAccessGuard) fileUrl을 그대로 넘기면 되고,
+     * 소속 기관 검사가 있으므로 토큰을 함께 보낸다.
+     *
+     * 프록시가 못 받는 주소(우리 버킷이 아닌 이미지)만 원본에 직접 붙어 본다.
      */
+    const fetchBlob = async (item: ChatLightboxItem): Promise<Blob> => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+        const proxyUrl = `/api/v1/files/download?path=${encodeURIComponent(item.fileUrl)}`
+            + `&fileName=${encodeURIComponent(item.fileName || "사진")}`;
+
+        const res = await fetch(proxyUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (res.ok) return res.blob();
+
+        const direct = await fetch(item.fileUrl);
+        if (!direct.ok) throw new Error(`사진을 받지 못했습니다 (${res.status})`);
+        return direct.blob();
+    };
+
+    /** 받아온 blob을 파일로 저장시킨다 */
+    const saveBlob = (blob: Blob, fileName: string) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName || "사진";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // 곧바로 되돌리면 브라우저가 아직 읽는 중인 파일이 끊길 수 있다
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    };
+
+    /** 보고 있는 사진 한 장 저장. 정말 안 되면 새 창으로 열어 사용자가 직접 저장하게 둔다. */
     const saveOne = async (item: ChatLightboxItem) => {
+        setNotice(null);
         try {
-            const res = await fetch(item.fileUrl);
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = item.fileName || "사진";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
+            saveBlob(await fetchBlob(item), item.fileName);
         } catch {
+            // 이 경로는 버튼을 누른 직후라 새 창이 열린다(팝업 차단에 걸리지 않는다)
             window.open(item.fileUrl, "_blank", "noopener");
         }
     };
@@ -85,16 +116,31 @@ export function ChatImageLightbox({
      *
      * 한꺼번에 다 밀면 브라우저가 일부를 막는다(연속 다운로드 차단). 한 장씩,
      * 사이를 조금 띄워 받는다. 한 장이 실패해도 나머지는 계속 받는다.
+     *
+     * 여기서는 실패해도 새 창을 열지 않는다. 반복문 안의 window.open은 첫 장만 열리고
+     * 나머지는 팝업 차단에 걸려, 정작 "모두 저장"이 사진 한 장 새 창으로 끝나 버린다.
+     * 실패한 장수는 화면에 알려 사용자가 그 사진만 따로 저장하게 한다.
      */
     const saveAll = async () => {
         setIsSavingAll(true);
+        setNotice(null);
+        let failed = 0;
         try {
             for (const item of items) {
-                await saveOne(item);
+                try {
+                    saveBlob(await fetchBlob(item), item.fileName);
+                } catch {
+                    failed += 1;
+                }
                 await new Promise((r) => setTimeout(r, 250));
             }
         } finally {
             setIsSavingAll(false);
+            setNotice(
+                failed === 0
+                    ? { status: "success", message: `${items.length}장을 저장했습니다.` }
+                    : { status: "error", message: `${items.length - failed}장을 저장했고 ${failed}장은 실패했습니다. 실패한 사진은 한 장씩 저장해주세요.` },
+            );
         }
     };
 
@@ -109,6 +155,17 @@ export function ChatImageLightbox({
                 header={<DialogHeader title={title} onOpenChange={(open) => { if (!open) onClose(); }} />}
                 content={
                     <LayoutContent>
+                        {notice && (
+                            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                                <Banner
+                                    status={notice.status}
+                                    title={notice.message}
+                                    container="card"
+                                    isDismissable
+                                    onDismiss={() => setNotice(null)}
+                                />
+                            </div>
+                        )}
                         <div style={{ position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
