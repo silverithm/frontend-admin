@@ -8,6 +8,7 @@ import { HStack } from "@astryxdesign/core/Stack";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { chatAttachmentLabel } from "@/lib/chatMessageGrouping";
+import { ChatImage } from "./ChatImage";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 
 export interface ChatLightboxItem {
@@ -171,8 +172,8 @@ export function ChatImageLightbox({
                             </div>
                         )}
                         <div style={{ position: "relative" }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            {/* 깨져 오면 스스로 다시 받는다 — 제보된 '사진 깨짐'이 이 화면이었다 */}
+                            <ChatImage
                                 src={current.fileUrl}
                                 alt={current.fileName}
                                 style={{ display: "block", width: "100%", height: "auto", objectFit: "contain", borderRadius: 'var(--radius-inner)' }}

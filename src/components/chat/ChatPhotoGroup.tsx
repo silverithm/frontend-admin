@@ -1,6 +1,7 @@
 "use client";
 
 import { chatListImageUrl } from '@/lib/chatAttachments';
+import { ChatImage } from './ChatImage';
 
 /** 그리드에 그릴 사진 한 장 — 두 화면의 ChatMessage 타입에서 필요한 만큼만 구조적으로 받는다 */
 export interface ChatPhotoGroupItem {
@@ -49,13 +50,10 @@ export function ChatPhotoGroup({
                     aria-label={`${index + 1}번째 사진 크게 보기`}
                     style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
                 >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <ChatImage
                         className="carev-chat-gridphoto"
                         src={chatListImageUrl(message)}
                         alt={message.fileName || `사진 ${index + 1}`}
-                        loading="lazy"
-                        decoding="async"
                         style={{
                             display: "block",
                             width: "100%",

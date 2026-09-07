@@ -16,6 +16,7 @@ import { buildChatRenderItems, formatDateSeparator, chatAttachmentLabel, lastMes
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
 import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/ChatImageLightbox';
+import { ChatImage } from '@/components/chat/ChatImage';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
@@ -2152,7 +2153,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     aria-label={`${message.fileName || "이미지"} 크게 보기`}
                                                                     style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}
                                                                 >
-                                                                    <img
+                                                                    <ChatImage
                                                                         className="carev-chat-image"
                                                                         src={chatListImageUrl(message)}
                                                                         alt={message.fileName || "이미지"}
@@ -2569,7 +2570,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         aria-label={`${m.fileName || "사진"} 크게 보기`}
                                                         style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
                                                     >
-                                                        <img
+                                                        <ChatImage
                                                             src={chatListImageUrl(m)}
                                                             alt={m.fileName || "사진"}
                                                             className="carev-chat-photo"
