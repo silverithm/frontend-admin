@@ -81,16 +81,35 @@ function selfTest() {
     console.log('자체 점검 통과 — 규칙이 잘린 파일을 잡는다');
 }
 
-/** 끝 1KB를 받아 판정한다 */
+/**
+ * 끝 1KB를 받아 판정한다.
+ *
+ * **"깨졌다"와 "받지 못했다"는 다르다.** 천 개를 연달아 받다 보면 한두 개는 네트워크가
+ * 삐끗한다 — 그걸 깨진 파일로 세면 멀쩡한 저장소를 두고 헛경보가 울린다(실제로 한 번 울렸다).
+ * 몇 번 다시 받아 보고, 그래도 못 받으면 '깨짐'이 아니라 '확인 실패'로 따로 센다.
+ */
 async function isComplete(url) {
-    const response = await fetch(url, { headers: { Range: 'bytes=-1024' } });
-    if (!response.ok && response.status !== 206) return { ok: false, why: `HTTP ${response.status}` };
-    const tail = Buffer.from(await response.arrayBuffer());
-    const ext = url.split('?')[0].split('.').pop().toLowerCase();
-    return tailVerdict(tail, ext);
+    let lastError = '';
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const response = await fetch(url, { headers: { Range: 'bytes=-1024' } });
+            if (!response.ok && response.status !== 206) {
+                lastError = `HTTP ${response.status}`;
+            } else {
+                const tail = Buffer.from(await response.arrayBuffer());
+                const ext = url.split('?')[0].split('.').pop().toLowerCase();
+                return tailVerdict(tail, ext);
+            }
+        } catch (error) {
+            lastError = error.message;
+        }
+        await new Promise((resolve) => setTimeout(resolve, attempt * 300));
+    }
+    return { unreachable: true, why: lastError };
 }
 
 const broken = [];
+const unreachable = [];
 let checked = 0;
 let cursor = 0;
 
@@ -98,14 +117,13 @@ await Promise.all(
     Array.from({ length: WORKERS }, async () => {
         while (cursor < targets.length) {
             const item = targets[cursor++];
-            let verdict;
-            try {
-                verdict = await isComplete(item.url);
-            } catch (error) {
-                verdict = { ok: false, why: `받기 실패: ${error.message}` };
-            }
+            const verdict = await isComplete(item.url);
             checked++;
-            if (!verdict.ok) broken.push({ ...item, why: verdict.why });
+            if (verdict.unreachable) {
+                unreachable.push({ ...item, why: verdict.why });
+            } else if (!verdict.ok) {
+                broken.push({ ...item, why: verdict.why });
+            }
         }
     }),
 );
@@ -120,6 +138,13 @@ if (checked === 0) {
 if (broken.length > 0) {
     console.error(`깨진 저장 파일 ${broken.length}개:`);
     for (const item of broken) console.error(`  id=${item.id} ${item.kind} — ${item.why}\n    ${item.url}`);
+    process.exit(1);
+}
+
+if (unreachable.length > 0) {
+    // 깨진 것이 아니라 못 받은 것이다 — 결론을 낼 수 없으므로 통과시키지 않는다
+    console.error(`세 번 시도해도 받지 못한 파일 ${unreachable.length}개 (깨짐 아님, 확인 실패):`);
+    for (const item of unreachable) console.error(`  id=${item.id} ${item.kind} — ${item.why}\n    ${item.url}`);
     process.exit(1);
 }
 
