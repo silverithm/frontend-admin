@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { logout as apiLogout, getMemberPermissions } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import EmployeeCalendar from '@/components/EmployeeCalendar';
+import VacationCalendar from '@/components/VacationCalendar';
+import { PendingVacationApprovals } from '@/components/work/PendingVacationApprovals';
 import EmployeeApproval from '@/components/EmployeeApproval';
 import NoticeManagement from '@/components/NoticeManagement';
 import { ChatManagement } from '@/components/ChatManagement';
@@ -72,6 +74,10 @@ export default function EmployeePage() {
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  /** 근무조정 관리 권한이 있을 때 보는 달 (관리자 화면과 같은 달력을 쓴다) */
+  const [workDate, setWorkDate] = useState(new Date());
+  /** 승인·반려 뒤 달력을 다시 그리게 하는 값 */
+  const [workRefreshKey, setWorkRefreshKey] = useState(0);
   /* 오른쪽 채팅 레일 — 관리자 화면에만 있던 것을 직원 화면에도 똑같이 둔다.
      어느 탭을 보고 있든 누가 접속해 있는지가 보여야 한다는 이유는 두 화면이 같다. */
   const [railRoomId, setRailRoomId] = useState<number | null>(null);
@@ -459,7 +465,31 @@ export default function EmployeePage() {
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  <EmployeeCalendar />
+                  {/* 근무조정 관리 권한(WORK_MANAGE)을 받은 직원은 관리자와 같은 달력을 보고
+                      승인까지 한다. 권한을 켜 줘도 승인할 자리가 없어 "관리자랑 근무 조정
+                      승인하는 기능을 쓸 수 없다"는 제보가 있었다. */}
+                  {hasPermission('WORK_MANAGE') ? (
+                      <div className="carev-admin-work-layout">
+                          <div className="carev-admin-work-calendar">
+                              <VacationCalendar
+                                  // 승인·반려 뒤 달력을 다시 그린다
+                                  key={workRefreshKey}
+                                  currentDate={workDate}
+                                  setCurrentDate={setWorkDate}
+                                  isAdmin
+                              />
+                          </div>
+                          <div className="carev-admin-work-side">
+                              <PendingVacationApprovals
+                                  currentDate={workDate}
+                                  onChanged={() => setWorkRefreshKey(k => k + 1)}
+                                  onNotification={showNotification}
+                              />
+                          </div>
+                      </div>
+                  ) : (
+                      <EmployeeCalendar />
+                  )}
                 </motion.div>
               ) : activeMainTab === 'library' ? (
                 <motion.div

@@ -2058,7 +2058,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         <div style={{ width: 32, flexShrink: 0 }} aria-hidden />
                                                     )
                                                 )}
-                                                <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isMyMessage ? "flex-end" : "flex-start" }}>
+                                                {/* 넓은 화면에서 말풍선이 채팅 영역의 70%까지 늘어나면 한 줄이 1000px를 넘어
+                                                    눈이 줄을 못 따라간다. 특히 답장 미리보기는 한 줄로 그려서 그 줄 길이만큼
+                                                    말풍선이 통째로 늘어났다("답장할 때 가로로 너무 길게 나온다").
+                                                    읽기 좋은 폭(약 560px)에서 멈춘다 — 좁은 화면에서는 지금까지처럼 70%다. */}
+                                                <div style={{ maxWidth: "min(70%, 560px)", display: "flex", flexDirection: "column", alignItems: isMyMessage ? "flex-end" : "flex-start" }}>
                                                     {/* 이름과 직종은 한 문단으로 그린다 — 둘로 나누면 가로폭을 반씩
                                                         나눠 갖느라 "주간보호센터장" 같은 긴 직종이 먼저 잘린다. */}
                                                     {!isMyMessage && isGroupStart && (
