@@ -191,3 +191,45 @@ test('서버가 아직 안 올라갔어도 파일 이름이 그대로 새지 않
 test('글 메시지는 내용 그대로 보인다', () => {
     assert.equal(lastMessagePreview({ content: '오늘 3시에 뵙겠습니다' }), '오늘 3시에 뵙겠습니다');
 });
+
+/**
+ * 얼굴·이름(머리)을 언제 다는지.
+ *
+ * 지운 자리에는 "삭제된 메시지입니다"만 남고 머리를 그리지 않는데, 보낸 사람은 그대로
+ * 남아 있다. 그래서 지웠다가 다시 쓰면 다음 메시지가 "앞에 같은 사람이 있다"는 이유로
+ * 머리를 잃어, 얼굴도 이름도 없는 말풍선이 떴다. (제보 2026-09-08)
+ */
+function deletedMessage(createdAt: string, senderId = 'u1'): GroupableChatMessage {
+    return { id: nextId++, senderId, type: 'TEXT', createdAt, isDeleted: true };
+}
+
+test('지운 메시지 다음 글에는 얼굴과 이름을 다시 단다', () => {
+    const items = buildChatRenderItems([
+        textMessage('2026-09-08T16:00:00', 'u1'),
+        deletedMessage('2026-09-08T16:01:00', 'u1'),
+        textMessage('2026-09-08T16:02:00', 'u1'),
+    ]);
+
+    assert.equal(items.length, 3);
+    assert.equal(items[0].showSenderHeader, true, '첫 글은 머리를 단다');
+    assert.equal(items[2].showSenderHeader, true, '지운 메시지 다음 글도 머리를 단다');
+});
+
+test('지우지 않은 연속 메시지는 예전처럼 머리를 한 번만 단다', () => {
+    const items = buildChatRenderItems([
+        textMessage('2026-09-08T16:00:00', 'u1'),
+        textMessage('2026-09-08T16:01:00', 'u1'),
+    ]);
+
+    assert.equal(items[0].showSenderHeader, true);
+    assert.equal(items[1].showSenderHeader, false);
+});
+
+test('지운 메시지 자신은 머리를 새로 달지 않는다 — 빈 머리가 생기지 않게', () => {
+    const items = buildChatRenderItems([
+        textMessage('2026-09-08T16:00:00', 'u1'),
+        deletedMessage('2026-09-08T16:01:00', 'u1'),
+    ]);
+
+    assert.equal(items[1].showSenderHeader, false);
+});

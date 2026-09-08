@@ -111,6 +111,10 @@ function markSenderHeaders<M extends GroupableChatMessage>(items: ChatRenderItem
         const changed =
             current.type === "SYSTEM" ||
             previous.type === "SYSTEM" ||
+            // 지운 메시지는 그 자리에 "삭제된 메시지입니다"만 남고 얼굴·이름을 그리지 않는다.
+            // 그런데 보낸 사람은 그대로 남아 있어서, 지운 뒤 다시 쓰면 "앞에 같은 사람이 있다"는
+            // 이유로 다음 메시지가 머리를 잃었다 — 얼굴도 이름도 없는 말풍선이 뜬 이유다.
+            previous.isDeleted ||
             previous.senderId !== current.senderId ||
             getDateKey(previous.createdAt) !== getDateKey(current.createdAt);
 
