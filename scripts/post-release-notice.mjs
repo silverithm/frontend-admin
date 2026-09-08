@@ -104,16 +104,31 @@ sqlOnProd(`INSERT INTO plaza_posts
    'ggprgrkjh@naver.com', '케어브이', NULL,
    0, 1, 0, 0, NOW(), NOW(), 1, NULL, 0);`);
 
-// 4) 실제로 목록에 보이는지, 한글이 깨지지 않았는지 확인한다
-const shown = execFileSync('curl', ['-s', 'https://silverithm.site/api/v1/plaza/notices?size=3'], {
-    encoding: 'utf8',
-});
-if (!shown.includes(`v${versionName}`)) {
-    console.error(`공지를 넣었는데 목록에 안 보인다 — 확인 필요\n${shown.slice(0, 400)}`);
+// 4) 실제로 목록에 보이는지, 본문 한글이 깨지지 않았는지 확인한다.
+//
+// 두 가지를 조심해야 한다. **목록 API는 본문을 주지 않는다**(id·제목·작성자·날짜뿐) —
+// 거기서 본문을 찾으면 멀쩡한 공지도 실패로 뜬다. 그리고 응답은 유니코드 이스케이프라
+// 원문 문자열을 그대로 찾으면 한글은 절대 안 걸린다. 그래서 JSON으로 파싱해서 본다.
+const noticesJson = JSON.parse(
+    execFileSync('curl', ['-s', 'https://silverithm.site/api/v1/plaza/notices?size=5'], {
+        encoding: 'utf8',
+    }),
+);
+const posted = (noticesJson.notices ?? []).find((notice) => notice.title === title);
+if (!posted) {
+    console.error(`공지를 넣었는데 목록에 안 보인다 — is_official 확인 필요`);
     process.exit(1);
 }
-if (!shown.includes('케어브이입니다')) {
-    console.error('공지 본문의 한글이 깨졌다 — utf8mb4 확인 필요');
+
+// 본문은 상세에서만 온다 — 여기서 한글이 깨졌는지 본다
+const detail = JSON.parse(
+    execFileSync('curl', ['-s', `https://silverithm.site/api/v1/plaza/posts/${posted.id}`], {
+        encoding: 'utf8',
+    }),
+);
+const body = (detail.post ?? detail).content ?? '';
+if (!body.includes('케어브이입니다')) {
+    console.error(`공지 본문의 한글이 깨졌다 — utf8mb4 확인 필요\n${body.slice(0, 120)}`);
     process.exit(1);
 }
 
