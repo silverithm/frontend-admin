@@ -42,7 +42,10 @@ function dynamicChildOf(dir: string): string | null {
 
 /** 경로 문자열이 닿는 route.ts 를 찾는다. 없으면 null. */
 function routeFileFor(raw: string): string | null {
-    const segs = raw.split('?')[0].replace(/^\/api/, '').split('/').filter(Boolean);
+    const segs = raw.split('?')[0].replace(/^\/api/, '').split('/').filter(Boolean)
+        // `care-profile${query}`처럼 조각 뒤에 붙는 보간은 쿼리스트링이다(`?merge=true`).
+        // 경로의 일부가 아니므로 떼어낸다 — 안 떼면 프록시가 없다고 잘못 읽는다.
+        .map((seg) => /^[^$]+\$\{[^}]*\}$/.test(seg) ? seg.replace(/\$\{[^}]*\}$/, '') : seg);
     let dir = API_DIR;
     for (const seg of segs) {
         const catchAll = catchAllChildOf(dir);

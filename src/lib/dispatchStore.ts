@@ -161,8 +161,24 @@ export const useDispatchStore = create<DispatchStore>()(
     }),
     {
       name: 'dispatch-storage', // localStorage 키
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
+      /**
+       * 저장된 설정을 읽고 나면 화면을 연다.
+       *
+       * zustand는 이 함수를 (state, error)로 부르고, **읽기에 실패하면 state가 없다.**
+       * 예전에는 `state?.setHydrated(true)`라 실패했을 때 아무 일도 안 일어났고,
+       * isHydrated가 false로 남아 배차 화면이 "배차 정보를 불러오는 중..."에서 멈췄다.
+       * localStorage가 한 번 깨지면 그 브라우저에서는 영원히 안 열린다.
+       *
+       * 읽기에 실패해도 기본값으로 열어야 한다 — 설정은 어차피 서버에서 다시 받는다.
+       */
+      onRehydrateStorage: () => (state, error) => {
+        if (state) {
+          state.setHydrated(true);
+          return;
+        }
+        console.error('[배차] 저장된 설정을 읽지 못했다 — 기본값으로 연다', error);
+        // 이 시점엔 useDispatchStore가 아직 만들어지는 중이라 한 틱 미룬다
+        queueMicrotask(() => useDispatchStore.getState().setHydrated(true));
       },
     }
   )
