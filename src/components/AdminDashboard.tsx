@@ -260,7 +260,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [employeeAttendance, setEmployeeAttendance] = useState<{
     total: number; present: number; absent: number; vacation: number; vacationNames: string[];
   }>({ total: 0, present: 0, absent: 0, vacation: 0, vacationNames: [] });
-  const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
+  const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0, personalPickup: 0, personalDropoff: 0 });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
@@ -362,7 +362,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             getNotices(),
             Promise.resolve({ count: 0 }),
             Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0, vacationNames: [] }),
-            Promise.resolve({ total: 0, present: 0, absent: 0 }),
+            Promise.resolve({ total: 0, present: 0, absent: 0, personalPickup: 0, personalDropoff: 0 }),
           ];
       const results = await Promise.allSettled(apiCalls);
 
@@ -487,6 +487,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             total: d.total || 0,
             present: d.present || 0,
             absent: d.absent || 0,
+            // 차량을 타지 않고 보호자가 직접 모시고 오가는 인원 — 아침에 배차와 함께 봐야 하는 숫자다
+            personalPickup: d.personalPickup || 0,
+            personalDropoff: d.personalDropoff || 0,
           });
         }
       }
@@ -592,6 +595,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       .join(', ');
   })();
   const elderAttendanceBase = elderAttendance.total || elderCount;
+  // 개인 등·하원이나 휴무자 중 하나라도 있으면 현황 카드 아래 한 줄을 쓴다(양쪽 동시에).
+  const hasStatusNote =
+    employeeAttendance.vacationNames.length > 0 ||
+    elderAttendance.personalPickup > 0 ||
+    elderAttendance.personalDropoff > 0;
   const todayWorkingCount = Math.max(visibleMembersCount - todayVacationCount, 0);
 
   // 내가 관련된 일정인지 (작성자 / 담당자 / 참석자 / 내 할 일이 걸린 일정)
@@ -1046,9 +1054,19 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               </div>
             ))}
 
-            {employeeAttendance.vacationNames.length > 0 && (
-              /* 숫자만으로는 누가 없는지 몰라 근무조정 탭까지 가야 했다 — 이름을 여기서 바로 보여준다.
-                 종사자 이야기니 오른쪽 칸 아래에 붙인다. 쉬는 사람이 없는 날은 이 줄 자체가 없다. */
+            {/* 아래 한 줄은 좌우가 같이 나거나 같이 없다 — 한쪽만 나면 반대쪽이 빈칸으로 남는다.
+                왼쪽은 개인 등·하원(차량을 타지 않는 인원), 오른쪽은 오늘 쉬는 사람 이름.
+                숫자만으로는 누가 없는지 몰라 근무조정 탭까지 가야 했다. */}
+            {hasStatusNote && (
+              <div style={{ gridColumn: '1', paddingRight: 'var(--spacing-4)' }}>
+                <Text type="supporting" color="secondary" maxLines={2}>
+                  {elderAttendance.personalPickup > 0 || elderAttendance.personalDropoff > 0
+                    ? `개인 등원 ${elderAttendance.personalPickup}명 · 개인 하원 ${elderAttendance.personalDropoff}명`
+                    : '개인 등·하원 없음'}
+                </Text>
+              </div>
+            )}
+            {hasStatusNote && (
               <div
                 style={{
                   gridColumn: '2',
@@ -1057,7 +1075,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 }}
               >
                 <Text type="supporting" color="secondary" maxLines={2}>
-                  {`오늘 휴무 · ${employeeAttendance.vacationNames.join(', ')}`}
+                  {employeeAttendance.vacationNames.length > 0
+                    ? `오늘 휴무 · ${employeeAttendance.vacationNames.join(', ')}`
+                    : '오늘 휴무 없음'}
                 </Text>
               </div>
             )}
