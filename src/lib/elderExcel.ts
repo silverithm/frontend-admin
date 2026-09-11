@@ -41,6 +41,7 @@ const CARE_HEADERS = {
   diaperType: ['기저귀'],
   diaperIntermittent: ['간헐적', '간헐'],
   cognitionLevel: ['인지'],
+  cognitionNote: ['인지메모', '인지 메모', '인지특이사항'],
   mealType: ['식사형태', '식사종류'],
   morningSnack: ['오전간식'],
   afternoonSnack: ['오후간식'],
@@ -279,6 +280,7 @@ function buildCareProfile(
   set('diaperType', parseDiaper(at('diaperType')));
   set('diaperIntermittent', parseBoolCell(at('diaperIntermittent')).value);
   set('cognitionLevel', parseCognition(at('cognitionLevel')));
+  if (at('cognitionNote')) set('cognitionNote', at('cognitionNote').slice(0, NOTE_MAX));
 
   set('mealType', parseMealType(at('mealType')));
   set('morningSnack', parseBoolCell(at('morningSnack')).value);
@@ -444,7 +446,8 @@ export async function parseElderExcel(
 const GUIDE_SHEET_NAME = '작성 방법';
 
 /** 양식 열 정의 — 헤더 문자열은 파서의 별칭 목록과 같은 말이어야 한다 */
-const TEMPLATE_COLUMNS: { header: string; width: number; example: string }[] = [
+/** 양식 열 정의 — 테스트가 케어 열 누락을 잡을 수 있게 내보낸다 */
+export const TEMPLATE_COLUMNS: { header: string; width: number; example: string }[] = [
   { header: '이름', width: 12, example: '김복순' },
   { header: '주소', width: 34, example: '서울시 강남구 테헤란로 1' },
   { header: '주민번호', width: 16, example: '000000-0000000' },
@@ -458,6 +461,7 @@ const TEMPLATE_COLUMNS: { header: string; width: number; example: string }[] = [
   { header: '기저귀', width: 10, example: '패드' },
   { header: '간헐적', width: 8, example: 'O' },
   { header: '인지', width: 9, example: '경도' },
+  { header: '인지메모', width: 20, example: '오후에 혼란 심해짐' },
   { header: '식사형태', width: 10, example: '다진식' },
   { header: '오전간식', width: 9, example: 'O' },
   { header: '오후간식', width: 9, example: 'X' },

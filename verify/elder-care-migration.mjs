@@ -8,8 +8,8 @@ import { want, done } from './_lib.mjs';
 
 const API_WT = '/Users/gimjunhyeong/Develop/silverithm/api-server/.claude/worktrees/elder-care-info';
 const dir = `${API_WT}/src/main/resources/db/migration`;
-const files = readdirSync(dir).filter((f) => f.startsWith('V1.91.0__'));
-want(files.length === 1, `V1.91.0 파일이 정확히 하나여야 하는데 ${files.length}개: ${files.join(', ')}`);
+const files = readdirSync(dir).filter((f) => f.startsWith('V1.92.0__'));
+want(files.length === 1, `V1.92.0 파일이 정확히 하나여야 하는데 ${files.length}개: ${files.join(', ')}`);
 if (files.length === 1) {
   const sql = readFileSync(`${dir}/${files[0]}`, 'utf8');
   want(/CREATE TABLE elder_care_profile/i.test(sql), '마이그레이션이 elder_care_profile 테이블을 만들지 않는다');
@@ -19,7 +19,7 @@ if (files.length === 1) {
 
 execFileSync('git', ['-C', API_WT, 'fetch', '-q', 'origin']);
 const tree = execFileSync('git', ['-C', API_WT, 'ls-tree', '--name-only', 'origin/main', 'src/main/resources/db/migration/'], { encoding: 'utf8' });
-want(!/V1\.91\.0__/.test(tree), 'origin/main에 이미 V1.91.0이 있다 — 번호를 다시 배정해야 한다');
+want(!/V1\.92\.0__/.test(tree), 'origin/main에 이미 V1.92.0이 있다 — 번호를 다시 배정해야 한다');
 const versions = readdirSync(dir).map((f) => /^V([\d.]+)__/.exec(f)?.[1]).filter(Boolean);
 const dup = versions.filter((v, i) => versions.indexOf(v) !== i);
 want(dup.length === 0, `로컬에 중복 버전이 있다: ${dup.join(', ')}`);

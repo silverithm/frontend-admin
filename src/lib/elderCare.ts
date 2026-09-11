@@ -155,7 +155,8 @@ export function maskResidentNumber(raw: string | null | undefined): string {
 export function birthDateFromResidentNumber(raw: string | null | undefined): string | null {
   const d = digitsOnly(raw);
   if (d.length < 7) return null;
-  const century = { '1': 19, '2': 19, '3': 20, '4': 20, '9': 18, '0': 18 }[d[6]];
+  // 5~8은 외국인등록번호다 — 서버가 그렇게 파생하므로 화면 자동채움도 같은 표를 써야 한다
+  const century = { '1': 19, '2': 19, '5': 19, '6': 19, '3': 20, '4': 20, '7': 20, '8': 20, '9': 18, '0': 18 }[d[6]];
   if (!century) return null;
   const year = century * 100 + Number(d.slice(0, 2));
   const month = d.slice(2, 4);
@@ -164,11 +165,10 @@ export function birthDateFromResidentNumber(raw: string | null | undefined): str
   return `${year}-${month}-${day}`;
 }
 
-/** 주민번호 뒷자리 첫 숫자로 성별을 파생한다 (1·3·9=남, 2·4·0=여) */
+/** 주민번호 뒷자리 첫 숫자로 성별을 파생한다 — 홀수가 남, 짝수가 여 (0은 여) */
 export function genderFromResidentNumber(raw: string | null | undefined): Gender | null {
   const d = digitsOnly(raw);
   if (d.length < 7) return null;
-  if ('139'.includes(d[6])) return 'MALE';
-  if ('240'.includes(d[6])) return 'FEMALE';
-  return null;
+  if (!/[0-9]/.test(d[6])) return null;
+  return Number(d[6]) % 2 === 1 ? 'MALE' : 'FEMALE';
 }

@@ -15,6 +15,7 @@ import {
     parseCognition,
     parseDiaper,
     parseElderRows,
+    TEMPLATE_COLUMNS,
     parseGender,
     parseMealType,
 } from './elderExcel.ts';
@@ -188,4 +189,26 @@ test('제목 행이 위에 있어도 헤더를 찾고, 빈 행은 건너뛴다',
 
 test("이름 열이 없으면 읽기를 포기한다", () => {
     assert.throws(() => parseElderRows(grid(['성함', '주소'], ['김복순', '서울'])), /헤더 행을 찾을 수 없습니다/);
+});
+
+test('계약의 메모 칸은 모두 엑셀 열이 있다 — 인지 메모가 한 번 빠져 있었다', () => {
+    const rows = parseElderRows(grid(
+        ['이름', '인지', '인지메모', '기피식품', '목욕비고', '투약메모', '비고'],
+        ['김복순', '중등도', '오후에 혼란 심해짐', '복숭아 기피', '방문목욕', '혈압약', '보호자 통화는 저녁에'],
+    ));
+    assert.equal(rows[0].status, 'ok');
+    assert.equal(rows[0].careProfile?.cognitionNote, '오후에 혼란 심해짐');
+    assert.equal(rows[0].careProfile?.mealNote, '복숭아 기피');
+    assert.equal(rows[0].careProfile?.bathNote, '방문목욕');
+    assert.equal(rows[0].careProfile?.medNote, '혈압약');
+    assert.equal(rows[0].careProfile?.careNote, '보호자 통화는 저녁에');
+});
+
+test('양식에 케어 열이 하나도 빠지지 않는다', () => {
+    const headers = TEMPLATE_COLUMNS.map((c) => c.header);
+    for (const need of ['주민번호', '등급', '층', '자리', '낙상', '욕창', '기저귀', '인지', '인지메모',
+        '식사형태', '오전간식', '오후간식', '저녁식사', '기피식품', '목욕시간', '목욕비고',
+        '투약아침', '투약점심', '투약저녁', '투약메모', '차량', '비고']) {
+        assert.ok(headers.includes(need), `양식에 '${need}' 열이 없다`);
+    }
 });

@@ -97,8 +97,12 @@ test('주민번호에서 생년월일·성별을 서버와 같은 규칙으로 �
     assert.equal(birthDateFromResidentNumber('0503013000000'), '2005-03-01');
     assert.equal(genderFromResidentNumber('0503013000000'), 'MALE');
     assert.equal(birthDateFromResidentNumber('9901019000000'), '1899-01-01');
-    // 뒷자리가 5~8(외국인)이면 판별하지 않는다 — 서버도 같은 값만 본다
-    assert.equal(genderFromResidentNumber('9901015000000'), null);
+    // 뒷자리 5~8은 외국인등록번호다 — 서버가 5·6=19xx, 7·8=20xx로 파생하므로 화면도 같아야 한다
+    assert.equal(genderFromResidentNumber('9901015000000'), 'MALE');
+    assert.equal(genderFromResidentNumber('9901016000000'), 'FEMALE');
+    assert.equal(birthDateFromResidentNumber('9901015000000'), '1999-01-01');
+    assert.equal(birthDateFromResidentNumber('0503017000000'), '2005-03-01');
+    assert.equal(genderFromResidentNumber('0503018000000'), 'FEMALE');
     assert.equal(birthDateFromResidentNumber('410203'), null);
     // 월·일이 말이 안 되면 파생하지 않는다
     assert.equal(birthDateFromResidentNumber('4199032830514'), null);
