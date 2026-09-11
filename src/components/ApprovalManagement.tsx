@@ -6,6 +6,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
+import { Divider } from '@astryxdesign/core/Divider';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
@@ -22,7 +23,6 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -37,6 +37,8 @@ import { FormSchema } from '@/types/formSchema';
 import ApprovalDetail from './ApprovalDetail';
 import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
 import { useAlert } from './Alert';
+import PageHeader from './PageHeader';
+import SectionHeader from './SectionHeader';
 import { duration } from '@/theme/motion';
 
 type TabType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -416,37 +418,37 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
       />
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-5)' }}>
-        {/* 헤더 */}
-        <HStack hAlign="between" vAlign="center">
-          <VStack gap={1}>
-            <Heading level={2}>{canManage ? '전자결재 관리' : '문서함'}</Heading>
-            <Text type="supporting" color="secondary">
-              {canManage
-                ? '직원들의 결재 요청을 처리합니다'
-                : '열람 권한이 있는 결재 문서를 보고 검색합니다'}
-            </Text>
-          </VStack>
-          <HStack gap={2} vAlign="center">
-          {canManage && (
-            <Button
-              label="대량 문서 업로드"
-              variant="secondary"
-              size="sm"
-              icon={<Icon icon={FiUploadCloud} size="sm" />}
-              onClick={() => setShowImport(true)}
-            />
-          )}
-          <IconButton
-            label="새로고침"
-            tooltip="새로고침"
-            variant="ghost"
-            icon={<Icon icon={FiRefreshCw} />}
-            isLoading={isProcessing}
-            isDisabled={isProcessing}
-            onClick={loadApprovals}
-          />
-          </HStack>
-        </HStack>
+        {/* 헤더 — 제목·설명·액션 규격은 PageHeader가 정한다 (화면마다 달랐던 것을 통일) */}
+        <PageHeader
+          title={canManage ? '전자결재 관리' : '문서함'}
+          description={
+            canManage
+              ? '직원들의 결재 요청을 처리합니다'
+              : '열람 권한이 있는 결재 문서를 보고 검색합니다'
+          }
+          actions={
+            <HStack gap={2} vAlign="center">
+              {canManage && (
+                <Button
+                  label="대량 문서 업로드"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon={FiUploadCloud} size="sm" />}
+                  onClick={() => setShowImport(true)}
+                />
+              )}
+              <IconButton
+                label="새로고침"
+                tooltip="새로고침"
+                variant="ghost"
+                icon={<Icon icon={FiRefreshCw} />}
+                isLoading={isProcessing}
+                isDisabled={isProcessing}
+                onClick={loadApprovals}
+              />
+            </HStack>
+          }
+        />
 
         {/* 탭 네비게이션 */}
         <SegmentedControl
@@ -461,8 +463,9 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
           <SegmentedControlItem value="rejected" label={`반려됨 (${stats.rejected})`} />
         </SegmentedControl>
 
-        {/* 필터 영역 */}
-        <Card variant="muted" padding={3}>
+        {/* 필터 영역 — muted는 캔버스와 같은 회색이라 카드 밖에서는 아무것도 구분되지 않았다.
+            흰 표면(기본 Card)으로 올려 "회색 바닥 위의 흰 영역"이라는 위계를 만든다. */}
+        <Card padding={3}>
           {/* 좁은 화면에서 날짜 필터+검색이 가로로 넘치지 않도록 줄바꿈 허용 (밀도는 유지, 넘칠 때만 다음 줄로) */}
           <HStack gap={3} vAlign="end" hAlign="between" wrap="wrap">
             <HStack gap={2} vAlign="end">
@@ -566,19 +569,36 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         {/* 결재 목록 */}
         {visibleApprovals.length > 0 ? (
           <VStack gap={3}>
-            {/* 전체 선택 체크박스 (진행중 탭, 처리 가능한 건만) */}
-            {activeTab === 'pending' && selectableApprovals.length > 0 && (
-              <HStack vAlign="center">
-                <CheckboxInput
-                  label="전체 선택"
-                  value={selectedIds.size === selectableApprovals.length}
-                  onChange={handleSelectAll}
-                />
-              </HStack>
-            )}
+            {/* 목록 제목 — 페이지 제목(19px)과 문서 제목(13px) 사이가 비어 있어 목록이
+                어디서 시작하는지 알 수 없었다. 16px 한 단을 넣어 계단을 만든다.
+                건수는 필터를 적용한 뒤 실제로 보이는 수라 위쪽 탭의 숫자와는 다르다.
+                전체 선택 체크박스는 이 줄 오른쪽으로 옮겨 목록이 한 줄 덜 밀리게 했다. */}
+            <SectionHeader
+              title={
+                activeTab === 'pending' ? '진행 중인 결재'
+                  : activeTab === 'approved' ? '승인된 결재'
+                  : activeTab === 'rejected' ? '반려된 결재'
+                  : '전체 결재'
+              }
+              count={visibleApprovals.length}
+              action={
+                activeTab === 'pending' && selectableApprovals.length > 0 ? (
+                  <CheckboxInput
+                    label="전체 선택"
+                    value={selectedIds.size === selectableApprovals.length}
+                    onChange={handleSelectAll}
+                  />
+                ) : undefined
+              }
+            />
 
-            {/* 결재 카드 리스트 */}
-            {visibleApprovals.map((approval) => {
+            {/* 결재 목록 — 예전에는 문서 하나하나가 독립된 카드라 회색 바닥 위에 흰 덩어리가
+                수십 개 떠 있었고, 그래서 어디까지가 한 건인지 오히려 읽기 어려웠다.
+                하나의 표면 안에 구분선으로 나눈다(Astryx Card 지침: 카드는 기본 그룹핑
+                도구가 아니다). 행 사이 여백이 사라진 만큼 한 화면에 더 많이 들어온다. */}
+            <Card padding={0}>
+              <VStack gap={0}>
+            {visibleApprovals.map((approval, rowIndex) => {
               return (
                 <motion.div
                   key={approval.id}
@@ -586,34 +606,52 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: duration.fast }}
                 >
-                  <Card>
+                  {rowIndex > 0 && <Divider />}
+                  <div className="carev-row" style={{ padding: 'var(--spacing-4)' }}>
                     {/* 좁은 화면에서 정보/버튼 행이 가로로 넘치지 않도록 줄바꿈 허용 + 정보 블록이 실제로 줄어들 수 있게 minWidth 0 */}
                     <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap">
                       <HStack gap={3} vAlign="start" style={{ minWidth: 0, flex: 1 }}>
-                        {approval.status === 'PENDING' && isActionable(approval) && (
+                        {/* 선택할 수 있는 건이 하나라도 있으면 모든 행이 같은 자리에서 시작한다.
+                            예전에는 체크박스가 붙은 행만 제목이 오른쪽으로 밀려, 카드를 없애고
+                            한 표면에 모으자 왼쪽 모서리가 눈에 띄게 들쭉날쭉해졌다.
+                            고를 수 없는 행은 같은 크기의 빈 칸으로 자리만 맞춘다. */}
+                        {selectableApprovals.length > 0 && (
                           <div style={{ paddingTop: 'var(--spacing-1)', flexShrink: 0 }}>
-                            <CheckboxInput
-                              label="선택"
-                              isLabelHidden
-                              value={selectedIds.has(approval.id)}
-                              onChange={() => handleSelectOne(approval.id)}
-                            />
+                            {approval.status === 'PENDING' && isActionable(approval) ? (
+                              <CheckboxInput
+                                label="선택"
+                                isLabelHidden
+                                value={selectedIds.has(approval.id)}
+                                onChange={() => handleSelectOne(approval.id)}
+                              />
+                            ) : (
+                              <div aria-hidden style={{ visibility: 'hidden', pointerEvents: 'none' }}>
+                                <CheckboxInput label="자리" isLabelHidden value={false} onChange={() => {}} />
+                              </div>
+                            )}
                           </div>
                         )}
                         <Icon icon={FiFileText} size="md" color={getStatusIconColor(approval.status)} />
                         <VStack gap={1} style={{ minWidth: 0 }}>
                           <HStack gap={2} vAlign="center">
-                            <Text weight="bold" color="primary">{approval.title}</Text>
+                            <Text weight="semibold" color="primary">{approval.title}</Text>
                             <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
                             {getLineProgress(approval) && (
                               <Badge variant="neutral" label={getLineProgress(approval)!} />
                             )}
                           </HStack>
-                          <VStack gap={0.5}>
+                          {/* 기안자·양식·날짜 — 예전에는 세로 세 줄이었다. 한 건이 네 줄을
+                              차지하는 데다 전부 같은 11px 회색이라 화면이 글자밭처럼 보였다.
+                              같은 정보를 같은 순서로 한 줄에 눕히고, 항목 사이를 세로 선으로
+                              끊는다. 좁은 화면에서는 알아서 다음 줄로 넘어간다. */}
+                          <HStack gap={2} vAlign="center" wrap="wrap">
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiUser} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">{approval.requesterName}</Text>
                             </HStack>
+                            {/* 세로 선은 부모 높이를 따라가는데 이 줄은 높이가 정해져 있지 않아
+                                아무것도 보이지 않았다. 글자 한 줄만큼으로 고정한다. */}
+                            <Divider orientation="vertical" style={{ height: 'var(--spacing-3)', alignSelf: 'center' }} />
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiFileText} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">{approval.templateName}</Text>
@@ -623,13 +661,16 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                                   : '이관'} />
                               )}
                             </HStack>
+                            {/* 세로 선은 부모 높이를 따라가는데 이 줄은 높이가 정해져 있지 않아
+                                아무것도 보이지 않았다. 글자 한 줄만큼으로 고정한다. */}
+                            <Divider orientation="vertical" style={{ height: 'var(--spacing-3)', alignSelf: 'center' }} />
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiCalendar} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">
                                 {format(new Date(approval.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
                               </Text>
                             </HStack>
-                          </VStack>
+                          </HStack>
                         </VStack>
                       </HStack>
                       <HStack gap={2} vAlign="center">
@@ -708,10 +749,12 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                         )}
                       </HStack>
                     </HStack>
-                  </Card>
+                  </div>
                 </motion.div>
               );
             })}
+              </VStack>
+            </Card>
           </VStack>
         ) : (
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

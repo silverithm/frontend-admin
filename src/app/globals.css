@@ -264,6 +264,11 @@ html {
 
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }
+/* 목록의 한 행 — 행 전체가 클릭 대상은 아니고(안에 버튼이 여럿 있다) 눈으로 훑을 때
+   어디까지가 한 건인지만 알려주면 되는 자리. 그래서 .carev-dash-row와 달리 cursor는 주지
+   않는다. 배경만 한 톤 눌러 마우스가 얹힌 줄을 표시한다. */
+.carev-row { transition: background var(--duration-fast-min) var(--ease-standard); }
+@media (hover: hover) { .carev-row:hover { background: var(--color-background-muted); } }
 .carev-dash-row { transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-row:hover { background: var(--color-background-muted); box-shadow: var(--shadow-inset-hover); } }
 .carev-dash-cal-cell { transition: background var(--duration-fast-min) var(--ease-standard), border-color var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }

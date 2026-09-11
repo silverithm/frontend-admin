@@ -19,7 +19,7 @@ const figtree = Figtree({ subsets: ['latin'], display: 'swap', variable: '--font
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#10B981',
+  themeColor: '#0f766e',
 }
 
 export const metadata: Metadata = {
