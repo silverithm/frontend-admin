@@ -21,7 +21,10 @@ want(calls.length > 50, `호출을 ${calls.length}건밖에 못 뽑았다 — �
 /** 경로 문자열을 프록시 파일 경로로 바꾼다. `${x}` 자리는 [param] 폴더가 받는다. */
 function routeFileFor(raw) {
     const path = raw.split('?')[0].replace(/^\/api/, '');
-    const segs = path.split('/').filter(Boolean);
+    const segs = path.split('/').filter(Boolean)
+    // `care-profile${query}`처럼 조각 뒤에 붙는 보간은 쿼리스트링(`?merge=true`)이다.
+    // 경로의 일부가 아니므로 떼어낸다 — 안 떼면 프록시가 없다고 잘못 읽는다.
+    .map((seg) => /^[^$]+\$\{[^}]*\}$/.test(seg) ? seg.replace(/\$\{[^}]*\}$/, '') : seg);
     // 세그먼트 전체가 보간이면 동적 폴더다. 실제 폴더 이름은 알 수 없으므로 글롭 대신
     // 후보를 직접 훑는다.
     return segs;

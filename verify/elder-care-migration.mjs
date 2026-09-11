@@ -17,9 +17,15 @@ if (files.length === 1) {
   want(/resident_number\s+VARCHAR\(2048\)/i.test(sql), '주민번호 컬럼이 암호문 길이(2048)로 잡혀 있지 않다');
 }
 
+// 같은 번호를 다른 마이그레이션이 쓰고 있으면 안 된다.
+// (병합 전에는 origin에 없어야 하지만, 병합 뒤에는 우리 것이 거기 있는 게 정상이다 —
+//  그래서 '있다/없다'가 아니라 '그 번호를 쓰는 파일이 우리 것 하나뿐인가'를 본다.)
 execFileSync('git', ['-C', API_WT, 'fetch', '-q', 'origin']);
 const tree = execFileSync('git', ['-C', API_WT, 'ls-tree', '--name-only', 'origin/main', 'src/main/resources/db/migration/'], { encoding: 'utf8' });
-want(!/V1\.92\.0__/.test(tree), 'origin/main에 이미 V1.92.0이 있다 — 번호를 다시 배정해야 한다');
+const sameVersion = tree.split('\n').filter((line) => /V1\.92\.0__/.test(line));
+want(sameVersion.length <= 1, `origin/main에 V1.92.0이 ${sameVersion.length}개다: ${sameVersion.join(', ')}`);
+want(sameVersion.every((line) => /Create_Elder_Care_Profile/.test(line)),
+  `V1.92.0을 다른 마이그레이션이 쓰고 있다: ${sameVersion.join(', ')}`);
 const versions = readdirSync(dir).map((f) => /^V([\d.]+)__/.exec(f)?.[1]).filter(Boolean);
 const dup = versions.filter((v, i) => versions.indexOf(v) !== i);
 want(dup.length === 0, `로컬에 중복 버전이 있다: ${dup.join(', ')}`);

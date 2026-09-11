@@ -21,9 +21,15 @@ function bubbleStyle(src, label) {
 const main = read(`${WT}/src/components/ChatManagement.tsx`);
 bubbleStyle(main, '메인 채팅');
 want(/className="carev-chat-msgrow" style=\{\{[^}]*maxWidth: "100%"/.test(main), '메인 채팅: 말풍선 행이 부모 폭을 넘을 수 있다');
-// 인용문 자체는 계속 한 줄 줄임표여야 한다 (줄바꿈으로 바꾸면 인용문이 원문만큼 길어진다)
-want(/replyToSenderName\}<\/div>/.test(main) && /textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0\.8/.test(main),
-  '메인 채팅: 인용문이 한 줄 줄임표가 아니다');
+// 인용문은 잘라내도(한 줄 줄임표) 되고 흘러도(줄바꿈) 된다 — 어느 쪽을 고르든
+// **말풍선이 그 줄 길이만큼 늘어나지 않는 것**이 지켜야 할 조건이다.
+// 위험한 건 nowrap인데 넘치는 부분을 감추지 않는 경우뿐이다.
+const quote = /replyToSenderName\}<\/div>[\s\S]{0,1200}?replyToContent\}/.exec(main)?.[0] ?? '';
+want(Boolean(quote), '메인 채팅: 인용문 블록을 못 찾았다');
+const truncates = /whiteSpace: "nowrap"/.test(quote) && /textOverflow: "ellipsis"/.test(quote) && /overflow: "hidden"/.test(quote);
+const wraps = /whiteSpace: "pre-wrap"/.test(quote) || /wordBreak: "break-word"/.test(quote);
+want(truncates || wraps,
+  '메인 채팅: 인용문이 잘리지도 흐르지도 않는다 — 한 줄로 뻗으면 말풍선이 따라 늘어난다');
 
 const floating = read(`${WT}/src/components/FloatingChat/FloatingChatMessages.tsx`);
 bubbleStyle(floating, '플로팅 채팅');
