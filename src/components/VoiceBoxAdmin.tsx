@@ -6,7 +6,7 @@ import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from './PageHeader';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { TextArea } from '@astryxdesign/core/TextArea';
@@ -205,10 +205,10 @@ export default function VoiceBoxAdmin() {
 
   return (
     <VStack gap={4} height="100%">
-      <VStack gap={1}>
-        <Heading level={2}>고충·건의함</Heading>
-        <Text type="supporting" color="secondary">직원들이 남긴 고충·신고와 건의를 확인하고 처리합니다.</Text>
-      </VStack>
+      <PageHeader
+        title="고충·건의함"
+        description="직원들이 남긴 고충·신고와 건의를 확인하고 처리합니다."
+      />
 
       <SegmentedControl value={filter} onChange={(v) => setFilter(v as typeof filter)} label="유형 필터">
         <SegmentedControlItem value="all" label={filter === 'all' ? `전체 (${messages.length})` : '전체'} />

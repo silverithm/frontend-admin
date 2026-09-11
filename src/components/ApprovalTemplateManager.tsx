@@ -17,6 +17,7 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { Card } from '@astryxdesign/core/Card';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import PageHeader from './PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
@@ -587,35 +588,35 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
       <ConfirmContainer />
       <VStack gap={6}>
         {/* 헤더 */}
-        <HStack hAlign="between" vAlign="center">
-          <VStack gap={1}>
-            <Text as="h2" type="display-3" weight="bold">양식 관리</Text>
-            <Text type="supporting">전자결재 양식 파일을 관리합니다</Text>
-          </VStack>
-          {canManage && (
-            <HStack gap={2}>
-              <Button
-                label="기본 양식 불러오기"
-                variant="secondary"
-                icon={<Icon icon={FiDownload} size="sm" />}
-                isLoading={isSeeding}
-                onClick={handleSeedDefaults}
-              />
-              <Button
-                label="대량 양식 업로드"
-                variant="secondary"
-                icon={<Icon icon={FiUploadCloud} size="sm" />}
-                onClick={() => setShowBulkUpload(true)}
-              />
-              <Button
-                label="새 양식 등록"
-                variant="primary"
-                icon={<Icon icon={FiPlus} size="sm" />}
-                onClick={() => setShowUploadModal(true)}
-              />
-            </HStack>
-          )}
-        </HStack>
+        <PageHeader
+          title="양식 관리"
+          description="전자결재 양식 파일을 관리합니다"
+          actions={
+            canManage ? (
+              <HStack gap={2}>
+                <Button
+                  label="기본 양식 불러오기"
+                  variant="secondary"
+                  icon={<Icon icon={FiDownload} size="sm" />}
+                  isLoading={isSeeding}
+                  onClick={handleSeedDefaults}
+                />
+                <Button
+                  label="대량 양식 업로드"
+                  variant="secondary"
+                  icon={<Icon icon={FiUploadCloud} size="sm" />}
+                  onClick={() => setShowBulkUpload(true)}
+                />
+                <Button
+                  label="새 양식 등록"
+                  variant="primary"
+                  icon={<Icon icon={FiPlus} size="sm" />}
+                  onClick={() => setShowUploadModal(true)}
+                />
+              </HStack>
+            ) : undefined
+          }
+        />
 
         {/* 대분류 필터 — 등록된 대분류가 있을 때만 노출 */}
         {!isLoading && (usedCategories.length > 0 || hasUncategorized) && (

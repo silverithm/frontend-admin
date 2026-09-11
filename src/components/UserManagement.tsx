@@ -57,7 +57,7 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from './PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -885,19 +885,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     // (내용이 적어도 카드 골격이 화면을 채워야 한다)
     <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-4)' }}>
       {/* 헤더 */}
-      <HStack hAlign="between" vAlign="center">
-        <VStack gap={0}>
-          <Heading level={2}>회원 관리</Heading>
-          {organizationName && <Text type="supporting">{organizationName}</Text>}
-        </VStack>
-        <IconButton
-          label="새로고침"
-          variant="ghost"
-          icon={<Icon icon={FiRefreshCw} />}
-          onClick={fetchUsers}
-          isLoading={processingId !== null}
-        />
-      </HStack>
+      <PageHeader
+        title="회원 관리"
+        description={organizationName || undefined}
+        actions={
+          <IconButton
+            label="새로고침"
+            variant="ghost"
+            icon={<Icon icon={FiRefreshCw} />}
+            onClick={fetchUsers}
+            isLoading={processingId !== null}
+          />
+        }
+      />
 
       {/* 탭 + 필터 + 콘텐츠 카드 — 남은 높이를 모두 채운다 */}
       <Card width="100%" padding={0} height="100%">

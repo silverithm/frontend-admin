@@ -11,6 +11,7 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import PageHeader from './PageHeader';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -219,22 +220,20 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
     <>
       <ConfirmContainer />
       <VStack gap={5} height="100%">
-        <HStack hAlign="between" vAlign="center">
-          <VStack gap={1}>
-            <Text as="h2" type="display-3" weight="bold">기관 자료실</Text>
-            <Text type="supporting" color="secondary">
-              우리 기관 직원만 보는 문서함입니다. 근무 매뉴얼·서식·교육자료를 올려두고 함께 쓰세요.
-            </Text>
-          </VStack>
-          {canManage && (
-            <Button
-              label="자료 올리기"
-              variant="primary"
-              icon={<Icon icon={FiPlus} size="sm" />}
-              onClick={() => setShowUpload(true)}
-            />
-          )}
-        </HStack>
+        <PageHeader
+          title="기관 자료실"
+          description="우리 기관 직원만 보는 문서함입니다. 근무 매뉴얼·서식·교육자료를 올려두고 함께 쓰세요."
+          actions={
+            canManage ? (
+              <Button
+                label="자료 올리기"
+                variant="primary"
+                icon={<Icon icon={FiPlus} size="sm" />}
+                onClick={() => setShowUpload(true)}
+              />
+            ) : undefined
+          }
+        />
 
         {/* 분류 필터 */}
         {!isLoading && (usedCategories.length > 0 || hasUncategorized) && (

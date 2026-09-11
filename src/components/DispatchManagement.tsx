@@ -57,6 +57,17 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
    */
   const [boardOverrides, setBoardOverrides] = useState<DispatchAssignmentOverride[]>([]);
 
+  /** 복원 신호가 3초 안에 안 오면 그냥 연다 — 로딩 화면에 갇히는 것보다 낫다 */
+  const [hydrationTimedOut, setHydrationTimedOut] = useState(false);
+  useEffect(() => {
+    if (isHydrated) return;
+    const timer = setTimeout(() => {
+      console.error('[배차] 저장된 설정 복원이 3초 안에 끝나지 않았다 — 기본값으로 연다');
+      setHydrationTimedOut(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isHydrated]);
+
   // 휴무 데이터 가져오기
   const fetchVacations = useCallback(async () => {
     try {
@@ -167,7 +178,9 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
   // 설정이 비어있는지 확인
   const isSettingsEmpty = settings.routes.length === 0;
 
-  if (!isHydrated) {
+  // 저장된 설정을 읽는 건 순간이면 끝난다. 그보다 오래 걸리면 무언가 잘못된 것이고,
+  // 그때 화면을 계속 붙잡고 있으면 배차관리가 영영 안 열린다 — 설정은 어차피 서버에서 받는다.
+  if (!isHydrated && !hydrationTimedOut) {
     return (
       <Loading label="배차 정보를 불러오는 중..." />
     );

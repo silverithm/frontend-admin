@@ -15,6 +15,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from './PageHeader';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Avatar } from '@astryxdesign/core/Avatar';
@@ -370,33 +371,33 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
         /* === 목록 뷰 === */
         <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-4)', width: '100%' }}>
           {/* 헤더 */}
-          <HStack gap={3} hAlign="between" vAlign="center" width="100%">
-            <VStack gap={0.5} align="start">
-              <Heading level={2}>공지사항</Heading>
-              <Text type="supporting">직원들에게 중요한 소식을 전달합니다</Text>
-            </VStack>
-            <HStack gap={2} vAlign="center">
-              <Button
-                label="새로고침"
-                variant="ghost"
-                size="sm"
-                isIconOnly
-                icon={<Icon icon={FiRefreshCw} size="sm" />}
-                onClick={loadNotices}
-                isDisabled={isLoading}
-                isLoading={isLoading}
-              />
-              {canManage && (
+          <PageHeader
+            title="공지사항"
+            description="직원들에게 중요한 소식을 전달합니다"
+            actions={
+              <HStack gap={2} vAlign="center">
                 <Button
-                  label="새 공지 작성"
-                  variant="primary"
+                  label="새로고침"
+                  variant="ghost"
                   size="sm"
-                  icon={<Icon icon={FiPlus} size="sm" />}
-                  onClick={() => router.push('/admin/notice/new')}
+                  isIconOnly
+                  icon={<Icon icon={FiRefreshCw} size="sm" />}
+                  onClick={loadNotices}
+                  isDisabled={isLoading}
+                  isLoading={isLoading}
                 />
-              )}
-            </HStack>
-          </HStack>
+                {canManage && (
+                  <Button
+                    label="새 공지 작성"
+                    variant="primary"
+                    size="sm"
+                    icon={<Icon icon={FiPlus} size="sm" />}
+                    onClick={() => router.push('/admin/notice/new')}
+                  />
+                )}
+              </HStack>
+            }
+          />
 
           {/* 카드: 탭 + 검색 + 목록 */}
           <div className="carev-notice-listwrap" style={{ width: '100%' }}>

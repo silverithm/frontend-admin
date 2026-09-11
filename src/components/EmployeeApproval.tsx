@@ -21,7 +21,7 @@ import { Center } from '@astryxdesign/core/Center';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Text } from '@astryxdesign/core/Text';
-import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from './PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -868,26 +868,26 @@ export default function EmployeeApproval() {
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-5)' }}>
         {/* 헤더 */}
-        <HStack hAlign="between" vAlign="center">
-          <VStack gap={1}>
-            <Heading level={2}>전자결재</Heading>
-            <Text type="supporting" color="secondary">양식 다운로드 및 결재 신청</Text>
-          </VStack>
-          <HStack gap={2}>
-            <Button
-              label="서명 관리"
-              variant="secondary"
-              icon={<Icon icon={FiEdit3} />}
-              onClick={() => setShowSignatureManager(true)}
-            />
-            <Button
-              label="새 기안 작성"
-              variant="primary"
-              icon={<Icon icon={FiPlus} />}
-              onClick={() => setShowNewApproval(true)}
-            />
-          </HStack>
-        </HStack>
+        <PageHeader
+          title="전자결재"
+          description="양식 다운로드 및 결재 신청"
+          actions={
+            <HStack gap={2}>
+              <Button
+                label="서명 관리"
+                variant="secondary"
+                icon={<Icon icon={FiEdit3} />}
+                onClick={() => setShowSignatureManager(true)}
+              />
+              <Button
+                label="새 기안 작성"
+                variant="primary"
+                icon={<Icon icon={FiPlus} />}
+                onClick={() => setShowNewApproval(true)}
+              />
+            </HStack>
+          }
+        />
 
         {/* 탭 */}
         <SegmentedControl

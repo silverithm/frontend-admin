@@ -10,6 +10,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
 import { Text } from '@astryxdesign/core/Text';
+import PageHeader from '@/components/PageHeader';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
 import MeetingMinutesDetail from '@/components/meetingMinutes/MeetingMinutesDetail';
@@ -94,28 +95,26 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
   return (
     <VStack gap={4}>
       {/* 머리글 */}
-      <HStack gap={2} hAlign="between" vAlign="center">
-        <VStack gap={0.5}>
-          <Text type="large" weight="semibold">회의록</Text>
-          <Text type="supporting" color="secondary">
-            녹음하며 기록하고, AI로 정리하고, 참석자 서명까지 한 번에.
-          </Text>
-        </VStack>
-        <HStack gap={2}>
-          <Button
-            label="양식 관리"
-            variant="ghost"
-            icon={<FiSettings />}
-            onClick={() => setDialog({ kind: 'template' })}
-          />
-          <Button
-            label="회의록 작성"
-            variant="primary"
-            icon={<FiPlus />}
-            onClick={() => setDialog({ kind: 'form', initial: null })}
-          />
-        </HStack>
-      </HStack>
+      <PageHeader
+        title="회의록"
+        description="녹음하며 기록하고, AI로 정리하고, 참석자 서명까지 한 번에."
+        actions={
+          <HStack gap={2}>
+            <Button
+              label="양식 관리"
+              variant="ghost"
+              icon={<FiSettings />}
+              onClick={() => setDialog({ kind: 'template' })}
+            />
+            <Button
+              label="회의록 작성"
+              variant="primary"
+              icon={<FiPlus />}
+              onClick={() => setDialog({ kind: 'form', initial: null })}
+            />
+          </HStack>
+        }
+      />
 
       {/* 목록 */}
       {items.length === 0 ? (

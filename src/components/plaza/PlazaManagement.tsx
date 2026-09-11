@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
-import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from '@/components/PageHeader';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
@@ -169,20 +169,21 @@ export default function PlazaManagement() {
       <ConfirmContainer />
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-        {/* 페이지 헤더 — 운영자에게는 우측에 권한 표시 */}
-        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-          <VStack gap={0} align="start">
-            <Heading level={2}>케어브이 커뮤니티</Heading>
-            <Text type="supporting" color="secondary">전국 요양 현장의 소식·자료·이야기를 한곳에서</Text>
-          </VStack>
-          {isPlazaAdmin && (
-            <Badge
-              variant="teal"
-              icon={<Icon icon={IconShieldCheck} size="xsm" />}
-              label="커뮤니티 운영자"
-            />
-          )}
-        </HStack>
+        {/* 페이지 헤더 — 운영자 배지는 제목 옆에 붙인다.
+            우측 끝에 혼자 떠 있을 때는 무엇에 대한 권한인지 한눈에 붙지 않았다. */}
+        <PageHeader
+          title="케어브이 커뮤니티"
+          description="전국 요양 현장의 소식·자료·이야기를 한곳에서"
+          titleBadge={
+            isPlazaAdmin ? (
+              <Badge
+                variant="teal"
+                icon={<Icon icon={IconShieldCheck} size="xsm" />}
+                label="커뮤니티 운영자"
+              />
+            ) : undefined
+          }
+        />
 
         {/* 모바일: 상단 가로 스크롤 탭 — 시설 유형은 보드 안의 필터 칩으로 고른다 */}
         <div className="carev-plaza-mobiletabs scrollbar-hide">
