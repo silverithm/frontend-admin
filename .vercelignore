@@ -1,0 +1,16 @@
+# Vercel은 소스만 받아 자기 쪽에서 빌드한다.
+# 빌드 산출물과 의존성까지 올리면 업로드가 1.4GB로 불어나고
+# 100MB 넘는 파일 하나에 배포가 통째로 실패한다(실제로 겪음).
+.next
+.next-verify
+node_modules
+
+# 검증 스크립트·캡처는 배포에 필요 없다
+verify
+.claude
+.omc
+
+# 문서
+BACKLOG.md
+GATES.md
+PARITY.md

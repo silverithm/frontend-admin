@@ -1,0 +1,350 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap">
+  <style>
+    body {
+      margin: 0;
+      font-family: Figtree, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #171717;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #0f766e; text-decoration: none; }
+    a:hover { color: #005348; }
+    .num { font-variant-numeric: tabular-nums; }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: 0.08em;
+      color: #737373;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #ebebeb;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .sup { font-size: 11px; line-height: 1.5; color: #737373; }
+    .nav { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; }
+    .nav-label { font-size: 13px; font-weight: 500; color: #737373; }
+    .cell {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 6px;
+      border-radius: 6px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .date { font-size: 11px; line-height: 1.5; color: #737373; }
+    .who { font-size: 11px; line-height: 1.5; color: #737373; }
+    .bar { flex-grow: 1; background: #e7e7e7; border-radius: 6px 6px 0 0; }
+  </style>
+</helmet>
+
+<div style="display: flex; width: 1440px; height: 900px; background: #f1f1f1; overflow: hidden;">
+
+  <!-- ── 사이드바 ─────────────────────────────────────────── -->
+  <div style="display: flex; flex-direction: column; gap: 20px; width: 200px; flex-shrink: 0; padding: 12px; background: #ffffff; border-right: 1px solid #ebebeb; box-sizing: border-box;">
+
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 8px 0;">
+      <div style="width: 22px; height: 22px; border-radius: 6px; background: #0f766e; display: flex; align-items: center; justify-content: center;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8.5c0-2.5 2-4.5 4.5-4.5 1.6 0 2.8.8 3.5 1.9.7-1.1 1.9-1.9 3.5-1.9C18 4 20 6 20 8.5c0 5-8 11.5-8 11.5S4 13.5 4 8.5z"></path>
+        </svg>
+      </div>
+      <div style="font-size: 13px; font-weight: 600;">케어브이</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+        <div class="nav-label">대시보드</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 10-12 0c0 5-2 6-2 6h16s-2-1-2-6z"></path><path d="M10.5 20a2 2 0 003 0"></path></svg>
+        <div class="nav-label">공지사항</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a2 2 0 01-2 2H8l-4 3V6a2 2 0 012-2h12a2 2 0 012 2z"></path></svg>
+        <div class="nav-label" style="flex-grow: 1;">채팅</div>
+        <div class="sup num" style="color: #0f766e; font-weight: 600;">1</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+        <div class="nav-label" style="flex-grow: 1;">일정</div>
+        <div class="sup num" style="color: #737373;">13</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>
+        <div class="nav-label">전자결재</div>
+      </div>
+      <div class="nav" style="background: #f0fdfa;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 14h3M8 17h6"></path></svg>
+        <div style="font-size: 13px; font-weight: 600; color: #0f766e; flex-grow: 1;">근무조정</div>
+        <div class="sup num" style="color: #0f766e; font-weight: 600;">140</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+        <div class="nav-label">고충·건의함</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+        <div class="nav-label">자료실</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20a6 6 0 0112 0M17 11h4M19 9v4"></path></svg>
+        <div class="nav-label">회원관리</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"></circle><circle cx="17" cy="17" r="3"></circle><path d="M14 7h6M4 17h6"></path></svg>
+        <div class="nav-label">편의기능</div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding: 0 8px 4px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <div style="width: 6px; height: 6px; border-radius: 999px; background: #0f766e;"></div>
+        <div class="sup" style="color: #171717;">구독 중</div>
+      </div>
+      <div class="sup" style="color: #737373;">숲속재활어르신재가복지센터</div>
+    </div>
+  </div>
+
+  <!-- ── 본문 ─────────────────────────────────────────────── -->
+  <div style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; min-width: 0; padding: 24px; box-sizing: border-box;">
+
+    <!-- 헤더 -->
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="eyebrow" style="color: #171717;">근무조정</div>
+        <div class="num" style="font-size: 19px; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em;">2026년 9월</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="padding: 8px 12px; border-radius: 10px; background: #ffffff; border: 1px solid #ebebeb; font-weight: 500;">엑셀 내보내기</div>
+        <div style="padding: 8px 12px; border-radius: 10px; background: #0f766e; color: #ffffff; font-weight: 500;">휴무 추가</div>
+      </div>
+    </div>
+
+    <!-- 하루별 자리 비움 띠 -->
+    <div class="card" style="display: flex; flex-direction: column; gap: 12px; padding: 16px 20px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <div class="num" style="font-weight: 600;">휴무 119건</div>
+          <div style="color: #737373;">9월은 모두 승인되었습니다</div>
+        </div>
+        <div class="sup" style="color: #0f766e;">19일에 10명이 빠집니다 — 9월에서 가장 얕은 날</div>
+      </div>
+
+      <div style="display: flex; align-items: flex-end; gap: 3px; height: 56px;">
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 22px;"></div>
+        <div class="bar" style="height: 6px;"></div>
+        <div class="bar" style="height: 50px;"></div>
+        <div class="bar" style="height: 2px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 17px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 34px; background: #d4d4d4;"></div>
+        <div class="bar" style="height: 45px;"></div>
+        <div class="bar" style="height: 2px;"></div>
+        <div class="bar" style="height: 17px;"></div>
+        <div class="bar" style="height: 17px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 17px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 56px; background: #0f766e;"></div>
+        <div class="bar" style="height: 2px;"></div>
+        <div class="bar" style="height: 22px;"></div>
+        <div class="bar" style="height: 22px;"></div>
+        <div class="bar" style="height: 17px;"></div>
+        <div class="bar" style="height: 50px;"></div>
+        <div class="bar" style="height: 2px;"></div>
+        <div class="bar" style="height: 2px;"></div>
+        <div class="bar" style="height: 2px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 28px;"></div>
+        <div class="bar" style="height: 22px;"></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; margin-top: -6px;">
+        <div class="sup num" style="text-align: center; white-space: nowrap; ">1</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div class="sup num" style="text-align: center; white-space: nowrap; ">5</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div class="sup num" style="text-align: center; white-space: nowrap; color: #171717; font-weight: 600;">오늘</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div class="sup num" style="text-align: center; white-space: nowrap; ">15</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div class="sup num" style="text-align: center; white-space: nowrap; color: #0f766e; font-weight: 600;">19</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div class="sup num" style="text-align: center; white-space: nowrap; ">25</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div class="sup num" style="text-align: center; white-space: nowrap; ">30</div>
+      </div>
+    </div>
+
+    <!-- 본문 2단 -->
+    <div style="display: flex; gap: 16px; flex-grow: 1; min-height: 0;">
+
+      <!-- 월 캘린더 -->
+      <div class="card" style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0; padding: 16px;">
+
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;">
+          <div class="sup" style="text-align: center; color: #a50c25;">일</div>
+          <div class="sup" style="text-align: center;">월</div>
+          <div class="sup" style="text-align: center;">화</div>
+          <div class="sup" style="text-align: center;">수</div>
+          <div class="sup" style="text-align: center;">목</div>
+          <div class="sup" style="text-align: center;">금</div>
+          <div class="sup" style="text-align: center;">토</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 4px; flex-grow: 1; min-height: 0;">
+
+          <!-- 1주 · 8.30 ~ 9.5 -->
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell"><div class="date">1</div><div class="who">박소향</div><div class="who">서은진</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">2</div><div class="who">김효준</div><div class="who">이광성</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">3</div><div class="who">박성은</div><div class="who">박소향</div><div class="who">+2</div></div>
+          <div class="cell"><div class="date">4</div><div class="who">배정민</div></div>
+          <div class="cell"><div class="date">5</div><div class="who">강부옥</div><div class="who">강재연</div><div class="who">+7</div></div>
+
+          <!-- 2주 · 9.6 ~ 9.12 -->
+          <div class="cell"><div class="date" style="color: #a50c25;">6</div></div>
+          <div class="cell"><div class="date">7</div><div class="who">배정민</div><div class="who">이광성</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">8</div><div class="who">김형인</div><div class="who">서은진</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">9</div><div class="who">박성은</div><div class="who">정금선</div><div class="who">+1</div></div>
+          <div class="cell"><div class="date">10</div><div class="who">강재연</div><div class="who">박소향</div><div class="who">+3</div></div>
+          <div class="cell" style="background: #f0fdfa;"><div class="date" style="color: #0f766e; font-weight: 600;">11</div><div class="who" style="color: #005348;">생신잔치</div><div class="who">강부옥</div><div class="who">+5</div></div>
+          <div class="cell"><div class="date">12</div><div class="who">강부옥</div><div class="who">김보경</div><div class="who">+6</div></div>
+
+          <!-- 3주 · 9.13 ~ 9.19 -->
+          <div class="cell"><div class="date" style="color: #a50c25;">13</div></div>
+          <div class="cell"><div class="date">14</div><div class="who" style="color: #005348;">사무실 회의</div><div class="who">김형인</div><div class="who">+2</div></div>
+          <div class="cell"><div class="date">15</div><div class="who" style="color: #005348;">차량·보험증권</div><div class="who">강재연</div><div class="who">+2</div></div>
+          <div class="cell"><div class="date">16</div><div class="who">강부옥</div><div class="who">김효준</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">17</div><div class="who" style="color: #005348;">감염취약시설 점검</div><div class="who">이은주</div><div class="who">+2</div></div>
+          <div class="cell"><div class="date">18</div><div class="who">박성은</div><div class="who">박소향</div><div class="who">+3</div></div>
+          <div class="cell" style="border: 1px solid #94d6c8;"><div class="date" style="color: #0f766e; font-weight: 600;">19</div><div class="who" style="color: #0f766e; font-weight: 600;">휴무 10명</div><div class="who">강재연</div><div class="who">+9</div></div>
+
+          <!-- 4주 · 9.20 ~ 9.26 -->
+          <div class="cell"><div class="date" style="color: #a50c25;">20</div></div>
+          <div class="cell"><div class="date">21</div><div class="who" style="color: #005348;">근무표 작성 시작</div><div class="who">김보경</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">22</div><div class="who">강재연</div><div class="who">박정숙</div><div class="who">+2</div></div>
+          <div class="cell"><div class="date">23</div><div class="who">김형인</div><div class="who">박성은</div><div class="who">+1</div></div>
+          <div class="cell"><div class="date">24</div><div class="who">강부옥</div><div class="who">김보경</div><div class="who">+7</div></div>
+          <div class="cell"><div class="date" style="color: #a50c25;">25</div><div class="who" style="color: #a50c25;">추석</div></div>
+          <div class="cell"><div class="date" style="color: #a50c25;">26</div><div class="who" style="color: #a50c25;">연휴</div></div>
+
+          <!-- 5주 · 9.27 ~ 10.3 -->
+          <div class="cell"><div class="date" style="color: #a50c25;">27</div></div>
+          <div class="cell"><div class="date">28</div><div class="who">박성은</div><div class="who">배정민</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">29</div><div class="who">강재연</div><div class="who">배정민</div><div class="who">+3</div></div>
+          <div class="cell"><div class="date">30</div><div class="who">김형인</div><div class="who">김효준</div><div class="who">+2</div></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+
+        </div>
+      </div>
+
+      <!-- 우측 열 -->
+      <div style="display: flex; flex-direction: column; gap: 16px; width: 300px; flex-shrink: 0;">
+
+        <div style="display: flex; flex-direction: column; gap: 16px; background: #ffffff; border: 1px solid #0f766e; border-radius: 12px; padding: 20px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <div class="eyebrow" style="color: #0f766e;">10월 승인 대기</div>
+            <div class="num" style="font-size: 19px; font-weight: 600; color: #0f766e;">140</div>
+          </div>
+
+          <div style="color: #737373;">10월 휴무가 한 건도 승인되지 않았습니다. 9월 근무표를 확정하기 전에 함께 처리하세요.</div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between;">
+              <div style="color: #737373;">10.1</div>
+              <div class="num">강재연 외 2명</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <div style="color: #737373;">10.2</div>
+              <div class="num">김효준 외 3명</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <div style="color: #737373;">10.3</div>
+              <div class="num">강부옥 외 7명</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <div style="color: #737373;">이후</div>
+              <div class="num">25일치 더 · 12.31까지</div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <div style="flex-grow: 1; text-align: center; padding: 8px; border-radius: 10px; background: #0f766e; color: #ffffff; font-weight: 500;">10월 열기</div>
+            <div style="flex-grow: 1; text-align: center; padding: 8px; border-radius: 10px; background: #ffffff; border: 1px solid #ebebeb; font-weight: 500;">하나씩 보기</div>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="eyebrow">9월 휴무 119건</div>
+          <div style="display: flex; justify-content: space-between;">
+            <div style="color: #737373;">일반휴무</div>
+            <div class="num">59</div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <div style="color: #737373;">연차</div>
+            <div class="num">27</div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <div style="color: #737373;">필수휴무</div>
+            <div class="num">16</div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <div style="color: #737373;">대체휴무</div>
+            <div class="num">13</div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <div style="color: #737373;">반차</div>
+            <div class="num">4</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

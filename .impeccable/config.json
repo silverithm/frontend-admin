@@ -158,6 +158,12 @@
         "value": "#14b8a6",
         "createdAt": "2026-08-20T03:59:03.707Z",
         "reason": "일정 카테고리 기본색 도메인 데이터 — 백엔드 ScheduleCategory enum·앱 schedule_colors.dart와 값이 일치해야 하는 크로스플랫폼 팔레트(SCHEDULE_CATEGORY_COLORS와 동일 값)"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "19px",
+        "createdAt": "2026-09-11T14:22:33.422Z",
+        "reason": "Astryx 테마 실제 토큰: src/theme/carev/neutral.css의 --font-size-xl: 1.1875rem = 19px. DESIGN.md 사이드카가 오래돼 램프에서 누락됨"
       }
     ]
   }

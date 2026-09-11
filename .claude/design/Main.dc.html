@@ -1,0 +1,372 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap">
+  <style>
+    body {
+      margin: 0;
+      font-family: Figtree, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #171717;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #0f766e; text-decoration: none; }
+    a:hover { color: #005348; }
+    .num { font-variant-numeric: tabular-nums; }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: 0.08em;
+      color: #737373;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #ebebeb;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .sup { font-size: 11px; line-height: 1.5; color: #737373; }
+    .nav { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; }
+    .nav-label { font-size: 13px; font-weight: 500; color: #737373; }
+  </style>
+</helmet>
+
+<div style="display: flex; width: 1440px; height: 900px; background: #f1f1f1; overflow: hidden;">
+
+  <!-- ── 사이드바 ─────────────────────────────────────────── -->
+  <div style="display: flex; flex-direction: column; gap: 20px; width: 200px; flex-shrink: 0; padding: 12px; background: #ffffff; border-right: 1px solid #ebebeb; box-sizing: border-box;">
+
+    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 8px 0;">
+      <div style="width: 22px; height: 22px; border-radius: 6px; background: #0f766e; display: flex; align-items: center; justify-content: center;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8.5c0-2.5 2-4.5 4.5-4.5 1.6 0 2.8.8 3.5 1.9.7-1.1 1.9-1.9 3.5-1.9C18 4 20 6 20 8.5c0 5-8 11.5-8 11.5S4 13.5 4 8.5z"></path>
+        </svg>
+      </div>
+      <div style="font-size: 13px; font-weight: 600;">케어브이</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div class="nav" style="background: #f0fdfa;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+        <div style="font-size: 13px; font-weight: 600; color: #0f766e;">대시보드</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 10-12 0c0 5-2 6-2 6h16s-2-1-2-6z"></path><path d="M10.5 20a2 2 0 003 0"></path></svg>
+        <div class="nav-label">공지사항</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a2 2 0 01-2 2H8l-4 3V6a2 2 0 012-2h12a2 2 0 012 2z"></path></svg>
+        <div class="nav-label" style="flex-grow: 1;">채팅</div>
+        <div class="sup num" style="color: #0f766e; font-weight: 600;">1</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+        <div class="nav-label" style="flex-grow: 1;">일정</div>
+        <div class="sup num" style="color: #737373;">13</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>
+        <div class="nav-label">전자결재</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 14h3M8 17h6"></path></svg>
+        <div class="nav-label" style="flex-grow: 1;">근무조정</div>
+        <div class="sup num" style="color: #0f766e; font-weight: 600;">140</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+        <div class="nav-label">고충·건의함</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+        <div class="nav-label">자료실</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20a6 6 0 0112 0M17 11h4M19 9v4"></path></svg>
+        <div class="nav-label">회원관리</div>
+      </div>
+      <div class="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#737373" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"></circle><circle cx="17" cy="17" r="3"></circle><path d="M14 7h6M4 17h6"></path></svg>
+        <div class="nav-label">편의기능</div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding: 0 8px 4px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <div style="width: 6px; height: 6px; border-radius: 999px; background: #0f766e;"></div>
+        <div class="sup" style="color: #171717;">구독 중</div>
+      </div>
+      <div class="sup" style="color: #737373;">숲속재활어르신재가복지센터</div>
+    </div>
+  </div>
+
+  <!-- ── 본문 ─────────────────────────────────────────────── -->
+  <div style="display: flex; flex-direction: column; gap: 20px; flex-grow: 1; min-width: 0; padding: 24px; box-sizing: border-box;">
+
+    <!-- 헤더 -->
+    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="eyebrow" style="color: #171717;">금요일</div>
+        <div class="num" style="font-size: 19px; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em;">9월 11일</div>
+      </div>
+      <div class="sup" style="color: #171717;">수급자 82명 · 종사자 28명</div>
+    </div>
+
+    <!-- 시그니처: 오늘 자리를 비우는 사람 -->
+    <div class="card" style="display: flex; flex-direction: column; gap: 16px; padding: 24px;">
+
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <div class="num" style="font-size: 19px; font-weight: 600; line-height: 1.3;">22명</div>
+          <div style="color: #737373;">오늘 근무 · 28명 중 6명 휴무</div>
+        </div>
+        <div class="sup" style="color: #0f766e;">요양보호사 3명이 빠집니다</div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding: 12px; border-radius: 10px; background: #f0fdfa;">
+          <div style="font-weight: 600; color: #005348;">강부옥</div>
+          <div class="sup" style="color: #0f766e;">요양보호사 · 대체휴무</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding: 12px; border-radius: 10px; background: #f0fdfa;">
+          <div style="font-weight: 600; color: #005348;">엄은주</div>
+          <div class="sup" style="color: #0f766e;">요양보호사 · 연차</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding: 12px; border-radius: 10px; background: #f0fdfa;">
+          <div style="font-weight: 600; color: #005348;">조상권</div>
+          <div class="sup" style="color: #0f766e;">요양보호사 · 일반휴무</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding: 12px; border-radius: 10px; background: #ffffff; border: 1px solid #ebebeb;">
+          <div style="font-weight: 500;">김효준</div>
+          <div class="sup">물리치료사 · 일반휴무</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding: 12px; border-radius: 10px; background: #ffffff; border: 1px solid #ebebeb;">
+          <div style="font-weight: 500;">박소향</div>
+          <div class="sup">사무원 · 연차</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding: 12px; border-radius: 10px; background: #ffffff; border: 1px solid #ebebeb;">
+          <div style="font-weight: 500;">이수나</div>
+          <div class="sup">사무국장 · 연차</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 지금 손이 필요한 곳 -->
+    <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="eyebrow">지금 손이 필요한 곳</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 6px;">
+            <div class="num" style="font-size: 16px; font-weight: 600; color: #0f766e;">140건</div>
+            <div style="font-weight: 500;">휴무 승인 대기</div>
+          </div>
+          <div class="sup">10월 근무표 · 9월은 모두 승인되었습니다</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 6px;">
+            <div class="num" style="font-size: 16px; font-weight: 600; color: #0f766e;">1개</div>
+            <div style="font-weight: 500;">안 읽은 메시지</div>
+          </div>
+          <div class="sup">센터 단체방 · 정연수 님</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 6px;">
+            <div class="num" style="font-size: 16px; font-weight: 600; color: #737373;">0건</div>
+            <div style="font-weight: 500; color: #737373;">대기 중인 결재</div>
+          </div>
+          <div class="sup">모두 처리되었습니다</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단 2단 -->
+    <div style="display: flex; gap: 20px; flex-grow: 1; min-height: 0;">
+
+      <div class="card" style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; min-width: 0;">
+        <div class="eyebrow">다가오는 일정</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; gap: 12px;">
+            <div class="num" style="width: 44px; flex-shrink: 0; font-weight: 500; color: #0f766e;">오늘</div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>생신잔치</div>
+              <div class="sup">최영리 어르신 생일축하금도 같은 날</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="num" style="width: 44px; flex-shrink: 0; font-weight: 500; color: #737373;">9.14</div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>사무실 회의</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="num" style="width: 44px; flex-shrink: 0; font-weight: 500; color: #737373;">9.15</div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>차량·보험증권 관리</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="num" style="width: 44px; flex-shrink: 0; font-weight: 500; color: #737373;">9.17</div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>감염취약시설 점검</div>
+              <div class="sup">보건소·경상남도 13:30 · 요양보호사 실습생 6명도 이날</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="num" style="width: 44px; flex-shrink: 0; font-weight: 500; color: #737373;">9.19</div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>강재연 선생님 생일</div>
+              <div class="sup">이날 휴무 10명 · 9월에서 가장 얕습니다</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="num" style="width: 44px; flex-shrink: 0; font-weight: 500; color: #737373;">9.21</div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>근무표 작성</div>
+              <div class="sup">9.26까지 · 시니어 어르신 명절선물도 이날</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 20px; width: 280px; flex-shrink: 0;">
+        <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="eyebrow">공지</div>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>케어브이 업데이트 안내 v1.10.2</div>
+              <div class="sup">운영팀 · 9.9</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div>케어브이 업데이트 안내 v1.10.1</div>
+              <div class="sup">운영팀 · 9.8</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="eyebrow">바깥 소식</div>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="text-wrap: pretty;">초고령사회 노인 돌봄 협력 확대</div>
+              <div class="sup">건보공단·대한노인회 · 7시간 전</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="text-wrap: pretty;">규정 몰라 받은 돈도 환수</div>
+              <div class="sup">요양기관 원장 사례 · 7시간 전</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 채팅 레일 ────────────────────────────────────────── -->
+  <div style="display: flex; flex-direction: column; gap: 20px; width: 240px; flex-shrink: 0; padding: 16px; background: #ffffff; border-left: 1px solid #ebebeb; box-sizing: border-box;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div class="eyebrow">직원</div>
+      <div class="sup num">3 / 28</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="position: relative; width: 28px; height: 28px; flex-shrink: 0;">
+          <div style="width: 28px; height: 28px; border-radius: 999px; background: #e7e7e7;"></div>
+          <div style="position: absolute; right: 0; bottom: 0; width: 8px; height: 8px; border-radius: 999px; background: #0f766e; border: 2px solid #ffffff;"></div>
+        </div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500;">김도형</div>
+          <div class="sup" style="color: #0f766e;">시설장 · 접속 중</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="position: relative; width: 28px; height: 28px; flex-shrink: 0;">
+          <div style="width: 28px; height: 28px; border-radius: 999px; background: #e7e7e7;"></div>
+          <div style="position: absolute; right: 0; bottom: 0; width: 8px; height: 8px; border-radius: 999px; background: #0f766e; border: 2px solid #ffffff;"></div>
+        </div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500;">전소이</div>
+          <div class="sup" style="color: #0f766e;">요양팀장 · 접속 중</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="position: relative; width: 28px; height: 28px; flex-shrink: 0;">
+          <div style="width: 28px; height: 28px; border-radius: 999px; background: #e7e7e7;"></div>
+          <div style="position: absolute; right: 0; bottom: 0; width: 8px; height: 8px; border-radius: 999px; background: #0f766e; border: 2px solid #ffffff;"></div>
+        </div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500;">조미숙</div>
+          <div class="sup" style="color: #0f766e;">간호조무사 · 접속 중</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #f1f1f1;"></div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500; color: #737373;">김보경</div>
+          <div class="sup">사회복지사</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #f1f1f1;"></div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500; color: #737373;">배정민</div>
+          <div class="sup">사무팀장</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #f1f1f1;"></div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500; color: #737373;">정금선</div>
+          <div class="sup">요양팀장</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 4px;">
+      <div class="eyebrow">대화방</div>
+      <div class="sup num">11</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #e7e7e7;"></div>
+        <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="font-weight: 600; flex-grow: 1;">센터 단체방</div>
+            <div style="width: 6px; height: 6px; border-radius: 999px; background: #0f766e; flex-shrink: 0;"></div>
+          </div>
+          <div class="sup" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">정연수: 최진선 어르신 보호자 따님께서</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #f1f1f1;"></div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500; color: #737373;">사무실</div>
+          <div class="sup" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">김도형: 간호팀 내일 조양길 어르신</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #f1f1f1;"></div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-weight: 500; color: #737373;">이수나 님과의 대화</div>
+          <div class="sup" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">이수나: 네 알겠습니다</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
