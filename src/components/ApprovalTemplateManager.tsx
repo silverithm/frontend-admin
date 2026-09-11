@@ -31,7 +31,7 @@ import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
-import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch } from 'react-icons/fi';
 import { IconGripVertical, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
@@ -79,6 +79,12 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   const [customCategory, setCustomCategory] = useState('');
   // 목록 상단 대분류 필터 ('' = 전체)
   const [categoryFilter, setCategoryFilter] = useState('');
+  /**
+   * 양식 이름 검색어. 양식은 회사가 직접 만드는 것이라 수십 개까지 늘어나는데
+   * 대분류 버튼만으로는 그 안에서 하나를 집어낼 수 없었다. 목록을 통째로 들고
+   * 있으므로(서버 재조회 없음) 화면에서 바로 거른다.
+   */
+  const [searchQuery, setSearchQuery] = useState('');
   // 대분류 관리(이름 변경) 다이얼로그
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [categoryRenames, setCategoryRenames] = useState<Record<string, string>>({});
@@ -243,16 +249,23 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   );
 
   const filteredTemplates = useMemo(() => {
-    if (!categoryFilter) return templates;
-    if (categoryFilter === UNCATEGORIZED_LABEL) return templates.filter((t) => !(t.category || '').trim());
-    return templates.filter((t) => (t.category || '').trim() === categoryFilter);
-  }, [templates, categoryFilter]);
+    const keyword = searchQuery.trim().toLowerCase();
+    const byCategory = !categoryFilter
+      ? templates
+      : categoryFilter === UNCATEGORIZED_LABEL
+        ? templates.filter((t) => !(t.category || '').trim())
+        : templates.filter((t) => (t.category || '').trim() === categoryFilter);
+    if (!keyword) return byCategory;
+    return byCategory.filter((t) =>
+      [t.name, t.category, t.fileName].some((field) => (field || '').toLowerCase().includes(keyword)),
+    );
+  }, [templates, categoryFilter, searchQuery]);
 
   /**
    * 순서 조정은 전체 목록 기준으로만 허용한다 — 대분류로 걸러진 상태에서 바꾸면
    * 화면에 안 보이는 나머지 양식들과 순서가 뒤섞인다(sortOrder는 회사 전체 공유값).
    */
-  const canReorder = canManage && categoryFilter === '';
+  const canReorder = canManage && categoryFilter === '' && !searchQuery.trim();
 
   /** 대분류 이름 일괄 변경 — 그 분류의 모든 양식 category를 새 이름으로 바꾼다 */
   const handleRenameCategories = async () => {
@@ -618,6 +631,20 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
           }
         />
 
+        {/* 양식 검색 — 결재 관리에는 검색이 있는데 여기만 없어서, 양식이 늘어나면
+            대분류로 좁힌 뒤 눈으로 훑는 수밖에 없었다 */}
+        {!isLoading && templates.length > 5 && (
+          <TextInput
+            label="양식 검색"
+            isLabelHidden
+            startIcon={FiSearch}
+            hasClear
+            value={searchQuery}
+            onChange={(value) => setSearchQuery(value)}
+            placeholder="양식 이름, 대분류, 파일명 검색"
+          />
+        )}
+
         {/* 대분류 필터 — 등록된 대분류가 있을 때만 노출 */}
         {!isLoading && (usedCategories.length > 0 || hasUncategorized) && (
           <HStack gap={2} vAlign="center" wrap="wrap">
@@ -875,8 +902,15 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
               {filteredTemplates.length === 0 && (
                 <div style={{ padding: 'var(--spacing-10) var(--spacing-6)' }}>
                   <VStack gap={2} hAlign="center">
-                    <Text color="secondary">이 대분류에 속한 양식이 없습니다</Text>
-                    <Button label="전체 보기" variant="ghost" size="sm" onClick={() => setCategoryFilter('')} />
+                    <Text color="secondary">
+                      {searchQuery.trim() ? '조건에 맞는 양식이 없습니다' : '이 대분류에 속한 양식이 없습니다'}
+                    </Text>
+                    <Button
+                      label="전체 보기"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setCategoryFilter(''); setSearchQuery(''); }}
+                    />
                   </VStack>
                 </div>
               )}

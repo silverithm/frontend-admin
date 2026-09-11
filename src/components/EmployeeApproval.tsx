@@ -4,13 +4,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiPlus, FiFileText, FiEye, FiDownload, FiChevronRight, FiEdit3 } from 'react-icons/fi';
+import { FiPlus, FiFileText, FiEye, FiDownload, FiChevronRight, FiEdit3, FiSearch } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { TextInput } from '@astryxdesign/core/TextInput';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Selector } from '@astryxdesign/core/Selector';
 import type { SelectorOptionType } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -49,6 +51,16 @@ export default function EmployeeApproval() {
   const [categoryFilter, setCategoryFilter] = useState('');
   /** 양식 다운로드 탭의 기안 종류 필터 ('' = 전체) */
   const [templateFilter, setTemplateFilter] = useState('');
+  /**
+   * 내 결재 내역 검색어. 결재 관리는 같은 검색을 서버에 넘기지만 여기는 내 문서만
+   * 받아 오므로(getMyApprovalRequests) 화면에서 거른다 — 서버를 한 번 더 부르지
+   * 않으니 타이핑하는 대로 바로 걸러진다.
+   */
+  const [searchQuery, setSearchQuery] = useState('');
+  /** 내 결재 내역 기간 필터 ('' = 제한 없음). 기안일 기준 */
+  const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' });
+  /** 양식 다운로드 탭의 양식 이름 검색어 */
+  const [templateSearch, setTemplateSearch] = useState('');
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewApproval, setShowNewApproval] = useState(false);
@@ -164,9 +176,29 @@ export default function EmployeeApproval() {
     return seen;
   }, [templates]);
 
+  /** 기안일이 기간 안에 있는지. 값이 비어 있는 쪽은 제한 없음으로 둔다 */
+  const isWithinDateFilter = (approval: ApprovalRequest) => {
+    if (!dateFilter.startDate && !dateFilter.endDate) return true;
+    // createdAt은 시각까지 있어 'yyyy-MM-dd' 비교를 위해 날짜 부분만 자른다
+    const day = format(new Date(approval.createdAt), 'yyyy-MM-dd');
+    if (dateFilter.startDate && day < dateFilter.startDate) return false;
+    if (dateFilter.endDate && day > dateFilter.endDate) return false;
+    return true;
+  };
+
+  /** 제목·양식·기안 종류에서 찾는다 — 결재 관리 검색과 같은 자리를 본다 */
+  const matchesSearch = (approval: ApprovalRequest) => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return true;
+    return [approval.title, approval.templateName, categoryOf(approval)]
+      .some((field) => (field || '').toLowerCase().includes(keyword));
+  };
+
   // 필터링된 결재 목록
   const filteredApprovals = approvals.filter(approval => {
     if (categoryFilter && categoryOf(approval) !== categoryFilter) return false;
+    if (!isWithinDateFilter(approval)) return false;
+    if (!matchesSearch(approval)) return false;
     if (approvalFilter === 'all') return true;
     if (approvalFilter === 'pending') return approval.status === 'PENDING';
     if (approvalFilter === 'approved') return approval.status === 'APPROVED';
@@ -174,10 +206,18 @@ export default function EmployeeApproval() {
     return true;
   });
 
-  /** 양식 다운로드 탭에서 분류 필터가 적용된 양식 목록 */
-  const filteredTemplates = templateFilter
-    ? templates.filter((t) => ((t.category || '').trim() || UNCATEGORIZED_LABEL) === templateFilter)
-    : templates;
+  /** 필터를 하나라도 걸었는지 — 빈 목록 문구를 가르는 데 쓴다 */
+  const hasActiveFilter = Boolean(
+    searchQuery.trim() || dateFilter.startDate || dateFilter.endDate || categoryFilter,
+  );
+
+  /** 양식 다운로드 탭에서 분류 필터와 이름 검색이 적용된 양식 목록 */
+  const filteredTemplates = useMemo(() => {
+    const keyword = templateSearch.trim().toLowerCase();
+    return templates
+      .filter((t) => !templateFilter || ((t.category || '').trim() || UNCATEGORIZED_LABEL) === templateFilter)
+      .filter((t) => !keyword || [t.name, t.category].some((field) => (field || '').toLowerCase().includes(keyword)));
+  }, [templates, templateFilter, templateSearch]);
 
   /**
    * 양식 선택 드롭다운 옵션 — 기안 종류(대분류)별 섹션으로 묶는다.
@@ -925,6 +965,33 @@ export default function EmployeeApproval() {
                   ))}
                 </HStack>
               )}
+              {/* 양식 이름 검색 — 양식이 아홉 개를 넘어가면 분류 버튼만으로는 못 찾는다 */}
+              {templates.length > 5 && (
+                <TextInput
+                  label="양식 검색"
+                  isLabelHidden
+                  startIcon={FiSearch}
+                  hasClear
+                  value={templateSearch}
+                  onChange={(value) => setTemplateSearch(value)}
+                  placeholder="양식 이름, 기안 종류 검색"
+                />
+              )}
+              {filteredTemplates.length === 0 && (
+                <EmptyState
+                  isCompact
+                  title="조건에 맞는 양식이 없습니다"
+                  description="검색어나 기안 종류를 바꿔 보세요."
+                  actions={
+                    <Button
+                      label="필터 초기화"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => { setTemplateSearch(''); setTemplateFilter(''); }}
+                    />
+                  }
+                />
+              )}
               {filteredTemplates.map((template) => (
                 <Card key={template.id}>
                   <HStack hAlign="between" vAlign="center" gap={4}>
@@ -1045,6 +1112,44 @@ export default function EmployeeApproval() {
               <SegmentedControlItem value="rejected" label={`반려됨 (${getStatusCount('REJECTED')})`} />
             </SegmentedControl>
 
+            {/* 기간·검색 — 결재 관리에는 있는데 여기만 없어서, 문서가 쌓이면 눈으로 훑는
+                수밖에 없었다. 같은 자리에 같은 손잡이를 둔다. */}
+            <Card padding={3}>
+              <HStack gap={3} vAlign="end" hAlign="between" wrap="wrap">
+                <HStack gap={2} vAlign="end">
+                  <DateInput
+                    label="시작일"
+                    value={dateFilter.startDate ? (dateFilter.startDate as ISODateString) : undefined}
+                    onChange={(value) => setDateFilter((prev) => ({ ...prev, startDate: value || '' }))}
+                  />
+                  <DateInput
+                    label="종료일"
+                    value={dateFilter.endDate ? (dateFilter.endDate as ISODateString) : undefined}
+                    onChange={(value) => setDateFilter((prev) => ({ ...prev, endDate: value || '' }))}
+                  />
+                  {(dateFilter.startDate || dateFilter.endDate) && (
+                    <Button
+                      label="기간 해제"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDateFilter({ startDate: '', endDate: '' })}
+                    />
+                  )}
+                </HStack>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <TextInput
+                    label="검색"
+                    isLabelHidden
+                    startIcon={FiSearch}
+                    hasClear
+                    value={searchQuery}
+                    onChange={(value) => setSearchQuery(value)}
+                    placeholder="제목, 양식, 기안 종류 검색"
+                  />
+                </div>
+              </HStack>
+            </Card>
+
             {/* 기안 종류 필터 — 내 문서에 분류가 둘 이상 섞여 있을 때만 */}
             {approvalCategories.length > 1 && (
               <HStack gap={2} vAlign="center" wrap="wrap">
@@ -1113,8 +1218,22 @@ export default function EmployeeApproval() {
               <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmptyState
                   icon={<Icon icon={FiFileText} size="lg" />}
-                  title="결재 요청이 없습니다"
-                  description="새 기안 작성 버튼을 눌러 결재를 요청하세요"
+                  title={hasActiveFilter ? '조건에 맞는 결재 요청이 없습니다' : '결재 요청이 없습니다'}
+                  description={hasActiveFilter
+                    ? '기간이나 검색어를 바꿔 보세요.'
+                    : '새 기안 작성 버튼을 눌러 결재를 요청하세요'}
+                  actions={hasActiveFilter ? (
+                    <Button
+                      label="필터 초기화"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setDateFilter({ startDate: '', endDate: '' });
+                        setCategoryFilter('');
+                      }}
+                    />
+                  ) : undefined}
                 />
               </div>
             )}
