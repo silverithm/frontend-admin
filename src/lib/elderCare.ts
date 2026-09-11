@@ -60,8 +60,15 @@ type MaybeProfile = ElderCareProfile | null | undefined;
  * 투약을 한 줄로. "아침·저녁", 시간이 있으면 "아침(10시)·점심(14시)".
  * 아무 끼니도 없으면 "없음" — 빈 문자열로 두면 표에서 '모름'과 구분되지 않는다.
  */
+/**
+ * 투약 요약.
+ *
+ * 아무 칸도 안 켠 상태를 '없음'이라고 적지 않는다 — 아직 안 적은 것과 확인해서 약이 없는 것을
+ * 데이터로 구분할 수 없기 때문이다. 약을 드시는 어르신이 '없음'으로 보이면 그건 그냥 오표기가
+ * 아니라 투약 누락으로 이어진다. 그래서 켜진 칸이 하나도 없으면 빈 값(표에서 '—')으로 둔다.
+ */
 export function formatMedication(profile: MaybeProfile): string {
-  if (!profile) return '없음';
+  if (!profile) return '';
   const slots: [boolean | undefined, string, string | null | undefined][] = [
     [profile.medMorning, '아침', profile.medMorningTime],
     [profile.medLunch, '점심', profile.medLunchTime],
@@ -73,7 +80,7 @@ export function formatMedication(profile: MaybeProfile): string {
       const t = (time || '').trim();
       return t ? `${label}(${t})` : label;
     });
-  return parts.length > 0 ? parts.join('·') : '없음';
+  return parts.length > 0 ? parts.join('·') : '';
 }
 
 /**

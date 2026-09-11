@@ -43,9 +43,11 @@ test('투약 — 켜진 끼니만, 시간이 있으면 괄호로', () => {
         '아침(10시)·점심(14시)',
     );
     // 시간만 있고 끼니가 꺼져 있으면 표시하지 않는다 — 껐다 켰다 한 흔적이 남아 있을 수 있다
-    assert.equal(formatMedication({ medMorning: false, medMorningTime: '10시' }), '없음');
-    assert.equal(formatMedication({}), '없음');
-    assert.equal(formatMedication(null), '없음');
+    assert.equal(formatMedication({ medMorning: false, medMorningTime: '10시' }), '');
+    // 켜진 칸이 없으면 '없음'이 아니라 빈 값이다 — 안 적은 것과 약이 없는 것을 구분할 수 없어서,
+    // '없음'이라고 적으면 약을 드시는 어르신이 안 드시는 것으로 읽힌다
+    assert.equal(formatMedication({}), '');
+    assert.equal(formatMedication(null), '');
 });
 
 test('식사 — 세 칸은 항상 보이고, 값이 없으면 기본 O', () => {

@@ -60,10 +60,11 @@ const CARE_HEADERS = {
 type CareHeaderKey = keyof typeof CARE_HEADERS;
 
 export type ElderRowStatus =
-  | 'ok' // 등록 대상
+  | 'ok' // 새로 등록할 대상
+  | 'fillExisting' // 이미 등록된 어르신 — 새로 만들지 않고 케어 정보만 채운다
   | 'invalid' // 값이 잘못돼 등록 불가
   | 'duplicateInFile' // 파일 안에 같은 이름·주소가 또 있어 자동 제외
-  | 'duplicateExisting'; // 이미 등록된 어르신과 이름·주소가 같아 기본 제외 (선택 포함 가능)
+  | 'duplicateExisting'; // 이미 등록된 어르신과 겹쳐 기본 제외 (선택 포함 가능)
 
 export interface ParsedElderRow {
   /** 엑셀 원본 행 번호 — 오류를 파일에서 바로 찾을 수 있게 그대로 보존한다 */
@@ -75,6 +76,8 @@ export interface ParsedElderRow {
   message?: string;
   /** 케어 열이 하나라도 채워져 있을 때만 붙는다 — 빈 프로필을 만들지 않기 위해 */
   careProfile?: ElderCareProfileInput;
+  /** status가 'fillExisting'일 때 케어 정보를 채워 넣을 기존 어르신 id */
+  existingId?: number;
 }
 
 export interface ElderExcelParseResult {
@@ -320,9 +323,16 @@ export function parseElderRows(grid: string[][], existingSeniors: ElderlyInfo[] 
   }
   const { headerRow, nameCol, addressCol, care } = located;
 
-  // 기존 등록 어르신 — 이름+주소 완전 일치는 제외 후보, 이름만 일치는 경고
+  // 기존 등록 어르신 — 이름+주소 완전 일치는 제외 후보,
+  // 이름이 한 명에게만 걸리면 '케어 정보 채우기' 후보다.
   const existingFull = new Set(existingSeniors.map((s) => dupKey(s.name.trim(), (s.homeAddressName || '').trim())));
-  const existingNames = new Set(existingSeniors.map((s) => s.name.trim()));
+  const existingByName = new Map<string, ElderlyInfo[]>();
+  for (const senior of existingSeniors) {
+    const key = senior.name.trim();
+    const list = existingByName.get(key);
+    if (list) list.push(senior);
+    else existingByName.set(key, [senior]);
+  }
 
   const rows: ParsedElderRow[] = [];
   const seenInFile = new Map<string, number>(); // 이름+주소 → 첫 등장 행 번호
@@ -362,13 +372,27 @@ export function parseElderRows(grid: string[][], existingSeniors: ElderlyInfo[] 
     } else {
       const key = dupKey(name, homeAddress);
       const firstRow = seenInFile.get(key);
+      const sameName = existingByName.get(name) || [];
       if (firstRow !== undefined) {
         parsed.status = 'duplicateInFile';
         parsed.message = `${firstRow}행과 이름·주소가 같습니다`;
+      } else if (sameName.length > 1) {
+        // 동명이인은 어느 분인지 지목할 수 없다 — 엉뚱한 분의 케어 정보를 덮어쓰는 쪽이
+        // 비어 있는 쪽보다 위험하므로 기본 제외하고 화면에서 직접 고치게 한다
+        parsed.status = 'duplicateExisting';
+        parsed.message = '같은 이름이 둘 이상 등록돼 있어 지목할 수 없습니다 — 화면에서 직접 수정해 주세요';
+      } else if (sameName.length === 1 && parsed.careProfile) {
+        // 이름이 같으면 주소가 달라도 그분으로 본다 — 현장에서 쓰던 표에는 주소 칸이 없는 경우가 많다.
+        // 주소는 일부러 갱신하지 않는다: 기존 어르신의 주소에는 배차용 좌표가 딸려 있는데
+        // 엑셀의 주소 문자열로 덮으면 좌표와 말이 어긋나 배차가 엉킨다. 여기서는 케어 정보만 채운다.
+        parsed.status = 'fillExisting';
+        parsed.existingId = sameName[0].id;
+        parsed.message = '이미 등록된 어르신 — 케어 정보만 채웁니다';
       } else if (existingFull.has(key)) {
         parsed.status = 'duplicateExisting';
         parsed.message = '이미 등록된 어르신과 이름·주소가 같습니다';
-      } else if (existingNames.has(name)) {
+      } else if (sameName.length === 1) {
+        // 케어 값이 없어 채울 것이 없는 행 — 새로 등록할지 눈으로 확인시킨다
         parsed.message = '같은 이름의 어르신이 이미 등록돼 있습니다 — 동명이인인지 확인하세요';
       }
 
@@ -535,7 +559,8 @@ export async function downloadElderTemplate(): Promise<void> {
     '· 층: 숫자만 (1, 2). 자리는 위치 메모입니다 — 예: TV 앞 좌측',
     '',
     '업로드하면 등록 전에 행별 검사 결과를 먼저 보여드립니다.',
-    '이미 등록된 어르신과 이름·주소가 같은 행은 자동으로 제외되며, 필요하면 포함할 수 있습니다.',
+    '이미 등록된 어르신은 이름이 같으면 새로 만들지 않고 케어 정보만 채웁니다.',
+    '(같은 이름이 둘 이상 등록돼 있으면 어느 분인지 지목할 수 없어 제외되니, 화면에서 직접 수정해 주세요.)',
     '',
     '※ 주민번호는 암호화해 보관하며, 목록에는 410203-2****** 형태로만 표시됩니다.',
   ];

@@ -212,3 +212,60 @@ test('양식에 케어 열이 하나도 빠지지 않는다', () => {
         assert.ok(headers.includes(need), `양식에 '${need}' 열이 없다`);
     }
 });
+
+test('이미 등록된 어르신과 이름이 같고 케어 값이 있으면 새로 만들지 않고 채운다', () => {
+    const rows = parseElderRows(
+        grid(
+            ['이름', '주소', '등급', '낙상'],
+            ['김복순', '', '3등급', 'O'],          // 주소가 없어도 이름으로 지목한다
+            ['박말순', '다른 주소 99', '2등급', ''], // 주소가 달라도 이름이 같으면 채우기
+            ['최영자', '서울시 9', '1등급', ''],     // 기존에 없는 이름 — 새로 등록
+        ),
+        [
+            { id: 11, name: '김복순', homeAddressName: '서울시 강남구 1', requiredFrontSeat: false },
+            { id: 22, name: '박말순', homeAddressName: '서울시 서초구 2', requiredFrontSeat: false },
+        ],
+    );
+    assert.equal(rows[0].status, 'fillExisting');
+    assert.equal(rows[0].existingId, 11);
+    assert.equal(rows[0].careProfile?.careGrade, 'GRADE_3');
+    assert.equal(rows[0].careProfile?.fallRisk, true);
+
+    assert.equal(rows[1].status, 'fillExisting');
+    assert.equal(rows[1].existingId, 22);
+    // 엑셀 주소는 읽어 두되 채우기에는 쓰지 않는다 (배차 좌표가 딸린 기존 주소를 덮지 않는다)
+    assert.equal(rows[1].homeAddress, '다른 주소 99');
+
+    assert.equal(rows[2].status, 'ok');
+    assert.equal(rows[2].existingId, undefined);
+});
+
+test('같은 이름이 둘 이상 등록돼 있으면 지목할 수 없어 채우지 않는다', () => {
+    const rows = parseElderRows(
+        grid(
+            ['이름', '주소', '등급'],
+            ['김복순', '서울시 1', '3등급'],
+        ),
+        [
+            { id: 11, name: '김복순', homeAddressName: '서울시 1', requiredFrontSeat: false },
+            { id: 12, name: '김복순', homeAddressName: '서울시 2', requiredFrontSeat: false },
+        ],
+    );
+    assert.notEqual(rows[0].status, 'fillExisting');
+    assert.equal(rows[0].status, 'duplicateExisting');
+    assert.equal(rows[0].existingId, undefined);
+    assert.match(rows[0].message!, /둘 이상 등록돼 있어 지목할 수 없습니다/);
+});
+
+test('이름만 있고 케어 값이 없는 행은 채울 것이 없어 기존 중복 그대로다', () => {
+    const rows = parseElderRows(
+        grid(
+            ['이름', '주소'],
+            ['이순자', '서울시 3'],
+        ),
+        [{ id: 33, name: '이순자', homeAddressName: '서울시 3', requiredFrontSeat: false }],
+    );
+    assert.equal(rows[0].status, 'duplicateExisting');
+    assert.equal(rows[0].existingId, undefined);
+    assert.equal(rows[0].careProfile, undefined);
+});
