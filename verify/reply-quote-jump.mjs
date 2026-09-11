@@ -18,6 +18,19 @@ want(/whiteSpace: "pre-wrap"/.test(chatQuote), '채팅 탭 인용문이 아래�
 want(/jumpToMessageId\(/.test(chatQuote), '채팅 탭 인용문을 눌러도 원본으로 가지 않는다');
 want(/const jumpToMessageId = async/.test(chat), '채팅 탭에 원본으로 가는 길이 없다');
 
+// 부드러운 스크롤에 맡기면 이 목록의 다른 스크롤 장치(맨 아래 고정·옛 대화 위치 보정)에
+// 밀려 원래 자리로 되돌아온다. 실제로 화면 밖 원본을 눌러도 아무 일이 없었다.
+const jumpFn = chat.slice(chat.indexOf('const scrollToMessageAndHighlight'), chat.indexOf('const handleSearchResultClick'));
+want(jumpFn.length > 0, '이동 함수를 찾지 못했다 (검사 기준이 낡았다)');
+want(
+    !/behavior: "smooth"/.test(jumpFn),
+    '이동이 부드러운 스크롤에 맡겨져 있다 — 다른 스크롤 장치에 밀려 되돌아온다',
+);
+want(
+    /container\.scrollTop = Math\.max\(0, offset\)/.test(jumpFn),
+    '채팅 탭이 목록 안 위치를 직접 계산해 옮기지 않는다',
+);
+
 // --- 웹: 플로팅 채팅 (다른 탭에서 띄워 쓰는 창) ---
 const floating = read(`${WEB}/src/components/FloatingChat/FloatingChatMessages.tsx`);
 const floatingQuote = floating.slice(floating.indexOf('const renderReplyPreview'), floating.indexOf('const renderReplyPreview') + 2200);
@@ -26,6 +39,10 @@ want(!/maxLines=\{1\}/.test(floatingQuote), '플로팅 채팅 인용문이 아�
 want(/whiteSpace: "pre-wrap"/.test(floatingQuote), '플로팅 채팅 인용문이 아래로 흐르지 않는다');
 want(/jumpToMessageId\(/.test(floatingQuote), '플로팅 채팅 인용문을 눌러도 원본으로 가지 않는다');
 want(/floating-chat-message-\$\{message\.id\}/.test(floating), '플로팅 채팅 메시지에 찾아갈 표식이 없다');
+want(
+    /container\.scrollTop = Math\.max\(0, offset\)/.test(floating),
+    '플로팅 채팅이 목록 안 위치를 직접 계산해 옮기지 않는다',
+);
 
 // --- 앱 ---
 const screen = read(`${APP}/lib/screens/chat_room_screen.dart`);

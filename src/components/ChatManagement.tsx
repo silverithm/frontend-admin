@@ -1087,10 +1087,27 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     };
 
-    /** 메시지 하나로 스크롤 + 잠깐 강조 (검색 패널이 접히는 레이아웃 변화가 끝난 뒤 스크롤한다) */
+    /**
+     * 메시지 하나로 스크롤 + 잠깐 강조 (검색 패널이 접히는 레이아웃 변화가 끝난 뒤 스크롤한다).
+     *
+     * **부드러운 스크롤(behavior: smooth)에 맡기면 안 된다.** 이 목록에는 스크롤을 붙잡는
+     * 장치가 여럿 있어서(맨 아래 고정, 옛 대화 이어붙일 때 위치 보정) 애니메이션이
+     * 진행되는 사이 그 손길에 밀려 원래 자리로 되돌아온다 — 눌러도 아무 일이 없어 보인다.
+     * 그래서 목록 안에서의 위치를 직접 계산해 한 번에 옮긴다.
+     */
     const scrollToMessageAndHighlight = (messageId: number) => {
         setTimeout(() => {
-            document.getElementById(`chat-message-${messageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            const target = document.getElementById(`chat-message-${messageId}`);
+            const container = messagesContainerRef.current;
+            if (!target) return;
+            if (!container) {
+                target.scrollIntoView({ block: "center" });
+                return;
+            }
+            const offset = container.scrollTop
+                + (target.getBoundingClientRect().top - container.getBoundingClientRect().top)
+                - container.clientHeight / 2;
+            container.scrollTop = Math.max(0, offset);
         }, 50);
         setHighlightedMessageId(messageId);
         setTimeout(() => setHighlightedMessageId(null), 2000);

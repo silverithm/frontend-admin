@@ -131,7 +131,16 @@ export function FloatingChatMessages({
             setTimeout(() => setJumpHint(null), 2500);
             return;
         }
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        // 부드러운 스크롤은 이 목록의 다른 스크롤 장치에 밀려 되돌아온다 — 직접 옮긴다
+        const container = messagesContainerRef.current;
+        if (container) {
+            const offset = container.scrollTop
+                + (target.getBoundingClientRect().top - container.getBoundingClientRect().top)
+                - container.clientHeight / 2;
+            container.scrollTop = Math.max(0, offset);
+        } else {
+            target.scrollIntoView({ block: "center" });
+        }
         setHighlightedMessageId(messageId);
         setTimeout(() => setHighlightedMessageId(null), 2000);
     };
