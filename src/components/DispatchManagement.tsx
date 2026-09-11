@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@astryxdesign/core/Card";
+import { StatRow, StatTile } from './StatTile';
 import { Button } from "@astryxdesign/core/Button";
 import { Banner } from "@astryxdesign/core/Banner";
-import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Loading } from "@/components/Loading";
@@ -227,25 +227,12 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
             />
           </HStack>
 
-          {/* 통계 요약 */}
-          <HStack gap={4}>
-            <StackItem size="fill">
-              <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
-                <VStack gap={1} hAlign="center">
-                  <Text type="display-3" weight="bold">{settings.routes.length}</Text>
-                  <Text type="supporting">노선</Text>
-                </VStack>
-              </div>
-            </StackItem>
-            <StackItem size="fill">
-              <div style={{ width: '100%', background: 'var(--color-background-card)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
-                <VStack gap={1} hAlign="center">
-                  <Text type="display-3" weight="bold">{settings.seniors.length}</Text>
-                  <Text type="supporting">어르신</Text>
-                </VStack>
-              </div>
-            </StackItem>
-          </HStack>
+          {/* 통계 요약 — 카드 대신 맨 div에 배경·테두리를 직접 적어 두던 자리다.
+              같은 숫자 줄이 배차 목록·대시보드에도 있어 규격을 하나로 모았다. */}
+          <StatRow>
+            <StatTile value={settings.routes.length} label="노선" />
+            <StatTile value={settings.seniors.length} label="어르신" />
+          </StatRow>
         </VStack>
       </Card>
 

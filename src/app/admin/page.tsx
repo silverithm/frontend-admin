@@ -66,6 +66,8 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { Badge } from "@astryxdesign/core/Badge";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+import PageHeader from "@/components/PageHeader";
 import { Card } from "@astryxdesign/core/Card";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
@@ -1560,6 +1562,15 @@ export default function AdminPage() {
                             transition={{duration: duration.fastMin}}
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
+                            {/* 다른 탭은 전부 본문 맨 위에 제목이 있는데 이 탭만 없어서,
+                                탭을 옮겨 오면 어디인지 사이드바를 봐야 알 수 있었다. */}
+                            <div style={{ marginBottom: 'var(--spacing-3)', flexShrink: 0 }}>
+                                <PageHeader
+                                    title="근무조정"
+                                    description="휴무 신청을 확인하고 근무표를 조정합니다"
+                                />
+                            </div>
+
                             {/* 근무관리 - 캘린더 + 사이드바 */}
                             <div className="carev-admin-work-layout">
                                 {/* 캘린더 영역 — VacationCalendar가 자체 카드를 렌더링하므로 래퍼는 컬럼 역할만 (카드 중첩 금지) */}
@@ -1676,11 +1687,11 @@ export default function AdminPage() {
                                     <Card padding={3} style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)', flexShrink: 0 }}>
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                <Text type="body" weight="medium" color="primary">
+                                                <Heading level={4} accessibilityLevel={3}>
                                                     {selectedDate
                                                         ? `${format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })} 휴무 목록`
                                                         : "전체 휴무 목록"}
-                                                </Text>
+                                                </Heading>
                                                 {isAdmin && selectableRequests.length > 0 && (
                                                     <Button
                                                         label={isSelectMode ? '선택 취소' : '다중 선택'}
@@ -1793,8 +1804,10 @@ export default function AdminPage() {
                                                                     <div
                                                                         className="carev-name-filter"
                                                                         style={{
-                                                                            fontWeight: nameFilter === request.userName ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
-                                                                            fontSize: 'var(--font-size-sm)',
+                                                                            // 이름은 이 목록의 제목이다. 11px이라 바로 아래 날짜와 크기가 같아
+                                                                            // 무엇이 제목인지 보이지 않았다 — 본문 크기(13px)로 올린다.
+                                                                            fontWeight: nameFilter === request.userName ? 'var(--font-weight-bold)' : 'var(--font-weight-semibold)',
+                                                                            fontSize: 'var(--font-size-base)',
                                                                             cursor: "pointer",
                                                                             transition: 'color var(--duration-fast) var(--ease-standard)',
                                                                             color: nameFilter === request.userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
@@ -1814,8 +1827,11 @@ export default function AdminPage() {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-gray)', marginTop: 'var(--spacing-0-5)' }}>
-                                                                        {formatVacationDate(request.date)}
+                                                                    {/* 9px은 본문 규격 밖이라 읽히지 않았다 — 보조설명 크기(11px)로 */}
+                                                                    <div style={{ marginTop: 'var(--spacing-0-5)' }}>
+                                                                        <Text type="supporting" color="secondary">
+                                                                            {formatVacationDate(request.date)}
+                                                                        </Text>
                                                                     </div>
                                                                 </div>
                                                             </div>

@@ -328,6 +328,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     if (!isDispatchMode) {
       loadSchedules();
       loadMembers();
+    } else {
+      // 배차 달력은 일정 API를 쓰지 않는다 — 배차 설정으로 그린다.
+      // 여기서 로딩을 닫지 않으면 isLoading이 처음 값(true) 그대로 남아
+      // 배차관리 달력이 "달력을 불러오는 중..."에서 영영 안 돌아온다.
+      setIsLoading(false);
     }
     if (typeof window !== 'undefined') {
       setCurrentUserEmail(localStorage.getItem('userEmail') || '');

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { format, parseISO, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Card } from "@astryxdesign/core/Card";
+import { StatRow, StatTile } from './StatTile';
 import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 import { Grid } from "@astryxdesign/core/Grid";
 import { Text } from "@astryxdesign/core/Text";
@@ -156,39 +157,16 @@ export default function DispatchListView({
         </VStack>
       </Card>
 
-      {/* 통계 카드 */}
-      <Grid columns={5} gap={4}>
-        <Card padding={4}>
-          <VStack gap={1} hAlign="center">
-            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.total}</Text>
-            <Text type="supporting">운행일</Text>
-          </VStack>
-        </Card>
-        <Card variant="green" padding={4}>
-          <VStack gap={1} hAlign="center">
-            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.normal}</Text>
-            <Text type="supporting">정상 운행</Text>
-          </VStack>
-        </Card>
-        <Card variant="yellow" padding={4}>
-          <VStack gap={1} hAlign="center">
-            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.substitute}</Text>
-            <Text type="supporting">대체 운행</Text>
-          </VStack>
-        </Card>
-        <Card variant="red" padding={4}>
-          <VStack gap={1} hAlign="center">
-            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.noService}</Text>
-            <Text type="supporting">운행 없음</Text>
-          </VStack>
-        </Card>
-        <Card variant="muted" padding={4}>
-          <VStack gap={1} hAlign="center">
-            <Text type="display-3" weight="bold" hasTabularNumbers>{stats.holiday}</Text>
-            <Text type="supporting">휴일</Text>
-          </VStack>
-        </Card>
-      </Grid>
+      {/* 통계 — 예전에는 초록·노랑·빨강·회색 카드 다섯 장을 깔았다.
+          숫자 다섯 개를 읽는 자리에 색면 다섯 개가 먼저 눈에 들어와 오히려 시끄러웠다.
+          한 장 안에서 세로선으로 나누고, 색은 숫자 글자에만 남긴다. */}
+      <StatRow>
+        <StatTile value={stats.total} label="운행일" />
+        <StatTile value={stats.normal} label="정상 운행" tone="success" />
+        <StatTile value={stats.substitute} label="대체 운행" tone="warning" />
+        <StatTile value={stats.noService} label="운행 없음" tone="danger" />
+        <StatTile value={stats.holiday} label="휴일" />
+      </StatRow>
 
       {/* 배차 테이블 */}
       {filteredDispatches.length === 0 ? (
