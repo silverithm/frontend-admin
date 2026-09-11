@@ -23,7 +23,6 @@ import {
   IconBell,
   IconCircleCheck,
   IconMoon,
-  IconHeart,
   IconHome,
   IconBan,
   IconSpeakerphone,
@@ -977,81 +976,93 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       </motion.div>
 
       {/* 오늘 현황 — 수급자(총원·출석·결석)와 종사자(총원·근무·휴무).
-          예전에 있던 상단 통계 줄은 한 번 걷어냈지만, 문을 열 때 제일 먼저 봐야 하는 두 숫자라
-          다시 올렸다. 대신 한 줄 높이로만 쓴다 — 남는 높이는 월간일정이 그대로 가져간다.
+          문을 열 때 제일 먼저 봐야 하는 숫자라 맨 위에 두되, 한 줄 높이로만 쓴다.
+          카드 두 장으로 나눠 뒀더니 종사자 쪽에만 휴무 이름 줄이 붙는 날
+          수급자 카드가 같은 높이로 늘어나 아래가 텅 비었다 — 그래서 한 장으로 합쳤다.
           숫자는 서버 요약을 그대로 쓴다(직접 세지 않는다). 종사자 '근무'에는 반차가 포함된다. */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: duration.mediumMin, delay: 0.1 }}
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-3)' }}
+        style={{ marginBottom: 'var(--spacing-3)' }}
       >
-        {[
-          {
-            key: 'elder',
-            title: '수급자',
-            icon: IconHeart,
-            stats: [
-              { label: '총원', value: elderAttendanceBase },
-              { label: '출석', value: elderAttendance.present },
-              { label: '결석', value: elderAttendance.absent },
-            ],
-            names: [] as string[],
-          },
-          {
-            key: 'staff',
-            title: '종사자',
-            icon: IconUsers,
-            stats: [
-              { label: '총원', value: employeeAttendanceBase },
-              { label: '근무', value: employeeAttendance.present },
-              { label: '휴무', value: employeeAttendance.vacation },
-            ],
-            // 숫자만으로는 누가 없는지 몰라 근무조정 탭까지 가야 했다 — 이름을 여기서 바로 보여준다
-            names: employeeAttendance.vacationNames,
-          },
-        ].map((card) => (
-          <Card key={card.key} padding={4}>
-            {/* 제목은 왼쪽에 고정하고, 남는 폭은 세 숫자가 똑같이 나눠 갖는다.
-                예전엔 숫자 셋이 오른쪽 끝에 몰려 카드 가운데가 비어 보였다. */}
-            <HStack gap={4} vAlign="center">
-              <StackItem size="static">
-                <HStack gap={2} vAlign="center">
-                  <div style={iconBox('transparent')}>
-                    <Icon icon={card.icon} size="sm" color="inherit" />
-                  </div>
-                  <Text type="body" weight="bold" color="primary">{card.title}</Text>
-                </HStack>
-              </StackItem>
-              <StackItem size="fill">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'center' }}>
-                  {card.stats.map((stat, i) => (
-                    <div
-                      key={stat.label}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
-                      }}
-                    >
-                      <Text type="large" weight="bold" color="primary">{stat.value}</Text>
-                      <Text type="supporting" color="secondary">{stat.label}</Text>
+        <Card padding={4}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', rowGap: 'var(--spacing-2)' }}>
+            {[
+              {
+                key: 'elder',
+                title: '수급자',
+                stats: [
+                  { label: '총원', value: elderAttendanceBase, tone: 'normal' },
+                  { label: '출석', value: elderAttendance.present, tone: 'normal' },
+                  { label: '결석', value: elderAttendance.absent, tone: 'alert' },
+                ],
+              },
+              {
+                key: 'staff',
+                title: '종사자',
+                stats: [
+                  { label: '총원', value: employeeAttendanceBase, tone: 'normal' },
+                  { label: '근무', value: employeeAttendance.present, tone: 'normal' },
+                  { label: '휴무', value: employeeAttendance.vacation, tone: 'alert' },
+                ],
+              },
+            ].map((group, gi) => (
+              <div
+                key={group.key}
+                style={{
+                  paddingRight: gi === 0 ? 'var(--spacing-4)' : 0,
+                  paddingLeft: gi === 0 ? 0 : 'var(--spacing-4)',
+                  borderLeft: gi === 0 ? 'none' : '1px solid var(--color-border)',
+                }}
+              >
+                {/* 제목은 왼쪽에 고정하고, 남는 폭은 세 숫자가 똑같이 나눠 갖는다 */}
+                <HStack gap={3} vAlign="center">
+                  <StackItem size="static">
+                    <Text type="body" weight="bold" color="primary">{group.title}</Text>
+                  </StackItem>
+                  <StackItem size="fill">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'center' }}>
+                      {group.stats.map((stat) => (
+                        <div
+                          key={stat.label}
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            /* 자리 비운 숫자만 붉게 — 0인 날은 조용히 둔다 */
+                            color: stat.tone === 'alert' && stat.value > 0 ? 'var(--color-text-red)' : undefined,
+                          }}
+                        >
+                          <Text type="large" weight="bold" color={stat.tone === 'alert' && stat.value > 0 ? 'inherit' : 'primary'}>
+                            {stat.value}
+                          </Text>
+                          <Text type="supporting" color="secondary">{stat.label}</Text>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </StackItem>
-            </HStack>
-            {card.names.length > 0 && (
-              /* 쉬는 사람이 있을 때만 한 줄 더 쓴다 — 없는 날은 카드 높이를 그대로 둔다 */
-              <div style={{ marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)' }}>
+                  </StackItem>
+                </HStack>
+              </div>
+            ))}
+
+            {employeeAttendance.vacationNames.length > 0 && (
+              /* 숫자만으로는 누가 없는지 몰라 근무조정 탭까지 가야 했다 — 이름을 여기서 바로 보여준다.
+                 종사자 이야기니 오른쪽 칸 아래에 붙인다. 쉬는 사람이 없는 날은 이 줄 자체가 없다. */
+              <div
+                style={{
+                  gridColumn: '2',
+                  paddingLeft: 'var(--spacing-4)',
+                  borderLeft: '1px solid var(--color-border)',
+                }}
+              >
                 <Text type="supporting" color="secondary" maxLines={2}>
-                  {`오늘 휴무 · ${card.names.join(', ')}`}
+                  {`오늘 휴무 · ${employeeAttendance.vacationNames.join(', ')}`}
                 </Text>
               </div>
             )}
-          </Card>
-        ))}
+          </div>
+        </Card>
       </motion.div>
 
       {/* 3. Three-panel grid: 공지사항, 전자결재, 월간일정(하단 전체) */}
