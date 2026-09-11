@@ -36,6 +36,13 @@ interface ElderBulkUploadDialogProps {
 
 type Step = 'select' | 'preview' | 'uploading' | 'done';
 
+/** "N명 등록 · M명 케어 정보 채움" — 실제로 한 일만 적는다 */
+const resultLabel = (result: BulkRegisterResult) =>
+  [
+    result.created > 0 ? `어르신 ${result.created}명 등록` : '',
+    result.filled > 0 ? `${result.filled}명 케어 정보 채움` : '',
+  ].filter(Boolean).join(' · ') || '처리한 행 없음';
+
 /**
  * 어르신 엑셀 대량 등록 다이얼로그.
  * 파일 선택 → 행별 검증 프리뷰 → 등록 → 결과 요약의 4단계.
@@ -104,15 +111,31 @@ export default function ElderBulkUploadDialog({
     }
   };
 
-  const registerTargets = rows.filter(
+  // 새로 만들 행과, 이미 등록된 어르신의 케어 정보만 채울 행을 나눠 센다
+  const createTargets = rows.filter(
     (r) => r.status === 'ok' || (includeExisting && r.status === 'duplicateExisting'),
   );
-  // '기존 중복 포함'을 켜면 한도를 넘어설 수 있다 — 넘치면 등록을 막고 이유를 보여준다
-  const overLimit = registerTargets.length > MAX_BULK_ELDERS;
+  const fillTargets = rows.filter((r) => r.status === 'fillExisting');
+  const registerTargets = [...createTargets, ...fillTargets];
+  // '기존 중복 포함'을 켜면 한도를 넘어설 수 있다 — 넘치면 등록을 막고 이유를 보여준다.
+  // 한도는 새로 만드는 인원에만 걸린다 (채우기는 bulk 등록이 아니라 단건 수정이다)
+  const overLimit = createTargets.length > MAX_BULK_ELDERS;
   const invalidCount = rows.filter((r) => r.status === 'invalid').length;
   const duplicateInFileCount = rows.filter((r) => r.status === 'duplicateInFile').length;
   const duplicateExistingCount = rows.filter((r) => r.status === 'duplicateExisting').length;
   const excludedCount = rows.length - registerTargets.length;
+
+  /** "새로 등록 N명 · 케어 정보 채움 M명" — 0인 쪽은 뺀다 */
+  const summaryLabel =
+    [
+      createTargets.length > 0 ? `새로 등록 ${createTargets.length}명` : '',
+      fillTargets.length > 0 ? `케어 정보 채움 ${fillTargets.length}명` : '',
+    ].filter(Boolean).join(' · ') || '처리할 행 없음';
+  const actionLabel =
+    [
+      createTargets.length > 0 ? `${createTargets.length}명 등록` : '',
+      fillTargets.length > 0 ? `${fillTargets.length}명 채우기` : '',
+    ].filter(Boolean).join(' · ') || '등록';
 
   const handleRegister = async () => {
     if (registerTargets.length === 0) return;
@@ -124,19 +147,19 @@ export default function ElderBulkUploadDialog({
           name: r.name,
           homeAddress: r.homeAddress || undefined,
           careProfile: r.careProfile,
+          // 채우기 행만 id를 싣는다 — API 쪽이 이 값으로 생성/채우기를 가른다
+          existingId: r.status === 'fillExisting' ? r.existingId : undefined,
         })),
         (done, total) => setProgress({ done, total }),
       );
       setResult(registerResult);
       setStep('done');
       await onComplete();
+      const doneLabel = resultLabel(registerResult);
       if (registerResult.failed.length === 0) {
-        onNotification(`어르신 ${registerResult.created}명을 등록했습니다.`, 'success');
+        onNotification(`${doneLabel}을 마쳤습니다.`, 'success');
       } else {
-        onNotification(
-          `${registerResult.created}명 등록, ${registerResult.failed.length}명은 실패했습니다.`,
-          'error',
-        );
+        onNotification(`${doneLabel}, ${registerResult.failed.length}명은 실패했습니다.`, 'error');
       }
     } catch (error) {
       // bulk 전체 실패 — 아무도 등록되지 않았으니 프리뷰로 되돌려 다시 시도할 수 있게 한다
@@ -147,6 +170,7 @@ export default function ElderBulkUploadDialog({
 
   const rowStatusCell = (row: ParsedElderRow) => {
     if (row.status === 'invalid') return <Badge variant="red" label="등록 불가" />;
+    if (row.status === 'fillExisting') return <Badge variant="blue" label="케어 정보 채움" />;
     if (row.status === 'duplicateInFile') return <Badge variant="yellow" label="파일 중복" />;
     if (row.status === 'duplicateExisting') {
       return includeExisting ? <Badge variant="teal" label="등록(중복)" /> : <Badge variant="yellow" label="기존 중복" />;
@@ -173,6 +197,7 @@ export default function ElderBulkUploadDialog({
                 <Text type="body" color="secondary">
                   양식을 내려받아 이름·주소를 채운 뒤 올려주세요.
                   등록 전에 행별 검사 결과를 먼저 보여드립니다.
+                  이미 등록된 어르신은 이름이 같으면 케어 정보만 채웁니다.
                 </Text>
                 <HStack gap={2}>
                   <Button
@@ -247,7 +272,7 @@ export default function ElderBulkUploadDialog({
               <VStack gap={3}>
                 <Banner
                   status={overLimit ? 'warning' : registerTargets.length > 0 ? 'info' : 'warning'}
-                  title={`${registerTargets.length}명 등록 예정${excludedCount > 0 ? ` · ${excludedCount}건 제외` : ''}`}
+                  title={`${summaryLabel}${excludedCount > 0 ? ` · ${excludedCount}건 제외` : ''}`}
                   description={[
                     invalidCount > 0 ? `등록 불가 ${invalidCount}건` : '',
                     duplicateInFileCount > 0 ? `파일 안 중복 ${duplicateInFileCount}건` : '',
@@ -329,13 +354,13 @@ export default function ElderBulkUploadDialog({
                   status={result.failed.length === 0 ? 'success' : 'warning'}
                   title={
                     result.failed.length === 0
-                      ? `어르신 ${result.created}명을 등록했습니다`
-                      : `${result.created}명 등록 완료 · ${result.failed.length}명 실패`
+                      ? `${resultLabel(result)} 완료`
+                      : `${resultLabel(result)} · ${result.failed.length}명 실패`
                   }
                   description={
                     result.failed.length === 0
                       ? '어르신 관리 목록에서 바로 확인할 수 있습니다.'
-                      : '실패한 분들은 아래 사유를 확인한 뒤 개별 등록하거나 파일을 고쳐 다시 올려주세요.'
+                      : `${result.failed.length}명은 처리하지 못했습니다. 아래 사유를 확인한 뒤 개별 등록·수정하거나 파일을 고쳐 다시 올려주세요.`
                   }
                   container="section"
                 />
@@ -375,7 +400,7 @@ export default function ElderBulkUploadDialog({
                 <>
                   <Button label="다른 파일 선택" variant="secondary" onClick={() => { reset(); }} />
                   <Button
-                    label={overLimit ? `${MAX_BULK_ELDERS}명 초과` : `${registerTargets.length}명 등록`}
+                    label={overLimit ? `${MAX_BULK_ELDERS}명 초과` : actionLabel}
                     variant="primary"
                     isDisabled={registerTargets.length === 0 || overLimit}
                     onClick={handleRegister}

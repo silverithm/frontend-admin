@@ -1055,13 +1055,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               header: '이름',
                               width: pixel(190),
                               renderCell: (s) => (
-                                <HStack gap={2} vAlign="center">
-                                  <Icon icon={FiHeart} size="sm" color="secondary" />
-                                  <VStack gap={0}>
-                                    <Text weight="semibold">{s.name}</Text>
-                                    {s.homeAddressName && <Text type="supporting" color="secondary" maxLines={1}>{s.homeAddressName}</Text>}
-                                  </VStack>
-                                </HStack>
+                                <VStack gap={0}>
+                                  <Text weight="semibold">{s.name}</Text>
+                                  {s.homeAddressName && <Text type="supporting" color="secondary" maxLines={1}>{s.homeAddressName}</Text>}
+                                </VStack>
                               ),
                             },
                             { key: 'ageGender', header: '나이·성별', width: pixel(96), renderCell: (s) => cellText(formatAgeGender(s.careProfile)) },
