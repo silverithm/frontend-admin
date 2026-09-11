@@ -17,7 +17,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { IconCircleCheck } from '@tabler/icons-react';
+import { IconCircleCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
 import { Loading } from '@/components/Loading';
 import { getSchedules } from '@/lib/apiService';
 import { Schedule, SCHEDULE_CATEGORIES, getScheduleColor } from '@/types/schedule';
@@ -84,6 +84,8 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   const [isLoading, setIsLoading] = useState(true);
   /** "+N건 더 보기"로 펼친 달 (연도를 바꾸면 접힌 상태로 돌아간다) */
   const [expandedMonths, setExpandedMonths] = useState<Record<number, boolean>>({});
+  /** 헤더의 "펼치기/접기" 토글 — 12개월을 한 번에 펼치거나 접는다 */
+  const [expandAll, setExpandAll] = useState(false);
   /** 상세를 보고 있는 일정. 목록 응답에 할 일·참석자까지 들어 있어 추가 조회가 필요 없다. */
   const [detail, setDetail] = useState<Schedule | null>(null);
 
@@ -127,6 +129,8 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   }, [showAlert]);
 
   useEffect(() => {
+    // 개별로 펼쳐둔 달만 접는다. expandAll(전체 펼치기 토글)은 연도와 무관한 "보는 방식"
+    // 설정이라 여기서 건드리지 않는다 — 연도를 넘겨도 펼쳐 보던 대로 유지된다.
     setExpandedMonths({});
     loadYear(year);
   }, [year, loadYear]);
@@ -167,6 +171,12 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
     return buckets;
   }, [schedules, year]);
 
+  /** 접을 게 하나도 없으면(모든 달이 20건 이하) 토글이 눌러도 아무 변화가 없어 보인다 — 그럴 땐 비활성화한다 */
+  const hasOverflow = useMemo(
+    () => byMonth.some((items) => items.length > MONTH_ITEM_LIMIT),
+    [byMonth],
+  );
+
   const total = schedules.length;
   const thisYear = new Date().getFullYear();
   const thisMonth = new Date().getMonth();
@@ -195,9 +205,24 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
             <Button label="올해" variant="ghost" size="sm" onClick={() => setYear(thisYear)} />
           )}
         </HStack>
-        <Text type="supporting" color="secondary">
-          {total === 0 ? '월간일정에서 등록하면 여기에 모여 보입니다' : `연간 ${total}건`}
-        </Text>
+        <HStack gap={2} vAlign="center">
+          <Text type="supporting" color="secondary">
+            {total === 0 ? '월간일정에서 등록하면 여기에 모여 보입니다' : `연간 ${total}건`}
+          </Text>
+          <Button
+            label={expandAll ? '접기' : '펼치기'}
+            variant={expandAll ? 'primary' : 'ghost'}
+            size="sm"
+            isDisabled={!hasOverflow}
+            icon={<Icon icon={expandAll ? IconChevronsUp : IconChevronsDown} size="sm" />}
+            onClick={() => {
+              setExpandAll((v) => !v);
+              // 접을 때는 "+N건 더 보기"로 낱개로 펼쳐둔 달도 같이 접힌다 —
+              // 헤더의 "접기"가 정말로 전부 접는다는 뜻이 되도록.
+              setExpandedMonths({});
+            }}
+          />
+        </HStack>
       </div>
 
       {isLoading && schedules.length === 0 ? (
@@ -212,7 +237,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
             {MONTH_LABELS.map((monthLabel, index) => {
               const items = byMonth[index];
               const isCurrent = year === thisYear && index === thisMonth;
-              const expanded = !!expandedMonths[index];
+              const expanded = expandAll || !!expandedMonths[index];
               const shown = expanded ? items : items.slice(0, MONTH_ITEM_LIMIT);
               const restCount = items.length - shown.length;
               return (
