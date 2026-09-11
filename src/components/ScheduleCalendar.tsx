@@ -24,8 +24,8 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
-import { IconList, IconUsers, IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getScheduleManagerCandidates, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting } from '@/lib/apiService';
+import { IconList, IconUsers, IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getScheduleManagerCandidates, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting, getDispatchOverrides, saveDispatchOverrides } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
@@ -46,7 +46,7 @@ import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import { useElderAttendanceStore, migrateLegacyAbsences } from '@/lib/elderAttendanceStore';
 import { loadDispatchSettings, startDispatchAutoSave } from '@/lib/dispatchSync';
-import type { DailyDispatch, DispatchDaySummary } from '@/types/dispatch';
+import type { DailyDispatch, DispatchAssignmentOverride, DispatchDaySummary } from '@/types/dispatch';
 import type { VacationRequest } from '@/types/vacation';
 import { getDailyDispatch, getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
 import DispatchDayDetail from './DispatchDayDetail';
@@ -72,6 +72,12 @@ const MAX_VISIBLE_LANES = 3;
 const BAR_EDGE_INSET = 3;
 /** 칸 오른쪽 휴무자 칸에 이름을 몇 줄까지 보여줄지 (넘치면 +N) */
 const VACATION_MAX_VISIBLE = 4;
+/*
+ * 휴무자 한 줄의 실측 높이(글자 줄높이 + 줄 사이 gap 1).
+ * CalendarVacationPane 내부가 정하는 값이라 여기서 직접 읽을 수 없어, 펼침 모드에서
+ * 주 행 높이를 미리 잡을 때 쓰는 근사치로 둔다. 조금 넉넉해도 행이 늘어날 뿐 잘리지 않는다.
+ */
+const VACATION_ROW_HEIGHT = 17;
 
 /* 달력 격자선. 칸 배경과 구분이 또렷하도록 기본 테두리보다 한 단계 진한 토큰을 쓴다. */
 const GRID_LINE = '1px solid var(--color-border-emphasized)';
@@ -89,6 +95,8 @@ interface ScheduleBar {
 interface WeekBarLayout {
   bars: ScheduleBar[];
   hiddenCounts: Record<string, number>;
+  /** 접힘 여부와 무관하게 그 주가 실제로 쓴 줄 수 — 펼침 모드에서 행 높이를 잡는 데 쓴다 */
+  laneCount: number;
 }
 
 /*
@@ -201,6 +209,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const { records: dispatchAttendances, loadRange: loadAttendanceRange } = useElderAttendanceStore();
   const [dispatchMonthlySummary, setDispatchMonthlySummary] = useState<Map<string, DispatchDaySummary>>(new Map());
   const [dispatchVacations, setDispatchVacations] = useState<VacationRequest[]>([]);
+  /**
+   * 배차표에서 손으로 고친 그날치 배치.
+   *
+   * 노선 설정은 건드리지 않는다 — 오늘 저 차로 옮긴 것이 내일까지 따라가면
+   * 며칠 뒤 아무도 이유를 모르는 배차가 된다.
+   */
+  const [dispatchOverrides, setDispatchOverrides] = useState<DispatchAssignmentOverride[]>([]);
   const [showDispatchDayDetail, setShowDispatchDayDetail] = useState(false);
   const [showDispatchSettings, setShowDispatchSettings] = useState(false);
   const [dispatchSelectedDate, setDispatchSelectedDate] = useState<Date | null>(null);
@@ -272,6 +287,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  // 칸이 낮아 +N으로 접히는 일정·휴무자를 한 번에 모두 펼쳐 보는 토글
+  const [isExpanded, setIsExpanded] = useState(false);
   // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (대시보드 달력과 선택을 공유한다)
   const [pane, setPane] = useState<CalendarPane>('both');
   const [monthVacations, setMonthVacations] = useState<Map<string, VacationPerson[]>>(new Map());
@@ -362,6 +379,45 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       console.error('휴무 데이터 로드 실패:', error);
     }
   }, []);
+
+  /** 보고 있는 날의 수정본을 받아온다 (없으면 빈 배열 = 설정대로) */
+  const fetchDispatchOverrides = useCallback(async (date: string) => {
+    try {
+      const response = await getDispatchOverrides(date);
+      const list = Array.isArray(response)
+        ? response
+        : (response?.assignments || response?.data || []);
+      setDispatchOverrides(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error('배차 수정본 조회 실패:', error);
+      // 수정본을 못 받아도 배차표는 설정대로 그려져야 한다
+      setDispatchOverrides([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isDispatchMode) return;
+    fetchDispatchOverrides(dispatchBoardDate);
+  }, [isDispatchMode, dispatchBoardDate, fetchDispatchOverrides]);
+
+  /**
+   * 옮긴 결과를 저장한다. 화면은 먼저 바꾸고(끌어놓자마자 움직여야 한다)
+   * 저장이 실패하면 되돌린다 — 저장되지 않은 배차를 붙잡고 있으면 안 된다.
+   */
+  const handleDispatchOverridesChange = async (next: DispatchAssignmentOverride[]) => {
+    const previous = dispatchOverrides;
+    setDispatchOverrides(next);
+    try {
+      await saveDispatchOverrides(dispatchBoardDate, next);
+      if (next.length === 0) {
+        showAlert({ type: 'success', title: '배차표', message: '오늘 배차를 설정대로 되돌렸습니다' });
+      }
+    } catch (error) {
+      console.error('배차 수정본 저장 실패:', error);
+      setDispatchOverrides(previous);
+      showAlert({ type: 'error', title: '배차표', message: '배차 수정을 저장하지 못했습니다' });
+    }
+  };
 
   // 배차 설정은 서버가 원본이다.
   //
@@ -494,6 +550,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   // 주별 일정 바 레이아웃 계산 (여러 날 일정을 하나의 바로 이어서 표시)
   const weekBarLayouts = useMemo<WeekBarLayout[]>(() => {
+    // 펼침 모드에서는 줄 수 제한을 풀어 모든 바를 그린다 (hiddenCounts는 자연히 0이 된다)
+    const laneLimit = isExpanded ? Number.POSITIVE_INFINITY : MAX_VISIBLE_LANES;
+
     const rangeOf = (schedule: Schedule) => ({
       start: schedule.startDate.split('T')[0],
       end: schedule.endDate.split('T')[0],
@@ -532,7 +591,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         if (lane === -1) lane = laneEnds.length;
         laneEnds[lane] = endCol;
 
-        if (lane < MAX_VISIBLE_LANES) {
+        if (lane < laneLimit) {
           bars.push({
             schedule,
             startCol,
@@ -549,9 +608,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         }
       });
 
-      return { bars, hiddenCounts };
+      return { bars, hiddenCounts, laneCount: laneEnds.length };
     });
-  }, [visibleSchedules, calendarWeeks]);
+  }, [visibleSchedules, calendarWeeks, isExpanded]);
 
   // 이번 달 일정 진행도
   const monthProgress = useMemo(() => {
@@ -1204,7 +1263,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           <CalendarVacationPane
             people={dayVacations}
             fraction={vacFraction}
-            maxVisible={VACATION_MAX_VISIBLE}
+            /* 펼침 모드에서는 +N 없이 그날 휴무자를 전원 보여준다 */
+            maxVisible={isExpanded ? dayVacations.length : VACATION_MAX_VISIBLE}
             topOffset={BAR_AREA_TOP}
             hasDivider={pane === 'both' && hasSchedulesToday}
             roleByName={vacationRoleByName}
@@ -1257,6 +1317,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           onNotification={(message, type) =>
             showAlert({ type: type === 'error' ? 'error' : 'success', title: '배차표', message })
           }
+          overrides={dispatchOverrides}
+          onOverridesChange={handleDispatchOverridesChange}
           date={dispatchBoardDate}
           onDateChange={(d) => {
             setDispatchBoardDate(d);
@@ -1407,6 +1469,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       icon={<Icon icon={IconUserCheck} size="sm" />}
                       onClick={() => setShowMyTasksOnly((v) => !v)}
                     />
+                    {/* 칸에 안 들어가 +N으로 접힌 일정·휴무자를 한 번에 펼친다 */}
+                    <Button
+                      label={isExpanded ? '접기' : '펼치기'}
+                      variant={isExpanded ? 'primary' : 'ghost'}
+                      size="sm"
+                      icon={<Icon icon={isExpanded ? IconChevronsUp : IconChevronsDown} size="sm" />}
+                      onClick={() => setIsExpanded((v) => !v)}
+                    />
                     <Button
                       label="일정 추가"
                       variant="primary"
@@ -1466,8 +1536,37 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
               <div className="carev-schedcal-weeks">
                 {calendarWeeks.map((week, weekIndex) => {
                   const layout = weekBarLayouts[weekIndex];
+                  /*
+                   * 펼침 모드에서는 행이 내용만큼 자라야 한다.
+                   * 넓은 화면에서 CSS가 주 행에 flex:1(균등분할)을 주기 때문에, 그대로 두면
+                   * 줄을 아무리 늘려도 행 높이가 그대로라 바가 칸 밖으로 넘친다.
+                   * 그래서 펼침일 때만 flex를 풀고(0 0 auto) 필요한 높이를 직접 계산해 준다.
+                   * 접힘일 때는 style을 주지 않아 기존 동작 그대로다.
+                   */
+                  let expandedStyle: CSSProperties | undefined;
+                  if (isExpanded) {
+                    // 일정이 보이는 pane일 때만 바 영역을 높이 계산에 넣는다
+                    const barArea = showsSchedules(pane)
+                      ? BAR_AREA_TOP + (layout?.laneCount ?? 0) * (BAR_HEIGHT + BAR_GAP) + 8
+                      : 0;
+                    // 휴무자가 보이는 pane일 때만, 그 주에서 가장 휴무자가 많은 날 기준으로 잡는다
+                    const maxPeople = showsVacations(pane)
+                      ? week.reduce((max, d) => {
+                          if (!d) return max;
+                          const count = monthVacations.get(format(d, 'yyyy-MM-dd'))?.length ?? 0;
+                          return Math.max(max, count);
+                        }, 0)
+                      : 0;
+                    const vacationArea = showsVacations(pane)
+                      ? BAR_AREA_TOP + maxPeople * VACATION_ROW_HEIGHT + 8
+                      : 0;
+                    expandedStyle = {
+                      flex: '0 0 auto',
+                      minHeight: Math.max(barArea, vacationArea, 120),
+                    };
+                  }
                   return (
-                    <div key={`week-${weekIndex}`} className="carev-schedcal-week">
+                    <div key={`week-${weekIndex}`} className="carev-schedcal-week" style={expandedStyle}>
                       {week.map((date, dayIndex) =>
                         date ? (
                           renderScheduleDayCell(date, layout?.hiddenCounts[format(date, 'yyyy-MM-dd')] || 0)
