@@ -1598,7 +1598,7 @@ export default function AdminPage() {
                                     <Card padding={3} style={{ flexShrink: 0 }}>
                                         <VStack gap={3}>
                                             <HStack hAlign="between" vAlign="center">
-                                                <Text type="body" weight="medium" color="primary">필터</Text>
+                                                <Heading level={4} accessibilityLevel={3}>필터</Heading>
                                                 <Button label="초기화" variant="ghost" size="sm" onClick={resetFilter} />
                                             </HStack>
 
