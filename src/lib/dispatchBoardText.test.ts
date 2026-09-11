@@ -10,14 +10,14 @@ import assert from 'node:assert/strict';
 import { buildRouteBlock, buildRouteHeadline } from './dispatchBoardText.ts';
 import type { RouteDispatch } from '@/types/dispatch';
 
-const 운전자 = (driverName: string, vehicleName: string, driverRole: '주운전자' | '부운전자' = '주운전자') =>
-    ({ driverName, vehicleName, driverRole }) as RouteDispatch['driver'];
+const 운전자 = (driverName: string, vehicleName: string): RouteDispatch['driver'] =>
+    ({ driverId: driverName, driverName, vehicleName, vehicleCapacity: 12 });
 
 const 노선 = (over: Partial<RouteDispatch>): RouteDispatch => ({
     routeName: '스타리아',
     routeType: '등원',
     driver: 운전자('황인후', '스타리아'),
-    crew: [운전자('황인후', '스타리아'), 운전자('박성은팀장', '스타리아', '부운전자')],
+    crew: [운전자('황인후', '스타리아'), 운전자('박성은팀장', '스타리아')],
     status: '정상',
     tripGroups: [],
     passengers: [],
@@ -33,7 +33,7 @@ test('주운전자가 출근한 날은 주운전자만 적는다 — 부운전�
 test('주운전자가 쉬어 부운전자가 대신 잡은 날은 그 사람만 적고 (대체)를 붙인다', () => {
     assert.equal(
         buildRouteHeadline(노선({
-            driver: 운전자('박성은팀장', '스타리아', '부운전자'),
+            driver: 운전자('박성은팀장', '스타리아'),
             status: '대체',
         })),
         '스타리아/박성은팀장 (대체)',

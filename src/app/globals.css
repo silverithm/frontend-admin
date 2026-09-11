@@ -1327,3 +1327,26 @@ html {
 @media (hover: none) {
   .carev-chat-roomrow-actions { opacity: 1; }
 }
+
+/* ===== 배차표 수정 (DispatchBoard) =====
+   이름을 끌어 다른 차에 놓는 조작이라, 끌 수 있다는 것이 손끝에 보여야 한다.
+   :hover와 :active는 인라인 style로 쓸 수 없어 여기에 둔다. */
+.carev-dispatch-chip {
+    display: inline-block;
+    padding: 0 var(--spacing-1);
+    border-radius: var(--radius-inner);
+    font-size: var(--font-size-supporting, 0.85em);
+    color: var(--color-text-primary);
+    background: var(--color-background-muted);
+    cursor: grab;
+    user-select: none;
+    transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.carev-dispatch-chip:hover {
+    background: var(--color-background-accent-muted, var(--color-background-muted));
+}
+
+.carev-dispatch-chip:active {
+    cursor: grabbing;
+}

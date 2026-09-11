@@ -15,10 +15,10 @@ import { IconCalendar, IconList, IconUsers, IconSettings, IconClipboardList } fr
 import { useDispatchStore } from "@/lib/dispatchStore";
 import { useElderAttendanceStore, migrateLegacyAbsences } from "@/lib/elderAttendanceStore";
 import { loadDispatchSettings, startDispatchAutoSave } from "@/lib/dispatchSync";
-import type { DailyDispatch, DispatchDaySummary } from "@/types/dispatch";
+import type { DailyDispatch, DispatchAssignmentOverride, DispatchDaySummary } from "@/types/dispatch";
 import type { VacationRequest } from "@/types/vacation";
 import { getDailyDispatch, getMonthlyDispatchSummary } from "@/lib/dispatchAlgorithm";
-import { getAllVacationRequests } from "@/lib/apiService";
+import { getAllVacationRequests, getDispatchOverrides, saveDispatchOverrides } from "@/lib/apiService";
 import DispatchCalendar from "./DispatchCalendar";
 import DispatchListView from "./DispatchListView";
 import DispatchDayDetail from "./DispatchDayDetail";
@@ -49,6 +49,13 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
   const [showSettings, setShowSettings] = useState(false);
   const [monthlySummary, setMonthlySummary] = useState<Map<string, DispatchDaySummary>>(new Map());
   const [vacations, setVacations] = useState<VacationRequest[]>([]);
+  /**
+   * 배차표에서 손으로 고친 그날치 배치.
+   *
+   * 노선 설정은 건드리지 않는다 — 오늘 저 차로 옮긴 것이 내일까지 따라가면
+   * 며칠 뒤 아무도 이유를 모르는 배차가 된다.
+   */
+  const [boardOverrides, setBoardOverrides] = useState<DispatchAssignmentOverride[]>([]);
 
   // 휴무 데이터 가져오기
   const fetchVacations = useCallback(async () => {
@@ -108,6 +115,42 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
       setMonthlySummary(summary);
     }
   }, [currentDate, settings, vacations, attendances, isHydrated]);
+
+  /** 보고 있는 날의 수정본을 받아온다 (없으면 빈 배열 = 설정대로) */
+  const fetchOverrides = useCallback(async (date: string) => {
+    try {
+      const response = await getDispatchOverrides(date);
+      const list = Array.isArray(response)
+        ? response
+        : (response?.assignments || response?.data || []);
+      setBoardOverrides(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error("배차 수정본 조회 실패:", error);
+      // 수정본을 못 받아도 배차표는 설정대로 그려져야 한다
+      setBoardOverrides([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOverrides(boardDate);
+  }, [boardDate, fetchOverrides]);
+
+  /**
+   * 옮긴 결과를 저장한다. 화면은 먼저 바꾸고(끌어놓자마자 움직여야 한다)
+   * 저장이 실패하면 서버 값으로 되돌린다 — 저장되지 않은 배차를 붙잡고 있으면 안 된다.
+   */
+  const handleOverridesChange = async (next: DispatchAssignmentOverride[]) => {
+    const previous = boardOverrides;
+    setBoardOverrides(next);
+    try {
+      await saveDispatchOverrides(boardDate, next);
+      if (next.length === 0) onNotification("오늘 배차를 설정대로 되돌렸습니다.", "success");
+    } catch (error) {
+      console.error("배차 수정본 저장 실패:", error);
+      setBoardOverrides(previous);
+      onNotification("배차 수정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error");
+    }
+  };
 
   // 날짜 선택 핸들러
   const handleDateSelect = (date: Date) => {
@@ -226,6 +269,8 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
                 vacations={vacations}
                 attendances={attendances}
                 onNotification={onNotification}
+                overrides={boardOverrides}
+                onOverridesChange={handleOverridesChange}
                 date={boardDate}
                 onDateChange={(d) => {
                   setBoardDate(d);

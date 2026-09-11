@@ -18,6 +18,7 @@ import type {
   RouteDispatch,
   DailyDispatch,
   DispatchDaySummary,
+  DispatchAssignmentOverride,
   DriverRole,
 } from '@/types/dispatch';
 import type { ElderDayAttendance } from '@/types/attendance';
@@ -147,6 +148,36 @@ export function getSeniorsForRoute(
     .filter((s) => s.routeId === routeId)
     .filter((s) => isSeniorRiding(s, date, routeType, attendances))
     .sort(compareByTripThenBoarding);
+}
+
+/**
+ * 그날 하루치 수정본을 어르신 명단에 얹는다.
+ *
+ * 설정(원본)은 건드리지 않는다 — 오늘 옮긴 것이 내일까지 따라가면 안 되기 때문이다.
+ * 수정본에 없는 어르신은 설정 그대로다. 설정에서 이미 사라진 어르신의 수정본은 버린다
+ * (퇴소한 분의 옛 수정본이 명단을 되살리지 않도록).
+ */
+export function applyDispatchOverrides(
+  seniors: Senior[],
+  overrides: DispatchAssignmentOverride[] | undefined | null
+): Senior[] {
+  if (!overrides || overrides.length === 0) return seniors;
+
+  // 같은 어르신이 여러 줄로 들어오면 마지막 줄이 이긴다 (저장 순서 = 사람이 마지막에 한 조작)
+  const byId = new Map<string, DispatchAssignmentOverride>();
+  overrides.forEach((o) => byId.set(String(o.seniorId), o));
+
+  return seniors.map((senior) => {
+    const override = byId.get(String(senior.id));
+    if (!override) return senior;
+    return {
+      ...senior,
+      routeId: override.routeId,
+      // 회차를 비워 보내면 '회차 없음'으로 되돌린다 (undefined와 구분하기 위해 키 존재로 판단)
+      tripOrder: 'tripOrder' in override ? override.tripOrder : senior.tripOrder,
+      boardingOrder: override.boardingOrder,
+    };
+  });
 }
 
 /** 회차 우선, 그 다음 탑승순서 */
