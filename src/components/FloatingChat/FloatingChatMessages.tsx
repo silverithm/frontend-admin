@@ -809,7 +809,7 @@ export function FloatingChatMessages({
                                                 </Text>
                                             </div>
                                         )}
-                                        <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)' }}>
+                                        <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)', maxWidth: "100%" }}>
                                             {isMyMessage && (
                                                 <>
                                                     {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/반응 메뉴에 닿을 수 있어야 한다 */}
@@ -830,6 +830,10 @@ export function FloatingChatMessages({
                                                 className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                 style={{
                                                     position: "relative",
+                                                    // 답장 인용문은 한 줄(nowrap)이라 flex 항목의 min-width:auto 아래서는
+                                                    // 그 줄 길이만큼 말풍선이 75% 상한을 뚫고 늘어난다 — 0으로 풀어야 줄임표가 걸린다.
+                                                    minWidth: 0,
+                                                    maxWidth: "100%",
                                                     padding: "var(--spacing-1-5) var(--spacing-3)",
                                                     borderRadius: 'var(--radius-element)',
                                                     borderBottomRightRadius: isMyMessage ? 2 : 12,

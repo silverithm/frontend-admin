@@ -48,7 +48,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/elder/${id}`, {
+    // 기관 검증이 붙은 새 경로. 옛 `/api/v1/elder/{id}`는 검증이 없어 남의 기관 어르신도 지워졌다.
+    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/elders/company/elder/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

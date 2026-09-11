@@ -4,9 +4,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera, FiUpload } from 'react-icons/fi';
-import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, getPositions, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
+import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, revealElderResidentNumber, getPositions, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
 import { uploadMemberProfileImage, deleteMemberProfileImage } from '@/lib/memberProfileApi';
-import type { ElderlyInfo } from '@/types/elderly';
+import type { ElderlyInfo, ElderCareProfileInput, CareGrade, CognitionLevel, DiaperType, Gender, MealType } from '@/types/elderly';
+import {
+  CARE_GRADE_LABELS,
+  COGNITION_LABELS,
+  DIAPER_LABELS,
+  MEAL_TYPE_LABELS,
+  EMPTY_MARK,
+  birthDateFromResidentNumber,
+  digitsOnly,
+  formatAgeGender,
+  formatMeals,
+  formatMedication,
+  formatResidentNumberInput,
+  formatSeat,
+  genderFromResidentNumber,
+  isValidResidentNumber,
+  riskChips,
+} from '@/lib/elderCare';
 import type { Position } from '@/types/position';
 import { ALL_PERMISSIONS, PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, type Permission } from '@/types/auth';
 import PositionManagement from '@/components/PositionManagement';
@@ -24,13 +41,15 @@ import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { Switch } from '@astryxdesign/core/Switch';
 import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
-import { Table } from '@astryxdesign/core/Table';
+import { Table, pixel } from '@astryxdesign/core/Table';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Loading } from '@/components/Loading';
@@ -77,6 +96,165 @@ interface AdminSummary {
   profileImageUrl?: string | null;
 }
 interface SeniorRow extends ElderlyInfo, Record<string, unknown> {}
+
+/**
+ * 어르신 다이얼로그 입력 상태. 화면에서는 전부 문자열·불리언으로 다루고,
+ * 서버에 보낼 때만 요청 모양(ElderCareProfileInput)으로 바꾼다.
+ *
+ * 주민번호만 예외적으로 '건드렸는지'를 따로 들고 다닌다 — 계약상
+ * null은 '기존 값 유지', ""는 '삭제'라서, 수정 창을 열었다 닫기만 해도
+ * 번호가 지워지는 사고를 이 플래그가 막는다.
+ */
+interface SeniorFormState {
+  name: string;
+  homeAddress: string;
+  requiredFrontSeat: boolean;
+  residentNumber: string;
+  residentNumberTouched: boolean;
+  birthDate: string;
+  birthDateTouched: boolean;
+  gender: '' | Gender;
+  genderTouched: boolean;
+  careGrade: '' | CareGrade;
+  fallRisk: boolean;
+  fallNote: string;
+  pressureSore: boolean;
+  pressureSoreNote: string;
+  diaperType: '' | DiaperType;
+  diaperIntermittent: boolean;
+  cognitionLevel: '' | CognitionLevel;
+  cognitionNote: string;
+  mealType: '' | MealType;
+  morningSnack: boolean;
+  afternoonSnack: boolean;
+  dinner: boolean;
+  mealNote: string;
+  bathTime: string;
+  bathNote: string;
+  medMorning: boolean;
+  medMorningTime: string;
+  medLunch: boolean;
+  medLunchTime: string;
+  medEvening: boolean;
+  medEveningTime: string;
+  medNote: string;
+  vehicleNote: string;
+  floor: number | null;
+  seatNote: string;
+  careNote: string;
+}
+
+// 간식·저녁은 대부분 제공하므로 기본 켬 — 서버 기본값과 같게 둔다
+const EMPTY_SENIOR_FORM: SeniorFormState = {
+  name: '', homeAddress: '', requiredFrontSeat: false,
+  residentNumber: '', residentNumberTouched: false,
+  birthDate: '', birthDateTouched: false, gender: '', genderTouched: false,
+  careGrade: '',
+  fallRisk: false, fallNote: '',
+  pressureSore: false, pressureSoreNote: '',
+  diaperType: '', diaperIntermittent: false,
+  cognitionLevel: '', cognitionNote: '',
+  mealType: '', morningSnack: true, afternoonSnack: true, dinner: true, mealNote: '',
+  bathTime: '', bathNote: '',
+  medMorning: false, medMorningTime: '', medLunch: false, medLunchTime: '',
+  medEvening: false, medEveningTime: '', medNote: '',
+  vehicleNote: '', floor: null, seatNote: '', careNote: '',
+};
+
+/** 목록의 어르신 한 명을 입력 상태로 편다. 주민번호는 목록에 마스킹본만 있어 비워 둔다. */
+function seniorFormFrom(senior: ElderlyInfo): SeniorFormState {
+  const c = senior.careProfile;
+  return {
+    ...EMPTY_SENIOR_FORM,
+    name: senior.name,
+    homeAddress: senior.homeAddressName || '',
+    requiredFrontSeat: senior.requiredFrontSeat,
+    birthDate: c?.birthDate || '',
+    gender: c?.gender || '',
+    careGrade: c?.careGrade || '',
+    fallRisk: c?.fallRisk === true,
+    fallNote: c?.fallNote || '',
+    pressureSore: c?.pressureSore === true,
+    pressureSoreNote: c?.pressureSoreNote || '',
+    diaperType: c?.diaperType || '',
+    diaperIntermittent: c?.diaperIntermittent === true,
+    cognitionLevel: c?.cognitionLevel || '',
+    cognitionNote: c?.cognitionNote || '',
+    mealType: c?.mealType || '',
+    morningSnack: c?.morningSnack !== false,
+    afternoonSnack: c?.afternoonSnack !== false,
+    dinner: c?.dinner !== false,
+    mealNote: c?.mealNote || '',
+    bathTime: c?.bathTime || '',
+    bathNote: c?.bathNote || '',
+    medMorning: c?.medMorning === true,
+    medMorningTime: c?.medMorningTime || '',
+    medLunch: c?.medLunch === true,
+    medLunchTime: c?.medLunchTime || '',
+    medEvening: c?.medEvening === true,
+    medEveningTime: c?.medEveningTime || '',
+    medNote: c?.medNote || '',
+    vehicleNote: c?.vehicleNote || '',
+    floor: c?.floor ?? null,
+    seatNote: c?.seatNote || '',
+    careNote: c?.careNote || '',
+  };
+}
+
+/**
+ * 케어 칸을 하나라도 채웠는지.
+ *
+ * 아무것도 안 채운 채 저장하면 careProfile 키를 빼서 보낸다 — 이름만 등록하려던 어르신에게
+ * 기본값만 든 빈 프로필이 생기면, 표에서 '미입력'과 '전부 아니오'를 구분할 수 없게 된다.
+ */
+function hasCareInput(form: SeniorFormState): boolean {
+  return JSON.stringify(careProfileFromForm(form)) !== JSON.stringify(careProfileFromForm(EMPTY_SENIOR_FORM));
+}
+
+/** 표 한 칸 — 값이 없으면 흐린 '—'로 자리를 지킨다 (칸이 비면 열이 밀려 보인다) */
+function cellText(value: string) {
+  return value
+    ? <Text type="supporting">{value}</Text>
+    : <Text type="supporting" color="disabled">{EMPTY_MARK}</Text>;
+}
+
+/** 입력 상태 → 요청 모양. 빈 메모는 null로 보내 서버에서 지운다. */
+function careProfileFromForm(form: SeniorFormState): ElderCareProfileInput {
+  const text = (v: string) => (v.trim() ? v.trim() : null);
+  return {
+    // 안 건드렸으면 null(유지), 지웠으면 ''(삭제), 채웠으면 숫자 13자리
+    residentNumber: form.residentNumberTouched ? digitsOnly(form.residentNumber) : null,
+    birthDate: text(form.birthDate),
+    gender: form.gender || null,
+    careGrade: form.careGrade || null,
+    fallRisk: form.fallRisk,
+    fallNote: text(form.fallNote),
+    pressureSore: form.pressureSore,
+    pressureSoreNote: text(form.pressureSoreNote),
+    diaperType: form.diaperType || null,
+    diaperIntermittent: form.diaperIntermittent,
+    cognitionLevel: form.cognitionLevel || null,
+    cognitionNote: text(form.cognitionNote),
+    mealType: form.mealType || null,
+    morningSnack: form.morningSnack,
+    afternoonSnack: form.afternoonSnack,
+    dinner: form.dinner,
+    mealNote: text(form.mealNote),
+    bathTime: text(form.bathTime),
+    bathNote: text(form.bathNote),
+    medMorning: form.medMorning,
+    medMorningTime: text(form.medMorningTime),
+    medLunch: form.medLunch,
+    medLunchTime: text(form.medLunchTime),
+    medEvening: form.medEvening,
+    medEveningTime: text(form.medEveningTime),
+    medNote: text(form.medNote),
+    vehicleNote: text(form.vehicleNote),
+    floor: form.floor,
+    seatNote: text(form.seatNote),
+    careNote: text(form.careNote),
+  };
+}
 
 interface UserManagementProps {
   organizationName?: string;
@@ -125,7 +303,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   const [seniorSearchTerm, setSeniorSearchTerm] = useState('');
   const [showSeniorModal, setShowSeniorModal] = useState(false);
   const [editingSenior, setEditingSenior] = useState<ElderlyInfo | null>(null);
-  const [seniorForm, setSeniorForm] = useState({ name: '', homeAddress: '', requiredFrontSeat: false });
+  const [seniorForm, setSeniorForm] = useState<SeniorFormState>(EMPTY_SENIOR_FORM);
+  /** 자리 층 필터 — 층마다 담당이 달라 층으로 먼저 좁혀 보는 일이 잦다 */
+  const [seniorFloorFilter, setSeniorFloorFilter] = useState<'all' | '1' | '2'>('all');
+  /** 주민번호 전체 보기를 기다리는 중 */
+  const [revealingRrn, setRevealingRrn] = useState(false);
   const [showDeleteSeniorModal, setShowDeleteSeniorModal] = useState(false);
   const [selectedSenior, setSelectedSenior] = useState<ElderlyInfo | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -332,9 +514,25 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
   // 신규 어르신 추가는 아직 행 id가 없어 processingId로 쓸 고정 키가 필요하다
   const NEW_SENIOR_KEY = 'senior:new';
 
+  /**
+   * 주민번호를 건드렸는데 13자리가 아니면 저장을 막는다.
+   * (빈 칸으로 지우는 것은 '삭제'라 허용한다)
+   */
+  const residentNumberError = (): string | null => {
+    if (!seniorForm.residentNumberTouched) return null;
+    const digits = digitsOnly(seniorForm.residentNumber);
+    if (!digits) return null;
+    return isValidResidentNumber(digits) ? null : '주민번호는 13자리를 모두 입력해주세요.';
+  };
+
   const handleAddSenior = async () => {
     if (!seniorForm.name.trim()) {
       onNotification('이름을 입력해주세요.', 'error');
+      return;
+    }
+    const rrnError = residentNumberError();
+    if (rrnError) {
+      onNotification(rrnError, 'error');
       return;
     }
     setProcessingId(NEW_SENIOR_KEY);
@@ -343,10 +541,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
         name: seniorForm.name.trim(),
         homeAddress: seniorForm.homeAddress.trim() || undefined,
         requiredFrontSeat: seniorForm.requiredFrontSeat,
+        careProfile: hasCareInput(seniorForm) ? careProfileFromForm(seniorForm) : undefined,
       });
       await fetchSeniors();
       setShowSeniorModal(false);
-      setSeniorForm({ name: '', homeAddress: '', requiredFrontSeat: false });
+      setSeniorForm(EMPTY_SENIOR_FORM);
       onNotification('어르신이 등록되었습니다.', 'success');
     } catch (error) {
       console.error('어르신 등록 오류:', error);
@@ -358,17 +557,24 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
 
   const handleUpdateSenior = async () => {
     if (!editingSenior || !seniorForm.name.trim()) return;
+    const rrnError = residentNumberError();
+    if (rrnError) {
+      onNotification(rrnError, 'error');
+      return;
+    }
     setProcessingId(String(editingSenior.id));
     try {
       await updateCompanyElder(editingSenior.id, {
         name: seniorForm.name.trim(),
         homeAddress: seniorForm.homeAddress.trim() || undefined,
         requiredFrontSeat: seniorForm.requiredFrontSeat,
+        // 이미 프로필이 있으면 비우는 수정도 보내야 하므로 항상 보낸다
+        careProfile: (hasCareInput(seniorForm) || editingSenior.careProfile) ? careProfileFromForm(seniorForm) : undefined,
       });
       await fetchSeniors();
       setShowSeniorModal(false);
       setEditingSenior(null);
-      setSeniorForm({ name: '', homeAddress: '', requiredFrontSeat: false });
+      setSeniorForm(EMPTY_SENIOR_FORM);
       onNotification('어르신 정보가 수정되었습니다.', 'success');
     } catch (error) {
       console.error('어르신 수정 오류:', error);
@@ -397,23 +603,57 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
 
   const openEditSeniorModal = (senior: ElderlyInfo) => {
     setEditingSenior(senior);
-    setSeniorForm({
-      name: senior.name,
-      homeAddress: senior.homeAddressName || '',
-      requiredFrontSeat: senior.requiredFrontSeat,
-    });
+    setSeniorForm(seniorFormFrom(senior));
     setShowSeniorModal(true);
   };
 
   const openAddSeniorModal = () => {
     setEditingSenior(null);
-    setSeniorForm({ name: '', homeAddress: '', requiredFrontSeat: false });
+    setSeniorForm(EMPTY_SENIOR_FORM);
     setShowSeniorModal(true);
   };
 
-  const filteredSeniors = seniors.filter(s =>
-    s.name.toLowerCase().includes(seniorSearchTerm.toLowerCase())
-  );
+  /**
+   * 주민번호를 입력하면 생년월일·성별을 채워 준다.
+   * 단, 사람이 직접 고친 칸은 덮어쓰지 않는다 — 뒷자리로 알 수 없는 경우(외국인 등)가 있다.
+   */
+  const onResidentNumberChange = (raw: string) => {
+    const formatted = formatResidentNumberInput(raw);
+    setSeniorForm((prev) => {
+      const next: SeniorFormState = { ...prev, residentNumber: formatted, residentNumberTouched: true };
+      const birth = birthDateFromResidentNumber(formatted);
+      if (birth && !prev.birthDateTouched) next.birthDate = birth;
+      const gender = genderFromResidentNumber(formatted);
+      if (gender && !prev.genderTouched) next.gender = gender;
+      return next;
+    });
+  };
+
+  /** 주민번호 전체 보기 — 관리자만 열 수 있고 서버에 열람 기록이 남는다 */
+  const handleRevealResidentNumber = async () => {
+    if (!editingSenior) return;
+    setRevealingRrn(true);
+    try {
+      const full = await revealElderResidentNumber(editingSenior.id);
+      if (!full) {
+        onNotification('등록된 주민번호가 없습니다.', 'info');
+        return;
+      }
+      // 불러온 값은 '건드린 것'으로 치지 않는다 — 그대로 저장하면 null(유지)로 나간다
+      setSeniorForm((prev) => ({ ...prev, residentNumber: formatResidentNumberInput(full) }));
+    } catch (error) {
+      console.error('주민번호 열람 오류:', error);
+      onNotification(error instanceof Error ? error.message : '주민번호를 볼 권한이 없습니다.', 'error');
+    } finally {
+      setRevealingRrn(false);
+    }
+  };
+
+  const filteredSeniors = seniors.filter((s) => {
+    if (!s.name.toLowerCase().includes(seniorSearchTerm.toLowerCase())) return false;
+    if (seniorFloorFilter === 'all') return true;
+    return String(s.careProfile?.floor ?? '') === seniorFloorFilter;
+  });
 
   const availableRoles = buildRoleNames({
     positions,
@@ -695,6 +935,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                         hasClear
                       />
                     </StackItem>
+                    <SegmentedControl
+                      value={seniorFloorFilter}
+                      onChange={(v) => setSeniorFloorFilter(v as 'all' | '1' | '2')}
+                      label="자리 층 필터"
+                      size="sm"
+                    >
+                      <SegmentedControlItem value="all" label="전체" />
+                      <SegmentedControlItem value="1" label="1층" />
+                      <SegmentedControlItem value="2" label="2층" />
+                    </SegmentedControl>
+                    {/* 필터를 걸면 몇 분이 남았는지 바로 보여준다 — 빠진 분을 눈치채는 유일한 단서다 */}
+                    <Text type="supporting" color="secondary">{filteredSeniors.length}명</Text>
                     {canManage && (
                       <>
                         <Button
@@ -775,9 +1027,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                     <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <EmptyState
                         icon={<Icon icon={FiHeart} size="lg" color="disabled" />}
-                        title="등록된 어르신이 없습니다"
-                        description="어르신을 추가하여 관리를 시작하세요."
-                        actions={canManage ? (
+                        title={seniors.length === 0 ? '등록된 어르신이 없습니다' : '조건에 맞는 어르신이 없습니다'}
+                        description={seniors.length === 0
+                          ? '어르신을 추가하여 관리를 시작하세요.'
+                          : '검색어나 층 필터를 바꿔 보세요.'}
+                        actions={canManage && seniors.length === 0 ? (
                           <Button
                             label="어르신 추가"
                             variant="primary"
@@ -788,42 +1042,100 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                       />
                     </div>
                   ) : (
-                    <Table
-                      data={filteredSeniors as SeniorRow[]}
-                      idKey={(s) => String(s.id)}
-                      hasHover
-                      columns={[
-                        {
-                          key: 'name',
-                          header: '어르신',
-                          renderCell: (s) => (
-                            <HStack gap={2} vAlign="center">
-                              <Icon icon={FiHeart} size="sm" color="secondary" />
-                              <Text weight="semibold">{s.name}</Text>
-                            </HStack>
-                          ),
-                        },
-                        {
-                          key: 'address',
-                          header: '주소',
-                          renderCell: (s) => (
-                            s.homeAddressName
-                              ? <Text type="supporting">{s.homeAddressName}</Text>
-                              : <Text type="supporting" color="disabled">주소 미등록</Text>
-                          ),
-                        },
-                        ...(canManage ? [{
-                          key: 'actions',
-                          header: '',
-                          renderCell: (s: SeniorRow) => (
-                            <HStack gap={2} hAlign="end">
-                              <Button label="수정" size="sm" variant="secondary" icon={<Icon icon={FiEdit2} size="sm" />} onClick={() => openEditSeniorModal(s)} isDisabled={processingId === String(s.id)} />
-                              <Button label="삭제" size="sm" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={() => { setSelectedSenior(s); setShowDeleteSeniorModal(true); }} isDisabled={processingId === String(s.id)} />
-                            </HStack>
-                          ),
-                        }] : []),
-                      ]}
-                    />
+                    /* 케어 열이 많아 가로로 넘친다 — 페이지가 아니라 이 상자 안에서만 흐르게 한다 */
+                    <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                      <div style={{ minWidth: 1544 }}>
+                        <Table
+                          data={filteredSeniors as SeniorRow[]}
+                          idKey={(s) => String(s.id)}
+                          hasHover
+                          columns={[
+                            {
+                              key: 'name',
+                              header: '이름',
+                              width: pixel(190),
+                              renderCell: (s) => (
+                                <HStack gap={2} vAlign="center">
+                                  <Icon icon={FiHeart} size="sm" color="secondary" />
+                                  <VStack gap={0}>
+                                    <Text weight="semibold">{s.name}</Text>
+                                    {s.homeAddressName && <Text type="supporting" color="secondary" maxLines={1}>{s.homeAddressName}</Text>}
+                                  </VStack>
+                                </HStack>
+                              ),
+                            },
+                            { key: 'ageGender', header: '나이·성별', width: pixel(96), renderCell: (s) => cellText(formatAgeGender(s.careProfile)) },
+                            {
+                              key: 'careGrade',
+                              header: '등급',
+                              width: pixel(84),
+                              renderCell: (s) => cellText(s.careProfile?.careGrade ? CARE_GRADE_LABELS[s.careProfile.careGrade] : ''),
+                            },
+                            {
+                              key: 'residentNumber',
+                              header: '주민번호',
+                              width: pixel(130),
+                              renderCell: (s) => cellText(s.careProfile?.residentNumberMasked || ''),
+                            },
+                            { key: 'seat', header: '자리', width: pixel(120), renderCell: (s) => cellText(formatSeat(s.careProfile)) },
+                            {
+                              key: 'risk',
+                              header: '위험',
+                              width: pixel(150),
+                              renderCell: (s) => {
+                                const chips = riskChips(s.careProfile);
+                                if (chips.length === 0) return <Text type="supporting" color="disabled">{EMPTY_MARK}</Text>;
+                                return (
+                                  <HStack gap={1} vAlign="center" style={{ flexWrap: 'wrap' }}>
+                                    {chips.map((chip) => <Badge key={chip.label} variant={chip.tone} label={chip.label} />)}
+                                  </HStack>
+                                );
+                              },
+                            },
+                            {
+                              key: 'cognition',
+                              header: '인지',
+                              width: pixel(74),
+                              renderCell: (s) => cellText(s.careProfile?.cognitionLevel ? COGNITION_LABELS[s.careProfile.cognitionLevel] : ''),
+                            },
+                            {
+                              key: 'meal',
+                              header: '식사',
+                              width: pixel(170),
+                              renderCell: (s) => {
+                                if (!s.careProfile) return <Text type="supporting" color="disabled">{EMPTY_MARK}</Text>;
+                                const type = s.careProfile.mealType ? MEAL_TYPE_LABELS[s.careProfile.mealType] : '';
+                                return (
+                                  <VStack gap={0}>
+                                    {type && <Text type="supporting">{type}</Text>}
+                                    <Text type="supporting" color="secondary">{formatMeals(s.careProfile)}</Text>
+                                  </VStack>
+                                );
+                              },
+                            },
+                            { key: 'bath', header: '목욕', width: pixel(100), renderCell: (s) => cellText(s.careProfile?.bathTime || '') },
+                            {
+                              key: 'medication',
+                              header: '투약',
+                              width: pixel(140),
+                              renderCell: (s) => cellText(s.careProfile ? formatMedication(s.careProfile) : ''),
+                            },
+                            { key: 'vehicle', header: '차량', width: pixel(120), renderCell: (s) => cellText(s.careProfile?.vehicleNote || '') },
+                            ...(canManage ? [{
+                              key: 'actions',
+                              header: '',
+                              width: pixel(170),
+                              renderCell: (s: SeniorRow) => (
+                                <HStack gap={2} hAlign="end">
+                                  <Button label="수정" size="sm" variant="secondary" icon={<Icon icon={FiEdit2} size="sm" />} onClick={() => openEditSeniorModal(s)} isDisabled={processingId === String(s.id)} />
+                                  <Button label="삭제" size="sm" variant="destructive" icon={<Icon icon={FiTrash2} size="sm" />} onClick={() => { setSelectedSenior(s); setShowDeleteSeniorModal(true); }} isDisabled={processingId === String(s.id)} />
+                                </HStack>
+                              ),
+                            }] : []),
+                          ]}
+                        />
+                      </div>
+                    </div>
                   )}
                 </motion.div>
               ) : activeTab === 'roles' ? (
@@ -1118,27 +1430,316 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
         isOpen={showSeniorModal}
         onOpenChange={(o) => { if (!o) { setShowSeniorModal(false); setEditingSenior(null); } }}
         purpose="form"
-        width={460}
+        width={680}
       >
         <Layout
           header={<DialogHeader title={editingSenior ? '어르신 정보 수정' : '어르신 추가'} onOpenChange={(o) => { if (!o) { setShowSeniorModal(false); setEditingSenior(null); } }} />}
           content={
-            <LayoutContent>
-              <VStack gap={4}>
-                <TextInput
-                  label="이름"
-                  isRequired
-                  placeholder="어르신 이름"
-                  value={seniorForm.name}
-                  onChange={(v) => setSeniorForm(prev => ({ ...prev, name: v }))}
-                />
-                <TextInput
-                  label="주소"
-                  isOptional
-                  placeholder="주소 입력 (선택사항)"
-                  value={seniorForm.homeAddress}
-                  onChange={(v) => setSeniorForm(prev => ({ ...prev, homeAddress: v }))}
-                />
+            /* 칸이 많아 세로로 길다 — 내용만 스크롤하고 머리·바닥 버튼은 붙잡아 둔다 */
+            <LayoutContent style={{ maxHeight: '68vh', overflowY: 'auto' }}>
+              <VStack gap={5}>
+                {/* ── 기본 ── */}
+                <VStack gap={3}>
+                  <Text type="label" weight="semibold">기본</Text>
+                  <HStack gap={3} vAlign="start">
+                    <StackItem size="fill">
+                      <TextInput
+                        label="이름"
+                        isRequired
+                        placeholder="어르신 이름"
+                        value={seniorForm.name}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, name: v }))}
+                      />
+                    </StackItem>
+                    <StackItem size="fill">
+                      <TextInput
+                        label="주소"
+                        isOptional
+                        placeholder="주소 입력 (선택사항)"
+                        value={seniorForm.homeAddress}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, homeAddress: v }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                  <HStack gap={3} vAlign="end">
+                    <StackItem size="fill">
+                      <TextInput
+                        label="주민번호"
+                        isOptional
+                        placeholder="000000-0000000"
+                        description={editingSenior && editingSenior.careProfile?.residentNumberMasked && !seniorForm.residentNumberTouched
+                          ? `등록된 번호: ${editingSenior.careProfile.residentNumberMasked}`
+                          : '적어 두면 생년월일·성별이 자동으로 채워집니다'}
+                        value={seniorForm.residentNumber}
+                        onChange={onResidentNumberChange}
+                        status={residentNumberError() ? { type: 'error', message: residentNumberError()! } : undefined}
+                      />
+                    </StackItem>
+                    {/* 전체 번호는 목록에 없다 — 관리자가 눌러야 서버에서 가져오고 열람 기록이 남는다 */}
+                    {editingSenior && editingSenior.careProfile?.residentNumberMasked && (
+                      <Button
+                        label="전체 보기"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRevealResidentNumber}
+                        isLoading={revealingRrn}
+                        isDisabled={revealingRrn}
+                      />
+                    )}
+                  </HStack>
+                  <HStack gap={3} vAlign="start">
+                    <StackItem size="fill">
+                      <TextInput
+                        label="생년월일"
+                        isOptional
+                        placeholder="1941-02-03"
+                        value={seniorForm.birthDate}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, birthDate: v, birthDateTouched: true }))}
+                      />
+                    </StackItem>
+                    <StackItem size="fill">
+                      <Selector
+                        label="성별"
+                        placeholder="선택 안 함"
+                        value={seniorForm.gender}
+                        options={[
+                          { value: '', label: '선택 안 함' },
+                          { value: 'MALE', label: '남' },
+                          { value: 'FEMALE', label: '여' },
+                        ]}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, gender: v as '' | Gender, genderTouched: true }))}
+                      />
+                    </StackItem>
+                    <StackItem size="fill">
+                      <Selector
+                        label="장기요양등급"
+                        placeholder="선택 안 함"
+                        value={seniorForm.careGrade}
+                        options={[
+                          { value: '', label: '선택 안 함' },
+                          ...(Object.keys(CARE_GRADE_LABELS) as CareGrade[]).map((g) => ({ value: g, label: CARE_GRADE_LABELS[g] })),
+                        ]}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, careGrade: v as '' | CareGrade }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                </VStack>
+
+                <Divider />
+
+                {/* ── 건강 ── */}
+                <VStack gap={3}>
+                  <Text type="label" weight="semibold">건강</Text>
+                  <HStack gap={3} vAlign="start">
+                    <Switch
+                      label="낙상 위험"
+                      value={seniorForm.fallRisk}
+                      onChange={(v) => setSeniorForm(prev => ({ ...prev, fallRisk: v }))}
+                    />
+                    <StackItem size="fill">
+                      <TextInput
+                        label="낙상 메모"
+                        isLabelHidden
+                        isOptional
+                        placeholder="낙상 관련 메모"
+                        value={seniorForm.fallNote}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, fallNote: v }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                  <HStack gap={3} vAlign="start">
+                    <Switch
+                      label="욕창"
+                      value={seniorForm.pressureSore}
+                      onChange={(v) => setSeniorForm(prev => ({ ...prev, pressureSore: v }))}
+                    />
+                    <StackItem size="fill">
+                      <TextInput
+                        label="욕창 메모"
+                        isLabelHidden
+                        isOptional
+                        placeholder="부위·처치 메모"
+                        value={seniorForm.pressureSoreNote}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, pressureSoreNote: v }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                  <HStack gap={3} vAlign="end">
+                    <StackItem size="fill">
+                      <Selector
+                        label="기저귀"
+                        placeholder="선택 안 함"
+                        value={seniorForm.diaperType}
+                        options={[
+                          { value: '', label: '선택 안 함' },
+                          ...(Object.keys(DIAPER_LABELS) as DiaperType[]).map((d) => ({ value: d, label: DIAPER_LABELS[d] })),
+                        ]}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, diaperType: v as '' | DiaperType }))}
+                      />
+                    </StackItem>
+                    <CheckboxInput
+                      label="간헐적 사용"
+                      value={seniorForm.diaperIntermittent}
+                      onChange={(v) => setSeniorForm(prev => ({ ...prev, diaperIntermittent: v }))}
+                    />
+                  </HStack>
+                  <HStack gap={3} vAlign="start">
+                    <StackItem size="fill">
+                      <Selector
+                        label="인지"
+                        placeholder="선택 안 함"
+                        value={seniorForm.cognitionLevel}
+                        options={[
+                          { value: '', label: '선택 안 함' },
+                          ...(Object.keys(COGNITION_LABELS) as CognitionLevel[]).map((c) => ({ value: c, label: COGNITION_LABELS[c] })),
+                        ]}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, cognitionLevel: v as '' | CognitionLevel }))}
+                      />
+                    </StackItem>
+                    <StackItem size="fill">
+                      <TextInput
+                        label="인지 메모"
+                        isOptional
+                        placeholder="예: 저녁마다 집에 가려 하심"
+                        value={seniorForm.cognitionNote}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, cognitionNote: v }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                </VStack>
+
+                <Divider />
+
+                {/* ── 식사 ── */}
+                <VStack gap={3}>
+                  <Text type="label" weight="semibold">식사</Text>
+                  <HStack gap={3} vAlign="end">
+                    <StackItem size="fill">
+                      <Selector
+                        label="식사 형태"
+                        placeholder="선택 안 함"
+                        value={seniorForm.mealType}
+                        options={[
+                          { value: '', label: '선택 안 함' },
+                          ...(Object.keys(MEAL_TYPE_LABELS) as MealType[]).map((m) => ({ value: m, label: MEAL_TYPE_LABELS[m] })),
+                        ]}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, mealType: v as '' | MealType }))}
+                      />
+                    </StackItem>
+                    <CheckboxInput label="오전간식" value={seniorForm.morningSnack} onChange={(v) => setSeniorForm(prev => ({ ...prev, morningSnack: v }))} />
+                    <CheckboxInput label="오후간식" value={seniorForm.afternoonSnack} onChange={(v) => setSeniorForm(prev => ({ ...prev, afternoonSnack: v }))} />
+                    <CheckboxInput label="저녁식사" value={seniorForm.dinner} onChange={(v) => setSeniorForm(prev => ({ ...prev, dinner: v }))} />
+                  </HStack>
+                  <TextArea
+                    label="기피·대체 식품"
+                    isOptional
+                    rows={2}
+                    placeholder="예: 생선 기피 — 두부로 대체"
+                    value={seniorForm.mealNote}
+                    onChange={(v) => setSeniorForm(prev => ({ ...prev, mealNote: v }))}
+                  />
+                </VStack>
+
+                <Divider />
+
+                {/* ── 목욕 ── */}
+                <VStack gap={3}>
+                  <Text type="label" weight="semibold">목욕</Text>
+                  <HStack gap={3} vAlign="start">
+                    <StackItem size="fill">
+                      <TextInput
+                        label="목욕 시간"
+                        isOptional
+                        placeholder="예: 9:40-50"
+                        value={seniorForm.bathTime}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, bathTime: v }))}
+                      />
+                    </StackItem>
+                    <StackItem size="fill">
+                      <TextInput
+                        label="목욕 비고"
+                        isOptional
+                        placeholder="예: 방문목욕으로 1,3주차 제외"
+                        value={seniorForm.bathNote}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, bathNote: v }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                </VStack>
+
+                <Divider />
+
+                {/* ── 투약 ── 끼니마다 시간을 따로 적는다 (같은 약도 시간이 다르다) */}
+                <VStack gap={3}>
+                  <Text type="label" weight="semibold">투약</Text>
+                  <HStack gap={3} vAlign="end">
+                    <CheckboxInput label="아침" value={seniorForm.medMorning} onChange={(v) => setSeniorForm(prev => ({ ...prev, medMorning: v }))} />
+                    <StackItem size="fill">
+                      <TextInput label="아침 투약 시간" isLabelHidden isOptional placeholder="예: 10시" value={seniorForm.medMorningTime} isDisabled={!seniorForm.medMorning} onChange={(v) => setSeniorForm(prev => ({ ...prev, medMorningTime: v }))} />
+                    </StackItem>
+                    <CheckboxInput label="점심" value={seniorForm.medLunch} onChange={(v) => setSeniorForm(prev => ({ ...prev, medLunch: v }))} />
+                    <StackItem size="fill">
+                      <TextInput label="점심 투약 시간" isLabelHidden isOptional placeholder="예: 14시" value={seniorForm.medLunchTime} isDisabled={!seniorForm.medLunch} onChange={(v) => setSeniorForm(prev => ({ ...prev, medLunchTime: v }))} />
+                    </StackItem>
+                    <CheckboxInput label="저녁" value={seniorForm.medEvening} onChange={(v) => setSeniorForm(prev => ({ ...prev, medEvening: v }))} />
+                    <StackItem size="fill">
+                      <TextInput label="저녁 투약 시간" isLabelHidden isOptional placeholder="예: 18시" value={seniorForm.medEveningTime} isDisabled={!seniorForm.medEvening} onChange={(v) => setSeniorForm(prev => ({ ...prev, medEveningTime: v }))} />
+                    </StackItem>
+                  </HStack>
+                  <TextInput
+                    label="투약 메모"
+                    isOptional
+                    placeholder="예: 혈압약 식후 30분"
+                    value={seniorForm.medNote}
+                    onChange={(v) => setSeniorForm(prev => ({ ...prev, medNote: v }))}
+                  />
+                </VStack>
+
+                <Divider />
+
+                {/* ── 차량·자리·기타 ── */}
+                <VStack gap={3}>
+                  <Text type="label" weight="semibold">차량·자리</Text>
+                  <TextInput
+                    label="차량"
+                    isOptional
+                    placeholder="예: 1호차 · 등원 시 문 앞까지 동행"
+                    value={seniorForm.vehicleNote}
+                    onChange={(v) => setSeniorForm(prev => ({ ...prev, vehicleNote: v }))}
+                  />
+                  <HStack gap={3} vAlign="start">
+                    <StackItem size="fill">
+                      <NumberInput
+                        label="층"
+                        isOptional
+                        placeholder="1"
+                        min={0}
+                        max={99}
+                        isIntegerOnly
+                        hasClear
+                        value={seniorForm.floor}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, floor: v ?? null }))}
+                      />
+                    </StackItem>
+                    <StackItem size="fill">
+                      <TextInput
+                        label="자리 위치"
+                        isOptional
+                        placeholder="예: TV 앞 좌측"
+                        value={seniorForm.seatNote}
+                        onChange={(v) => setSeniorForm(prev => ({ ...prev, seatNote: v }))}
+                      />
+                    </StackItem>
+                  </HStack>
+                  <TextArea
+                    label="기타 메모"
+                    isOptional
+                    rows={2}
+                    placeholder="보호자 연락 시간, 그 밖에 알아 둘 점"
+                    value={seniorForm.careNote}
+                    onChange={(v) => setSeniorForm(prev => ({ ...prev, careNote: v }))}
+                  />
+                </VStack>
                 {/* 앞좌석 필요는 배차 서비스 종료로 남은 레거시 항목 — 입력받지 않고 기존 값만 보존한다 */}
               </VStack>
             </LayoutContent>
