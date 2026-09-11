@@ -19,22 +19,21 @@ import { ko } from 'date-fns/locale';
 import type { DailyDispatch, RouteDispatch, RouteType, Senior } from '@/types/dispatch';
 
 /**
- * 차량/인력 줄: "스타리아/황인후 박성은팀장"
- * 차량명 뒤에 그날 그 차에 타는 인력을 배정 순서대로 모두 적는다(휴무자 제외).
- * 주운전자가 휴무라 부운전자가 대신 잡는 날은 뒤에 "(대체)"를 붙인다.
+ * 차량/운전자 줄: "스타리아/황인후"
+ *
+ * **그날 그 차를 실제로 모는 한 사람만 적는다.** 예전엔 그 노선에 등록된 인력(주·부운전자)을
+ * 전부 늘어놨는데, 주운전자가 멀쩡히 출근한 날에도 부운전자 이름이 나란히 찍혀
+ * "오늘 저 차는 누가 가나"를 읽을 수 없었다("주운전자만 나와야 하는데 부운전자가 같이 나옴").
+ * 부운전자는 주운전자가 쉬는 날 대신 잡히며, 그때는 뒤에 "(대체)"가 붙어 구분된다.
  */
 export function buildRouteHeadline(rd: RouteDispatch): string {
   const vehicle = rd.driver?.vehicleName?.trim() || rd.routeName;
-  const names = rd.crew.length > 0
-    ? rd.crew.map((d) => d.driverName)
-    : rd.driver
-      ? [rd.driver.driverName]
-      : [];
+  const driverName = rd.driver?.driverName?.trim();
 
-  if (names.length === 0) return vehicle;
+  if (!driverName) return vehicle;
 
   const substitute = rd.status === '대체' ? ' (대체)' : '';
-  return `${vehicle}/${names.join(' ')}${substitute}`;
+  return `${vehicle}/${driverName}${substitute}`;
 }
 
 const joinNames = (seniors: Senior[]) => seniors.map((s) => s.name).join(' ');

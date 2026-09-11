@@ -21,11 +21,19 @@ import { DateInput } from "@astryxdesign/core/DateInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import type { ISODateString } from "@astryxdesign/core/Calendar";
-import { IconCopy, IconPhotoDown } from "@tabler/icons-react";
-import type { DispatchSettings, RouteType, RouteDispatch } from "@/types/dispatch";
+import { IconCopy, IconPhotoDown, IconPencil, IconArrowBackUp } from "@tabler/icons-react";
+import type {
+  DispatchAssignmentOverride,
+  DispatchSettings,
+  RouteType,
+  RouteDispatch,
+  Senior,
+  TripOrder,
+} from "@/types/dispatch";
 import type { ElderDayAttendance } from "@/types/attendance";
 import type { VacationRequest } from "@/types/vacation";
-import { getDailyDispatch } from "@/lib/dispatchAlgorithm";
+import { applyDispatchOverrides, getDailyDispatch } from "@/lib/dispatchAlgorithm";
+import { nextBoardingOrder } from "@/lib/dispatchBoardEdit";
 import {
   buildDispatchBoardText,
   buildRouteHeadline,
@@ -78,6 +86,13 @@ interface DispatchBoardProps {
   date?: string;
   /** 날짜가 바뀌면 그날 출결을 받아오라고 알린다 */
   onDateChange?: (date: string) => void;
+  /**
+   * 그날 하루치 수정본. 여기 있는 어르신은 설정이 아니라 이 배치로 탄다.
+   * 배차표를 손으로 고칠 수 있게 하되, 설정(내일 이후)은 건드리지 않기 위한 장치다.
+   */
+  overrides?: DispatchAssignmentOverride[];
+  /** 수정본이 바뀌었을 때 — 저장은 부모가 한다 (빈 배열이면 '원래대로') */
+  onOverridesChange?: (next: DispatchAssignmentOverride[]) => void;
 }
 
 export default function DispatchBoard({
@@ -87,17 +102,27 @@ export default function DispatchBoard({
   onNotification,
   date: externalDate,
   onDateChange,
+  overrides,
+  onOverridesChange,
 }: DispatchBoardProps) {
   const [internalDate, setInternalDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const date = externalDate ?? internalDate;
   const [routeType, setRouteType] = useState<RouteType>("등원");
   const [isCapturing, setIsCapturing] = useState(false);
+  // 평소에는 드래그가 안 되게 잠가 둔다 — 명단을 보다가 손이 미끄러져 바뀌면 알아채기 어렵다
+  const [isEditing, setIsEditing] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // 그날 수정본을 얹은 명단으로 배차를 계산한다. 설정 자체는 그대로 둔다.
+  const effectiveSettings = useMemo(
+    () => ({ ...settings, seniors: applyDispatchOverrides(settings.seniors, overrides) }),
+    [settings, overrides]
+  );
+
   const daily = useMemo(
-    () => getDailyDispatch(date, settings, vacations, attendances),
-    [date, settings, vacations, attendances]
+    () => getDailyDispatch(date, effectiveSettings, vacations, attendances),
+    [date, effectiveSettings, vacations, attendances]
   );
 
   const dispatches = useMemo(
@@ -114,6 +139,39 @@ export default function DispatchBoard({
   const handleDateChange = (value: string) => {
     if (externalDate === undefined) setInternalDate(value);
     onDateChange?.(value);
+  };
+
+  /**
+   * 어르신 한 분을 다른 차(또는 회차)로 옮긴다.
+   *
+   * 탑승 순서는 **떨어뜨린 자리**로 정한다 — 앞사람과 뒷사람 사이의 값을 준다.
+   * 정수로 다시 매기면 그 차에 탄 나머지 분들의 순서까지 전부 수정본에 넣어야 하고,
+   * 그러면 나중에 설정에서 순서를 바꿔도 그날만 옛 순서로 남는다. 옮긴 사람만 기록한다.
+   */
+  const moveSenior = (
+    seniorId: string,
+    targetRouteId: string,
+    targetTripOrder: TripOrder | undefined,
+    beforeSeniorId: string | null
+  ) => {
+    if (!onOverridesChange) return;
+
+    const targetRoute = daily.routeDispatches.find((rd) => rd.routeId === targetRouteId);
+    const group = targetRoute?.tripGroups.find((g) => g.tripOrder === targetTripOrder);
+    const list: Senior[] = (group?.seniors ?? []).filter((s) => s.id !== seniorId);
+
+    const index = beforeSeniorId ? list.findIndex((s) => s.id === beforeSeniorId) : -1;
+    const boardingOrder = nextBoardingOrder(list, index);
+
+    const kept = (overrides ?? []).filter((o) => String(o.seniorId) !== String(seniorId));
+    onOverridesChange([
+      ...kept,
+      { seniorId, routeId: targetRouteId, tripOrder: targetTripOrder, boardingOrder },
+    ]);
+  };
+
+  const handleResetOverrides = () => {
+    onOverridesChange?.([]);
   };
 
   const handleCopy = async () => {
@@ -219,6 +277,27 @@ export default function DispatchBoard({
           </HStack>
 
           <HStack gap={2}>
+            {onOverridesChange && (
+              <>
+                {/* 오늘 고친 것이 있으면 언제든 설정대로 되돌릴 수 있어야 한다 */}
+                {(overrides?.length ?? 0) > 0 && (
+                  <Button
+                    label="원래대로"
+                    variant="ghost"
+                    size="sm"
+                    icon={<IconArrowBackUp size={16} />}
+                    onClick={handleResetOverrides}
+                  />
+                )}
+                <Button
+                  label={isEditing ? "수정 끝" : "수정"}
+                  variant={isEditing ? "primary" : "secondary"}
+                  size="sm"
+                  icon={<IconPencil size={16} />}
+                  onClick={() => setIsEditing((on) => !on)}
+                />
+              </>
+            )}
             <Button
               label="텍스트 복사"
               variant="secondary"
@@ -265,6 +344,12 @@ export default function DispatchBoard({
             )}
           </HStack>
 
+          {isEditing && (
+            <Text type="supporting" color="secondary">
+              어르신 이름을 끌어 다른 차·회차에 놓으면 오늘 배차만 바뀝니다. 노선 설정과 내일 이후는 그대로입니다.
+            </Text>
+          )}
+
           {dispatches.length === 0 ? (
             <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <EmptyState
@@ -276,7 +361,12 @@ export default function DispatchBoard({
             <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
               <Grid columns={{ minWidth: 240 }} gap={3}>
                 {dispatches.map((rd) => (
-                  <RouteBlock key={rd.routeId} dispatch={rd} />
+                  <RouteBlock
+                    key={rd.routeId}
+                    dispatch={rd}
+                    isEditing={isEditing}
+                    onMove={moveSenior}
+                  />
                 ))}
               </Grid>
             </div>
@@ -287,9 +377,64 @@ export default function DispatchBoard({
   );
 }
 
+/** 드래그로 옮기는 중인 어르신 (카드 사이를 건너가므로 모듈 수준에 둔다) */
+interface DragPayload {
+  seniorId: string;
+  name: string;
+}
+
 /** 차량 한 대 - 헤드라인 + 회차별 명단 */
-function RouteBlock({ dispatch: rd }: { dispatch: RouteDispatch }) {
+function RouteBlock({
+  dispatch: rd,
+  isEditing,
+  onMove,
+}: {
+  dispatch: RouteDispatch;
+  isEditing: boolean;
+  onMove: (
+    seniorId: string,
+    routeId: string,
+    tripOrder: TripOrder | undefined,
+    beforeSeniorId: string | null
+  ) => void;
+}) {
   const isOff = rd.status === "운행없음" || rd.status === "휴일";
+  // 어느 자리에 놓이는지 보이지 않으면 '어디로 갈지 모르고 놓는' 조작이 된다
+  const [dropHint, setDropHint] = useState<string | null>(null);
+
+  const readDrag = (event: React.DragEvent): DragPayload | null => {
+    try {
+      const raw = event.dataTransfer.getData("application/x-carev-senior");
+      return raw ? (JSON.parse(raw) as DragPayload) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleDrop = (
+    event: React.DragEvent,
+    tripOrder: TripOrder | undefined,
+    beforeSeniorId: string | null
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDropHint(null);
+    const payload = readDrag(event);
+    if (!payload) return;
+    // 운행하지 않는 차에 태우면 그 어르신이 명단에서 사라져 버린다
+    if (isOff) return;
+    onMove(payload.seniorId, rd.routeId, tripOrder, beforeSeniorId);
+  };
+
+  const allowDrop = (event: React.DragEvent, hint: string) => {
+    if (!isEditing || isOff) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDropHint(hint);
+  };
+
+  // 회차를 쓰지 않는 노선에 처음 놓을 때의 회차값 — 기존 그룹을 따라간다
+  const defaultTripOrder = rd.tripGroups[0]?.tripOrder;
 
   return (
     <Card padding={3} variant={isOff ? "muted" : "default"}>
@@ -305,23 +450,84 @@ function RouteBlock({ dispatch: rd }: { dispatch: RouteDispatch }) {
             {rd.reason || rd.status}
           </Text>
         ) : rd.tripGroups.length === 0 ? (
-          <Text type="supporting" color="disabled">
-            탑승 없음
-          </Text>
+          // 빈 차에도 놓을 수 있어야 한다 — 오늘만 저 차에 태우는 일이 실제로 생긴다
+          <div
+            onDragOver={(event) => allowDrop(event, "empty")}
+            onDragLeave={() => setDropHint(null)}
+            onDrop={(event) => handleDrop(event, defaultTripOrder, null)}
+            style={{
+              padding: "var(--spacing-1)",
+              borderRadius: "var(--radius-inner)",
+              border: isEditing ? "1px dashed var(--color-border)" : "none",
+              background: dropHint === "empty" ? "var(--color-background-muted)" : "transparent",
+            }}
+          >
+            <Text type="supporting" color="disabled">
+              {isEditing ? "여기에 놓으면 이 차에 태웁니다" : "탑승 없음"}
+            </Text>
+          </div>
         ) : (
-          rd.tripGroups.map((group, index) => (
-            <HStack key={group.tripOrder ?? index} gap={1.5} vAlign="start">
-              {group.tripOrder && (
-                // "1차)"가 "1 / 차)"로 쪼개지면 명단이 아니라 오류처럼 읽힌다
-                <div style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                  <Text type="supporting" weight="semibold" color="accent">
-                    {group.tripOrder}차)
-                  </Text>
-                </div>
-              )}
-              <Text type="supporting">{group.seniors.map((s) => s.name).join(" ")}</Text>
-            </HStack>
-          ))
+          rd.tripGroups.map((group, index) => {
+            const groupKey = String(group.tripOrder ?? index);
+            return (
+              <HStack key={groupKey} gap={1.5} vAlign="start">
+                {group.tripOrder && (
+                  // "1차)"가 "1 / 차)"로 쪼개지면 명단이 아니라 오류처럼 읽힌다
+                  <div style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
+                    <Text type="supporting" weight="semibold" color="accent">
+                      {group.tripOrder}차)
+                    </Text>
+                  </div>
+                )}
+                {isEditing ? (
+                  <div
+                    onDragOver={(event) => allowDrop(event, `g${groupKey}`)}
+                    onDragLeave={() => setDropHint(null)}
+                    onDrop={(event) => handleDrop(event, group.tripOrder, null)}
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "var(--spacing-1)",
+                      flex: 1,
+                      minWidth: 0,
+                      padding: "var(--spacing-1)",
+                      borderRadius: "var(--radius-inner)",
+                      background:
+                        dropHint === `g${groupKey}` ? "var(--color-background-muted)" : "transparent",
+                    }}
+                  >
+                    {group.seniors.map((senior) => (
+                      <span
+                        key={senior.id}
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData(
+                            "application/x-carev-senior",
+                            JSON.stringify({ seniorId: senior.id, name: senior.name } as DragPayload)
+                          );
+                        }}
+                        onDragOver={(event) => allowDrop(event, `s${senior.id}`)}
+                        onDragLeave={() => setDropHint(null)}
+                        onDrop={(event) => handleDrop(event, group.tripOrder, senior.id)}
+                        className="carev-dispatch-chip"
+                        style={{
+                          borderLeft:
+                            dropHint === `s${senior.id}`
+                              ? "2px solid var(--color-accent)"
+                              : "2px solid transparent",
+                        }}
+                      >
+                        {senior.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <Text type="supporting">{group.seniors.map((s) => s.name).join(" ")}</Text>
+                )}
+              </HStack>
+            );
+          })
         )}
       </VStack>
     </Card>

@@ -2086,6 +2086,43 @@ export async function updateMyPosition(positionId: number | null) {
     });
 }
 
+/**
+ * 그날 하루치 배차 수정본.
+ *
+ * 배차표는 노선 설정에서 매일 다시 계산된다. 그날만의 조정("오늘은 저 어르신을 저 차에")은
+ * 설정을 건드리지 않고 여기에 따로 쌓아 그날 화면에만 얹는다.
+ */
+export async function getDispatchOverrides(date: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/dispatch-overrides?companyId=${companyId}&date=${date}`);
+}
+
+/** 그날 수정본 저장. 빈 배열을 보내면 그 날은 설정대로 돌아간다 */
+export async function saveDispatchOverrides(date: string, assignments: unknown[]) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/dispatch-overrides?companyId=${companyId}&date=${date}`, {
+        method: 'PUT',
+        body: JSON.stringify({ assignments }),
+    });
+}
+
+/** 그날 수정본을 지운다 — 설정대로 되돌린다 */
+export async function clearDispatchOverrides(date: string) {
+    const companyId = getCompanyId();
+    if (!companyId) {
+        throw new Error('Company ID가 필요합니다. 다시 로그인해주세요.');
+    }
+    return fetchWithAuth(`/api/v1/dispatch-overrides?companyId=${companyId}&date=${date}`, {
+        method: 'DELETE',
+    });
+}
+
 /** 내 프로필 사진 등록/교체 (관리자 전용). 직원과 같은 규격 — jpg/png/webp, 5MB 이하 */
 export async function uploadMyProfileImage(file: File) {
     const formData = new FormData();

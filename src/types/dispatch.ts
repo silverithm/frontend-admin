@@ -44,6 +44,22 @@ export interface SeniorAbsence {
   reason?: string;
 }
 
+/**
+ * 그날 하루치 배차 수정본 한 줄.
+ *
+ * 배차표는 노선 설정에서 매일 다시 계산된다. "오늘은 저 어르신을 저 차에" 같은 조정을
+ * 설정에 직접 하면 다음 날부터도 바뀌어 버리므로, 그날치만 따로 얹는다.
+ */
+export interface DispatchAssignmentOverride {
+  seniorId: string;
+  /** 그날 탈 노선 */
+  routeId: string;
+  /** 그날 탈 회차. 회차를 쓰지 않는 노선이면 비운다 */
+  tripOrder?: TripOrder;
+  /** 그 노선 안에서의 탑승 순서 */
+  boardingOrder: number;
+}
+
 // 배차 설정 데이터 (저장용)
 export interface DispatchSettings {
   routes: Route[];

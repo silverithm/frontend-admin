@@ -40,6 +40,8 @@ import {
   IconPencil,
   IconTrash,
   IconPlus,
+  IconChevronsDown,
+  IconChevronsUp,
   type TablerIcon,
 } from '@tabler/icons-react';
 import {
@@ -141,6 +143,12 @@ const DASH_CELL_DEFAULT_HEIGHT = 92;
  * (날짜 숫자 30 + 바 두 줄 15+2+15가 겨우 서는 높이 — 아래 줄 수 최소 2와 짝이다)
  */
 const DASH_CELL_FLOOR = 64;
+/**
+ * 펼침 모드에서 행 높이를 미리 계산할 때 쓰는 휴무자 한 줄 높이.
+ * CalendarVacationPane의 한 줄 + 줄 간격(gap 1)을 실측한 근사치다 — 이 값이
+ * 실제보다 작으면 펼쳤는데도 아래쪽 이름이 칸 밖으로 잘린다.
+ */
+const DASH_VACATION_ROW_HEIGHT = 17;
 /**
  * 달력은 패널이 주는 높이를 주 수만큼 균등하게 나눠 갖는다. 5주 달에 맞던 고정
  * 높이를 6주 달(예: 2026-08)에 그대로 쓰면 마지막 줄이 잘리므로, 실제 행 높이를
@@ -250,7 +258,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [editTaskForm, setEditTaskForm] = useState({ content: '', assigneeMemberId: '' });
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [elderCount, setElderCount] = useState(0);
-  const [employeeAttendance, setEmployeeAttendance] = useState({ total: 0, present: 0, absent: 0, vacation: 0 });
+  const [employeeAttendance, setEmployeeAttendance] = useState<{
+    total: number; present: number; absent: number; vacation: number; vacationNames: string[];
+  }>({ total: 0, present: 0, absent: 0, vacation: 0, vacationNames: [] });
   const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
@@ -286,6 +296,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
   // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (월간일정 탭과 선택을 공유한다)
   const [pane, setPane] = useState<CalendarPane>('both');
+  // 칸이 낮아 "+N개"·"+N"으로 접힌 것들을 한 번에 다 펼쳐 보는 모드.
+  // 켜면 행이 내용만큼 자라고, 패널 높이를 넘는 만큼은 주 영역이 스크롤한다.
+  const [isCalExpanded, setIsCalExpanded] = useState(false);
   const [monthVacations, setMonthVacations] = useState<Map<string, VacationPerson[]>>(new Map());
   // 케어브이 시스템 공지 — 광장에 [운영]으로 올린 글을 기관 공지 위에 함께 보여준다
   const [officialNotices, setOfficialNotices] = useState<ApiOfficialNotice[]>([]);
@@ -349,7 +362,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             getVacationCalendar(todayStr, todayStr),
             getNotices(),
             Promise.resolve({ count: 0 }),
-            Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0 }),
+            Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0, vacationNames: [] }),
             Promise.resolve({ total: 0, present: 0, absent: 0 }),
           ];
       const results = await Promise.allSettled(apiCalls);
@@ -454,13 +467,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       }
 
       if (results[8].status === 'fulfilled') {
-        const d = results[8].value as Record<string, number>;
+        const d = results[8].value as Record<string, unknown>;
         if (d && typeof d.total === 'number') {
+          const num = (v: unknown) => (typeof v === 'number' ? v : 0);
           setEmployeeAttendance({
-            total: d.total || 0,
-            present: d.present || 0,
-            absent: d.absent || 0,
-            vacation: d.vacation || 0,
+            total: num(d.total),
+            present: num(d.present),
+            absent: num(d.absent),
+            vacation: num(d.vacation),
+            // 구버전 서버는 이름을 내려주지 않는다 — 그때는 숫자만 보여준다
+            vacationNames: Array.isArray(d.vacationNames) ? (d.vacationNames as string[]) : [],
           });
         }
       }
@@ -905,8 +921,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const dashRowHeight = weeksAreaHeight > 0
     ? Math.max(weeksAreaHeight / monthlyCalendarDays.weeksCount, DASH_CELL_FLOOR)
     : DASH_CELL_DEFAULT_HEIGHT;
-  const dashMaxBarLanes = dashBarLanesForRow(dashRowHeight);
-  const dashVacationMaxVisible = dashVacationRowsForRow(dashRowHeight);
+  // 펼침 모드에서는 줄 수 상한을 없앤다. buildWeekBarLayouts는 `lane < maxLanes`,
+  // CalendarVacationPane은 `people.length > limit` 비교라 Infinity를 그대로 받아준다.
+  const dashMaxBarLanes = isCalExpanded ? Number.POSITIVE_INFINITY : dashBarLanesForRow(dashRowHeight);
+  const dashVacationMaxVisible = isCalExpanded ? Number.POSITIVE_INFINITY : dashVacationRowsForRow(dashRowHeight);
 
   /**
    * 주별 바 레이아웃. 월간일정 탭과 같은 규칙으로 여러 날 일정을 하나로 잇는다.
@@ -978,6 +996,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               { label: '출석', value: elderAttendance.present },
               { label: '결석', value: elderAttendance.absent },
             ],
+            names: [] as string[],
           },
           {
             key: 'staff',
@@ -988,6 +1007,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               { label: '근무', value: employeeAttendance.present },
               { label: '휴무', value: employeeAttendance.vacation },
             ],
+            // 숫자만으로는 누가 없는지 몰라 근무조정 탭까지 가야 했다 — 이름을 여기서 바로 보여준다
+            names: employeeAttendance.vacationNames,
           },
         ].map((card) => (
           <Card key={card.key} padding={4}>
@@ -1021,6 +1042,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               </StackItem>
             </HStack>
+            {card.names.length > 0 && (
+              /* 쉬는 사람이 있을 때만 한 줄 더 쓴다 — 없는 날은 카드 높이를 그대로 둔다 */
+              <div style={{ marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)' }}>
+                <Text type="supporting" color="secondary" maxLines={2}>
+                  {`오늘 휴무 · ${card.names.join(', ')}`}
+                </Text>
+              </div>
+            )}
           </Card>
         ))}
       </motion.div>
@@ -1340,6 +1369,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           <IconButton label="이전 달" variant="ghost" size="sm" icon={<Icon icon="chevronLeft" size="sm" />} onClick={() => setCalendarMonth((prev) => startOfMonth(subMonths(prev, 1)))} />
                           <IconButton label="다음 달" variant="ghost" size="sm" icon={<Icon icon="chevronRight" size="sm" />} onClick={() => setCalendarMonth((prev) => startOfMonth(addMonths(prev, 1)))} />
                         </div>
+                        {/* 칸이 낮아 접힌 일정·휴무자를 한 번에 다 펼친다 */}
+                        <Button
+                          label={isCalExpanded ? '접기' : '펼치기'}
+                          variant={isCalExpanded ? 'primary' : 'ghost'}
+                          size="sm"
+                          icon={<Icon icon={isCalExpanded ? IconChevronsUp : IconChevronsDown} size="sm" />}
+                          onClick={() => setIsCalExpanded((v) => !v)}
+                        />
                         <Button label="오늘" variant="ghost" size="sm" onClick={() => { setCalendarMonth(startOfMonth(new Date())); setSelectedDate(new Date()); }} />
                       </HStack>
                       {/* 읽기만 하는 숫자 둘을 한 덩어리로 묶는다 */}
@@ -1418,10 +1455,29 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 <div ref={weeksAreaRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {monthlyCalendarDays.weeks.map((week, weekIndex) => {
                   const layout = monthlyWeekBars[weekIndex];
+                  // 펼침 모드에서는 행이 높이를 나눠 갖는 대신, 그 주에 실제로 그려야 하는
+                  // 바 줄 수·휴무자 수만큼 키운다. 안 보이는 쪽(일정만/휴무만 보기)은 계산에서 뺀다.
+                  let expandedMinHeight = DASH_CELL_DEFAULT_HEIGHT;
+                  if (isCalExpanded) {
+                    const laneCount = showsSchedules(pane) ? (layout?.laneCount ?? 0) : 0;
+                    const barArea = DASH_BAR_AREA_TOP + laneCount * (DASH_BAR_HEIGHT + DASH_BAR_GAP) + 8;
+                    const maxPeople = showsVacations(pane)
+                      ? week.reduce((max, cell) => Math.max(max, monthVacations.get(cell.dayStr)?.length || 0), 0)
+                      : 0;
+                    const vacationArea = DASH_BAR_AREA_TOP + maxPeople * DASH_VACATION_ROW_HEIGHT + 8;
+                    expandedMinHeight = Math.max(barArea, vacationArea, DASH_CELL_DEFAULT_HEIGHT);
+                  }
                   return (
                 <div
                   key={`week-${weekIndex}`}
-                  style={{ position: 'relative', display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flex: 1, minHeight: DASH_CELL_FLOOR }}
+                  style={{
+                    position: 'relative',
+                    display: 'grid',
+                    gridTemplateColumns: WEEK_GRID_COLUMNS,
+                    // 접힘: 남는 높이를 주끼리 나눠 갖는다 / 펼침: 내용이 요구하는 만큼 고정으로 자란다
+                    flex: isCalExpanded ? '0 0 auto' : 1,
+                    minHeight: isCalExpanded ? expandedMinHeight : DASH_CELL_FLOOR,
+                  }}
                 >
                   {week.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const hiddenCount = layout?.hiddenCounts[dayStr] || 0;
@@ -1481,7 +1537,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           <>
                             {/* 모바일: 도트 표시 (일정 색상 그대로) */}
                             <div className="carev-dash-cal-dots" style={{ alignItems: 'center', justifyContent: 'flex-start', gap: 'var(--spacing-0-5)' }}>
-                              {daySchedules.slice(0, 3).map((schedule, i) => (
+                              {/* 펼침 모드면 도트도 전부 — 모바일에서 "+N"만 남는 걸 피한다 */}
+                              {daySchedules.slice(0, isCalExpanded ? daySchedules.length : 3).map((schedule, i) => (
                                 <div
                                   key={`${schedule.id}-dot-${i}`}
                                   style={{
@@ -1493,7 +1550,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                                   }}
                                 />
                               ))}
-                              {scheduleCount > 3 && (
+                              {!isCalExpanded && scheduleCount > 3 && (
                                 <span style={{ fontSize: 'var(--font-size-3xs)', fontWeight: 'var(--font-weight-bold)', lineHeight: 'var(--text-display-1-leading)', color: 'var(--color-text-gray)' }}>+{scheduleCount - 3}</span>
                               )}
                             </div>
