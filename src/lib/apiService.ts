@@ -2514,8 +2514,15 @@ export async function updateCompanyElder(id: string | number, data: {
 }
 
 // 어르신 케어 정보만 갱신 (앱·웹 공용 엔드포인트 — 이름·주소는 건드리지 않는다)
-export async function updateElderCareProfile(id: string | number, profile: ElderCareProfileInput) {
-    return fetchWithAuth(`/v1/elders/company/elder/${id}/care-profile`, {
+export async function updateElderCareProfile(
+    id: string | number,
+    profile: ElderCareProfileInput,
+    options: { merge?: boolean } = {},
+) {
+    // merge는 엑셀 채우기 전용이다 — 값이 없는 칸은 저장된 값을 그대로 둔다.
+    // 화면 수정은 merge 없이 부른다: 스위치를 끄거나 메모를 지운 것이 저장돼야 한다.
+    const query = options.merge ? '?merge=true' : '';
+    return fetchWithAuth(`/v1/elders/company/elder/${id}/care-profile${query}`, {
         method: 'PUT',
         body: JSON.stringify(profile),
     });

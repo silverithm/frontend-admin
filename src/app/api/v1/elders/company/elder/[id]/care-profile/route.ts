@@ -23,8 +23,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     const body = await request.json();
+    // merge=true는 엑셀 채우기 — 값이 없는 칸은 저장된 값을 그대로 둔다.
+    // 이 한 글자가 빠지면 자리 시트만 올려도 투약이 지워진다.
+    const merge = request.nextUrl.searchParams.get('merge') === 'true' ? '?merge=true' : '';
 
-    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/elders/company/elder/${id}/care-profile`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/v1/elders/company/elder/${id}/care-profile${merge}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

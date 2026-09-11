@@ -62,7 +62,9 @@ async function fillCareProfiles(
 
   const fillOne = async (input: BulkElderInput) => {
     try {
-      await updateElderCareProfile(input.existingId!, input.careProfile!);
+      // 엑셀의 빈 칸은 '지우기'가 아니라 '그대로 두기'다 — 시트마다 담는 항목이 달라서
+      // 자리 시트만 올렸다고 투약이 지워지면 안 된다.
+      await updateElderCareProfile(input.existingId!, input.careProfile!, { merge: true });
     } catch (error) {
       failed.push({ input, message: errorMessage(error) });
     } finally {
