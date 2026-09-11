@@ -1,6 +1,7 @@
 // apiService.ts - Spring Boot 백엔드 API 호출을 위한 서비스
 
 import {VacationRequest, VacationLimit} from '@/types/vacation';
+import type { ElderCareProfileInput } from '@/types/elderly';
 import { ALL_ROLE_FILTER, getStoredUserRole } from '@/lib/roleUtils';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import {
@@ -2413,6 +2414,7 @@ export async function deleteSchedule(id: string) {
 }
 
 // ================== 어르신 관리 API ==================
+// 케어 정보 요청 모양 — 타입만 쓰므로 런타임 의존은 생기지 않는다
 
 // 어르신 목록 조회
 export async function getCompanyElders() {
@@ -2437,6 +2439,7 @@ export async function addCompanyElder(data: {
     name: string;
     homeAddress?: string;
     requiredFrontSeat?: boolean;
+    careProfile?: ElderCareProfileInput;
 }) {
     const companyId = getCompanyId();
     if (!companyId) {
@@ -2448,6 +2451,8 @@ export async function addCompanyElder(data: {
             name: data.name,
             homeAddress: data.homeAddress || '',
             requiredFrontSeat: data.requiredFrontSeat || false,
+            // careProfile은 '안 보냄'과 '빈 객체'가 서버에서 다른 뜻이라 없을 때는 키 자체를 뺀다
+            ...(data.careProfile ? { careProfile: data.careProfile } : {}),
         }),
     });
 }
@@ -2457,6 +2462,7 @@ export async function updateCompanyElder(id: string | number, data: {
     name: string;
     homeAddress?: string;
     requiredFrontSeat?: boolean;
+    careProfile?: ElderCareProfileInput;
 }) {
     return fetchWithAuth(`/v1/elders/company/elder/${id}`, {
         method: 'PUT',
@@ -2464,8 +2470,27 @@ export async function updateCompanyElder(id: string | number, data: {
             name: data.name,
             homeAddress: data.homeAddress || '',
             requiredFrontSeat: data.requiredFrontSeat || false,
+            // 미포함 = 케어 정보를 건드리지 않는다 (계약서 4번)
+            ...(data.careProfile ? { careProfile: data.careProfile } : {}),
         }),
     });
+}
+
+// 어르신 케어 정보만 갱신 (앱·웹 공용 엔드포인트 — 이름·주소는 건드리지 않는다)
+export async function updateElderCareProfile(id: string | number, profile: ElderCareProfileInput) {
+    return fetchWithAuth(`/v1/elders/company/elder/${id}/care-profile`, {
+        method: 'PUT',
+        body: JSON.stringify(profile),
+    });
+}
+
+/**
+ * 주민번호 전체 보기 — 관리자만 열 수 있고 서버에 열람 로그가 남는다.
+ * 목록에는 마스킹본만 실리므로 전체 번호가 필요한 순간에만 이걸 부른다.
+ */
+export async function revealElderResidentNumber(id: string | number): Promise<string> {
+    const data = await fetchWithAuth(`/v1/elders/company/elder/${id}/resident-number`);
+    return typeof data?.residentNumber === 'string' ? data.residentNumber : '';
 }
 
 // 어르신 삭제

@@ -51,6 +51,8 @@ interface ChatManagementProps {
     isAdmin?: boolean;
     /** 바깥(우측 레일 등)에서 지목한 대화방 — 열릴 때 이 방을 펴 둔다 */
     initialRoomId?: number | null;
+    /** 같은 방을 연달아 지목해도 다시 펴도록, 지목할 때마다 셸이 올려 주는 값 */
+    initialRoomNonce?: number;
     /**
      * 전체 안 읽은 메시지 수를 셸에 알린다 — 채팅 탭이 열려 있는 동안은 레일이
      * 내려가 있어(같은 목록 중복) 이 화면이 배지 숫자를 책임진다.
@@ -216,7 +218,7 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
 // 날짜 구분선(getDateKey/formatDateSeparator)과 사진 묶음 규칙은
 // @/lib/chatMessageGrouping으로 옮겨 플로팅 채팅과 같은 규칙을 공유한다.
 
-export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, onUnreadChange, onActiveRoomChange }: ChatManagementProps) {
+export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, initialRoomNonce = 0, onUnreadChange, onActiveRoomChange }: ChatManagementProps) {
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<number | null>(initialRoomId);
 
@@ -229,11 +231,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         onUnreadChange?.(rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0));
     }, [rooms, onUnreadChange]);
 
-    // 우측 레일에서 사람이나 방을 눌러 들어온 경우 그 방을 펴 준다.
-    // 같은 방을 다시 눌렀을 때도 반응해야 하므로 값이 같아도 무시하지 않는다.
+    // 우측 레일이나 새 메시지 토스트에서 방을 눌러 들어온 경우 그 방을 펴 준다.
+    // 같은 방을 다시 눌렀을 때도 반응해야 한다 — 방 번호만 의존성에 두면 값이 같아
+    // effect가 다시 돌지 않아, 목록으로 나갔다가 같은 방 알림을 누르면 목록에 머물렀다.
+    // 그래서 셸이 누를 때마다 올려 주는 nonce를 함께 본다.
     useEffect(() => {
         if (initialRoomId != null) setSelectedRoom(initialRoomId);
-    }, [initialRoomId]);
+    }, [initialRoomId, initialRoomNonce]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     /** 지금 화면이 들고 있는 메시지 — effect 안에서 최신값을 보기 위한 거울 */
     const messagesRef = useRef<ChatMessage[]>([]);
@@ -2073,7 +2077,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             </Text>
                                                         </div>
                                                     )}
-                                                    <div className="carev-chat-msgrow" style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)' }}>
+                                                    <div className="carev-chat-msgrow" style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)', maxWidth: "100%" }}>
                                                         {isMyMessage && (
                                                             <>
                                                                 {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/공지 메뉴에 닿을 수 있어야 한다 */}
@@ -2099,6 +2103,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                             style={{
                                                                 position: "relative",
+                                                                // flex 항목의 min-width 기본값은 auto라, 한 줄로 그리는 답장 인용문의
+                                                                // 폭이 곧 말풍선의 최소 폭이 된다 — 부모의 560px 상한을 그대로 뚫고 나갔다.
+                                                                // 0으로 풀어야 인용문이 줄임표로 잘리고 말풍선은 상한 안에 머문다.
+                                                                minWidth: 0,
+                                                                maxWidth: "100%",
                                                                 padding: "var(--spacing-2) var(--spacing-3)",
                                                                 ...(isMyMessage
                                                                     // 저대비로 기각된 하드코딩 색 대신 테마 accent 토큰 사용 (AA 대비 확보)

@@ -10,10 +10,13 @@
  */
 
 import { authorizedFetch, addCompanyElder } from '@/lib/apiService';
+import type { ElderCareProfileInput } from '@/types/elderly';
 
 export interface BulkElderInput {
   name: string;
   homeAddress?: string;
+  /** 엑셀에 케어 열이 채워져 있던 행만 갖는다 — 없으면 프로필을 만들지 않는다 */
+  careProfile?: ElderCareProfileInput;
 }
 
 export interface BulkRegisterResult {
@@ -54,6 +57,8 @@ export async function bulkRegisterElders(
   const payload = elders.map((e) => ({
     name: e.name,
     homeAddress: e.homeAddress || '',
+    // 키 자체를 빼야 서버가 '프로필 없음'으로 본다 (빈 객체는 빈 프로필을 만든다)
+    ...(e.careProfile ? { careProfile: e.careProfile } : {}),
   }));
 
   try {
@@ -80,6 +85,7 @@ export async function bulkRegisterElders(
       await addCompanyElder({
         name: input.name,
         homeAddress: input.homeAddress || undefined,
+        careProfile: input.careProfile,
       });
     } catch (error) {
       failed.push({ input, message: errorMessage(error) });
@@ -103,6 +109,7 @@ export async function bulkRegisterElders(
         await addCompanyElder({
           name: input.name,
           homeAddress: input.homeAddress || undefined,
+          careProfile: input.careProfile,
         });
       } catch (error) {
         failed.push({ input, message: errorMessage(error) });

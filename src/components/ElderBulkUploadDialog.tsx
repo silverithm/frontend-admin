@@ -123,6 +123,7 @@ export default function ElderBulkUploadDialog({
         registerTargets.map((r) => ({
           name: r.name,
           homeAddress: r.homeAddress || undefined,
+          careProfile: r.careProfile,
         })),
         (done, total) => setProgress({ done, total }),
       );

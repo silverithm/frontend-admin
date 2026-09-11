@@ -124,6 +124,21 @@ test('한 번 죽었던 네 경로는 반드시 살아 있다', () => {
     }
 });
 
+test('어르신 삭제·주민번호 프록시가 기관 검증이 붙은 경로를 부른다', () => {
+    // 삭제는 한때 검증 없는 `/api/v1/elder/{id}`를 불렀다 — 남의 기관 어르신도 지워지는 자리였다.
+    const elderRoute = readFileSync(join(API_DIR, 'v1', 'elders', 'company', 'elder', '[id]', 'route.ts'), 'utf8');
+    assert.match(elderRoute, /api\/v1\/elders\/company\/elder\/\$\{id\}`, \{\s*method: 'DELETE'/);
+    assert.doesNotMatch(elderRoute, /api\/v1\/elder\/\$\{id\}/);
+
+    // 평문 주민번호가 지나가는 경로 — 캐시가 켜지면 브라우저·CDN에 PII가 남는다
+    const rrnRoute = readFileSync(join(API_DIR, 'v1', 'elders', 'company', 'elder', '[id]', 'resident-number', 'route.ts'), 'utf8');
+    assert.match(rrnRoute, /export async function GET\b/);
+    assert.match(rrnRoute, /no-store/);
+
+    const careRoute = readFileSync(join(API_DIR, 'v1', 'elders', 'company', 'elder', '[id]', 'care-profile', 'route.ts'), 'utf8');
+    assert.match(careRoute, /export async function PUT\b/);
+});
+
 test('추출이 깨지지 않았다 — 호출을 충분히 찾아낸다', () => {
     // 정규식이 틀어져 0건을 뽑으면 위 테스트가 전부 조용히 통과해 버린다
     assert.ok(collectCalls().length > 50, `호출을 ${collectCalls().length}건밖에 못 뽑았다`);

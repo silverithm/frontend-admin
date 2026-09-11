@@ -155,6 +155,23 @@ export default function EmployeePage() {
     toast({ body: message, type: type === 'error' ? 'error' : 'info' });
   };
 
+  /** 같은 방을 다시 지목해도 채팅 화면이 반응하도록 지목할 때마다 올린다 */
+  const [railRoomNonce, setRailRoomNonce] = useState(0);
+  const openChatRoom = (roomId: number) => {
+    setRailRoomId(roomId);
+    setRailRoomNonce((n) => n + 1);
+    setActiveMainTab('chat');
+  };
+
+  /** 새 메시지 토스트 — 관리자 화면과 같이 '이동' 버튼으로 그 방까지 데려간다 (전엔 알림만 뜨고 갈 곳이 없었다) */
+  const showActionToast = (message: string, onGo: () => void) => {
+    toast({
+      body: message,
+      type: 'info',
+      endContent: <Button label="이동" size="sm" variant="ghost" onClick={onGo} />,
+    });
+  };
+
   if (!isClient) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--color-background-card)' }}>
@@ -341,7 +358,7 @@ export default function EmployeePage() {
                   {/* ChatManagement의 isAdmin prop은 실제로는 "채팅방 생성·삭제 권한"이다. 전용 채팅 권한이 없어
                       공지 관리 권한(NOTICE_MANAGE)을 대신 기준으로 쓰고 있다 — 기존 동작 유지, 이 컴포넌트는 다른
                       작업자가 수정 중이라 손대지 않는다. */}
-                  <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} initialRoomId={railRoomId} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
+                  <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} initialRoomId={railRoomId} initialRoomNonce={railRoomNonce} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
                 </motion.div>
               ) : activeMainTab === 'schedule' ? (
                 <motion.div
@@ -526,14 +543,11 @@ export default function EmployeePage() {
           <ChatRail
             hidden={activeMainTab === 'chat'}
             currentRoomId={activeMainTab === 'chat' ? activeChatRoomId : null}
-            onOpenRoom={(roomId) => {
-              setRailRoomId(roomId);
-              setActiveMainTab('chat');
-            }}
+            onOpenRoom={openChatRoom}
             onOpenChatTab={() => setActiveMainTab('chat')}
             onUnreadChange={setChatUnread}
             onNewMessage={(room) => {
-              showNotification(`${room.name} — 새로운 메시지가 왔습니다`, 'info');
+              showActionToast(`${room.name} — 새로운 메시지가 왔습니다`, () => openChatRoom(room.id));
             }}
           />
           </div>
