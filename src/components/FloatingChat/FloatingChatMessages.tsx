@@ -113,6 +113,29 @@ export function FloatingChatMessages({
     // 답글 관련
     const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
 
+    /** 답장 인용문을 눌러 찾아온 메시지 — 잠깐 배경으로 알려준다 */
+    const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+    /** 이동하지 못했을 때의 안내 — 이 창에는 알림 띄울 자리가 없어 목록 위에 잠깐 붙인다 */
+    const [jumpHint, setJumpHint] = useState<string | null>(null);
+
+    /**
+     * 인용된 원본으로 이동한다 (카톡과 같은 동작).
+     *
+     * 이 창은 목록을 부모가 들고 있고 옛 대화는 위로 올려야 붙는다. 아직 안 붙은
+     * 오래된 메시지라면 데려갈 방법이 없으므로, 말없이 가만있지 말고 그 사정을 알린다.
+     */
+    const jumpToMessageId = (messageId: number) => {
+        const target = document.getElementById(`floating-chat-message-${messageId}`);
+        if (!target) {
+            setJumpHint("더 위쪽 대화에 있습니다. 위로 올려 불러온 뒤 다시 눌러 주세요");
+            setTimeout(() => setJumpHint(null), 2500);
+            return;
+        }
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedMessageId(messageId);
+        setTimeout(() => setHighlightedMessageId(null), 2000);
+    };
+
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
@@ -574,8 +597,17 @@ export function FloatingChatMessages({
         if (!message.replyToId) return null;
         const isMyMessage = message.senderId === userId;
         return (
-            <div
+            <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); jumpToMessageId(message.replyToId!); }}
+                title="원본 메시지로 이동"
                 style={{
+                    appearance: "none",
+                    border: "none",
+                    font: "inherit",
+                    textAlign: "left",
+                    width: "100%",
+                    cursor: "pointer",
                     padding: "var(--spacing-1) var(--spacing-2)",
                     marginBottom: 'var(--spacing-1)',
                     borderRadius: 'var(--radius-none)',
@@ -584,18 +616,19 @@ export function FloatingChatMessages({
                     color: isMyMessage ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
                 }}
             >
-                <Text type="supporting" color="inherit" weight="semibold" maxLines={1}>
+                <Text type="supporting" color="inherit" weight="semibold">
                     {message.replyToSenderName}
                 </Text>
-                <div style={{ opacity: 0.8 }}>
-                    <Text type="supporting" color="inherit" maxLines={1}>
+                {/* 한 줄로 잘라 "..."을 붙이지 않는다 — 무슨 말에 답한 건지 읽는 자리다 */}
+                <div style={{ opacity: 0.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    <Text type="supporting" color="inherit">
                         {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
                         {message.replyToMediaType === "VIDEO" ? "🎬 동영상"
                             : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? "📷 사진"
                                 : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
                     </Text>
                 </div>
-            </div>
+            </button>
         );
     };
 
@@ -667,6 +700,28 @@ export function FloatingChatMessages({
             {/* Overlay for menus */}
             {(longPressMenuMessageId !== null || activeEmojiPickerMessageId !== null) && (
                 <div style={{ position: "fixed", inset: 0, zIndex: 30 }} onClick={handleBackdropClick} />
+            )}
+
+            {/* 이동하지 못했을 때의 안내 — 목록 위에 잠깐 떠 있다 */}
+            {jumpHint && (
+                <div
+                    role="status"
+                    style={{
+                        position: "absolute",
+                        top: 56,
+                        left: "var(--spacing-3)",
+                        right: "var(--spacing-3)",
+                        zIndex: 40,
+                        padding: "var(--spacing-1-5) var(--spacing-2)",
+                        borderRadius: 'var(--radius-inner)',
+                        background: 'var(--color-background-inverse, rgba(0,0,0,0.8))',
+                        color: 'var(--color-text-inverse, #fff)',
+                        textAlign: "center",
+                        fontSize: 'var(--font-size-sm)',
+                    }}
+                >
+                    {jumpHint}
+                </div>
             )}
 
             {/* Messages */}
@@ -770,12 +825,17 @@ export function FloatingChatMessages({
                             <Fragment key={message.id}>
                                 {dateSeparator}
                                 <div
+                                    id={`floating-chat-message-${message.id}`}
                                     style={{
                                         display: "flex",
                                         justifyContent: isMyMessage ? "flex-end" : "flex-start",
                                         alignItems: "flex-start",
                                         gap: 'var(--spacing-1-5)',
                                         position: "relative",
+                                        borderRadius: 'var(--radius-container)',
+                                        transition: "background-color 0.3s ease",
+                                        // 답장 인용문을 눌러 찾아온 메시지를 잠깐 배경으로 알려준다
+                                        backgroundColor: highlightedMessageId === message.id ? 'var(--color-background-yellow)' : "transparent",
                                     }}
                                 >
                                     {/* 아바타는 묶음의 첫 메시지에만. 이어지는 메시지는 같은 폭을 빈 자리로

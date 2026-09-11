@@ -1107,9 +1107,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
      */
     const handleSearchResultClick = async (message: ChatMessage) => {
         setSidePanel(null);
+        await jumpToMessageId(message.id);
+    };
 
-        if (messages.some(m => m.id === message.id)) {
-            scrollToMessageAndHighlight(message.id);
+    /**
+     * 메시지 하나로 이동한다 — 검색 결과에서도, 답장 인용문을 눌렀을 때도 같은 길을 쓴다.
+     *
+     * 지금 로드된 목록에 있으면 그냥 스크롤하고, 더 오래된 메시지면 그 주변을 불러와
+     * 목록을 그 구간으로 바꿔친다.
+     */
+    const jumpToMessageId = async (messageId: number) => {
+        if (messages.some(m => m.id === messageId)) {
+            scrollToMessageAndHighlight(messageId);
             return;
         }
 
@@ -1117,7 +1126,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         setIsLoadingMessages(true);
         resetOlderWindow();
         try {
-            const data = await fetchChatMessagesAround(selectedRoom, message.id, CHAT_PAGE_SIZE);
+            const data = await fetchChatMessagesAround(selectedRoom, messageId, CHAT_PAGE_SIZE);
             const msgList: ChatMessage[] = Array.isArray(data) ? data : (data.messages || []);
             if (msgList.length === 0) throw new Error("빈 응답");
             // 기존 /messages와 같은 최신순(DESC) 정렬 — 뒤집어야 오래된 메시지가 위로 온다
@@ -1125,7 +1134,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             setMessages(sorted);
             resetOlderWindow(Boolean(data?.hasBefore));
             setIsJumpedToOlder(Boolean(data?.hasAfter));
-            scrollToMessageAndHighlight(message.id);
+            scrollToMessageAndHighlight(messageId);
         } catch (error) {
             console.error("메시지 주변 조회 실패:", error);
             // 403(참가자 아님)·404(지운 메시지 등)·네트워크 오류 모두 같은 안내로 폴백한다
@@ -2125,10 +2134,21 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             }}
                                                             onContextMenu={(e) => { e.preventDefault(); setContextMenuMessageId(message.id); }}
                                                         >
-                                                            {/* 답글 원본 미리보기 */}
+                                                            {/* 답글 원본 미리보기 — 누르면 그 원본으로 이동한다 (카톡과 같은 동작).
+                                                                인용문은 한 줄로 잘라 "..."을 붙이지 않는다. 무슨 말에 답한 건지
+                                                                읽으려고 누르는 자리인데, 정작 그 말이 잘려 있으면 소용이 없다. */}
                                                             {message.replyToId && (
-                                                                <div
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); jumpToMessageId(message.replyToId!); }}
+                                                                    title="원본 메시지로 이동"
                                                                     style={{
+                                                                        appearance: "none",
+                                                                        border: "none",
+                                                                        font: "inherit",
+                                                                        textAlign: "left",
+                                                                        width: "100%",
+                                                                        cursor: "pointer",
                                                                         fontSize: 'var(--font-size-sm)',
                                                                         padding: "var(--spacing-1) var(--spacing-2)",
                                                                         marginBottom: 'var(--spacing-1-5)',
@@ -2138,14 +2158,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         color: isMyMessage ? "rgba(255,255,255,0.9)" : C.gray500,
                                                                     }}
                                                                 >
-                                                                    <div style={{ fontWeight: 'var(--font-weight-semibold)', overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.replyToSenderName}</div>
-                                                                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.8 }}>
+                                                                    <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{message.replyToSenderName}</div>
+                                                                    <div style={{ opacity: 0.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                                                                         {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
                                                                         {message.replyToMediaType === "VIDEO" ? "🎬 동영상"
                                                                             : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? "📷 사진"
                                                                                 : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
                                                                     </div>
-                                                                </div>
+                                                                </button>
                                                             )}
 
                                                             {photoGroup ? (
