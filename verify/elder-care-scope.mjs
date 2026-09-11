@@ -34,7 +34,11 @@ else {
   const reread = await fetch(`${B}/api/v1/elders/company/${a.companyId}`,{headers:H(a)}).then(r=>r.json());
   const fresh = reread.elders.find(e=>e.id===me.id)?.careProfile?.updatedAt;
   if (after === before) bad.push(`수정 응답의 최종 수정 시각이 갱신 전 값이다: ${after}`);
-  if (after !== fresh) bad.push(`수정 응답(${after})과 재조회(${fresh})의 최종 수정 시각이 다르다`);
+  // 응답은 메모리의 나노초, 재조회는 DATETIME(6)의 마이크로초라 문자열이 다르다 — 같은 순간인지만 본다
+  const ms = (t) => Date.parse(String(t).replace(/(\.\d{3})\d+$/, '$1'));
+  if (Math.abs(ms(after) - ms(fresh)) > 1) {
+    bad.push(`수정 응답(${after})과 재조회(${fresh})의 최종 수정 시각이 다르다`);
+  }
   await fetch(`${B}/api/v1/elders/company/elder/${me.id}`,{method:'DELETE',headers:H(a)});
 }
 
