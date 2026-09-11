@@ -36,6 +36,7 @@ import { FileInput } from '@astryxdesign/core/FileInput';
 import SubscriptionInfo from '@/components/SubscriptionInfo';
 import MySignatureCard from '@/components/approval/MySignatureCard';
 import { duration } from '@/theme/motion';
+import { useOrgPresenceStore } from '@/lib/orgPresenceStore';
 import { Link } from '@astryxdesign/core/Link';
 
 interface OrganizationProfileData {
@@ -196,6 +197,18 @@ export default function OrganizationProfilePage() {
   };
 
   /**
+   * 우측 채팅 레일·플로팅 채팅이 함께 쓰는 인원 명단을 다시 받는다.
+   *
+   * 그 명단은 기관별로 한 번만 받아 캐시한다. 사진을 바꿔도 캐시가 그대로라
+   * "프로필 업데이트 했는데 오른쪽 상태표시창에 반영이 안 된다"는 말이 나왔다 —
+   * 새로고침을 눌러야 바뀌는 건 바뀐 게 아니다.
+   */
+  const refreshOrgMembers = () => {
+    const companyId = typeof window !== 'undefined' ? localStorage.getItem('companyId') : null;
+    if (companyId) useOrgPresenceStore.getState().load(companyId, { force: true });
+  };
+
+  /**
    * 내 프로필 사진 등록/교체.
    *
    * 고르는 즉시 올린다 — 직책과 마찬가지로 이 카드에는 별도 저장 버튼이 없다.
@@ -208,6 +221,7 @@ export default function OrganizationProfilePage() {
     try {
       const result = await uploadMyProfileImage(file);
       setProfile(prev => (prev ? { ...prev, adminProfileImageUrl: result?.profileImageUrl || null } : prev));
+      refreshOrgMembers();
       showAlert({ type: 'success', message: '프로필 사진을 등록했습니다' });
     } catch (e) {
       console.error('프로필 사진 등록 실패:', e);
@@ -225,6 +239,7 @@ export default function OrganizationProfilePage() {
     try {
       await deleteMyProfileImage();
       setProfile(prev => (prev ? { ...prev, adminProfileImageUrl: null } : prev));
+      refreshOrgMembers();
       showAlert({ type: 'success', message: '프로필 사진을 삭제했습니다' });
     } catch (e) {
       console.error('프로필 사진 삭제 실패:', e);

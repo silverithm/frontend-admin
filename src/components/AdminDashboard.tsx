@@ -250,7 +250,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   const [editTaskForm, setEditTaskForm] = useState({ content: '', assigneeMemberId: '' });
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [elderCount, setElderCount] = useState(0);
-  const [employeeAttendance, setEmployeeAttendance] = useState({ total: 0, present: 0, absent: 0, vacation: 0 });
+  const [employeeAttendance, setEmployeeAttendance] = useState<{
+    total: number; present: number; absent: number; vacation: number; vacationNames: string[];
+  }>({ total: 0, present: 0, absent: 0, vacation: 0, vacationNames: [] });
   const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0 });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
@@ -349,7 +351,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             getVacationCalendar(todayStr, todayStr),
             getNotices(),
             Promise.resolve({ count: 0 }),
-            Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0 }),
+            Promise.resolve({ total: 0, present: 0, absent: 0, vacation: 0, vacationNames: [] }),
             Promise.resolve({ total: 0, present: 0, absent: 0 }),
           ];
       const results = await Promise.allSettled(apiCalls);
@@ -454,13 +456,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
       }
 
       if (results[8].status === 'fulfilled') {
-        const d = results[8].value as Record<string, number>;
+        const d = results[8].value as Record<string, unknown>;
         if (d && typeof d.total === 'number') {
+          const num = (v: unknown) => (typeof v === 'number' ? v : 0);
           setEmployeeAttendance({
-            total: d.total || 0,
-            present: d.present || 0,
-            absent: d.absent || 0,
-            vacation: d.vacation || 0,
+            total: num(d.total),
+            present: num(d.present),
+            absent: num(d.absent),
+            vacation: num(d.vacation),
+            // 구버전 서버는 이름을 내려주지 않는다 — 그때는 숫자만 보여준다
+            vacationNames: Array.isArray(d.vacationNames) ? (d.vacationNames as string[]) : [],
           });
         }
       }
@@ -978,6 +983,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               { label: '출석', value: elderAttendance.present },
               { label: '결석', value: elderAttendance.absent },
             ],
+            names: [] as string[],
           },
           {
             key: 'staff',
@@ -988,6 +994,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
               { label: '근무', value: employeeAttendance.present },
               { label: '휴무', value: employeeAttendance.vacation },
             ],
+            // 숫자만으로는 누가 없는지 몰라 근무조정 탭까지 가야 했다 — 이름을 여기서 바로 보여준다
+            names: employeeAttendance.vacationNames,
           },
         ].map((card) => (
           <Card key={card.key} padding={4}>
@@ -1021,6 +1029,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 </div>
               </StackItem>
             </HStack>
+            {card.names.length > 0 && (
+              /* 쉬는 사람이 있을 때만 한 줄 더 쓴다 — 없는 날은 카드 높이를 그대로 둔다 */
+              <div style={{ marginTop: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)', borderTop: '1px solid var(--color-border)' }}>
+                <Text type="supporting" color="secondary" maxLines={2}>
+                  {`오늘 휴무 · ${card.names.join(', ')}`}
+                </Text>
+              </div>
+            )}
           </Card>
         ))}
       </motion.div>

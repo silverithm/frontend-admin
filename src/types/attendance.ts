@@ -3,6 +3,8 @@ export interface AttendanceSummary {
   present: number;
   absent: number;
   vacation: number;
+  /** 오늘 종일 쉬는 사람들의 이름. 숫자만 보고 근무조정 탭까지 넘어가지 않게 함께 내려준다. */
+  vacationNames?: string[];
 }
 
 export interface ElderAttendanceSummary {
