@@ -26,6 +26,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
+import SectionHeader from '@/components/SectionHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -74,6 +75,10 @@ const pageContainer: React.CSSProperties = {
 /**
  * 섹션 하나 = 제목(+설명) + 내용.
  * 섹션마다 구분선·여백을 따로 적어 두면 화면이 들쭉날쭉해지므로 여기서 한 번만 정한다.
+ *
+ * 제목 줄은 앱 공용 SectionHeader에 맡긴다 — 여기서 처음 정했던 규격이 나머지 화면으로
+ * 퍼져 나갔고, 이제는 그쪽이 기준이다. (예전엔 h2의 크기를 style로 내려 쓰고 있었는데,
+ * 지금은 h3 크기에 aria 레벨만 따로 주는 방식이라 그 해킹이 필요 없다)
  */
 function ProfileSection({
   title,
@@ -89,15 +94,7 @@ function ProfileSection({
 }) {
   return (
     <VStack gap={4}>
-      <HStack hAlign="between" vAlign="center" gap={3}>
-        <VStack gap={1}>
-          {/* 실제 <h2>로 렌더링 — 스크린리더 제목 탐색을 위해. Heading level=2 기본 크기(xl)는
-              원래 크기(lg)보다 커서 밀도가 달라지므로 fontSize만 고정한다(weight는 기본값이 이미 동일). */}
-          <Heading level={2} color="primary" style={{ fontSize: 'var(--font-size-lg)' }}>{title}</Heading>
-          {description && <Text type="supporting" color="secondary">{description}</Text>}
-        </VStack>
-        {action}
-      </HStack>
+      <SectionHeader title={title} description={description} action={action} />
       {children}
     </VStack>
   );
