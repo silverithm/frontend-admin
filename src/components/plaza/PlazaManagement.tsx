@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@astryxdesign/core/Card';
-import { Text } from '@astryxdesign/core/Text';
 import PageHeader from '@/components/PageHeader';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Badge } from '@astryxdesign/core/Badge';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack } from '@astryxdesign/core/Stack';
 import {
   IconBriefcase,
   IconBulb,

@@ -6,6 +6,8 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Heading } from '@astryxdesign/core/Heading';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { TextArea } from '@astryxdesign/core/TextArea';
@@ -38,6 +40,14 @@ interface MeetingMinutesFormProps {
   initial: MeetingMinutes | null;
   onDone: (minutes: MeetingMinutes, registered: boolean) => void;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
+  /**
+   * 팝업 머리글(DialogHeader). 이 폼이 팝업의 Layout 전체를 그리기 때문에 부모가 만들어 넘긴다.
+   *
+   * 예전에는 부모가 Layout을 갖고 이 폼을 content에만 끼웠다. 그래서 저장 버튼이 본문 맨
+   * 끝에 붙어, 긴 폼을 끝까지 스크롤해야 나타났다 — 다른 팝업 예순몇 개는 전부 하단
+   * 고정 푸터에 있는데 회의록만 달랐다.
+   */
+  header: React.ReactNode;
 }
 
 /** 로컬 기준 오늘 날짜 — toISOString은 UTC라 자정 전후로 어제 날짜가 나온다 */
@@ -96,6 +106,7 @@ export default function MeetingMinutesForm({
   initial,
   onDone,
   onNotification,
+  header,
 }: MeetingMinutesFormProps) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [location, setLocation] = useState(initial?.location ?? '');
@@ -256,6 +267,9 @@ export default function MeetingMinutesForm({
   }, [attendees.length, recorderPhase, buildInput, minutesId, onDone, onNotification]);
 
   return (
+    <Layout
+      header={header}
+      content={<LayoutContent>
     <VStack gap={4}>
       {/* 양식 선택 */}
       <Grid columns={2} gap={3}>
@@ -313,7 +327,7 @@ export default function MeetingMinutesForm({
 
       {/* 회의 녹음 + 실시간 자막 */}
       <VStack gap={1}>
-        <Text type="label" weight="medium" color="primary">회의 녹음</Text>
+        <Heading level={4} accessibilityLevel={3}>회의 녹음</Heading>
         <Text type="supporting" color="secondary">
           녹음하면 말이 실시간 자막으로 쌓이고, 원본 녹음은 1분 단위로 자동 저장됩니다.
           끝나고 AI 자동 정리를 누르면 자막과 메모가 섹션별 회의록으로 정리돼요.
@@ -406,23 +420,26 @@ export default function MeetingMinutesForm({
         />
       )}
 
-      {/* 동작 버튼 */}
-      <HStack gap={2} hAlign="end">
-        <Button
-          label="저장"
-          variant="secondary"
-          isLoading={saving}
-          isDisabled={registering}
-          onClick={() => void save(false)}
-        />
-        <Button
-          label={initial?.status === 'REGISTERED' ? '저장 (서명 수집 중)' : '등록하고 서명 요청'}
-          variant="primary"
-          isLoading={registering}
-          isDisabled={saving}
-          onClick={() => void save(initial?.status !== 'REGISTERED')}
-        />
-      </HStack>
     </VStack>
+      </LayoutContent>}
+      footer={<LayoutFooter hasDivider>
+        <HStack gap={2} hAlign="end">
+          <Button
+            label="저장"
+            variant="secondary"
+            isLoading={saving}
+            isDisabled={registering}
+            onClick={() => void save(false)}
+          />
+          <Button
+            label={initial?.status === 'REGISTERED' ? '저장 (서명 수집 중)' : '등록하고 서명 요청'}
+            variant="primary"
+            isLoading={registering}
+            isDisabled={saving}
+            onClick={() => void save(initial?.status !== 'REGISTERED')}
+          />
+        </HStack>
+      </LayoutFooter>}
+    />
   );
 }

@@ -8,6 +8,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Heading } from '@astryxdesign/core/Heading';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Text } from '@astryxdesign/core/Text';
 import { Grid } from '@astryxdesign/core/Grid';
@@ -33,6 +34,8 @@ interface MeetingMinutesDetailProps {
   onEdit: () => void;
   onDeleted: () => void;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
+  /** 팝업 머리글(DialogHeader). 이 화면이 팝업의 Layout 전체를 그리므로 부모가 넘긴다 */
+  header: React.ReactNode;
 }
 
 function formatWhen(minutes: MeetingMinutes): string {
@@ -63,6 +66,7 @@ export default function MeetingMinutesDetail({
   onEdit,
   onDeleted,
   onNotification,
+  header,
 }: MeetingMinutesDetailProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [signTarget, setSignTarget] = useState<MeetingMinutesAttendee | null>(null);
@@ -156,6 +160,9 @@ export default function MeetingMinutesDetail({
     : minutes.status === 'REGISTERED' ? 'blue' : 'neutral';
 
   return (
+    <Layout
+      header={header}
+      content={<LayoutContent>
     <VStack gap={4}>
       <ConfirmContainer />
       {/* 머리 정보 */}
@@ -240,7 +247,7 @@ export default function MeetingMinutesDetail({
       {/* 첨부 */}
       {(minutes.attachments?.length ?? 0) > 0 && (
         <VStack gap={1}>
-          <Text type="label" weight="medium">자료 첨부</Text>
+          <Heading level={4} accessibilityLevel={3}>자료 첨부</Heading>
           {minutes.attachments!.map((attachment) => (
             <Text key={attachment.id} type="supporting" color="secondary">{attachment.fileName}</Text>
           ))}
@@ -251,7 +258,7 @@ export default function MeetingMinutesDetail({
 
       {/* 참석자 서명 현황 */}
       <VStack gap={2}>
-        <Text type="label" weight="medium">참석자 서명 ({minutes.signedCount}/{minutes.attendeeCount})</Text>
+        <Heading level={4} accessibilityLevel={3}>참석자 서명 ({minutes.signedCount}/{minutes.attendeeCount})</Heading>
         <Grid columns={2} gap={2}>
           {attendees.map((attendee) => (
             <Card key={attendee.id} variant={attendee.signedAt ? 'default' : 'muted'} padding={3}>
@@ -299,44 +306,7 @@ export default function MeetingMinutesDetail({
         )}
       </VStack>
 
-      {/* 동작 */}
-      {minutes.status !== 'COMPLETED' && (
-        <>
-          <Divider />
-          <HStack gap={2} hAlign="between">
-            <HStack gap={2}>
-              <Button
-                label="삭제"
-                variant="destructive"
-                icon={<FiTrash2 />}
-                isLoading={busy === 'delete'}
-                onClick={() => void runDelete()}
-              />
-            </HStack>
-            <HStack gap={2}>
-              <Button label="수정" variant="secondary" icon={<FiEdit2 />} onClick={onEdit} />
-              {minutes.status === 'REGISTERED' && (
-                <>
-                  <Button
-                    label="미서명자 재알림"
-                    variant="secondary"
-                    icon={<FiBell />}
-                    isLoading={busy === 'remind'}
-                    onClick={() => void runRemind()}
-                  />
-                  <Button
-                    label="완료하고 문서함에 등록"
-                    variant="primary"
-                    icon={<FiCheckCircle />}
-                    isLoading={busy === 'complete'}
-                    onClick={() => void runComplete()}
-                  />
-                </>
-              )}
-            </HStack>
-          </HStack>
-        </>
-      )}
+
 
       {/* 현장 서명 다이얼로그 */}
       <Dialog
@@ -385,5 +355,43 @@ export default function MeetingMinutesDetail({
         />
       </Dialog>
     </VStack>
+      </LayoutContent>}
+      footer={minutes.status !== 'COMPLETED' ? (
+        <LayoutFooter hasDivider>
+          {/* 다른 팝업들처럼 하단 고정 — 예전에는 본문 맨 끝에 있어 긴 회의록에서는
+              끝까지 스크롤해야 수정·완료 버튼이 나왔다 */}
+          <HStack gap={2} hAlign="between">
+            <Button
+              label="삭제"
+              variant="destructive"
+              icon={<FiTrash2 />}
+              isLoading={busy === 'delete'}
+              onClick={() => void runDelete()}
+            />
+            <HStack gap={2}>
+              <Button label="수정" variant="secondary" icon={<FiEdit2 />} onClick={onEdit} />
+              {minutes.status === 'REGISTERED' && (
+                <>
+                  <Button
+                    label="미서명자 재알림"
+                    variant="secondary"
+                    icon={<FiBell />}
+                    isLoading={busy === 'remind'}
+                    onClick={() => void runRemind()}
+                  />
+                  <Button
+                    label="완료하고 문서함에 등록"
+                    variant="primary"
+                    icon={<FiCheckCircle />}
+                    isLoading={busy === 'complete'}
+                    onClick={() => void runComplete()}
+                  />
+                </>
+              )}
+            </HStack>
+          </HStack>
+        </LayoutFooter>
+      ) : undefined}
+    />
   );
 }

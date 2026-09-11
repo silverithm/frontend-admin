@@ -11,6 +11,7 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Heading } from "@astryxdesign/core/Heading";
+import PageHeader from "@/components/PageHeader";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconSparkles, IconCopy, IconRefresh } from "@tabler/icons-react";
 
@@ -151,15 +152,10 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
   return (
     <div style={{ width: "100%", maxWidth: 860, margin: "0 auto" }}>
       <VStack gap={4}>
-        <VStack gap={1}>
-          <HStack gap={2} vAlign="center">
-            <Icon icon={IconSparkles} size="md" color="accent" />
-            <Heading level={2} type="display-3">AI 글쓰기 도우미</Heading>
-          </HStack>
-          <Text as="p" type="body" color="secondary">
-            오늘 찍은 식사·프로그램 사진을 올리면 밴드/블로그 게시글을 자동으로 써드려요. 완성된 글을 복사해서 붙여넣기만 하면 됩니다.
-          </Text>
-        </VStack>
+        <PageHeader
+          title="AI 글쓰기 도우미"
+          description="오늘 찍은 식사·프로그램 사진을 올리면 밴드/블로그 게시글을 자동으로 써드려요. 완성된 글을 복사해서 붙여넣기만 하면 됩니다."
+        />
 
         <Card variant="default" padding={5}>
           <VStack gap={4}>
@@ -228,7 +224,7 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
           <Card variant="teal" padding={5}>
             <VStack gap={4}>
               <HStack gap={2} vAlign="center" hAlign="between">
-                <Heading level={3} type="display-3">{result.title || "완성된 글"}</Heading>
+                <Heading level={3}>{result.title || "완성된 글"}</Heading>
                 <Badge variant="teal" label={channel === "band" ? "밴드용" : "블로그용"} />
               </HStack>
 

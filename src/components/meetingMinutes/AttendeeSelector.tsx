@@ -9,6 +9,7 @@ import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList'
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Text } from '@astryxdesign/core/Text';
+import { Heading } from '@astryxdesign/core/Heading';
 import { HStack, StackItem, VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
 import MemberItem from '@/components/MemberItem';
@@ -134,7 +135,7 @@ export default function AttendeeSelector({ value, onChange }: AttendeeSelectorPr
   return (
     <VStack gap={3}>
       <VStack gap={1}>
-        <Text type="label" weight="medium" color="primary">참석자</Text>
+        <Heading level={4} accessibilityLevel={3}>참석자</Heading>
         <Text type="supporting" color="secondary">
           등록하면 참석자들에게 알림이 가고, 각자 앱에서 회의록을 확인하고 서명합니다.
         </Text>

@@ -21,6 +21,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from '@/components/PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { duration } from '@/theme/motion';
 
@@ -208,22 +209,19 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
     return (
         <VStack gap={4} height="100%">
-            {/* 헤더 */}
-            <HStack hAlign="between" vAlign="center">
-                <HStack gap={2} vAlign="center">
-                    <Icon icon={FiBriefcase} size="md" color="accent" />
-                    <Heading level={2}>역할 관리</Heading>
-                    {organizationName && (
-                        <Text type="supporting" color="secondary">({organizationName})</Text>
-                    )}
-                </HStack>
-                <IconButton
-                    label="새로고침"
-                    icon={<Icon icon={FiRefreshCw} />}
-                    variant="ghost"
-                    onClick={fetchData}
-                />
-            </HStack>
+            {/* 헤더 — 기관명은 제목 옆 괄호가 아니라 설명 줄로 내린다(다른 화면과 같은 자리) */}
+            <PageHeader
+                title="역할 관리"
+                description={organizationName || undefined}
+                actions={
+                    <IconButton
+                        label="새로고침"
+                        icon={<Icon icon={FiRefreshCw} />}
+                        variant="ghost"
+                        onClick={fetchData}
+                    />
+                }
+            />
 
             {/* 탭 */}
             <SegmentedControl

@@ -6,6 +6,8 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Heading } from '@astryxdesign/core/Heading';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Loading } from '@/components/Loading';
 import { Switch } from '@astryxdesign/core/Switch';
@@ -26,6 +28,13 @@ import { MinutesSection, MinutesTemplate } from '@/types/meetingMinutes';
 interface TemplateManagerProps {
   onClose: () => void;
   onNotification: (message: string, type: 'success' | 'error' | 'info') => void;
+  /**
+   * 팝업 머리글(DialogHeader). 이 화면이 팝업의 Layout 전체를 그리므로 부모가 넘긴다.
+   *
+   * 예전에는 버튼 줄이 두 군데로 쪼개져 있었다 — 삭제·저장은 편집 칼럼 맨 아래,
+   * 닫기는 그보다 더 아래 따로. 같은 팝업의 동작인데 높이가 서로 달랐다.
+   */
+  header: React.ReactNode;
 }
 
 let keySeed = 0;
@@ -58,7 +67,7 @@ function toDraft(template: MinutesTemplate): DraftState {
  * 각 양식은 섹션 구성 + AI 자동 정리가 따를 지시·출력 형식 예시를 함께 담는다.
  * 이미 작성된 회의록은 작성 당시 섹션을 스냅샷으로 갖고 있어 양식을 나중에 고쳐도 바뀌지 않는다.
  */
-export default function MeetingMinutesTemplateSettings({ onClose, onNotification }: TemplateManagerProps) {
+export default function MeetingMinutesTemplateSettings({ onClose, onNotification, header }: TemplateManagerProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [templates, setTemplates] = useState<MinutesTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,10 +196,18 @@ export default function MeetingMinutesTemplateSettings({ onClose, onNotification
   };
 
   if (isLoading) {
-    return <Loading size="inline" label="양식을 불러오는 중..." />;
+    return (
+      <Layout
+        header={header}
+        content={<LayoutContent><Loading size="inline" label="양식을 불러오는 중..." /></LayoutContent>}
+      />
+    );
   }
 
   return (
+    <Layout
+      header={header}
+      content={<LayoutContent>
     <VStack gap={4}>
       <ConfirmContainer />
       <Text type="supporting" color="secondary">
@@ -202,6 +219,7 @@ export default function MeetingMinutesTemplateSettings({ onClose, onNotification
         {/* 양식 목록 */}
         <StackItem>
           <VStack gap={2}>
+            <Heading level={4} accessibilityLevel={3}>양식 목록</Heading>
             {templates.map((template) => (
               <ClickableCard
                 key={keyOf(template)}
@@ -211,7 +229,8 @@ export default function MeetingMinutesTemplateSettings({ onClose, onNotification
                 isDisabled={keyOf(template) === selectedKey && selectedTemplate != null}
               >
                 <HStack gap={1} vAlign="center" hAlign="between">
-                  <Text type="supporting" weight={keyOf(template) === selectedKey ? 'semibold' : 'medium'}>
+                  {/* 이 카드의 제목이다. 11px이라 옆 배지와 크기가 같아 무엇이 이름인지 보이지 않았다 */}
+                  <Text type="body" weight={keyOf(template) === selectedKey ? 'bold' : 'semibold'}>
                     {template.name}
                   </Text>
                   {template.isDefault && <Badge variant="teal" label="기본" />}
@@ -222,10 +241,19 @@ export default function MeetingMinutesTemplateSettings({ onClose, onNotification
           </VStack>
         </StackItem>
 
-        {/* 편집 영역 */}
+        {/* 편집 영역 — 고르는 쪽과 고치는 쪽의 경계가 없어 한 덩어리로 보였다.
+            세로 선 하나로 두 단을 가른다. */}
         <StackItem size="fill">
+          {/* 두 단 경계 — 세로 Divider는 부모가 높이를 정해 주지 않으면 아무것도 그리지 않아
+              (Stack이 자식을 한 번 더 감싼다) 칼럼 자기 상자의 왼쪽 선으로 긋는다.
+              캘린더 격자와 같은 부류라 인라인 border를 남기는 쪽이 맞다. */}
+          <div style={{ borderLeft: '1px solid var(--color-border)', paddingLeft: 'var(--spacing-4)', height: '100%' }}>
+            <StackItem size="fill">
           {draft ? (
             <VStack gap={3}>
+              <Heading level={4} accessibilityLevel={3}>
+                {selectedTemplate?.id != null ? '양식 편집' : '새 양식'}
+              </Heading>
               <TextInput
                 label="양식 이름"
                 value={draft.name}
@@ -298,30 +326,37 @@ export default function MeetingMinutesTemplateSettings({ onClose, onNotification
                 labelSpacing="spread"
               />
 
-              <HStack gap={2} hAlign="between">
-                {selectedTemplate?.id != null ? (
-                  <Button
-                    label="삭제"
-                    variant="destructive"
-                    icon={<FiTrash2 />}
-                    isLoading={deleting}
-                    onClick={() => void removeTemplate()}
-                  />
-                ) : <span />}
-                <Button label="양식 저장" variant="primary" isLoading={saving} onClick={() => void save()} />
-              </HStack>
             </VStack>
           ) : (
             <Text type="supporting" color="secondary">왼쪽에서 양식을 고르거나 새로 만들어 주세요.</Text>
           )}
+            </StackItem>
+          </div>
         </StackItem>
       </Grid>
 
-      <Divider />
-
-      <HStack hAlign="end">
-        <Button label="닫기" variant="secondary" onClick={onClose} />
-      </HStack>
     </VStack>
+      </LayoutContent>}
+      footer={<LayoutFooter hasDivider>
+        {/* 삭제·저장·닫기를 한 줄에 모은다. 예전에는 저장과 닫기의 높이가 서로 달랐다 */}
+        <HStack gap={2} hAlign="between" vAlign="center">
+          {draft && selectedTemplate?.id != null ? (
+            <Button
+              label="삭제"
+              variant="destructive"
+              icon={<FiTrash2 />}
+              isLoading={deleting}
+              onClick={() => void removeTemplate()}
+            />
+          ) : <span />}
+          <HStack gap={2}>
+            <Button label="닫기" variant="secondary" onClick={onClose} />
+            {draft && (
+              <Button label="양식 저장" variant="primary" isLoading={saving} onClick={() => void save()} />
+            )}
+          </HStack>
+        </HStack>
+      </LayoutFooter>}
+    />
   );
 }

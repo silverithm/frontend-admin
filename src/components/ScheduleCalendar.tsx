@@ -6,6 +6,8 @@ import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -1910,9 +1912,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
                 {/* 색상 — 기본 구분일 때만. 커스텀 구분은 자기 색이 곧 일정 색이라
                     따로 고를 게 없다 (다른 색을 원하면 구분 관리에서 구분색을 바꾼다). */}
-                {!formData.labelId && (
+                {!formData.labelId && (<>
+                <Divider />
                 <VStack gap={1.5}>
-                  <Text type="label" weight="medium">색상</Text>
+                  <Heading level={4} accessibilityLevel={3}>색상</Heading>
                   {/* 한 줄을 꽉 채우는 균등 그리드 — 칸 수가 늘거나 줄어도 줄 끝이 맞는다 */}
                   <div
                     style={{
@@ -1954,7 +1957,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     )}
                   </div>
                 </VStack>
-                )}
+                </>)}
 
                 {/* 장소 */}
                 <TextInput
@@ -1964,10 +1967,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   placeholder="장소를 입력하세요"
                 />
 
+                <Divider />
+
                 {/* 날짜/시간 */}
                 <VStack gap={2}>
                   <HStack hAlign="between" vAlign="center">
-                    <Text type="label" weight="medium">날짜/시간</Text>
+                    <Heading level={4} accessibilityLevel={3}>날짜/시간</Heading>
                     <CheckboxInput
                       label="종일"
                       value={formData.isAllDay}
@@ -2023,10 +2028,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   options={managerCandidates.map((m) => ({ value: managerOptionValue(m), label: managerOptionLabel(m) }))}
                 />
 
+                <Divider />
+
                 {/* 참석자 선택 — 직종으로 좁혀 보고, 직종 단위로 한꺼번에 고를 수 있다 */}
                 <VStack gap={2}>
                   <HStack hAlign="between" vAlign="center">
-                    <Text type="label" weight="medium">참석자</Text>
+                    <Heading level={4} accessibilityLevel={3}>참석자</Heading>
                     {formData.participantIds.length > 0 && (
                       <HStack gap={2} vAlign="center">
                         <Text type="supporting" color="accent">{formData.participantIds.length}명 선택됨</Text>
@@ -2450,12 +2457,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
                       <VStack gap={2}>
                         <Text type="label" weight="medium">담당자</Text>
-                        <div style={{ padding: 'var(--spacing-2)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-teal)' }}>
-                          <HStack gap={2} vAlign="center">
-                            <Badge variant="teal" label="담당" />
-                            <Text type="supporting" color="primary" weight="semibold">{selectedSchedule.managerName}</Text>
-                          </HStack>
-                        </div>
+                        {/* 배지가 이미 '담당'이라고 말하고 있는데 줄 전체까지 틸로 칠해 두 번 강조됐다.
+                            색은 배지에 맡기고 면적은 비운다. 이름은 이 줄의 주인공이라 본문 크기로. */}
+                        <HStack gap={2} vAlign="center">
+                          <Badge variant="teal" label="담당" />
+                          <Text type="body" color="primary" weight="semibold">{selectedSchedule.managerName}</Text>
+                        </HStack>
                       </VStack>
                     </div>
                   )}
@@ -2615,7 +2622,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     placeholder="예: 운영, 인사, 회계, 사업"
                   />
                   <VStack gap={1.5}>
-                    <Text type="label" weight="medium">색상</Text>
+                    <Heading level={4} accessibilityLevel={3}>색상</Heading>
                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SCHEDULE_COLORS.length}, minmax(0, 1fr))`, gap: 'var(--spacing-2)' }}>
                       {SCHEDULE_COLORS.map((color) => (
                         <button

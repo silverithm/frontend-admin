@@ -12,6 +12,8 @@ import { MultiSelector } from '@astryxdesign/core/MultiSelector';
 import { Selector } from '@astryxdesign/core/Selector';
 import { HStack, StackItem, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Heading } from '@astryxdesign/core/Heading';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TimeInput } from '@astryxdesign/core/TimeInput';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
@@ -306,9 +308,10 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                 </HStack>
 
                 {/* 색상 — 기본 구분일 때만 (커스텀 구분은 자기 색을 쓴다) */}
-                {!formData.labelId && (
+                {!formData.labelId && (<>
+                  <Divider />
                   <VStack gap={1.5}>
-                    <Text type="label" weight="medium">색상</Text>
+                    <Heading level={4} accessibilityLevel={3}>색상</Heading>
                     <div
                       style={{
                         display: 'grid',
@@ -338,7 +341,7 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                       ))}
                     </div>
                   </VStack>
-                )}
+                </>)}
 
                 <TextInput
                   label="장소"
@@ -347,10 +350,12 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                   placeholder="장소를 입력하세요"
                 />
 
+                <Divider />
+
                 {/* 날짜/시간 */}
                 <VStack gap={2}>
                   <HStack hAlign="between" vAlign="center">
-                    <Text type="label" weight="medium">날짜/시간</Text>
+                    <Heading level={4} accessibilityLevel={3}>날짜/시간</Heading>
                     <CheckboxInput
                       label="종일"
                       value={formData.isAllDay}
@@ -404,10 +409,12 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                   options={managerCandidates.map((m) => ({ value: managerOptionValue(m), label: managerOptionLabel(m) }))}
                 />
 
+                <Divider />
+
                 {/* 참석자 선택 — 직종으로 좁혀 보고, 직종 단위로 한꺼번에 고를 수 있다 */}
                 <VStack gap={2}>
                   <HStack hAlign="between" vAlign="center">
-                    <Text type="label" weight="medium">참석자</Text>
+                    <Heading level={4} accessibilityLevel={3}>참석자</Heading>
                     {formData.participantIds.length > 0 && (
                       <HStack gap={2} vAlign="center">
                         <Text type="supporting" color="accent">{formData.participantIds.length}명 선택됨</Text>

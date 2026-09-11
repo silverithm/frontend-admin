@@ -9,6 +9,8 @@ import { Card } from '@astryxdesign/core/Card';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Divider } from '@astryxdesign/core/Divider';
+import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from '@/components/PageHeader';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -119,12 +121,10 @@ export default function EmployeeMeetingMinutes({ onNotification }: EmployeeMeeti
   return (
     <VStack gap={4}>
       {/* 머리글 */}
-      <VStack gap={0.5}>
-        <Text type="large" weight="semibold">회의록</Text>
-        <Text type="supporting" color="secondary">
-          내가 참석한 회의의 기록을 확인하고, 서명이 필요한 회의록에 서명하세요.
-        </Text>
-      </VStack>
+      <PageHeader
+        title="회의록"
+        description="내가 참석한 회의의 기록을 확인하고, 서명이 필요한 회의록에 서명하세요."
+      />
 
       {/* 목록 */}
       {sortedItems.length === 0 ? (
@@ -312,7 +312,7 @@ function EmployeeMeetingMinutesDetail({ minutes, onSigned, onNotification }: Det
 
       {/* 참석자 서명 현황 */}
       <VStack gap={2}>
-        <Text type="label" weight="medium">참석자 서명 ({minutes.signedCount}/{minutes.attendeeCount})</Text>
+        <Heading level={4} accessibilityLevel={3}>참석자 서명 ({minutes.signedCount}/{minutes.attendeeCount})</Heading>
         <Grid columns={2} gap={2}>
           {attendees.map((attendee) => (
             <Card key={attendee.id} variant={attendee.signedAt ? 'default' : 'muted'} padding={3}>

@@ -8,6 +8,7 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
+import PageHeader from '@/components/PageHeader';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -110,10 +111,10 @@ export default function VoiceBoxEmployee() {
 
   return (
     <VStack gap={4}>
-      <VStack gap={1}>
-        <Heading level={2}>고충·건의함</Heading>
-        <Text type="supporting" color="secondary">기관에 전하고 싶은 목소리를 남겨주세요.</Text>
-      </VStack>
+      <PageHeader
+        title="고충·건의함"
+        description="기관에 전하고 싶은 목소리를 남겨주세요."
+      />
 
       <Banner
         status="info"

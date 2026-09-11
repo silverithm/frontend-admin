@@ -164,26 +164,22 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
         purpose="form"
         width={720}
       >
-        <Layout
-          header={
-            <DialogHeader
-              title={dialog.kind === 'form' && dialog.initial ? '회의록 수정' : '회의록 작성'}
-              onOpenChange={(open) => { if (!open) closeAndReload(); }}
-            />
-          }
-          content={
-            <LayoutContent>
-              {dialog.kind === 'form' && (
-                <MeetingMinutesForm
-                  templates={templates}
-                  initial={dialog.initial}
-                  onDone={() => closeAndReload()}
-                  onNotification={onNotification}
-                />
-              )}
-            </LayoutContent>
-          }
-        />
+        {/* 머리글까지 폼에 넘긴다 — 저장 버튼을 다른 팝업처럼 하단 고정 푸터에 두려면
+            Layout을 폼이 통째로 가져야 한다(본문만 끼우면 버튼이 스크롤 끝에 묻힌다) */}
+        {dialog.kind === 'form' ? (
+          <MeetingMinutesForm
+            header={
+              <DialogHeader
+                title={dialog.initial ? '회의록 수정' : '회의록 작성'}
+                onOpenChange={(open) => { if (!open) closeAndReload(); }}
+              />
+            }
+            templates={templates}
+            initial={dialog.initial}
+            onDone={() => closeAndReload()}
+            onNotification={onNotification}
+          />
+        ) : <Layout content={<LayoutContent />} />}
       </Dialog>
 
       {/* 상세 */}
@@ -193,27 +189,21 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
         purpose="info"
         width={720}
       >
-        <Layout
-          header={
-            <DialogHeader
-              title="회의록"
-              onOpenChange={(open) => { if (!open) closeAndReload(); }}
-            />
-          }
-          content={
-            <LayoutContent>
-              {dialog.kind === 'detail' && (
-                <MeetingMinutesDetail
-                  minutes={dialog.minutes}
-                  onChanged={(minutes) => setDialog({ kind: 'detail', minutes })}
-                  onEdit={() => setDialog({ kind: 'form', initial: dialog.minutes })}
-                  onDeleted={closeAndReload}
-                  onNotification={onNotification}
-                />
-              )}
-            </LayoutContent>
-          }
-        />
+        {dialog.kind === 'detail' ? (
+          <MeetingMinutesDetail
+            header={
+              <DialogHeader
+                title="회의록"
+                onOpenChange={(open) => { if (!open) closeAndReload(); }}
+              />
+            }
+            minutes={dialog.minutes}
+            onChanged={(minutes) => setDialog({ kind: 'detail', minutes })}
+            onEdit={() => setDialog({ kind: 'form', initial: dialog.minutes })}
+            onDeleted={closeAndReload}
+            onNotification={onNotification}
+          />
+        ) : <Layout content={<LayoutContent />} />}
       </Dialog>
 
       {/* 양식 관리 — 회의 성격별로 여러 양식을 만들어 골라 쓴다 */}
@@ -223,24 +213,18 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
         purpose="form"
         width={800}
       >
-        <Layout
-          header={
-            <DialogHeader
-              title="회의록 양식 관리"
-              onOpenChange={(open) => { if (!open) closeAndReload(); }}
-            />
-          }
-          content={
-            <LayoutContent>
-              {dialog.kind === 'template' && (
-                <MeetingMinutesTemplateSettings
-                  onClose={closeAndReload}
-                  onNotification={onNotification}
-                />
-              )}
-            </LayoutContent>
-          }
-        />
+        {dialog.kind === 'template' ? (
+          <MeetingMinutesTemplateSettings
+            header={
+              <DialogHeader
+                title="회의록 양식 관리"
+                onOpenChange={(open) => { if (!open) closeAndReload(); }}
+              />
+            }
+            onClose={closeAndReload}
+            onNotification={onNotification}
+          />
+        ) : <Layout content={<LayoutContent />} />}
       </Dialog>
     </VStack>
   );
