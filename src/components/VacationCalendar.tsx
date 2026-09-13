@@ -24,6 +24,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 
 import { getVacationCalendar, getVacationForDate, getVacationDeadlineDates, getVacationEvents, type VacationEvent } from '@/lib/apiService';
 import VacationEventModal from './VacationEventModal';
@@ -753,10 +754,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   onClick={handleOpenMonthPicker}
                 />
               </HStack>
-              <Text type="supporting" color="secondary">휴무 일정 캘린더</Text>
             </VStack>
           </HStack>
 
+          {/* 버튼 여덟 개가 모두 같은 무게였다(#39). 월 이동만 묶고, 관리자 주 동작(직원 휴무
+              추가)만 강조하며, 자주 안 누르는 새로고침·중요 행사는 더보기로 뺀다.
+              휴무 제한 설정·엑셀 내보내기는 온보딩 투어(data-tour)가 이 화면에서 직접
+              가리키는 대상이라 접힌 메뉴 안에 두면 투어가 깨진다 — 무게만 ghost로 낮춰 둔다. */}
           <HStack gap={1} vAlign="center">
             <Button
               label="이전 달"
@@ -768,10 +772,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             />
             <Button
               label="이번 달로 돌아가기"
-              variant="secondary"
+              variant="ghost"
               size="sm"
               isIconOnly
-              icon={<Icon icon="calendar" size="sm" />}
+              icon={<Icon icon="clock" size="sm" />}
               onClick={resetToCurrentMonth}
             />
             <Button
@@ -783,35 +787,20 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               onClick={nextMonth}
             />
             <span style={{ width: 1, height: 20, background: 'var(--color-background-muted)', margin: '0 var(--spacing-1)' }} />
-            <Button
-              label="데이터 새로고침"
-              variant="secondary"
-              size="sm"
-              isIconOnly
-              isLoading={isLoading}
-              icon={<Icon icon={FiRefreshCw} size="sm" />}
-              onClick={handleRefresh}
-            />
-            {isAdmin && onShowLimitPanel && (
+            {isAdmin && onShowLimitPanel ? (
               <>
                 <Button
                   label="휴무 제한 설정"
                   data-tour="action-vacation-limit"
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   onClick={onShowLimitPanel}
-                />
-                <Button
-                  label="중요 행사"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowEventModal(true)}
                 />
                 {onExportExcel && (
                   <Button
                     label={isExportingExcel ? '내보내는 중...' : '엑셀 내보내기'}
-                  data-tour="action-export-excel"
-                    variant="secondary"
+                    data-tour="action-export-excel"
+                    variant="ghost"
                     size="sm"
                     isLoading={isExportingExcel}
                     isDisabled={isExportingExcel || isLoading}
@@ -827,7 +816,31 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   icon={<Icon icon={FiUserPlus} size="sm" />}
                   onClick={() => setShowAdminVacationModal(true)}
                 />
+                <MoreMenu
+                  label="더보기"
+                  variant="ghost"
+                  size="sm"
+                  items={[
+                    {
+                      label: isLoading ? '새로고침 중...' : '데이터 새로고침',
+                      icon: FiRefreshCw,
+                      isDisabled: isLoading,
+                      onClick: handleRefresh,
+                    },
+                    { label: '중요 행사', onClick: () => setShowEventModal(true) },
+                  ]}
+                />
               </>
+            ) : (
+              <Button
+                label="데이터 새로고침"
+                variant="secondary"
+                size="sm"
+                isIconOnly
+                isLoading={isLoading}
+                icon={<Icon icon={FiRefreshCw} size="sm" />}
+                onClick={handleRefresh}
+              />
             )}
             <Button
               label={isExpanded ? '접기' : '펼치기'}
