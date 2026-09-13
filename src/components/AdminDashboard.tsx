@@ -1389,17 +1389,26 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           <Card padding={0} height="100%">
             <VStack gap={0} height="100%">
                   <div style={{ padding: 'var(--spacing-3) var(--spacing-4)' }}>
-                    <div className="carev-dash-cal-head">
-                      <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)' }}>
-                        <Icon icon={IconCalendar} size="sm" color="inherit" />
-                      </div>
-                      <VStack gap={0} align="start">
-                        <Text type="body" weight="bold" color="primary">월간일정</Text>
-                        <Text type="supporting" color="secondary">
-                          {format(calendarMonth, 'yyyy년 M월', { locale: ko })} · {visibleMonthlySchedules.length}건
-                          {isMonthLoading ? ' · 불러오는 중' : ''}
-                        </Text>
-                      </VStack>
+                    {/* [#10] 제목 줄과 조작 줄을 명확히 나눈다.
+                        '월간일정 열기'는 다른 패널의 '전체보기'와 같은 자리(제목 줄 오른쪽)로
+                        옮겨, 조작이 몰린 아래 줄에서 혼자 떨어져 보이던 문제를 없앤다. */}
+                    <HStack hAlign="between" vAlign="center" gap={2} wrap="wrap">
+                      <HStack gap={2} vAlign="center">
+                        <div style={{ ...iconBox('var(--color-background-green)'), color: 'var(--color-text-green)' }}>
+                          <Icon icon={IconCalendar} size="sm" color="inherit" />
+                        </div>
+                        <VStack gap={0} align="start">
+                          <Text type="body" weight="bold" color="primary">월간일정</Text>
+                          <Text type="supporting" color="secondary">
+                            {format(calendarMonth, 'yyyy년 M월', { locale: ko })} · {visibleMonthlySchedules.length}건
+                            {isMonthLoading ? ' · 불러오는 중' : ''}
+                          </Text>
+                        </VStack>
+                      </HStack>
+                      <Button variant="ghost" size="sm" label="월간일정 열기" endContent={<Icon icon={IconChevronRight} size="xsm" />} onClick={() => onTabChange('schedule')} />
+                    </HStack>
+
+                    <div className="carev-dash-cal-head" style={{ marginTop: 'var(--spacing-2)' }}>
                       <HStack gap={1} vAlign="center">
                         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
                           <IconButton label="이전 달" variant="ghost" size="sm" icon={<Icon icon="chevronLeft" size="sm" />} onClick={() => setCalendarMonth((prev) => startOfMonth(subMonths(prev, 1)))} />
@@ -1435,21 +1444,27 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           </div>
                         </HStack>
                       </div>
-                      {/* 범례는 색 점만 — 이름은 마우스를 올리면 나온다.
+                      {/* 범례는 색 점 — 이름은 마우스를 올리면 나온다.
+                          점 앞에 '분류' 글자를 붙여 뜻 없는 점으로 보이지 않게 한다([#10]).
                           셀의 모바일용 도트(carev-dash-cal-dots)와 같은 클래스를 쓰면 이 규칙이
                           그쪽 미디어쿼리를 덮어 데스크탑에서 도트가 바 위에 겹쳐 되살아난다. */}
-                      <div className="carev-dash-cal-legend">
-                        {baseCategories.filter((c) => !c.hidden).map((cat) => (
-                          <span key={cat.category} title={cat.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                            <span className="carev-dash-cal-dot" style={{ background: cat.color }} />
-                          </span>
-                        ))}
-                        {customCategories.map((c) => (
-                          <span key={`custom-${c.id}`} title={c.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-                            <span className="carev-dash-cal-dot" style={{ background: c.color }} />
-                          </span>
-                        ))}
-                      </div>
+                      <span title="일정 분류 색상 — 점에 마우스를 올리면 이름이 보입니다">
+                        <HStack gap={1} vAlign="center">
+                          <Text type="supporting" color="secondary">분류</Text>
+                          <div className="carev-dash-cal-legend">
+                            {baseCategories.filter((c) => !c.hidden).map((cat) => (
+                              <span key={cat.category} title={cat.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                                <span className="carev-dash-cal-dot" style={{ background: cat.color }} />
+                              </span>
+                            ))}
+                            {customCategories.map((c) => (
+                              <span key={`custom-${c.id}`} title={c.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
+                                <span className="carev-dash-cal-dot" style={{ background: c.color }} />
+                              </span>
+                            ))}
+                          </div>
+                        </HStack>
+                      </span>
                       <div className="carev-dash-cal-head-fill" />
                       <SegmentedControl value={pane} onChange={(v) => changePane(v as CalendarPane)} label="달력 표시 내용" size="sm">
                         {CALENDAR_PANE_OPTIONS.map((option) => (
@@ -1463,7 +1478,6 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         icon={<Icon icon={IconUserCheck} size="sm" />}
                         onClick={() => setShowMyTasksOnly((v) => !v)}
                       />
-                      <Button variant="ghost" size="sm" label="월간일정 열기" endContent={<Icon icon={IconChevronRight} size="xsm" />} onClick={() => onTabChange('schedule')} />
                     </div>
                   </div>
 
