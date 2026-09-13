@@ -1119,11 +1119,13 @@ export default function EmployeeApproval() {
                 <HStack gap={2} vAlign="end">
                   <DateInput
                     label="시작일"
+                    placeholder="시작일 선택"
                     value={dateFilter.startDate ? (dateFilter.startDate as ISODateString) : undefined}
                     onChange={(value) => setDateFilter((prev) => ({ ...prev, startDate: value || '' }))}
                   />
                   <DateInput
                     label="종료일"
+                    placeholder="종료일 선택"
                     value={dateFilter.endDate ? (dateFilter.endDate as ISODateString) : undefined}
                     onChange={(value) => setDateFilter((prev) => ({ ...prev, endDate: value || '' }))}
                   />
