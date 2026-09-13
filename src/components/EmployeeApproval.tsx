@@ -16,6 +16,7 @@ import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Selector } from '@astryxdesign/core/Selector';
 import type { SelectorOptionType } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -929,16 +930,13 @@ export default function EmployeeApproval() {
           }
         />
 
-        {/* 탭 */}
-        <SegmentedControl
-          value={activeTab}
-          onChange={(value) => setActiveTab(value as TabType)}
-          label="전자결재 탭"
-          layout="fill"
-        >
-          <SegmentedControlItem value="my-approvals" label={`내 결재 내역 (${approvals.length})`} />
-          <SegmentedControlItem value="templates" label="양식 다운로드" />
-        </SegmentedControl>
+        {/* 화면 전환 탭 — 아래 상태 필터(SegmentedControl)와 모양이 같으면 위아래 관계가
+            안 보인다. 화면을 바꾸는 이 탭은 TabList로, 목록을 거르는 아래 필터는
+            SegmentedControl로 나눠 위계를 준다. */}
+        <TabList value={activeTab} onChange={(value) => setActiveTab(value as TabType)}>
+          <Tab value="my-approvals" label={`내 결재 내역 (${approvals.length})`} />
+          <Tab value="templates" label="양식 다운로드" />
+        </TabList>
 
         {/* 양식 다운로드 탭 */}
         {activeTab === 'templates' && (
@@ -1099,12 +1097,13 @@ export default function EmployeeApproval() {
         {/* 내 결재 내역 탭 */}
         {activeTab === 'my-approvals' && (
           <>
-            {/* 상태 필터 */}
+            {/* 상태 필터 — 위 화면 전환 탭(TabList)과 크기를 다르게 둬 이건 '목록을
+                거르는 도구'이지 화면 전환이 아님을 보이게 한다 */}
             <SegmentedControl
               value={approvalFilter}
               onChange={(value) => setApprovalFilter(value as ApprovalFilterType)}
               label="결재 상태 필터"
-              layout="fill"
+              size="sm"
             >
               <SegmentedControlItem value="all" label={`전체 (${getStatusCount()})`} />
               <SegmentedControlItem value="pending" label={`진행중 (${getStatusCount('PENDING')})`} />
