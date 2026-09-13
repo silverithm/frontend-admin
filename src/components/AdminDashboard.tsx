@@ -1134,17 +1134,19 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             gap: 'var(--spacing-2)',
                             padding: 'var(--spacing-2)',
                             borderRadius: 'var(--radius-element)',
-                            border: `1px solid ${task.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
-                            background: task.isCompleted ? 'var(--color-background-green)' : undefined,
+                            border: '1px solid var(--color-border)',
+                            /* [#12] 완료 줄을 초록 배경으로 칠하면 남은 일보다 더 눈에 띈다.
+                               배경은 빼고 줄 전체를 흐리게 해 '끝난 일'이 뒤로 물러나게 한다. */
+                            opacity: task.isCompleted ? 0.6 : 1,
                           }}
                         >
                           <Icon
-                            icon={IconUserCheck}
+                            icon={task.isCompleted ? 'success' : IconUserCheck}
                             size="sm"
                             color={task.isCompleted ? 'success' : 'secondary'}
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none', opacity: task.isCompleted ? 0.65 : 1 }}>
+                            <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none' }}>
                               <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{task.content}</Text>
                             </div>
                             <Text as="p" type="supporting" color="secondary" maxLines={1}>
