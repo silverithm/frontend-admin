@@ -650,9 +650,11 @@ html {
 .carev-annual-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  /* 행 높이를 균등하게 — 내용이 적으면 남는 높이를 나눠 카드 밑이 비지 않고,
-     많으면 min-content 위로 자라서 잘리지 않는다. */
-  grid-auto-rows: minmax(min-content, 1fr);
+  /* 예전엔 1fr로 남는 세로 공간을 모든 행에 균등 분배했다 — 그러면 일정이 없는
+     달도 일정이 몰린 달(9월)과 같은 키로 늘어나, 빈 1~4월이 첫 화면을 다 채우고
+     정작 9월은 한참 스크롤해야 보였다. 행 높이는 내용(min-content)만큼만 쓰게
+     하고, min-height는 카드 자체(.carev-annual-month)가 110px로 지킨다. */
+  grid-auto-rows: min-content;
   gap: var(--spacing-3);
   flex: 1;
 }
