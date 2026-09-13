@@ -902,6 +902,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             let dayColor = getDayColor(day, vacations);
 
             const cellStyle = {
+              // 칸이 button이라 브라우저 기본값이 내용을 세로 가운데로 모아, 휴무자가
+              // 없는 날과 있는 날의 날짜 숫자 높이가 서로 달라 보였다(#36). 태그는 그대로
+              // 두고 내부 정렬만 위쪽으로 고정한다.
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              textAlign: 'left',
               padding: 'var(--spacing-2)',
               borderRadius: 'var(--radius-inner)',
               position: 'relative',
