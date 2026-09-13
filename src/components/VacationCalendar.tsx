@@ -914,7 +914,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               position: 'relative',
               cursor: 'pointer',
               transition: 'background-color var(--duration-fast)',
-              border: isSelected ? '1px solid var(--color-border-teal)' : '1px solid transparent',
+              // 칸 경계가 없어 휴무자 명단이 어느 날짜 것인지 헷갈렸다(#37) — 옅은 테두리로 칸을 나눈다
+              border: isSelected ? '1px solid var(--color-border-teal)' : '1px solid var(--color-border)',
               background: isSelected ? 'var(--color-background-teal)' : dayColor.bg,
               boxShadow: isSelected ? '0 0 0 2px var(--color-border-teal), 0 1px 2px rgba(0,0,0,0.05)' : undefined,
               opacity: !isCurrentMonth ? 0.3 : (isPast && isCurrentMonth ? 0.7 : 1),
