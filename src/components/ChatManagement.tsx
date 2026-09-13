@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
@@ -27,6 +27,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Loading } from '@/components/Loading';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -306,6 +308,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** null = 아직 검색 안 함 (빈 배열은 '결과 없음') */
     const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null);
     const [isSearching, setIsSearching] = useState(false);
+    /** 검색 패널의 "날짜로 이동" — 고른 날짜, 조회 중 여부 */
+    const [jumpToDate, setJumpToDate] = useState<string>("");
+    const [isJumpingToDate, setIsJumpingToDate] = useState(false);
     /** 검색 결과를 눌러 이동한 메시지 — 잠깐 배경을 강조했다가 지운다 */
     const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
     /**
@@ -1179,6 +1184,31 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     };
 
     /**
+     * 검색 패널의 "날짜로 이동" — 고른 날짜의 첫 메시지를 찾아 검색 결과 클릭과
+     * 같은 경로(jumpToMessageId)로 이동한다. 404("그 날짜 이후 대화가 없습니다")는
+     * 백엔드 문구를 그대로 보여주고, 그 외 오류(엔드포인트 미배포·500·네트워크 등)도
+     * 조용히 삼키지 않고 알림을 띄운다.
+     */
+    const jumpToDateHandler = async (date: string) => {
+        if (!selectedRoom || !date || isJumpingToDate) return;
+        setIsJumpingToDate(true);
+        try {
+            const data = await fetchFirstMessageOnDate(selectedRoom, date);
+            if (!data?.messageId) throw new Error("빈 응답");
+            setSidePanel(null);
+            await jumpToMessageId(data.messageId);
+        } catch (error) {
+            console.error("날짜로 이동 실패:", error);
+            const message = (error as { status?: number; message?: string })?.status === 404
+                ? ((error as Error).message || "그 날짜 이후 대화가 없습니다")
+                : "이동 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요";
+            onNotification(message, "error");
+        } finally {
+            setIsJumpingToDate(false);
+        }
+    };
+
+    /**
      * 점프해 있던 구간을 접고 최신 대화로 돌아간다.
      * 메시지 전송 앞에서 이 완료를 기다려 쓰기도 하므로(끝난 뒤에야 isJumpedToOlder가
      * false가 됨을 보장) Promise를 그대로 반환한다.
@@ -1829,6 +1859,22 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 placeholder="찾을 말을 입력하고 Enter"
                                                 hasClear
                                             />
+                                            <div style={{ maxWidth: 200 }}>
+                                                <DateInput
+                                                    label="날짜로 이동"
+                                                    isLabelHidden
+                                                    placeholder="날짜로 이동"
+                                                    value={jumpToDate ? (jumpToDate as ISODateString) : undefined}
+                                                    isDisabled={isJumpingToDate}
+                                                    onChange={(value) => {
+                                                        setJumpToDate(value || "");
+                                                        if (value) jumpToDateHandler(value);
+                                                    }}
+                                                />
+                                            </div>
+                                            {isJumpingToDate && (
+                                                <Text type="supporting" color="secondary">그 날짜의 대화를 찾는 중...</Text>
+                                            )}
                                             {isSearching ? (
                                                 <Text type="supporting" color="secondary">검색 중...</Text>
                                             ) : searchResults === null ? (
