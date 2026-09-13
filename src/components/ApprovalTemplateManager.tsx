@@ -32,7 +32,7 @@ import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
 import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch } from 'react-icons/fi';
-import { IconGripVertical, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
+import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
   DEFAULT_TEMPLATE_CATEGORIES,
@@ -108,9 +108,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
   /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
   const [companyName, setCompanyName] = useState('');
-  // 양식 순서 조정(드래그 + 위/아래 이동)
-  const [draggingTemplateId, setDraggingTemplateId] = useState<string | number | null>(null);
-  const [dropTargetTemplateId, setDropTargetTemplateId] = useState<string | number | null>(null);
+  // 양식 순서 조정(위/아래 이동)
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // 템플릿 로드
@@ -505,18 +503,6 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
     persistOrder(next);
   };
 
-  // 드래그로 순서 바꾸기 — 놓은 위치 앞에 끼워 넣는다 (FormSchemaBuilder의 필드 순서 변경과 같은 방식)
-  const reorderTemplatesByDrag = (fromId: string | number, toId: string | number) => {
-    if (String(fromId) === String(toId)) return;
-    const next = [...templates];
-    const fromIndex = next.findIndex((t) => String(t.id) === String(fromId));
-    const toIndex = next.findIndex((t) => String(t.id) === String(toId));
-    if (fromIndex === -1 || toIndex === -1) return;
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    persistOrder(next);
-  };
-
   // 편집 모달 열기
   const openEditModal = (template: ApprovalTemplate) => {
     setEditingTemplate(template);
@@ -728,63 +714,31 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                 </thead>
                 <tbody>
                   {filteredTemplates.map((template, rowIndex) => (
-                    <TableRow
-                      key={template.id}
-                      draggable={canReorder}
-                      onDragStart={canReorder ? () => setDraggingTemplateId(template.id) : undefined}
-                      onDragEnd={canReorder ? () => { setDraggingTemplateId(null); setDropTargetTemplateId(null); } : undefined}
-                      onDragOver={canReorder ? (e) => { e.preventDefault(); setDropTargetTemplateId(template.id); } : undefined}
-                      onDragLeave={canReorder ? () => setDropTargetTemplateId((prev) => (String(prev) === String(template.id) ? null : prev)) : undefined}
-                      onDrop={
-                        canReorder
-                          ? (e) => {
-                              e.preventDefault();
-                              if (draggingTemplateId != null) reorderTemplatesByDrag(draggingTemplateId, template.id);
-                              setDraggingTemplateId(null);
-                              setDropTargetTemplateId(null);
-                            }
-                          : undefined
-                      }
-                      style={{
-                        opacity: canReorder && String(draggingTemplateId) === String(template.id) ? 0.5 : 1,
-                        boxShadow:
-                          canReorder && String(dropTargetTemplateId) === String(template.id) && String(draggingTemplateId) !== String(template.id)
-                            ? 'inset 0 2px 0 0 var(--color-accent)'
-                            : undefined,
-                      }}
-                    >
+                    <TableRow key={template.id}>
                       {canManage && (
                         <TableCell>
-                          <HStack gap={0.5} vAlign="center">
-                            <span
-                              aria-hidden
-                              style={{
-                                display: 'inline-flex',
-                                color: canReorder ? 'var(--color-icon-secondary)' : 'var(--color-icon-disabled)',
-                                cursor: canReorder ? 'grab' : 'default',
-                              }}
-                            >
-                              <IconGripVertical size={16} stroke={1.5} />
-                            </span>
-                            <VStack gap={0}>
-                              <IconButton
-                                label="위로 이동"
-                                variant="ghost"
-                                size="sm"
-                                icon={<Icon icon={IconChevronUp} size="sm" />}
-                                isDisabled={!canReorder || rowIndex === 0 || isSavingOrder}
-                                onClick={() => moveTemplate(template.id, 'up')}
-                              />
-                              <IconButton
-                                label="아래로 이동"
-                                variant="ghost"
-                                size="sm"
-                                icon={<Icon icon={IconChevronDown} size="sm" />}
-                                isDisabled={!canReorder || rowIndex === filteredTemplates.length - 1 || isSavingOrder}
-                                onClick={() => moveTemplate(template.id, 'down')}
-                              />
-                            </VStack>
-                          </HStack>
+                          {/* 끌기 손잡이 + 위/아래 화살표 셋이 함께 있으면 조작이 세 가지로
+                              보였다. 끌기(HTML5 드래그)는 마우스에서만 되고 키보드로는 아예
+                              닿지 않는다 — 화살표 버튼 하나만 남긴다: 마우스·터치·키보드
+                              모두에서 실제로 동작하는 쪽이다. 기능(순서 저장)은 그대로. */}
+                          <VStack gap={0}>
+                            <IconButton
+                              label="위로 이동"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icon icon={IconChevronUp} size="sm" />}
+                              isDisabled={!canReorder || rowIndex === 0 || isSavingOrder}
+                              onClick={() => moveTemplate(template.id, 'up')}
+                            />
+                            <IconButton
+                              label="아래로 이동"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icon icon={IconChevronDown} size="sm" />}
+                              isDisabled={!canReorder || rowIndex === filteredTemplates.length - 1 || isSavingOrder}
+                              onClick={() => moveTemplate(template.id, 'down')}
+                            />
+                          </VStack>
                         </TableCell>
                       )}
                       <TableCell>
