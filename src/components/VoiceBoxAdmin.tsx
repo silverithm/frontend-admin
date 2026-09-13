@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
@@ -9,6 +9,7 @@ import { Text } from '@astryxdesign/core/Text';
 import PageHeader from './PageHeader';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -16,7 +17,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { Icon } from '@astryxdesign/core/Icon';
-import { FiInbox } from 'react-icons/fi';
+import { FiInbox, FiSearch } from 'react-icons/fi';
 import { useAlert } from './Alert';
 import {
   getVoiceMessages,
@@ -148,6 +149,9 @@ export default function VoiceBoxAdmin() {
   const { showAlert, AlertContainer } = useAlert();
 
   const [filter, setFilter] = useState<'all' | 'GRIEVANCE' | 'SUGGESTION'>('all');
+  // 화면에서 거르는 검색·상태 필터 — ApprovalManagement 결재 신청 화면과 같은 방식(서버 재조회 없이 클라이언트에서 거른다)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | VoiceMessageItem['status']>('all');
   const [messages, setMessages] = useState<VoiceMessageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // 항목별 편집 상태 (상태·답변 초안)
@@ -209,6 +213,20 @@ export default function VoiceBoxAdmin() {
     suggestion: messages.filter((m) => m.type === 'SUGGESTION').length,
   };
 
+  const visibleMessages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return messages.filter((m) => {
+      if (statusFilter !== 'all' && m.status !== statusFilter) return false;
+      if (!q) return true;
+      const author = m.isAnonymous || !m.authorName ? '익명' : m.authorName;
+      return (
+        (m.title || '').toLowerCase().includes(q) ||
+        (m.content || '').toLowerCase().includes(q) ||
+        author.toLowerCase().includes(q)
+      );
+    });
+  }, [messages, statusFilter, searchQuery]);
+
   return (
     <VStack gap={4} height="100%">
       <PageHeader
@@ -221,6 +239,36 @@ export default function VoiceBoxAdmin() {
         <SegmentedControlItem value="GRIEVANCE" label={`고충·신고${filter === 'all' ? ` (${counts.grievance})` : ''}`} />
         <SegmentedControlItem value="SUGGESTION" label={`건의${filter === 'all' ? ` (${counts.suggestion})` : ''}`} />
       </SegmentedControl>
+
+      {/* 검색·상태 필터 — ApprovalManagement 결재 신청 화면과 같은 배치(회색 바닥 위 흰 카드) */}
+      <Card padding={3}>
+        <HStack gap={3} vAlign="end" hAlign="between" wrap="wrap">
+          <div style={{ width: 200 }}>
+            <Selector
+              label="처리 상태"
+              value={statusFilter}
+              onChange={(value) => setStatusFilter((value || 'all') as typeof statusFilter)}
+              options={[
+                { value: 'all', label: '전체 상태' },
+                { value: 'RECEIVED', label: '접수' },
+                { value: 'IN_REVIEW', label: '확인중' },
+                { value: 'RESOLVED', label: '처리완료' },
+                { value: 'ON_HOLD', label: '보류' },
+              ]}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <TextInput
+              label="검색"
+              isLabelHidden
+              startIcon={FiSearch}
+              value={searchQuery}
+              onChange={(value) => setSearchQuery(value)}
+              placeholder="제목, 내용, 작성자 검색"
+            />
+          </div>
+        </HStack>
+      </Card>
 
       {isLoading ? (
         <StackItem size="fill">
@@ -242,8 +290,20 @@ export default function VoiceBoxAdmin() {
             </div>
           </Card>
         </StackItem>
+      ) : visibleMessages.length === 0 ? (
+        <StackItem size="fill">
+          <Card variant="muted" height="100%">
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <EmptyState
+                icon={<Icon icon={FiSearch} size="lg" />}
+                title="검색 결과가 없습니다"
+                description="검색어나 상태 필터를 바꿔보세요."
+              />
+            </div>
+          </Card>
+        </StackItem>
       ) : (
-        messages.map((item) => {
+        visibleMessages.map((item) => {
           const draft = draftFor(item);
           return (
             <VoiceBoxItem
