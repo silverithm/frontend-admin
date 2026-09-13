@@ -163,6 +163,10 @@ html {
   .carev-dash-panel-news { grid-column: 1 / -1; }
   /* 트랙(1fr)보다 큰 콘텐츠가 그리드를 밀어내지 않도록 */
   .carev-dash-panels > * { min-height: 0; }
+  /* [#9] 내 할 일 패널이 행을 하나 더 차지하면 공지사항·전자결재가 auto 행으로
+     밀려나면서 height:100%가 사실상 0으로 풀린다. 위 리셋보다 우선하도록(선택자 2개)
+     바닥 높이를 되돌려 카드가 납작해지지 않게 한다. */
+  .carev-dash-panels > .carev-dash-panel-static { min-height: 280px; }
 }
 @media (min-width: 1440px) {
   .carev-dash-panels {
