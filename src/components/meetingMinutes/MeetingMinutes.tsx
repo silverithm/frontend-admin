@@ -4,8 +4,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FiFileText, FiPlus, FiSettings } from 'react-icons/fi';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Divider } from '@astryxdesign/core/Divider';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
@@ -124,37 +126,44 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
           description="회의록 작성을 눌러 첫 회의를 기록해 보세요. 녹음하면 실시간 자막이 쌓이고, AI가 섹션별로 정리해 줍니다."
         />
       ) : (
-        <VStack gap={2}>
-          {items.map((minutes) => (
-            <ClickableCard
-              key={minutes.id}
-              label={`${minutes.title} 회의록 열기`}
-              onClick={() => void openDetail(minutes.id)}
-              padding={4}
-            >
-              <HStack gap={3} vAlign="center" hAlign="between">
-                <VStack gap={0.5}>
-                  <HStack gap={2} vAlign="center">
+        // 예전엔 회의록마다 독립된 카드라 흰 덩어리가 여러 장 떠 있었다. 결재 관리와
+        // 같은 방식으로 한 표면 안에 구분선으로 나눈다 — 행 클릭 동작은 그대로 둔다.
+        <Card padding={0}>
+          <VStack gap={0}>
+            {items.map((minutes, rowIndex) => (
+              <div key={minutes.id}>
+                {rowIndex > 0 && <Divider />}
+                <ClickableCard
+                  label={`${minutes.title} 회의록 열기`}
+                  onClick={() => void openDetail(minutes.id)}
+                  padding={4}
+                  variant="transparent"
+                >
+                  <HStack gap={3} vAlign="center" hAlign="between">
+                    <VStack gap={0.5}>
+                      <HStack gap={2} vAlign="center">
+                        <Badge
+                          variant={minutes.status === 'COMPLETED' ? 'green'
+                            : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}
+                          label={MEETING_MINUTES_STATUS_LABEL[minutes.status]}
+                        />
+                        <Text type="body" weight="medium">{minutes.title}</Text>
+                      </HStack>
+                      <Text type="supporting" color="secondary">
+                        {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} · {minutes.authorName}
+                      </Text>
+                    </VStack>
                     <Badge
-                      variant={minutes.status === 'COMPLETED' ? 'green'
-                        : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}
-                      label={MEETING_MINUTES_STATUS_LABEL[minutes.status]}
+                      variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount
+                        ? 'green' : 'neutral'}
+                      label={`서명 ${minutes.signedCount}/${minutes.attendeeCount}`}
                     />
-                    <Text type="body" weight="medium">{minutes.title}</Text>
                   </HStack>
-                  <Text type="supporting" color="secondary">
-                    {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} · {minutes.authorName}
-                  </Text>
-                </VStack>
-                <Badge
-                  variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount
-                    ? 'green' : 'neutral'}
-                  label={`서명 ${minutes.signedCount}/${minutes.attendeeCount}`}
-                />
-              </HStack>
-            </ClickableCard>
-          ))}
-        </VStack>
+                </ClickableCard>
+              </div>
+            ))}
+          </VStack>
+        </Card>
       )}
 
       {/* 작성/수정 */}
