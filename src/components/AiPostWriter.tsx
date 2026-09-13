@@ -220,6 +220,12 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
               icon={<Icon icon={IconSparkles} size="sm" color="inherit" />}
               style={{ width: "100%" }}
             />
+            {/* 잠긴 버튼만 있으면 왜 안 눌리는지 알 수 없다 — 사진을 올려야 켜진다는 것을 바로 옆에 적는다 */}
+            {files.length === 0 && !isGenerating && (
+              <Text as="p" type="supporting" color="secondary" style={{ textAlign: "center" }}>
+                사진을 올리면 켜집니다.
+              </Text>
+            )}
           </VStack>
         </Card>
 
