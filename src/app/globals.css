@@ -65,6 +65,15 @@ html {
   border-radius: var(--radius-inner);
 }
 
+/* tabIndex=-1는 키보드 탭 순서에 없고 스크린리더 안내용으로만 프로그램적 포커스를
+   받는 요소다(예: Dialog 제목, Selector/Typeahead 숨은 입력). 여기에 위 전역 링이
+   그대로 그려지면 다이얼로그 제목이 입력칸처럼 보인다("오늘 일정 N건" 리마인더에서
+   확인). 실제 키보드 사용자가 Tab으로 도달하는 요소는 tabIndex가 -1이 아니므로
+   이 규칙으로 가려도 키보드 포커스 표시는 그대로 유지된다. */
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 /* 동작 줄이기 설정 존중 (Astryx 모션 원칙) — framer-motion은 MotionConfig에서 처리 */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
