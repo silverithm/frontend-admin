@@ -857,7 +857,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </HStack>
 
         {/* 인터랙티브 캘린더 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)' }}>
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
@@ -870,7 +870,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
         <motion.div
           className={isExpanded ? 'carev-vaccal-grid' : 'carev-vaccal-grid carev-vaccal-grid--fit'}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--spacing-1-5) var(--spacing-1)' }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1-5) var(--spacing-1)' }}
           initial="hidden"
           animate="visible"
           variants={{
