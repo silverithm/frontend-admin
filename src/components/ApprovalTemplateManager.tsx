@@ -327,6 +327,17 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
+  // 표 안 파일명 줄임 — 확장자를 지우지 않고 가운데만 줄인다("휴가신청서.h"처럼
+  // 확장자 중간에서 잘리던 문제). 전체 이름은 버튼 tooltip으로 여전히 볼 수 있다.
+  const truncateFileName = (name: string, max = 16) => {
+    if (name.length <= max) return name;
+    const dotIndex = name.lastIndexOf('.');
+    const ext = dotIndex > 0 ? name.slice(dotIndex) : '';
+    const base = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+    const keep = Math.max(max - ext.length - 1, 4);
+    return `${base.slice(0, keep)}…${ext}`;
+  };
+
   // 양식 업로드
   const handleUpload = async () => {
     if (!uploadForm.name.trim()) {
@@ -789,7 +800,15 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                         </HStack>
                       </TableCell>
                       <TableCell>
-                        <Text type="supporting">{template.description}</Text>
+                        {/* 채팅 레일이 켜진 화면에서 표가 카드보다 넓어지던 주된 원인 —
+                            설명 칸이 줄바꿈만 허용해 글자 하나가 다음 줄로 넘어가며
+                            칸이 한없이 좁아졌다. 한 줄로 줄이고 title로 전체를 보여준다. */}
+                        <div
+                          title={template.description}
+                          style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          <Text type="supporting">{template.description}</Text>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <HStack>
@@ -807,17 +826,19 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       <TableCell>
                         {/* 온라인 폼 양식은 첨부 파일이 없다 — 다운로드 버튼 대신 상태를 알린다 */}
                         {template.fileName ? (
+                          // 파일명을 그대로 라벨로 쓰면 "휴가신청서.h"처럼 확장자 중간에서
+                          // 잘려 표가 카드 밖으로 밀려났다. 보이는 글자는 줄이고,
+                          // 전체 이름은 tooltip과 접근성 이름(label)에 남긴다.
                           <Button
                             variant="ghost"
                             size="sm"
                             icon={<Icon icon={FiDownload} size="sm" />}
-                            label={
-                              formatFileSize(template.fileSize)
-                                ? `${template.fileName} (${formatFileSize(template.fileSize)})`
-                                : template.fileName
-                            }
+                            label={`다운로드: ${template.fileName}${formatFileSize(template.fileSize) ? ` (${formatFileSize(template.fileSize)})` : ''}`}
+                            tooltip={`${template.fileName}${formatFileSize(template.fileSize) ? ` (${formatFileSize(template.fileSize)})` : ''}`}
                             onClick={() => handleDownload(template)}
-                          />
+                          >
+                            {truncateFileName(template.fileName)}
+                          </Button>
                         ) : (
                           <Text type="supporting" color="secondary">
                             {template.templateType === 'form' ? '파일 없음 (온라인 폼)' : '파일 없음'}
