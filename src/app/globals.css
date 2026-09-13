@@ -65,6 +65,15 @@ html {
   border-radius: var(--radius-inner);
 }
 
+/* tabIndex=-1는 키보드 탭 순서에 없고 스크린리더 안내용으로만 프로그램적 포커스를
+   받는 요소다(예: Dialog 제목, Selector/Typeahead 숨은 입력). 여기에 위 전역 링이
+   그대로 그려지면 다이얼로그 제목이 입력칸처럼 보인다("오늘 일정 N건" 리마인더에서
+   확인). 실제 키보드 사용자가 Tab으로 도달하는 요소는 tabIndex가 -1이 아니므로
+   이 규칙으로 가려도 키보드 포커스 표시는 그대로 유지된다. */
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 /* 동작 줄이기 설정 존중 (Astryx 모션 원칙) — framer-motion은 MotionConfig에서 처리 */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -104,6 +113,10 @@ html {
   .carev-admin-mobile-header { display: none; }
   .carev-admin-content { margin-left: 224px; }
   .carev-admin-rolling { margin-top: 0; }
+  /* 편의기능 안의 배차관리·AI 글쓰기·회의록 전환 탭 — 사이드바가 보이는 폭에서는
+     왼쪽 편의기능 서브탭과 완전히 같은 목록이 본문에 한 번 더 뜬다. 사이드바가
+     없는 모바일 헤더 폭에서는 이 전환 바가 유일한 선택 수단이라 남겨둔다. */
+  .carev-admin-tools-switch { display: none; }
 }
 /* 근무조정: 데스크탑에서 캘린더와 사이드바가 같은 높이로 한 화면에 들어가고,
    넘치는 내용은 각 컬럼 안에서만 스크롤한다. */
@@ -186,12 +199,10 @@ html {
   .carev-dash-cal-chips { display: flex; }
   .carev-dash-cal-bars  { display: block; }
 }
-/* 기관 정보 — 한 줄짜리 사실(회사명·주소)을 각각 카드로 세우면, 옆의 관리자 카드
-   높이에 맞춰 늘어나면서 카드 안이 텅 빈다. 사실은 한 장 안에 줄로 쌓고 카드는 둘로 줄인다. */
-.carev-org-split { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
-@media (min-width: 900px) {
-  .carev-org-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
+/* 기관 정보 — 한 줄짜리 사실(회사명·주소)을 각각 카드로 세우면 옆 카드 높이에
+   맞춰 늘어나며 텅 빈다. 사실은 한 장 안에 줄로 쌓는다.
+   (예전엔 옆에 관리자 카드를 나란히 두는 carev-org-split 2열 그리드였다 — 그
+   카드는 '내 계정' 구역으로 옮겨서 이 화면은 이제 기관 카드 한 장뿐이다) */
 .carev-org-facts { display: flex; flex-direction: column; }
 .carev-org-fact { display: flex; align-items: center; gap: var(--spacing-3); padding: var(--spacing-3) 0; }
 .carev-org-fact + .carev-org-fact { border-top: 1px solid var(--color-border); }

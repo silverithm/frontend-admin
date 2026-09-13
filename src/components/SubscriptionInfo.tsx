@@ -11,6 +11,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
+import { Divider } from '@astryxdesign/core/Divider';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -272,25 +273,28 @@ export default function SubscriptionInfo() {
                   </VStack>
                 )}
 
-                {/* 유료 구독 중인 경우 */}
+                {/* 유료 구독 중인 경우 — 구독 취소는 되돌릴 수 없는 결정이라 매일 보는
+                    가격 옆 분홍 버튼이 아니라 구역 아래쪽에 덜 두드러지게 둔다.
+                    확인 다이얼로그(showCancelModal)는 그대로다. */}
                 {subscription.planName === SubscriptionType.BASIC &&
                  subscription.status === SubscriptionStatus.ACTIVE && (
-                  <VStack gap={2}>
-                    <HStack hAlign="between" vAlign="center">
-                      <VStack gap={0.5}>
-                        <Text type="large" weight="semibold">₩{subscription.amount.toLocaleString()}/월</Text>
-                        <Text type="supporting">매월 자동 결제</Text>
-                      </VStack>
+                  <VStack gap={3}>
+                    <VStack gap={0.5}>
+                      <Text type="large" weight="semibold">₩{subscription.amount.toLocaleString()}/월</Text>
+                      <Text type="supporting">매월 자동 결제</Text>
+                    </VStack>
+                    <Divider />
+                    <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
+                      <Text type="supporting" color="secondary">
+                        구독을 취소하면 정기 결제가 중단되며, 종료일까지 서비스를 이용할 수 있습니다.
+                      </Text>
                       <Button
                         label="구독 취소"
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
                         onClick={() => setShowCancelModal(true)}
                       />
                     </HStack>
-                    <Text type="supporting">
-                      구독을 취소하면 정기 결제가 중단되며, 종료일까지 서비스를 이용할 수 있습니다.
-                    </Text>
                   </VStack>
                 )}
               </VStack>

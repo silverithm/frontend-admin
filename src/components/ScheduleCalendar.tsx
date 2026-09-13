@@ -1324,6 +1324,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           <PageHeader title="월간일정" description="직원 일정과 휴무자를 한 달력에서 함께 확인합니다" />
         </div>
       )}
+      {/* 배차 모드: 이 화면만 제목이 없어 편의기능 탭을 눌러 들어와도 지금 뭘 보고
+          있는지 안내가 없었다. 다른 편의기능(AI 글쓰기·회의록)과 같은 자리에 맞춘다. */}
+      {isDispatchMode && (
+        <div style={{ marginBottom: 'var(--spacing-4)' }}>
+          <PageHeader title="배차관리" description="차량별 등원·하원 배차를 짜고 출결을 관리합니다." />
+        </div>
+      )}
       {/* 배차 모드: 서브탭 */}
       {isDispatchMode && (
         <div style={{ marginBottom: 'var(--spacing-4)' }}>
