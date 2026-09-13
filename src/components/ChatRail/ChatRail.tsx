@@ -458,8 +458,12 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                                 }
                                 endContent={
                                     room.unreadCount > 0 ? (
+                                        /* 채팅 화면 자체의 방별 안읽음 배지(ChatManagement), 이 레일의
+                                           합계·독(dock) 배지, 셸 탭 카운트(admin/page.tsx)가 모두
+                                           error(빨강)를 쓰는데 이 자리만 teal이라 같은 뜻이 다른 색으로
+                                           보였다. 앱 전체 기준(빨강)에 맞춘다 */
                                         <Badge
-                                            variant="teal"
+                                            variant="error"
                                             label={room.unreadCount > 99 ? "99+" : room.unreadCount}
                                         />
                                     ) : undefined

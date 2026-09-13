@@ -41,7 +41,8 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { Timestamp } from '@astryxdesign/core/Timestamp';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLogOut, FiCalendar, FiEdit2 } from 'react-icons/fi';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
@@ -1426,6 +1427,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         return `${ampm} ${displayHours}:${minutes}`;
     };
 
+    // 대화방 목록의 마지막 활동 시각 — Astryx Timestamp(format="auto")는 상대 시간 문구가
+    // "13 hours ago"처럼 영어로 고정돼 있어(라이브러리 내부 하드코딩, locale prop 없음)
+    // date-fns ko 로케일로 직접 포맷한다. 일주일 넘으면 절대 날짜로 바꾸는 동작은 그대로 맞춘다.
+    const formatRoomTime = (value: string) => {
+        const date = new Date(value);
+        const diffSeconds = (Date.now() - date.getTime()) / 1000;
+        if (diffSeconds > 604800) {
+            return format(date, 'yyyy.MM.dd', { locale: ko });
+        }
+        return formatDistanceToNow(date, { addSuffix: true, locale: ko });
+    };
+
     // 초기 방 목록 로드 + 30초 주기 갱신 (보고 있는 탭에서만)
     // 소켓은 지금 열어둔 방만 구독하므로, 다른 방의 새 메시지·안읽음 수는 이 갱신으로 받는다.
     useVisiblePolling(fetchRooms, 30000);
@@ -1579,7 +1592,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     endContent={
                                         <VStack gap={1} hAlign="end">
                                             {roomTime && (
-                                                <Timestamp value={roomTime} format="auto" hasTooltip type="supporting" />
+                                                <Text type="supporting">{formatRoomTime(roomTime)}</Text>
                                             )}
                                             {room.unreadCount > 0 && (
                                                 <Badge

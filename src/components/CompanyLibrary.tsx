@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Button } from '@astryxdesign/core/Button';
@@ -10,6 +10,7 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Selector } from '@astryxdesign/core/Selector';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
+import { Divider } from '@astryxdesign/core/Divider';
 import { Text } from '@astryxdesign/core/Text';
 import PageHeader from './PageHeader';
 import { FileInput } from '@astryxdesign/core/FileInput';
@@ -287,60 +288,75 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
             </Card>
           </StackItem>
         ) : (
-          <VStack gap={3}>
-            {visibleItems.map((item) => (
-              <Card key={item.id}>
-                <HStack hAlign="between" vAlign="center" gap={4}>
-                  <HStack gap={3} vAlign="start">
-                    <Icon icon={FiFileText} size="lg" color="secondary" />
-                    <VStack gap={1}>
-                      <HStack gap={2} vAlign="center" wrap="wrap">
-                        <Text weight="semibold" color="primary">{item.title}</Text>
-                        {normalizeCategory(item.category) && <Badge variant="blue" label={normalizeCategory(item.category)} />}
+          /* 카드 여러 장 대신 하나의 표면 안에서 구분선으로 나눈다(ApprovalManagement 결재 목록과 같은 규칙) */
+          <Card padding={0}>
+            <VStack gap={0}>
+              {visibleItems.map((item, idx) => (
+                <Fragment key={item.id}>
+                  {idx > 0 && <Divider />}
+                  <div className="carev-row" style={{ padding: 'var(--spacing-4)' }}>
+                    <HStack hAlign="between" vAlign="center" gap={4}>
+                      <HStack gap={3} vAlign="start">
+                        <Icon icon={FiFileText} size="lg" color="secondary" />
+                        <VStack gap={1}>
+                          <HStack gap={2} vAlign="center" wrap="wrap">
+                            <Text weight="semibold" color="primary">{item.title}</Text>
+                            {/* 미분류 자료만 배지가 없어서 그 줄만 높이·모양이 달라 보였다.
+                                값이 없어도 중립 톤 '미분류' 배지를 찍어 줄 모양을 맞춘다 */}
+                            <Badge
+                              variant={normalizeCategory(item.category) ? 'blue' : 'neutral'}
+                              label={normalizeCategory(item.category) || UNCATEGORIZED}
+                            />
+                          </HStack>
+                          {item.description && (
+                            <Text type="supporting" color="secondary">{item.description}</Text>
+                          )}
+                          <Text type="supporting" color="disabled">
+                            {item.fileName}
+                            {formatFileSize(item.fileSize) ? ` (${formatFileSize(item.fileSize)})` : ''}
+                            {item.uploaderName ? ` · ${item.uploaderName}` : ''}
+                            {item.createdAt ? ` · ${format(new Date(item.createdAt), 'yyyy.MM.dd', { locale: ko })}` : ''}
+                          </Text>
+                        </VStack>
                       </HStack>
-                      {item.description && (
-                        <Text type="supporting" color="secondary">{item.description}</Text>
-                      )}
-                      <Text type="supporting" color="disabled">
-                        {item.fileName}
-                        {formatFileSize(item.fileSize) ? ` (${formatFileSize(item.fileSize)})` : ''}
-                        {item.uploaderName ? ` · ${item.uploaderName}` : ''}
-                        {item.createdAt ? ` · ${format(new Date(item.createdAt), 'yyyy.MM.dd', { locale: ko })}` : ''}
-                      </Text>
-                    </VStack>
-                  </HStack>
-                  <HStack gap={2} vAlign="center">
-                    {isViewable(item.fileName) && (
-                      <Button
-                        label="바로 보기"
-                        variant="secondary"
-                        size="sm"
-                        icon={<Icon icon={FiEye} size="sm" />}
-                        onClick={() => setViewerFile({ fileUrl: item.filePath, fileName: item.fileName })}
-                      />
-                    )}
-                    <Button
-                      label="받기"
-                      variant="ghost"
-                      size="sm"
-                      icon={<Icon icon={FiDownload} size="sm" />}
-                      onClick={() => handleDownload(item)}
-                    />
-                    {canManage && (
-                      <IconButton
-                        label="삭제"
-                        tooltip="삭제"
-                        variant="ghost"
-                        size="sm"
-                        icon={<Icon icon={FiTrash2} size="sm" />}
-                        onClick={() => handleDelete(item)}
-                      />
-                    )}
-                  </HStack>
-                </HStack>
-              </Card>
-            ))}
-          </VStack>
+                      <HStack gap={2} vAlign="center">
+                        {isViewable(item.fileName) && (
+                          <Button
+                            label="바로 보기"
+                            variant="secondary"
+                            size="sm"
+                            icon={<Icon icon={FiEye} size="sm" />}
+                            onClick={() => setViewerFile({ fileUrl: item.filePath, fileName: item.fileName })}
+                          />
+                        )}
+                        <Button
+                          label="받기"
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={FiDownload} size="sm" />}
+                          onClick={() => handleDownload(item)}
+                        />
+                        {/* 줄마다 휴지통 아이콘이 항상 보이면 화면이 산만해진다. hover·포커스일 때만
+                            드러나도록 낮춘다(globals.css carev-lib-delete). 삭제 기능은 그대로이고
+                            키보드 탭으로 포커스하면 hover 없이도 보이고 누를 수 있다 */}
+                        {canManage && (
+                          <IconButton
+                            label="삭제"
+                            tooltip="삭제"
+                            variant="ghost"
+                            size="sm"
+                            className="carev-lib-delete"
+                            icon={<Icon icon={FiTrash2} size="sm" />}
+                            onClick={() => handleDelete(item)}
+                          />
+                        )}
+                      </HStack>
+                    </HStack>
+                  </div>
+                </Fragment>
+              ))}
+            </VStack>
+          </Card>
         )}
       </VStack>
 

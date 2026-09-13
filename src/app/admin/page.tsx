@@ -1432,14 +1432,18 @@ export default function AdminPage() {
                     />
                 </div>
             )}
-            {/* 공지사항 롤링 배너 */}
+            {/* 공지사항 롤링 배너 — 공지사항 탭 안에서는 목록이 이미 같은 내용을 보여주므로
+                롤링 줄까지 겹쳐 뜨는 게 중복이었다. 감싸는 div(모바일 헤더용 margin-top)는
+                레이아웃 높이 계산에 계속 쓰이므로 그대로 두고 안쪽 배너만 숨긴다. */}
             <div className="carev-admin-rolling">
-            <NoticeRollingBanner
-              onNoticeClick={() => setActiveMainTab('notice')}
-              autoScrollInterval={5000}
-              maxNotices={5}
-              onNoticesLoaded={onNoticesLoaded}
-            />
+            {activeMainTab !== 'notice' && (
+              <NoticeRollingBanner
+                onNoticeClick={() => setActiveMainTab('notice')}
+                autoScrollInterval={5000}
+                maxNotices={5}
+                onNoticesLoaded={onNoticesLoaded}
+              />
+            )}
             </div>
 
             {/* 메인 콘텐츠 */}
