@@ -796,7 +796,9 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                           {template.templateType === 'form' ? (
                             <Badge variant="teal" label="온라인 폼" />
                           ) : template.templateType === 'hybrid' ? (
-                            <Badge variant="cyan" label="혼합" />
+                            // teal과 cyan은 둘 다 초록에 가까워 나란히 두면 구분이 안 됐다.
+                            // 이 표에서 purple은 다른 곳에 쓰이지 않아 확실히 갈린다.
+                            <Badge variant="purple" label="혼합" />
                           ) : (
                             <Badge variant="neutral" label="파일" />
                           )}
