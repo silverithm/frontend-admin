@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
@@ -69,8 +69,9 @@ function VoiceBoxItemComponent({
   onDraftChange,
   onSave,
 }: VoiceBoxItemProps) {
+  // 카드 여러 장 대신 한 표면 안의 한 행 — 바깥(VoiceBoxAdmin)에서 Card padding=0 + Divider로 감싼다
   return (
-    <Card>
+    <div className="carev-row" style={{ padding: 'var(--spacing-4)' }}>
       <VStack gap={2}>
         <HStack gap={2} vAlign="center" hAlign="between">
           <HStack gap={2} vAlign="center">
@@ -138,7 +139,7 @@ function VoiceBoxItemComponent({
           </>
         )}
       </VStack>
-    </Card>
+    </div>
   );
 }
 
@@ -303,22 +304,29 @@ export default function VoiceBoxAdmin() {
           </Card>
         </StackItem>
       ) : (
-        visibleMessages.map((item) => {
-          const draft = draftFor(item);
-          return (
-            <VoiceBoxItem
-              key={item.id}
-              item={item}
-              isExpanded={expandedId === item.id}
-              draftStatus={draft.status}
-              draftReply={draft.reply}
-              isSaving={savingId === item.id}
-              onToggleExpand={handleToggleExpand}
-              onDraftChange={handleDraftChange}
-              onSave={handleSaveDraft}
-            />
-          );
-        })
+        /* 카드 여러 장 대신 하나의 표면 안에서 구분선으로 나눈다(ApprovalManagement 결재 목록과 같은 규칙) */
+        <Card padding={0}>
+          <VStack gap={0}>
+            {visibleMessages.map((item, idx) => {
+              const draft = draftFor(item);
+              return (
+                <Fragment key={item.id}>
+                  {idx > 0 && <Divider />}
+                  <VoiceBoxItem
+                    item={item}
+                    isExpanded={expandedId === item.id}
+                    draftStatus={draft.status}
+                    draftReply={draft.reply}
+                    isSaving={savingId === item.id}
+                    onToggleExpand={handleToggleExpand}
+                    onDraftChange={handleDraftChange}
+                    onSave={handleSaveDraft}
+                  />
+                </Fragment>
+              );
+            })}
+          </VStack>
+        </Card>
       )}
 
       <AlertContainer />
