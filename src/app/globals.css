@@ -195,12 +195,10 @@ html {
   .carev-dash-cal-chips { display: flex; }
   .carev-dash-cal-bars  { display: block; }
 }
-/* 기관 정보 — 한 줄짜리 사실(회사명·주소)을 각각 카드로 세우면, 옆의 관리자 카드
-   높이에 맞춰 늘어나면서 카드 안이 텅 빈다. 사실은 한 장 안에 줄로 쌓고 카드는 둘로 줄인다. */
-.carev-org-split { display: grid; grid-template-columns: 1fr; gap: var(--spacing-4); align-items: start; }
-@media (min-width: 900px) {
-  .carev-org-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
+/* 기관 정보 — 한 줄짜리 사실(회사명·주소)을 각각 카드로 세우면 옆 카드 높이에
+   맞춰 늘어나며 텅 빈다. 사실은 한 장 안에 줄로 쌓는다.
+   (예전엔 옆에 관리자 카드를 나란히 두는 carev-org-split 2열 그리드였다 — 그
+   카드는 '내 계정' 구역으로 옮겨서 이 화면은 이제 기관 카드 한 장뿐이다) */
 .carev-org-facts { display: flex; flex-direction: column; }
 .carev-org-fact { display: flex; align-items: center; gap: var(--spacing-3); padding: var(--spacing-3) 0; }
 .carev-org-fact + .carev-org-fact { border-top: 1px solid var(--color-border); }
