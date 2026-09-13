@@ -113,6 +113,10 @@ html {
   .carev-admin-mobile-header { display: none; }
   .carev-admin-content { margin-left: 224px; }
   .carev-admin-rolling { margin-top: 0; }
+  /* 편의기능 안의 배차관리·AI 글쓰기·회의록 전환 탭 — 사이드바가 보이는 폭에서는
+     왼쪽 편의기능 서브탭과 완전히 같은 목록이 본문에 한 번 더 뜬다. 사이드바가
+     없는 모바일 헤더 폭에서는 이 전환 바가 유일한 선택 수단이라 남겨둔다. */
+  .carev-admin-tools-switch { display: none; }
 }
 /* 근무조정: 데스크탑에서 캘린더와 사이드바가 같은 높이로 한 화면에 들어가고,
    넘치는 내용은 각 컬럼 안에서만 스크롤한다. */
