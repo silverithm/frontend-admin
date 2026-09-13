@@ -272,6 +272,14 @@ html {
    않는다. 배경만 한 톤 눌러 마우스가 얹힌 줄을 표시한다. */
 .carev-row { transition: background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-row:hover { background: var(--color-background-muted); } }
+/* 자료실 목록의 삭제 버튼 — 줄마다 항상 보이면 화면이 휴지통 아이콘으로 뒤덮인다.
+   마우스가 있는 화면에서만 hover/focus로 드러내고, 터치 기기는 hover가 없으므로
+   항상 보여 기능이 사라지지 않게 한다. 키보드 포커스는 hover 여부와 무관하게 항상 드러난다. */
+.carev-lib-delete:focus-visible { opacity: 1; }
+@media (hover: hover) {
+  .carev-lib-delete { opacity: 0; }
+  .carev-row:hover .carev-lib-delete { opacity: 1; }
+}
 .carev-dash-row { transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); cursor: pointer; }
 @media (hover: hover) { .carev-dash-row:hover { background: var(--color-background-muted); box-shadow: var(--shadow-inset-hover); } }
 .carev-dash-cal-cell { transition: background var(--duration-fast-min) var(--ease-standard), border-color var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
