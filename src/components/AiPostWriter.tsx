@@ -150,13 +150,17 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
   };
 
   return (
-    <div style={{ width: "100%", maxWidth: 860, margin: "0 auto" }}>
-      <VStack gap={4}>
-        <PageHeader
-          title="AI 글쓰기 도우미"
-          description="오늘 찍은 식사·프로그램 사진을 올리면 밴드/블로그 게시글을 자동으로 써드려요. 완성된 글을 복사해서 붙여넣기만 하면 됩니다."
-        />
+    // 제목은 다른 편의기능 화면처럼 왼쪽 끝에 맞추고, 입력 폼만 너무 넓어지지
+    // 않도록 폭을 제한한다(예전엔 이 div 전체가 가운데 정렬돼 제목 왼쪽 끝이
+    // 위 배차관리·AI 글쓰기·회의록 탭과 어긋나 보였다).
+    <VStack gap={4}>
+      <PageHeader
+        title="AI 글쓰기 도우미"
+        description="오늘 찍은 식사·프로그램 사진을 올리면 밴드/블로그 게시글을 자동으로 써드려요. 완성된 글을 복사해서 붙여넣기만 하면 됩니다."
+      />
 
+      <div style={{ width: "100%", maxWidth: 860 }}>
+        <VStack gap={4}>
         <Card variant="default" padding={5}>
           <VStack gap={4}>
             <FileInput
@@ -271,7 +275,8 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
             </VStack>
           </Card>
         )}
-      </VStack>
-    </div>
+        </VStack>
+      </div>
+    </VStack>
   );
 }
