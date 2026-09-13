@@ -1469,6 +1469,16 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
                       ))}
                     </SegmentedControl>
+                    {/* 이 화면의 유일한 '일정 추가' 진입점이다(상세 패널의 중복 버튼은 없앴다).
+                        주 동작이라 접기·담당 업무보다 앞에 둔다 — 줄바꿈이 일어나도
+                        먼저 오는 이 버튼이 아니라 뒤의 보조 버튼이 둘째 줄로 밀려난다. */}
+                    <Button
+                      label="일정 추가"
+                      variant="primary"
+                      size="sm"
+                      icon={<Icon icon={IconPlus} size="sm" />}
+                      onClick={() => openCreateModal()}
+                    />
                     <Button
                       label={showMyTasksOnly ? '전체 일정' : '담당 업무'}
                       variant={showMyTasksOnly ? 'primary' : 'ghost'}
@@ -1483,13 +1493,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       size="sm"
                       icon={<Icon icon={isExpanded ? IconChevronsUp : IconChevronsDown} size="sm" />}
                       onClick={() => setIsExpanded((v) => !v)}
-                    />
-                    <Button
-                      label="일정 추가"
-                      variant="primary"
-                      size="sm"
-                      icon={<Icon icon={IconPlus} size="sm" />}
-                      onClick={() => openCreateModal()}
                     />
                   </>
                 )}
@@ -1693,18 +1696,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       onClick={() => setSelectedDate(null)}
                     />
                   </HStack>
-                </div>
-
-                {/* 일정 추가 버튼 */}
-                <div style={{ padding: 'var(--spacing-4) var(--spacing-5) 0' }}>
-                  <Button
-                    label="일정 추가"
-                    variant="primary"
-                    size="sm"
-                    icon={<Icon icon={IconPlus} size="sm" />}
-                    onClick={() => openCreateModal(selectedDate)}
-                    style={{ width: '100%' }}
-                  />
                 </div>
 
                 {/* 그날 휴무자 — 달력 칸에서는 이름만 몇 줄 보이므로 여기서 전부 펼친다 */}
