@@ -509,7 +509,10 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                               <HStack gap={2} vAlign="center" wrap="wrap">
                                 {n.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
                                 <Heading level={4} maxLines={1}>{n.title}</Heading>
-                                <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
+                                {/* '일반'은 공지 대부분의 기본값이라 배지로 찍으면 거의 모든 줄에 같은 라벨이 붙어 정보가 아니게 된다. 눈에 띄어야 할 우선순위만 배지로 남긴다 */}
+                                {n.priority !== 'NORMAL' && (
+                                  <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
+                                )}
                               </HStack>
                               <Text type="supporting" maxLines={2}>{richTextToPlain(n.content)}</Text>
                               <HStack gap={3} vAlign="center" wrap="wrap">
