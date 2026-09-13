@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 
 import {
     buildChatRenderItems,
+    formatDateSeparator,
     PHOTO_GROUP_MAX_COUNT,
     PHOTO_GROUP_MAX_GAP_MS,
     chatAttachmentLabel,
@@ -172,6 +173,41 @@ test('이름이 없으면 종류로, 종류도 모르면 파일', () => {
     assert.equal(chatAttachmentLabel({ type: 'IMAGE' }), '사진');
     assert.equal(chatAttachmentLabel({ type: 'FILE', content: '메모.txt' }), '메모.txt');
     assert.equal(chatAttachmentLabel({ type: 'FILE' }), '파일');
+});
+
+/**
+ * 날짜 구분선 문구 — 요일이 붙어야 한다 (제보 2026-09-10).
+ * "오늘"/"어제"는 그대로 말로 남기고, 그 밖은 "9월 10일 (목)" / "2025년 9월 10일 (목)" 형식이다.
+ */
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function toLocalDateTimeString(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T12:00:00`;
+}
+
+test('오늘은 요일 없이 "오늘"', () => {
+    assert.equal(formatDateSeparator(toLocalDateTimeString(new Date())), '오늘');
+});
+
+test('어제는 요일 없이 "어제"', () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    assert.equal(formatDateSeparator(toLocalDateTimeString(yesterday)), '어제');
+});
+
+test('올해의 다른 날짜는 "N월 N일 (요일)"', () => {
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+    const expected = `${tenDaysAgo.getMonth() + 1}월 ${tenDaysAgo.getDate()}일 (${WEEKDAY_LABELS[tenDaysAgo.getDay()]})`;
+    assert.equal(formatDateSeparator(toLocalDateTimeString(tenDaysAgo)), expected);
+});
+
+test('작년 날짜는 "N년 N월 N일 (요일)"', () => {
+    const lastYear = new Date();
+    lastYear.setFullYear(lastYear.getFullYear() - 1);
+    const expected = `${lastYear.getFullYear()}년 ${lastYear.getMonth() + 1}월 ${lastYear.getDate()}일 (${WEEKDAY_LABELS[lastYear.getDay()]})`;
+    assert.equal(formatDateSeparator(toLocalDateTimeString(lastYear)), expected);
 });
 
 test('방 목록 미리보기는 서버가 정리해 준 말을 먼저 쓴다', () => {

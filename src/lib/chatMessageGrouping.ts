@@ -33,7 +33,13 @@ export function getDateKey(dateStr: string): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** 날짜 구분선에 쓸 문구 — 오늘/어제는 말로, 그 밖은 날짜로 */
+/** 요일 표시 — Date.getDay()의 0(일)~6(토) 순서 그대로 */
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/**
+ * 날짜 구분선에 쓸 문구 — 오늘/어제는 말로, 그 밖은 날짜+요일로.
+ * 앱(Flutter)이 이미 "2026년 9월 10일 (목)" 형식을 쓰고 있어 웹도 맞춘다.
+ */
 export function formatDateSeparator(dateStr: string): string {
     const date = new Date(dateStr);
     const now = new Date();
@@ -43,10 +49,11 @@ export function formatDateSeparator(dateStr: string): string {
 
     if (diffDays === 0) return "오늘";
     if (diffDays === 1) return "어제";
+    const weekday = WEEKDAY_LABELS[date.getDay()];
     if (date.getFullYear() === now.getFullYear()) {
-        return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+        return `${date.getMonth() + 1}월 ${date.getDate()}일 (${weekday})`;
     }
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${weekday})`;
 }
 
 /**
