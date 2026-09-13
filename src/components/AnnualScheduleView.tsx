@@ -19,6 +19,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { IconCircleCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
 import { Loading } from '@/components/Loading';
+import PageHeader from '@/components/PageHeader';
 import { getSchedules } from '@/lib/apiService';
 import { Schedule, SCHEDULE_CATEGORIES, getScheduleColor } from '@/types/schedule';
 import { useAlert } from './Alert';
@@ -202,6 +203,9 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
 
   return (
     <div className="carev-annual-root">
+      <div style={{ marginBottom: 'var(--spacing-4)' }}>
+        <PageHeader title="연간일정" description="한 해 열두 달의 일정을 한 화면에서 훑어봅니다" />
+      </div>
       {/* 연도 이동 */}
       <div className="carev-annual-header">
         <HStack gap={2} vAlign="center">
