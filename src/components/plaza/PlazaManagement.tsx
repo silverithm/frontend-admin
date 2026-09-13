@@ -26,7 +26,7 @@ import PlazaBoard from './PlazaBoard';
 import PlazaHome, { type PlazaMenu } from './PlazaHome';
 import PlazaLibrary from './PlazaLibrary';
 import PlazaNews from './PlazaNews';
-import { CATEGORY_META, isLoggedIn, isDemoMode, type BoardType, type PostCategory } from './plazaStore';
+import { isLoggedIn, isDemoMode, type BoardType, type PostCategory } from './plazaStore';
 import { fetchPlazaRole, fetchPost } from './plazaApi';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -146,22 +146,6 @@ export default function PlazaManagement() {
     );
   };
 
-  /** 평가후기·실무팁 아래 시설 유형 서브메뉴 */
-  const navSubButton = (board: BoardType, category: (typeof CATEGORY_META)[number]) => {
-    const isActive = activeMenu === board && activeCategory === category.value;
-    return (
-      <div key={`${board}-${category.value}`} style={{ paddingLeft: 'var(--spacing-6)' }}>
-        <Button
-          label={category.label}
-          variant={isActive ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => navigateTo(board, category.value)}
-          style={{ width: '100%', justifyContent: 'flex-start' }}
-        />
-      </div>
-    );
-  };
-
   return (
     <>
       <AlertContainer />
@@ -215,12 +199,10 @@ export default function PlazaManagement() {
                 />
                 <div style={{ height: 'var(--spacing-1)' }} />
                 {navButton({ key: 'home', label: '커뮤니티 홈', icon: IconHome2 })}
-                {BOARD_MENUS.map((menu) => (
-                  <VStack key={menu.key} gap={0.5}>
-                    {navButton(menu)}
-                    {menu.hasCategory && CATEGORY_META.map((category) => navSubButton(menu.key, category))}
-                  </VStack>
-                ))}
+                {/* 시설 유형(주간보호·방문요양목욕·요양원)은 게시판마다 서브메뉴로 네 번
+                    반복하지 않는다 — 보드 안 필터 칩(PlazaBoard)이 이미 같은 일을 한다.
+                    모바일은 그 칩이 원래도 유일한 진입점이었다. */}
+                {BOARD_MENUS.map((menu) => navButton(menu))}
                 <Divider />
                 {RESOURCE_MENUS.map(navButton)}
               </VStack>
