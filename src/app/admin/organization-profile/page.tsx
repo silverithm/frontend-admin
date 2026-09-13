@@ -651,6 +651,7 @@ export default function OrganizationProfilePage() {
                           </HStack>
                           <FileInput
                             label="내 프로필 사진"
+                            placeholder="파일 선택"
                             accept="image/jpeg,image/png,image/webp"
                             maxSize={5 * 1024 * 1024}
                             value={profileImageFile}
