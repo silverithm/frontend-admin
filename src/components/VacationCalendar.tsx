@@ -419,11 +419,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       return { bg: 'var(--color-background-muted)', hoverBg: 'var(--color-background-muted)' };
     }
 
-    // 전체·다중 선택일 때는 무색(한도는 직종별이라 단일 선택일 때만 의미), 단 오늘 날짜는 강조색
+    // 전체·다중 선택일 때는 무색(한도는 직종별이라 단일 선택일 때만 의미).
+    // 오늘은 칸 전체를 칠하지 않는다 — 날짜 숫자의 원형 배지만으로 표시한다(#3)
     if (!isSingleRole) {
-      if (isToday(date)) {
-        return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
-      }
       return { bg: 'transparent', hoverBg: 'var(--color-background-muted)' };
     }
 
@@ -432,10 +430,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const filteredVacations = vacations ?? getDayVacations(date);
     const vacationersCount = filteredVacations.length;
     const maxPeople = dayData?.maxPeople ?? 3;
-
-    if (isToday(date)) {
-      return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
-    }
 
     if (vacationersCount < maxPeople) {
       return { bg: 'var(--color-background-green)', hoverBg: 'var(--color-background-green)', status: '여유' };
@@ -916,7 +910,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               transition: 'background-color var(--duration-fast)',
               // 칸 경계가 없어 휴무자 명단이 어느 날짜 것인지 헷갈렸다(#37) — 옅은 테두리로 칸을 나눈다
               border: isSelected ? '1px solid var(--color-border-teal)' : '1px solid var(--color-border)',
-              background: isSelected ? 'var(--color-background-teal)' : dayColor.bg,
+              // 선택도 칸 전체를 칠하지 않고 테두리(border·boxShadow)로만 표시한다(#3)
+              background: dayColor.bg,
               boxShadow: isSelected ? '0 0 0 2px var(--color-border-teal), 0 1px 2px rgba(0,0,0,0.05)' : undefined,
               opacity: !isCurrentMonth ? 0.3 : (isPast && isCurrentMonth ? 0.7 : 1),
               overflow: isExpanded ? undefined : 'hidden',
