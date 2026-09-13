@@ -1813,9 +1813,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                               {canManageSchedule(schedule) && (
                                 <>
                                   <Button label="수정" variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule)} />
-                                  <Button
-                                    label="삭제"
-                                    variant="destructive"
+                                  {/* 되돌릴 수 없는 동작이라 매일 누르는 수행완료·수정과 같은 무게를 주지 않는다.
+                                      아이콘만 남겨 덜 두드러지게 하되, 기능은 그대로 키보드로도 닿는다. */}
+                                  <IconButton
+                                    label="일정 삭제"
+                                    icon={<Icon icon={IconTrash} size="sm" />}
+                                    variant="ghost"
                                     size="sm"
                                     onClick={() => {
                                       setSelectedSchedule(schedule);
