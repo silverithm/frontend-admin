@@ -90,10 +90,13 @@ function VoiceBoxItemComponent({
             />
           </HStack>
         </HStack>
+        {/* 익명 글은 authorName이 비어 있어 그대로 이어붙이면 "· 2026년…"처럼 점으로
+            시작했다. 익명일 땐 '익명'으로 표기하고, 항목이 있는 것끼리만 가운뎃점으로 잇는다 */}
         <Text type="supporting" color="secondary">
-          {item.authorName}
-          {' · '}
-          {item.createdAt ? format(new Date(item.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko }) : ''}
+          {[
+            item.isAnonymous || !item.authorName ? '익명' : item.authorName,
+            item.createdAt ? format(new Date(item.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko }) : null,
+          ].filter(Boolean).join(' · ')}
         </Text>
         {/* 띄어쓰기 없는 긴 토큰(URL 등)도 카드 밖으로 넘치지 않게 줄바꿈 보호 */}
         <Text type="body" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
