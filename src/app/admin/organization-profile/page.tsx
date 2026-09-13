@@ -14,6 +14,7 @@ import {
   IconCopy,
   IconPencil,
   IconPlus,
+  IconRubberStamp,
 } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
 import { Avatar } from '@astryxdesign/core/Avatar';
@@ -682,9 +683,14 @@ export default function OrganizationProfilePage() {
                               style={{ maxWidth: '70%', maxHeight: '85%', objectFit: 'contain' }}
                             />
                           ) : (
-                            <VStack gap={1} hAlign="center">
+                            // 빈 회색 칸만 있으면 뭘 올려야 하는지 알 수 없다 — 아이콘과
+                            // 함께 무엇을·어디에 쓰는지 바로 안내한다.
+                            <VStack gap={1.5} hAlign="center">
+                              <Icon icon={IconRubberStamp} size="lg" color="tertiary" />
                               <Text type="supporting" color="secondary">등록된 직인이 없습니다</Text>
-                              <Text type="supporting" color="disabled">등록하면 승인된 공문에 자동으로 찍힙니다</Text>
+                              <Text type="supporting" color="disabled" style={{ textAlign: 'center' }}>
+                                기관 직인(PNG·JPG) 이미지를 올리면 결재 최종 승인 시 공문에 자동으로 찍힙니다
+                              </Text>
                             </VStack>
                           )}
                         </div>
@@ -702,6 +708,7 @@ export default function OrganizationProfilePage() {
                         )}
                         <FileInput
                           label="직인 이미지 (PNG/JPG, 배경 투명 권장)"
+                          placeholder="파일 선택"
                           accept="image/png,image/jpeg"
                           value={sealFile}
                           onChange={(files) => {
