@@ -887,7 +887,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       {/* 헤더 */}
       <PageHeader
         title="회원 관리"
-        description={organizationName || undefined}
+        description="가입 신청을 승인하고, 직원 역할과 어르신 정보를 관리합니다."
         actions={
           <IconButton
             label="새로고침"
