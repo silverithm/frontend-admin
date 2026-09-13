@@ -21,6 +21,7 @@ import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrou
 import { ChatMessageText } from "@/components/chat/ChatMessageText";
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOlderChatMessages } from '@/lib/useOlderChatMessages';
+import { useMessageMenuPosition } from '@/hooks/useMessageMenuPosition';
 
 interface ChatParticipant {
     userId: string;
@@ -161,6 +162,9 @@ export function FloatingChatMessages({
     // 꾹 누르기(롱프레스) 관련
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [longPressMenuMessageId, setLongPressMenuMessageId] = useState<number | null>(null);
+    /** 지금 열려 있는 메뉴가 붙는 말풍선(anchor)과 메뉴 자신 — 옆/아래 위치 계산에 쓴다 [[useMessageMenuPosition]] */
+    const longPressMenuAnchorRef = useRef<HTMLDivElement | null>(null);
+    const longPressMenuElRef = useRef<HTMLDivElement | null>(null);
 
     // 파일·사진 첨부 관련 — 관리자 채팅 탭과 같은 업로드·뷰어를 쓴다
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,6 +196,21 @@ export function FloatingChatMessages({
     useEffect(() => {
         if (longPressMenuMessageId === null) setPendingDeleteId(null);
     }, [longPressMenuMessageId]);
+
+    // 지금 열려 있는 메뉴가 내 메시지 것인지 — 옆 배치 방향(내 메시지=왼쪽, 상대=오른쪽) 판단에 쓴다
+    const longPressMenuIsMyMessage = longPressMenuMessageId !== null
+        ? messages.find(m => m.id === longPressMenuMessageId)?.senderId === userId
+        : false;
+    const longPressMenuStyle = useMessageMenuPosition({
+        isOpen: longPressMenuMessageId !== null,
+        anchorRef: longPressMenuAnchorRef,
+        menuRef: longPressMenuElRef,
+        containerRef: messagesContainerRef,
+        isMyMessage: longPressMenuIsMyMessage,
+        // FloatingChat은 폭이 좁아 옆 자리가 자주 부족하다 — 간격을 조금 줄여 여지를 넓혀둔다
+        gap: 6,
+        recalcKey: pendingDeleteId,
+    });
 
     const fetchParticipants = useCallback(async () => {
         if (!roomId) return;
@@ -896,6 +915,7 @@ export function FloatingChatMessages({
                                                 </>
                                             )}
                                             <div
+                                                ref={(el) => { if (message.id === longPressMenuMessageId) longPressMenuAnchorRef.current = el; }}
                                                 className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                 style={{
                                                     position: "relative",
@@ -1013,17 +1033,10 @@ export function FloatingChatMessages({
                                         {/* 리액션 표시 */}
                                         {renderReactions(message)}
 
-                                        {/* 롱프레스 메뉴 (답글 + 이모지) */}
+                                        {/* 롱프레스 메뉴 (답글 + 이모지) — 말풍선 옆(내 메시지=왼쪽, 상대=오른쪽)에 뜨고,
+                                            자리가 없으면 아래로 내린다(위로는 절대 안 올린다). [[useMessageMenuPosition]] */}
                                         {longPressMenuMessageId === message.id && (
-                                            <div
-                                                style={{
-                                                    position: "absolute",
-                                                    zIndex: 40,
-                                                    bottom: "100%",
-                                                    marginBottom: 'var(--spacing-1)',
-                                                    ...(isMyMessage ? { right: 0 } : { left: 0 }),
-                                                }}
-                                            >
+                                            <div ref={longPressMenuElRef} style={longPressMenuStyle}>
                                                 <div
                                                     style={{
                                                         background: 'var(--color-background-card)',

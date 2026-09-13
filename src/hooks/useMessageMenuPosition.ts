@@ -1,0 +1,128 @@
+"use client";
+
+import { useLayoutEffect, useState, type CSSProperties, type RefObject } from "react";
+
+export interface MessageMenuPositionStyle extends CSSProperties {
+    position: "absolute";
+    visibility: "visible" | "hidden";
+}
+
+interface UseMessageMenuPositionOptions {
+    /** 메뉴가 열려 있는지 — 열릴 때만 위치를 계산한다 */
+    isOpen: boolean;
+    /**
+     * 메뉴를 절대좌표로 붙이는 기준 요소(말풍선, position:relative).
+     * 메뉴는 이 요소의 자식으로 그려져야 top/left(px)가 이 요소 좌상단 기준으로 맞는다.
+     */
+    anchorRef: RefObject<HTMLElement | null>;
+    /** 메뉴 자신 — 크기를 재기 위해 필요하다 */
+    menuRef: RefObject<HTMLElement | null>;
+    /** 스크롤 컨테이너 — 이 경계 밖으로 메뉴가 잘리지 않게 clamp한다 */
+    containerRef: RefObject<HTMLElement | null>;
+    /** 내 메시지면 왼쪽을, 상대 메시지면 오른쪽을 우선한다 */
+    isMyMessage: boolean;
+    /** 말풍선과 메뉴 사이 간격(px) */
+    gap?: number;
+    /** 컨테이너 경계에서 남겨둘 여백(px) */
+    edgePadding?: number;
+    /**
+     * 메뉴 안 내용이 늘었다 줄었다 할 때(예: 삭제 확인 문구가 펼쳐질 때)
+     * 다시 계산하도록 넘기는 값 — 바뀔 때마다 재계산한다.
+     */
+    recalcKey?: unknown;
+}
+
+/**
+ * 메시지 롱프레스/우클릭 메뉴 위치 계산.
+ *
+ * 예전엔 항상 말풍선 위(`bottom: 100%`)에 떴는데, 그러면 바로 위 메시지를 가리고
+ * 목록 맨 위쪽 메시지에서는 스크롤 영역 밖으로 잘려 아예 안 보였다.
+ *
+ * 우선순위:
+ * 1. 말풍선 옆(내 메시지=왼쪽, 상대 메시지=오른쪽), 세로는 말풍선 윗선에 맞춘다.
+ * 2. 옆에 자리가 없으면 반대쪽 옆을 시도한다.
+ * 3. 그래도 없으면 말풍선 아래로 내린다 — 위로는 절대 올리지 않는다(그게 원래 버그였다).
+ * 4. 어느 경우든 스크롤 컨테이너 경계 안으로 clamp한다.
+ */
+export function useMessageMenuPosition({
+    isOpen,
+    anchorRef,
+    menuRef,
+    containerRef,
+    isMyMessage,
+    gap = 8,
+    edgePadding = 8,
+    recalcKey,
+}: UseMessageMenuPositionOptions): MessageMenuPositionStyle {
+    const [style, setStyle] = useState<MessageMenuPositionStyle>({
+        position: "absolute",
+        visibility: "hidden",
+        top: 0,
+        left: 0,
+    });
+
+    useLayoutEffect(() => {
+        if (!isOpen) return;
+        const anchor = anchorRef.current;
+        const menu = menuRef.current;
+        const container = containerRef.current;
+        if (!anchor || !menu || !container) return;
+
+        const anchorRect = anchor.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        const spaceLeft = anchorRect.left - containerRect.left;
+        const spaceRight = containerRect.right - anchorRect.right;
+
+        const fitsLeft = spaceLeft >= menuRect.width + gap + edgePadding;
+        const fitsRight = spaceRight >= menuRect.width + gap + edgePadding;
+
+        const preferLeft = isMyMessage;
+        const canGoPreferred = preferLeft ? fitsLeft : fitsRight;
+        const canGoOpposite = preferLeft ? fitsRight : fitsLeft;
+
+        let viewportLeft: number;
+        let viewportTop: number;
+
+        if (canGoPreferred || canGoOpposite) {
+            const goLeft = canGoPreferred ? preferLeft : !preferLeft;
+            viewportLeft = goLeft
+                ? anchorRect.left - gap - menuRect.width
+                : anchorRect.right + gap;
+            viewportTop = anchorRect.top;
+        } else {
+            // 옆에 자리가 없다 — 아래로 내린다 (위로는 절대 올리지 않는다)
+            viewportTop = anchorRect.bottom + gap;
+            viewportLeft = isMyMessage
+                ? anchorRect.right - menuRect.width
+                : anchorRect.left;
+        }
+
+        // 스크롤 컨테이너 경계 안으로 clamp
+        const minLeft = containerRect.left + edgePadding;
+        const maxLeft = containerRect.right - edgePadding - menuRect.width;
+        viewportLeft = maxLeft >= minLeft
+            ? Math.min(Math.max(viewportLeft, minLeft), maxLeft)
+            : minLeft;
+
+        const minTop = containerRect.top + edgePadding;
+        const maxTop = containerRect.bottom - edgePadding - menuRect.height;
+        viewportTop = maxTop >= minTop
+            ? Math.min(Math.max(viewportTop, minTop), maxTop)
+            : minTop;
+
+        setStyle({
+            position: "absolute",
+            visibility: "visible",
+            zIndex: 40,
+            top: viewportTop - anchorRect.top,
+            left: viewportLeft - anchorRect.left,
+        });
+        // anchorRef/menuRef/containerRef는 매 렌더 같은 ref 객체이므로 의존성에서 뺀다 —
+        // 실제로 다시 계산해야 하는 시점은 열림 여부·대상·내용 크기가 바뀔 때뿐이다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, isMyMessage, gap, edgePadding, recalcKey]);
+
+    return style;
+}

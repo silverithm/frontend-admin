@@ -11,6 +11,7 @@ import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/l
 import { mergeMissedMessages, hasMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
+import { useMessageMenuPosition } from '@/hooks/useMessageMenuPosition';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator, chatAttachmentLabel, lastMessagePreview } from '@/lib/chatMessageGrouping';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
@@ -340,6 +341,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** 사진 크게 보기 — 묶음에서 열면 그 묶음 전체가 들어와 좌우로 넘길 수 있다 (한 장이면 길이 1) */
     const [imagePreview, setImagePreview] = useState<{ items: ChatLightboxItem[]; index: number } | null>(null);
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
+    /** 지금 열려 있는 메뉴가 붙는 말풍선(anchor)과 메뉴 자신 — 옆/아래 위치 계산에 쓴다 [[useMessageMenuPosition]] */
+    const contextMenuAnchorRef = useRef<HTMLDivElement | null>(null);
+    const contextMenuElRef = useRef<HTMLDivElement | null>(null);
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<number | null>(null);
     /** 지금 고치고 있는 메시지 — null이면 평소의 새 메시지 입력 상태 */
@@ -424,6 +428,19 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     // 채팅에서 나를 가리키는 값. 관리자 계정은 접두사가 붙는다 — localStorage의 원시 userId와 다르다
     const [userId] = useState(() => getMyChatUserId());
     const [userName] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userName") : null);
+
+    // 지금 열려 있는 메뉴가 내 메시지 것인지 — 옆 배치 방향(내 메시지=왼쪽, 상대=오른쪽) 판단에 쓴다
+    const contextMenuIsMyMessage = contextMenuMessageId !== null
+        ? messages.find(m => m.id === contextMenuMessageId)?.senderId === userId
+        : false;
+    const contextMenuStyle = useMessageMenuPosition({
+        isOpen: contextMenuMessageId !== null,
+        anchorRef: contextMenuAnchorRef,
+        menuRef: contextMenuElRef,
+        containerRef: messagesContainerRef,
+        isMyMessage: contextMenuIsMyMessage,
+        recalcKey: pendingDeleteMessageId,
+    });
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -2126,6 +2143,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             </>
                                                         )}
                                                         <div
+                                                            ref={(el) => { if (message.id === contextMenuMessageId) contextMenuAnchorRef.current = el; }}
                                                             className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                             style={{
                                                                 position: "relative",
@@ -2312,9 +2330,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         </div>
                                                     )}
 
-                                                    {/* 롱프레스 메뉴 */}
+                                                    {/* 롱프레스 메뉴 — 말풍선 옆(내 메시지=왼쪽, 상대=오른쪽)에 뜨고,
+                                                        자리가 없으면 아래로 내린다(위로는 절대 안 올린다). [[useMessageMenuPosition]] */}
                                                     {contextMenuMessageId === message.id && (
-                                                        <div style={{ position: "absolute", zIndex: 40, bottom: "100%", marginBottom: 'var(--spacing-1)', ...(isMyMessage ? { right: 0 } : { left: 0 }) }}>
+                                                        <div ref={contextMenuElRef} style={contextMenuStyle}>
                                                             <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: 'var(--shadow-high)', border: `1px solid ${C.border}`, overflow: "hidden" }}>
                                                                 <div style={{ padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.gray100}` }}>
                                                                     <HStack gap={0.5}>
