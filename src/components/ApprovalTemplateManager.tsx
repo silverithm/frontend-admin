@@ -28,7 +28,7 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { Table, TableRow, TableCell, TableHeaderCell } from '@astryxdesign/core/Table';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
-import FormSchemaBuilder from './approval/FormSchemaBuilder';
+import FormSchemaBuilder, { ExistingFormTemplateOption } from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
 import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch } from 'react-icons/fi';
@@ -260,6 +260,22 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
       [t.name, t.category, t.fileName].some((field) => (field || '').toLowerCase().includes(keyword)),
     );
   }, [templates, categoryFilter, searchQuery]);
+
+  /** 폼 빌더의 "기존 양식에서 불러오기"에 넘길 목록 — 온라인 폼(formSchema 보유)만 대상 */
+  const existingFormTemplateOptions: ExistingFormTemplateOption[] = useMemo(
+    () =>
+      templates
+        .filter((t) => (t.templateType === 'form' || t.templateType === 'hybrid') && !!t.formSchema)
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          category: t.category,
+          formSchema: t.formSchema as FormSchema,
+          isActive: t.isActive,
+        })),
+    [templates],
+  );
 
   /**
    * 순서 조정은 전체 목록 기준으로만 허용한다 — 대분류로 걸러진 상태에서 바꾸면
@@ -1042,6 +1058,8 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       onSchemaChange={(schema) => setFormSchema(schema)}
                       templateName={uploadForm.name}
                       defaultApprovalLine={defaultLine}
+                      existingTemplates={existingFormTemplateOptions}
+                      excludeTemplateId={editingTemplate?.id}
                     />
                   </VStack>
                 )}

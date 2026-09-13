@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { buildSampleApproval } from './templatePreview';
 import { FormSchema, FormFieldSchema, FieldType } from '@/types/formSchema';
@@ -11,12 +11,16 @@ import { getFieldSpan } from '@/lib/formSchemaLogic';
 import FormPreview from './FormPreview';
 import OfficialDocument from './OfficialDocument';
 import { ApprovalRequest, ApproverCandidate } from '@/types/approval';
+import { useConfirm } from '../ConfirmDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { Badge } from '@astryxdesign/core/Badge';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import {
@@ -39,8 +43,20 @@ import {
   IconTable,
   IconGripVertical,
   IconCopy,
+  IconFileImport,
+  IconSearch,
 } from '@tabler/icons-react';
 import { duration } from '@/theme/motion';
+
+/** '기존 양식에서 불러오기' 목록에 쓰는 최소 정보 — 원본 템플릿은 절대 변경하지 않고 formSchema만 복사한다 */
+export interface ExistingFormTemplateOption {
+  id: string | number;
+  name: string;
+  description?: string;
+  category?: string | null;
+  formSchema: FormSchema;
+  isActive?: boolean;
+}
 
 interface FormSchemaBuilderProps {
   initialSchema?: FormSchema;
@@ -49,6 +65,14 @@ interface FormSchemaBuilderProps {
   templateName?: string;
   /** 양식에 지정된 기본 결재선 — 공문 미리보기의 결재란에 그대로 반영 (선택) */
   defaultApprovalLine?: ApproverCandidate[];
+  /**
+   * "기존 양식에서 불러오기"에 띄울 우리 기관의 온라인 폼 양식 목록.
+   * 폼형(templateType form/hybrid, formSchema 보유)만 넘겨받는다고 가정 — 필터링은 호출부 책임.
+   * 지금 편집 중인 양식 자신은 excludeTemplateId로 제외한다.
+   */
+  existingTemplates?: ExistingFormTemplateOption[];
+  /** existingTemplates 중 지금 편집 중인 양식(자기 자신)의 id — 목록에서 제외 */
+  excludeTemplateId?: string | number;
 }
 
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -131,13 +155,16 @@ const DEFAULT_FIELD_BY_TYPE: Record<FieldType, Partial<FormFieldSchema>> = {
 
 const EMPTY_SCHEMA: FormSchema = { version: 1, fields: [] };
 
-export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templateName, defaultApprovalLine }: FormSchemaBuilderProps) {
+export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templateName, defaultApprovalLine, existingTemplates, excludeTemplateId }: FormSchemaBuilderProps) {
+  const { confirm, ConfirmContainer } = useConfirm();
   const [schema, setSchema] = useState<FormSchema>(initialSchema ?? EMPTY_SCHEMA);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [showFieldTypeSelector, setShowFieldTypeSelector] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'document' | 'form'>('document');
   const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [templatePickerQuery, setTemplatePickerQuery] = useState('');
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
@@ -233,13 +260,48 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
     updateSchema({ ...schema, fields: newFields });
   };
 
-  const loadPreset = (presetId: string) => {
+  /** 지금 편집 중인 필드가 있으면 덮어쓰기 전에 확인을 받는다 — 프리셋/기존 양식 불러오기 공통 */
+  const confirmOverwriteIfEditing = async (): Promise<boolean> => {
+    if (schema.fields.length === 0) return true;
+    return confirm({
+      title: '양식을 불러올까요?',
+      message: '지금까지 편집한 필드가 모두 지워지고 불러온 양식으로 바뀝니다. 계속할까요?',
+      confirmText: '불러오기',
+      cancelText: '취소',
+      type: 'warning',
+    });
+  };
+
+  const loadPreset = async (presetId: string) => {
     const preset = formPresets.find((p) => p.id === presetId);
     if (!preset) return;
+    if (!(await confirmOverwriteIfEditing())) return;
     updateSchema(preset.schema);
     setSelectedFieldId(null);
     setShowPresetMenu(false);
   };
+
+  // 우리 기관의 기존 양식(폼형)에서 필드 구성을 복사해 새 양식 작성을 시작한다.
+  // 원본 템플릿의 formSchema 객체를 그대로 참조하지 않도록 깊은 복사한다 — 원본은 절대 수정되지 않는다.
+  const loadExistingTemplate = async (option: ExistingFormTemplateOption) => {
+    if (!(await confirmOverwriteIfEditing())) return;
+    const cloned: FormSchema = JSON.parse(JSON.stringify(option.formSchema));
+    updateSchema(cloned);
+    setSelectedFieldId(null);
+    setShowTemplatePicker(false);
+    setTemplatePickerQuery('');
+  };
+
+  const templateOptions = useMemo(() => {
+    const list = (existingTemplates ?? []).filter((t) => t.id !== excludeTemplateId && t.formSchema);
+    // 활성 양식을 먼저, 비활성 양식은 뒤로
+    const sorted = [...list].sort((a, b) => Number(b.isActive ?? true) - Number(a.isActive ?? true));
+    const q = templatePickerQuery.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter(
+      (t) => t.name.toLowerCase().includes(q) || (t.description ?? '').toLowerCase().includes(q)
+    );
+  }, [existingTemplates, excludeTemplateId, templatePickerQuery]);
 
   const selectedField = schema.fields.find((f) => f.id === selectedFieldId) ?? null;
 
@@ -536,6 +598,17 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
             </AnimatePresence>
           </div>
 
+          {/* 기존 양식에서 불러오기 — 우리 기관에 이미 있는 폼형 양식의 필드 구성을 복사해 시작 */}
+          {existingTemplates && existingTemplates.length > 0 && (
+            <Button
+              label="기존 양식에서 불러오기"
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={IconFileImport} size="sm" />}
+              onClick={() => setShowTemplatePicker(true)}
+            />
+          )}
+
           {/* 미리보기 */}
           <Button
             label="미리보기"
@@ -619,6 +692,100 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
           }
         />
       </Dialog>
+
+      {/* 기존 양식에서 불러오기 — 검색 가능한 스크롤 목록. 폼형만 대상, 비활성 양식은 뒤로 정렬 */}
+      <Dialog
+        isOpen={showTemplatePicker}
+        onOpenChange={(open) => { if (!open) { setShowTemplatePicker(false); setTemplatePickerQuery(''); } }}
+        purpose="form"
+        width={440}
+      >
+        <Layout
+          header={
+            <DialogHeader
+              title="기존 양식에서 불러오기"
+              subtitle="우리 기관의 다른 온라인 양식에서 필드 구성만 복사합니다 (원본은 바뀌지 않습니다)"
+              onOpenChange={(open) => { if (!open) { setShowTemplatePicker(false); setTemplatePickerQuery(''); } }}
+            />
+          }
+          content={
+            <LayoutContent>
+              <VStack gap={3}>
+                <TextInput
+                  label="양식 검색"
+                  isLabelHidden
+                  placeholder="양식명으로 검색"
+                  value={templatePickerQuery}
+                  onChange={setTemplatePickerQuery}
+                  startIcon={IconSearch}
+                  hasClear
+                />
+                {templateOptions.length === 0 ? (
+                  <EmptyState
+                    title={templatePickerQuery ? '검색 결과가 없습니다' : '불러올 양식이 없습니다'}
+                    description={templatePickerQuery ? '다른 검색어로 다시 시도해보세요' : '온라인 폼으로 만든 다른 양식이 아직 없습니다'}
+                  />
+                ) : (
+                  <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                    <VStack gap={1}>
+                      {templateOptions.map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => loadExistingTemplate(option)}
+                          className="carev-formbuilder-preset-item"
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: 'var(--spacing-2) var(--spacing-3)',
+                            background: 'transparent',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-element)',
+                            cursor: 'pointer',
+                            opacity: option.isActive === false ? 0.6 : 1,
+                          }}
+                        >
+                          <HStack gap={2} vAlign="center">
+                            <StackItem size="fill">
+                              <VStack gap={0.5}>
+                                <HStack gap={1.5} vAlign="center">
+                                  <Text type="body" weight="medium" maxLines={1}>{option.name}</Text>
+                                  {option.isActive === false && (
+                                    <Badge label="비활성" variant="neutral" />
+                                  )}
+                                </HStack>
+                                {option.description && (
+                                  <Text type="supporting" color="disabled" maxLines={1}>{option.description}</Text>
+                                )}
+                              </VStack>
+                            </StackItem>
+                            {option.category && (
+                              <Text type="supporting" color="secondary" maxLines={1}>{option.category}</Text>
+                            )}
+                          </HStack>
+                        </button>
+                      ))}
+                    </VStack>
+                  </div>
+                )}
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <HStack gap={2} hAlign="end">
+                <Button
+                  label="취소"
+                  variant="secondary"
+                  onClick={() => { setShowTemplatePicker(false); setTemplatePickerQuery(''); }}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
+
+      <ConfirmContainer />
     </>
   );
 }
