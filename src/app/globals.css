@@ -504,8 +504,13 @@ html {
   .carev-vaccal-cell-expanded { min-height: 176px; }
 }
 @media (min-width: 640px) {
-  /* 정사각형 — 폭이 곧 높이가 된다. 좁아져도 4명 자리는 남도록 하한을 둔다. */
+  /* 정사각형 — 폭이 곧 높이가 된다. 좁아져도 4명 자리는 남도록 하한을 둔다.
+     폭은 반드시 열(1fr) 안에 묶는다 — min-width를 0으로 풀어두지 않으면
+     aspect-ratio가 min-height(140px)에 맞춰 폭까지 늘려서 옆 열을 덮었다(#35).
+     열이 좁을 땐 폭 대신 세로로만 길어진다. */
   .carev-vaccal-grid--fit .carev-vaccal-cell {
+    width: 100%;
+    min-width: 0;
     aspect-ratio: 1 / 1;
     min-height: 140px;
   }

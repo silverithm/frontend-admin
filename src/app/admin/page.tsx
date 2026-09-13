@@ -408,6 +408,36 @@ export default function AdminPage() {
         listRange,
     ]);
 
+    // 상태 필터 한 줄에 건수를 함께 보여주기 위한 집계(#40) — statusFilter 자체는 뺀
+    // filteredRequests와 같은 조건으로, 탭을 눌렀을 때 건수가 바뀌지 않도록 한다.
+    const requestsForStatusCounts = useMemo(() => {
+        if (!Array.isArray(allRequests)) return [];
+        let filtered = allRequests.filter(
+            (request) => request.date >= listRange.start && request.date <= listRange.end
+        );
+        if (selectedDate) {
+            const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+            filtered = filtered.filter((request) => request.date === selectedDateStr);
+        }
+        if (roleFilters.length > 0) {
+            filtered = filtered.filter((request) => {
+                const resolved = getVacationRequestRole(request, memberRoleLookup);
+                return resolved != null && roleFilters.includes(resolved);
+            });
+        }
+        if (nameFilter) {
+            filtered = filtered.filter((request) => request.userName === nameFilter);
+        }
+        return filtered;
+    }, [allRequests, roleFilters, nameFilter, memberRoleLookup, selectedDate, listRange]);
+
+    const statusCounts = useMemo(() => ({
+        all: requestsForStatusCounts.length,
+        pending: requestsForStatusCounts.filter((r) => r.status === "pending").length,
+        approved: requestsForStatusCounts.filter((r) => r.status === "approved").length,
+        rejected: requestsForStatusCounts.filter((r) => r.status === "rejected").length,
+    }), [requestsForStatusCounts]);
+
     // 화면에서 사라진 휴무가 선택에 남아 있으면 일괄 승인에 딸려 들어간다.
     // (달을 넘기거나 기간·상태 필터를 바꾼 뒤가 특히 위험하다)
     // 선택은 항상 지금 목록에 보이는 것만 유지한다.
@@ -1602,10 +1632,12 @@ export default function AdminPage() {
                                                 <Button label="초기화" variant="ghost" size="sm" onClick={resetFilter} />
                                             </HStack>
 
-                                            {/* 조회 기간 — 목록과 일괄 승인이 이 범위 안에서만 이뤄진다 */}
+                                            {/* 조회 기간 — 목록과 일괄 승인이 이 범위 안에서만 이뤄진다.
+                                                설명 문구는 라벨 옆 툴팁으로 옮겨 필터 패널이 목록보다
+                                                무거워지지 않게 한다(#40) */}
                                             <DateRangeInput
                                                 label="조회 기간"
-                                                description="이 기간의 휴무만 목록·일괄 승인 대상이 됩니다"
+                                                labelTooltip="이 기간의 휴무만 목록·일괄 승인 대상이 됩니다"
                                                 value={{ start: listRange.start as ISODateString, end: listRange.end as ISODateString }}
                                                 onChange={(value: DateRange | null) => {
                                                     if (!value?.start || !value?.end) {
@@ -1633,53 +1665,53 @@ export default function AdminPage() {
                                                 hasClear
                                             />
 
-                                            {/* 상태 — 한눈에 토글 */}
-                                            <div>
-                                                <div style={{ marginBottom: 'var(--spacing-1)' }}><Text as="label" type="supporting" weight="medium" color="primary">상태</Text></div>
-                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 'var(--spacing-1)' }}>
-                                                    {(["all", "pending", "approved", "rejected"] as const).map((status) => {
-                                                        const active = statusFilter === status;
-                                                        return (
-                                                        <Button
-                                                            key={status}
-                                                            label={status === "all" ? "전체" : status === "pending" ? "대기" : status === "approved" ? "승인" : "거절"}
-                                                            variant={active ? (status === "rejected" ? "destructive" : "primary") : "ghost"}
-                                                            size="sm"
-                                                            onClick={() => setStatusFilter(status)}
-                                                            style={{ width: "100%" }}
-                                                        />
-                                                        );
-                                                    })}
+                                            {/* 상태 — 2×2 격자는 다른 화면의 한 줄 탭 모양과 달랐고, 목록보다
+                                                필터가 무거워 보이는 원인 중 하나였다(#40). 다른 화면과 같은
+                                                한 줄 SegmentedControl로 바꾸고 건수를 함께 보여준다. */}
+                                            <SegmentedControl
+                                                label="상태"
+                                                value={statusFilter}
+                                                onChange={(value) => setStatusFilter(value as typeof statusFilter)}
+                                                size="sm"
+                                                layout="fill"
+                                            >
+                                                <SegmentedControlItem value="all" label={`전체 ${statusCounts.all}`} />
+                                                <SegmentedControlItem value="pending" label={`대기 ${statusCounts.pending}`} />
+                                                <SegmentedControlItem value="approved" label={`승인 ${statusCounts.approved}`} />
+                                                <SegmentedControlItem value="rejected" label={`거절 ${statusCounts.rejected}`} />
+                                            </SegmentedControl>
+
+                                            {/* 역할·정렬은 각각 한 줄을 다 차지할 만큼 무겁지 않아 한 줄에 같이 둔다(#40) */}
+                                            <HStack gap={2} width="100%" vAlign="start">
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <MultiSelector
+                                                        label="역할"
+                                                        placeholder="전체 역할"
+                                                        options={availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
+                                                        value={roleFilters}
+                                                        onChange={(values) => setRoleFilters(values)}
+                                                        triggerDisplay="badges"
+                                                        hasSelectAll
+                                                        selectAllLabel="전체 역할"
+                                                    />
                                                 </div>
-                                            </div>
-
-                                            {/* 역할 — 직무 수가 많아져도 한 줄 유지 */}
-                                            <MultiSelector
-                                                label="역할 (중복 선택 가능)"
-                                                placeholder="전체 역할"
-                                                options={availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
-                                                value={roleFilters}
-                                                onChange={(values) => setRoleFilters(values)}
-                                                triggerDisplay="badges"
-                                                hasSelectAll
-                                                selectAllLabel="전체 역할"
-                                            />
-
-                                            {/* 정렬 — 드롭다운이라 옵션을 더 제공할 수 있음 */}
-                                            <Selector
-                                                label="정렬"
-                                                width="100%"
-                                                value={sortOrder}
-                                                options={[
-                                                    { value: "latest", label: "최신 신청순" },
-                                                    { value: "oldest", label: "오래된 신청순" },
-                                                    { value: "vacation-date-asc", label: "휴무일 빠른순" },
-                                                    { value: "vacation-date-desc", label: "휴무일 늦은순" },
-                                                    { value: "name", label: "이름순" },
-                                                    { value: "role", label: "직무순" },
-                                                ]}
-                                                onChange={(value) => setSortOrder((value || "latest") as typeof sortOrder)}
-                                            />
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <Selector
+                                                        label="정렬"
+                                                        width="100%"
+                                                        value={sortOrder}
+                                                        options={[
+                                                            { value: "latest", label: "최신 신청순" },
+                                                            { value: "oldest", label: "오래된 신청순" },
+                                                            { value: "vacation-date-asc", label: "휴무일 빠른순" },
+                                                            { value: "vacation-date-desc", label: "휴무일 늦은순" },
+                                                            { value: "name", label: "이름순" },
+                                                            { value: "role", label: "직무순" },
+                                                        ]}
+                                                        onChange={(value) => setSortOrder((value || "latest") as typeof sortOrder)}
+                                                    />
+                                                </div>
+                                            </HStack>
                                         </VStack>
                                     </Card>
 

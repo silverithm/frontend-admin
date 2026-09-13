@@ -24,6 +24,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 
 import { getVacationCalendar, getVacationForDate, getVacationDeadlineDates, getVacationEvents, type VacationEvent } from '@/lib/apiService';
 import VacationEventModal from './VacationEventModal';
@@ -419,11 +420,9 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       return { bg: 'var(--color-background-muted)', hoverBg: 'var(--color-background-muted)' };
     }
 
-    // 전체·다중 선택일 때는 무색(한도는 직종별이라 단일 선택일 때만 의미), 단 오늘 날짜는 강조색
+    // 전체·다중 선택일 때는 무색(한도는 직종별이라 단일 선택일 때만 의미).
+    // 오늘은 칸 전체를 칠하지 않는다 — 날짜 숫자의 원형 배지만으로 표시한다(#3)
     if (!isSingleRole) {
-      if (isToday(date)) {
-        return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
-      }
       return { bg: 'transparent', hoverBg: 'var(--color-background-muted)' };
     }
 
@@ -432,10 +431,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     const filteredVacations = vacations ?? getDayVacations(date);
     const vacationersCount = filteredVacations.length;
     const maxPeople = dayData?.maxPeople ?? 3;
-
-    if (isToday(date)) {
-      return { bg: 'var(--color-background-teal)', hoverBg: 'var(--color-background-muted)', today: true };
-    }
 
     if (vacationersCount < maxPeople) {
       return { bg: 'var(--color-background-green)', hoverBg: 'var(--color-background-green)', status: '여유' };
@@ -616,19 +611,19 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     fontWeight: 'var(--font-weight-bold)',
   });
 
-  // 셀 안의 상태 라벨(pill) 스타일
-  const cellStatusPillStyle = (status?: string): React.CSSProperties => {
+  // 셀 안 상태 표시 — 글자 배지("승인됨"/"대기중")가 이름보다 먼저·크게 나와 이름을
+  // 가렸다(#38). 이름을 앞세우고 상태는 작은 점으로만 남긴다(뜻은 title로).
+  const cellStatusDotStyle = (status?: string): React.CSSProperties => {
     const base: React.CSSProperties = {
       flexShrink: 0,
-      whiteSpace: 'nowrap',
-      marginRight: 'var(--spacing-1)',
-      padding: 'var(--spacing-0-5) var(--spacing-1)',
+      width: 6,
+      height: 6,
       borderRadius: 'var(--radius-full)',
-      fontWeight: 'var(--font-weight-medium)',
+      marginRight: 'var(--spacing-1)',
     };
-    if (status === 'approved') return { ...base, backgroundColor: 'var(--color-background-teal)', color: 'var(--color-text-teal)' };
-    if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
-    return { ...base, backgroundColor: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)' };
+    if (status === 'approved') return { ...base, backgroundColor: 'var(--color-icon-teal)' };
+    if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-icon-red)' };
+    return { ...base, backgroundColor: 'var(--color-icon-yellow)' };
   };
 
   // 상태 한글 변환
@@ -759,10 +754,13 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   onClick={handleOpenMonthPicker}
                 />
               </HStack>
-              <Text type="supporting" color="secondary">휴무 일정 캘린더</Text>
             </VStack>
           </HStack>
 
+          {/* 버튼 여덟 개가 모두 같은 무게였다(#39). 월 이동만 묶고, 관리자 주 동작(직원 휴무
+              추가)만 강조하며, 자주 안 누르는 새로고침·중요 행사는 더보기로 뺀다.
+              휴무 제한 설정·엑셀 내보내기는 온보딩 투어(data-tour)가 이 화면에서 직접
+              가리키는 대상이라 접힌 메뉴 안에 두면 투어가 깨진다 — 무게만 ghost로 낮춰 둔다. */}
           <HStack gap={1} vAlign="center">
             <Button
               label="이전 달"
@@ -774,10 +772,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             />
             <Button
               label="이번 달로 돌아가기"
-              variant="secondary"
+              variant="ghost"
               size="sm"
               isIconOnly
-              icon={<Icon icon="calendar" size="sm" />}
+              icon={<Icon icon="clock" size="sm" />}
               onClick={resetToCurrentMonth}
             />
             <Button
@@ -789,35 +787,20 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               onClick={nextMonth}
             />
             <span style={{ width: 1, height: 20, background: 'var(--color-background-muted)', margin: '0 var(--spacing-1)' }} />
-            <Button
-              label="데이터 새로고침"
-              variant="secondary"
-              size="sm"
-              isIconOnly
-              isLoading={isLoading}
-              icon={<Icon icon={FiRefreshCw} size="sm" />}
-              onClick={handleRefresh}
-            />
-            {isAdmin && onShowLimitPanel && (
+            {isAdmin && onShowLimitPanel ? (
               <>
                 <Button
                   label="휴무 제한 설정"
                   data-tour="action-vacation-limit"
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   onClick={onShowLimitPanel}
-                />
-                <Button
-                  label="중요 행사"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowEventModal(true)}
                 />
                 {onExportExcel && (
                   <Button
                     label={isExportingExcel ? '내보내는 중...' : '엑셀 내보내기'}
-                  data-tour="action-export-excel"
-                    variant="secondary"
+                    data-tour="action-export-excel"
+                    variant="ghost"
                     size="sm"
                     isLoading={isExportingExcel}
                     isDisabled={isExportingExcel || isLoading}
@@ -833,7 +816,31 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   icon={<Icon icon={FiUserPlus} size="sm" />}
                   onClick={() => setShowAdminVacationModal(true)}
                 />
+                <MoreMenu
+                  label="더보기"
+                  variant="ghost"
+                  size="sm"
+                  items={[
+                    {
+                      label: isLoading ? '새로고침 중...' : '데이터 새로고침',
+                      icon: FiRefreshCw,
+                      isDisabled: isLoading,
+                      onClick: handleRefresh,
+                    },
+                    { label: '중요 행사', onClick: () => setShowEventModal(true) },
+                  ]}
+                />
               </>
+            ) : (
+              <Button
+                label="데이터 새로고침"
+                variant="secondary"
+                size="sm"
+                isIconOnly
+                isLoading={isLoading}
+                icon={<Icon icon={FiRefreshCw} size="sm" />}
+                onClick={handleRefresh}
+              />
             )}
             <Button
               label={isExpanded ? '접기' : '펼치기'}
@@ -857,7 +864,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </HStack>
 
         {/* 인터랙티브 캘린더 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)' }}>
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
@@ -870,7 +877,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
         <motion.div
           className={isExpanded ? 'carev-vaccal-grid' : 'carev-vaccal-grid carev-vaccal-grid--fit'}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--spacing-1-5) var(--spacing-1)' }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 'var(--spacing-1-5) var(--spacing-1)' }}
           initial="hidden"
           animate="visible"
           variants={{
@@ -902,13 +909,22 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             let dayColor = getDayColor(day, vacations);
 
             const cellStyle = {
+              // 칸이 button이라 브라우저 기본값이 내용을 세로 가운데로 모아, 휴무자가
+              // 없는 날과 있는 날의 날짜 숫자 높이가 서로 달라 보였다(#36). 태그는 그대로
+              // 두고 내부 정렬만 위쪽으로 고정한다.
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              textAlign: 'left',
               padding: 'var(--spacing-2)',
               borderRadius: 'var(--radius-inner)',
               position: 'relative',
               cursor: 'pointer',
               transition: 'background-color var(--duration-fast)',
-              border: isSelected ? '1px solid var(--color-border-teal)' : '1px solid transparent',
-              background: isSelected ? 'var(--color-background-teal)' : dayColor.bg,
+              // 칸 경계가 없어 휴무자 명단이 어느 날짜 것인지 헷갈렸다(#37) — 옅은 테두리로 칸을 나눈다
+              border: isSelected ? '1px solid var(--color-border-teal)' : '1px solid var(--color-border)',
+              // 선택도 칸 전체를 칠하지 않고 테두리(border·boxShadow)로만 표시한다(#3)
+              background: dayColor.bg,
               boxShadow: isSelected ? '0 0 0 2px var(--color-border-teal), 0 1px 2px rgba(0,0,0,0.05)' : undefined,
               opacity: !isCurrentMonth ? 0.3 : (isPast && isCurrentMonth ? 0.7 : 1),
               overflow: isExpanded ? undefined : 'hidden',
@@ -1023,9 +1039,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           .slice(0, isExpanded ? vacations.length : COLLAPSED_VISIBLE_COUNT)
                           .map((vacation, idx) => (
                         <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={cellStatusPillStyle(vacation.status)}>
-                            <Text type="supporting" color="inherit">{getStatusText(vacation.status)}</Text>
-                          </span>
+                          <span style={cellStatusDotStyle(vacation.status)} title={getStatusText(vacation.status)} />
                           {/* 이름을 누르면 그 사람 휴무만 필터링한다 (한 번 더 누르면 해제).
                               셀이 button이라 중첩 버튼은 만들 수 없어 마우스 클릭만 받고
                               전파를 끊는다 — 키보드로는 상단 직원 목록/검색으로 같은 필터가 가능하다. */}
