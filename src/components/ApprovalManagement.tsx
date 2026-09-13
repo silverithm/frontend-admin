@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud } from 'react-icons/fi';
+import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud, FiClock } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Button } from '@astryxdesign/core/Button';
@@ -670,10 +670,26 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                                 {format(new Date(approval.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
                               </Text>
                             </HStack>
+                            {/* 내 차례가 아닌 문서는 누구 차례인지 알려준다 — 예전엔 이 문구가
+                                액션 버튼 자리에 배지로 끼어 있어서, 문구가 있고 없고에 따라
+                                액션 열 폭이 줄마다 달라지고 오른쪽 끝이 들쭉날쭉했다.
+                                다른 메타 정보와 같은 줄, 같은 모양(아이콘+텍스트)으로 옮긴다. */}
+                            {approval.status === 'PENDING' && canManage && !isActionable(approval) && getCurrentApproverName(approval) && (
+                              <>
+                                <Divider orientation="vertical" style={{ height: 'var(--spacing-3)', alignSelf: 'center' }} />
+                                <HStack gap={1} vAlign="center">
+                                  <Icon icon={FiClock} size="sm" color="tertiary" />
+                                  <Text type="supporting" color="secondary">{getCurrentApproverName(approval)}님 결재 대기 중</Text>
+                                </HStack>
+                              </>
+                            )}
                           </HStack>
                         </VStack>
                       </HStack>
-                      <HStack gap={2} vAlign="center">
+                      {/* 액션 열 — 줄마다 버튼 조합(상세보기만 / 상세보기+승인+반려 / 상세보기+더보기)이
+                          달라 왼쪽 시작점이 들쭉날쭉했다. 폭을 고정하고 오른쪽으로 정렬해
+                          내용이 달라도 오른쪽 끝이 항상 같은 줄에 선다. */}
+                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 232, flexShrink: 0 }}>
                         <Button
                           label="상세보기"
                           variant="secondary"
@@ -702,49 +718,42 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             />
                           </>
                         )}
-                        {approval.status === 'PENDING' && canManage && !isActionable(approval) && (
-                          <>
-                            {/* 내 차례가 아닌 문서 — 지금 누구 차례인지 보여주고, 직권 처리는
-                                더보기 메뉴로 한 단계 뒤로 뺀다. 관리자가 매번 직권 승인을 1차
-                                버튼으로 누르는 바람에 정작 담당 직원이 처리할 문서가 없어지던
-                                문제(직원 결재 가시성 버그의 원인) 대응. */}
-                            {getCurrentApproverName(approval) && (
-                              <Badge
-                                variant="neutral"
-                                label={`${getCurrentApproverName(approval)}님 결재 대기 중`}
-                              />
-                            )}
-                            <MoreMenu
-                              label="직권 처리"
-                              items={[
-                                {
-                                  label: '직권 승인',
-                                  icon: FiCheck,
-                                  isDisabled: isProcessing,
-                                  onClick: async () => {
-                                    if (!(await confirmForceApprove(approval))) return;
-                                    setQuickApproveTarget(approval);
-                                  },
-                                },
-                                {
-                                  label: '직권 반려',
-                                  icon: FiX,
-                                  isDisabled: isProcessing,
-                                  onClick: () => handleOpenDetail(approval),
-                                },
-                              ]}
-                            />
-                          </>
-                        )}
+                        {/* 되돌릴 수 없는 삭제와, 내 차례가 아닌 문서의 직권 처리는 매 줄에
+                            늘 보이는 1차 버튼이 아니라 더보기(⋯) 메뉴 하나로 모은다. */}
                         {canManage && (
-                          <IconButton
-                            label="삭제"
-                            tooltip="삭제"
-                            variant="ghost"
-                            size="sm"
-                            icon={<Icon icon={FiTrash2} />}
-                            isDisabled={isProcessing}
-                            onClick={() => handleDelete(approval.id)}
+                          <MoreMenu
+                            label="더 보기"
+                            items={[
+                              ...(approval.status === 'PENDING' && canManage && !isActionable(approval)
+                                ? [
+                                    {
+                                      label: '직권 승인',
+                                      icon: FiCheck,
+                                      isDisabled: isProcessing,
+                                      onClick: async () => {
+                                        if (!(await confirmForceApprove(approval))) return;
+                                        setQuickApproveTarget(approval);
+                                      },
+                                    },
+                                    {
+                                      label: '직권 반려',
+                                      icon: FiX,
+                                      isDisabled: isProcessing,
+                                      onClick: () => handleOpenDetail(approval),
+                                    },
+                                  ]
+                                : []),
+                              ...(canManage
+                                ? [
+                                    {
+                                      label: '삭제',
+                                      icon: FiTrash2,
+                                      isDisabled: isProcessing,
+                                      onClick: () => handleDelete(approval.id),
+                                    },
+                                  ]
+                                : []),
+                            ]}
                           />
                         )}
                       </HStack>
