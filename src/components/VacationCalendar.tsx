@@ -610,19 +610,19 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
     fontWeight: 'var(--font-weight-bold)',
   });
 
-  // 셀 안의 상태 라벨(pill) 스타일
-  const cellStatusPillStyle = (status?: string): React.CSSProperties => {
+  // 셀 안 상태 표시 — 글자 배지("승인됨"/"대기중")가 이름보다 먼저·크게 나와 이름을
+  // 가렸다(#38). 이름을 앞세우고 상태는 작은 점으로만 남긴다(뜻은 title로).
+  const cellStatusDotStyle = (status?: string): React.CSSProperties => {
     const base: React.CSSProperties = {
       flexShrink: 0,
-      whiteSpace: 'nowrap',
-      marginRight: 'var(--spacing-1)',
-      padding: 'var(--spacing-0-5) var(--spacing-1)',
+      width: 6,
+      height: 6,
       borderRadius: 'var(--radius-full)',
-      fontWeight: 'var(--font-weight-medium)',
+      marginRight: 'var(--spacing-1)',
     };
-    if (status === 'approved') return { ...base, backgroundColor: 'var(--color-background-teal)', color: 'var(--color-text-teal)' };
-    if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-background-red)', color: 'var(--color-text-red)' };
-    return { ...base, backgroundColor: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)' };
+    if (status === 'approved') return { ...base, backgroundColor: 'var(--color-icon-teal)' };
+    if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-icon-red)' };
+    return { ...base, backgroundColor: 'var(--color-icon-yellow)' };
   };
 
   // 상태 한글 변환
@@ -1026,9 +1026,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           .slice(0, isExpanded ? vacations.length : COLLAPSED_VISIBLE_COUNT)
                           .map((vacation, idx) => (
                         <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={cellStatusPillStyle(vacation.status)}>
-                            <Text type="supporting" color="inherit">{getStatusText(vacation.status)}</Text>
-                          </span>
+                          <span style={cellStatusDotStyle(vacation.status)} title={getStatusText(vacation.status)} />
                           {/* 이름을 누르면 그 사람 휴무만 필터링한다 (한 번 더 누르면 해제).
                               셀이 button이라 중첩 버튼은 만들 수 없어 마우스 클릭만 받고
                               전파를 끊는다 — 키보드로는 상단 직원 목록/검색으로 같은 필터가 가능하다. */}
