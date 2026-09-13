@@ -61,7 +61,7 @@ import {
   createScheduleTask,
   updateScheduleTask,
   deleteScheduleTask, getScheduleLabels, getScheduleCategorySettings } from '@/lib/apiService';
-import { getScheduleColor, withAlpha, getScheduleTextColor, SCHEDULE_CATEGORIES, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS } from '@/types/schedule';
+import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS } from '@/types/schedule';
 import { useConfirm } from '@/components/ConfirmDialog';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { buildWeekBarLayouts, WEEK_GRID_COLUMNS } from '@/lib/scheduleBars';
@@ -1658,12 +1658,15 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             justifyContent: 'center',
                             gap: 'var(--spacing-0-5)',
                             padding: '0 var(--spacing-1)',
-                            border: done ? `1px solid ${color}` : 'none',
+                            /* [#11] 진한 색 배경 + 흰 글씨 9px는 읽기 어렵다. 완료 칩에 쓰던
+                               '연한 배경 + 진한 글씨' 톤을 미완료 칩에도 맞추고 글자를 한 단계
+                               키운다. 완료/미완료 구분은 취소선·아이콘으로 유지한다. */
+                            border: `1px solid ${done ? color : withAlpha(color, 0.4)}`,
                             borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
-                            background: done ? withAlpha(color, 0.14) : color,
-                            color: done ? color : getScheduleTextColor(color),
-                            opacity: done ? 0.85 : 0.9,
-                            fontSize: 'var(--font-size-xs)',
+                            background: withAlpha(color, done ? 0.14 : 0.18),
+                            color,
+                            opacity: done ? 0.85 : 1,
+                            fontSize: 'var(--font-size-sm)',
                             fontWeight: 'var(--font-weight-medium)',
                             lineHeight: '15px',
                             overflow: 'hidden',
