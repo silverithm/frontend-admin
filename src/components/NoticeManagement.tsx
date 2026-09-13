@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiRefreshCw, FiPlus, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
+import { FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiRefreshCw, FiPlus, FiTrash2, FiAlertTriangle, FiExternalLink } from 'react-icons/fi';
+import { IconPinned } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -457,13 +458,17 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                           textAlign: 'left',
                           width: '100%',
                           padding: 'var(--spacing-4)',
-                          border: '1px solid var(--color-border-teal)',
+                          border: '1px solid var(--color-border)',
                           borderRadius: 'var(--radius-element)',
                           cursor: 'pointer',
-                          background: 'var(--color-background-teal)',
+                          background: 'var(--color-background-card)',
                         }}
                       >
+                        {/* 큰 민트 면 대신 배지 하나로 출처를 알린다 — 기관 공지와 구분은 '운영' 배지 +
+                            아래 '커뮤니티에서 보기' 문구, 그리고 클릭 시 다른 화면(커뮤니티)으로
+                            넘어간다는 걸 알리는 외부 링크 아이콘이 진다 */}
                         <HStack gap={3} vAlign="start">
+                          <Icon icon={FiExternalLink} size="md" color="tertiary" />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <VStack gap={2} align="start">
                               <HStack gap={2} vAlign="center" wrap="wrap">
@@ -497,18 +502,22 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                           textAlign: 'left',
                           width: '100%',
                           padding: 'var(--spacing-4)',
-                          border: `1px solid ${n.isPinned ? 'var(--color-border-teal)' : 'var(--color-border)'}`,
+                          border: '1px solid var(--color-border)',
                           borderRadius: 'var(--radius-element)',
                           cursor: 'pointer',
-                          background: n.isPinned ? 'var(--color-background-teal)' : 'var(--color-background-card)',
+                          background: 'var(--color-background-card)',
                         }}
                       >
                         <HStack gap={3} vAlign="start">
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <VStack gap={2} align="start">
                               <HStack gap={2} vAlign="center" wrap="wrap">
-                                {n.isPinned && <Icon icon={FiStar} size="sm" color="accent" />}
                                 <Heading level={4} maxLines={1}>{n.title}</Heading>
+                                {/* 큰 민트 면 대신 핀 배지로 고정 여부를 알린다 — 커뮤니티(PlazaBoard)의
+                                    고정글 배지와 같은 아이콘·문구를 써서 화면 전체에서 규칙을 맞춘다 */}
+                                {n.isPinned && (
+                                  <Badge variant="neutral" icon={<Icon icon={IconPinned} size="xsm" />} label="고정" />
+                                )}
                                 {/* '일반'은 공지 대부분의 기본값이라 배지로 찍으면 거의 모든 줄에 같은 라벨이 붙어 정보가 아니게 된다. 눈에 띄어야 할 우선순위만 배지로 남긴다 */}
                                 {n.priority !== 'NORMAL' && (
                                   <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
