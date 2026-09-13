@@ -13,6 +13,7 @@ import ViewerSelector from '@/components/approval/ViewerSelector';
 import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Card } from '@astryxdesign/core/Card';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -31,7 +32,7 @@ import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
-import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
 import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
@@ -102,8 +103,6 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   const [defaultViewers, setDefaultViewers] = useState<ApprovalViewerEntry[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  /** 상태 토글 버튼에 마우스를 올린 행 — 라벨을 '누르면 될 결과'로 바꿔 보여준다 */
-  const [hoveredToggleId, setHoveredToggleId] = useState<string | number | null>(null);
   /** 목록에서 바로 여는 미리보기 — 편집 화면에 들어가지 않고 모습만 확인한다 */
   const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
   /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
@@ -800,39 +799,13 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                         )}
                       </TableCell>
                       <TableCell>
-                        <HStack>
-                          {canManage ? (
-                            // 평소엔 현재 상태를, 마우스를 올리면 누르면 될 결과를 보여준다
-                            // (버튼 라벨이 상태인지 동작인지 헷갈리지 않게)
-                            <span
-                              onMouseEnter={() => setHoveredToggleId(template.id)}
-                              onMouseLeave={() => setHoveredToggleId(null)}
-                              onFocus={() => setHoveredToggleId(template.id)}
-                              onBlur={() => setHoveredToggleId(null)}
-                              style={{ display: 'inline-flex' }}
-                            >
-                              <Button
-                                variant={
-                                  hoveredToggleId === template.id
-                                    ? (template.isActive ? 'destructive' : 'primary')
-                                    : (template.isActive ? 'secondary' : 'ghost')
-                                }
-                                size="sm"
-                                label={
-                                  hoveredToggleId === template.id
-                                    ? (template.isActive ? '비활성화하기' : '활성화하기')
-                                    : (template.isActive ? '활성화' : '비활성화')
-                                }
-                                onClick={() => handleToggleActive(template.id)}
-                              />
-                            </span>
-                          ) : (
-                            <Badge
-                              variant={template.isActive ? 'success' : 'neutral'}
-                              label={template.isActive ? '활성화' : '비활성화'}
-                            />
-                          )}
-                        </HStack>
+                        {/* '활성화'가 버튼처럼 생겨 상태 표시인지 누르는 동작인지
+                            헷갈렸다. 이 칸은 늘 지금 상태만 보여주는 Badge로 고정하고,
+                            켜고 끄는 동작은 액션 칸의 토글 아이콘 버튼으로 분리한다. */}
+                        <Badge
+                          variant={template.isActive ? 'success' : 'neutral'}
+                          label={template.isActive ? '활성화' : '비활성화'}
+                        />
                       </TableCell>
                       <TableCell>
                         <HStack>
@@ -860,13 +833,27 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                               icon={<Icon icon={FiEdit2} size="sm" />}
                               onClick={() => openEditModal(template)}
                             />
+                            {/* 상태 칸의 Badge와 짝을 이루는 동작 — 라벨이 '지금 상태'가
+                                아니라 '눌렀을 때 결과'라 상태 표시와 헷갈리지 않는다 */}
                             <IconButton
                               variant="ghost"
                               size="sm"
-                              label="삭제"
-                              tooltip="삭제"
-                              icon={<Icon icon={FiTrash2} size="sm" />}
-                              onClick={() => handleDelete(template.id, template.name)}
+                              label={template.isActive ? '비활성화하기' : '활성화하기'}
+                              tooltip={template.isActive ? '비활성화하기' : '활성화하기'}
+                              icon={<Icon icon={template.isActive ? FiToggleRight : FiToggleLeft} size="sm" />}
+                              onClick={() => handleToggleActive(template.id)}
+                            />
+                            {/* 되돌릴 수 없는 삭제는 매 줄에 늘 보이는 1차 아이콘 대신
+                                더보기(⋯) 메뉴 안으로 옮긴다 — [#8] */}
+                            <MoreMenu
+                              label="더 보기"
+                              items={[
+                                {
+                                  label: '삭제',
+                                  icon: FiTrash2,
+                                  onClick: () => handleDelete(template.id, template.name),
+                                },
+                              ]}
                             />
                           </HStack>
                         </TableCell>
