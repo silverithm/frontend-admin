@@ -13,6 +13,7 @@ import ViewerSelector from '@/components/approval/ViewerSelector';
 import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Card } from '@astryxdesign/core/Card';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -31,8 +32,8 @@ import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
-import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch } from 'react-icons/fi';
-import { IconGripVertical, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
+import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
+import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
   DEFAULT_TEMPLATE_CATEGORIES,
@@ -102,15 +103,11 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   const [defaultViewers, setDefaultViewers] = useState<ApprovalViewerEntry[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  /** 상태 토글 버튼에 마우스를 올린 행 — 라벨을 '누르면 될 결과'로 바꿔 보여준다 */
-  const [hoveredToggleId, setHoveredToggleId] = useState<string | number | null>(null);
   /** 목록에서 바로 여는 미리보기 — 편집 화면에 들어가지 않고 모습만 확인한다 */
   const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
   /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
   const [companyName, setCompanyName] = useState('');
-  // 양식 순서 조정(드래그 + 위/아래 이동)
-  const [draggingTemplateId, setDraggingTemplateId] = useState<string | number | null>(null);
-  const [dropTargetTemplateId, setDropTargetTemplateId] = useState<string | number | null>(null);
+  // 양식 순서 조정(위/아래 이동)
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // 템플릿 로드
@@ -327,6 +324,17 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
+  // 표 안 파일명 줄임 — 확장자를 지우지 않고 가운데만 줄인다("휴가신청서.h"처럼
+  // 확장자 중간에서 잘리던 문제). 전체 이름은 버튼 tooltip으로 여전히 볼 수 있다.
+  const truncateFileName = (name: string, max = 16) => {
+    if (name.length <= max) return name;
+    const dotIndex = name.lastIndexOf('.');
+    const ext = dotIndex > 0 ? name.slice(dotIndex) : '';
+    const base = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+    const keep = Math.max(max - ext.length - 1, 4);
+    return `${base.slice(0, keep)}…${ext}`;
+  };
+
   // 양식 업로드
   const handleUpload = async () => {
     if (!uploadForm.name.trim()) {
@@ -491,18 +499,6 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
     if (targetIndex < 0 || targetIndex >= templates.length) return;
     const next = [...templates];
     [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-    persistOrder(next);
-  };
-
-  // 드래그로 순서 바꾸기 — 놓은 위치 앞에 끼워 넣는다 (FormSchemaBuilder의 필드 순서 변경과 같은 방식)
-  const reorderTemplatesByDrag = (fromId: string | number, toId: string | number) => {
-    if (String(fromId) === String(toId)) return;
-    const next = [...templates];
-    const fromIndex = next.findIndex((t) => String(t.id) === String(fromId));
-    const toIndex = next.findIndex((t) => String(t.id) === String(toId));
-    if (fromIndex === -1 || toIndex === -1) return;
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
     persistOrder(next);
   };
 
@@ -717,63 +713,31 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                 </thead>
                 <tbody>
                   {filteredTemplates.map((template, rowIndex) => (
-                    <TableRow
-                      key={template.id}
-                      draggable={canReorder}
-                      onDragStart={canReorder ? () => setDraggingTemplateId(template.id) : undefined}
-                      onDragEnd={canReorder ? () => { setDraggingTemplateId(null); setDropTargetTemplateId(null); } : undefined}
-                      onDragOver={canReorder ? (e) => { e.preventDefault(); setDropTargetTemplateId(template.id); } : undefined}
-                      onDragLeave={canReorder ? () => setDropTargetTemplateId((prev) => (String(prev) === String(template.id) ? null : prev)) : undefined}
-                      onDrop={
-                        canReorder
-                          ? (e) => {
-                              e.preventDefault();
-                              if (draggingTemplateId != null) reorderTemplatesByDrag(draggingTemplateId, template.id);
-                              setDraggingTemplateId(null);
-                              setDropTargetTemplateId(null);
-                            }
-                          : undefined
-                      }
-                      style={{
-                        opacity: canReorder && String(draggingTemplateId) === String(template.id) ? 0.5 : 1,
-                        boxShadow:
-                          canReorder && String(dropTargetTemplateId) === String(template.id) && String(draggingTemplateId) !== String(template.id)
-                            ? 'inset 0 2px 0 0 var(--color-accent)'
-                            : undefined,
-                      }}
-                    >
+                    <TableRow key={template.id}>
                       {canManage && (
                         <TableCell>
-                          <HStack gap={0.5} vAlign="center">
-                            <span
-                              aria-hidden
-                              style={{
-                                display: 'inline-flex',
-                                color: canReorder ? 'var(--color-icon-secondary)' : 'var(--color-icon-disabled)',
-                                cursor: canReorder ? 'grab' : 'default',
-                              }}
-                            >
-                              <IconGripVertical size={16} stroke={1.5} />
-                            </span>
-                            <VStack gap={0}>
-                              <IconButton
-                                label="위로 이동"
-                                variant="ghost"
-                                size="sm"
-                                icon={<Icon icon={IconChevronUp} size="sm" />}
-                                isDisabled={!canReorder || rowIndex === 0 || isSavingOrder}
-                                onClick={() => moveTemplate(template.id, 'up')}
-                              />
-                              <IconButton
-                                label="아래로 이동"
-                                variant="ghost"
-                                size="sm"
-                                icon={<Icon icon={IconChevronDown} size="sm" />}
-                                isDisabled={!canReorder || rowIndex === filteredTemplates.length - 1 || isSavingOrder}
-                                onClick={() => moveTemplate(template.id, 'down')}
-                              />
-                            </VStack>
-                          </HStack>
+                          {/* 끌기 손잡이 + 위/아래 화살표 셋이 함께 있으면 조작이 세 가지로
+                              보였다. 끌기(HTML5 드래그)는 마우스에서만 되고 키보드로는 아예
+                              닿지 않는다 — 화살표 버튼 하나만 남긴다: 마우스·터치·키보드
+                              모두에서 실제로 동작하는 쪽이다. 기능(순서 저장)은 그대로. */}
+                          <VStack gap={0}>
+                            <IconButton
+                              label="위로 이동"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icon icon={IconChevronUp} size="sm" />}
+                              isDisabled={!canReorder || rowIndex === 0 || isSavingOrder}
+                              onClick={() => moveTemplate(template.id, 'up')}
+                            />
+                            <IconButton
+                              label="아래로 이동"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icon icon={IconChevronDown} size="sm" />}
+                              isDisabled={!canReorder || rowIndex === filteredTemplates.length - 1 || isSavingOrder}
+                              onClick={() => moveTemplate(template.id, 'down')}
+                            />
+                          </VStack>
                         </TableCell>
                       )}
                       <TableCell>
@@ -789,14 +753,24 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                         </HStack>
                       </TableCell>
                       <TableCell>
-                        <Text type="supporting">{template.description}</Text>
+                        {/* 채팅 레일이 켜진 화면에서 표가 카드보다 넓어지던 주된 원인 —
+                            설명 칸이 줄바꿈만 허용해 글자 하나가 다음 줄로 넘어가며
+                            칸이 한없이 좁아졌다. 한 줄로 줄이고 title로 전체를 보여준다. */}
+                        <div
+                          title={template.description}
+                          style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          <Text type="supporting">{template.description}</Text>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <HStack>
                           {template.templateType === 'form' ? (
                             <Badge variant="teal" label="온라인 폼" />
                           ) : template.templateType === 'hybrid' ? (
-                            <Badge variant="cyan" label="혼합" />
+                            // teal과 cyan은 둘 다 초록에 가까워 나란히 두면 구분이 안 됐다.
+                            // 이 표에서 purple은 다른 곳에 쓰이지 않아 확실히 갈린다.
+                            <Badge variant="purple" label="혼합" />
                           ) : (
                             <Badge variant="neutral" label="파일" />
                           )}
@@ -805,17 +779,19 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       <TableCell>
                         {/* 온라인 폼 양식은 첨부 파일이 없다 — 다운로드 버튼 대신 상태를 알린다 */}
                         {template.fileName ? (
+                          // 파일명을 그대로 라벨로 쓰면 "휴가신청서.h"처럼 확장자 중간에서
+                          // 잘려 표가 카드 밖으로 밀려났다. 보이는 글자는 줄이고,
+                          // 전체 이름은 tooltip과 접근성 이름(label)에 남긴다.
                           <Button
                             variant="ghost"
                             size="sm"
                             icon={<Icon icon={FiDownload} size="sm" />}
-                            label={
-                              formatFileSize(template.fileSize)
-                                ? `${template.fileName} (${formatFileSize(template.fileSize)})`
-                                : template.fileName
-                            }
+                            label={`다운로드: ${template.fileName}${formatFileSize(template.fileSize) ? ` (${formatFileSize(template.fileSize)})` : ''}`}
+                            tooltip={`${template.fileName}${formatFileSize(template.fileSize) ? ` (${formatFileSize(template.fileSize)})` : ''}`}
                             onClick={() => handleDownload(template)}
-                          />
+                          >
+                            {truncateFileName(template.fileName)}
+                          </Button>
                         ) : (
                           <Text type="supporting" color="secondary">
                             {template.templateType === 'form' ? '파일 없음 (온라인 폼)' : '파일 없음'}
@@ -823,39 +799,13 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                         )}
                       </TableCell>
                       <TableCell>
-                        <HStack>
-                          {canManage ? (
-                            // 평소엔 현재 상태를, 마우스를 올리면 누르면 될 결과를 보여준다
-                            // (버튼 라벨이 상태인지 동작인지 헷갈리지 않게)
-                            <span
-                              onMouseEnter={() => setHoveredToggleId(template.id)}
-                              onMouseLeave={() => setHoveredToggleId(null)}
-                              onFocus={() => setHoveredToggleId(template.id)}
-                              onBlur={() => setHoveredToggleId(null)}
-                              style={{ display: 'inline-flex' }}
-                            >
-                              <Button
-                                variant={
-                                  hoveredToggleId === template.id
-                                    ? (template.isActive ? 'destructive' : 'primary')
-                                    : (template.isActive ? 'secondary' : 'ghost')
-                                }
-                                size="sm"
-                                label={
-                                  hoveredToggleId === template.id
-                                    ? (template.isActive ? '비활성화하기' : '활성화하기')
-                                    : (template.isActive ? '활성화' : '비활성화')
-                                }
-                                onClick={() => handleToggleActive(template.id)}
-                              />
-                            </span>
-                          ) : (
-                            <Badge
-                              variant={template.isActive ? 'success' : 'neutral'}
-                              label={template.isActive ? '활성화' : '비활성화'}
-                            />
-                          )}
-                        </HStack>
+                        {/* '활성화'가 버튼처럼 생겨 상태 표시인지 누르는 동작인지
+                            헷갈렸다. 이 칸은 늘 지금 상태만 보여주는 Badge로 고정하고,
+                            켜고 끄는 동작은 액션 칸의 토글 아이콘 버튼으로 분리한다. */}
+                        <Badge
+                          variant={template.isActive ? 'success' : 'neutral'}
+                          label={template.isActive ? '활성화' : '비활성화'}
+                        />
                       </TableCell>
                       <TableCell>
                         <HStack>
@@ -883,13 +833,27 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                               icon={<Icon icon={FiEdit2} size="sm" />}
                               onClick={() => openEditModal(template)}
                             />
+                            {/* 상태 칸의 Badge와 짝을 이루는 동작 — 라벨이 '지금 상태'가
+                                아니라 '눌렀을 때 결과'라 상태 표시와 헷갈리지 않는다 */}
                             <IconButton
                               variant="ghost"
                               size="sm"
-                              label="삭제"
-                              tooltip="삭제"
-                              icon={<Icon icon={FiTrash2} size="sm" />}
-                              onClick={() => handleDelete(template.id, template.name)}
+                              label={template.isActive ? '비활성화하기' : '활성화하기'}
+                              tooltip={template.isActive ? '비활성화하기' : '활성화하기'}
+                              icon={<Icon icon={template.isActive ? FiToggleRight : FiToggleLeft} size="sm" />}
+                              onClick={() => handleToggleActive(template.id)}
+                            />
+                            {/* 되돌릴 수 없는 삭제는 매 줄에 늘 보이는 1차 아이콘 대신
+                                더보기(⋯) 메뉴 안으로 옮긴다 — [#8] */}
+                            <MoreMenu
+                              label="더 보기"
+                              items={[
+                                {
+                                  label: '삭제',
+                                  icon: FiTrash2,
+                                  onClick: () => handleDelete(template.id, template.name),
+                                },
+                              ]}
                             />
                           </HStack>
                         </TableCell>

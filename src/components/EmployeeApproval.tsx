@@ -16,11 +16,13 @@ import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Selector } from '@astryxdesign/core/Selector';
 import type { SelectorOptionType } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Center } from '@astryxdesign/core/Center';
-import { ClickableCard } from '@astryxdesign/core/ClickableCard';
+import { Divider } from '@astryxdesign/core/Divider';
+import ClickableRow from './ClickableRow';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Text } from '@astryxdesign/core/Text';
 import PageHeader from './PageHeader';
@@ -929,16 +931,13 @@ export default function EmployeeApproval() {
           }
         />
 
-        {/* 탭 */}
-        <SegmentedControl
-          value={activeTab}
-          onChange={(value) => setActiveTab(value as TabType)}
-          label="전자결재 탭"
-          layout="fill"
-        >
-          <SegmentedControlItem value="my-approvals" label={`내 결재 내역 (${approvals.length})`} />
-          <SegmentedControlItem value="templates" label="양식 다운로드" />
-        </SegmentedControl>
+        {/* 화면 전환 탭 — 아래 상태 필터(SegmentedControl)와 모양이 같으면 위아래 관계가
+            안 보인다. 화면을 바꾸는 이 탭은 TabList로, 목록을 거르는 아래 필터는
+            SegmentedControl로 나눠 위계를 준다. */}
+        <TabList value={activeTab} onChange={(value) => setActiveTab(value as TabType)}>
+          <Tab value="my-approvals" label={`내 결재 내역 (${approvals.length})`} />
+          <Tab value="templates" label="양식 다운로드" />
+        </TabList>
 
         {/* 양식 다운로드 탭 */}
         {activeTab === 'templates' && (
@@ -1099,12 +1098,13 @@ export default function EmployeeApproval() {
         {/* 내 결재 내역 탭 */}
         {activeTab === 'my-approvals' && (
           <>
-            {/* 상태 필터 */}
+            {/* 상태 필터 — 위 화면 전환 탭(TabList)과 크기를 다르게 둬 이건 '목록을
+                거르는 도구'이지 화면 전환이 아님을 보이게 한다 */}
             <SegmentedControl
               value={approvalFilter}
               onChange={(value) => setApprovalFilter(value as ApprovalFilterType)}
               label="결재 상태 필터"
-              layout="fill"
+              size="sm"
             >
               <SegmentedControlItem value="all" label={`전체 (${getStatusCount()})`} />
               <SegmentedControlItem value="pending" label={`진행중 (${getStatusCount('PENDING')})`} />
@@ -1119,11 +1119,13 @@ export default function EmployeeApproval() {
                 <HStack gap={2} vAlign="end">
                   <DateInput
                     label="시작일"
+                    placeholder="시작일 선택"
                     value={dateFilter.startDate ? (dateFilter.startDate as ISODateString) : undefined}
                     onChange={(value) => setDateFilter((prev) => ({ ...prev, startDate: value || '' }))}
                   />
                   <DateInput
                     label="종료일"
+                    placeholder="종료일 선택"
                     value={dateFilter.endDate ? (dateFilter.endDate as ISODateString) : undefined}
                     onChange={(value) => setDateFilter((prev) => ({ ...prev, endDate: value || '' }))}
                   />
@@ -1172,48 +1174,59 @@ export default function EmployeeApproval() {
               </HStack>
             )}
 
-            {/* 결재 목록 */}
+            {/* 결재 목록 — 예전엔 문서마다 독립된 카드였다. 바로 옆 결재 관리 화면은
+                하나의 표면 안에 구분선으로 나눈 목록이라 같은 전자결재 안에서도
+                신청·관리 화면 모양이 달랐다. 결재 관리와 같은 패턴(Card padding=0 +
+                Divider)을 쓰되, 행 전체 클릭은 ClickableCard 대신 ClickableRow로 한다 —
+                ClickableCard는 자체 카드 테두리를 그려서 한 표면 안에 두면 다시 카드가
+                여러 장인 것처럼 보인다. ClickableRow는 진짜 <button>이라 Tab으로 도달하고
+                Enter/Space로 열리며(키보드 접근성 유지), 겉모습은 style로 완전히 지운다. */}
             {isLoading ? (
               <Loading label="결재 목록을 불러오는 중..." />
             ) : filteredApprovals.length > 0 ? (
-              <VStack gap={3}>
-                {filteredApprovals.map((approval) => (
-                  <motion.div
-                    key={approval.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: duration.fast }}
-                  >
-                    {/* 임시저장은 상세로 보내지 않고 작성 화면으로 되돌린다 — 이어서 쓰라고 있는 문서다 */}
-                    <ClickableCard
-                      label={approval.title}
-                      onClick={() => (approval.status === 'DRAFT' ? openDraft(approval) : setSelectedApproval(approval))}
+              <Card padding={0}>
+                <VStack gap={0}>
+                  {filteredApprovals.map((approval, rowIndex) => (
+                    <motion.div
+                      key={approval.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: duration.fast }}
                     >
-                      <HStack hAlign="between" vAlign="center" gap={4}>
-                        <VStack gap={1}>
-                          <HStack gap={2} vAlign="center">
-                            <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
-                            {(approval.revision ?? 1) > 1 && (
-                              <Badge variant="neutral" label={`${approval.revision}차`} />
-                            )}
-                            {/* 반려 뒤 고쳐 올린 건이 목록에 있으면, 원본 쪽에도 그 사실을 남긴다 —
-                                안 그러면 반려 건만 보고 "그래서 어떻게 됐나"를 알 수 없다 */}
-                            {revisedAwayIds.has(String(approval.id)) && (
-                              <Text type="supporting" color="secondary">다시 올림</Text>
-                            )}
-                            <Text type="supporting" color="disabled">{approval.templateName}</Text>
-                          </HStack>
-                          <Text weight="semibold" color="primary">{approval.title}</Text>
-                          <Text type="supporting" color="secondary">
-                            {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
-                          </Text>
-                        </VStack>
-                        <Icon icon={FiChevronRight} color="tertiary" />
-                      </HStack>
-                    </ClickableCard>
-                  </motion.div>
-                ))}
-              </VStack>
+                      {rowIndex > 0 && <Divider />}
+                      {/* 임시저장은 상세로 보내지 않고 작성 화면으로 되돌린다 — 이어서 쓰라고 있는 문서다 */}
+                      <ClickableRow
+                        className="carev-row"
+                        label={approval.title}
+                        onClick={() => (approval.status === 'DRAFT' ? openDraft(approval) : setSelectedApproval(approval))}
+                        style={{ padding: 'var(--spacing-4)' }}
+                      >
+                        <HStack hAlign="between" vAlign="center" gap={4}>
+                          <VStack gap={1}>
+                            <HStack gap={2} vAlign="center">
+                              <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                              {(approval.revision ?? 1) > 1 && (
+                                <Badge variant="neutral" label={`${approval.revision}차`} />
+                              )}
+                              {/* 반려 뒤 고쳐 올린 건이 목록에 있으면, 원본 쪽에도 그 사실을 남긴다 —
+                                  안 그러면 반려 건만 보고 "그래서 어떻게 됐나"를 알 수 없다 */}
+                              {revisedAwayIds.has(String(approval.id)) && (
+                                <Text type="supporting" color="secondary">다시 올림</Text>
+                              )}
+                              <Text type="supporting" color="disabled">{approval.templateName}</Text>
+                            </HStack>
+                            <Text weight="semibold" color="primary">{approval.title}</Text>
+                            <Text type="supporting" color="secondary">
+                              {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
+                            </Text>
+                          </VStack>
+                          <Icon icon={FiChevronRight} color="tertiary" />
+                        </HStack>
+                      </ClickableRow>
+                    </motion.div>
+                  ))}
+                </VStack>
+              </Card>
             ) : (
               <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmptyState
