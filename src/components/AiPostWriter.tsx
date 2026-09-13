@@ -196,8 +196,7 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
             </SegmentedControl>
 
             <TextArea
-              label="상황 설명"
-              isOptional
+              label="상황 설명 (선택)"
               value={description}
               onChange={setDescription}
               rows={3}
