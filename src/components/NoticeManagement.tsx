@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -437,126 +437,132 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
 
               <Divider />
 
-              {/* 목록 — 남은 높이를 채우고 목록만 스크롤 */}
-              <div className="carev-notice-list" style={{ padding: 'var(--spacing-5)' }}>
+              {/* 목록 — 남은 높이를 채우고 목록만 스크롤. 카드 여러 장 대신 하나의 표면 안에서
+                  구분선으로 나눈다(ApprovalManagement 결재 목록과 같은 규칙) */}
+              <div className="carev-notice-list">
                 {notices.length > 0 || visibleOfficialNotices.length > 0 ? (
-                  <VStack gap={2} align="start" width="100%">
+                  <VStack gap={0} width="100%">
                     {/* 케어브이 시스템 공지 — 커뮤니티 [운영] 글. 클릭하면 커뮤니티에서 전문을 본다 */}
-                    {visibleOfficialNotices.map((n) => (
-                      <button
-                        type="button"
-                        key={`official-${n.id}`}
-                        className="carev-notice-item"
-                        aria-label={`케어브이 공지 열기: ${n.title}`}
-                        onClick={() => (onOpenPlazaPost
-                          ? onOpenPlazaPost(n.id)
-                          : window.open(`/plaza?post=${n.id}`, '_blank', 'noopener'))}
-                        style={{
-                          appearance: 'none',
-                          font: 'inherit',
-                          color: 'inherit',
-                          textAlign: 'left',
-                          width: '100%',
-                          padding: 'var(--spacing-4)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-element)',
-                          cursor: 'pointer',
-                          background: 'var(--color-background-card)',
-                        }}
-                      >
-                        {/* 큰 민트 면 대신 배지 하나로 출처를 알린다 — 기관 공지와 구분은 '운영' 배지 +
-                            아래 '커뮤니티에서 보기' 문구, 그리고 클릭 시 다른 화면(커뮤니티)으로
-                            넘어간다는 걸 알리는 외부 링크 아이콘이 진다 */}
-                        <HStack gap={3} vAlign="start">
-                          <Icon icon={FiExternalLink} size="md" color="tertiary" />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <VStack gap={2} align="start">
-                              <HStack gap={2} vAlign="center" wrap="wrap">
-                                <Badge variant="teal" label="운영" />
-                                <Heading level={4} maxLines={1}>{n.title}</Heading>
-                              </HStack>
-                              <HStack gap={3} vAlign="center" wrap="wrap">
-                                <Text type="supporting">{n.displayAuthor}</Text>
-                                <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
-                                <Text type="supporting">커뮤니티에서 보기</Text>
-                              </HStack>
-                            </VStack>
-                          </div>
-                          <Icon icon="chevronRight" size="md" color="tertiary" />
-                        </HStack>
-                      </button>
-                    ))}
-                    {notices.map((n) => (
-                      <motion.button
-                        type="button"
-                        key={n.id}
-                        className="carev-notice-item"
-                        aria-label={`공지 열기: ${n.title}`}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        onClick={() => handleSelectNotice(n.id)}
-                        style={{
-                          appearance: 'none',
-                          font: 'inherit',
-                          color: 'inherit',
-                          textAlign: 'left',
-                          width: '100%',
-                          padding: 'var(--spacing-4)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-element)',
-                          cursor: 'pointer',
-                          background: 'var(--color-background-card)',
-                        }}
-                      >
-                        <HStack gap={3} vAlign="start">
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <VStack gap={2} align="start">
-                              <HStack gap={2} vAlign="center" wrap="wrap">
-                                <Heading level={4} maxLines={1}>{n.title}</Heading>
-                                {/* 큰 민트 면 대신 핀 배지로 고정 여부를 알린다 — 커뮤니티(PlazaBoard)의
-                                    고정글 배지와 같은 아이콘·문구를 써서 화면 전체에서 규칙을 맞춘다 */}
-                                {n.isPinned && (
-                                  <Badge variant="neutral" icon={<Icon icon={IconPinned} size="xsm" />} label="고정" />
-                                )}
-                                {/* '일반'은 공지 대부분의 기본값이라 배지로 찍으면 거의 모든 줄에 같은 라벨이 붙어 정보가 아니게 된다. 눈에 띄어야 할 우선순위만 배지로 남긴다 */}
-                                {n.priority !== 'NORMAL' && (
-                                  <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
-                                )}
-                              </HStack>
-                              <Text type="supporting" maxLines={2}>{richTextToPlain(n.content)}</Text>
-                              <HStack gap={3} vAlign="center" wrap="wrap">
-                                <Text type="supporting">작성자: {n.authorName}</Text>
-                                <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
-                                <HStack gap={1} vAlign="center">
-                                  <Icon icon={FiEye} size="sm" color="secondary" />
-                                  <Text type="supporting">{n.viewCount}</Text>
+                    {visibleOfficialNotices.map((n, idx) => (
+                      <Fragment key={`official-${n.id}`}>
+                        {idx > 0 && <Divider />}
+                        <button
+                          type="button"
+                          className="carev-row"
+                          aria-label={`케어브이 공지 열기: ${n.title}`}
+                          onClick={() => (onOpenPlazaPost
+                            ? onOpenPlazaPost(n.id)
+                            : window.open(`/plaza?post=${n.id}`, '_blank', 'noopener'))}
+                          style={{
+                            appearance: 'none',
+                            font: 'inherit',
+                            color: 'inherit',
+                            textAlign: 'left',
+                            width: '100%',
+                            padding: 'var(--spacing-4)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: 'transparent',
+                          }}
+                        >
+                          {/* 큰 민트 면 대신 배지 하나로 출처를 알린다 — 기관 공지와 구분은 '운영' 배지 +
+                              아래 '커뮤니티에서 보기' 문구, 그리고 클릭 시 다른 화면(커뮤니티)으로
+                              넘어간다는 걸 알리는 외부 링크 아이콘이 진다 */}
+                          <HStack gap={3} vAlign="start">
+                            <Icon icon={FiExternalLink} size="md" color="tertiary" />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <VStack gap={2} align="start">
+                                <HStack gap={2} vAlign="center" wrap="wrap">
+                                  <Badge variant="teal" label="운영" />
+                                  <Heading level={4} maxLines={1}>{n.title}</Heading>
                                 </HStack>
-                              </HStack>
-                            </VStack>
-                          </div>
-                          <Icon icon="chevronRight" size="md" color="tertiary" />
-                        </HStack>
-                      </motion.button>
+                                <HStack gap={3} vAlign="center" wrap="wrap">
+                                  <Text type="supporting">{n.displayAuthor}</Text>
+                                  <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                  <Text type="supporting">커뮤니티에서 보기</Text>
+                                </HStack>
+                              </VStack>
+                            </div>
+                            <Icon icon="chevronRight" size="md" color="tertiary" />
+                          </HStack>
+                        </button>
+                      </Fragment>
+                    ))}
+                    {visibleOfficialNotices.length > 0 && notices.length > 0 && <Divider />}
+                    {notices.map((n, idx) => (
+                      <Fragment key={n.id}>
+                        {idx > 0 && <Divider />}
+                        <motion.button
+                          type="button"
+                          className="carev-row"
+                          aria-label={`공지 열기: ${n.title}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          onClick={() => handleSelectNotice(n.id)}
+                          style={{
+                            appearance: 'none',
+                            font: 'inherit',
+                            color: 'inherit',
+                            textAlign: 'left',
+                            width: '100%',
+                            padding: 'var(--spacing-4)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: 'transparent',
+                          }}
+                        >
+                          <HStack gap={3} vAlign="start">
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <VStack gap={2} align="start">
+                                <HStack gap={2} vAlign="center" wrap="wrap">
+                                  <Heading level={4} maxLines={1}>{n.title}</Heading>
+                                  {/* 큰 민트 면 대신 핀 배지로 고정 여부를 알린다 — 커뮤니티(PlazaBoard)의
+                                      고정글 배지와 같은 아이콘·문구를 써서 화면 전체에서 규칙을 맞춘다 */}
+                                  {n.isPinned && (
+                                    <Badge variant="neutral" icon={<Icon icon={IconPinned} size="xsm" />} label="고정" />
+                                  )}
+                                  {/* '일반'은 공지 대부분의 기본값이라 배지로 찍으면 거의 모든 줄에 같은 라벨이 붙어 정보가 아니게 된다. 눈에 띄어야 할 우선순위만 배지로 남긴다 */}
+                                  {n.priority !== 'NORMAL' && (
+                                    <Badge variant={getPriorityVariant(n.priority)} label={getPriorityText(n.priority)} />
+                                  )}
+                                </HStack>
+                                <Text type="supporting" maxLines={2}>{richTextToPlain(n.content)}</Text>
+                                <HStack gap={3} vAlign="center" wrap="wrap">
+                                  <Text type="supporting">작성자: {n.authorName}</Text>
+                                  <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                  <HStack gap={1} vAlign="center">
+                                    <Icon icon={FiEye} size="sm" color="secondary" />
+                                    <Text type="supporting">{n.viewCount}</Text>
+                                  </HStack>
+                                </HStack>
+                              </VStack>
+                            </div>
+                            <Icon icon="chevronRight" size="md" color="tertiary" />
+                          </HStack>
+                        </motion.button>
+                      </Fragment>
                     ))}
                   </VStack>
                 ) : (
-                  <VStack gap={4} align="center" width="100%" height="100%" justify="center">
-                    <div style={{ width: '100%' }}>
-                      <EmptyState
-                        icon={<Icon icon={FiBell} size="lg" />}
-                        title="공지사항이 없습니다"
-                        description="아직 등록된 공지사항이 없습니다"
-                      />
-                    </div>
-                    {canManage && (
-                      <Button
-                        label="새 공지 작성"
-                        variant="primary"
-                        icon={<Icon icon={FiPlus} size="sm" />}
-                        onClick={() => router.push('/admin/notice/new')}
-                      />
-                    )}
-                  </VStack>
+                  <div style={{ padding: 'var(--spacing-5)', height: '100%' }}>
+                    <VStack gap={4} align="center" width="100%" height="100%" justify="center">
+                      <div style={{ width: '100%' }}>
+                        <EmptyState
+                          icon={<Icon icon={FiBell} size="lg" />}
+                          title="공지사항이 없습니다"
+                          description="아직 등록된 공지사항이 없습니다"
+                        />
+                      </div>
+                      {canManage && (
+                        <Button
+                          label="새 공지 작성"
+                          variant="primary"
+                          icon={<Icon icon={FiPlus} size="sm" />}
+                          onClick={() => router.push('/admin/notice/new')}
+                        />
+                      )}
+                    </VStack>
+                  </div>
                 )}
               </div>
             </Card>
