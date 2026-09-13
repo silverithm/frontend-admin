@@ -257,10 +257,13 @@ html {
 .carev-cal-vacpane--split { display: none; }
 @media (min-width: 640px) { .carev-cal-vacpane--split { display: flex; } }
 /* 휴무자 한 줄: 배지 · 이름 · 직무.
-   자리가 모자랄 때 이름은 그대로 두고 뒤의 직무부터 줄어들게 한다.
-   이름을 안 줄이는 건(flex-shrink:0) 누가 쉬는지가 먼저이기 때문이다. */
-.carev-cal-vacname { flex: 0 0 auto; min-width: 0; overflow: hidden; }
-.carev-cal-vacrole { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+   자리가 모자랄 때 직무가 먼저 줄어들도록 shrink 비중을 훨씬 크게 둔다(3 vs 1).
+   예전엔 이름이 flex-shrink:0이라 전혀 줄지 않아, 칸이 좁으면 Text의 말줄임(…)이
+   걸릴 너비 자체가 주어지지 않고 바깥 overflow:hidden에 원시 픽셀 단위로 잘려
+   "장ㄷ"처럼 글자가 반토막 났다. 이름도 최소 너비까지는 줄어들게 해 말줄임표가
+   제대로 뜨게 한다. */
+.carev-cal-vacname { flex: 0 1 auto; min-width: 16px; overflow: hidden; }
+.carev-cal-vacrole { flex: 0 3 auto; min-width: 0; overflow: hidden; }
 
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }
