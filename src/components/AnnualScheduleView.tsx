@@ -19,6 +19,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { IconCircleCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
 import { Loading } from '@/components/Loading';
+import PageHeader from '@/components/PageHeader';
 import { getSchedules } from '@/lib/apiService';
 import { Schedule, SCHEDULE_CATEGORIES, getScheduleColor } from '@/types/schedule';
 import { useAlert } from './Alert';
@@ -88,6 +89,8 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   const [expandAll, setExpandAll] = useState(false);
   /** 상세를 보고 있는 일정. 목록 응답에 할 일·참석자까지 들어 있어 추가 조회가 필요 없다. */
   const [detail, setDetail] = useState<Schedule | null>(null);
+  /** 열자마자(또는 연도를 넘기면) 이번 달·일정 있는 첫 달로 스크롤하기 위한 달별 DOM 참조 */
+  const monthRefs = useRef<(HTMLElement | null)[]>(Array(12).fill(null));
 
   // 1년치 조회는 한 달치보다 훨씬 무겁다. 화살표를 연달아 누르면 요청이 쌓이고,
   // 먼저 보낸 응답이 늦게 도착해 나중 연도를 덮어쓰는 일이 생긴다.
@@ -177,12 +180,32 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
     [byMonth],
   );
 
+  // 로딩이 끝나 그 해 일정이 다 들어오면, 이번 달(올해라면) 또는 일정이 있는 첫 달로 스크롤한다.
+  // 예전엔 늘 맨 위(1월)부터 보여서, 일정 24건이 죄다 9월에 있어도 한참 내려야 나왔다.
+  useEffect(() => {
+    if (isLoading) return;
+    const now = new Date();
+    const target = year === now.getFullYear() && byMonth[now.getMonth()]?.length > 0
+      ? now.getMonth()
+      : byMonth.findIndex((items) => items.length > 0);
+    if (target < 0) return;
+    // 레이아웃이 잡힌 다음 스크롤해야 위치가 어긋나지 않는다
+    const id = requestAnimationFrame(() => {
+      monthRefs.current[target]?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, year]);
+
   const total = schedules.length;
   const thisYear = new Date().getFullYear();
   const thisMonth = new Date().getMonth();
 
   return (
     <div className="carev-annual-root">
+      <div style={{ marginBottom: 'var(--spacing-4)' }}>
+        <PageHeader title="연간일정" description="한 해 열두 달의 일정을 한 화면에서 훑어봅니다" />
+      </div>
       {/* 연도 이동 */}
       <div className="carev-annual-header">
         <HStack gap={2} vAlign="center">
@@ -243,6 +266,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
               return (
                 <section
                   key={monthLabel}
+                  ref={(el) => { monthRefs.current[index] = el; }}
                   className={`carev-annual-month${isCurrent ? ' carev-annual-month-current' : ''}`}
                 >
                   <header className="carev-annual-month-head">

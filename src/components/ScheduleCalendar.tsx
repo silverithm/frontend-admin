@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback, CSSProperties } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import { Text } from '@astryxdesign/core/Text';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -12,6 +13,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
+import PageHeader from '@/components/PageHeader';
 import MemberItem from '@/components/MemberItem';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -314,16 +316,24 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     return [...paddedDays, ...days];
   }, [currentDate]);
 
-  // 주 단위로 7칸씩 분할 (마지막 주는 뒤쪽을 null로 채움)
+  /**
+   * 일정 모드 전용 주 단위 배열 — calendarDays(배차 모드가 쓰는 빈칸 패딩)와는 따로 둔다.
+   * 지난달·다음달 칸도 실제 날짜로 채워 흐리게 숫자를 보여준다(대시보드 달력과 같은 방식).
+   * 빈 칸으로 두면 숫자가 아예 안 보여 달력이 빈 것처럼 읽혔다.
+   */
   const calendarWeeks = useMemo(() => {
-    const weeks: (Date | null)[][] = [];
-    for (let i = 0; i < calendarDays.length; i += 7) {
-      const week = calendarDays.slice(i, i + 7);
-      while (week.length < 7) week.push(null);
-      weeks.push(week);
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const start = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const end = endOfWeek(monthEnd, { weekStartsOn: 0 });
+    const days = eachDayOfInterval({ start, end });
+
+    const weeks: Date[][] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(days.slice(i, i + 7));
     }
     return weeks;
-  }, [calendarDays]);
+  }, [currentDate]);
 
   // 일정 데이터 로드
   useEffect(() => {
@@ -575,7 +585,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     });
 
     return calendarWeeks.map((week) => {
-      const keys = week.map((date) => (date ? format(date, 'yyyy-MM-dd') : null));
+      // 지난달·다음달로 삐져나온 칸(dimmed)에는 바를 얹지 않는다 — 이전엔 빈 칸이라 애초에
+      // 없던 자리였다. 실제 날짜가 들어와도 이 달 범위 밖은 계속 null로 둬 동작을 그대로 지킨다.
+      const keys = week.map((date) => (isSameMonth(date, currentDate) ? format(date, 'yyyy-MM-dd') : null));
       const bars: ScheduleBar[] = [];
       const hiddenCounts: Record<string, number> = {};
       const laneEnds: number[] = [];
@@ -617,7 +629,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
       return { bars, hiddenCounts, laneCount: laneEnds.length };
     });
-  }, [visibleSchedules, calendarWeeks, isExpanded]);
+  }, [visibleSchedules, calendarWeeks, isExpanded, currentDate]);
 
   // 이번 달 일정 진행도
   const monthProgress = useMemo(() => {
@@ -1229,6 +1241,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   // 일정 모드 날짜 셀 (일정 바는 주 단위 오버레이에서 렌더링)
   const renderScheduleDayCell = (date: Date, hiddenCount: number) => {
     const dateStr = format(date, 'yyyy-MM-dd');
+    const isCurrentMonth = isSameMonth(date, currentDate);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const dayNumStyle = getDayNumStyle(date);
     const dayVacations = monthVacations.get(dateStr) || [];
@@ -1239,8 +1252,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     return (
       <button
         key={dateStr}
-        onClick={() => handleDateClick(date)}
+        onClick={() => {
+          // 지난달·다음달 칸은 날짜 숫자만 보여주는 자리다 — 그 달 일정이 로드돼 있지
+          // 않아 눌러도 선택할 게 없다(대시보드 달력과 같은 규칙).
+          if (isCurrentMonth) handleDateClick(date);
+        }}
         className="carev-schedcal-cell"
+        disabled={!isCurrentMonth}
         style={{
           // aspect-ratio를 쓰면 열 폭에 따라 칸 높이가 달라져 구분선이 어긋난다.
           // 높이는 CSS의 min-height가 정하고, 남는 높이는 행을 그대로 채운다.
@@ -1250,13 +1268,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           borderBottom: GRID_LINE,
           borderRight: GRID_LINE,
           position: 'relative',
-          cursor: 'pointer',
+          cursor: isCurrentMonth ? 'pointer' : 'default',
           textAlign: 'left',
           // 'all'은 .carev-schedcal-cell의 스코프된 전이(background, box-shadow)를 인라인이 항상 이겨서 덮어썼다.
           // 실제로 바뀌는 두 속성만 같은 지속시간으로 맞춘다.
           transition: 'background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard)',
-          opacity: !isSameMonth(date, currentDate) ? 0.3 : 1,
-          background: isSelected || isToday(date) ? 'var(--color-background-teal)' : undefined,
+          opacity: !isCurrentMonth ? 0.3 : 1,
+          background: isSelected ? 'var(--color-background-teal)' : undefined,
           boxShadow: isSelected ? 'inset 0 0 0 2px var(--color-border-teal)' : undefined,
         }}
       >
@@ -1265,8 +1283,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             <Text type="label" weight={isToday(date) ? 'bold' : 'medium'} color="inherit">{format(date, 'd')}</Text>
           </span>
         </div>
-        {/* 오른쪽(또는 칸 전체) 휴무자 명단 */}
-        {showsVacations(pane) && (
+        {/* 오른쪽(또는 칸 전체) 휴무자 명단 — 지난달·다음달 칸은 숫자만 보여준다 */}
+        {isCurrentMonth && showsVacations(pane) && (
           <CalendarVacationPane
             people={dayVacations}
             fraction={vacFraction}
@@ -1277,7 +1295,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             roleByName={vacationRoleByName}
           />
         )}
-        {showsSchedules(pane) && hiddenCount > 0 && (
+        {isCurrentMonth && showsSchedules(pane) && hiddenCount > 0 && (
           <div
             style={{
               position: 'absolute',
@@ -1299,6 +1317,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     <>
       <AlertContainer />
       <ConfirmContainer />
+      {/* 페이지 제목 — 배차 모드는 편의기능 쪽 묶음이 따로 다뤄 여기선 손대지 않는다.
+          달력 높이를 과하게 먹지 않도록 설명 한 줄만 짧게 둔다. */}
+      {!isDispatchMode && (
+        <div style={{ marginBottom: 'var(--spacing-4)' }}>
+          <PageHeader title="월간일정" description="직원 일정과 휴무자를 한 달력에서 함께 확인합니다" />
+        </div>
+      )}
       {/* 배차 모드: 서브탭 */}
       {isDispatchMode && (
         <div style={{ marginBottom: 'var(--spacing-4)' }}>
@@ -1469,6 +1494,16 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
                       ))}
                     </SegmentedControl>
+                    {/* 이 화면의 유일한 '일정 추가' 진입점이다(상세 패널의 중복 버튼은 없앴다).
+                        주 동작이라 접기·담당 업무보다 앞에 둔다 — 줄바꿈이 일어나도
+                        먼저 오는 이 버튼이 아니라 뒤의 보조 버튼이 둘째 줄로 밀려난다. */}
+                    <Button
+                      label="일정 추가"
+                      variant="primary"
+                      size="sm"
+                      icon={<Icon icon={IconPlus} size="sm" />}
+                      onClick={() => openCreateModal()}
+                    />
                     <Button
                       label={showMyTasksOnly ? '전체 일정' : '담당 업무'}
                       variant={showMyTasksOnly ? 'primary' : 'ghost'}
@@ -1483,13 +1518,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       size="sm"
                       icon={<Icon icon={isExpanded ? IconChevronsUp : IconChevronsDown} size="sm" />}
                       onClick={() => setIsExpanded((v) => !v)}
-                    />
-                    <Button
-                      label="일정 추가"
-                      variant="primary"
-                      size="sm"
-                      icon={<Icon icon={IconPlus} size="sm" />}
-                      onClick={() => openCreateModal()}
                     />
                   </>
                 )}
@@ -1574,13 +1602,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   }
                   return (
                     <div key={`week-${weekIndex}`} className="carev-schedcal-week" style={expandedStyle}>
-                      {week.map((date, dayIndex) =>
-                        date ? (
-                          renderScheduleDayCell(date, layout?.hiddenCounts[format(date, 'yyyy-MM-dd')] || 0)
-                        ) : (
-                          <div key={`empty-${weekIndex}-${dayIndex}`} style={EMPTY_CELL_STYLE} />
-                        )
-                      )}
+                      {/* 지난달·다음달로 삐져나온 칸도 이제 실제 날짜라 빈 칸이 없다 */}
+                      {week.map((date) => renderScheduleDayCell(date, layout?.hiddenCounts[format(date, 'yyyy-MM-dd')] || 0))}
                       {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이.
                           휴무자를 같이 볼 때는 칸 오른쪽이 명단 자리라 하루 단위로 끊어 그린다. */}
                       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
@@ -1695,18 +1718,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   </HStack>
                 </div>
 
-                {/* 일정 추가 버튼 */}
-                <div style={{ padding: 'var(--spacing-4) var(--spacing-5) 0' }}>
-                  <Button
-                    label="일정 추가"
-                    variant="primary"
-                    size="sm"
-                    icon={<Icon icon={IconPlus} size="sm" />}
-                    onClick={() => openCreateModal(selectedDate)}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
                 {/* 그날 휴무자 — 달력 칸에서는 이름만 몇 줄 보이므로 여기서 전부 펼친다 */}
                 {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length > 0 && (
                   <div style={{ padding: 'var(--spacing-4) var(--spacing-5) 0' }}>
@@ -1802,9 +1813,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                               {canManageSchedule(schedule) && (
                                 <>
                                   <Button label="수정" variant="ghost" size="sm" onClick={() => handleEditSchedule(schedule)} />
-                                  <Button
-                                    label="삭제"
-                                    variant="destructive"
+                                  {/* 되돌릴 수 없는 동작이라 매일 누르는 수행완료·수정과 같은 무게를 주지 않는다.
+                                      아이콘만 남겨 덜 두드러지게 하되, 기능은 그대로 키보드로도 닿는다. */}
+                                  <IconButton
+                                    label="일정 삭제"
+                                    icon={<Icon icon={IconTrash} size="sm" />}
+                                    variant="ghost"
                                     size="sm"
                                     onClick={() => {
                                       setSelectedSchedule(schedule);

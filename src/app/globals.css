@@ -261,10 +261,13 @@ html {
 .carev-cal-vacpane--split { display: none; }
 @media (min-width: 640px) { .carev-cal-vacpane--split { display: flex; } }
 /* 휴무자 한 줄: 배지 · 이름 · 직무.
-   자리가 모자랄 때 이름은 그대로 두고 뒤의 직무부터 줄어들게 한다.
-   이름을 안 줄이는 건(flex-shrink:0) 누가 쉬는지가 먼저이기 때문이다. */
-.carev-cal-vacname { flex: 0 0 auto; min-width: 0; overflow: hidden; }
-.carev-cal-vacrole { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+   자리가 모자랄 때 직무가 먼저 줄어들도록 shrink 비중을 훨씬 크게 둔다(3 vs 1).
+   예전엔 이름이 flex-shrink:0이라 전혀 줄지 않아, 칸이 좁으면 Text의 말줄임(…)이
+   걸릴 너비 자체가 주어지지 않고 바깥 overflow:hidden에 원시 픽셀 단위로 잘려
+   "장ㄷ"처럼 글자가 반토막 났다. 이름도 최소 너비까지는 줄어들게 해 말줄임표가
+   제대로 뜨게 한다. */
+.carev-cal-vacname { flex: 0 1 auto; min-width: 16px; overflow: hidden; }
+.carev-cal-vacrole { flex: 0 3 auto; min-width: 0; overflow: hidden; }
 
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }
@@ -651,9 +654,11 @@ html {
 .carev-annual-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  /* 행 높이를 균등하게 — 내용이 적으면 남는 높이를 나눠 카드 밑이 비지 않고,
-     많으면 min-content 위로 자라서 잘리지 않는다. */
-  grid-auto-rows: minmax(min-content, 1fr);
+  /* 예전엔 1fr로 남는 세로 공간을 모든 행에 균등 분배했다 — 그러면 일정이 없는
+     달도 일정이 몰린 달(9월)과 같은 키로 늘어나, 빈 1~4월이 첫 화면을 다 채우고
+     정작 9월은 한참 스크롤해야 보였다. 행 높이는 내용(min-content)만큼만 쓰게
+     하고, min-height는 카드 자체(.carev-annual-month)가 110px로 지킨다. */
+  grid-auto-rows: min-content;
   gap: var(--spacing-3);
   flex: 1;
 }
