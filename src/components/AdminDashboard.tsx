@@ -1012,7 +1012,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 stats: [
                   { label: '총원', value: employeeAttendanceBase, tone: 'normal' },
                   { label: '근무', value: employeeAttendance.present, tone: 'normal' },
-                  { label: '휴무', value: employeeAttendance.vacation, tone: 'alert' },
+                  { label: '휴무', value: employeeAttendance.vacation, tone: 'normal' },
                 ],
               },
             ].map((group, gi) => (
