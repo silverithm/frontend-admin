@@ -1546,7 +1546,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                         style={{
                           position: 'relative', display: 'flex', height: '100%', minHeight: DASH_CELL_FLOOR,
                           flexDirection: 'column', alignItems: 'stretch', gap: 'var(--spacing-0-5)', padding: 'var(--spacing-1)', textAlign: 'left',
-                          background: !inMonth ? 'transparent' : todayFlag ? 'var(--color-background-teal)' : 'transparent',
+                          /* [#3] '오늘' 칸을 통째로 민트로 칠하면 큰 면적이 가장 먼저 눈에 들어온다.
+                             칸 배경은 빼고, 날짜 숫자의 원형 배지(아래)만으로 오늘을 표시한다. */
+                          background: 'transparent',
                           border: 'none',
                           // 격자선 — 마지막 열·마지막 주는 바깥 테두리와 겹치므로 긋지 않는다
                           borderRight: dayOfWeek === 6 ? 'none' : GRID_LINE,
