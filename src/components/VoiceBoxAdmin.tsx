@@ -81,9 +81,12 @@ function VoiceBoxItemComponent({
           </HStack>
           <HStack gap={2} vAlign="center">
             <Badge variant={STATUS_VARIANT[item.status] ?? 'neutral'} label={statusLabel(item)} />
+            {/* 이미 조치완료(반영됨)인 글까지 '처리하기'로 두드러지면 아직 할 일이 남은 것처럼
+                보인다. 완료된 글은 답변을 확인·수정하는 덜 두드러진 동작으로 낮춘다.
+                펼치고 접는 동작(처리 다이얼로그)은 상태와 무관하게 그대로다 */}
             <Button
-              label={isExpanded ? '접기' : '처리하기'}
-              variant="secondary"
+              label={isExpanded ? '접기' : item.status === 'RESOLVED' ? '답변 보기' : '처리하기'}
+              variant={isExpanded || item.status !== 'RESOLVED' ? 'secondary' : 'ghost'}
               size="sm"
               aria-expanded={isExpanded}
               onClick={() => onToggleExpand(item.id)}
