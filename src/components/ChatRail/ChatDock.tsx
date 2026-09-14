@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { motion } from "framer-motion";
 
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -11,13 +10,14 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { FiMaximize2 } from "react-icons/fi";
 import { FloatingChatMessages } from "@/components/FloatingChat/FloatingChatMessages";
 import { ChatMessage, WebSocketMessage } from "@/components/FloatingChat/floatingChatTypes";
-import { fetchChatMessages, markChatAsRead, sendChatMessage } from "@/lib/apiService";
+import { fetchChatMessages, markChatAsRead } from "@/lib/apiService";
 import { CHAT_PAGE_SIZE, prependUniqueMessages } from "@/lib/useOlderChatMessages";
 import { mergeMissedMessages, readAscendingMessages } from "@/lib/chatReconnect";
 import { getMyChatUserId } from "@/lib/chatIdentity";
+import { createChatClient } from "@/lib/chatSocket";
+import { applyIncoming } from "@/lib/chatSend";
+import { useReliableChatSend } from "@/lib/useReliableChatSend";
 import { duration } from "@/theme/motion";
-
-const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
 interface ChatDockProps {
     roomId: number;
@@ -52,7 +52,6 @@ export default function ChatDock({
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [messageInput, setMessageInput] = useState("");
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-    const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     /**
      * 연결 '세대' 번호 — 소켓이 붙을 때마다 1씩 오른다.
@@ -81,6 +80,29 @@ export default function ChatDock({
             console.error("[ChatDock] 읽음 처리 실패:", error);
         }
     }, [roomId]);
+
+    const { send, ack, retry, discard } = useReliableChatSend<ChatMessage>({
+        label: "ChatDock",
+        clientRef: stompClientRef,
+        isConnected,
+        userId,
+        userName,
+        setMessages,
+        makePending: (seed) => ({
+            id: seed.id,
+            chatRoomId: seed.roomId,
+            senderId: seed.senderId,
+            senderName: seed.senderName,
+            type: "TEXT",
+            content: seed.content,
+            createdAt: seed.createdAt,
+            isDeleted: false,
+            readCount: 1,
+            clientMessageId: seed.clientMessageId,
+            sendingStatus: "sending",
+            replyToId: seed.replyToId || undefined,
+        }),
+    });
 
     // 방을 열면 최근 대화를 받아오고 읽음 처리한다
     useEffect(() => {
@@ -134,14 +156,10 @@ export default function ChatDock({
     useEffect(() => {
         if (!authToken || !userId) return;
 
-        const client = new Client({
-            webSocketFactory: () => new SockJS(`${BACKEND_WS_URL}/ws/chat`),
-            // 서버 WS 인터셉터가 CONNECT 프레임의 Authorization 헤더를 요구한다
-            connectHeaders: { Authorization: `Bearer ${authToken}` },
-            reconnectDelay: 5000,
-            heartbeatIncoming: 10000,
-            heartbeatOutgoing: 10000,
-            onConnect: () => {
+        // 토큰 재읽기·401 갱신·하트비트는 chatSocket.ts가 한다 — 네 화면이 같은 규칙으로 붙는다
+        const client = createChatClient({
+            label: "ChatDock",
+            onConnect: (client) => {
                 setIsConnected(true);
                 setConnectionEpoch((n) => n + 1);
                 client.subscribe(`/topic/chat/${roomId}`, (frame: IMessage) => {
@@ -161,7 +179,9 @@ export default function ChatDock({
                         }
                         if (wsMessage.type !== "MESSAGE" || !wsMessage.message) return;
                         const msg = wsMessage.message;
-                        setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+                        // 내가 보낸 것의 에코면 재전송 시계를 멈추고 '전송 중' 말풍선을 이 메시지로 바꾼다
+                        ack(msg.clientMessageId);
+                        setMessages((prev) => applyIncoming(prev, msg));
                         // 창이 열려 있는 동안 온 메시지는 바로 읽은 것으로 둔다
                         if (String(msg.senderId) !== String(userId)) markAsRead(msg.id);
                     } catch (error) {
@@ -186,9 +206,6 @@ export default function ChatDock({
                 });
             },
             onDisconnect: () => setIsConnected(false),
-            // 정상 종료가 아닌 끊김은 onDisconnect가 아니라 여기로 온다 [[chatReconnect]]
-            onWebSocketClose: () => setIsConnected(false),
-            onStompError: (frame) => console.error("[ChatDock] STOMP 오류:", frame.headers["message"]),
         });
 
         client.activate();
@@ -203,55 +220,11 @@ export default function ChatDock({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authToken, userId, roomId]);
 
-    const sendViaRest = async (replyToId?: number) => {
-        if (!messageInput.trim() || !userId || !userName) return;
-        setIsSendingMessage(true);
-        try {
-            const response = await sendChatMessage(roomId, {
-                senderId: userId,
-                senderName: userName,
-                type: "TEXT",
-                content: messageInput.trim(),
-                replyToId: replyToId || null,
-            });
-            // 백엔드가 { success, message } wrapper로 반환하므로 unwrap
-            const newMessage = response.message || response;
-            setMessages((prev) => (prev.some((m) => m.id === newMessage.id) ? prev : [...prev, newMessage]));
-            setMessageInput("");
-        } catch (error) {
-            console.error("[ChatDock] 메시지 전송 실패:", error);
-        } finally {
-            setIsSendingMessage(false);
-        }
-    };
-
-    const sendMessage = async (replyToId?: number) => {
-        if (!messageInput.trim() || !userId || !userName) return;
-        const client = stompClientRef.current;
-
-        if (client && isConnected) {
-            setIsSendingMessage(true);
-            try {
-                client.publish({
-                    destination: `/app/chat/${roomId}/send`,
-                    body: JSON.stringify({
-                        senderId: userId,
-                        senderName: userName,
-                        type: "TEXT",
-                        content: messageInput.trim(),
-                        replyToId: replyToId || null,
-                    }),
-                });
-                setMessageInput("");
-            } catch (error) {
-                console.error("[ChatDock] WebSocket 전송 실패, REST로 재시도:", error);
-                await sendViaRest(replyToId);
-            } finally {
-                setIsSendingMessage(false);
-            }
-        } else {
-            await sendViaRest(replyToId);
-        }
+    // 보내는 즉시 '전송 중' 말풍선이 뜨고, 에코가 없으면 REST로 다시 보내며, 그래도 안 되면 '실패'로 남는다.
+    const sendMessage = (replyToId?: number) => {
+        if (!messageInput.trim()) return;
+        void send({ roomId, content: messageInput, replyToId: replyToId || null });
+        setMessageInput("");
     };
 
     if (!userId || !userName) return null;
@@ -283,7 +256,9 @@ export default function ChatDock({
                 participantCount={participantCount}
                 messages={messages}
                 isLoadingMessages={isLoadingMessages}
-                isSendingMessage={isSendingMessage}
+                isSendingMessage={false}
+                onRetryMessage={retry}
+                onDiscardMessage={discard}
                 userId={userId}
                 messageInput={messageInput}
                 onMessageInputChange={setMessageInput}

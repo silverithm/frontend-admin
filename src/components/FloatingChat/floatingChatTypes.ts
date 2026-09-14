@@ -49,6 +49,10 @@ export interface ChatMessage {
     editedAt?: string | null;
     readCount: number;
     reactions?: ReactionSummary[];
+    /** 보내는 쪽이 붙인 식별자 — 서버가 되돌려준다. '전송 중' 말풍선을 이 값으로 찾아 바꾼다 (chatSend.ts) */
+    clientMessageId?: string;
+    /** 서버에 아직 없는 말풍선의 상태. 서버에서 온 메시지에는 없다 */
+    sendingStatus?: "sending" | "failed";
     // 답글 관련
     replyToId?: number;
     replyToSenderName?: string;

@@ -246,6 +246,11 @@ async function toApiError(response: Response): Promise<ApiError> {
     return error;
 }
 
+/** 채팅 소켓이 인증 거절(401)을 받은 뒤 다시 붙기 전에 부른다 — REST와 같은 한 번 갱신 규칙을 탄다. */
+export function refreshAuthTokenForSocket(): Promise<string> {
+    return refreshAccessTokenOnce();
+}
+
 // 요청 한 번 보내기 (401이면 토큰을 갱신해 한 번만 재시도)
 async function sendAuthedRequest(fullUrl: string, options: RequestInit): Promise<any> {
     const usedToken = localStorage.getItem('authToken');
@@ -2715,6 +2720,8 @@ export async function sendChatMessage(roomId: number, data: {
     type: string;
     content: string;
     replyToId?: number | null;
+    // 같은 식별자로 다시 보내면 서버는 새로 저장하지 않는다 — 소켓 전송 뒤 에코를 못 받았을 때의 재전송용
+    clientMessageId?: string;
     // 파일·사진 메시지 (업로드 후 결과를 그대로 실어 보낸다)
     fileUrl?: string;
     fileName?: string;
