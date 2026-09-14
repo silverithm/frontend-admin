@@ -128,9 +128,10 @@ export async function generateOfficialDocumentPdf(approval: ApprovalRequest): Pr
   return new File([blob], buildDocumentFileName(approval, 'pdf'), { type: 'application/pdf' });
 }
 
-// 브라우저 캔버스 한계(대략적인 하한선 — 특히 Safari/iOS가 보수적이다).
-// 한 변이 이보다 길면 캡처 자체가 비거나 잘리고, 총 픽셀 수가 이보다 크면 메모리 부족으로 실패한다.
-const MAX_CANVAS_SIDE = 16384;
+// 한 변 상한. 브라우저 캔버스는 16384까지 되지만, 이 이미지는 휴대폰 앱이 통째로 그려야 한다 —
+// 모바일 GPU의 텍스처 한계(흔히 8192)를 넘으면 앱의 크게 보기에서 그림이 비어 버린다.
+// 총 픽셀 수가 아래 면적을 넘어도 메모리 부족으로 실패한다(특히 Safari/iOS).
+const MAX_CANVAS_SIDE = 8192;
 const MAX_CANVAS_AREA = 16_777_216; // 16.7M px (예: 4096 × 4096)
 
 /**
@@ -141,7 +142,7 @@ const MAX_CANVAS_AREA = 16_777_216; // 16.7M px (예: 4096 × 4096)
  * (과거엔 A4 비율로 끊어 여러 장의 JPG를 올렸으나, "공문 하나가 여러 장으로 쪼개져 온다"는
  * 제보로 한 장짜리로 바꿨다 — 절대 다시 여러 장으로 나누지 않는다.)
  *
- * 문서가 길어 캔버스 한계(한 변 ~16384px, 면적 ~16.7M px)를 넘으면 비율을 유지한 채
+ * 문서가 길어 한계(한 변 8192px, 면적 ~16.7M px)를 넘으면 비율을 유지한 채
  * 해상도를 낮춰 한 장에 담는다. 아주 긴 문서(수십 페이지 분량)는 그만큼 더 낮은
  * pixelRatio로 캡처되어 더 흐려질 수 있지만, 여러 장으로 쪼개는 것보다는 낫다고 판단했다
  * — 실무에서 채팅에 공유하는 결재 문서는 몇 페이지 안쪽이라 pixelRatio 1 밑으로는
