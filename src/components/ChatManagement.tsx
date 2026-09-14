@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
@@ -11,6 +11,7 @@ import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/l
 import { mergeMissedMessages, hasMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
+import { useMessageMenuPosition } from '@/hooks/useMessageMenuPosition';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator, chatAttachmentLabel, lastMessagePreview } from '@/lib/chatMessageGrouping';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
@@ -26,6 +27,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Loading } from '@/components/Loading';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -306,6 +309,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** null = 아직 검색 안 함 (빈 배열은 '결과 없음') */
     const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null);
     const [isSearching, setIsSearching] = useState(false);
+    /** 검색 패널의 "날짜로 이동" — 고른 날짜, 조회 중 여부 */
+    const [jumpToDate, setJumpToDate] = useState<string>("");
+    const [isJumpingToDate, setIsJumpingToDate] = useState(false);
     /** 검색 결과를 눌러 이동한 메시지 — 잠깐 배경을 강조했다가 지운다 */
     const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
     /**
@@ -341,6 +347,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** 사진 크게 보기 — 묶음에서 열면 그 묶음 전체가 들어와 좌우로 넘길 수 있다 (한 장이면 길이 1) */
     const [imagePreview, setImagePreview] = useState<{ items: ChatLightboxItem[]; index: number } | null>(null);
     const [contextMenuMessageId, setContextMenuMessageId] = useState<number | null>(null);
+    /** 지금 열려 있는 메뉴가 붙는 말풍선(anchor)과 메뉴 자신 — 옆/아래 위치 계산에 쓴다 [[useMessageMenuPosition]] */
+    const contextMenuAnchorRef = useRef<HTMLDivElement | null>(null);
+    const contextMenuElRef = useRef<HTMLDivElement | null>(null);
     /** 삭제를 누른 메시지 — 같은 메뉴 안에서 한 번 더 확인받는다 */
     const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<number | null>(null);
     /** 지금 고치고 있는 메시지 — null이면 평소의 새 메시지 입력 상태 */
@@ -425,6 +434,19 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     // 채팅에서 나를 가리키는 값. 관리자 계정은 접두사가 붙는다 — localStorage의 원시 userId와 다르다
     const [userId] = useState(() => getMyChatUserId());
     const [userName] = useState(() => typeof window !== "undefined" ? localStorage.getItem("userName") : null);
+
+    // 지금 열려 있는 메뉴가 내 메시지 것인지 — 옆 배치 방향(내 메시지=왼쪽, 상대=오른쪽) 판단에 쓴다
+    const contextMenuIsMyMessage = contextMenuMessageId !== null
+        ? messages.find(m => m.id === contextMenuMessageId)?.senderId === userId
+        : false;
+    const contextMenuStyle = useMessageMenuPosition({
+        isOpen: contextMenuMessageId !== null,
+        anchorRef: contextMenuAnchorRef,
+        menuRef: contextMenuElRef,
+        containerRef: messagesContainerRef,
+        isMyMessage: contextMenuIsMyMessage,
+        recalcKey: pendingDeleteMessageId,
+    });
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1163,6 +1185,31 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     };
 
     /**
+     * 검색 패널의 "날짜로 이동" — 고른 날짜의 첫 메시지를 찾아 검색 결과 클릭과
+     * 같은 경로(jumpToMessageId)로 이동한다. 404("그 날짜 이후 대화가 없습니다")는
+     * 백엔드 문구를 그대로 보여주고, 그 외 오류(엔드포인트 미배포·500·네트워크 등)도
+     * 조용히 삼키지 않고 알림을 띄운다.
+     */
+    const jumpToDateHandler = async (date: string) => {
+        if (!selectedRoom || !date || isJumpingToDate) return;
+        setIsJumpingToDate(true);
+        try {
+            const data = await fetchFirstMessageOnDate(selectedRoom, date);
+            if (!data?.messageId) throw new Error("빈 응답");
+            setSidePanel(null);
+            await jumpToMessageId(data.messageId);
+        } catch (error) {
+            console.error("날짜로 이동 실패:", error);
+            const message = (error as { status?: number; message?: string })?.status === 404
+                ? ((error as Error).message || "그 날짜 이후 대화가 없습니다")
+                : "이동 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요";
+            onNotification(message, "error");
+        } finally {
+            setIsJumpingToDate(false);
+        }
+    };
+
+    /**
      * 점프해 있던 구간을 접고 최신 대화로 돌아간다.
      * 메시지 전송 앞에서 이 완료를 기다려 쓰기도 하므로(끝난 뒤에야 isJumpedToOlder가
      * false가 됨을 보장) Promise를 그대로 반환한다.
@@ -1825,6 +1872,22 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 placeholder="찾을 말을 입력하고 Enter"
                                                 hasClear
                                             />
+                                            <div style={{ maxWidth: 200 }}>
+                                                <DateInput
+                                                    label="날짜로 이동"
+                                                    isLabelHidden
+                                                    placeholder="날짜로 이동"
+                                                    value={jumpToDate ? (jumpToDate as ISODateString) : undefined}
+                                                    isDisabled={isJumpingToDate}
+                                                    onChange={(value) => {
+                                                        setJumpToDate(value || "");
+                                                        if (value) jumpToDateHandler(value);
+                                                    }}
+                                                />
+                                            </div>
+                                            {isJumpingToDate && (
+                                                <Text type="supporting" color="secondary">그 날짜의 대화를 찾는 중...</Text>
+                                            )}
                                             {isSearching ? (
                                                 <Text type="supporting" color="secondary">검색 중...</Text>
                                             ) : searchResults === null ? (
@@ -2116,7 +2179,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             </Text>
                                                         </div>
                                                     )}
-                                                    <div className="carev-chat-msgrow" style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)', maxWidth: "100%" }}>
+                                                    <div
+                                                        className="carev-chat-msgrow"
+                                                        // 메뉴는 말풍선이 아니라 이 줄(말풍선+시간) 옆에 붙인다 — 시간·안읽음 숫자를 덮지 않게
+                                                        ref={(el) => { if (message.id === contextMenuMessageId) contextMenuAnchorRef.current = el; }}
+                                                        style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)', maxWidth: "100%" }}
+                                                    >
                                                         {isMyMessage && (
                                                             <>
                                                                 {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/공지 메뉴에 닿을 수 있어야 한다 */}
@@ -2325,9 +2393,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         </div>
                                                     )}
 
-                                                    {/* 롱프레스 메뉴 */}
+                                                    {/* 롱프레스 메뉴 — 말풍선 옆(내 메시지=왼쪽, 상대=오른쪽)에 뜨고,
+                                                        자리가 없으면 아래, 아래도 모자라면 통째로 들어갈 때만 위. 대상 글은 덮지 않는다. [[useMessageMenuPosition]] */}
                                                     {contextMenuMessageId === message.id && (
-                                                        <div style={{ position: "absolute", zIndex: 40, bottom: "100%", marginBottom: 'var(--spacing-1)', ...(isMyMessage ? { right: 0 } : { left: 0 }) }}>
+                                                        <div ref={contextMenuElRef} style={contextMenuStyle}>
                                                             <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: 'var(--shadow-high)', border: `1px solid ${C.border}`, overflow: "hidden" }}>
                                                                 <div style={{ padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.gray100}` }}>
                                                                     <HStack gap={0.5}>

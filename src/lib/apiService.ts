@@ -2698,6 +2698,19 @@ export async function fetchChatMessagesAround(roomId: number, messageId: number,
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/around?${params.toString()}`);
 }
 
+/**
+ * 지정한 날짜의 첫 메시지 id를 조회한다 — 카톡처럼 날짜를 골라 그 날 대화 처음으로 이동할 때 쓴다.
+ *
+ * 404면 그 날짜 이후 대화가 없다는 뜻으로, 백엔드가 `{"error": "..."}` 형태로 이유를 함께 준다.
+ * 호출부는 그 error 메시지를 그대로 사용자에게 보여주면 된다.
+ */
+export async function fetchFirstMessageOnDate(roomId: number, date: string) {
+    const userId = getMyChatUserId() || '';
+    const params = new URLSearchParams({ date });
+    if (userId) params.append('userId', userId);
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/first-on-date?${params.toString()}`);
+}
+
 // 채팅 읽음 처리
 export async function markChatAsRead(roomId: number, lastMessageId: number) {
     const userId = getMyChatUserId() || '';
