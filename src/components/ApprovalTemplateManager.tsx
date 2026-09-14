@@ -701,17 +701,18 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                 <thead>
                   {/* 열 너비를 정하지 않으면 모든 열이 같은 폭으로 나뉘어, 아이콘 네 개가 든
                       액션 칸이 좁아 오른쪽 끝(더보기 메뉴)이 카드 밖으로 잘렸다 — [#31].
-                      짧은 값 칸은 고정하고 남는 폭을 양식명·설명·파일이 나눠 갖는다. */}
+                      짧은 값 칸은 고정하고 남는 폭을 양식명·설명·파일이 나눠 갖는다.
+                      Astryx 머리 칸은 max-width:0이라 width만으로는 0으로 눌리므로 minWidth를 함께 준다. */}
                   <TableRow isHeaderRow>
-                    {canManage && <TableHeaderCell style={{ width: 64 }}>순서</TableHeaderCell>}
+                    {canManage && <TableHeaderCell style={{ width: 64, minWidth: 64 }}>순서</TableHeaderCell>}
                     <TableHeaderCell>양식명</TableHeaderCell>
-                    <TableHeaderCell style={{ width: 80 }}>대분류</TableHeaderCell>
+                    <TableHeaderCell style={{ width: 80, minWidth: 80 }}>대분류</TableHeaderCell>
                     <TableHeaderCell>설명</TableHeaderCell>
-                    <TableHeaderCell style={{ width: 88 }}>유형</TableHeaderCell>
+                    <TableHeaderCell style={{ width: 88, minWidth: 88 }}>유형</TableHeaderCell>
                     <TableHeaderCell>파일</TableHeaderCell>
-                    <TableHeaderCell style={{ width: 80 }}>상태</TableHeaderCell>
-                    <TableHeaderCell style={{ width: 96 }}>수정일</TableHeaderCell>
-                    {canManage && <TableHeaderCell style={{ width: 168 }}>액션</TableHeaderCell>}
+                    <TableHeaderCell style={{ width: 80, minWidth: 80 }}>상태</TableHeaderCell>
+                    <TableHeaderCell style={{ width: 96, minWidth: 96 }}>수정일</TableHeaderCell>
+                    {canManage && <TableHeaderCell style={{ width: 168, minWidth: 168 }}>액션</TableHeaderCell>}
                   </TableRow>
                 </thead>
                 <tbody>
