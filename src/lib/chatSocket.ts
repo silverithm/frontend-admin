@@ -8,7 +8,7 @@ import {
     BASE_RECONNECT_DELAY_MS,
     connectHeadersFor,
     isAuthFailure,
-    isTokenExpiringSoon,
+    isJwtExpiringSoon,
     MAX_RECONNECT_DELAY_MS,
     shouldGiveUp,
 } from "@/lib/chatSocketAuth";
@@ -60,8 +60,10 @@ export function createChatClient({ label, onConnect, onDisconnect, onAuthExhaust
             // 401을 실제로 받은 적이 있으면 당연히 갱신한다. 그게 아니어도(서버 재시작 등으로
             // 끊긴 경우) 토큰이 이미 만료돼 있을 수 있다 — 그때까지 기다리면 옛 토큰으로
             // 붙어 봤자 401을 한 번 더 받고서야 갱신하게 된다. 미리 판단해 그 왕복을 없앤다.
-            const expirationTime = typeof window !== "undefined" ? localStorage.getItem("tokenExpirationTime") : null;
-            const shouldRefresh = authFailures > 0 || isTokenExpiringSoon(expirationTime, Date.now());
+            // 만료 판단은 토큰 안의 exp로 한다 — localStorage의 tokenExpirationTime은 만료 시각이
+            // 아니라 30분이라는 길이가 저장돼 있어 늘 '만료'로 읽혔다(isJwtExpiringSoon 주석 참고).
+            const currentToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+            const shouldRefresh = authFailures > 0 || isJwtExpiringSoon(currentToken, Date.now());
             if (shouldRefresh) {
                 try {
                     await refreshAuthTokenForSocket();

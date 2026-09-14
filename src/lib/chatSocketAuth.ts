@@ -52,6 +52,30 @@ export function isTokenExpiringSoon(
     return expiresAt - bufferMs <= now;
 }
 
+/**
+ * 토큰 자체의 `exp`(JWT payload)를 읽어 이미 만료됐거나 [bufferMs] 안에 만료될지 판단한다.
+ *
+ * localStorage의 tokenExpirationTime은 만료 *시각*이 아니라 서버가 준 만료 *길이*(1800000 =
+ * 30분)가 그대로 저장돼 있어, 그 값으로 판단하면 늘 "만료됨"이 되어 붙을 때마다 토큰을 새로
+ * 받았다(브라우저 검증에서 확인). JWT에는 만료 시각이 들어 있으니 그것을 본다.
+ *
+ * JWT 형식이 아니거나 exp를 읽을 수 없으면 false — 모른다고 갱신을 강제하지 않고
+ * '401을 받으면 갱신' 경로에 맡긴다.
+ */
+export function isJwtExpiringSoon(token: string | null | undefined, now: number, bufferMs = 5_000): boolean {
+    if (!token) return false;
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    try {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+        const exp = typeof payload?.exp === "number" ? payload.exp : Number(payload?.exp);
+        if (!Number.isFinite(exp) || exp <= 0) return false;
+        return exp * 1000 - bufferMs <= now;
+    } catch {
+        return false;
+    }
+}
+
 /** 재연결 지연의 기준값(ms) — 첫 재시도는 이만큼 기다린다. `chatSocket.ts`의 `reconnectDelay`로 쓴다. */
 export const BASE_RECONNECT_DELAY_MS = 5_000;
 

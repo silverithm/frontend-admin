@@ -6,6 +6,7 @@ import {
     connectHeadersFor,
     isAuthFailure,
     isTokenExpiringSoon,
+    isJwtExpiringSoon,
     MAX_AUTH_FAILURES,
     MAX_RECONNECT_DELAY_MS,
     nextReconnectDelay,
@@ -59,4 +60,14 @@ test("재연결 지연은 실패마다 두 배로 늘고 상한에서 멈춘다 
     assert.equal(delay, MAX_RECONNECT_DELAY_MS); // 40000 → 30000으로 상한
     delay = nextReconnectDelay(delay);
     assert.equal(delay, MAX_RECONNECT_DELAY_MS); // 상한에서 더 늘지 않는다
+});
+
+test("isJwtExpiringSoon — 토큰 안의 exp로 판단한다 (localStorage 값은 만료 시각이 아니라 30분 길이였다)", () => {
+    const now = 1800000000000;
+    assert.equal(isJwtExpiringSoon("eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAia2ltQGV4YW1wbGUuY29tIiwgImV4cCI6IDE3OTk5OTk5OTl9.sig", now), true); // 이미 지남
+    assert.equal(isJwtExpiringSoon("eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAia2ltQGV4YW1wbGUuY29tIiwgImV4cCI6IDE4MDAwMDAwMDN9.sig", now), true); // 5초 버퍼 안
+    assert.equal(isJwtExpiringSoon("eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAia2ltQGV4YW1wbGUuY29tIiwgImV4cCI6IDE4MDAwMDE4MDB9.sig", now), false); // 30분 남음
+    assert.equal(isJwtExpiringSoon("1800000", now), false); // 길이값이 들어와도 '만료'로 오판하지 않는다
+    assert.equal(isJwtExpiringSoon(null, now), false);
+    assert.equal(isJwtExpiringSoon("a.b", now), false);
 });
