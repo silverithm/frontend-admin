@@ -897,7 +897,11 @@ export function FloatingChatMessages({
                                                 </Text>
                                             </div>
                                         )}
-                                        <div style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)', maxWidth: "100%" }}>
+                                        <div
+                                            // 메뉴는 말풍선이 아니라 이 줄(말풍선+시간) 옆에 붙인다 — 시간을 덮지 않게
+                                            ref={(el) => { if (message.id === longPressMenuMessageId) longPressMenuAnchorRef.current = el; }}
+                                            style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)', maxWidth: "100%" }}
+                                        >
                                             {isMyMessage && (
                                                 <>
                                                     {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/반응 메뉴에 닿을 수 있어야 한다 */}
@@ -915,7 +919,6 @@ export function FloatingChatMessages({
                                                 </>
                                             )}
                                             <div
-                                                ref={(el) => { if (message.id === longPressMenuMessageId) longPressMenuAnchorRef.current = el; }}
                                                 className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                 style={{
                                                     position: "relative",

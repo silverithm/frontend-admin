@@ -2166,7 +2166,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             </Text>
                                                         </div>
                                                     )}
-                                                    <div className="carev-chat-msgrow" style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)', maxWidth: "100%" }}>
+                                                    <div
+                                                        className="carev-chat-msgrow"
+                                                        // 메뉴는 말풍선이 아니라 이 줄(말풍선+시간) 옆에 붙인다 — 시간·안읽음 숫자를 덮지 않게
+                                                        ref={(el) => { if (message.id === contextMenuMessageId) contextMenuAnchorRef.current = el; }}
+                                                        style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)', maxWidth: "100%" }}
+                                                    >
                                                         {isMyMessage && (
                                                             <>
                                                                 {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/공지 메뉴에 닿을 수 있어야 한다 */}
@@ -2189,7 +2194,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             </>
                                                         )}
                                                         <div
-                                                            ref={(el) => { if (message.id === contextMenuMessageId) contextMenuAnchorRef.current = el; }}
                                                             className={isMyMessage ? "carev-selection-on-accent" : undefined}
                                                             style={{
                                                                 position: "relative",

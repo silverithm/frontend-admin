@@ -11,8 +11,8 @@ interface UseMessageMenuPositionOptions {
     /** 메뉴가 열려 있는지 — 열릴 때만 위치를 계산한다 */
     isOpen: boolean;
     /**
-     * 메뉴를 절대좌표로 붙이는 기준 요소(말풍선, position:relative).
-     * 메뉴는 이 요소의 자식으로 그려져야 top/left(px)가 이 요소 좌상단 기준으로 맞는다.
+     * 메뉴가 옆에 붙을 기준 요소 — 말풍선만이 아니라 시간·안읽음 숫자까지 포함한 한 줄.
+     * 말풍선만 기준으로 잡으면 옆에 붙은 시간을 메뉴가 덮는다.
      */
     anchorRef: RefObject<HTMLElement | null>;
     /** 메뉴 자신 — 크기를 재기 위해 필요하다 */
@@ -112,12 +112,17 @@ export function useMessageMenuPosition({
             ? Math.min(Math.max(viewportTop, minTop), maxTop)
             : minTop;
 
+        // top/left는 메뉴의 실제 offsetParent 기준이다. 메뉴가 기준 요소의 자식이 아닐 수도 있어
+        // (말풍선 바깥 줄에 그려지는 경우) 기준 요소 좌표로 빼면 이름 줄 높이만큼 어긋나
+        // 메뉴가 말풍선을 덮었다 — 실제 부모의 박스(테두리·스크롤 포함)로 환산한다.
+        const parent = (menu.offsetParent as HTMLElement | null) ?? anchor;
+        const parentRect = parent.getBoundingClientRect();
         setStyle({
             position: "absolute",
             visibility: "visible",
             zIndex: 40,
-            top: viewportTop - anchorRect.top,
-            left: viewportLeft - anchorRect.left,
+            top: viewportTop - parentRect.top - parent.clientTop + parent.scrollTop,
+            left: viewportLeft - parentRect.left - parent.clientLeft + parent.scrollLeft,
         });
         // anchorRef/menuRef/containerRef는 매 렌더 같은 ref 객체이므로 의존성에서 뺀다 —
         // 실제로 다시 계산해야 하는 시점은 열림 여부·대상·내용 크기가 바뀔 때뿐이다.
