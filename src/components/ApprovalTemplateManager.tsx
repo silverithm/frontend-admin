@@ -29,7 +29,7 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { Table, TableRow, TableCell, TableHeaderCell } from '@astryxdesign/core/Table';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
-import FormSchemaBuilder from './approval/FormSchemaBuilder';
+import FormSchemaBuilder, { ExistingFormTemplateOption } from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
 import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
@@ -257,6 +257,35 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
       [t.name, t.category, t.fileName].some((field) => (field || '').toLowerCase().includes(keyword)),
     );
   }, [templates, categoryFilter, searchQuery]);
+
+  /** 폼 빌더의 "기존 양식에서 불러오기"에 넘길 목록 — 온라인 폼(formSchema 보유)만 대상 */
+  // 서버는 formSchema를 JSON 문자열로 준다 — 형만 FormSchema로 속이면 고른 순간 fields가 없어
+  // 화면 전체가 죽었다(캡처로 확인). 양식 수정 화면과 같이 문자열이면 풀고, 풀 수 없거나 필드
+  // 배열이 없는 양식은 목록에서 뺀다.
+  const existingFormTemplateOptions: ExistingFormTemplateOption[] = useMemo(
+    () =>
+      templates
+        .filter((t) => (t.templateType === 'form' || t.templateType === 'hybrid') && !!t.formSchema)
+        .flatMap((t) => {
+          let schema: FormSchema | null = null;
+          try {
+            const raw = typeof t.formSchema === 'string' ? JSON.parse(t.formSchema) : t.formSchema;
+            if (raw && Array.isArray((raw as FormSchema).fields)) schema = raw as FormSchema;
+          } catch {
+            schema = null;
+          }
+          if (!schema) return [];
+          return [{
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            category: t.category,
+            formSchema: schema,
+            isActive: t.isActive,
+          }];
+        }),
+    [templates],
+  );
 
   /**
    * 순서 조정은 전체 목록 기준으로만 허용한다 — 대분류로 걸러진 상태에서 바꾸면
@@ -1010,6 +1039,8 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       onSchemaChange={(schema) => setFormSchema(schema)}
                       templateName={uploadForm.name}
                       defaultApprovalLine={defaultLine}
+                      existingTemplates={existingFormTemplateOptions}
+                      excludeTemplateId={editingTemplate?.id}
                     />
                   </VStack>
                 )}

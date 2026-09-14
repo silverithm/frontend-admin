@@ -128,69 +128,69 @@ export async function generateOfficialDocumentPdf(approval: ApprovalRequest): Pr
   return new File([blob], buildDocumentFileName(approval, 'pdf'), { type: 'application/pdf' });
 }
 
+// 한 변 상한. 브라우저 캔버스는 16384까지 되지만, 이 이미지는 휴대폰 앱이 통째로 그려야 한다 —
+// 모바일 GPU의 텍스처 한계(흔히 8192)를 넘으면 앱의 크게 보기에서 그림이 비어 버린다.
+// 총 픽셀 수가 아래 면적을 넘어도 메모리 부족으로 실패한다(특히 Safari/iOS).
+const MAX_CANVAS_SIDE = 8192;
+const MAX_CANVAS_AREA = 16_777_216; // 16.7M px (예: 4096 × 4096)
+
 /**
- * 렌더된 공문을 A4 비율의 JPG 여러 장으로 자른다.
+ * 렌더된 공문을 세로로 긴 JPG **한 장**으로 만든다.
  *
  * 채팅 공지에 PDF만 올리면 받는 쪽이 한 번 더 내려받아 열어야 한다. IMAGE 메시지는
- * 웹·앱 모두 채팅방에서 바로 펼쳐 보이므로, 문서를 장 단위 이미지로도 함께 올린다.
- * 문서가 길면 A4 비율(297/210)로 끊어 여러 장이 된다.
+ * 웹·앱 모두 채팅방에서 바로 펼쳐 보이므로, 문서를 이미지로도 함께 올린다.
+ * (과거엔 A4 비율로 끊어 여러 장의 JPG를 올렸으나, "공문 하나가 여러 장으로 쪼개져 온다"는
+ * 제보로 한 장짜리로 바꿨다 — 절대 다시 여러 장으로 나누지 않는다.)
+ *
+ * 문서가 길어 한계(한 변 8192px, 면적 ~16.7M px)를 넘으면 비율을 유지한 채
+ * 해상도를 낮춰 한 장에 담는다. 아주 긴 문서(수십 페이지 분량)는 그만큼 더 낮은
+ * pixelRatio로 캡처되어 더 흐려질 수 있지만, 여러 장으로 쪼개는 것보다는 낫다고 판단했다
+ * — 실무에서 채팅에 공유하는 결재 문서는 몇 페이지 안쪽이라 pixelRatio 1 밑으로는
+ * 거의 떨어지지 않는다(기관 규모가 훨씬 커지면 이 하한을 다시 검토할 것).
  */
-export async function generateOfficialDocumentJpegPages(approval: ApprovalRequest): Promise<File[]> {
+export async function generateOfficialDocumentJpeg(approval: ApprovalRequest): Promise<File> {
   const element = document.querySelector<HTMLElement>(OFFICIAL_DOC_SELECTOR);
   if (!element) {
     throw new Error('공문 화면을 찾을 수 없습니다');
   }
+
+  const { scrollWidth, scrollHeight } = element;
+  if (scrollWidth <= 0 || scrollHeight <= 0) {
+    throw new Error('공문 화면 크기를 읽을 수 없습니다');
+  }
+
+  // 기본은 선명하게(2배), 캔버스 한계에 걸리면 비율을 유지한 채로만 낮춘다.
+  const pixelRatioForSide = MAX_CANVAS_SIDE / Math.max(scrollWidth, scrollHeight);
+  const pixelRatioForArea = Math.sqrt(MAX_CANVAS_AREA / (scrollWidth * scrollHeight));
+  const pixelRatio = Math.min(2, pixelRatioForSide, pixelRatioForArea);
 
   const restoreImages = await inlineCrossOriginImages(element);
   let canvas: HTMLCanvasElement;
   try {
     canvas = await htmlToImage.toCanvas(element, {
       backgroundColor: '#ffffff',
-      pixelRatio: 2,
-      width: element.scrollWidth,
-      height: element.scrollHeight,
+      pixelRatio,
+      width: scrollWidth,
+      height: scrollHeight,
       filter: (node) => !(node instanceof HTMLElement && node.classList.contains('carev-doc-noprint')),
     });
   } finally {
     restoreImages();
   }
 
-  const pageHeight = Math.round(canvas.width * (297 / 210));   // A4 세로 비율
-  // 마지막 조각이 반의 반 장도 안 되면 앞 장에 흡수한다 — 꼬리 몇 줄 때문에 한 장을 더 만들지 않는다
-  const pageCount = Math.max(1, Math.round(canvas.height / pageHeight + 0.25));
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (result) => (result ? resolve(result) : reject(new Error('이미지 변환에 실패했습니다'))),
+      'image/jpeg',
+      0.9,
+    ),
+  );
 
-  const files: File[] = [];
-  for (let page = 0; page < pageCount; page++) {
-    const sliceTop = page * pageHeight;
-    const sliceHeight = page === pageCount - 1 ? canvas.height - sliceTop : pageHeight;
-    if (sliceHeight <= 0) break;
-
-    const slice = document.createElement('canvas');
-    slice.width = canvas.width;
-    slice.height = sliceHeight;
-    const context = slice.getContext('2d');
-    if (!context) throw new Error('이미지를 만들 수 없습니다');
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, slice.width, slice.height);
-    context.drawImage(canvas, 0, sliceTop, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-    const blob = await new Promise<Blob>((resolve, reject) =>
-      slice.toBlob(
-        (result) => (result ? resolve(result) : reject(new Error('이미지 변환에 실패했습니다'))),
-        'image/jpeg',
-        0.9,
-      ),
-    );
-
-    const suffix = pageCount > 1 ? `_${page + 1}` : '';
-    files.push(new File(
-      [blob],
-      `공문_${sanitizeFileNamePart(approval.title)}_${formatFileDate(approval.processedAt)}${suffix}.jpg`,
-      { type: 'image/jpeg' },
-    ));
-  }
-
-  return files;
+  return new File(
+    [blob],
+    `공문_${sanitizeFileNamePart(approval.title)}_${formatFileDate(approval.processedAt)}_전체.jpg`,
+    { type: 'image/jpeg' },
+  );
 }
 
 // S3 URL에서 상대 경로 추출 (ApprovalDetail.tsx의 handleDownloadAttachment와 동일한 규칙)
