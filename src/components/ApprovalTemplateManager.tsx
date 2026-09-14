@@ -699,16 +699,19 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
             <div style={{ overflowX: 'auto' }}>
               <Table hasHover dividers="rows">
                 <thead>
+                  {/* 열 너비를 정하지 않으면 모든 열이 같은 폭으로 나뉘어, 아이콘 네 개가 든
+                      액션 칸이 좁아 오른쪽 끝(더보기 메뉴)이 카드 밖으로 잘렸다 — [#31].
+                      짧은 값 칸은 고정하고 남는 폭을 양식명·설명·파일이 나눠 갖는다. */}
                   <TableRow isHeaderRow>
-                    {canManage && <TableHeaderCell>순서</TableHeaderCell>}
+                    {canManage && <TableHeaderCell style={{ width: 64 }}>순서</TableHeaderCell>}
                     <TableHeaderCell>양식명</TableHeaderCell>
-                    <TableHeaderCell>대분류</TableHeaderCell>
+                    <TableHeaderCell style={{ width: 80 }}>대분류</TableHeaderCell>
                     <TableHeaderCell>설명</TableHeaderCell>
-                    <TableHeaderCell>유형</TableHeaderCell>
+                    <TableHeaderCell style={{ width: 88 }}>유형</TableHeaderCell>
                     <TableHeaderCell>파일</TableHeaderCell>
-                    <TableHeaderCell>상태</TableHeaderCell>
-                    <TableHeaderCell>수정일</TableHeaderCell>
-                    {canManage && <TableHeaderCell>액션</TableHeaderCell>}
+                    <TableHeaderCell style={{ width: 80 }}>상태</TableHeaderCell>
+                    <TableHeaderCell style={{ width: 96 }}>수정일</TableHeaderCell>
+                    {canManage && <TableHeaderCell style={{ width: 168 }}>액션</TableHeaderCell>}
                   </TableRow>
                 </thead>
                 <tbody>
