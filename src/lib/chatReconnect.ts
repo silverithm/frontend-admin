@@ -71,6 +71,18 @@ export function hasMissedMessages<M extends { id: number }>(current: M[], latest
 }
 
 /**
+ * 끊긴 지 [thresholdMs] 이상 지났는지 — 화면은 이 신호로 "연결 중..."을 "새로고침해 주세요"로
+ * 바꾼다. 짧은 끊김(와이파이 순간 끊김 등)까지 안내하면 소란스러우므로 일정 시간은 조용히
+ * 재연결을 시도하게 둔다.
+ *
+ * @param disconnectedAt 끊긴 시각(ms epoch). 아직 한 번도 끊긴 적 없으면 null.
+ */
+export function isConnectionStale(disconnectedAt: number | null, now: number, thresholdMs = 30_000): boolean {
+    if (disconnectedAt === null) return false;
+    return now - disconnectedAt >= thresholdMs;
+}
+
+/**
  * 백엔드 응답에서 메시지 배열을 꺼내 **오래된 것부터**로 뒤집는다.
  * 서버는 createdAt DESC(최신순)로 주고, 화면 셋은 모두 오름차순을 전제한다.
  * (응답이 배열이 아니라 래퍼 객체로 온다는 것은 이 프로젝트의 오랜 규약이다)

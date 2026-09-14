@@ -11,7 +11,7 @@ import { FloatingChatRoomList, FloatingChatListTab } from "./FloatingChatRoomLis
 import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead } from '@/lib/apiService';
 import { CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
-import { mergeMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
+import { mergeMissedMessages, readAscendingMessages, isConnectionStale } from '@/lib/chatReconnect';
 import { DirectChatMember, openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { createChatClient } from '@/lib/chatSocket';
@@ -48,6 +48,11 @@ export function FloatingChat() {
      * effect가 안 돌고 방 구독이 영영 안 붙는다(= 새 메시지가 안 온다). [[chatReconnect]]
      */
     const [connectionEpoch, setConnectionEpoch] = useState(0);
+    /** 인증이 연달아 거절돼 소켓이 재연결을 포기했다 — "연결 중..."이 아니라 재로그인 안내가 나가야 한다 */
+    const [authExhausted, setAuthExhausted] = useState(false);
+    /** 끊긴 시각 — 오래(30초+) 끊겨 있으면 새로고침을 안내한다. 붙어 있으면 null. */
+    const [disconnectedAt, setDisconnectedAt] = useState<number | null>(null);
+    const [connectionIsStale, setConnectionIsStale] = useState(false);
     const [toasts, setToasts] = useState<ChatToast[]>([]);
 
     // 직원 목록 — 채팅 페이지와 같은 '대화 / 직원' 구성.
@@ -164,6 +169,8 @@ export function FloatingChat() {
             onConnect: (client) => {
                 console.log("[FloatingChat WebSocket] 연결됨");
                 setIsConnected(true);
+                setAuthExhausted(false);
+                setDisconnectedAt(null);
                 // 붙을 때마다 반드시 값이 달라져야 구독 effect가 다시 돈다 (재연결 포함)
                 setConnectionEpoch(n => n + 1);
 
@@ -186,6 +193,11 @@ export function FloatingChat() {
             },
             onDisconnect: () => {
                 setIsConnected(false);
+                setDisconnectedAt((prev) => prev ?? Date.now());
+            },
+            onAuthExhausted: () => {
+                // 401이 계속돼 chatSocket.ts가 재연결을 완전히 멈췄다 — 세션이 끝난 것이다.
+                setAuthExhausted(true);
             },
         });
 
@@ -201,6 +213,18 @@ export function FloatingChat() {
             stompClientRef.current = null;
         };
     }, [authToken, userId, companyId, setPresence]);
+
+    // 끊긴 지 30초가 넘으면 "연결 중..."을 새로고침 안내로 바꾼다 — 짧은 끊김까지 소란 떨지 않는다
+    useEffect(() => {
+        if (disconnectedAt === null) {
+            setConnectionIsStale(false);
+            return;
+        }
+        const check = () => setConnectionIsStale(isConnectionStale(disconnectedAt, Date.now()));
+        check();
+        const timer = setInterval(check, 5_000);
+        return () => clearInterval(timer);
+    }, [disconnectedAt]);
 
     /**
      * 기관 인원 목록 + 지금 접속 중인 사람.
@@ -564,6 +588,8 @@ export function FloatingChat() {
                                             rooms={rooms}
                                             isLoadingRooms={isLoadingRooms}
                                             isConnected={isConnected}
+                                            authExhausted={authExhausted}
+                                            connectionIsStale={connectionIsStale}
                                             onSelectRoom={handleSelectRoom}
                                             listTab={listTab}
                                             onListTabChange={setListTab}

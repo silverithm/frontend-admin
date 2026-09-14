@@ -10,7 +10,7 @@ import { createChatClient } from '@/lib/chatSocket';
 import { applyIncoming, isLocalOnly } from '@/lib/chatSend';
 import { useReliableChatSend } from '@/lib/useReliableChatSend';
 import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
-import { mergeMissedMessages, hasMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
+import { mergeMissedMessages, hasMissedMessages, readAscendingMessages, isConnectionStale } from '@/lib/chatReconnect';
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { useMessageMenuPosition } from '@/hooks/useMessageMenuPosition';
@@ -273,6 +273,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
      * 세대 번호는 붙을 때마다 반드시 달라지므로 매 연결마다 확실히 다시 구독한다. [[chatReconnect]]
      */
     const [connectionEpoch, setConnectionEpoch] = useState(0);
+    /** 인증이 연달아 거절돼 소켓이 재연결을 포기했다 — "연결 중..."이 아니라 재로그인 안내가 나가야 한다 */
+    const [authExhausted, setAuthExhausted] = useState(false);
+    /** 끊긴 시각 — 오래(30초+) 끊겨 있으면 새로고침을 안내한다. 붙어 있으면 null. */
+    const [disconnectedAt, setDisconnectedAt] = useState<number | null>(null);
+    const [connectionIsStale, setConnectionIsStale] = useState(false);
     const [showDrawer, setShowDrawer] = useState(false);
     const [participants, setParticipants] = useState<ChatParticipant[]>([]);
     const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
@@ -571,6 +576,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             onConnect: (client) => {
                 // 연결 상태는 isConnected로 화면에 이미 드러나므로 콘솔 로그는 남기지 않는다
                 setIsConnected(true);
+                setAuthExhausted(false);
+                setDisconnectedAt(null);
                 // 붙을 때마다 반드시 값이 달라져야 구독 effect가 다시 돈다 (재연결 포함)
                 setConnectionEpoch(n => n + 1);
 
@@ -593,6 +600,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             },
             onDisconnect: () => {
                 setIsConnected(false);
+                setDisconnectedAt((prev) => prev ?? Date.now());
+            },
+            onAuthExhausted: () => {
+                // 401이 계속돼 chatSocket.ts가 재연결을 완전히 멈췄다 — 세션이 끝난 것이다.
+                // 다음 REST 호출이 곧 로그아웃시키지만, 그 전에도 사용자가 이유를 알아야 한다.
+                setAuthExhausted(true);
             },
         });
 
@@ -608,6 +621,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             stompClientRef.current = null;
         };
     }, [userId, companyId, setPresence]);
+
+    // 끊긴 지 30초가 넘으면 "연결 중..."을 새로고침 안내로 바꾼다 — 짧은 끊김까지 소란 떨지 않는다
+    useEffect(() => {
+        if (disconnectedAt === null) {
+            setConnectionIsStale(false);
+            return;
+        }
+        const check = () => setConnectionIsStale(isConnectionStale(disconnectedAt, Date.now()));
+        check();
+        const timer = setInterval(check, 5_000);
+        return () => clearInterval(timer);
+    }, [disconnectedAt]);
 
     // 방 선택 시 메시지 로드 → 읽음 처리
     useEffect(() => {
@@ -1492,9 +1517,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     <HStack gap={2} vAlign="center">
                         <Text type="large" weight="semibold">채팅</Text>
                         <StatusDot
-                            variant={isConnected ? "success" : "neutral"}
-                            label={isConnected ? "실시간 연결됨" : "연결 중..."}
-                            tooltip={isConnected ? "실시간 연결됨" : "연결 중..."}
+                            variant={isConnected ? "success" : authExhausted ? "error" : "neutral"}
+                            label={isConnected ? "실시간 연결됨" : authExhausted ? "다시 로그인 필요" : "연결 중..."}
+                            tooltip={isConnected ? "실시간 연결됨" : authExhausted ? "다시 로그인 필요" : "연결 중..."}
                             isPulsing={isConnected}
                         />
                     </HStack>
@@ -1502,6 +1527,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                         <Button label="새 채팅방" variant="primary" size="sm" onClick={() => setShowCreateModal(true)} />
                     )}
                 </div>
+
+                {(authExhausted || connectionIsStale) && (
+                    <div style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
+                        <Banner
+                            status={authExhausted ? "error" : "warning"}
+                            title={authExhausted ? "로그인이 만료되었습니다" : "실시간 연결이 오래 끊겨 있습니다"}
+                            description={authExhausted ? "다시 로그인해 주세요." : "잠시 후에도 이어지지 않으면 새로고침해 주세요."}
+                        />
+                    </div>
+                )}
 
                 {/* 대화 / 직원 전환 */}
                 <div style={{ padding: 'var(--spacing-2) var(--spacing-3)', borderBottom: `1px solid ${C.border}` }}>

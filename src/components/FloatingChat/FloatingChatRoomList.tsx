@@ -24,6 +24,10 @@ interface FloatingChatRoomListProps {
     rooms: ChatRoom[];
     isLoadingRooms: boolean;
     isConnected: boolean;
+    /** 인증이 연달아 거절돼 재연결을 포기했다 — "연결 중..."이 아니라 재로그인 안내가 나가야 한다 */
+    authExhausted?: boolean;
+    /** 끊긴 지 30초가 넘었다 — 새로고침을 안내한다 */
+    connectionIsStale?: boolean;
     onSelectRoom: (roomId: number) => void;
 
     listTab: FloatingChatListTab;
@@ -47,6 +51,8 @@ export function FloatingChatRoomList({
     rooms,
     isLoadingRooms,
     isConnected,
+    authExhausted,
+    connectionIsStale,
     onSelectRoom,
     listTab,
     onListTabChange,
@@ -79,12 +85,22 @@ export function FloatingChatRoomList({
             >
                 <Text type="body" weight="semibold" color="inherit">채팅</Text>
                 <StatusDot
-                    variant={isConnected ? "success" : "neutral"}
-                    label={isConnected ? "실시간 연결됨" : "연결 중..."}
-                    tooltip={isConnected ? "실시간 연결됨" : "연결 중..."}
+                    variant={isConnected ? "success" : authExhausted ? "error" : "neutral"}
+                    label={isConnected ? "실시간 연결됨" : authExhausted ? "다시 로그인 필요" : "연결 중..."}
+                    tooltip={isConnected ? "실시간 연결됨" : authExhausted ? "다시 로그인 필요" : "연결 중..."}
                     isPulsing={isConnected}
                 />
             </div>
+
+            {(authExhausted || connectionIsStale) && (
+                <div style={{ padding: "var(--spacing-2) var(--spacing-3)", flexShrink: 0 }}>
+                    <Banner
+                        status={authExhausted ? "error" : "warning"}
+                        title={authExhausted ? "로그인이 만료되었습니다" : "실시간 연결이 오래 끊겨 있습니다"}
+                        description={authExhausted ? "다시 로그인해 주세요." : "잠시 후에도 이어지지 않으면 새로고침해 주세요."}
+                    />
+                </div>
+            )}
 
             {/* 대화 / 직원 전환 — 채팅 페이지와 같은 구성 */}
             <div

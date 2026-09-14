@@ -9,6 +9,7 @@ import {
     mergeMissedMessages,
     hasMissedMessages,
     readAscendingMessages,
+    isConnectionStale,
 } from './chatReconnect.ts';
 
 interface Msg { id: number; content?: string }
@@ -52,6 +53,21 @@ test('빈 목록끼리도 터지지 않는다', () => {
 
 test('더 큰 id가 새로 오면 놓친 것으로 본다', () => {
     assert.equal(hasMissedMessages([m(1), m(2)], [m(2), m(3)]), true);
+});
+
+test('끊긴 적 없으면(null) 오래 끊긴 것으로 보지 않는다', () => {
+    assert.equal(isConnectionStale(null, Date.now()), false);
+});
+
+test('끊긴 지 30초가 안 됐으면 조용히 재연결을 기다린다', () => {
+    const now = 100_000;
+    assert.equal(isConnectionStale(now - 29_000, now), false);
+});
+
+test('끊긴 지 30초가 지나면 새로고침 안내 대상이다', () => {
+    const now = 100_000;
+    assert.equal(isConnectionStale(now - 30_000, now), true);
+    assert.equal(isConnectionStale(now - 60_000, now), true);
 });
 
 test('응답 래퍼에서 배열을 꺼내 오래된 것부터로 뒤집는다', () => {
