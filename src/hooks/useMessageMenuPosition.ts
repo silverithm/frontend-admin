@@ -41,7 +41,8 @@ interface UseMessageMenuPositionOptions {
  * 우선순위:
  * 1. 말풍선 옆(내 메시지=왼쪽, 상대 메시지=오른쪽), 세로는 말풍선 윗선에 맞춘다.
  * 2. 옆에 자리가 없으면 반대쪽 옆을 시도한다.
- * 3. 그래도 없으면 말풍선 아래로 내린다 — 위로는 절대 올리지 않는다(그게 원래 버그였다).
+ * 3. 그래도 없으면 아래로, 아래가 모자라고 위가 통째로 들어가면 위로 — 대상 글은 덮지 않는다.
+ *    (원래 버그는 '항상 위'라 목록 맨 위 글에서 메뉴가 잘린 것이었다.)
  * 4. 어느 경우든 스크롤 컨테이너 경계 안으로 clamp한다.
  */
 export function useMessageMenuPosition({
@@ -92,8 +93,14 @@ export function useMessageMenuPosition({
                 : anchorRect.right + gap;
             viewportTop = anchorRect.top;
         } else {
-            // 옆에 자리가 없다 — 아래로 내린다 (위로는 절대 올리지 않는다)
-            viewportTop = anchorRect.bottom + gap;
+            // 옆에 자리가 없다(좁은 플로팅 채팅) — 아래가 들어가면 아래, 아니면 위가 통째로 들어갈 때만 위.
+            // 목록 맨 아래 글에서 아래만 고집하면 경계 안으로 밀려 올라와 대상 글을 덮었다.
+            // 예전 버그는 '항상 위'라 맨 위 글에서 잘린 것이므로, 온전히 들어갈 때의 위는 괜찮다.
+            const fitsBelow = anchorRect.bottom + gap + menuRect.height <= containerRect.bottom - edgePadding;
+            const fitsAbove = anchorRect.top - gap - menuRect.height >= containerRect.top + edgePadding;
+            viewportTop = fitsBelow || !fitsAbove
+                ? anchorRect.bottom + gap
+                : anchorRect.top - gap - menuRect.height;
             viewportLeft = isMyMessage
                 ? anchorRect.right - menuRect.width
                 : anchorRect.left;

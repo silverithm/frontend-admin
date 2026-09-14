@@ -2381,7 +2381,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     )}
 
                                                     {/* 롱프레스 메뉴 — 말풍선 옆(내 메시지=왼쪽, 상대=오른쪽)에 뜨고,
-                                                        자리가 없으면 아래로 내린다(위로는 절대 안 올린다). [[useMessageMenuPosition]] */}
+                                                        자리가 없으면 아래, 아래도 모자라면 통째로 들어갈 때만 위. 대상 글은 덮지 않는다. [[useMessageMenuPosition]] */}
                                                     {contextMenuMessageId === message.id && (
                                                         <div ref={contextMenuElRef} style={contextMenuStyle}>
                                                             <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: 'var(--shadow-high)', border: `1px solid ${C.border}`, overflow: "hidden" }}>
