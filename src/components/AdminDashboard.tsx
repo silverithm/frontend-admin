@@ -1174,6 +1174,9 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         )}
 
         {/* Top-Left: 공지사항 — 3개가 보이는 높이, 나머지는 스크롤 */}
+        {/* 요양 소식처럼 div로 한 번 감싼다. Card가 격자 칸에 바로 놓이면 height:100%가
+            auto 행에서 0으로 풀려, 한 줄 격자(1024px 미만)에서 카드가 선 한 줄로 접힌다 — [#62] */}
+        <div>
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
@@ -1261,8 +1264,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
           </VStack>
         </Card>
+        </div>
 
         {/* Top-Right: 전자결재 — 3개가 보이는 높이, 나머지는 스크롤 */}
+        <div>
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
@@ -1324,6 +1329,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
             </div>
           </VStack>
         </Card>
+        </div>
 
         {/* 요양 소식 — 데스크탑 와이드에선 3번째 열, 그 외엔 전체 폭 */}
         <div className="carev-dash-panel-news">
