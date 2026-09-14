@@ -1090,7 +1090,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: duration.mediumMin, delay: 0.15 }}
-        className="carev-dash-panels"
+        className={myTasks.length > 0 ? "carev-dash-panels carev-dash-panels--tasks" : "carev-dash-panels"}
         style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1, minHeight: 0 }}
       >
         {/* 내 할 일 — 담당자로 지정된 업무를 여기서 바로 완료 처리한다 */}

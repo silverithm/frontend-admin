@@ -167,6 +167,9 @@ html {
      밀려나면서 height:100%가 사실상 0으로 풀린다. 위 리셋보다 우선하도록(선택자 2개)
      바닥 높이를 되돌려 카드가 납작해지지 않게 한다. */
   .carev-dash-panels > .carev-dash-panel-static { min-height: 280px; }
+  /* 내 할 일이 맨 위 한 줄을 더 쓰면 요약 카드 줄이 fr 트랙으로 밀려 0으로 눌리고,
+     월간일정이 암묵 행으로 빠진다. 줄 수를 하나 늘려 월간일정이 계속 마지막 fr을 갖게 한다. */
+  .carev-dash-panels--tasks { grid-template-rows: repeat(3, auto) minmax(0, 1fr); }
 }
 @media (min-width: 1440px) {
   .carev-dash-panels {
@@ -174,6 +177,7 @@ html {
     grid-template-rows: auto minmax(0, 1fr);
   }
   .carev-dash-panel-news { grid-column: auto; }
+  .carev-dash-panels--tasks { grid-template-rows: auto auto minmax(0, 1fr); }
 }
 .carev-dash-clock { display: none; }
 @media (min-width: 640px) { .carev-dash-clock { display: block; } }
