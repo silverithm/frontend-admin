@@ -1173,10 +1173,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           </div>
         )}
 
-        {/* Top-Left: 공지사항 — 3개가 보이는 높이, 나머지는 스크롤.
-            내 할 일 패널이 격자 행을 하나 더 차지하면 이 카드가 auto 행으로 밀려나
-            height:100%가 0에 가깝게 풀리는 문제가 있어([#9]) minHeight로 바닥을 준다. */}
-        <Card padding={0} height="100%" minHeight={280} className="carev-dash-panel-static">
+        {/* Top-Left: 공지사항 — 3개가 보이는 높이, 나머지는 스크롤 */}
+        <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
               <HStack hAlign="between" vAlign="center">
@@ -1264,9 +1262,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
           </VStack>
         </Card>
 
-        {/* Top-Right: 전자결재 — 3개가 보이는 높이, 나머지는 스크롤.
-            [#9]와 같은 이유로 minHeight로 바닥을 준다. */}
-        <Card padding={0} height="100%" minHeight={280} className="carev-dash-panel-static">
+        {/* Top-Right: 전자결재 — 3개가 보이는 높이, 나머지는 스크롤 */}
+        <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
               <HStack hAlign="between" vAlign="center">
