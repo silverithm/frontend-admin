@@ -262,18 +262,31 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   }, [templates, categoryFilter, searchQuery]);
 
   /** 폼 빌더의 "기존 양식에서 불러오기"에 넘길 목록 — 온라인 폼(formSchema 보유)만 대상 */
+  // 서버는 formSchema를 JSON 문자열로 준다 — 형만 FormSchema로 속이면 고른 순간 fields가 없어
+  // 화면 전체가 죽었다(캡처로 확인). 양식 수정 화면과 같이 문자열이면 풀고, 풀 수 없거나 필드
+  // 배열이 없는 양식은 목록에서 뺀다.
   const existingFormTemplateOptions: ExistingFormTemplateOption[] = useMemo(
     () =>
       templates
         .filter((t) => (t.templateType === 'form' || t.templateType === 'hybrid') && !!t.formSchema)
-        .map((t) => ({
-          id: t.id,
-          name: t.name,
-          description: t.description,
-          category: t.category,
-          formSchema: t.formSchema as FormSchema,
-          isActive: t.isActive,
-        })),
+        .flatMap((t) => {
+          let schema: FormSchema | null = null;
+          try {
+            const raw = typeof t.formSchema === 'string' ? JSON.parse(t.formSchema) : t.formSchema;
+            if (raw && Array.isArray((raw as FormSchema).fields)) schema = raw as FormSchema;
+          } catch {
+            schema = null;
+          }
+          if (!schema) return [];
+          return [{
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            category: t.category,
+            formSchema: schema,
+            isActive: t.isActive,
+          }];
+        }),
     [templates],
   );
 
