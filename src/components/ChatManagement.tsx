@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
-import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, sendChatMessage, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
+import { createChatClient } from '@/lib/chatSocket';
+import { applyIncoming, isLocalOnly } from '@/lib/chatSend';
+import { useReliableChatSend } from '@/lib/useReliableChatSend';
 import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { mergeMissedMessages, hasMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
@@ -97,6 +99,10 @@ interface ChatMessage {
     editedAt?: string | null;
     readCount: number;
     reactions?: ReactionSummary[];
+    /** 보내는 쪽이 붙인 식별자 — 서버가 되돌려준다. '전송 중' 말풍선을 이 값으로 찾아 바꾼다 (chatSend.ts) */
+    clientMessageId?: string;
+    /** 서버에 아직 없는 말풍선의 상태. 서버에서 온 메시지에는 없다 */
+    sendingStatus?: "sending" | "failed";
     replyToId?: number;
     replyToSenderName?: string;
     replyToContent?: string;
@@ -153,7 +159,6 @@ interface ChatParticipant {
     lastReadMessageId?: number | null;
 }
 
-const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
 /**
  * 메시지 옆 '아직 안 읽은 사람 수'.
@@ -249,7 +254,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [messageInput, setMessageInput] = useState("");
     const [isLoadingRooms, setIsLoadingRooms] = useState(false);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-    const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newRoomName, setNewRoomName] = useState("");
     const [newRoomDescription, setNewRoomDescription] = useState("");
@@ -532,18 +536,39 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     }, [onNotification]);
 
+    const { send, ack, retry, discard } = useReliableChatSend<ChatMessage>({
+        label: "ChatManagement",
+        clientRef: stompClientRef,
+        isConnected,
+        userId,
+        userName,
+        setMessages,
+        makePending: (seed) => ({
+            id: seed.id,
+            chatRoomId: seed.roomId,
+            senderId: seed.senderId,
+            senderName: seed.senderName,
+            type: "TEXT",
+            content: seed.content,
+            createdAt: seed.createdAt,
+            isDeleted: false,
+            readCount: 1,
+            clientMessageId: seed.clientMessageId,
+            sendingStatus: "sending",
+            replyToId: seed.replyToId || undefined,
+        }),
+        onSent: () => fetchRooms(),
+        onFailed: () => onNotification("메시지 전송에 실패했습니다. 말풍선의 '다시 보내기'를 눌러주세요", "error"),
+    });
+
     // WebSocket 연결
     useEffect(() => {
         if (!userId) return;
 
-        const client = new Client({
-            webSocketFactory: () => new SockJS(`${BACKEND_WS_URL}/ws/chat`),
-            // 서버 WS 인터셉터가 CONNECT 프레임의 Authorization 헤더를 요구한다
-            connectHeaders: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` },
-            reconnectDelay: 5000,
-            heartbeatIncoming: 10000,
-            heartbeatOutgoing: 10000,
-            onConnect: () => {
+        // 토큰 재읽기·401 갱신·하트비트는 chatSocket.ts가 한다 — 네 화면이 같은 규칙으로 붙는다
+        const client = createChatClient({
+            label: "ChatManagement",
+            onConnect: (client) => {
                 // 연결 상태는 isConnected로 화면에 이미 드러나므로 콘솔 로그는 남기지 않는다
                 setIsConnected(true);
                 // 붙을 때마다 반드시 값이 달라져야 구독 effect가 다시 돈다 (재연결 포함)
@@ -568,14 +593,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             },
             onDisconnect: () => {
                 setIsConnected(false);
-            },
-            // 정상 종료가 아닌 끊김(와이파이 변경·절전·서버 재시작)은 onDisconnect가 아니라
-            // 여기로 온다. 이걸 안 받으면 소켓이 죽어도 '연결됨'으로 남는다. [[chatReconnect]]
-            onWebSocketClose: () => {
-                setIsConnected(false);
-            },
-            onStompError: (frame) => {
-                console.error("[Chat WebSocket] STOMP 오류:", frame.headers["message"]);
             },
         });
 
@@ -704,15 +721,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                         // 끝나지 않은 채 이 메시지가 먼저 도착했을 수 있다 — 그때는 옛 구간
                         // 위에 내 메시지만 덜렁 붙이는 대신, 최신 목록을 통째로 다시 받아
                         // (이미 서버에 저장돼 있으니 그 안에 포함돼 있다) 자연스럽게 잇는다.
+                        // 내가 보낸 것의 에코면 재전송 시계를 멈춘다
+                        if (isMine) ack(wsMessage.message.clientMessageId);
+
                         if (isMine && isJumpedToOlderRef.current) {
                             markAsRead(wsMessage.roomId, wsMessage.message.id);
                             fetchMessages(wsMessage.roomId);
                         } else {
-                            setMessages(prev => {
-                                // 중복 방지
-                                if (prev.some(m => m.id === wsMessage.message!.id)) return prev;
-                                return [...prev, wsMessage.message!];
-                            });
+                            // 내 '전송 중' 말풍선이면 그 자리를 바꾸고, 이미 있으면 그대로, 아니면 뒤에 붙인다
+                            setMessages(prev => applyIncoming(prev, wsMessage.message!));
 
                             // 내가 보낸 메시지는 항상 따라 내려간다. 남이 보낸 메시지는 내가 이미
                             // 맨 아래 근처를 보고 있을 때만 따라 내려가고, 아니면 배지로만 알린다
@@ -783,7 +800,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             subscription.unsubscribe();
             readSubscription.unsubscribe();
         };
-    }, [selectedRoom, connectionEpoch, fetchMessages, markAsRead, userId]);
+    }, [selectedRoom, connectionEpoch, fetchMessages, markAsRead, userId, ack]);
 
     const QUICK_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "✅"];
 
@@ -912,66 +929,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             await returnToLatestMessages();
         }
 
-        const replyToId = replyTo?.id || null;
-        const client = stompClientRef.current;
-
-        if (client && isConnected) {
-            setIsSendingMessage(true);
-            try {
-                client.publish({
-                    destination: `/app/chat/${selectedRoom}/send`,
-                    body: JSON.stringify({
-                        senderId: userId,
-                        senderName: userName,
-                        type: "TEXT",
-                        content: messageInput.trim(),
-                        replyToId,
-                    }),
-                });
-                setMessageInput("");
-                setReplyTo(null);
-            } catch (error) {
-                console.error("Error sending message via WebSocket:", error);
-                await sendMessageREST();
-            } finally {
-                setIsSendingMessage(false);
-            }
-        } else {
-            await sendMessageREST();
-        }
-    };
-
-    const sendMessageREST = async () => {
-        if (!messageInput.trim() || !selectedRoom || !userId || !userName) return;
-
-        const replyToId = replyTo?.id || null;
-        setIsSendingMessage(true);
-        try {
-            const response = await sendChatMessage(selectedRoom, {
-                senderId: userId,
-                senderName: userName,
-                type: "TEXT",
-                content: messageInput.trim(),
-                replyToId,
-            });
-
-            // 백엔드가 { success, message } wrapper로 반환하므로 unwrap
-            const newMessage = response.message || response;
-
-            setMessages(prev => {
-                if (prev.some(m => m.id === newMessage.id)) return prev;
-                return [...prev, newMessage];
-            });
-            setMessageInput("");
-            setReplyTo(null);
-            setTimeout(scrollToBottom, 100);
-            fetchRooms();
-        } catch (error) {
-            console.error("Error sending message:", error);
-            onNotification("메시지 전송에 실패했습니다. 다시 시도해주세요", "error");
-        } finally {
-            setIsSendingMessage(false);
-        }
+        // 보내는 즉시 '전송 중' 말풍선이 뜨고, 에코가 없으면 REST로 다시 보내며, 그래도 안 되면 '실패'로 남는다.
+        void send({ roomId: selectedRoom, content: messageInput, replyToId: replyTo?.id || null });
+        setMessageInput("");
+        setReplyTo(null);
+        setTimeout(scrollToBottom, 100);
     };
 
     /**
@@ -2185,7 +2147,21 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         ref={(el) => { if (message.id === contextMenuMessageId) contextMenuAnchorRef.current = el; }}
                                                         style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-2)', maxWidth: "100%" }}
                                                     >
-                                                        {isMyMessage && (
+                                                        {isMyMessage && isLocalOnly(message) ? (
+                                                            // 서버에 아직 없는 말풍선 — 옵션 메뉴 대신 전송 상태를 보여준다.
+                                                            // 실패는 아이콘만으로는 부족하다: 다시 타이핑하지 않고 그 자리에서 보낼 수 있어야 한다.
+                                                            message.sendingStatus === "failed" ? (
+                                                                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 'var(--spacing-0-5)' }}>
+                                                                    <Text type="supporting" color="secondary">전송 실패</Text>
+                                                                    <div style={{ display: "flex", gap: 'var(--spacing-1)' }}>
+                                                                        <Button label="다시 보내기" variant="secondary" size="sm" onClick={() => retry(message.clientMessageId!)} />
+                                                                        <Button label="삭제" variant="ghost" size="sm" onClick={() => discard(message.clientMessageId!)} />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <Text type="supporting" color="secondary">전송 중…</Text>
+                                                            )
+                                                        ) : isMyMessage && (
                                                             <>
                                                                 {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/공지 메뉴에 닿을 수 있어야 한다 */}
                                                                 {/* 평소엔 숨어 있다가 마우스를 올리거나 키보드 포커스가 오면 나타난다.
@@ -2216,6 +2192,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 minWidth: 0,
                                                                 maxWidth: "100%",
                                                                 padding: "var(--spacing-2) var(--spacing-3)",
+                                                                // 전송 중은 옅게 — 서버가 받은 것과 구분된다
+                                                                opacity: message.sendingStatus === "sending" ? 0.6 : 1,
                                                                 ...(isMyMessage
                                                                     // 저대비로 기각된 하드코딩 색 대신 테마 accent 토큰 사용 (AA 대비 확보)
                                                                     ? { background: C.accent, color: 'var(--color-on-accent)', borderRadius: 'var(--radius-container) var(--radius-inner) var(--radius-container) var(--radius-container)' }
@@ -2230,7 +2208,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             onTouchCancel={() => {
                                                                 if (longPressTimerRef2.current) { clearTimeout(longPressTimerRef2.current); longPressTimerRef2.current = null; }
                                                             }}
-                                                            onContextMenu={(e) => { e.preventDefault(); setContextMenuMessageId(message.id); }}
+                                                            onContextMenu={(e) => { e.preventDefault(); if (!isLocalOnly(message)) setContextMenuMessageId(message.id); }}
                                                         >
                                                             {/* 답글 원본 미리보기 — 누르면 그 원본으로 이동한다 (카톡과 같은 동작).
                                                                 인용문은 한 줄로 잘라 "..."을 붙이지 않는다. 무슨 말에 답한 건지
@@ -2601,7 +2579,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     variant="ghost"
                                     icon={<Icon icon={FiPaperclip} />}
                                     isLoading={isUploadingFile}
-                                    isDisabled={isUploadingFile || isSendingMessage}
+                                    isDisabled={isUploadingFile}
                                     onClick={() => fileInputRef.current?.click()}
                                 />
                                 {/*
@@ -2622,15 +2600,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 : replyTo ? `${replyTo.senderName}에게 답장... (Shift+Enter로 줄바꿈)`
                                                 : "메시지 입력 (Shift+Enter로 줄바꿈, 사진은 붙여넣기·끌어놓기로도 보낼 수 있어요)"
                                         }
-                                        isDisabled={isSendingMessage || isUploadingFile || isSavingEdit}
+                                        isDisabled={isUploadingFile || isSavingEdit}
                                     />
                                 </div>
                                 <Button
-                                    label={editingMessage ? (isSavingEdit ? "저장 중..." : "저장") : (isSendingMessage ? "전송 중..." : "전송")}
+                                    label={editingMessage ? (isSavingEdit ? "저장 중..." : "저장") : "전송"}
                                     variant="primary"
                                     onClick={sendMessage}
-                                    isDisabled={!messageInput.trim() || isSendingMessage || isUploadingFile || isSavingEdit}
-                                    isLoading={isSendingMessage || isSavingEdit}
+                                    isDisabled={!messageInput.trim() || isUploadingFile || isSavingEdit}
+                                    isLoading={isSavingEdit}
                                 />
                             </div>
                         </div>

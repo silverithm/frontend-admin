@@ -15,6 +15,7 @@ import { ChatImageLightbox, type ChatLightboxItem } from "@/components/chat/Chat
 import { ChatImage } from "@/components/chat/ChatImage";
 import { ChatVideoBubble } from "@/components/chat/ChatVideoBubble";
 import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
+import { isLocalOnly } from "@/lib/chatSend";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage, editChatMessage } from '@/lib/apiService';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
 import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
@@ -61,6 +62,10 @@ interface FloatingChatMessagesProps {
     onSendMessage: (replyToId?: number) => void;
     onToggleReaction?: (messageId: number, emoji: string) => void;
     onMessagesUpdate?: (messages: ChatMessage[]) => void;
+    /** 실패한 말풍선의 '다시 보내기' — 같은 식별자로 다시 보낸다(서버가 중복 저장하지 않는다) */
+    onRetryMessage?: (clientMessageId: string) => void;
+    /** 실패한 말풍선의 '보내지 않고 삭제' */
+    onDiscardMessage?: (clientMessageId: string) => void;
     /**
      * 위로 스크롤해 받아온 옛 메시지를 목록 앞에 붙여 달라는 요청.
      * 목록 상태는 부모(플로팅 채팅 / 도크)가 들고 있으므로 여기서 직접 못 붙인다.
@@ -98,6 +103,8 @@ export function FloatingChatMessages({
     onSendMessage,
     onToggleReaction,
     onMessagesUpdate,
+    onRetryMessage,
+    onDiscardMessage,
     onPrependOlder,
     headerAction,
 }: FloatingChatMessagesProps) {
@@ -902,7 +909,21 @@ export function FloatingChatMessages({
                                             ref={(el) => { if (message.id === longPressMenuMessageId) longPressMenuAnchorRef.current = el; }}
                                             style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)', maxWidth: "100%" }}
                                         >
-                                            {isMyMessage && (
+                                            {isMyMessage && isLocalOnly(message) ? (
+                                                // 서버에 아직 없는 말풍선 — 옵션 메뉴 대신 전송 상태를 보여준다.
+                                                // 실패는 아이콘만으로는 부족하다: 다시 타이핑하지 않고 그 자리에서 보낼 수 있어야 한다.
+                                                message.sendingStatus === "failed" ? (
+                                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 'var(--spacing-0-5)' }}>
+                                                        <Text type="supporting" color="secondary">전송 실패</Text>
+                                                        <div style={{ display: "flex", gap: 'var(--spacing-1)' }}>
+                                                            <Button label="다시 보내기" variant="secondary" size="sm" onClick={() => onRetryMessage?.(message.clientMessageId!)} />
+                                                            <Button label="삭제" variant="ghost" size="sm" onClick={() => onDiscardMessage?.(message.clientMessageId!)} />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <Text type="supporting" color="secondary">전송 중…</Text>
+                                                )
+                                            ) : isMyMessage && (
                                                 <>
                                                     {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/반응 메뉴에 닿을 수 있어야 한다 */}
                                                     <Button
@@ -932,6 +953,8 @@ export function FloatingChatMessages({
                                                     borderBottomLeftRadius: isMyMessage ? 12 : 2,
                                                     whiteSpace: "pre-wrap",
                                                     wordBreak: "break-word",
+                                                    // 전송 중은 옅게 — 서버가 받은 것과 구분된다
+                                                    opacity: message.sendingStatus === "sending" ? 0.6 : 1,
                                                     background: isMyMessage ? C.bubbleMine : C.bubbleOther,
                                                     // 남의 말풍선은 흰 배경 위에 muted 배경만으로는 경계가 안 보여 한 단계 진한 테두리를 준다
                                                     border: isMyMessage ? "1px solid transparent" : `1px solid ${C.borderStrong}`,

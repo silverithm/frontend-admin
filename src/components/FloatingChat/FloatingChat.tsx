@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Card } from "@astryxdesign/core/Card";
@@ -10,16 +9,18 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { ChatRoom, ChatMessage, WebSocketMessage } from "./floatingChatTypes";
 import { FloatingChatRoomList, FloatingChatListTab } from "./FloatingChatRoomList";
 import { FloatingChatMessages } from "./FloatingChatMessages";
-import { fetchChatRooms, fetchChatMessages, markChatAsRead, sendChatMessage } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, markChatAsRead } from '@/lib/apiService';
 import { CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { mergeMissedMessages, readAscendingMessages } from '@/lib/chatReconnect';
 import { DirectChatMember, openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
+import { createChatClient } from '@/lib/chatSocket';
+import { applyIncoming } from '@/lib/chatSend';
+import { useReliableChatSend } from '@/lib/useReliableChatSend';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { duration } from '@/theme/motion';
 
-const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
 type ChatView = "rooms" | "messages";
 
@@ -40,7 +41,6 @@ export function FloatingChat() {
     const [messageInput, setMessageInput] = useState("");
     const [isLoadingRooms, setIsLoadingRooms] = useState(false);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-    const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     /**
      * 연결 '세대' 번호 — 소켓이 붙을 때마다 1씩 오른다.
@@ -129,19 +129,39 @@ export function FloatingChat() {
         }
     }, [userId, userName]);
 
+    const { send, ack, retry, discard } = useReliableChatSend<ChatMessage>({
+        label: "FloatingChat",
+        clientRef: stompClientRef,
+        isConnected,
+        userId,
+        userName,
+        setMessages,
+        makePending: (seed) => ({
+            id: seed.id,
+            chatRoomId: seed.roomId,
+            senderId: seed.senderId,
+            senderName: seed.senderName,
+            type: "TEXT",
+            content: seed.content,
+            createdAt: seed.createdAt,
+            isDeleted: false,
+            readCount: 1,
+            clientMessageId: seed.clientMessageId,
+            sendingStatus: "sending",
+            replyToId: seed.replyToId || undefined,
+        }),
+        onSent: () => fetchRooms(),
+    });
+
     // --- WebSocket ---
 
     useEffect(() => {
         if (!authToken || !userId) return;
 
-        const client = new Client({
-            webSocketFactory: () => new SockJS(`${BACKEND_WS_URL}/ws/chat`),
-            // 서버 WS 인터셉터가 CONNECT 프레임의 Authorization 헤더를 요구한다
-            connectHeaders: { Authorization: `Bearer ${authToken}` },
-            reconnectDelay: 5000,
-            heartbeatIncoming: 10000,
-            heartbeatOutgoing: 10000,
-            onConnect: () => {
+        // 토큰 재읽기·401 갱신·하트비트는 chatSocket.ts가 한다 — 네 화면이 같은 규칙으로 붙는다
+        const client = createChatClient({
+            label: "FloatingChat",
+            onConnect: (client) => {
                 console.log("[FloatingChat WebSocket] 연결됨");
                 setIsConnected(true);
                 // 붙을 때마다 반드시 값이 달라져야 구독 effect가 다시 돈다 (재연결 포함)
@@ -165,16 +185,7 @@ export function FloatingChat() {
                 }
             },
             onDisconnect: () => {
-                console.log("[FloatingChat WebSocket] 연결 해제됨");
                 setIsConnected(false);
-            },
-            // 정상 종료가 아닌 끊김(와이파이 변경·절전·서버 재시작)은 onDisconnect가 아니라
-            // 여기로 온다. 이걸 안 받으면 소켓이 죽어도 '연결됨'으로 남는다. [[chatReconnect]]
-            onWebSocketClose: () => {
-                setIsConnected(false);
-            },
-            onStompError: (frame) => {
-                console.error("[FloatingChat WebSocket] STOMP 오류:", frame.headers["message"]);
             },
         });
 
@@ -295,11 +306,10 @@ export function FloatingChat() {
                     const isMine = String(msg.senderId) === String(userId);
                     const isViewing = isOpenRef.current && selectedRoomIdRef.current === roomId;
 
+                    // 내가 보낸 것의 에코면 재전송 시계를 멈춘다 (방을 나가 있어도)
+                    if (isMine) ack(msg.clientMessageId);
                     if (isViewing) {
-                        setMessages(prev => {
-                            if (prev.some(m => m.id === msg.id)) return prev;
-                            return [...prev, msg];
-                        });
+                        setMessages(prev => applyIncoming(prev, msg));
                         if (!isMine) markAsRead(roomId, msg.id);
                     }
 
@@ -349,7 +359,7 @@ export function FloatingChat() {
         return () => {
             subscriptions.forEach(s => s.unsubscribe());
         };
-    }, [connectionEpoch, roomIdsKey, userId, markAsRead]);
+    }, [connectionEpoch, roomIdsKey, userId, markAsRead, ack]);
 
     // 읽음 이벤트 구독 (보고 있는 방만)
     useEffect(() => {
@@ -388,63 +398,11 @@ export function FloatingChat() {
 
     // --- Send message ---
 
-    const sendMessage = async (replyToId?: number) => {
-        if (!messageInput.trim() || !selectedRoomId || !userId || !userName) return;
-
-        const client = stompClientRef.current;
-
-        if (client && isConnected) {
-            setIsSendingMessage(true);
-            try {
-                client.publish({
-                    destination: `/app/chat/${selectedRoomId}/send`,
-                    body: JSON.stringify({
-                        senderId: userId,
-                        senderName: userName,
-                        type: "TEXT",
-                        content: messageInput.trim(),
-                        replyToId: replyToId || null,
-                    }),
-                });
-                setMessageInput("");
-            } catch (error) {
-                console.error("[FloatingChat] Error sending message via WebSocket:", error);
-                await sendMessageREST(replyToId);
-            } finally {
-                setIsSendingMessage(false);
-            }
-        } else {
-            await sendMessageREST(replyToId);
-        }
-    };
-
-    const sendMessageREST = async (replyToId?: number) => {
-        if (!messageInput.trim() || !selectedRoomId || !userId || !userName) return;
-
-        setIsSendingMessage(true);
-        try {
-            const response = await sendChatMessage(selectedRoomId, {
-                senderId: userId,
-                senderName: userName,
-                type: "TEXT",
-                content: messageInput.trim(),
-                replyToId: replyToId || null,
-            });
-
-            // 백엔드가 { success, message } wrapper로 반환하므로 unwrap
-            const newMessage = response.message || response;
-
-            setMessages(prev => {
-                if (prev.some(m => m.id === newMessage.id)) return prev;
-                return [...prev, newMessage];
-            });
-            setMessageInput("");
-            fetchRooms();
-        } catch (error) {
-            console.error("[FloatingChat] Error sending message:", error);
-        } finally {
-            setIsSendingMessage(false);
-        }
+    // 보내는 즉시 '전송 중' 말풍선이 뜨고, 에코가 없으면 REST로 다시 보내며, 그래도 안 되면 '실패'로 남는다.
+    const sendMessage = (replyToId?: number) => {
+        if (!messageInput.trim() || !selectedRoomId) return;
+        void send({ roomId: selectedRoomId, content: messageInput, replyToId: replyToId || null });
+        setMessageInput("");
     };
 
     // --- Handlers ---
@@ -636,12 +594,14 @@ export function FloatingChat() {
                                             participantCount={selectedRoom?.participantCount || 0}
                                             messages={messages}
                                             isLoadingMessages={isLoadingMessages}
-                                            isSendingMessage={isSendingMessage}
+                                            isSendingMessage={false}
                                             userId={userId}
                                             messageInput={messageInput}
                                             onMessageInputChange={setMessageInput}
                                             onBack={handleBack}
                                             onSendMessage={sendMessage}
+                                            onRetryMessage={retry}
+                                            onDiscardMessage={discard}
                                             onMessagesUpdate={setMessages}
                                             onPrependOlder={(older) => setMessages(prev => prependUniqueMessages(prev, older))}
                                         />

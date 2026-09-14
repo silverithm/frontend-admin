@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Text } from "@astryxdesign/core/Text";
@@ -24,6 +23,7 @@ import { Loading } from "@/components/Loading";
 import { fetchChatRooms } from "@/lib/apiService";
 import { DirectChatMember, openOrCreateDirectRoom } from "@/lib/directChat";
 import { getMyChatUserId } from "@/lib/chatIdentity";
+import { createChatClient } from "@/lib/chatSocket";
 import { useOrgPresenceStore, sortMembersByPresence } from "@/lib/orgPresenceStore";
 import { useVisiblePolling } from "@/lib/useVisiblePolling";
 import { duration } from "@/theme/motion";
@@ -32,7 +32,6 @@ import { duration } from "@/theme/motion";
 const RAIL_BREAKPOINT = 1280;
 const RAIL_WIDTH = 264;
 
-const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
 /** 접힘 상태는 화면을 옮겨도 유지된다 — 매번 다시 접게 하면 상시 레일의 의미가 없다 */
 const STORAGE_KEY = "carev-chat-rail";
@@ -191,14 +190,10 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
     useEffect(() => {
         if (!authToken || !userId || !companyId) return;
 
-        const client = new Client({
-            webSocketFactory: () => new SockJS(`${BACKEND_WS_URL}/ws/chat`),
-            // 서버 WS 인터셉터가 CONNECT 프레임의 Authorization 헤더를 요구한다
-            connectHeaders: { Authorization: `Bearer ${authToken}` },
-            reconnectDelay: 5000,
-            heartbeatIncoming: 10000,
-            heartbeatOutgoing: 10000,
-            onConnect: () => {
+        // 토큰 재읽기·401 갱신·하트비트는 chatSocket.ts가 한다 — 네 화면이 같은 규칙으로 붙는다
+        const client = createChatClient({
+            label: "ChatRail",
+            onConnect: (client) => {
                 client.publish({
                     destination: "/app/presence/join",
                     body: JSON.stringify({ userId, companyId }),
@@ -211,9 +206,6 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                         console.error("[ChatRail] 접속 상태 수신 실패:", error);
                     }
                 });
-            },
-            onStompError: (frame) => {
-                console.error("[ChatRail] STOMP 오류:", frame.headers["message"]);
             },
         });
 
