@@ -15,8 +15,16 @@ import {
 
 export const BACKEND_WS_URL = process.env.NEXT_PUBLIC_API_URL || "https://silverithm.site";
 
-/** 앱·서버와 같은 10초. 죽은 소켓을 이 안에 알아챈다. */
+/** 서버가 보내는 하트비트 간격(서버 설정과 같은 10초). 죽은 소켓을 이 안에 알아챈다. */
 const HEARTBEAT_MS = 10_000;
+/**
+ * 우리가 서버로 보내는 하트비트 간격. 서버는 이 간격의 3배 동안 아무것도 못 받으면 소켓을 끊는다.
+ * 10초로 두면 브라우저가 5분 넘게 가려진 탭의 타이머를 1분에 한 번으로 묶어 버려(Chrome 집중 제한)
+ * 하트비트를 못 보내고, 서버가 30초 만에 끊고, 5초 뒤 다시 붙는 일이 1분마다 반복됐다
+ * (2026-09-15, 사무실 PC 한 대가 시간당 100번 넘게 재접속). 60초면 1분에 한 번 깨어나도 맞출 수 있고
+ * 서버는 3분 안에 죽은 탭을 알아챈다. 서버가 죽었는지는 위 HEARTBEAT_MS로 우리가 따로 본다.
+ */
+const HEARTBEAT_OUTGOING_MS = 60_000;
 
 export interface ChatSocketOptions {
     /** 로그에 붙는 이름 — 어느 화면의 연결인지 */
@@ -55,7 +63,7 @@ export function createChatClient({ label, onConnect, onDisconnect, onAuthExhaust
         reconnectTimeMode: ReconnectionTimeMode.EXPONENTIAL,
         maxReconnectDelay: MAX_RECONNECT_DELAY_MS,
         heartbeatIncoming: HEARTBEAT_MS,
-        heartbeatOutgoing: HEARTBEAT_MS,
+        heartbeatOutgoing: HEARTBEAT_OUTGOING_MS,
         beforeConnect: async () => {
             // 401을 실제로 받은 적이 있으면 당연히 갱신한다. 그게 아니어도(서버 재시작 등으로
             // 끊긴 경우) 토큰이 이미 만료돼 있을 수 있다 — 그때까지 기다리면 옛 토큰으로
