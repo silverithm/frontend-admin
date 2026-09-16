@@ -25,6 +25,7 @@ import type { ElderlyInfo } from "@/types/elderly";
 import { useConfirm } from "./ConfirmDialog";
 import type { Route, RouteDriver, Senior, RouteType } from "@/types/dispatch";
 import { driverRoleLabel, findPrimaryDriverConflict } from "@/lib/vacationGuard";
+import { getUnassignedElders } from "@/lib/dispatchUnassigned";
 
 // 직원 정보 타입
 interface Member {
@@ -53,6 +54,7 @@ export default function DispatchSettings({
     addSenior,
     updateSenior,
     deleteSenior,
+    setSettings,
   } = useDispatchStore();
   const { confirm, ConfirmContainer } = useConfirm();
 
@@ -208,6 +210,88 @@ export default function DispatchSettings({
     }
     onNotification("노선이 삭제되었습니다.", "success");
   };
+
+  /**
+   * 등원 노선을 하원으로(또는 그 반대로) 복사한다.
+   *
+   * 숲속재활처럼 등원 13개를 다 만들어 놓고 하원을 하나도 못 만든 경우가 실제로
+   * 있었다 — 등원과 똑같은 이름·운전자·어르신 명단을 하원에도 그대로 쓰는 게
+   * 보통이라, 매번 처음부터 다시 만들게 하는 대신 한 번에 복사한다.
+   * 이미 같은 이름의 노선이 반대쪽에 있으면 건드리지 않는다(중복 방지).
+   */
+  const copyRoutesToOtherDirection = (sourceType: RouteType) => {
+    const targetType: RouteType = sourceType === "등원" ? "하원" : "등원";
+    const existingTargetNames = new Set(
+      settings.routes.filter((r) => r.type === targetType).map((r) => r.name)
+    );
+    const sourceRoutes = settings.routes.filter(
+      (r) => r.type === sourceType && !existingTargetNames.has(r.name)
+    );
+
+    if (sourceRoutes.length === 0) {
+      onNotification(`복사할 ${sourceType} 노선이 없습니다. (이미 같은 이름의 ${targetType} 노선이 있거나 ${sourceType} 노선이 없습니다)`, "info");
+      return;
+    }
+
+    const newRoutes: Route[] = [];
+    const newSeniors: Senior[] = [];
+
+    sourceRoutes.forEach((route) => {
+      const newRouteId = generateId();
+      newRoutes.push({
+        ...route,
+        id: newRouteId,
+        type: targetType,
+        routeDrivers: route.routeDrivers.map((d) => ({ ...d })),
+      });
+
+      settings.seniors
+        .filter((s) => s.routeId === route.id)
+        .forEach((s) => {
+          newSeniors.push({
+            ...s,
+            id: generateId(),
+            routeId: newRouteId,
+          });
+        });
+    });
+
+    setSettings({
+      ...settings,
+      routes: [...settings.routes, ...newRoutes],
+      seniors: [...settings.seniors, ...newSeniors],
+    });
+
+    onNotification(`${targetType} 노선 ${newRoutes.length}개, 어르신 ${newSeniors.length}명 복사`, "success");
+  };
+
+  const handleCopyRoutesToOtherDirection = async (sourceType: RouteType) => {
+    const targetType: RouteType = sourceType === "등원" ? "하원" : "등원";
+    const confirmed = await confirm({
+      title: `${sourceType} 노선을 ${targetType}으로 복사`,
+      message: `${sourceType} 노선의 이름·운전자·어르신 명단을 그대로 ${targetType} 노선으로 복사합니다.\n이미 같은 이름의 ${targetType} 노선이 있으면 건너뜁니다.\n계속할까요?`,
+      confirmText: "복사",
+      cancelText: "취소",
+      type: "info",
+    });
+    if (!confirmed) return;
+    copyRoutesToOtherDirection(sourceType);
+  };
+
+  // 복사 버튼 노출 조건: 한쪽 방향에만 노선이 있거나, 한쪽이 더 적을 때
+  const routeCountByType = useMemo(() => {
+    const counts: Record<RouteType, number> = { 등원: 0, 하원: 0 };
+    settings.routes.forEach((r) => { counts[r.type] += 1; });
+    return counts;
+  }, [settings.routes]);
+  const showCopyToDropoff = routeCountByType.등원 > 0 && routeCountByType.하원 < routeCountByType.등원;
+  const showCopyToPickup = routeCountByType.하원 > 0 && routeCountByType.등원 < routeCountByType.하원;
+
+  // 회원관리엔 있는데 어느 노선에도 없는 어르신 (방향별)
+  const unassignedByType = useMemo(() => ({
+    등원: getUnassignedElders("등원", settings, companySeniors),
+    하원: getUnassignedElders("하원", settings, companySeniors),
+  }), [settings, companySeniors]);
 
   // 운전자 추가 (새 노선용)
   const addNewRouteDriver = () => {
@@ -451,17 +535,54 @@ export default function DispatchSettings({
             <LayoutPanel hasDivider width={320}>
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 <div style={{ padding: 'var(--spacing-4)' }}>
-                  <Button
-                    label="새 노선 추가"
-                    variant="primary"
-                    icon={<Icon icon={FiPlus} size="sm" />}
-                    onClick={() => {
-                      setIsAddingRoute(true);
-                      setSelectedRouteId(null);
-                    }}
-                  />
+                  <VStack gap={2}>
+                    <Button
+                      label="새 노선 추가"
+                      variant="primary"
+                      icon={<Icon icon={FiPlus} size="sm" />}
+                      onClick={() => {
+                        setIsAddingRoute(true);
+                        setSelectedRouteId(null);
+                      }}
+                    />
+                    {showCopyToDropoff && (
+                      <Button
+                        label="등원 노선을 하원으로 복사"
+                        variant="secondary"
+                        icon={<Icon icon={FiClipboard} size="sm" />}
+                        onClick={() => handleCopyRoutesToOtherDirection("등원")}
+                      />
+                    )}
+                    {showCopyToPickup && (
+                      <Button
+                        label="하원 노선을 등원으로 복사"
+                        variant="secondary"
+                        icon={<Icon icon={FiClipboard} size="sm" />}
+                        onClick={() => handleCopyRoutesToOtherDirection("하원")}
+                      />
+                    )}
+                  </VStack>
                 </div>
                 <Divider />
+                {(unassignedByType.등원.length > 0 || unassignedByType.하원.length > 0) && (
+                  <>
+                    <div style={{ padding: 'var(--spacing-4)', paddingBottom: 0 }}>
+                      <VStack gap={2}>
+                        {unassignedByType.등원.length > 0 && (
+                          <Text type="supporting" color="secondary">
+                            등원 미배정 어르신 {unassignedByType.등원.length}명: {unassignedByType.등원.map((e) => e.name).join(", ")}
+                          </Text>
+                        )}
+                        {unassignedByType.하원.length > 0 && (
+                          <Text type="supporting" color="secondary">
+                            하원 미배정 어르신 {unassignedByType.하원.length}명: {unassignedByType.하원.map((e) => e.name).join(", ")}
+                          </Text>
+                        )}
+                      </VStack>
+                    </div>
+                    <Divider />
+                  </>
+                )}
 
                 <div style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-2)' }}>
                   {settings.routes.length === 0 ? (
