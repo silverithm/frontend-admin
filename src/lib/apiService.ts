@@ -2028,11 +2028,59 @@ export async function getUserInfo() {
     return fetchWithAuth('/api/v1/users/info');
 }
 
+// 첨부·자료실 업로드 용량 한도. 채팅(20MB)과는 별도 — 서버도 같은 값으로 검증한다.
+export const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
+export const MAX_UPLOAD_SIZE_MESSAGE = '파일은 최대 50MB까지 올릴 수 있습니다';
+
+// Vercel 서버리스 프록시(Next API route)는 요청 본문이 ~4.5MB로 제한된다.
+// 자료실 첨부처럼 큰 파일은 브라우저에서 백엔드로 직접 올려 프록시를 우회한다.
+// 인증은 fetchWithAuth와 같은 401 갱신 규칙을 따르고, 413(용량 초과)은 공용 안내 문구로 통일한다.
+export async function uploadFormDataDirect(path: string, formData: FormData): Promise<any> {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
+    const url = `${backendUrl}${path}`;
+
+    const send = async (token: string | null) => {
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        return fetch(url, { method: 'POST', headers, body: formData });
+    };
+
+    let token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    let response = await send(token);
+
+    if (response.status === 401) {
+        try {
+            token = await refreshAccessTokenOnce();
+        } catch (refreshError) {
+            if (!isTransientError(refreshError)) {
+                handleLogout();
+            }
+            throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+        response = await send(token);
+    }
+
+    if (response.status === 413) {
+        throw new Error(MAX_UPLOAD_SIZE_MESSAGE);
+    }
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || '파일 업로드 실패');
+    }
+
+    return response.json();
+}
+
 // 공용 파일 업로드 헬퍼 (컴포넌트별 중복 제거용)
 export async function uploadFileToServer(
     file: File | Blob,
     options: { category?: string; fileName?: string } = {}
 ): Promise<{ filePath: string; fileName: string; fileSize: number }> {
+    if (file.size > MAX_UPLOAD_SIZE) {
+        throw new Error(MAX_UPLOAD_SIZE_MESSAGE);
+    }
+
     const formData = new FormData();
     if (options.fileName) {
         formData.append('file', file, options.fileName);
@@ -2040,19 +2088,8 @@ export async function uploadFileToServer(
         formData.append('file', file);
     }
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    const response = await fetch(`/api/v1/files/upload?category=${options.category ?? 'attachments'}`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || '파일 업로드 실패');
-    }
-
-    const result = await response.json();
+    const category = options.category ?? 'attachments';
+    const result = await uploadFormDataDirect(`/api/v1/files/upload?category=${category}`, formData);
     return {
         filePath: result.filePath,
         fileName: result.fileName,

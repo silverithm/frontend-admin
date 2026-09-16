@@ -25,6 +25,7 @@ import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { duration } from '@/theme/motion';
 import { LIBRARY_META, REPORT_REASONS, formatFileSize, getLibraryMeta, isLoggedIn, isDemoMode, type LibraryCategory } from './plazaStore';
+import { MAX_UPLOAD_SIZE, MAX_UPLOAD_SIZE_MESSAGE } from '@/lib/apiService';
 import {
   type ApiLibraryItem,
   deleteLibraryItem,
@@ -160,6 +161,10 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       showAlert({ type: 'warning', title: '파일 필요', message: '업로드할 파일을 선택해주세요.' });
       return;
     }
+    if (!editingItem && formFile && formFile.size > MAX_UPLOAD_SIZE) {
+      showAlert({ type: 'warning', title: '용량 초과', message: MAX_UPLOAD_SIZE_MESSAGE });
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (editingItem) {
@@ -264,6 +269,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
                   {formFile && (
                     <Text type="supporting" color="secondary">{formFile.name} · {formatFileSize(formFile.size)}</Text>
                   )}
+                  <Text type="supporting" color="secondary">파일은 최대 50MB까지 올릴 수 있습니다</Text>
                   <input
                     ref={fileInputRef}
                     type="file"

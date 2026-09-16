@@ -7,7 +7,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Badge } from "@astryxdesign/core/Badge";
 import { FileInput } from "@astryxdesign/core/FileInput";
 import { TextArea } from "@astryxdesign/core/TextArea";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { Selector } from "@astryxdesign/core/Selector";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -15,7 +15,23 @@ import PageHeader from "@/components/PageHeader";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconSparkles, IconCopy, IconRefresh } from "@tabler/icons-react";
 
-type Channel = "band" | "blog";
+type Channel = "band" | "blog" | "guardian" | "notice" | "instagram";
+
+const CHANNEL_OPTIONS: { value: Channel; label: string }[] = [
+  { value: "band", label: "밴드 글" },
+  { value: "blog", label: "블로그 글" },
+  { value: "guardian", label: "보호자 안내문" },
+  { value: "notice", label: "기관 공지문" },
+  { value: "instagram", label: "인스타그램 글" },
+];
+
+const CHANNEL_BADGE_LABEL: Record<Channel, string> = {
+  band: "밴드용",
+  blog: "블로그용",
+  guardian: "보호자 안내문",
+  notice: "기관 공지문",
+  instagram: "인스타그램용",
+};
 
 interface AiPostResult {
   title: string;
@@ -190,10 +206,12 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
               </HStack>
             )}
 
-            <SegmentedControl label="어디에 올릴 글인가요?" value={channel} onChange={(value) => setChannel(value as Channel)}>
-              <SegmentedControlItem value="band" label="밴드 글" />
-              <SegmentedControlItem value="blog" label="블로그 글" />
-            </SegmentedControl>
+            <Selector
+              label="어디에 올릴 글인가요?"
+              value={channel}
+              onChange={(value) => setChannel((value as Channel) || "band")}
+              options={CHANNEL_OPTIONS}
+            />
 
             <TextArea
               label="상황 설명 (선택)"
@@ -234,7 +252,7 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
             <VStack gap={4}>
               <HStack gap={2} vAlign="center" hAlign="between">
                 <Heading level={3}>{result.title || "완성된 글"}</Heading>
-                <Badge variant="teal" label={channel === "band" ? "밴드용" : "블로그용"} />
+                <Badge variant="teal" label={CHANNEL_BADGE_LABEL[channel]} />
               </HStack>
 
               <div style={{ whiteSpace: "pre-wrap" }}>

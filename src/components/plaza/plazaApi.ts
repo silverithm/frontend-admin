@@ -2,6 +2,7 @@
 // 읽기는 비로그인 허용(토큰 없이 호출), 쓰기는 토큰 필수 — 서버가 익명 마스킹·권한을 처리한다.
 
 import type { BoardType, LibraryCategory, PostCategory } from './plazaStore';
+import { uploadFormDataDirect, MAX_UPLOAD_SIZE, MAX_UPLOAD_SIZE_MESSAGE } from '@/lib/apiService';
 
 export interface ApiPostSummary {
   id: number;
@@ -259,6 +260,9 @@ export async function uploadLibraryItem(input: {
   description: string;
   file: File;
 }): Promise<{ id: number }> {
+  if (input.file.size > MAX_UPLOAD_SIZE) {
+    throw new Error(MAX_UPLOAD_SIZE_MESSAGE);
+  }
   const form = new FormData();
   form.set('file', input.file);
   form.set('category', input.category);
@@ -267,7 +271,8 @@ export async function uploadLibraryItem(input: {
   const info = authorInfo();
   form.set('uploaderName', info.authorName);
   if (info.companyName) form.set('companyName', info.companyName);
-  return request('library', { method: 'POST', body: form });
+  // Vercel 프록시(~4.5MB 제한)를 우회해 백엔드로 직접 올린다 — 나머지 자료실 API는 프록시를 그대로 쓴다.
+  return uploadFormDataDirect('/api/v1/plaza/library', form);
 }
 
 /** 파일을 받아 브라우저 다운로드를 트리거한다 */

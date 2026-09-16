@@ -26,6 +26,8 @@ import { DateInput } from '@astryxdesign/core/DateInput';
 import { TimeInput } from '@astryxdesign/core/TimeInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Popover } from '@astryxdesign/core/Popover';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
@@ -289,7 +291,40 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
-  const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  // 일정 필터: 빈 배열이면 전체 표시. 'myTasks' | 'label:<id>' | 'noLabel' 값을 담는다.
+  // 기관별로 localStorage에 저장해 새로고침·재방문 시에도 유지한다.
+  const [scheduleFilterValues, setScheduleFilterValues] = useState<string[]>([]);
+  const [isScheduleFilterOpen, setIsScheduleFilterOpen] = useState(false);
+  const scheduleFilterStorageKey = () => {
+    if (typeof window === 'undefined') return null;
+    const companyId = localStorage.getItem('companyId');
+    return companyId ? `carev.scheduleFilter.${companyId}` : null;
+  };
+  useEffect(() => {
+    const key = scheduleFilterStorageKey();
+    if (!key) return;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setScheduleFilterValues(parsed);
+      }
+    } catch {
+      // 저장값이 깨져 있으면 무시하고 전체 보기로 시작한다
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const updateScheduleFilterValues = (values: string[]) => {
+    setScheduleFilterValues(values);
+    const key = scheduleFilterStorageKey();
+    if (key) {
+      try {
+        localStorage.setItem(key, JSON.stringify(values));
+      } catch {
+        // 저장 실패는 무시 — 필터는 이번 세션에서만 유지된다
+      }
+    }
+  };
   // 칸이 낮아 +N으로 접히는 일정·휴무자를 한 번에 모두 펼쳐 보는 토글
   const [isExpanded, setIsExpanded] = useState(false);
   // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (대시보드 달력과 선택을 공유한다)
@@ -548,11 +583,20 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     );
   };
 
-  // '내 업무만' 필터가 켜져 있으면 나와 관련된 일정만 남긴다
+  // 일정 필터 — 선택된 옵션 중 하나라도 맞으면 보여준다. 아무것도 선택 안 했으면 전체 표시.
+  const scheduleMatchesFilter = (schedule: Schedule) => {
+    if (scheduleFilterValues.length === 0) return true;
+    return scheduleFilterValues.some((v) => {
+      if (v === 'myTasks') return isMySchedule(schedule);
+      if (v === 'noLabel') return !schedule.label;
+      if (v.startsWith('label:')) return String(schedule.label?.id ?? '') === v.slice('label:'.length);
+      return false;
+    });
+  };
   const visibleSchedules = useMemo(
-    () => (showMyTasksOnly ? schedules.filter(isMySchedule) : schedules),
+    () => (scheduleFilterValues.length === 0 ? schedules : schedules.filter(scheduleMatchesFilter)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [schedules, showMyTasksOnly, currentMemberId, currentUserEmail]
+    [schedules, scheduleFilterValues, currentMemberId, currentUserEmail]
   );
 
   // 날짜에 해당하는 일정 가져오기
@@ -1513,13 +1557,33 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       icon={<Icon icon={IconPlus} size="sm" />}
                       onClick={() => openCreateModal()}
                     />
-                    <Button
-                      label={showMyTasksOnly ? '전체 일정' : '담당 업무'}
-                      variant={showMyTasksOnly ? 'primary' : 'ghost'}
-                      size="sm"
-                      icon={<Icon icon={IconUserCheck} size="sm" />}
-                      onClick={() => setShowMyTasksOnly((v) => !v)}
-                    />
+                    <Popover
+                      isOpen={isScheduleFilterOpen}
+                      onOpenChange={setIsScheduleFilterOpen}
+                      label="일정 필터"
+                      placement="below"
+                      alignment="start"
+                      content={
+                        <CheckboxList
+                          label="일정 필터"
+                          value={scheduleFilterValues}
+                          onChange={updateScheduleFilterValues}
+                        >
+                          <CheckboxListItem label="담당 업무" value="myTasks" />
+                          {customCategories.map((label) => (
+                            <CheckboxListItem key={label.id} label={label.name} value={`label:${label.id}`} />
+                          ))}
+                          <CheckboxListItem label="구분 없음" value="noLabel" />
+                        </CheckboxList>
+                      }
+                    >
+                      <Button
+                        label={scheduleFilterValues.length > 0 ? `일정 필터 (${scheduleFilterValues.length})` : '일정 필터'}
+                        variant={scheduleFilterValues.length > 0 ? 'primary' : 'ghost'}
+                        size="sm"
+                        icon={<Icon icon={IconUserCheck} size="sm" />}
+                      />
+                    </Popover>
                     {/* 칸에 안 들어가 +N으로 접힌 일정·휴무자를 한 번에 펼친다 */}
                     <Button
                       label={isExpanded ? '접기' : '펼치기'}

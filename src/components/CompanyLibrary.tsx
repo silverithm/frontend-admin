@@ -28,6 +28,8 @@ import {
   createCompanyLibraryItem,
   deleteCompanyLibraryItem,
   uploadFileToServer,
+  MAX_UPLOAD_SIZE,
+  MAX_UPLOAD_SIZE_MESSAGE,
 } from '@/lib/apiService';
 
 interface CompanyLibraryProps {
@@ -149,6 +151,10 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
       onNotification('제목과 파일을 모두 입력해주세요', 'error');
       return;
     }
+    if (file.size > MAX_UPLOAD_SIZE) {
+      onNotification(MAX_UPLOAD_SIZE_MESSAGE, 'error');
+      return;
+    }
     setIsSaving(true);
     try {
       const uploaded = await uploadFileToServer(file, { category: 'attachments' });
@@ -170,7 +176,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
       loadItems();
     } catch (error) {
       console.error('자료 등록 실패:', error);
-      onNotification('자료 등록에 실패했습니다', 'error');
+      onNotification(error instanceof Error ? error.message : '자료 등록에 실패했습니다', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -417,7 +423,8 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                   value={file}
                   onChange={(files) => setFile(Array.isArray(files) ? files[0] ?? null : files)}
                   accept=".hwp,.hwpx,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,image/*"
-                  description="한글·워드·엑셀·PDF·이미지"
+                  maxSize={MAX_UPLOAD_SIZE}
+                  description="한글·워드·엑셀·PDF·이미지 · 파일은 최대 50MB까지 올릴 수 있습니다"
                 />
               </VStack>
             </LayoutContent>
