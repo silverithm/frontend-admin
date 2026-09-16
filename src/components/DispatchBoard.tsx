@@ -97,6 +97,12 @@ interface DispatchBoardProps {
   onOverridesChange?: (next: DispatchAssignmentOverride[]) => void;
   /** 회원관리에 등록된 어르신 전체 — 미배정 인원을 계산하는 데 쓴다 (없으면 미배정 배지는 생략) */
   companyElders?: ElderlyInfo[];
+  /**
+   * 등원/하원 선택을 바깥(배차 화면)이 들고 있을 때 넘긴다.
+   * 옆에 붙는 출결 패널이 같은 방향을 봐야 하기 때문이다.
+   */
+  routeType?: RouteType;
+  onRouteTypeChange?: (routeType: RouteType) => void;
 }
 
 export default function DispatchBoard({
@@ -109,10 +115,17 @@ export default function DispatchBoard({
   overrides,
   onOverridesChange,
   companyElders,
+  routeType: externalRouteType,
+  onRouteTypeChange,
 }: DispatchBoardProps) {
   const [internalDate, setInternalDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const date = externalDate ?? internalDate;
-  const [routeType, setRouteType] = useState<RouteType>("등원");
+  const [internalRouteType, setInternalRouteType] = useState<RouteType>("등원");
+  const routeType = externalRouteType ?? internalRouteType;
+  const handleRouteTypeChange = (value: RouteType) => {
+    if (externalRouteType === undefined) setInternalRouteType(value);
+    onRouteTypeChange?.(value);
+  };
   const [isCapturing, setIsCapturing] = useState(false);
   // 평소에는 드래그가 안 되게 잠가 둔다 — 명단을 보다가 손이 미끄러져 바뀌면 알아채기 어렵다
   const [isEditing, setIsEditing] = useState(false);
@@ -288,7 +301,7 @@ export default function DispatchBoard({
             <SegmentedControl
               label="등하원"
               value={routeType}
-              onChange={(value) => setRouteType(value as RouteType)}
+              onChange={(value) => handleRouteTypeChange(value as RouteType)}
             >
               <SegmentedControlItem value="등원" label="등원" />
               <SegmentedControlItem value="하원" label="하원" />

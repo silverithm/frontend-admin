@@ -28,8 +28,8 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
-import { IconList, IconUsers, IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getScheduleManagerCandidates, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting, getDispatchOverrides, saveDispatchOverrides } from '@/lib/apiService';
+import { IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getScheduleManagerCandidates, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting, getDispatchOverrides, saveDispatchOverrides, getCompanyElders } from '@/lib/apiService';
 import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
@@ -50,14 +50,13 @@ import { getRoleDisplayName, getMemberRoleName } from '@/lib/roleUtils';
 import { useDispatchStore } from '@/lib/dispatchStore';
 import { useElderAttendanceStore, migrateLegacyAbsences } from '@/lib/elderAttendanceStore';
 import { loadDispatchSettings, startDispatchAutoSave } from '@/lib/dispatchSync';
-import type { DailyDispatch, DispatchAssignmentOverride, DispatchDaySummary } from '@/types/dispatch';
+import type { DispatchAssignmentOverride, DispatchDaySummary, RouteType } from '@/types/dispatch';
 import type { VacationRequest } from '@/types/vacation';
-import { getDailyDispatch, getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
-import DispatchDayDetail from './DispatchDayDetail';
+import type { ElderlyInfo } from '@/types/elderly';
+import { getMonthlyDispatchSummary } from '@/lib/dispatchAlgorithm';
 import DispatchSettings from './DispatchSettings';
-import DispatchListView from './DispatchListView';
-import ElderAttendanceManagement from './ElderAttendanceManagement';
 import DispatchBoard from './DispatchBoard';
+import DispatchAttendancePanel from './DispatchAttendancePanel';
 import { duration } from '@/theme/motion';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -220,12 +219,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
    * 며칠 뒤 아무도 이유를 모르는 배차가 된다.
    */
   const [dispatchOverrides, setDispatchOverrides] = useState<DispatchAssignmentOverride[]>([]);
-  const [showDispatchDayDetail, setShowDispatchDayDetail] = useState(false);
   const [showDispatchSettings, setShowDispatchSettings] = useState(false);
-  const [dispatchSelectedDate, setDispatchSelectedDate] = useState<Date | null>(null);
-  const [dispatchSubTab, setDispatchSubTab] = useState<'board' | 'calendar' | 'list' | 'attendance'>('board');
-  // 배차표와 출결관리가 같은 날짜를 본다. 각자 들고 있으면 탭을 옮길 때마다 다시 골라야 한다.
+  const [dispatchSubTab, setDispatchSubTab] = useState<'board' | 'calendar'>('board');
+  // 배차표와 출결 패널이 같은 날짜·방향을 본다. 각자 들고 있으면 탭을 옮길 때마다 다시 골라야 한다.
   const [dispatchBoardDate, setDispatchBoardDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [dispatchBoardRouteType, setDispatchBoardRouteType] = useState<RouteType>('등원');
+  const [dispatchCompanyElders, setDispatchCompanyElders] = useState<ElderlyInfo[]>([]);
 
   const isDispatchMode = mode === 'dispatch';
 
@@ -397,6 +396,19 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     }
   }, []);
 
+  // 회원관리 어르신 전체 — 배차표 헤더의 미배정 인원 계산용
+  const fetchDispatchCompanyElders = useCallback(async () => {
+    try {
+      const response = await getCompanyElders();
+      const list: ElderlyInfo[] = Array.isArray(response)
+        ? response
+        : (response?.elders || response?.content || response?.data || []);
+      setDispatchCompanyElders(list);
+    } catch (error) {
+      console.error('어르신 목록 로드 실패:', error);
+    }
+  }, []);
+
   /** 보고 있는 날의 수정본을 받아온다 (없으면 빈 배열 = 설정대로) */
   const fetchDispatchOverrides = useCallback(async (date: string) => {
     try {
@@ -450,9 +462,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   useEffect(() => {
     if (isDispatchMode) {
       fetchDispatchVacations();
+      fetchDispatchCompanyElders();
       setIsLoading(false);
     }
-  }, [isDispatchMode, fetchDispatchVacations]);
+  }, [isDispatchMode, fetchDispatchVacations, fetchDispatchCompanyElders]);
 
   // 배차 모드: 월간 요약 계산
   useEffect(() => {
@@ -481,12 +494,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     if (!isDispatchMode || !isHydrated) return;
     migrateLegacyAbsences(seniorAbsences, dispatchSettings.seniors);
   }, [isDispatchMode, isHydrated, seniorAbsences, dispatchSettings.seniors]);
-
-  // 배차 모드: 선택된 날짜의 일일 배차 정보
-  const getSelectedDayDispatch = (): DailyDispatch | null => {
-    if (!dispatchSelectedDate) return null;
-    return getDailyDispatch(dispatchSelectedDate, dispatchSettings, dispatchVacations, dispatchAttendances);
-  };
 
   // 배차 날짜별 상태 배경 색상
   const getDispatchStatusColors = (summary: DispatchDaySummary | undefined) => {
@@ -1174,8 +1181,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         key={dateStr}
         onClick={() => {
           if (isCurrentMonth) {
-            setDispatchSelectedDate(date);
-            setShowDispatchDayDetail(true);
+            // 모달 없이 그 날짜의 배차표로 바로 넘어간다 (날짜 하나 보자고 모달을 또 여는 게 아니라)
+            setDispatchBoardDate(dateStr);
+            loadAttendanceRange(dateStr, dateStr);
+            setDispatchSubTab('board');
           }
         }}
         // 두 분기 값이 같던 무의미 삼항연산자 제거
@@ -1336,54 +1345,47 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         <div style={{ marginBottom: 'var(--spacing-4)' }}>
           <SegmentedControl
             value={dispatchSubTab}
-            onChange={(v) => setDispatchSubTab(v as 'board' | 'calendar' | 'list' | 'attendance')}
+            onChange={(v) => setDispatchSubTab(v as 'board' | 'calendar')}
             label="배차 보기 모드"
           >
             <SegmentedControlItem value="board" label="배차표" icon={<Icon icon={IconClipboardList} size="sm" />} />
             <SegmentedControlItem value="calendar" label="달력" icon={<Icon icon="calendar" size="sm" />} />
-            <SegmentedControlItem value="list" label="목록" icon={<Icon icon={IconList} size="sm" />} />
-            <SegmentedControlItem value="attendance" label="출결 관리" icon={<Icon icon={IconUsers} size="sm" />} />
           </SegmentedControl>
         </div>
       )}
 
-      {/* 배차 모드: 노선배차표 (카톡 공지 그대로 한 화면) */}
+      {/* 배차 모드: 노선배차표 + 출결 패널 (카톡 공지 그대로 한 화면 + 옆에서 바로 출결 체크) */}
       {isDispatchMode && dispatchSubTab === 'board' && (
-        <DispatchBoard
-          settings={dispatchSettings}
-          vacations={dispatchVacations}
-          attendances={dispatchAttendances}
-          onNotification={(message, type) =>
-            showAlert({ type: type === 'error' ? 'error' : 'success', title: '배차표', message })
-          }
-          overrides={dispatchOverrides}
-          onOverridesChange={handleDispatchOverridesChange}
-          date={dispatchBoardDate}
-          onDateChange={(d) => {
-            setDispatchBoardDate(d);
-            loadAttendanceRange(d, d);
-          }}
-        />
-      )}
-
-      {/* 배차 모드: 목록 뷰 */}
-      {isDispatchMode && dispatchSubTab === 'list' && (
-        <DispatchListView
-          settings={dispatchSettings}
-          vacations={dispatchVacations}
-          attendances={dispatchAttendances}
-        />
-      )}
-
-      {/* 배차 모드: 출결 관리 */}
-      {isDispatchMode && dispatchSubTab === 'attendance' && (
-        <ElderAttendanceManagement
-          onNotification={(message, type) =>
-            showAlert({ type: type === 'error' ? 'error' : 'success', title: '출결', message })
-          }
-          date={dispatchBoardDate}
-          onDateChange={setDispatchBoardDate}
-        />
+        <div className="carev-dispatch-board-layout">
+          <DispatchBoard
+            settings={dispatchSettings}
+            vacations={dispatchVacations}
+            attendances={dispatchAttendances}
+            onNotification={(message, type) =>
+              showAlert({ type: type === 'error' ? 'error' : 'success', title: '배차표', message })
+            }
+            overrides={dispatchOverrides}
+            onOverridesChange={handleDispatchOverridesChange}
+            date={dispatchBoardDate}
+            onDateChange={(d) => {
+              setDispatchBoardDate(d);
+              loadAttendanceRange(d, d);
+            }}
+            routeType={dispatchBoardRouteType}
+            onRouteTypeChange={setDispatchBoardRouteType}
+            companyElders={dispatchCompanyElders}
+          />
+          <div className="carev-dispatch-board-layout-attendance">
+            <DispatchAttendancePanel
+              date={dispatchBoardDate}
+              routeType={dispatchBoardRouteType}
+              settings={dispatchSettings}
+              onNotification={(message, type) =>
+                showAlert({ type: type === 'error' ? 'error' : 'success', title: '출결', message })
+              }
+            />
+          </div>
+        </div>
       )}
 
       {/* 달력 뷰 (일정 모드 항상 / 배차 모드는 달력 서브탭일 때만) */}
@@ -2676,19 +2678,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           }
         />
       </Dialog>
-
-      {/* 배차 모드: 일일 배차 상세 모달 */}
-      <AnimatePresence>
-        {isDispatchMode && showDispatchDayDetail && dispatchSelectedDate && (
-          <DispatchDayDetail
-            dispatch={getSelectedDayDispatch()}
-            onClose={() => {
-              setShowDispatchDayDetail(false);
-              setDispatchSelectedDate(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* 배차 모드: 설정 모달 */}
       <AnimatePresence>

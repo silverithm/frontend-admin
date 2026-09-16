@@ -11,27 +11,26 @@ import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Loading } from "@/components/Loading";
-import { IconCalendar, IconList, IconUsers, IconSettings, IconClipboardList } from "@tabler/icons-react";
+import { IconCalendar, IconSettings, IconClipboardList } from "@tabler/icons-react";
 import { useDispatchStore } from "@/lib/dispatchStore";
 import { useElderAttendanceStore, migrateLegacyAbsences } from "@/lib/elderAttendanceStore";
 import { loadDispatchSettings, startDispatchAutoSave } from "@/lib/dispatchSync";
-import type { DailyDispatch, DispatchAssignmentOverride, DispatchDaySummary } from "@/types/dispatch";
+import type { DispatchAssignmentOverride, DispatchDaySummary, RouteType } from "@/types/dispatch";
 import type { VacationRequest } from "@/types/vacation";
-import { getDailyDispatch, getMonthlyDispatchSummary } from "@/lib/dispatchAlgorithm";
-import { getAllVacationRequests, getDispatchOverrides, saveDispatchOverrides } from "@/lib/apiService";
+import type { ElderlyInfo } from "@/types/elderly";
+import { getMonthlyDispatchSummary } from "@/lib/dispatchAlgorithm";
+import { getAllVacationRequests, getDispatchOverrides, saveDispatchOverrides, getCompanyElders } from "@/lib/apiService";
 import DispatchCalendar from "./DispatchCalendar";
-import DispatchListView from "./DispatchListView";
-import DispatchDayDetail from "./DispatchDayDetail";
 import DispatchSettings from "./DispatchSettings";
 import DispatchBoard from "./DispatchBoard";
-import ElderAttendanceManagement from "./ElderAttendanceManagement";
+import DispatchAttendancePanel from "./DispatchAttendancePanel";
 import { duration } from '@/theme/motion';
 
 interface DispatchManagementProps {
   onNotification: (message: string, type: "success" | "error" | "info") => void;
 }
 
-type SubTab = "board" | "calendar" | "list" | "attendance";
+type SubTab = "board" | "calendar";
 
 export default function DispatchManagement({ onNotification }: DispatchManagementProps) {
   // Zustand 스토어
@@ -41,14 +40,14 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
 
   // 로컬 상태
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("board");
-  // 배차표와 출결관리가 같은 날짜를 본다 (탭을 옮길 때마다 다시 고르지 않도록)
+  // 배차표와 출결 패널이 같은 날짜·방향을 본다
   const [boardDate, setBoardDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [boardRouteType, setBoardRouteType] = useState<RouteType>("등원");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showDayDetail, setShowDayDetail] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [monthlySummary, setMonthlySummary] = useState<Map<string, DispatchDaySummary>>(new Map());
   const [vacations, setVacations] = useState<VacationRequest[]>([]);
+  const [companyElders, setCompanyElders] = useState<ElderlyInfo[]>([]);
   /**
    * 배차표에서 손으로 고친 그날치 배치.
    *
@@ -87,10 +86,24 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
     }
   }, []);
 
+  // 회원관리 어르신 전체 (미배정 인원 계산용)
+  const fetchCompanyElders = useCallback(async () => {
+    try {
+      const response = await getCompanyElders();
+      const list: ElderlyInfo[] = Array.isArray(response)
+        ? response
+        : (response?.elders || response?.content || response?.data || []);
+      setCompanyElders(list);
+    } catch (error) {
+      console.error("어르신 목록 로드 실패:", error);
+    }
+  }, []);
+
   // 초기 데이터 로드
   useEffect(() => {
     fetchVacations();
-  }, [fetchVacations]);
+    fetchCompanyElders();
+  }, [fetchVacations, fetchCompanyElders]);
 
   // 배차 설정은 서버가 원본이다. 진입 시 불러오고, 이후 변경분은 자동 저장한다.
   // (예전에는 이 브라우저 localStorage에만 있어서 다른 기기·직원 앱에서 볼 수 없었다)
@@ -163,16 +176,10 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
     }
   };
 
-  // 날짜 선택 핸들러
+  // 캘린더에서 날짜를 고르면 그 날짜로 배차표 탭을 연다 (모달 없이 바로 전환)
   const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    setShowDayDetail(true);
-  };
-
-  // 일일 배차 정보 가져오기
-  const getSelectedDayDispatch = (): DailyDispatch | null => {
-    if (!selectedDate) return null;
-    return getDailyDispatch(selectedDate, settings, vacations, attendances);
+    setBoardDate(format(date, "yyyy-MM-dd"));
+    setActiveSubTab("board");
   };
 
   // 설정이 비어있는지 확인
@@ -204,18 +211,8 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               />
               <SegmentedControlItem
                 value="calendar"
-                label="캘린더 뷰"
+                label="달력"
                 icon={<Icon icon={IconCalendar} size="sm" />}
-              />
-              <SegmentedControlItem
-                value="list"
-                label="리스트 뷰"
-                icon={<Icon icon={IconList} size="sm" />}
-              />
-              <SegmentedControlItem
-                value="attendance"
-                label="출결 관리"
-                icon={<Icon icon={IconUsers} size="sm" />}
               />
             </SegmentedControl>
 
@@ -228,7 +225,7 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
           </HStack>
 
           {/* 통계 요약 — 카드 대신 맨 div에 배경·테두리를 직접 적어 두던 자리다.
-              같은 숫자 줄이 배차 목록·대시보드에도 있어 규격을 하나로 모았다. */}
+              같은 숫자 줄이 대시보드에도 있어 규격을 하나로 모았다. */}
           <StatRow>
             <StatTile value={settings.routes.length} label="노선" />
             <StatTile value={settings.seniors.length} label="어르신" />
@@ -264,19 +261,32 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: duration.fast }}
             >
-              <DispatchBoard
-                settings={settings}
-                vacations={vacations}
-                attendances={attendances}
-                onNotification={onNotification}
-                overrides={boardOverrides}
-                onOverridesChange={handleOverridesChange}
-                date={boardDate}
-                onDateChange={(d) => {
-                  setBoardDate(d);
-                  loadRange(d, d);
-                }}
-              />
+              <div className="carev-dispatch-board-layout">
+                <DispatchBoard
+                  settings={settings}
+                  vacations={vacations}
+                  attendances={attendances}
+                  onNotification={onNotification}
+                  overrides={boardOverrides}
+                  onOverridesChange={handleOverridesChange}
+                  date={boardDate}
+                  onDateChange={(d) => {
+                    setBoardDate(d);
+                    loadRange(d, d);
+                  }}
+                  routeType={boardRouteType}
+                  onRouteTypeChange={setBoardRouteType}
+                  companyElders={companyElders}
+                />
+                <div className="carev-dispatch-board-layout-attendance">
+                  <DispatchAttendancePanel
+                    date={boardDate}
+                    routeType={boardRouteType}
+                    settings={settings}
+                    onNotification={onNotification}
+                  />
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -296,53 +306,8 @@ export default function DispatchManagement({ onNotification }: DispatchManagemen
               />
             </motion.div>
           )}
-
-          {activeSubTab === "list" && (
-            <motion.div
-              key="list"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: duration.fast }}
-            >
-              <DispatchListView
-                settings={settings}
-                vacations={vacations}
-                attendances={attendances}
-              />
-            </motion.div>
-          )}
-
-          {activeSubTab === "attendance" && (
-            <motion.div
-              key="attendance"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: duration.fast }}
-            >
-              <ElderAttendanceManagement
-                onNotification={onNotification}
-                date={boardDate}
-                onDateChange={setBoardDate}
-              />
-            </motion.div>
-          )}
         </AnimatePresence>
       )}
-
-      {/* 일일 배차 상세 모달 */}
-      <AnimatePresence>
-        {showDayDetail && selectedDate && (
-          <DispatchDayDetail
-            dispatch={getSelectedDayDispatch()}
-            onClose={() => {
-              setShowDayDetail(false);
-              setSelectedDate(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* 설정 모달 */}
       <AnimatePresence>
