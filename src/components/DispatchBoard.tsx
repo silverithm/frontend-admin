@@ -32,8 +32,10 @@ import type {
 } from "@/types/dispatch";
 import type { ElderDayAttendance } from "@/types/attendance";
 import type { VacationRequest } from "@/types/vacation";
+import type { ElderlyInfo } from "@/types/elderly";
 import { applyDispatchOverrides, getDailyDispatch } from "@/lib/dispatchAlgorithm";
 import { nextBoardingOrder } from "@/lib/dispatchBoardEdit";
+import { getUnassignedElders } from "@/lib/dispatchUnassigned";
 import {
   buildDispatchBoardText,
   buildRouteHeadline,
@@ -93,6 +95,8 @@ interface DispatchBoardProps {
   overrides?: DispatchAssignmentOverride[];
   /** 수정본이 바뀌었을 때 — 저장은 부모가 한다 (빈 배열이면 '원래대로') */
   onOverridesChange?: (next: DispatchAssignmentOverride[]) => void;
+  /** 회원관리에 등록된 어르신 전체 — 미배정 인원을 계산하는 데 쓴다 (없으면 미배정 배지는 생략) */
+  companyElders?: ElderlyInfo[];
 }
 
 export default function DispatchBoard({
@@ -104,6 +108,7 @@ export default function DispatchBoard({
   onDateChange,
   overrides,
   onOverridesChange,
+  companyElders,
 }: DispatchBoardProps) {
   const [internalDate, setInternalDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const date = externalDate ?? internalDate;
@@ -135,6 +140,20 @@ export default function DispatchBoard({
   const personalLabel = routeType === "등원" ? "개인등원" : "개인하원";
   // 헤더 숫자는 그날 센터에 오는 총원 (차량 탑승 + 개인등하원)
   const totalAttending = countAttending(daily, routeType);
+
+  // 회원관리엔 있는데 오늘 이 방향 어느 노선에도, 개인등하원에도 없는 어르신
+  // (숲속재활 사례: 82명 중 4명이 그런 식으로 조용히 빠져 있었다)
+  const attendancesForDate = useMemo(
+    () => attendances.filter((a) => a.date === date),
+    [attendances, date]
+  );
+  const unassignedElders = useMemo(
+    () =>
+      companyElders
+        ? getUnassignedElders(routeType, effectiveSettings, companyElders, attendancesForDate)
+        : [],
+    [companyElders, routeType, effectiveSettings, attendancesForDate]
+  );
 
   const handleDateChange = (value: string) => {
     if (externalDate === undefined) setInternalDate(value);
@@ -336,13 +355,30 @@ export default function DispatchBoard({
             <Text type="large" weight="bold">
               {dateLabel} {routeType}
             </Text>
-            <Badge variant="teal" label={`총 ${totalAttending}명`} />
+            <Badge
+              variant="teal"
+              label={
+                companyElders
+                  ? `탑승 ${totalAttending}명 · 전체 ${companyElders.length}명`
+                  : `총 ${totalAttending}명`
+              }
+            />
+            {unassignedElders.length > 0 && (
+              <span title={`미배정: ${unassignedElders.map((e) => e.name).join(", ")}`}>
+                <Badge variant="error" label={`미배정 ${unassignedElders.length}명`} />
+              </span>
+            )}
             {personalSeniors.length > 0 && (
               <Text type="supporting">
                 [{personalLabel} : {personalSeniors.map((s) => s.name).join(", ")}]
               </Text>
             )}
           </HStack>
+          {unassignedElders.length > 0 && (
+            <Text type="supporting" color="secondary">
+              미배정 {unassignedElders.length}명: {unassignedElders.map((e) => e.name).join(", ")}
+            </Text>
+          )}
 
           {isEditing && (
             <Text type="supporting" color="secondary">
