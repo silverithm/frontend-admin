@@ -19,8 +19,10 @@ interface AiPostImage {
   data: string; // base64 (클라이언트에서 1024px로 축소해서 보낸다)
 }
 
+type AiPostChannel = 'band' | 'blog' | 'guardian' | 'notice' | 'instagram';
+
 interface AiPostRequest {
-  channel: 'band' | 'blog';
+  channel: AiPostChannel;
   description?: string;
   companyName?: string;
   date?: string;
@@ -31,16 +33,33 @@ const MAX_IMAGES = 5;
 // 클라이언트가 축소해서 보내지만, 우회 호출 대비 장당 base64 2MB로 제한
 const MAX_IMAGE_BASE64_LENGTH = 2 * 1024 * 1024;
 
-const CHANNEL_GUIDE: Record<'band' | 'blog', string> = {
+const CHANNEL_GUIDE: Record<AiPostChannel, string> = {
   band: `[글 형식: 네이버 밴드 게시글]
 - 보호자(어르신 가족)들이 읽는 글이다. 친근하고 따뜻한 존댓말을 쓴다.
 - 문단마다 이모지를 1~2개 자연스럽게 섞는다.
 - 짧은 문단 2~4개, 전체 300~500자.
-- 제목은 밴드 글 첫 줄로 쓸 수 있게 짧고 정감 있게.`,
+- 제목은 밴드 글 첫 줄로 쓸 수 있게 짧고 정감 있게.
+- 해시태그는 5~10개.`,
   blog: `[글 형식: 블로그 게시글]
 - 검색으로 유입되는 글이다. 제목에 활동 내용이 드러나게 쓰고, 기관명이 주어졌다면 제목이나 본문에 자연스럽게 넣는다.
 - 자연스러운 문단 4~6개, 전체 600~900자. 이모지는 아주 절제해서 사용한다.
-- 마지막 문단에 기관을 소개하고 방문·상담을 부드럽게 안내하는 한두 문장을 넣는다.`,
+- 마지막 문단에 기관을 소개하고 방문·상담을 부드럽게 안내하는 한두 문장을 넣는다.
+- 해시태그는 5~10개.`,
+  guardian: `[글 형식: 보호자 안내문 (가정통신문)]
+- 어르신 보호자(가족)에게 기관이 보내는 공식 안내문이다. 정중한 존댓말을 쓰고 예의를 갖춘다. 이모지는 쓰지 않는다.
+- 구조: 인사말 → 안내 내용(오늘의 활동이나 공지 사항을 구체적으로) → 협조가 필요하면 정중한 협조 요청 → 마무리 인사.
+- 문어체에 가까운 격식 있는 문장으로 쓴다. 전체 400~600자.
+- 해시태그는 형식상 3~5개만 짧게 만든다(본문에는 넣지 않는다).`,
+  notice: `[글 형식: 기관 공지문 (게시판용)]
+- 기관 게시판에 붙이는 공지문이다. 제목은 핵심을 한눈에 알 수 있게 간결히 쓴다.
+- 본문은 불필요한 수식어 없이 사실 전달 위주로 간결하게 쓴다. 필요하면 항목을 나눠 짧게 적는다.
+- 존댓말을 쓰되 사무적이고 명확한 톤을 유지한다. 이모지는 쓰지 않는다. 전체 200~400자.
+- 해시태그는 형식상 3~5개만 짧게 만든다(본문에는 넣지 않는다).`,
+  instagram: `[글 형식: 인스타그램 게시글]
+- 짧고 리듬감 있는 문장 위주로 쓴다. 문단은 1~2문장씩 줄바꿈으로 나눠 가독성을 준다.
+- 이모지를 문장마다 자연스럽게 섞어 발랄한 느낌을 준다.
+- 전체 100~200자로 짧게 쓴다. 제목은 본문 첫 줄 느낌으로 짧게.
+- 해시태그는 5~8개. 활동 내용과 기관 성격(주간보호, 어르신, 실버케어 등)을 섞는다.`,
 };
 
 // 토큰이 우리 서비스의 유효한 로그인인지 백엔드에 물어본다.
@@ -95,8 +114,9 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as AiPostRequest;
     const { channel, description, companyName, date, images } = body;
 
-    if (channel !== 'band' && channel !== 'blog') {
-      return NextResponse.json({ error: '채널은 band 또는 blog여야 합니다.' }, { status: 400, headers });
+    const validChannels: AiPostChannel[] = ['band', 'blog', 'guardian', 'notice', 'instagram'];
+    if (!validChannels.includes(channel)) {
+      return NextResponse.json({ error: '지원하지 않는 채널입니다.' }, { status: 400, headers });
     }
     if (!Array.isArray(images) || images.length === 0) {
       return NextResponse.json({ error: '사진을 1장 이상 올려주세요.' }, { status: 400, headers });
@@ -126,7 +146,7 @@ ${CHANNEL_GUIDE[channel]}
 - 사진에 실제로 보이는 것(음식 메뉴, 활동 종류, 만든 작품, 분위기)을 구체적으로 언급한다. 보이지 않는 것을 지어내지 않는다.
 - 어르신 개인을 특정하는 표현(이름, 병명, 신체 상태 묘사)은 절대 쓰지 않는다. "어르신들"처럼 표현한다.
 - 과장 광고 표현("최고", "1등")은 피하고 따뜻하고 담백하게 쓴다.
-- 해시태그는 5~10개, 각 항목에 #을 붙여서 만든다. 활동 내용과 기관 성격(주간보호, 어르신, 실버케어 등)을 섞는다.
+- 해시태그는 채널별 안내에 적힌 개수를 따르고, 각 항목에 #을 붙여서 만든다.
 - 반드시 한국어로 작성한다.`;
 
     const geminiBody = {
