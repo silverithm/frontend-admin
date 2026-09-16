@@ -940,6 +940,30 @@ html {
   .carev-dispatch-board-layout-attendance { max-height: none; }
 }
 
+/* 출결 표(DispatchAttendancePanel) — 좁은 화면에서 체크박스 4칸이 눌려 겹치는 대신
+   가로 스크롤로 원래 폭을 유지한다. */
+.carev-dispatch-attendance-table-scroll {
+  overflow-x: auto;
+}
+.carev-dispatch-attendance-table {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+}
+.carev-dispatch-attendance-table th,
+.carev-dispatch-attendance-table td {
+  padding: var(--spacing-1) var(--spacing-2);
+  text-align: center;
+  white-space: nowrap;
+}
+.carev-dispatch-attendance-table td:first-child,
+.carev-dispatch-attendance-table th:first-child {
+  white-space: normal;
+}
+.carev-dispatch-attendance-table tbody tr {
+  border-top: 1px solid var(--color-border);
+}
+
 /* ── Phase 10: 공개/마케팅 페이지 ── */
 
 /* guide 반응형 */
