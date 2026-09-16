@@ -239,15 +239,16 @@ export default function DispatchSettings({
     excludeRouteId: string | undefined,
     siblings: RouteDriver[],
     selfIndex: number,
+    routeType: RouteType,
   ): boolean => {
     const name = driverName.trim();
     if (!name) return false;
 
     if (selfIndex === 0) {
-      const inOtherRoute = findPrimaryDriverConflict(name, settings.routes, excludeRouteId);
+      const inOtherRoute = findPrimaryDriverConflict(name, settings.routes, excludeRouteId, routeType);
       if (inOtherRoute) {
         onNotification(
-          `${name} 선생님은 이미 ${inOtherRoute.route.name}(${inOtherRoute.route.type}) 주운전자입니다. 주운전자는 두 노선을 동시에 맡을 수 없습니다.`,
+          `${name} 선생님은 이미 ${inOtherRoute.route.name}(${inOtherRoute.route.type}) 주운전자입니다. 같은 방향(${routeType})의 두 노선을 동시에 맡을 수 없습니다.`,
           "error",
         );
         return true;
@@ -267,7 +268,7 @@ export default function DispatchSettings({
 
   const handleSelectMemberForNewRoute = (index: number, memberId: string) => {
     const member = members.find(m => String(m.id) === memberId);
-    if (member?.name && rejectIfDuplicate(member.name, undefined, newRouteDrivers, index)) return;
+    if (member?.name && rejectIfDuplicate(member.name, undefined, newRouteDrivers, index, newRouteType)) return;
 
     const updated = [...newRouteDrivers];
     updated[index] = {
@@ -294,7 +295,7 @@ export default function DispatchSettings({
     if (!route) return;
 
     const member = members.find(m => String(m.id) === memberId);
-    if (member?.name && rejectIfDuplicate(member.name, routeId, route.routeDrivers || [], index)) return;
+    if (member?.name && rejectIfDuplicate(member.name, routeId, route.routeDrivers || [], index, route.type)) return;
 
     const updatedDrivers = [...(route.routeDrivers || [])];
     updatedDrivers[index] = {

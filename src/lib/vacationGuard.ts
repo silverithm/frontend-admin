@@ -221,12 +221,15 @@ export function findPrimaryDriverConflict(
   driverName: string,
   routes: Route[],
   excludeRouteId?: string,
+  routeType?: Route['type'],
 ): DriverAssignment | null {
   const name = driverName.trim();
   if (!name) return null;
 
   for (const route of routes) {
     if (excludeRouteId && String(route.id) === String(excludeRouteId)) continue;
+    // 등원/하원은 서로 다른 시간대에 운행되므로 방향이 다르면 같은 사람이 양쪽 주운전자를 맡아도 된다.
+    if (routeType && route.type !== routeType) continue;
     const primary = route.routeDrivers[0];
     if (primary && primary.driverName.trim() === name) {
       return { route, driver: primary, index: 0 };
