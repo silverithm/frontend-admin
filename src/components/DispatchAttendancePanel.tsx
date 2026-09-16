@@ -14,7 +14,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { VStack } from "@astryxdesign/core/Stack";
 import { useElderAttendanceStore } from "@/lib/elderAttendanceStore";
 import type { DispatchSettings, RouteType, Senior } from "@/types/dispatch";
 import type { ElderDayAttendance } from "@/types/attendance";
