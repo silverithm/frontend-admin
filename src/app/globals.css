@@ -942,14 +942,13 @@ html {
 }
 
 /* 배차표 차량 카드 그리드 — 컨테이너 폭 기준(왼쪽 컬럼이 좁아지면 1열, 넉넉하면 2열) */
+/* 차량 카드는 폭이 허락하는 만큼 나란히 — 560px 컨테이너 질의로는 좁은 왼쪽 칸에서
+   늘 한 줄만 나와 오른쪽이 비어 보였다(2026-09-17). */
 .carev-dispatch-board-grid {
-  container-type: inline-size;
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: var(--spacing-3);
-}
-@container (min-width: 560px) {
-  .carev-dispatch-board-grid { grid-template-columns: repeat(2, 1fr); }
+  align-content: start;
 }
 
 /* 차량 카드의 운전자 줄 — 정상은 보통 칩, 대체는 경고색으로 눈에 띄게 */
