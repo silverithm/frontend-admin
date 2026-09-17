@@ -460,6 +460,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         setShowNewMessageBadge(false);
+        setIsAwayFromBottom(false);
     };
 
     /** 지금 스크롤이 맨 아래에서 120px 이내인지 — 이 안쪽일 때만 새 메시지를 따라 내려간다 */
@@ -469,9 +470,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     };
 
+    /** 지금 맨 아래를 보고 있는지 — '맨 아래로' 버튼을 띄울지 판단한다(한 화면의 절반쯤 올리면 뜬다) */
+    const [isAwayFromBottom, setIsAwayFromBottom] = useState(false);
+
     /** 끝까지 내리면 새 메시지 배지를 치운다 (맨 위에서 옛 대화를 잇는 것은 훅이 맡는다) */
     const handleMessagesScroll = () => {
         if (showNewMessageBadge && isNearBottom()) setShowNewMessageBadge(false);
+        const el = messagesContainerRef.current;
+        if (el) {
+            const away = el.scrollHeight - el.scrollTop - el.clientHeight > Math.max(240, el.clientHeight * 0.5);
+            setIsAwayFromBottom(prev => (prev === away ? prev : away));
+        }
         updateDateBadge();
     };
 
@@ -635,15 +644,28 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     }, [disconnectedAt]);
 
     // 방 선택 시 메시지 로드 → 읽음 처리
+    /**
+     * 방을 처음 열 때 한 번만 통째로 받아온다.
+     *
+     * 전에는 이 effect가 fetchMessages·markAsRead를 의존성으로 두고 있었다. fetchMessages는
+     * 부모가 내려준 onNotification에 묶여 있는데, 부모(관리자 화면)가 그 함수를 매 렌더마다
+     * 새로 만들어 넘기고 있었다 — 그래서 부모가 다시 그려질 때마다(새 메시지로 안읽음 수가
+     * 바뀌는 것만으로도) 방을 통째로 다시 받아 스크롤이 맨 아래로 튀었다.
+     * 2026-09-17 "옛 글을 읽는데 자꾸 최신으로 돌아간다" 제보의 원인. 이제 방이 바뀔 때만 돈다.
+     */
+    const fetchMessagesRef = useRef(fetchMessages);
+    fetchMessagesRef.current = fetchMessages;
+    const markAsReadRef = useRef(markAsRead);
+    markAsReadRef.current = markAsRead;
     useEffect(() => {
         if (!selectedRoom) return;
         (async () => {
-            const lastMsgId = await fetchMessages(selectedRoom);
+            const lastMsgId = await fetchMessagesRef.current(selectedRoom);
             if (lastMsgId) {
-                markAsRead(selectedRoom, lastMsgId);
+                markAsReadRef.current(selectedRoom, lastMsgId);
             }
         })();
-    }, [selectedRoom, fetchMessages, markAsRead]);
+    }, [selectedRoom]);
 
     /**
      * 끊겼다 다시 붙은 순간, 끊겨 있던 사이에 온 메시지를 메운다.
@@ -674,7 +696,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 const missed = hasMissedMessages(messagesRef.current, latest);
                 setMessages(prev => mergeMissedMessages(prev, latest));
                 if (missed) {
-                    markAsRead(selectedRoom, latest[latest.length - 1].id);
+                    markAsReadRef.current(selectedRoom, latest[latest.length - 1].id);
                     // 맨 아래를 보고 있었으면 따라 내려가고, 위쪽을 읽던 중이면 배지로만 알린다
                     if (wasNearBottom) setTimeout(scrollToBottom, 100);
                     else setShowNewMessageBadge(true);
@@ -684,7 +706,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             }
         })();
         return () => { cancelled = true; };
-    }, [connectionEpoch, selectedRoom, markAsRead]);
+        // markAsRead는 ref로 부른다 — 의존성에 두면 위와 같은 재실행 사고가 또 난다
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [connectionEpoch, selectedRoom]);
 
     // 기관 인원 목록 + 지금 접속 중인 사람 (첫 화면용 — 이후 변화는 WebSocket으로 받는다).
     // 이미 받았거나 받는 중이면 load()가 알아서 넘긴다
@@ -2510,14 +2534,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 })
                             )}
                             <div ref={messagesEndRef} />
-                            {/* 새 메시지 배지 — 스크롤 컨테이너 하단에 붙어(sticky) 늘 보이는 자리에 뜬다.
-                                남이 보낸 메시지가 왔는데 내가 위쪽을 보고 있을 때만 나타난다 */}
-                            {showNewMessageBadge && (
+                            {/* 맨 아래로 돌아가는 버튼 — 스크롤 컨테이너 하단에 붙어(sticky) 늘 보이는 자리에 뜬다.
+                                위쪽 대화를 읽는 중이면 늘 보이고, 그 사이 새 메시지가 왔으면 문구가 바뀐다.
+                                (자동으로 따라 내려가지 않으므로 돌아갈 길은 항상 열어 둔다) */}
+                            {(showNewMessageBadge || isAwayFromBottom) && (
                                 <div style={{ position: "sticky", bottom: 'var(--spacing-1)', display: "flex", justifyContent: "center", pointerEvents: "none" }}>
                                     <div style={{ pointerEvents: "auto" }}>
                                         <Button
-                                            label="새 메시지 ↓"
-                                            variant="primary"
+                                            label={showNewMessageBadge ? "새 메시지 ↓" : "맨 아래로 ↓"}
+                                            variant={showNewMessageBadge ? "primary" : "secondary"}
                                             size="sm"
                                             onClick={scrollToBottom}
                                         />
