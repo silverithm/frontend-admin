@@ -929,7 +929,8 @@ html {
   align-items: start;
 }
 @media (min-width: 1100px) {
-  .carev-dispatch-board-layout { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
+  /* 배차표(카드형) : 출결(표) = 대략 3:2 — 카드가 넉넉히 두 줄로 앉을 폭을 준다 */
+  .carev-dispatch-board-layout { grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); flex: 1; min-height: 0; }
 }
 .carev-dispatch-board-layout-attendance {
   min-width: 0;
@@ -937,7 +938,54 @@ html {
   overflow-y: auto;
 }
 @media (min-width: 1100px) {
-  .carev-dispatch-board-layout-attendance { max-height: none; }
+  .carev-dispatch-board-layout-attendance { max-height: none; overflow-y: auto; }
+}
+
+/* 배차표 차량 카드 그리드 — 컨테이너 폭 기준(왼쪽 컬럼이 좁아지면 1열, 넉넉하면 2열) */
+.carev-dispatch-board-grid {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-3);
+}
+@container (min-width: 560px) {
+  .carev-dispatch-board-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 차량 카드의 운전자 줄 — 정상은 보통 칩, 대체는 경고색으로 눈에 띄게 */
+.carev-dispatch-driver-chip {
+  display: inline-block;
+  align-self: flex-start;
+  padding: var(--spacing-0-5) var(--spacing-1-5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-supporting, 0.85em);
+  color: var(--color-text-secondary);
+  background: var(--color-background-muted);
+}
+.carev-dispatch-driver-chip[data-tone="warning"] {
+  color: var(--color-text-yellow);
+  background: var(--color-background-yellow);
+}
+
+/* 차량 카드의 어르신 명단(읽기 전용) — 편집 모드의 끌 수 있는 칩과 같은 톤이되,
+   드래그 커서·hover는 없다. */
+.carev-dispatch-chip-static {
+  display: inline-block;
+  padding: 0 var(--spacing-1-5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-supporting, 0.85em);
+  color: var(--color-text-primary);
+  background: var(--color-background-muted);
+}
+
+/* 상태 줄의 결석·미배정 배지 — 배지 자체는 읽기 전용이라 버튼이 감싸 눌리는 느낌을 낸다 */
+.carev-dispatch-stat-trigger {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  border-radius: var(--radius-full);
 }
 
 /* 출결 표(DispatchAttendancePanel) — 좁은 화면에서 체크박스 4칸이 눌려 겹치는 대신
@@ -1410,9 +1458,11 @@ html {
    이름을 끌어 다른 차에 놓는 조작이라, 끌 수 있다는 것이 손끝에 보여야 한다.
    :hover와 :active는 인라인 style로 쓸 수 없어 여기에 둔다. */
 .carev-dispatch-chip {
-    display: inline-block;
-    padding: 0 var(--spacing-1);
-    border-radius: var(--radius-inner);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-0-5);
+    padding: 0 var(--spacing-1-5) 0 var(--spacing-0-5);
+    border-radius: var(--radius-full);
     font-size: var(--font-size-supporting, 0.85em);
     color: var(--color-text-primary);
     background: var(--color-background-muted);

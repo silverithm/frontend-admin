@@ -14,14 +14,22 @@ import { toPng, getFontEmbedCSS } from "html-to-image";
 import { Card } from "@astryxdesign/core/Card";
 import { Button } from "@astryxdesign/core/Button";
 import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
-import { Grid } from "@astryxdesign/core/Grid";
 import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
 import { Badge } from "@astryxdesign/core/Badge";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Popover } from "@astryxdesign/core/Popover";
 import { DateInput } from "@astryxdesign/core/DateInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import type { ISODateString } from "@astryxdesign/core/Calendar";
-import { IconCopy, IconPhotoDown, IconPencil, IconArrowBackUp } from "@tabler/icons-react";
+import {
+  IconCopy,
+  IconPhotoDown,
+  IconPencil,
+  IconArrowBackUp,
+  IconGripVertical,
+} from "@tabler/icons-react";
 import type {
   DispatchAssignmentOverride,
   DispatchSettings,
@@ -38,10 +46,23 @@ import { nextBoardingOrder } from "@/lib/dispatchBoardEdit";
 import { getUnassignedElders } from "@/lib/dispatchUnassigned";
 import {
   buildDispatchBoardText,
-  buildRouteHeadline,
-  countAttending,
+  countPassengers,
   selectRouteDispatches,
 } from "@/lib/dispatchBoardText";
+
+/** 배차 상태 -> Badge 색상 */
+function statusBadgeVariant(status: RouteDispatch["status"]): "teal" | "warning" | "error" | "neutral" {
+  switch (status) {
+    case "정상":
+      return "teal";
+    case "대체":
+      return "warning";
+    case "운행없음":
+      return "error";
+    default:
+      return "neutral";
+  }
+}
 
 /**
  * 캡처에 끼워 넣을 웹폰트 CSS.
@@ -151,8 +172,6 @@ export default function DispatchBoard({
   const personalSeniors =
     routeType === "등원" ? daily.personalPickupSeniors : daily.personalDropoffSeniors;
   const personalLabel = routeType === "등원" ? "개인등원" : "개인하원";
-  // 헤더 숫자는 그날 센터에 오는 총원 (차량 탑승 + 개인등하원)
-  const totalAttending = countAttending(daily, routeType);
 
   // 회원관리엔 있는데 오늘 이 방향 어느 노선에도, 개인등하원에도 없는 어르신
   // (숲속재활 사례: 82명 중 4명이 그런 식으로 조용히 빠져 있었다)
@@ -167,6 +186,21 @@ export default function DispatchBoard({
         : [],
     [companyElders, routeType, effectiveSettings, attendancesForDate]
   );
+
+  // 결석 N — 이 방향 노선에 배정된 어르신 중 오늘 결석 처리된 사람 (상태 줄 배지·팝오버용)
+  const absentSeniors = useMemo(() => {
+    const routeIdsForDirection = new Set(
+      effectiveSettings.routes.filter((r) => r.type === routeType).map((r) => r.id)
+    );
+    const absentElderlyIds = new Set(
+      attendancesForDate.filter((a) => a.status === "결석").map((a) => a.elderlyId)
+    );
+    return effectiveSettings.seniors.filter(
+      (s) => routeIdsForDirection.has(s.routeId) && s.elderlyId !== undefined && absentElderlyIds.has(s.elderlyId)
+    );
+  }, [effectiveSettings, routeType, attendancesForDate]);
+
+  const boardingCount = countPassengers(dispatches);
 
   const handleDateChange = (value: string) => {
     if (externalDate === undefined) setInternalDate(value);
@@ -289,15 +323,11 @@ export default function DispatchBoard({
     <VStack gap={4} height="100%">
       {/* 조작 줄 */}
       <Card padding={4}>
-        <HStack gap={3} vAlign="end" wrap="wrap" hAlign="between">
-          <HStack gap={3} vAlign="end" wrap="wrap">
-            <div style={{ minWidth: 160 }}>
-              <DateInput
-                label="날짜"
-                value={date as ISODateString}
-                onChange={(value) => handleDateChange(value ?? date)}
-              />
-            </div>
+        <HStack gap={3} vAlign="center" wrap="wrap" hAlign="between">
+          <HStack gap={3} vAlign="center" wrap="wrap">
+            <Heading level={3} type="display-3">
+              {dateLabel}
+            </Heading>
             <SegmentedControl
               label="등하원"
               value={routeType}
@@ -306,6 +336,14 @@ export default function DispatchBoard({
               <SegmentedControlItem value="등원" label="등원" />
               <SegmentedControlItem value="하원" label="하원" />
             </SegmentedControl>
+            <div style={{ minWidth: 160 }}>
+              <DateInput
+                label="날짜"
+                isLabelHidden
+                value={date as ISODateString}
+                onChange={(value) => handleDateChange(value ?? date)}
+              />
+            </div>
           </HStack>
 
           <HStack gap={2}>
@@ -364,34 +402,34 @@ export default function DispatchBoard({
           }}
         >
           {/* 헤더 */}
-          <HStack gap={3} vAlign="center" wrap="wrap">
+          <HStack gap={2} vAlign="center" wrap="wrap">
             <Text type="large" weight="bold">
               {dateLabel} {routeType}
             </Text>
-            <Badge
-              variant="teal"
-              label={
-                companyElders
-                  ? `탑승 ${totalAttending}명 · 전체 ${companyElders.length}명`
-                  : `총 ${totalAttending}명`
-              }
-            />
-            {unassignedElders.length > 0 && (
-              <span title={`미배정: ${unassignedElders.map((e) => e.name).join(", ")}`}>
-                <Badge variant="error" label={`미배정 ${unassignedElders.length}명`} />
-              </span>
-            )}
-            {personalSeniors.length > 0 && (
-              <Text type="supporting">
-                [{personalLabel} : {personalSeniors.map((s) => s.name).join(", ")}]
+            {companyElders && (
+              <Text type="supporting" color="secondary">
+                전체 {companyElders.length}명
               </Text>
             )}
           </HStack>
-          {unassignedElders.length > 0 && (
-            <Text type="supporting" color="secondary">
-              미배정 {unassignedElders.length}명: {unassignedElders.map((e) => e.name).join(", ")}
-            </Text>
-          )}
+
+          {/* 상태 줄 — 탑승·결석·개인등하원·미배정을 한눈에. 결석·미배정은 눌러서 이름을 본다 */}
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Badge variant="teal" label={`탑승 ${boardingCount}명`} />
+            <StatBadge
+              variant="error"
+              label={`결석 ${absentSeniors.length}명`}
+              names={absentSeniors.map((s) => s.name)}
+            />
+            {personalSeniors.length > 0 && (
+              <Badge variant="neutral" label={`${personalLabel} ${personalSeniors.length}명`} />
+            )}
+            <StatBadge
+              variant="warning"
+              label={`미배정 ${unassignedElders.length}명`}
+              names={unassignedElders.map((e) => e.name)}
+            />
+          </HStack>
 
           {isEditing && (
             <Text type="supporting" color="secondary">
@@ -408,7 +446,7 @@ export default function DispatchBoard({
             </div>
           ) : (
             <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-              <Grid columns={{ minWidth: 240 }} gap={3}>
+              <div className="carev-dispatch-board-grid">
                 {dispatches.map((rd) => (
                   <RouteBlock
                     key={rd.routeId}
@@ -417,12 +455,40 @@ export default function DispatchBoard({
                     onMove={moveSenior}
                   />
                 ))}
-              </Grid>
+              </div>
             </div>
           )}
         </div>
       </StackItem>
     </VStack>
+  );
+}
+
+/**
+ * 상태 줄의 결석·미배정 배지 — 이름 목록을 눌러서 본다.
+ * Badge 자체는 클릭할 수 없어야 하므로(Astryx 규칙), 배지를 감싼 버튼이 트리거를 맡는다.
+ * 대상이 0명이면 팝오버를 열 필요가 없어 그냥 배지만 보여준다.
+ */
+function StatBadge({
+  variant,
+  label,
+  names,
+}: {
+  variant: "error" | "warning";
+  label: string;
+  names: string[];
+}) {
+  if (names.length === 0) {
+    return <Badge variant="neutral" label={label} />;
+  }
+  return (
+    <Popover content={<Text type="supporting">{names.join(", ")}</Text>} placement="below">
+      {(triggerProps) => (
+        <button type="button" {...triggerProps} className="carev-dispatch-stat-trigger">
+          <Badge variant={variant} label={label} />
+        </button>
+      )}
+    </Popover>
   );
 }
 
@@ -485,14 +551,42 @@ function RouteBlock({
   // 회차를 쓰지 않는 노선에 처음 놓을 때의 회차값 — 기존 그룹을 따라간다
   const defaultTripOrder = rd.tripGroups[0]?.tripOrder;
 
+  const vehicleName = rd.driver?.vehicleName?.trim() || rd.routeName;
+  const showRouteName = vehicleName !== rd.routeName;
+
   return (
     <Card padding={3} variant={isOff ? "muted" : "default"}>
-      <VStack gap={1.5}>
-        <HStack gap={2} vAlign="center" wrap="wrap">
-          <Text weight="semibold">{buildRouteHeadline(rd)}</Text>
-          {rd.status === "대체" && <Badge variant="warning" label="대체" />}
-          {!isOff && <Text type="supporting">{rd.passengers.length}명</Text>}
+      <VStack gap={2}>
+        <HStack hAlign="between" vAlign="start" gap={2}>
+          <VStack gap={0}>
+            <HStack gap={1.5} vAlign="center" wrap="wrap">
+              <Text weight="semibold">{vehicleName}</Text>
+              {!!rd.driver?.vehicleCapacity && (
+                <Text type="supporting" color="secondary">
+                  {rd.driver.vehicleCapacity}인승
+                </Text>
+              )}
+            </HStack>
+            {showRouteName && (
+              <Text type="supporting" color="disabled">
+                {rd.routeName}
+              </Text>
+            )}
+          </VStack>
+          <Badge variant={statusBadgeVariant(rd.status)} label={rd.status} />
         </HStack>
+
+        {!isOff && rd.driver?.driverName && (
+          <span
+            title={rd.reason || undefined}
+            className="carev-dispatch-driver-chip"
+            data-tone={rd.status === "대체" ? "warning" : "neutral"}
+          >
+            {rd.status === "대체"
+              ? `대체 · ${rd.driverRole ?? "대체운전"} ${rd.driver.driverName}`
+              : `${rd.driverRole ?? "운전자"} ${rd.driver.driverName}`}
+          </span>
+        )}
 
         {isOff ? (
           <Text type="supporting" color="secondary">
@@ -519,14 +613,11 @@ function RouteBlock({
           rd.tripGroups.map((group, index) => {
             const groupKey = String(group.tripOrder ?? index);
             return (
-              <HStack key={groupKey} gap={1.5} vAlign="start">
+              <VStack key={groupKey} gap={1}>
                 {group.tripOrder && (
-                  // "1차)"가 "1 / 차)"로 쪼개지면 명단이 아니라 오류처럼 읽힌다
-                  <div style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                    <Text type="supporting" weight="semibold" color="accent">
-                      {group.tripOrder}차)
-                    </Text>
-                  </div>
+                  <Text type="supporting" weight="semibold" color="accent">
+                    {group.tripOrder}차 · {group.seniors.length}명
+                  </Text>
                 )}
                 {isEditing ? (
                   <div
@@ -537,8 +628,7 @@ function RouteBlock({
                       display: "flex",
                       flexWrap: "wrap",
                       gap: "var(--spacing-1)",
-                      flex: 1,
-                      minWidth: 0,
+                      minHeight: "var(--spacing-6)",
                       padding: "var(--spacing-1)",
                       borderRadius: "var(--radius-inner)",
                       background:
@@ -567,14 +657,21 @@ function RouteBlock({
                               : "2px solid transparent",
                         }}
                       >
+                        <Icon icon={IconGripVertical} size="xsm" color="inherit" />
                         {senior.name}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <Text type="supporting">{group.seniors.map((s) => s.name).join(" ")}</Text>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-1)" }}>
+                    {group.seniors.map((senior) => (
+                      <span key={senior.id} className="carev-dispatch-chip-static">
+                        {senior.name}
+                      </span>
+                    ))}
+                  </div>
                 )}
-              </HStack>
+              </VStack>
             );
           })
         )}

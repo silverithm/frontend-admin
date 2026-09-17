@@ -535,7 +535,7 @@ export default function DispatchSettings({
             <LayoutPanel hasDivider width={320}>
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 <div style={{ padding: 'var(--spacing-4)' }}>
-                  <VStack gap={2}>
+                  <VStack gap={3}>
                     <Button
                       label="새 노선 추가"
                       variant="primary"
@@ -546,20 +546,30 @@ export default function DispatchSettings({
                       }}
                     />
                     {showCopyToDropoff && (
-                      <Button
-                        label="등원 노선을 하원으로 복사"
-                        variant="secondary"
-                        icon={<Icon icon={FiClipboard} size="sm" />}
-                        onClick={() => handleCopyRoutesToOtherDirection("등원")}
-                      />
+                      <VStack gap={1}>
+                        <Button
+                          label="등원 노선을 하원으로 복사"
+                          variant="primary"
+                          icon={<Icon icon={FiClipboard} size="sm" />}
+                          onClick={() => handleCopyRoutesToOtherDirection("등원")}
+                        />
+                        <Text type="supporting" color="secondary">
+                          이름·운전자·어르신 명단을 그대로 하원 노선으로 복사합니다.
+                        </Text>
+                      </VStack>
                     )}
                     {showCopyToPickup && (
-                      <Button
-                        label="하원 노선을 등원으로 복사"
-                        variant="secondary"
-                        icon={<Icon icon={FiClipboard} size="sm" />}
-                        onClick={() => handleCopyRoutesToOtherDirection("하원")}
-                      />
+                      <VStack gap={1}>
+                        <Button
+                          label="하원 노선을 등원으로 복사"
+                          variant="primary"
+                          icon={<Icon icon={FiClipboard} size="sm" />}
+                          onClick={() => handleCopyRoutesToOtherDirection("하원")}
+                        />
+                        <Text type="supporting" color="secondary">
+                          이름·운전자·어르신 명단을 그대로 등원 노선으로 복사합니다.
+                        </Text>
+                      </VStack>
                     )}
                   </VStack>
                 </div>
@@ -567,18 +577,26 @@ export default function DispatchSettings({
                 {(unassignedByType.등원.length > 0 || unassignedByType.하원.length > 0) && (
                   <>
                     <div style={{ padding: 'var(--spacing-4)', paddingBottom: 0 }}>
-                      <VStack gap={2}>
-                        {unassignedByType.등원.length > 0 && (
-                          <Text type="supporting" color="secondary">
-                            등원 미배정 어르신 {unassignedByType.등원.length}명: {unassignedByType.등원.map((e) => e.name).join(", ")}
-                          </Text>
-                        )}
-                        {unassignedByType.하원.length > 0 && (
-                          <Text type="supporting" color="secondary">
-                            하원 미배정 어르신 {unassignedByType.하원.length}명: {unassignedByType.하원.map((e) => e.name).join(", ")}
-                          </Text>
-                        )}
-                      </VStack>
+                      <div
+                        style={{
+                          borderRadius: 'var(--radius-inner)',
+                          background: 'var(--color-background-muted)',
+                          padding: 'var(--spacing-3)',
+                        }}
+                      >
+                        <VStack gap={2}>
+                          {unassignedByType.등원.length > 0 && (
+                            <Text type="supporting" color="secondary">
+                              등원 미배정 어르신 {unassignedByType.등원.length}명: {unassignedByType.등원.map((e) => e.name).join(", ")}
+                            </Text>
+                          )}
+                          {unassignedByType.하원.length > 0 && (
+                            <Text type="supporting" color="secondary">
+                              하원 미배정 어르신 {unassignedByType.하원.length}명: {unassignedByType.하원.map((e) => e.name).join(", ")}
+                            </Text>
+                          )}
+                        </VStack>
+                      </div>
                     </div>
                     <Divider />
                   </>
@@ -595,6 +613,11 @@ export default function DispatchSettings({
                     <VStack gap={1}>
                       {settings.routes.map((route) => {
                         const isSelected = selectedRouteId === route.id;
+                        const driverNames = (route.routeDrivers || [])
+                          .map((d) => d.driverName?.trim())
+                          .filter(Boolean)
+                          .join(", ");
+                        const elderCount = settings.seniors.filter((s) => s.routeId === route.id).length;
                         return (
                           <SelectableCard
                             key={route.id}
@@ -630,8 +653,10 @@ export default function DispatchSettings({
                                 />
                               </HStack>
                               <Text type="supporting" color="secondary">
-                                운전자 {route.routeDrivers?.length || 0}명 · 어르신{" "}
-                                {settings.seniors.filter((s) => s.routeId === route.id).length}명
+                                {driverNames || "운전자 미배정"}
+                              </Text>
+                              <Text type="supporting" color="disabled">
+                                어르신 {elderCount}명
                               </Text>
                             </VStack>
                           </SelectableCard>
