@@ -635,15 +635,28 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     }, [disconnectedAt]);
 
     // 방 선택 시 메시지 로드 → 읽음 처리
+    /**
+     * 방을 처음 열 때 한 번만 통째로 받아온다.
+     *
+     * 전에는 이 effect가 fetchMessages·markAsRead를 의존성으로 두고 있었다. fetchMessages는
+     * 부모가 내려준 onNotification에 묶여 있는데, 부모(관리자 화면)가 그 함수를 매 렌더마다
+     * 새로 만들어 넘기고 있었다 — 그래서 부모가 다시 그려질 때마다(새 메시지로 안읽음 수가
+     * 바뀌는 것만으로도) 방을 통째로 다시 받아 스크롤이 맨 아래로 튀었다.
+     * 2026-09-17 "옛 글을 읽는데 자꾸 최신으로 돌아간다" 제보의 원인. 이제 방이 바뀔 때만 돈다.
+     */
+    const fetchMessagesRef = useRef(fetchMessages);
+    fetchMessagesRef.current = fetchMessages;
+    const markAsReadRef = useRef(markAsRead);
+    markAsReadRef.current = markAsRead;
     useEffect(() => {
         if (!selectedRoom) return;
         (async () => {
-            const lastMsgId = await fetchMessages(selectedRoom);
+            const lastMsgId = await fetchMessagesRef.current(selectedRoom);
             if (lastMsgId) {
-                markAsRead(selectedRoom, lastMsgId);
+                markAsReadRef.current(selectedRoom, lastMsgId);
             }
         })();
-    }, [selectedRoom, fetchMessages, markAsRead]);
+    }, [selectedRoom]);
 
     /**
      * 끊겼다 다시 붙은 순간, 끊겨 있던 사이에 온 메시지를 메운다.
@@ -674,7 +687,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 const missed = hasMissedMessages(messagesRef.current, latest);
                 setMessages(prev => mergeMissedMessages(prev, latest));
                 if (missed) {
-                    markAsRead(selectedRoom, latest[latest.length - 1].id);
+                    markAsReadRef.current(selectedRoom, latest[latest.length - 1].id);
                     // 맨 아래를 보고 있었으면 따라 내려가고, 위쪽을 읽던 중이면 배지로만 알린다
                     if (wasNearBottom) setTimeout(scrollToBottom, 100);
                     else setShowNewMessageBadge(true);
@@ -684,7 +697,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             }
         })();
         return () => { cancelled = true; };
-    }, [connectionEpoch, selectedRoom, markAsRead]);
+        // markAsRead는 ref로 부른다 — 의존성에 두면 위와 같은 재실행 사고가 또 난다
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [connectionEpoch, selectedRoom]);
 
     // 기관 인원 목록 + 지금 접속 중인 사람 (첫 화면용 — 이후 변화는 WebSocket으로 받는다).
     // 이미 받았거나 받는 중이면 load()가 알아서 넘긴다

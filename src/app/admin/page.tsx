@@ -1072,13 +1072,15 @@ export default function AdminPage() {
         setSelectedDeleteVacation(null);
     };
 
-    const showNotification = (
+    // 채팅 화면에 내려주는 콜백이라 렌더마다 새로 만들면 안 된다 — 신분이 바뀌면
+    // 그쪽 effect가 다시 돌아 방을 통째로 다시 받는다(스크롤이 맨 아래로 튄다).
+    const showNotification = useCallback((
         message: string,
         type: "success" | "error" | "info"
     ) => {
         // Astryx Toast는 'info'|'error' 두 타입만 지원한다 — success/info는 info로 매핑.
         toast({ body: message, type: type === "error" ? "error" : "info" });
-    };
+    }, [toast]);
 
     /** 클릭하면 해당 화면으로 이동하는 실시간 알림 토스트 (새 메시지·새 결재) */
     const showActionToast = (message: string, onGo: () => void) => {
