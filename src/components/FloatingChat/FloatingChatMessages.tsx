@@ -265,16 +265,39 @@ export function FloatingChatMessages({
     /** 위로 올릴 때 "지금 며칠 대화인지" 알려주는 떠 있는 배지 [[ChatScrollDateBadge]] */
     const { dateBadgeLabel, updateDateBadge } = useChatScrollDateBadge(messagesContainerRef);
 
+    /** 위쪽을 읽는 중에 남의 메시지가 왔을 때 띄우는 "새 메시지" 배지 */
+    const [showNewMessageBadge, setShowNewMessageBadge] = useState(false);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        setShowNewMessageBadge(false);
     };
 
     // 맨 아래로 따라가는 것은 '새 메시지가 끝에 붙었을 때'만이다.
     // messages 전체를 보면 위에 옛 대화를 이어 붙일 때도 끝으로 튕겨 나간다.
-    const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+    //
+    // 그리고 그때도 '내가 맨 아래를 보고 있었을 때'만 따라간다. 옛 대화를 올려 읽는 중에
+    // 남이 보낸 메시지마다 맨 아래로 끌려 내려가 "자꾸 최신으로 돌아간다"는 제보가 있었다.
+    // effect가 돌 때는 새 말풍선이 이미 붙어 높이가 늘어나 있으므로, 맨 아래와의 거리가
+    // 말풍선 하나 정도(300px)면 '아래를 보고 있던 것'으로 본다. 내가 보낸 것은 항상 따라간다.
+    const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+    const lastMessageId = lastMessage?.id ?? null;
+    const lastMessageIsMine = lastMessage?.senderId === userId;
     useEffect(() => {
-        scrollToBottom();
+        const el = messagesContainerRef.current;
+        const distanceFromBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight : 0;
+        if (lastMessageIsMine || distanceFromBottom < 300) {
+            scrollToBottom();
+        } else if (lastMessageId !== null) {
+            setShowNewMessageBadge(true);
+        }
+        // 방이 바뀌면 배지는 의미가 없다
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lastMessageId, roomId]);
+
+    useEffect(() => {
+        setShowNewMessageBadge(false);
+    }, [roomId]);
 
     useEffect(() => {
         setShowDrawer(false);
@@ -759,11 +782,25 @@ export function FloatingChatMessages({
                 </div>
             )}
 
+            {/* 위쪽을 읽는 중에 새 메시지가 왔을 때 — 목록을 튀게 하지 않고 알려 준다 */}
+            {showNewMessageBadge && (
+                <div style={{ position: "relative", height: 0, zIndex: 3 }}>
+                    <div style={{ position: "absolute", left: 0, right: 0, top: "var(--spacing-2)", display: "flex", justifyContent: "center" }}>
+                        <Button size="sm" variant="primary" label="새 메시지 보기 ↓" onClick={scrollToBottom} />
+                    </div>
+                </div>
+            )}
+
             {/* Messages */}
             <div
                 ref={messagesContainerRef}
                 {...olderScrollProps}
-                onScroll={() => { olderScrollProps.onScroll(); updateDateBadge(); }}
+                onScroll={() => {
+                    olderScrollProps.onScroll();
+                    updateDateBadge();
+                    const el = messagesContainerRef.current;
+                    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 40) setShowNewMessageBadge(false);
+                }}
                 style={{
                     flex: 1,
                     overflowY: "auto",
