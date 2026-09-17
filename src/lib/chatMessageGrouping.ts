@@ -266,14 +266,19 @@ export function chatAttachmentLabel(message: {
  * 들어 있어 그대로 쓰면 사진 한 장이 "compressed_1757…"으로 보인다.
  */
 export function lastMessagePreview(lastMessage: {
-    content: string;
+    content: string | null;
     displayContent?: string;
     type?: string;
     mediaType?: string;
     mimeType?: string;
     fileName?: string;
+    isDeleted?: boolean;
 }): string {
+    // 지워진 메시지는 본문이 비어 온다 — 그대로 쓰면 목록에 "null"이 찍힌다(앱은 이미 이렇게 쓴다)
+    if (lastMessage.isDeleted) return "삭제된 메시지입니다";
     if (lastMessage.displayContent) return lastMessage.displayContent;
-    if (lastMessage.fileName || lastMessage.mediaType) return chatAttachmentLabel(lastMessage);
-    return lastMessage.content;
+    if (lastMessage.fileName || lastMessage.mediaType) {
+        return chatAttachmentLabel({ ...lastMessage, content: lastMessage.content ?? undefined });
+    }
+    return lastMessage.content ?? "";
 }
