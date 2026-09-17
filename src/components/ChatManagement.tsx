@@ -460,6 +460,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         setShowNewMessageBadge(false);
+        setIsAwayFromBottom(false);
     };
 
     /** 지금 스크롤이 맨 아래에서 120px 이내인지 — 이 안쪽일 때만 새 메시지를 따라 내려간다 */
@@ -469,9 +470,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     };
 
+    /** 지금 맨 아래를 보고 있는지 — '맨 아래로' 버튼을 띄울지 판단한다(한 화면의 절반쯤 올리면 뜬다) */
+    const [isAwayFromBottom, setIsAwayFromBottom] = useState(false);
+
     /** 끝까지 내리면 새 메시지 배지를 치운다 (맨 위에서 옛 대화를 잇는 것은 훅이 맡는다) */
     const handleMessagesScroll = () => {
         if (showNewMessageBadge && isNearBottom()) setShowNewMessageBadge(false);
+        const el = messagesContainerRef.current;
+        if (el) {
+            const away = el.scrollHeight - el.scrollTop - el.clientHeight > Math.max(240, el.clientHeight * 0.5);
+            setIsAwayFromBottom(prev => (prev === away ? prev : away));
+        }
         updateDateBadge();
     };
 
@@ -2525,14 +2534,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 })
                             )}
                             <div ref={messagesEndRef} />
-                            {/* 새 메시지 배지 — 스크롤 컨테이너 하단에 붙어(sticky) 늘 보이는 자리에 뜬다.
-                                남이 보낸 메시지가 왔는데 내가 위쪽을 보고 있을 때만 나타난다 */}
-                            {showNewMessageBadge && (
+                            {/* 맨 아래로 돌아가는 버튼 — 스크롤 컨테이너 하단에 붙어(sticky) 늘 보이는 자리에 뜬다.
+                                위쪽 대화를 읽는 중이면 늘 보이고, 그 사이 새 메시지가 왔으면 문구가 바뀐다.
+                                (자동으로 따라 내려가지 않으므로 돌아갈 길은 항상 열어 둔다) */}
+                            {(showNewMessageBadge || isAwayFromBottom) && (
                                 <div style={{ position: "sticky", bottom: 'var(--spacing-1)', display: "flex", justifyContent: "center", pointerEvents: "none" }}>
                                     <div style={{ pointerEvents: "auto" }}>
                                         <Button
-                                            label="새 메시지 ↓"
-                                            variant="primary"
+                                            label={showNewMessageBadge ? "새 메시지 ↓" : "맨 아래로 ↓"}
+                                            variant={showNewMessageBadge ? "primary" : "secondary"}
                                             size="sm"
                                             onClick={scrollToBottom}
                                         />

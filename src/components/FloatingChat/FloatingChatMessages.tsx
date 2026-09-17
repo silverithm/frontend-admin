@@ -267,10 +267,13 @@ export function FloatingChatMessages({
 
     /** 위쪽을 읽는 중에 남의 메시지가 왔을 때 띄우는 "새 메시지" 배지 */
     const [showNewMessageBadge, setShowNewMessageBadge] = useState(false);
+    /** 위쪽 대화를 읽는 중인지 — '맨 아래로' 버튼을 띄운다 */
+    const [isAwayFromBottom, setIsAwayFromBottom] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         setShowNewMessageBadge(false);
+        setIsAwayFromBottom(false);
     };
 
     // 맨 아래로 따라가는 것은 '새 메시지가 끝에 붙었을 때'만이다.
@@ -782,11 +785,11 @@ export function FloatingChatMessages({
                 </div>
             )}
 
-            {/* 위쪽을 읽는 중에 새 메시지가 왔을 때 — 목록을 튀게 하지 않고 알려 준다 */}
-            {showNewMessageBadge && (
+            {/* 위쪽을 읽는 중일 때 돌아갈 길 — 새 메시지가 왔으면 문구가 바뀐다 */}
+            {(showNewMessageBadge || isAwayFromBottom) && (
                 <div style={{ position: "relative", height: 0, zIndex: 3 }}>
                     <div style={{ position: "absolute", left: 0, right: 0, top: "var(--spacing-2)", display: "flex", justifyContent: "center" }}>
-                        <Button size="sm" variant="primary" label="새 메시지 보기 ↓" onClick={scrollToBottom} />
+                        <Button size="sm" variant={showNewMessageBadge ? "primary" : "secondary"} label={showNewMessageBadge ? "새 메시지 보기 ↓" : "맨 아래로 ↓"} onClick={scrollToBottom} />
                     </div>
                 </div>
             )}
@@ -799,7 +802,11 @@ export function FloatingChatMessages({
                     olderScrollProps.onScroll();
                     updateDateBadge();
                     const el = messagesContainerRef.current;
-                    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 40) setShowNewMessageBadge(false);
+                    if (!el) return;
+                    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                    if (fromBottom < 40) setShowNewMessageBadge(false);
+                    const away = fromBottom > Math.max(200, el.clientHeight * 0.5);
+                    setIsAwayFromBottom(prev => (prev === away ? prev : away));
                 }}
                 style={{
                     flex: 1,
