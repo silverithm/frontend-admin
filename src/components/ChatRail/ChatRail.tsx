@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Item } from "@astryxdesign/core/Item";
+import { lastMessagePreview } from "@/lib/chatMessageGrouping";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -41,7 +42,7 @@ interface RailRoom {
     name: string;
     unreadCount: number;
     participantCount: number;
-    lastMessage?: { content: string; senderName: string } | null;
+    lastMessage?: { content: string | null; senderName: string; displayContent?: string; type?: string; mediaType?: string; fileName?: string; isDeleted?: boolean } | null;
     /** 방 아이콘에 겹쳐 그릴 참여자(최대 4명, 나는 빠져 있다) — 서버가 목록에 실어 준다 */
     avatars?: ChatRoomAvatarPerson[];
 }
@@ -438,7 +439,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                                 label={room.name}
                                 description={
                                     room.lastMessage
-                                        ? `${room.lastMessage.senderName}: ${room.lastMessage.content}`
+                                        ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
                                         : undefined
                                 }
                                 startContent={

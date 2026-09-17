@@ -269,3 +269,11 @@ test('지운 메시지 자신은 머리를 새로 달지 않는다 — 빈 머�
 
     assert.equal(items[1].showSenderHeader, false);
 });
+
+test("삭제된 마지막 메시지는 목록에 null이 아니라 안내 문구로 보인다", () => {
+    assert.equal(
+        lastMessagePreview({ content: null, isDeleted: true }),
+        "삭제된 메시지입니다",
+    );
+    assert.equal(lastMessagePreview({ content: null }), "");
+});
