@@ -164,7 +164,7 @@ export const TOUR_STEPS: TourStep[] = [
     tab: 'members',
     title: '어르신 명단도 여기서 관리하세요',
     description:
-      '"어르신 관리" 탭에서 이용 어르신을 등록하실 수 있어요.\n한 번 등록해두시면 배차와 출결에서 그대로 불러 씁니다.',
+      '"수급자 관리" 탭에서 이용 어르신을 등록하실 수 있어요.\n한 번 등록해두시면 배차와 출결에서 그대로 불러 씁니다.',
     adminOnly: true,
   },
 

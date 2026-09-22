@@ -922,7 +922,7 @@ export default function DispatchSettings({
                     </HStack>
                     {companySeniors.length === 0 && (
                       <Text type="supporting" color="secondary">
-                        회원관리 &gt; 어르신 관리에서 먼저 어르신을 등록해주세요.
+                        회원관리 &gt; 수급자 관리에서 먼저 어르신을 등록해주세요.
                       </Text>
                     )}
 

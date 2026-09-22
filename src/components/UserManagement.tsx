@@ -887,7 +887,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       {/* 헤더 */}
       <PageHeader
         title="회원 관리"
-        description="가입 신청을 승인하고, 직원 역할과 어르신 정보를 관리합니다."
+        description="가입 신청을 승인하고, 종사자와 수급자 정보를 관리합니다."
         actions={
           <IconButton
             label="새로고침"
@@ -905,14 +905,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           {/* 탭 네비게이션 */}
           <HStack style={{ padding: 'var(--spacing-4)', overflowX: 'auto' }}>
             <SegmentedControl
-              value={activeTab}
-              onChange={(v) => setActiveTab(v as 'pending' | 'members' | 'roles' | 'seniors')}
+              /* 역할 관리는 종사자 관리 안의 버튼으로 들어가는 하위 화면이라 탭에선 종사자 관리가 켜져 있게 둔다 */
+              value={activeTab === 'roles' ? 'members' : activeTab}
+              onChange={(v) => setActiveTab(v as 'pending' | 'members' | 'seniors')}
               label="회원 관리 탭"
             >
               <SegmentedControlItem value="pending" label={`가입 신청 (${pendingUsers.length})`} icon={<Icon icon={FiUserPlus} size="sm" />} />
-              <SegmentedControlItem value="members" label={`기존 회원 (${members.length + adminAccounts.length})`} icon={<Icon icon={FiUsers} size="sm" />} />
-              {canManage && <SegmentedControlItem value="roles" label="역할 관리" icon={<Icon icon={FiBriefcase} size="sm" />} />}
-              <SegmentedControlItem value="seniors" label={`어르신 관리 (${seniors.length})`} icon={<Icon icon={FiHeart} size="sm" />} />
+              <SegmentedControlItem value="members" label={`종사자 관리 (${members.length + adminAccounts.length})`} icon={<Icon icon={FiUsers} size="sm" />} />
+              <SegmentedControlItem value="seniors" label={`수급자 관리 (${seniors.length})`} icon={<Icon icon={FiHeart} size="sm" />} />
             </SegmentedControl>
           </HStack>
 
@@ -1002,6 +1002,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           ]}
                           onChange={(v) => setStatusFilter(v as 'all' | 'active' | 'inactive')}
                         />
+                        {canManage && (
+                          <Button
+                            label="역할 관리"
+                            variant="secondary"
+                            icon={<Icon icon={FiBriefcase} size="sm" />}
+                            onClick={() => setActiveTab('roles')}
+                          />
+                        )}
                       </>
                     )}
                   </HStack>
@@ -1144,6 +1152,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
+                  <HStack style={{ marginBottom: 'var(--spacing-3)' }}>
+                    <Button
+                      label="종사자 관리로 돌아가기"
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon icon="chevronLeft" size="sm" />}
+                      onClick={() => setActiveTab('members')}
+                    />
+                  </HStack>
                   <PositionManagement
                     organizationName={organizationName}
                     onNotification={onNotification}

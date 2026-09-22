@@ -359,7 +359,7 @@ export default function ElderBulkUploadDialog({
                   }
                   description={
                     result.failed.length === 0
-                      ? '어르신 관리 목록에서 바로 확인할 수 있습니다.'
+                      ? '수급자 관리 목록에서 바로 확인할 수 있습니다.'
                       : `${result.failed.length}명은 처리하지 못했습니다. 아래 사유를 확인한 뒤 개별 등록·수정하거나 파일을 고쳐 다시 올려주세요.`
                   }
                   container="section"

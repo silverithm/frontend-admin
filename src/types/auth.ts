@@ -66,7 +66,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   WORK_MANAGE: '근무조정 관리',
   MEMBER_VIEW: '회원 조회',
   MEMBER_MANAGE: '회원 관리',
-  SENIOR_MANAGE: '어르신 관리',
+  SENIOR_MANAGE: '수급자 관리',
 };
 
 export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
