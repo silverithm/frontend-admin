@@ -145,6 +145,10 @@ interface ScheduleCalendarProps {
   mode?: 'schedule' | 'dispatch';
   /** 연간일정에서 특정 달을 눌러 들어온 경우 그 달을 펼친 채로 연다. */
   initialMonth?: Date | null;
+  /** 대시보드에서 일정을 눌러 들어온 경우 그 일정의 상세를 바로 연다. */
+  initialScheduleId?: string | null;
+  /** initialScheduleId를 연 뒤 부모에게 알린다 — 같은 일정이 다시 열리지 않게 부모가 비운다. */
+  onInitialScheduleOpened?: () => void;
   onNotification?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -188,7 +192,7 @@ interface ScheduleFormData {
   labelId: string;
 }
 
-export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, onNotification }: ScheduleCalendarProps) {
+export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, initialScheduleId = null, onInitialScheduleOpened, onNotification }: ScheduleCalendarProps) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [currentDate, setCurrentDate] = useState(() => initialMonth ?? new Date());
@@ -884,6 +888,18 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     setSelectedSchedule(schedule);
     setShowDetailModal(true);
   };
+
+  // 대시보드에서 눌러 들어온 일정 — 그 달 일정을 다 받은 뒤 한 번만 상세를 연다.
+  // 못 찾으면(그새 지워졌거나 권한 밖) 조용히 달력만 보여 주고 끝낸다.
+  const initialScheduleHandledRef = useRef(false);
+  useEffect(() => {
+    if (!initialScheduleId || initialScheduleHandledRef.current || isLoading) return;
+    const target = schedules.find((s) => String(s.id) === String(initialScheduleId));
+    initialScheduleHandledRef.current = true;
+    if (target) handleScheduleClick(null, target);
+    onInitialScheduleOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialScheduleId, isLoading, schedules]);
 
   // 일정 생성 모달 열기
   const openCreateModal = (date?: Date) => {

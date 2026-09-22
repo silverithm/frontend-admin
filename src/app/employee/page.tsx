@@ -67,6 +67,9 @@ export default function EmployeePage() {
   const { showAlert, AlertContainer } = useAlert();
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('dashboard');
   const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>('submit');
+  /** 대시보드에서 누른 일정 — 일정 탭이 열리면 그 달로 가서 상세를 띄우고 비운다 */
+  const [scheduleFocusMonth, setScheduleFocusMonth] = useState<Date | null>(null);
+  const [scheduleFocusId, setScheduleFocusId] = useState<string | null>(null);
   // 편의기능 탭을 처음 열었을 때 보여줄 도구 — 권한을 읽기 전 임시값이며, 아래 effect에서
   // 배차 권한이 있으면 'dispatch'(기존 동작 유지)로, 없으면 'meetingMinutes'로 한 번만 확정한다.
   const [activeTool, setActiveTool] = useState<ToolKey>('meetingMinutes');
@@ -334,7 +337,12 @@ export default function EmployeePage() {
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} />
+                  <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} onOpenSchedule={({ id, startDate }) => {
+                    const d = new Date(`${startDate.slice(0, 10)}T00:00:00`);
+                    setScheduleFocusMonth(Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), 1));
+                    setScheduleFocusId(id);
+                    setActiveMainTab('schedule');
+                  }} />
                 </motion.div>
               ) : activeMainTab === 'notice' ? (
                 <motion.div
@@ -371,7 +379,7 @@ export default function EmployeePage() {
                   transition={{ duration: duration.mediumMin }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  <ScheduleCalendar isAdmin={hasPermission('SCHEDULE_MANAGE')} mode="schedule" onNotification={showNotification} />
+                  <ScheduleCalendar isAdmin={hasPermission('SCHEDULE_MANAGE')} mode="schedule" initialMonth={scheduleFocusMonth} initialScheduleId={scheduleFocusId} onInitialScheduleOpened={() => setScheduleFocusId(null)} onNotification={showNotification} />
                 </motion.div>
               ) : activeMainTab === 'tools' ? (
                 <motion.div

@@ -168,6 +168,8 @@ export default function AdminPage() {
     const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("schedule");
     // 연간일정에서 특정 달을 누르면 그 달을 펼친 채로 월간일정으로 넘어간다.
     const [scheduleFocusMonth, setScheduleFocusMonth] = useState<Date | null>(null);
+    /** 대시보드에서 누른 일정 — 월간일정이 열리면 그 일정 상세를 띄우고 비운다 */
+    const [scheduleFocusId, setScheduleFocusId] = useState<string | null>(null);
     const [activeTool, setActiveTool] = useState<ToolKey>("dispatch");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -1468,7 +1470,13 @@ export default function AdminPage() {
                                 if (tab === 'approval' && isAdmin) {
                                     setApprovalSubTab('management');
                                 }
-                            }} isAdmin={isAdmin} />
+                            }} isAdmin={isAdmin} onOpenSchedule={({ id, startDate }) => {
+                                const d = new Date(`${startDate.slice(0, 10)}T00:00:00`);
+                                setScheduleFocusMonth(Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), 1));
+                                setScheduleFocusId(id);
+                                setScheduleMode("schedule");
+                                setActiveMainTab("schedule");
+                            }} />
                         </motion.div>
                     ) : activeMainTab === "notice" ? (
                         <motion.div
@@ -1516,6 +1524,8 @@ export default function AdminPage() {
                                     isAdmin={isAdmin}
                                     mode={scheduleMode}
                                     initialMonth={scheduleFocusMonth}
+                                    initialScheduleId={scheduleFocusId}
+                                    onInitialScheduleOpened={() => setScheduleFocusId(null)}
                                     onNotification={showNotification}
                                 />
                             )}
