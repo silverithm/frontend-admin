@@ -63,7 +63,7 @@ import {
   createScheduleTask,
   updateScheduleTask,
   deleteScheduleTask, getScheduleLabels, getScheduleCategorySettings } from '@/lib/apiService';
-import { getScheduleColor, withAlpha, SCHEDULE_CATEGORIES, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS } from '@/types/schedule';
+import { getScheduleColor, getScheduleTextColor, withAlpha, SCHEDULE_CATEGORIES, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS } from '@/types/schedule';
 import { useConfirm } from '@/components/ConfirmDialog';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { buildWeekBarLayouts, WEEK_GRID_COLUMNS } from '@/lib/scheduleBars';
@@ -95,6 +95,8 @@ import { Selector } from '@astryxdesign/core/Selector';
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
   isAdmin?: boolean;
+  /** 일정을 누르면 월간일정 탭으로 넘어가 그 일정을 바로 연다. 없으면 대시보드 안에서 상세를 띄운다. */
+  onOpenSchedule?: (target: { id: string; startDate: string }) => void;
 }
 
 interface VacationItem {
@@ -232,7 +234,7 @@ const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => 
   color: 'var(--color-icon-secondary)',
 });
 
-export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDashboardProps) {
+export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSchedule }: AdminDashboardProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [isLoading, setIsLoading] = useState(true);
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -250,6 +252,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
   /** 대시보드에서 바로 여는 일정 등록 다이얼로그 */
   const [showCreateSchedule, setShowCreateSchedule] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
+  /** 일정 클릭 — 월간일정으로 바로 넘어가 그 일정을 연다 (현장 요청). 연결이 없는 화면에선 여기서 상세를 띄운다. */
+  const openSchedule = (schedule: ScheduleItem) => {
+    if (onOpenSchedule && schedule.startDate) {
+      onOpenSchedule({ id: String(schedule.id), startDate: schedule.startDate });
+      return;
+    }
+    setSelectedSchedule(schedule);
+  };
   const [showDaySchedules, setShowDaySchedules] = useState(false);
   // 일정 상세 모달의 할 일 관리 (월간일정 탭과 동일한 UX)
   const [detailTasks, setDetailTasks] = useState<ScheduleTask[] | null>(null);
@@ -1713,7 +1723,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                           title={done ? `${schedule.title} (수행완료)` : schedule.title}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedSchedule(schedule);
+                            openSchedule(schedule);
                           }}
                           style={{
                             position: 'absolute',
@@ -1726,14 +1736,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                             justifyContent: 'center',
                             gap: 'var(--spacing-0-5)',
                             padding: '0 var(--spacing-1)',
-                            /* [#11] 진한 색 배경 + 흰 글씨 9px는 읽기 어렵다. 완료 칩에 쓰던
-                               '연한 배경 + 진한 글씨' 톤을 미완료 칩에도 맞추고 글자를 한 단계
-                               키운다. 완료/미완료 구분은 취소선·아이콘으로 유지한다. */
-                            border: `1px solid ${done ? color : withAlpha(color, 0.4)}`,
+                            /* 월간일정 탭과 같은 규칙 — 아직 수행하지 않은 일정은 진한 색으로
+                               칠해 한눈에 남은 일이 보이게 하고, 수행완료는 연한 배경 + 테두리로
+                               물러나게 한다 (현장 요청: "수행하지 않은 예정 업무는 진한 색으로").
+                               글자는 [#11]에서 키운 크기를 유지하고, 진한 배경 위 글자색은
+                               배경 밝기에 맞춰 대비가 나는 색을 고른다. */
+                            border: done ? `1px solid ${color}` : '1px solid transparent',
                             borderRadius: `${startRadius} ${endRadius} ${endRadius} ${startRadius}`,
-                            background: withAlpha(color, done ? 0.14 : 0.18),
-                            color,
-                            opacity: done ? 0.85 : 1,
+                            background: done ? withAlpha(color, 0.14) : color,
+                            color: done ? 'var(--color-text-primary)' : getScheduleTextColor(color),
+                            opacity: done ? 0.85 : 0.9,
                             fontSize: 'var(--font-size-sm)',
                             fontWeight: 'var(--font-weight-medium)',
                             lineHeight: '15px',
@@ -1834,7 +1846,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                       style={{ display: 'flex', gap: 'var(--spacing-3)', flex: 1, minWidth: 0 }}
                       onClick={() => {
                         setShowDaySchedules(false);
-                        setSelectedSchedule(schedule);
+                        openSchedule(schedule);
                       }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
@@ -2278,7 +2290,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true }: AdminDas
                 <Button
                   label="월간일정에서 보기"
                   variant="ghost"
-                  onClick={() => { setSelectedSchedule(null); onTabChange('schedule'); }}
+                  onClick={() => {
+                    const target = selectedSchedule;
+                    setSelectedSchedule(null);
+                    if (target?.startDate && onOpenSchedule) onOpenSchedule({ id: String(target.id), startDate: target.startDate });
+                    else onTabChange('schedule');
+                  }}
                 />
                 <Button
                   label="닫기"
