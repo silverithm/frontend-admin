@@ -3172,6 +3172,20 @@ export async function leaveChatRoom(roomId: number) {
     });
 }
 
+// ================== 채팅방 상단 고정 ==================
+
+/**
+ * 채팅방을 내 목록 맨 위에 고정하거나 푼다 — 내 목록만 바뀐다(다른 참가자의 목록은 그대로).
+ * 응답은 `{ success, pinned }`. 순서·병합 규칙은 [[chatRoomPin]].
+ */
+export async function setChatRoomPinned(roomId: number, pinned: boolean) {
+    const userId = getMyChatUserId() || '';
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/pin?userId=${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ pinned }),
+    });
+}
+
 // ================== 회의록 양식 (회사당 여러 개, V1.85) ==================
 
 import { MinutesTemplate, parseTemplateResponse } from '@/types/meetingMinutes';

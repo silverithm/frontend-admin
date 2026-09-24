@@ -3,12 +3,13 @@
 import { subheaderStyle } from '@/components/subheaderStyle';
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
-import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, setChatRoomPinned } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { createChatClient } from '@/lib/chatSocket';
 import { applyIncoming, isLocalOnly } from '@/lib/chatSend';
+import { CHAT_ROOM_PIN_EVENT, keepLocalPins, mergeRoomKeepingPin, setRoomPinned, sortRoomsPinnedFirst, type ChatRoomPinChange } from '@/lib/chatRoomPin';
 import { useReliableChatSend } from '@/lib/useReliableChatSend';
 import { useOlderChatMessages, CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { mergeMissedMessages, hasMissedMessages, readAscendingMessages, isConnectionStale } from '@/lib/chatReconnect';
@@ -24,6 +25,7 @@ import { ChatImage } from '@/components/chat/ChatImage';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
+import { chatRoomLabel } from '@/components/chat/ChatRoomName';
 import { ChatMessageText } from '@/components/chat/ChatMessageText';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
 import { Button } from '@astryxdesign/core/Button';
@@ -50,6 +52,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLogOut, FiCalendar, FiEdit2 } from 'react-icons/fi';
+import { IconPin, IconPinnedOff } from '@tabler/icons-react';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 
@@ -139,6 +142,12 @@ interface ChatRoom {
     noticeFileUrl?: string | null;
     /** 방 아이콘에 겹쳐 그릴 참여자(최대 4명, 나는 빠져 있다) — 서버가 목록에 실어 준다 */
     avatars?: ChatRoomAvatarPerson[];
+    /**
+     * 내 목록 상단 고정 — 사람마다 다르다. 목록 조회만 제대로 채워 주고, 방 하나짜리 응답·소켓 값에는
+     * 없거나 기본값(false)이라 합칠 때 mergeRoomKeepingPin으로 지킨다 [[chatRoomPin]]
+     */
+    pinned?: boolean;
+    pinnedAt?: string | null;
 }
 
 interface WebSocketMessage {
@@ -376,6 +385,37 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
        "컴퓨터로는 나가기가 안 된다"는 이야기가 나왔다. 목록에도 같은 입구를 둔다. */
     const [roomMenuId, setRoomMenuId] = useState<number | null>(null);
     const [isLeavingRoom, setIsLeavingRoom] = useState(false);
+    /** 고정/해제를 보내는 중인 방 — 결과가 오기 전에 또 누르면 요청 순서가 엇갈려 반대로 끝날 수 있다 */
+    const [pinPendingRoomIds, setPinPendingRoomIds] = useState<number[]>([]);
+    /**
+     * 고정을 바꿀 때마다 올린다. 목록 갱신은 요청을 보낼 때 이 값을 기억했다가, 응답이 왔을 때
+     * 달라져 있으면(그사이 고정을 바꿨으면) 고정 여부만은 화면 값을 지킨다 [[chatRoomPin]]
+     */
+    const pinChangeSeqRef = useRef(0);
+
+    /**
+     * 목록 방 메뉴가 닫히면 누른 메뉴 버튼이 사라져 키보드 포커스가 문서 맨 처음으로 튄다 —
+     * 그 방의 ⋯ 버튼으로 돌려준다. 고정으로 방이 자리를 옮겨도 방 id로 찾으므로 따라간다.
+     */
+    const focusRoomMenuButton = useCallback((roomId: number) => {
+        requestAnimationFrame(() => {
+            document
+                .querySelector<HTMLButtonElement>(`[data-chat-room-row="${roomId}"] .carev-chat-roomrow-actions button`)
+                ?.focus();
+        });
+    }, []);
+
+    // 목록의 방 메뉴도 Escape로 닫는다 (헤더 더보기 메뉴와 같은 이유로 document에 건다)
+    useEffect(() => {
+        if (roomMenuId === null) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            setRoomMenuId(null);
+            focusRoomMenuButton(roomMenuId);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [roomMenuId, focusRoomMenuButton]);
 
     // 열린 메시지 메뉴는 Escape로 닫는다.
     // 메뉴 요소에 onKeyDown을 붙이면 안 된다 — 메뉴를 연 직후 포커스는 그것을 연 버튼에 남아 있어
@@ -492,9 +532,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             await markChatAsRead(roomId, lastMsgId);
 
             // 로컬 unreadCount 즉시 0으로 갱신
-            setRooms(prev => prev.map(room =>
+            setRooms(prev => sortRoomsPinnedFirst(prev.map(room =>
                 room.id === roomId ? { ...room, unreadCount: 0 } : room
-            ));
+            )));
             // 내 읽음 위치도 함께 옮긴다 — 안 그러면 남이 보낸 메시지 옆 숫자에
             // 내가 계속 '안 읽은 사람'으로 남는다 (서버는 내 읽음 이벤트를 나에게 되돌려주지 않는다)
             setParticipants(prev => prev.map(p =>
@@ -511,11 +551,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (!companyId || !userId) return;
 
         setIsLoadingRooms(true);
+        const pinSeqAtRequest = pinChangeSeqRef.current;
         try {
             const data = await fetchChatRooms();
-            const roomList = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
+            const roomList: ChatRoom[] = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
             hasLoadedRoomsRef.current = true; // setRooms로 인한 재렌더에서 배지 보고가 열리도록 먼저 세운다
-            setRooms(roomList);
+            if (pinChangeSeqRef.current !== pinSeqAtRequest) {
+                // 목록을 묻는 사이 고정을 바꿨다 — 이 응답의 고정 값은 바꾸기 전 것일 수 있어 화면 값을 지킨다
+                setRooms(prev => keepLocalPins(roomList, prev));
+            } else {
+                // 서버가 이미 고정 먼저 순서로 주지만, 고정을 모르는 서버(배포 전)에서도 규칙은 같게 둔다
+                setRooms(sortRoomsPinnedFirst(roomList));
+            }
         } catch (error) {
             console.error("Error fetching rooms:", error);
             onNotification("채팅방 목록을 불러오지 못했습니다. 네트워크 연결을 확인해주세요", "error");
@@ -793,11 +840,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             markAsRead(wsMessage.roomId, wsMessage.message.id);
                         }
 
-                        // 방 목록의 마지막 메시지도 업데이트
-                        setRooms(prevRooms => prevRooms.map(room => {
+                        // 방 목록의 마지막 메시지도 업데이트 — 소켓 값에는 고정 여부가 없어 목록 것을 지킨다
+                        setRooms(prevRooms => sortRoomsPinnedFirst(prevRooms.map(room => {
                             if (room.id === wsMessage.roomId && wsMessage.message) {
-                                return {
-                                    ...room,
+                                return mergeRoomKeepingPin(room, {
                                     lastMessage: {
                                         content: wsMessage.message.content,
                                         senderName: wsMessage.message.senderName,
@@ -810,10 +856,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         fileName: wsMessage.message.fileName,
                                     },
                                     lastMessageAt: wsMessage.message.createdAt,
-                                };
+                                });
                             }
                             return room;
-                        }));
+                        })));
                     }
                 } catch (e) {
                     console.error("[Chat WebSocket] 메시지 파싱 오류:", e);
@@ -1254,8 +1300,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         try {
             const response = await updateChatRoomNotice(selectedRoom, messageId, userName || "");
             const updated = response.room;
-            // 목록 쪽 방 정보에 공지를 반영해야 상단 바가 바로 갱신된다
-            setRooms(prev => prev.map(r => (r.id === selectedRoom ? { ...r, ...updated } : r)));
+            // 목록 쪽 방 정보에 공지를 반영해야 상단 바가 바로 갱신된다.
+            // 이 응답도 ChatRoomDTO라 pinned:false가 기본값으로 실려 온다 — 그대로 펼치면 고정이 풀린다
+            setRooms(prev => sortRoomsPinnedFirst(prev.map(r => (r.id === selectedRoom ? mergeRoomKeepingPin(r, updated) : r))));
             setContextMenuMessageId(null);
             setIsNoticeExpanded(false);
             onNotification(messageId === null ? "공지를 내렸습니다" : "공지로 등록했습니다", "success");
@@ -1467,6 +1514,48 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     };
 
+    /**
+     * 상단 고정/해제 — 내 목록에서만 바뀐다.
+     * 누르는 즉시 화면부터 옮기고(기다리지 않게), 서버가 거절하면 원래 자리로 되돌린다.
+     */
+    const toggleRoomPin = async (room: ChatRoom) => {
+        if (pinPendingRoomIds.includes(room.id)) return;
+        const wasPinned = Boolean(room.pinned);
+        const nextPinned = !wasPinned;
+        const previousPinnedAt = room.pinnedAt ?? null;
+        const optimisticPinnedAt = nextPinned ? new Date().toISOString() : null;
+
+        setRoomMenuId(null);
+        setPinPendingRoomIds(prev => [...prev, room.id]);
+        pinChangeSeqRef.current += 1;
+        setRooms(prev => setRoomPinned(prev, room.id, nextPinned, optimisticPinnedAt));
+        focusRoomMenuButton(room.id);
+
+        try {
+            const response = await setChatRoomPinned(room.id, nextPinned);
+            const confirmed = typeof response?.pinned === "boolean" ? response.pinned : nextPinned;
+            const confirmedPinnedAt = confirmed ? optimisticPinnedAt : null;
+            pinChangeSeqRef.current += 1;
+            setRooms(prev => setRoomPinned(prev, room.id, confirmed, confirmedPinnedAt));
+            // 숨어 있는 우측 레일도 다음 갱신(30초)을 기다리지 않고 따라오게 알린다
+            const change: ChatRoomPinChange = { roomId: room.id, pinned: confirmed, pinnedAt: confirmedPinnedAt };
+            window.dispatchEvent(new CustomEvent<ChatRoomPinChange>(CHAT_ROOM_PIN_EVENT, { detail: change }));
+            onNotification(confirmed ? "상단에 고정했어요" : "고정을 풀었어요", "success");
+        } catch (error) {
+            console.error("채팅방 고정 변경 실패:", error);
+            pinChangeSeqRef.current += 1;
+            setRooms(prev => setRoomPinned(prev, room.id, wasPinned, previousPinnedAt));
+            onNotification(
+                nextPinned
+                    ? "상단에 고정하지 못했어요. 잠시 후 다시 시도해주세요"
+                    : "고정을 풀지 못했어요. 잠시 후 다시 시도해주세요",
+                "error",
+            );
+        } finally {
+            setPinPendingRoomIds(prev => prev.filter(id => id !== room.id));
+        }
+    };
+
     const toggleDrawer = () => {
         // 서랍을 열 때마다 다시 받아 이름·프로필이 최신이 되게 한다 (읽음 위치는 아래 effect가 이미 채워둔다)
         if (!showDrawer && selectedRoom) {
@@ -1631,6 +1720,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 <div
                                     key={room.id}
                                     className="carev-chat-roomrow"
+                                    data-chat-room-row={room.id}
                                     style={{ position: "relative" }}
                                     onContextMenu={(e) => { e.preventDefault(); setRoomMenuId(room.id); }}
                                 >
@@ -1645,7 +1735,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                             size={36}
                                         />
                                     }
-                                    label={room.name}
+                                    label={chatRoomLabel(room.name, room.pinned)}
                                     labelLines={1}
                                     description={
                                         <VStack gap={0.5}>
@@ -1706,6 +1796,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 overflow: "hidden",
                                             }}
                                         >
+                                            {/* 자주 쓰는 방을 맨 위에 — 내 목록에서만 바뀐다 */}
+                                            <Button
+                                                label={room.pinned ? "고정 해제" : "상단 고정"}
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={<Icon icon={room.pinned ? IconPinnedOff : IconPin} size="sm" />}
+                                                isDisabled={pinPendingRoomIds.includes(room.id)}
+                                                onClick={() => toggleRoomPin(room)}
+                                                style={{ width: "100%", justifyContent: "flex-start" }}
+                                            />
                                             <Button
                                                 label="채팅방 나가기"
                                                 variant="ghost"

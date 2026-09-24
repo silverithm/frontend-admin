@@ -19,11 +19,13 @@ import { FiMessageCircle, FiUsers, FiChevronDown, FiChevronRight, FiChevronsRigh
 
 import MemberItem from "@/components/MemberItem";
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from "@/components/chat/ChatRoomAvatarStack";
+import { chatRoomLabel } from "@/components/chat/ChatRoomName";
 import ChatDock from "@/components/ChatRail/ChatDock";
 import { Loading } from "@/components/Loading";
 import { fetchChatRooms } from "@/lib/apiService";
 import { DirectChatMember, openOrCreateDirectRoom } from "@/lib/directChat";
 import { getMyChatUserId } from "@/lib/chatIdentity";
+import { CHAT_ROOM_PIN_EVENT, keepLocalPins, setRoomPinned, sortRoomsPinnedFirst, type ChatRoomPinChange } from "@/lib/chatRoomPin";
 import { createChatClient } from "@/lib/chatSocket";
 import { useOrgPresenceStore, sortMembersByPresence } from "@/lib/orgPresenceStore";
 import { useVisiblePolling } from "@/lib/useVisiblePolling";
@@ -45,6 +47,9 @@ interface RailRoom {
     lastMessage?: { content: string | null; senderName: string; displayContent?: string; type?: string; mediaType?: string; fileName?: string; isDeleted?: boolean } | null;
     /** 방 아이콘에 겹쳐 그릴 참여자(최대 4명, 나는 빠져 있다) — 서버가 목록에 실어 준다 */
     avatars?: ChatRoomAvatarPerson[];
+    /** 내 목록 상단 고정 — 채팅 화면과 같은 순서 규칙을 쓴다 [[chatRoomPin]] */
+    pinned?: boolean;
+    pinnedAt?: string | null;
 }
 
 interface ChatRailProps {
@@ -144,12 +149,18 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
     onNewMessageRef.current = onNewMessage;
     const dockRoomIdRef = useRef<number | null>(null);
     dockRoomIdRef.current = dockRoomId;
+    /**
+     * 채팅 화면에서 고정을 바꿀 때마다 올린다. 그보다 먼저 출발한 목록 응답이 도착해도
+     * 고정 여부만은 화면 값을 지킨다 — 채팅 화면과 같은 규칙이다 [[chatRoomPin]]
+     */
+    const pinChangeSeqRef = useRef(0);
 
     const loadRooms = useCallback(async () => {
         if (!companyId || !userId) return;
+        const pinSeqAtRequest = pinChangeSeqRef.current;
         try {
             const data = await fetchChatRooms();
-            const list = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
+            const list: RailRoom[] = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
 
             // 새 메시지 감지 — 안읽음 수가 늘어난 방(내가 지금 보고 있는 방/작은 창으로 띄운 방은 제외)만 알린다.
             // 첫 로드는 '증가'가 아니라 '처음 안다'이므로 여기서 토스트를 띄우지 않는다.
@@ -169,7 +180,11 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
 
             hasLoadedRoomsRef.current = true; // setRooms로 인한 재렌더에서 배지 보고가 열리도록 먼저 세운다
             prevRoomsRef.current = list;
-            setRooms(list);
+            if (pinChangeSeqRef.current !== pinSeqAtRequest) {
+                setRooms(prev => keepLocalPins(list, prev));
+            } else {
+                setRooms(sortRoomsPinnedFirst(list));
+            }
         } catch (error) {
             console.error("[ChatRail] 대화방 목록 로드 실패:", error);
         } finally {
@@ -178,6 +193,19 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
     }, [companyId, userId]);
 
     useVisiblePolling(loadRooms, 30000);
+
+    // 채팅 화면에서 고정/해제하면 바로 따라간다 — 레일은 채팅 탭에서 숨어 있을 뿐 살아 있어서,
+    // 알려주지 않으면 다른 탭으로 나갔을 때 다음 갱신까지 옛 순서가 보인다
+    useEffect(() => {
+        const onPinChanged = (event: Event) => {
+            const change = (event as CustomEvent<ChatRoomPinChange>).detail;
+            if (!change) return;
+            pinChangeSeqRef.current += 1;
+            setRooms(prev => setRoomPinned(prev, change.roomId, change.pinned, change.pinnedAt));
+        };
+        window.addEventListener(CHAT_ROOM_PIN_EVENT, onPinChanged);
+        return () => window.removeEventListener(CHAT_ROOM_PIN_EVENT, onPinChanged);
+    }, []);
 
     useEffect(() => {
         if (!companyId) return;
@@ -343,8 +371,9 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                                     }}
                                     onRead={(readRoomId) =>
                                         // 이미 0이면 배열 정체성을 유지해 불필요한 재렌더(→ 도크 재로딩 루프)를 막는다
+                                        // (sortRoomsPinnedFirst도 순서가 이미 맞으면 같은 배열을 돌려준다)
                                         setRooms(prev => prev.some(r => r.id === readRoomId && r.unreadCount > 0)
-                                            ? prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r))
+                                            ? sortRoomsPinnedFirst(prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r)))
                                             : prev)
                                     }
                                 />
@@ -436,7 +465,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                         rooms.map(room => (
                             <Item
                                 key={room.id}
-                                label={room.name}
+                                label={chatRoomLabel(room.name, room.pinned)}
                                 description={
                                     room.lastMessage
                                         ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
