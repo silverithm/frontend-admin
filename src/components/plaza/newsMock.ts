@@ -1,5 +1,7 @@
-// 요양 소식 데이터 — 기본은 백엔드 API(GET /api/v1/news, Google News RSS 수집)를 사용하고,
-// API 실패/빈 응답 시 아래 MOCK_NEWS로 폴백한다.
+// 요양 소식 데이터 — 백엔드 API(GET /api/v1/news, Google News RSS 수집)만 쓴다.
+// 예전에는 API 실패 시와 첫 렌더에 지어낸 기사 제목(MOCK_NEWS, "약 2시간 전")을 보여 줬는데,
+// 자바스크립트를 실행하지 않는 검색 로봇(네이버 Yeti 등)은 공개 커뮤니티 페이지에서 그 가짜 제목만 읽어 갔다.
+// 사실이 아닌 기사를 사실처럼 보여 주지 않도록 실패하면 빈 목록을 돌려주고, 화면이 "불러오지 못함"을 표시한다.
 
 import { getNews } from '@/lib/apiService';
 
@@ -31,7 +33,7 @@ export const getNewsCategoryMeta = (category: NewsCategory) =>
 const VALID_CATEGORIES: NewsCategory[] = ['abuse', 'policy', 'eval', 'field'];
 
 /**
- * 뉴스 목록 로드: 백엔드 API 우선, 실패하거나 비어 있으면 목업 폴백.
+ * 뉴스 목록 로드. 실패하거나 비어 있으면 빈 배열.
  * (백엔드는 { content: [...] } 래퍼로 응답)
  */
 export async function loadNews(): Promise<NewsItem[]> {
@@ -53,137 +55,9 @@ export async function loadNews(): Promise<NewsItem[]> {
         } satisfies NewsItem;
       })
       .filter((n): n is NewsItem => n !== null);
-    if (items.length > 0) return items;
+    return items;
   } catch {
-    // API 미배포/토큰 만료 등 — 목업으로 폴백
+    // API 미배포/토큰 만료 등 — 빈 목록으로 두고 화면이 안내한다
+    return [];
   }
-  return MOCK_NEWS;
 }
-
-const hoursAgo = (h: number) => new Date(Date.now() - h * 60 * 60 * 1000);
-
-const newsSearchUrl = (keyword: string) =>
-  `https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(keyword)}`;
-
-export const MOCK_NEWS: NewsItem[] = [
-  {
-    id: 'n1',
-    title: '복지부, 2026년 장기요양 수가 개정안 행정예고… 주간보호 가산 확대',
-    source: '연합뉴스',
-    category: 'policy',
-    publishedAt: hoursAgo(2),
-    url: newsSearchUrl('장기요양 수가 개정'),
-  },
-  {
-    id: 'n2',
-    title: '"CCTV 사각지대 없앤다"… 요양시설 노인학대 예방 대책 발표',
-    source: 'KBS',
-    category: 'abuse',
-    publishedAt: hoursAgo(4),
-    url: newsSearchUrl('요양시설 노인학대 예방'),
-  },
-  {
-    id: 'n3',
-    title: '2026년 장기요양기관 정기평가 일정 공개… 지표 개편 사항 총정리',
-    source: '실버산업신문',
-    category: 'eval',
-    publishedAt: hoursAgo(7),
-    url: newsSearchUrl('장기요양기관 정기평가'),
-  },
-  {
-    id: 'n4',
-    title: '요양보호사 처우개선비 인상안 국회 통과… 내년 1월 시행',
-    source: '뉴시스',
-    category: 'policy',
-    publishedAt: hoursAgo(11),
-    url: newsSearchUrl('요양보호사 처우개선비'),
-  },
-  {
-    id: 'n5',
-    title: '주간보호센터 인지프로그램 우수사례 공모전 개최',
-    source: '복지타임즈',
-    category: 'field',
-    publishedAt: hoursAgo(16),
-    url: newsSearchUrl('주간보호센터 인지프로그램'),
-  },
-  {
-    id: 'n6',
-    title: '폭염 속 어르신 안전관리 비상… 시설 내 온열질환 대응 지침 배포',
-    source: 'YTN',
-    category: 'abuse',
-    publishedAt: hoursAgo(22),
-    url: newsSearchUrl('노인시설 온열질환 대응'),
-  },
-  {
-    id: 'n7',
-    title: '건보공단, 장기요양 급여비용 청구 오류 다발 항목 안내',
-    source: '의학신문',
-    category: 'policy',
-    publishedAt: hoursAgo(28),
-    url: newsSearchUrl('장기요양 급여비용 청구'),
-  },
-  {
-    id: 'n8',
-    title: '평가 A등급 기관들의 공통점은? 기록관리 노하우 집중 분석',
-    source: '실버산업신문',
-    category: 'eval',
-    publishedAt: hoursAgo(33),
-    url: newsSearchUrl('장기요양기관 평가 A등급'),
-  },
-  {
-    id: 'n9',
-    title: '치매전담형 주간보호 확대… 신규 지정 신청 접수 시작',
-    source: '연합뉴스',
-    category: 'policy',
-    publishedAt: hoursAgo(40),
-    url: newsSearchUrl('치매전담형 주간보호'),
-  },
-  {
-    id: 'n10',
-    title: '요양보호사 인력난 심화… 지자체별 채용 지원 사업 잇따라',
-    source: 'MBC',
-    category: 'field',
-    publishedAt: hoursAgo(47),
-    url: newsSearchUrl('요양보호사 인력난'),
-  },
-  {
-    id: 'n11',
-    title: '노인학대 신고 의무자 교육 온라인 과정 신설… 연 1회 이수 필수',
-    source: '복지타임즈',
-    category: 'abuse',
-    publishedAt: hoursAgo(52),
-    url: newsSearchUrl('노인학대 신고 의무자 교육'),
-  },
-  {
-    id: 'n12',
-    title: '어르신 낙상 예방 운동 프로그램, 현장 적용 가이드 나왔다',
-    source: '헬스조선',
-    category: 'field',
-    publishedAt: hoursAgo(60),
-    url: newsSearchUrl('노인 낙상 예방 프로그램'),
-  },
-  {
-    id: 'n13',
-    title: '장기요양위원회, 내년 보험료율 동결 결정… 재정 전망은',
-    source: 'SBS',
-    category: 'policy',
-    publishedAt: hoursAgo(70),
-    url: newsSearchUrl('장기요양보험료율'),
-  },
-  {
-    id: 'n14',
-    title: '평가 대비 자체점검 체크리스트, 공단 홈페이지에 공개',
-    source: '의학신문',
-    category: 'eval',
-    publishedAt: hoursAgo(76),
-    url: newsSearchUrl('장기요양 평가 자체점검'),
-  },
-  {
-    id: 'n15',
-    title: '세대통합 프로그램 운영 주간보호센터, 지역사회 호응 확산',
-    source: '복지타임즈',
-    category: 'field',
-    publishedAt: hoursAgo(85),
-    url: newsSearchUrl('세대통합 프로그램 주간보호'),
-  },
-];

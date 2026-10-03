@@ -49,7 +49,8 @@ export default function PlazaPage() {
             endContent={<Button variant="primary" size="sm" label="로그인" onClick={() => router.push('/login')} />}
           />
         )}
-        <PlazaManagement />
+        {/* 이 페이지에서는 커뮤니티 헤더가 곧 페이지 제목(h1)이다 */}
+        <PlazaManagement headingLevel={1} />
       </div>
     </main>
   );

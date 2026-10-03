@@ -81,7 +81,7 @@ import {
 import { fetchMonthVacations, vacationKindBadgeStyle, type VacationPerson } from '@/lib/monthVacations';
 import CalendarVacationPane from '@/components/CalendarVacationPane';
 import type { ScheduleTask } from '@/types/schedule';
-import { MOCK_NEWS, loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
+import { loadNews, getNewsCategoryMeta, type NewsItem } from '@/components/plaza/newsMock';
 import { dedupeNews } from '@/components/plaza/newsDedup';
 import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza/plazaApi';
 import { duration } from '@/theme/motion';
@@ -278,7 +278,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
-  const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
+  // null = 아직 불러오는 중 (빈 배열이면 불러오지 못했거나 소식이 없음)
+  const [newsItems, setNewsItems] = useState<NewsItem[] | null>(null);
   // 기관 커스텀 일정 구분 — 범례에 색 점으로 함께 보여준다
   const [customCategories, setCustomCategories] = useState<{ id: string; name: string; color: string }[]>([]);
   // 기본 구분의 기관별 상태 (이름·색 변경, 숨김) — 범례·구분명 표시에 반영
@@ -1412,8 +1413,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
               </div>
 
               <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                {newsItems !== null && newsItems.length === 0 && (
+                  <Text type="supporting" color="secondary">요양 소식을 불러오지 못했습니다. 잠시 뒤 다시 확인해 주세요.</Text>
+                )}
                 <VStack gap={1}>
-                  {dedupeNews(newsItems).slice(0, PANEL_ROW_LIMIT).map((news) => {
+                  {dedupeNews(newsItems ?? []).slice(0, PANEL_ROW_LIMIT).map((news) => {
                     const meta = getNewsCategoryMeta(news.category);
                     return (
                       <a

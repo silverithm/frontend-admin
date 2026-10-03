@@ -15,6 +15,11 @@ interface PageHeaderProps {
     titleBadge?: ReactNode;
     /** 제목 줄 오른쪽 끝 버튼들 */
     actions?: ReactNode;
+    /**
+     * 제목 태그 단계. 관리자 탭 안에서는 셸 아래 h2가 맞고, 로그인 없이 여는 공개 페이지(/plaza)처럼
+     * 이 헤더가 곧 페이지 제목이면 1을 준다 — 검색 로봇은 h1으로 페이지 주제를 읽는다.
+     */
+    level?: 1 | 2;
 }
 
 /**
@@ -36,6 +41,7 @@ export function PageHeader({
     description,
     titleBadge,
     actions,
+    level = 2,
 }: PageHeaderProps) {
     return (
         // 액션이 둘 이상인 화면(결재 신청·양식 관리)은 좁은 폭에서 제목 줄이 넘치므로
@@ -43,7 +49,7 @@ export function PageHeader({
         <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
             <VStack gap={0.5}>
                 <HStack gap={2} vAlign="center">
-                    <Heading level={2}>{title}</Heading>
+                    <Heading level={level}>{title}</Heading>
                     {titleBadge}
                 </HStack>
                 {description && (

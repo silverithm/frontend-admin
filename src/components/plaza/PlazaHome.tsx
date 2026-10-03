@@ -26,6 +26,8 @@ export type PlazaMenu = 'home' | 'free' | 'review' | 'tip' | 'job_offer' | 'job_
 
 interface PlazaHomeProps {
   newsItems: NewsItem[];
+  /** 요양 소식을 아직 받는 중인지 — 빈 목록("불러오지 못함")과 구분한다 */
+  isNewsLoading?: boolean;
   onNavigate: (menu: PlazaMenu) => void;
   onOpenPost: (postId: number, board: BoardType) => void;
 }
@@ -49,7 +51,7 @@ function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string
 }
 
 /** 광장 홈 — 카페 홈처럼 인기글·최신글·요양소식·새 자료 위젯 모음 */
-export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHomeProps) {
+export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate, onOpenPost }: PlazaHomeProps) {
   const [popular, setPopular] = useState<ApiPostSummary[]>([]);
   const [latest, setLatest] = useState<ApiPostSummary[]>([]);
   const [library, setLibrary] = useState<ApiLibraryItem[]>([]);
@@ -158,6 +160,16 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconNews} title="요양 소식" onMore={() => onNavigate('news')} />
             <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              {isNewsLoading ? renderRowSkeletons(6) : dedupedNews.length === 0 ? (
+                <Center height="100%">
+                  <EmptyState
+                    isCompact
+                    title="요양 소식을 불러오지 못했습니다"
+                    description="잠시 뒤 다시 확인해 주세요."
+                    icon={<Icon icon={IconNews} size="lg" color="secondary" />}
+                  />
+                </Center>
+              ) : (
               <VStack gap={0}>
                 {dedupedNews.map((news) => {
                   const meta = getNewsCategoryMeta(news.category);
@@ -183,6 +195,7 @@ export default function PlazaHome({ newsItems, onNavigate, onOpenPost }: PlazaHo
                   );
                 })}
               </VStack>
+              )}
             </div>
           </VStack>
         </Card>

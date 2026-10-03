@@ -21,7 +21,7 @@ import {
   IconUsersGroup,
   type TablerIcon,
 } from '@tabler/icons-react';
-import { MOCK_NEWS, loadNews, type NewsItem } from './newsMock';
+import { loadNews, type NewsItem } from './newsMock';
 import PlazaBoard from './PlazaBoard';
 import PlazaHome, { type PlazaMenu } from './PlazaHome';
 import PlazaLibrary from './PlazaLibrary';
@@ -50,13 +50,17 @@ const BOARD_KEYS: PlazaMenu[] = ['free', 'review', 'tip', 'job_offer', 'job_seek
  * 케어브이 커뮤니티 — 카페형 레이아웃.
  * 좌측 보드 네비(데스크탑) / 상단 가로 탭(모바일) + 커뮤니티 홈·보드(평가후기·실무팁은 시설 유형 서브메뉴)·요양소식·자료실.
  */
-export default function PlazaManagement() {
+/**
+ * @param headingLevel 공개 페이지(/plaza)에서는 이 헤더가 페이지 제목이라 1, 관리자·직원 탭 안에서는 2(기본).
+ */
+export default function PlazaManagement({ headingLevel = 2 }: { headingLevel?: 1 | 2 } = {}) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [activeMenu, setActiveMenu] = useState<PlazaMenu>('home');
   // 평가후기·실무팁의 시설 유형 필터 (null = 해당 보드 전체)
   const [activeCategory, setActiveCategory] = useState<PostCategory | null>(null);
-  const [newsItems, setNewsItems] = useState<NewsItem[]>(MOCK_NEWS);
+  // null = 아직 불러오는 중. 빈 배열과 구분해야 "소식 없음"이 먼저 깜빡이지 않는다.
+  const [newsItems, setNewsItems] = useState<NewsItem[] | null>(null);
   const [openPostId, setOpenPostId] = useState<number | null>(null);
   const [pendingWrite, setPendingWrite] = useState(false);
   const [boardDirty, setBoardDirty] = useState(false);
@@ -155,6 +159,7 @@ export default function PlazaManagement() {
         {/* 페이지 헤더 — 운영자 배지는 제목 옆에 붙인다.
             우측 끝에 혼자 떠 있을 때는 무엇에 대한 권한인지 한눈에 붙지 않았다. */}
         <PageHeader
+          level={headingLevel}
           title="케어브이 커뮤니티"
           description="전국 요양 현장의 소식·자료·이야기를 한곳에서"
           titleBadge={
@@ -212,7 +217,7 @@ export default function PlazaManagement() {
           {/* 메인 — 데스크탑에서는 이 영역만 내부 스크롤 */}
           <div className="carev-plaza-main" style={{ minWidth: 0 }}>
             {activeMenu === 'home' && (
-              <PlazaHome newsItems={newsItems} onNavigate={navigateTo} onOpenPost={handleOpenPost} />
+              <PlazaHome newsItems={newsItems ?? []} isNewsLoading={newsItems === null} onNavigate={navigateTo} onOpenPost={handleOpenPost} />
             )}
             {isBoardMenu && (
               <PlazaBoard
@@ -226,7 +231,7 @@ export default function PlazaManagement() {
                 onDirtyChange={setBoardDirty}
               />
             )}
-            {activeMenu === 'news' && <PlazaNews newsItems={newsItems} />}
+            {activeMenu === 'news' && <PlazaNews newsItems={newsItems ?? []} />}
             {activeMenu === 'library' && <PlazaLibrary variant="full" />}
           </div>
         </div>
