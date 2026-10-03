@@ -202,8 +202,11 @@ export const neutralTheme = defineTheme({
     '--color-warning-muted': ['#f8da9d', '#deb4333D'],
 
     // Border
-    '--color-border': ['#ebebeb', '#FFFFFF1A'],
-    '--color-border-emphasized': ['#d4d4d4', '#525252'],
+    // 라이트 #ebebeb → #d4d4d4: 흰 카드·사이드바 경계가 바탕(#f1f1f1)에 묻혀 구분이 약하다는
+    // 고객 요청으로 한 단계 진하게. 달력 격자(--color-border-emphasized)가 같은 값이 되지 않도록
+    // emphasized는 #b8b8b8로 올려 일반 선 < 격자선 위계를 유지한다.
+    '--color-border': ['#d4d4d4', '#FFFFFF1A'],
+    '--color-border-emphasized': ['#b8b8b8', '#525252'],
 
     // Effects
     '--color-skeleton': ['#ebebeb', '#525252'],

@@ -101,9 +101,9 @@ export default function NoticeRollingBanner({
       whileHover={{ scale: 1.002 }}
       style={{
         width: '100%',
-        height: '48px',
-        background: 'var(--color-background-card)',
-        borderBottom: '1px solid var(--color-border)',
+        height: 'var(--carev-header-height)',
+        background: 'var(--color-header-background)',
+        borderBottom: '1px solid var(--color-header-border)',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
@@ -189,7 +189,7 @@ export default function NoticeRollingBanner({
                       borderRadius: 'var(--radius-none)',
                       backgroundColor: index === currentIndex
                         ? 'var(--color-accent)'
-                        : 'var(--color-border)',
+                        : 'color-mix(in srgb, var(--color-header-text-secondary) 35%, transparent)',
                       transition: 'background-color var(--duration-medium) var(--ease-standard)',
                       cursor: 'pointer',
                     }}

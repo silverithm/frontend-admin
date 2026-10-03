@@ -34,6 +34,7 @@ interface PageHeaderProps {
  * 화면만 혼자 크던 값이라 맞춰 내렸고, 16px 하나는 올렸다. 대신 제목(19)과 설명(11)의
  * 차이를 벌려, 예전처럼 13px과 11px이 붙어 뭉개지던 상태를 깬다.
  *
+ * 아래 1px 선(--color-subheader-border)과 그 위 여백(spacing-3)을 갖는다.
  * 바깥 여백은 갖지 않는다 — 본문과의 간격은 감싸는 쪽의 gap이 정한다(관례: gap={4}).
  */
 export function PageHeader({
@@ -46,20 +47,28 @@ export function PageHeader({
     return (
         // 액션이 둘 이상인 화면(결재 신청·양식 관리)은 좁은 폭에서 제목 줄이 넘치므로
         // 줄바꿈을 항상 허용한다. 넘치지 않으면 한 줄 그대로다.
-        <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
-            <VStack gap={0.5}>
-                <HStack gap={2} vAlign="center">
-                    <Heading level={level}>{title}</Heading>
-                    {titleBadge}
-                </HStack>
-                {description && (
-                    <Text type="supporting" color="secondary">
-                        {description}
-                    </Text>
-                )}
-            </VStack>
-            {actions}
-        </HStack>
+        // 면 없이 아래 1px 선만 둔다(2단 머리 — DESIGN.md). 바로 아래에 이미 선이 있는 곳은 그쪽을 없앤다.
+        <div
+            style={{
+                paddingBottom: 'var(--spacing-3)',
+                borderBottom: '1px solid var(--color-subheader-border)',
+            }}
+        >
+            <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
+                <VStack gap={0.5}>
+                    <HStack gap={2} vAlign="center">
+                        <Heading level={level}>{title}</Heading>
+                        {titleBadge}
+                    </HStack>
+                    {description && (
+                        <Text type="supporting" color="secondary">
+                            {description}
+                        </Text>
+                    )}
+                </VStack>
+                {actions}
+            </HStack>
+        </div>
     );
 }
 

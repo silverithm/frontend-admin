@@ -86,8 +86,8 @@ export default function NewNoticePage() {
         {/* 헤더 */}
         <div
           style={{
-            background: 'var(--color-background-card)',
-            borderBottom: '1px solid var(--color-border)',
+            background: 'var(--color-header-background)',
+            borderBottom: '1px solid var(--color-header-border)',
             position: 'sticky',
             top: 0,
             zIndex: 10,

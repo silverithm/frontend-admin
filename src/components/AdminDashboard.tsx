@@ -91,6 +91,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
+import { subheaderStyle } from './subheaderStyle';
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
@@ -1154,7 +1155,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
           <div className="carev-dash-panel-full">
             <Card padding={0} height="100%">
               <VStack gap={0} height="100%">
-                <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
+                <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
                   <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
                     <HStack gap={2} vAlign="center">
                       <div style={{ ...iconBox('var(--color-background-blue)'), color: 'var(--color-text-blue)' }}>
@@ -1177,7 +1178,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                   </HStack>
                 </div>
 
-                <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                   <VStack gap={1}>
                     {[...myTasks]
                       .sort((a, b) => Number(a.isCompleted) - Number(b.isCompleted))
@@ -1235,7 +1236,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         <div>
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
-            <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
+            <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
                   <div style={{ ...iconBox('var(--color-background-yellow)'), color: 'var(--color-text-yellow)' }}>
@@ -1256,7 +1257,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
               </HStack>
             </div>
 
-            <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
               {notices.length === 0 && officialNotices.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <EmptyState
@@ -1326,7 +1327,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         <div>
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
-            <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
+            <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
               <HStack hAlign="between" vAlign="center">
                 <HStack gap={2} vAlign="center">
                   <div style={{ ...iconBox('var(--color-background-purple)'), color: 'var(--color-text-purple)' }}>
@@ -1347,7 +1348,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
               </HStack>
             </div>
 
-            <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
               {approvalRequests.length === 0 ? (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <EmptyState
@@ -1391,7 +1392,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         <div className="carev-dash-panel-news">
           <Card padding={0} height="100%">
             <VStack gap={0} height="100%">
-              <div style={{ padding: 'var(--spacing-4) var(--spacing-4) var(--spacing-2)' }}>
+              <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
                 <HStack hAlign="between" vAlign="center">
                   <HStack gap={2} vAlign="center">
                     <div style={{ ...iconBox('var(--color-background-teal)'), color: 'var(--color-text-teal)' }}>
@@ -1412,7 +1413,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 </HStack>
               </div>
 
-              <div style={{ padding: '0 var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+              <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 {newsItems !== null && newsItems.length === 0 && (
                   <Text type="supporting" color="secondary">요양 소식을 불러오지 못했습니다. 잠시 뒤 다시 확인해 주세요.</Text>
                 )}
@@ -1450,7 +1451,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         <div className="carev-dash-panel-full">
           <Card padding={0} height="100%">
             <VStack gap={0} height="100%">
-                  <div style={{ padding: 'var(--spacing-3) var(--spacing-4)' }}>
+                  <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
                     {/* [#10] 제목 줄과 조작 줄을 명확히 나눈다.
                         '월간일정 열기'는 다른 패널의 '전체보기'와 같은 자리(제목 줄 오른쪽)로
                         옮겨, 조작이 몰린 아래 줄에서 혼자 떨어져 보이던 문제를 없앤다. */}
@@ -1565,7 +1566,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
 
               {/* 격자는 월간일정 탭과 같은 규칙 — 칸마다 아래·오른쪽 선을 긋고 바깥은 테두리로 닫는다.
                   칸 사이 여백(gap)을 쓰던 예전 방식은 선이 없어 날짜 경계가 흐릿했다. */}
-              <div style={{ padding: '0 var(--spacing-4) var(--spacing-3)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: 'var(--spacing-3) var(--spacing-4)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <div
                   style={{
                     display: 'flex',
@@ -1577,7 +1578,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                     overflow: 'hidden',
                   }}
                 >
-                <div style={{ display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flexShrink: 0, borderBottom: GRID_LINE }}>
+                <div style={{ display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, flexShrink: 0, borderBottom: GRID_LINE, background: 'var(--color-background-muted)' }}>
                   {['일','월','화','수','목','금','토'].map((d) => (
                     <div key={d} style={{ display: 'flex', height: 28, alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: d === '일' ? 'var(--color-text-red)' : d === '토' ? 'var(--color-text-blue)' : 'var(--color-text-primary)' }}>{d}</div>
                   ))}

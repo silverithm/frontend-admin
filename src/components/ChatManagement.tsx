@@ -1,5 +1,6 @@
 "use client";
 
+import { subheaderStyle } from '@/components/subheaderStyle';
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages } from '@/lib/apiService';
@@ -183,7 +184,6 @@ const C = {
     // 남의 말풍선 테두리 — 흰 말풍선이 muted 배경(#f1f1f1) 위에서도 경계가 보이게 한 단계 진한 선을 쓴다
     borderStrong: 'var(--color-border-emphasized)',
     bgGray: 'var(--color-background-muted)',
-    gray100: 'var(--color-background-muted)',
     gray300: 'var(--color-border-emphasized)',
     gray500: 'var(--color-text-secondary)',
     gray900: 'var(--color-text-primary)',
@@ -1537,7 +1537,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             {/* Left Panel - Room List */}
             <div style={{ width: "33.3333%", borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column" }}>
                 {/* Header */}
-                <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <HStack gap={2} vAlign="center">
                         <Text type="large" weight="semibold">채팅</Text>
                         <StatusDot
@@ -1594,7 +1594,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             </div>
                         ) : (
                             sortedMembers.map((member) => (
-                                <div key={member.id} style={{ borderBottom: `1px solid ${C.gray100}` }}>
+                                <div key={member.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                                     <MemberItem
                                         name={member.name}
                                         role={member.position}
@@ -1780,7 +1780,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 {selectedRoom ? (
                     <>
                         {/* Header */}
-                        <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <div>
                                 <Text type="large" weight="semibold">
                                     {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
@@ -2435,7 +2435,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     {contextMenuMessageId === message.id && (
                                                         <div ref={contextMenuElRef} style={contextMenuStyle}>
                                                             <div style={{ background: C.card, borderRadius: 'var(--radius-element)', boxShadow: 'var(--shadow-high)', border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                                                                <div style={{ padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.gray100}` }}>
+                                                                <div style={{ padding: "var(--spacing-1-5) var(--spacing-2)", borderBottom: `1px solid ${C.border}` }}>
                                                                     <HStack gap={0.5}>
                                                                         {QUICK_EMOJIS.map((emoji) => (
                                                                             <IconButton
@@ -2492,7 +2492,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 {/* 삭제는 내가 보낸 것만. 지우면 그 자리에 '삭제된 메시지입니다'가 남는다 */}
                                                                 {isMyMessage && !message.isDeleted && (
                                                                     pendingDeleteMessageId === message.id ? (
-                                                                        <div style={{ padding: 'var(--spacing-2)', borderTop: `1px solid ${C.gray100}` }}>
+                                                                        <div style={{ padding: 'var(--spacing-2)', borderTop: `1px solid ${C.border}` }}>
                                                                             <VStack gap={1.5} align="start">
                                                                                 <Text type="supporting" color="secondary">
                                                                                     상대에게는 &lsquo;삭제된 메시지입니다&rsquo;로 남습니다
@@ -2677,7 +2677,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                         {showDrawer && (
                             <div style={{ position: "absolute", inset: 0, background: C.card, zIndex: 20, display: "flex", flexDirection: "column" }}>
                                 {/* Drawer Header */}
-                                <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <Text type="large" weight="semibold">채팅방 정보</Text>
                                     <IconButton
                                         label="닫기"
@@ -2689,7 +2689,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
                                 <div style={{ flex: 1, overflowY: "auto" }}>
                                     {/* 참여자 */}
-                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
+                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <HStack gap={2} vAlign="center" hAlign="between">
                                                 <Text type="label" weight="semibold">
@@ -2724,7 +2724,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     </div>
 
                                     {/* 사진 */}
-                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
+                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
                                                 사진 ({drawerImageMessages.length})
@@ -2757,7 +2757,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     </div>
 
                                     {/* 파일 */}
-                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.gray100}` }}>
+                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
                                         <div style={{ marginBottom: 'var(--spacing-3)' }}>
                                             <Text type="label" weight="semibold">
                                                 파일 ({drawerFileMessages.length})

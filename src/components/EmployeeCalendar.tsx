@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, CSSProperties } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { subheaderStyle } from '@/components/subheaderStyle';
 import { motion } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
@@ -410,7 +411,7 @@ export default function EmployeeCalendar() {
         {/* 캘린더 카드 */}
         <div style={CARD_STYLE}>
           {/* 캘린더 헤더 */}
-          <div style={{ padding: 'var(--spacing-5)', borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ ...subheaderStyle, padding: 'var(--spacing-5)' }}>
             <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
               <HStack gap={3} vAlign="center">
                 <Text type="display-3" as="h2" weight="bold" color="primary">
@@ -469,7 +470,7 @@ export default function EmployeeCalendar() {
           </div>
 
           {/* 요일 헤더 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
             {WEEKDAYS.map((day, index) => (
               <div
                 key={day}

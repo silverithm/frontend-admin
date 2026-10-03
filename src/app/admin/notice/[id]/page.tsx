@@ -249,7 +249,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
       <ConfirmContainer />
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
         {/* 헤더 */}
-        <div style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ background: 'var(--color-header-background)', borderBottom: '1px solid var(--color-header-border)', position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ maxWidth: 896, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
             <HStack hAlign="between" vAlign="center">
               <HStack gap={4} vAlign="center">

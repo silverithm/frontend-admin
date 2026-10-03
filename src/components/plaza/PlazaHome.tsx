@@ -21,6 +21,7 @@ import { getNewsCategoryMeta, type NewsItem } from './newsMock';
 import { dedupeNews } from './newsDedup';
 import { fetchLibraryItems, fetchPosts, type ApiLibraryItem, type ApiPostSummary } from './plazaApi';
 import { duration } from '@/theme/motion';
+import { subheaderStyle } from '@/components/subheaderStyle';
 
 export type PlazaMenu = 'home' | 'free' | 'review' | 'tip' | 'job_offer' | 'job_seek' | 'news' | 'library';
 
@@ -36,7 +37,7 @@ const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix:
 
 function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string; onMore?: () => void }) {
   return (
-    <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-2)' }}>
+    <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
       <HStack hAlign="between" vAlign="center">
         <HStack gap={2} vAlign="center">
           <Icon icon={icon} size="sm" color="secondary" />
@@ -137,7 +138,7 @@ export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFlame} title="인기글" />
-            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: 'var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(4) : popular.length === 0 ? (
                 /* 위젯 높이 안에서 가로·세로 가운데 정렬 (위에 붙지 않게) */
                 <Center height="100%">
@@ -159,7 +160,7 @@ export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconNews} title="요양 소식" onMore={() => onNavigate('news')} />
-            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: 'var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isNewsLoading ? renderRowSkeletons(6) : dedupedNews.length === 0 ? (
                 <Center height="100%">
                   <EmptyState
@@ -204,7 +205,7 @@ export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconClock} title="최신글" />
-            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: 'var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(6) : latest.length === 0 ? (
                 /* 위젯은 공간이 좁아 isCompact를 쓰고, 남는 높이 안에서 가운데 정렬한다 */
                 <Center height="100%">
@@ -221,7 +222,7 @@ export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate
         <Card padding={0} height="100%">
           <VStack gap={0} height="100%">
             <WidgetHeader icon={IconFolder} title="새 자료" onMore={() => onNavigate('library')} />
-            <div style={{ padding: '0 var(--spacing-2) var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ padding: 'var(--spacing-2)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {isLoading ? renderRowSkeletons(4) : library.length === 0 ? (
                 /* 위젯 높이 안에서 가로·세로 가운데 정렬 (위에 붙지 않게) */
                 <Center height="100%">

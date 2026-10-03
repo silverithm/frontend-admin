@@ -489,7 +489,7 @@ export default function OrganizationProfilePage() {
       <AlertContainer />
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
       {/* 헤더 — 페이지 제목은 본문이 아니라 여기에만 둔다 (예전에는 헤더와 본문에 제목이 겹쳐 있었다) */}
-      <header style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)' }}>
+      <header style={{ background: 'var(--color-header-background)', borderBottom: '1px solid var(--color-header-border)' }}>
         <div style={{ ...pageContainer, paddingTop: 'var(--spacing-5)', paddingBottom: 'var(--spacing-5)' }}>
           <HStack hAlign="between" vAlign="center" gap={4}>
             <HStack gap={3} vAlign="center">
@@ -498,7 +498,7 @@ export default function OrganizationProfilePage() {
                 {/* 페이지의 유일한 <h1> — 이전엔 Text로만 그려져 스크린리더가 제목을 찾을 수 없었다.
                     type="display-3"가 기존 크기(3xl)와 같으므로 화면은 그대로다. */}
                 <Heading level={1} type="display-3" color="primary" style={{ fontWeight: 'var(--font-weight-bold)' }}>기관 프로필</Heading>
-                <Text type="supporting" color="secondary">기관의 기본 정보와 계정을 관리합니다</Text>
+                <Text type="supporting" color="secondary" style={{ color: 'var(--color-header-text-secondary)' }}>기관의 기본 정보와 계정을 관리합니다</Text>
               </VStack>
             </HStack>
             <Button

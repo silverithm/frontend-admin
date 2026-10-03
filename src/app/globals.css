@@ -103,6 +103,20 @@ html {
   }
 }
 
+/* 화면 맨 위 머리줄 높이 — 사이드바 로고 줄과 공지 롤링 줄이 가로로 이어지도록 같은 값을 쓴다 */
+:root {
+  --carev-header-height: 52px;
+  /* 머리줄 색 토큰 — 테마(neutralTheme.ts)의 TokenName 타입에 없는 커스텀 토큰이라 여기에 둔다.
+     [라이트, 다크] light-dark() 형식은 neutral.css와 같다. 틸 10% 규칙의 구조 표시 예외(DESIGN.md).
+     대비: #171717 on #79E4BE 11.7:1 · #2a3038 on #79E4BE 8.7:1 / 다크 #b9dcd2 on #0b3b33 8.4:1 */
+  --color-header-background: light-dark(#79E4BE, #0b3b33);
+  --color-header-border: light-dark(#20C997, #20C997);
+  --color-header-text-secondary: light-dark(#2a3038, #b9dcd2);
+  /* 2단 머리(페이지 안쪽 카드·패널 머리줄) — 1단보다 한 단계 옅다.
+     대비: #171717 on #E9FBF4 16.7:1 · #2a3038 on #E9FBF4 12.4:1 / 다크 #fafafa on #12302b 13.6:1 */
+  --color-subheader-background: light-dark(#E9FBF4, #12302b);
+  --color-subheader-border: light-dark(#A9EFD5, #1f5a4d);
+}
 /* admin/page 반응형 (Tailwind lg:/xl:/sm: 대체) */
 .carev-admin-sidebar { display: none; }
 .carev-admin-mobile-header { display: block; }
@@ -660,7 +674,7 @@ html {
   justify-content: space-between;
   gap: var(--spacing-3);
   padding-bottom: var(--spacing-3);
-  border-bottom: 1px solid var(--color-border);
+  /* 위 PageHeader가 이미 아래 선을 가지므로 여기엔 선을 두지 않는다(두 줄 방지) */
   flex-shrink: 0;
 }
 /* 월 그리드가 남는 세로 공간을 나눠 갖도록 body를 flex 컨테이너로 둔다 */

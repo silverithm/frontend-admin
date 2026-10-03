@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, CSSProperties } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { subheaderStyle } from '@/components/subheaderStyle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -1457,7 +1458,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             {/* 캘린더 헤더 — 대시보드 달력 헤더와 같은 문법으로 압축했다.
                 읽기만 하는 진행도는 알약 한 덩어리로, 범례는 색 점만 남기고 이름은 title로
                 넘겨 두 번째 줄을 통째로 없앤다. 스타일은 대시보드와 공용 클래스를 그대로 쓴다. */}
-            <div style={{ padding: 'var(--spacing-4) var(--spacing-6)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+            <div style={{ ...subheaderStyle, padding: 'var(--spacing-4) var(--spacing-6)', flexShrink: 0 }}>
               <div className="carev-dash-cal-head">
                 <Text type="large" as="h2" weight="bold" color="primary">
                   {format(currentDate, 'yyyy년 M월', { locale: ko })}
@@ -1614,7 +1615,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             </div>
 
             {/* 요일 헤더 */}
-            <div className="carev-schedcal-cols" style={{ borderBottom: GRID_LINE, flexShrink: 0 }}>
+            <div className="carev-schedcal-cols" style={{ borderBottom: GRID_LINE, flexShrink: 0, background: 'var(--color-background-muted)' }}>
               {WEEKDAYS.map((day, index) => (
                 <div
                   key={day}
@@ -1785,7 +1786,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             >
               <div style={{ ...CARD_STYLE, height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {/* 헤더 */}
-                <div style={{ padding: 'var(--spacing-5)', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ ...subheaderStyle, padding: 'var(--spacing-5)' }}>
                   <HStack hAlign="between" vAlign="start">
                     <VStack gap={1}>
                       <Text type="large" as="h3" weight="bold" color="primary">

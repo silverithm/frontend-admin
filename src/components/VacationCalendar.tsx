@@ -786,7 +786,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               icon={<Icon icon="chevronRight" size="md" />}
               onClick={nextMonth}
             />
-            <span style={{ width: 1, height: 20, background: 'var(--color-background-muted)', margin: '0 var(--spacing-1)' }} />
+            <span style={{ width: 1, height: 20, background: 'var(--color-border)', margin: '0 var(--spacing-1)' }} />
             {isAdmin && onShowLimitPanel ? (
               <>
                 <Button
@@ -864,7 +864,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
         </HStack>
 
         {/* 인터랙티브 캘린더 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)', background: 'var(--color-background-muted)', borderTopLeftRadius: 'var(--radius-inner)', borderTopRightRadius: 'var(--radius-inner)' }}>
           {WEEKDAYS.map((day, index) => (
             <div
               key={day}
@@ -1136,7 +1136,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </HStack>
 
           {/* 구분선 */}
-          <span style={{ width: 1, height: 12, background: 'var(--color-background-muted)' }} />
+          <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />
 
           {/* 승인 상태 */}
           <HStack gap={1.5} vAlign="center">
@@ -1153,7 +1153,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
           </HStack>
 
           {/* 구분선 */}
-          <span style={{ width: 1, height: 12, background: 'var(--color-background-muted)' }} />
+          <span style={{ width: 1, height: 12, background: 'var(--color-border)' }} />
 
           {/* 휴무 종류 — 표는 types/vacation.ts 한 곳에서 온다 */}
           {VACATION_KIND_OPTIONS.map((kind) => (
