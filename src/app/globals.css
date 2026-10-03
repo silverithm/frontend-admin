@@ -1059,6 +1059,41 @@ html {
 .carev-blogpost-prose tbody tr:last-child th,
 .carev-blogpost-prose tbody tr:last-child td { border-bottom: none; }
 
+/* ── 장기요양 기준표(/ltc) ──
+   고시 원문 표를 옮기는 자리라 Astryx Table(머리 칸이 항상 말줄임) 대신 의미 있는 <table>을 쓴다.
+   "10시간 이상 13시간 이하" 같은 원문 구간명이 잘리면 표를 옮긴 의미가 없다.
+   숫자는 오른쪽 정렬 + 고정폭 숫자로 자릿수를 맞추고, 넓은 표는 자기 안에서만 가로 스크롤한다. */
+.carev-ltc-tablewrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-element); background: var(--color-background-card); }
+.carev-ltc-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+.carev-ltc-table th,
+.carev-ltc-table td { padding: var(--spacing-2) var(--spacing-3); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); }
+.carev-ltc-table thead th { background: var(--color-background-muted); color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.carev-ltc-table tbody th { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.carev-ltc-table td { color: var(--color-text-secondary); }
+.carev-ltc-table .carev-ltc-num { text-align: right; font-variant-numeric: tabular-nums; }
+/* 가로로 밀어도 어느 등급의 줄인지 놓치지 않도록 첫 칸(등급)을 붙여 둔다 */
+.carev-ltc-table tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--color-background-card); }
+.carev-ltc-table thead tr > :first-child { background: var(--color-background-muted); }
+/* 좁은 화면에서는 머리 칸 구간명을 줄바꿈해 한 화면에 더 많은 열이 들어오게 한다 */
+@media (max-width: 640px) {
+  .carev-ltc-table thead th { white-space: normal; word-break: keep-all; min-width: 5.5em; vertical-align: bottom; }
+}
+.carev-ltc-table tbody tr:last-child th,
+.carev-ltc-table tbody tr:last-child td { border-bottom: none; }
+/* 가장 많이 찾는 8~10시간 열만 옅은 틸 면으로 짚어 준다 — 굵은 막대 대신 배경 면 */
+.carev-ltc-table .carev-ltc-focus { background: var(--color-background-teal); color: var(--color-text-primary); }
+.carev-ltc-table thead .carev-ltc-focus { color: var(--color-text-teal); }
+.carev-ltc-prose { color: var(--color-text-secondary); line-height: var(--text-supporting-leading); }
+.carev-ltc-prose p + p { margin-top: var(--spacing-3); }
+.carev-ltc-prose ul { margin: var(--spacing-2) 0; padding-left: var(--spacing-5); list-style: disc; }
+.carev-ltc-prose li { margin: var(--spacing-1) 0; }
+.carev-ltc-prose li::marker { color: var(--color-text-accent); }
+.carev-ltc-prose strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.carev-ltc-prose a { color: var(--color-text-accent); text-decoration: none; word-break: break-all; }
+@media (hover: hover) { .carev-ltc-prose a:hover { text-decoration: underline; } }
+/* 계산기 입력 칸 — 넓으면 두 줄 두 칸, 좁으면 한 칸씩 */
+.carev-ltc-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--spacing-4); }
+
 /* ── Phase 11: 누락 파일 정리 ── */
 
 /* FloatingChatRoomList / FieldTypeSelector hover */

@@ -197,6 +197,7 @@ const RESOURCES = [
     { href: '/guide', title: '사용 가이드', description: '관리자와 직원의 사용 방법을 단계별로 안내합니다.' },
     { href: '/faq', title: '자주 묻는 질문', description: '가입·휴무·요금에 대한 궁금증을 정리했습니다.' },
     { href: '/blog', title: '블로그', description: '케어브이 사용법과 기능 안내를 글로 정리했습니다.' },
+    { href: '/ltc', title: '장기요양 기준표', description: '2026년 주·야간보호 수가, 월 한도액, 본인부담금 계산기를 원문과 대조해 모았습니다.' },
 ];
 
 const fadeUp = {
@@ -762,7 +763,8 @@ export default function LandingPage() {
             {/* ── 더 알아보기 ── */}
             <Section variant="muted" padding={0} paddingBlock={8}>
                 <div style={container(1000)}>
-                    <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4}>
+                    {/* 네 장이 1000px 한 줄에 들어가도록 최소 폭을 220으로 — 260이면 마지막 한 장이 혼자 다음 줄로 떨어진다 */}
+                    <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
                         {RESOURCES.map((item) => (
                             <ClickableCard
                                 key={item.href}

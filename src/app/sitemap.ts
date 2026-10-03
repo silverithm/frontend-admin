@@ -1,5 +1,7 @@
 import { MetadataRoute } from 'next'
 import { BLOG_POSTS } from '@/lib/blogPosts'
+import { LTC_HUB_PATH, LTC_PAGES } from '@/lib/ltcPages'
+import { LTC_VERIFIED_AT } from '@/lib/ltc2026'
 import { SITE_URL } from '@/lib/seo'
 
 // lastModified에 new Date()를 쓰면 크롤링할 때마다 "방금 수정됨"으로 보고되어
@@ -81,5 +83,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  return [...staticRoutes, ...blogRoutes]
+  // 장기요양 기준표 — 고시 원문과 대조한 날을 갱신일로 쓴다.
+  const ltcRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${SITE_URL}${LTC_HUB_PATH}`,
+      lastModified: LTC_VERIFIED_AT,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    ...LTC_PAGES.map((page) => ({
+      url: `${SITE_URL}${page.path}`,
+      lastModified: page.lastModified,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    })),
+  ]
+
+  return [...staticRoutes, ...blogRoutes, ...ltcRoutes]
 }
