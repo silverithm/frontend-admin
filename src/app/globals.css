@@ -108,14 +108,35 @@ html {
   --carev-header-height: 52px;
   /* 머리줄 색 토큰 — 테마(neutralTheme.ts)의 TokenName 타입에 없는 커스텀 토큰이라 여기에 둔다.
      [라이트, 다크] light-dark() 형식은 neutral.css와 같다. 틸 10% 규칙의 구조 표시 예외(DESIGN.md).
-     대비: #171717 on #79E4BE 11.7:1 · #2a3038 on #79E4BE 8.7:1 / 다크 #b9dcd2 on #0b3b33 8.4:1 */
-  --color-header-background: light-dark(#79E4BE, #0b3b33);
-  --color-header-border: light-dark(#20C997, #20C997);
-  --color-header-text-secondary: light-dark(#2a3038, #b9dcd2);
-  /* 2단 머리(페이지 안쪽 카드·패널 머리줄) — 1단보다 한 단계 옅다.
-     대비: #171717 on #E9FBF4 16.7:1 · #2a3038 on #E9FBF4 12.4:1 / 다크 #fafafa on #12302b 13.6:1 */
-  --color-subheader-background: light-dark(#E9FBF4, #12302b);
-  --color-subheader-border: light-dark(#A9EFD5, #1f5a4d);
+     1단은 케어브이 기본 틸(#0f766e) 면에 흰 글씨 — 예전 민트(#79E4BE)는 형광처럼 떠 보였다(2026-10-04 시안 B 승인).
+     대비: #ffffff on #0f766e 5.5:1 · #E1F0EE on #0f766e 4.7:1 / 다크 #b9dcd2 on #0b3b33 8.4:1
+     안쪽 글씨·아이콘·버튼 색은 .carev-header-band 규칙이 맞춘다 — 이 면을 쓰는 곳에는 그 클래스를 함께 단다. */
+  --color-header-background: light-dark(#0f766e, #0b3b33);
+  --color-header-border: light-dark(#0b5d57, #134e4a);
+  --color-header-text: light-dark(#ffffff, #f0fdfa);
+  --color-header-text-secondary: light-dark(#E1F0EE, #b9dcd2);
+  --color-header-selected: rgb(255 255 255 / 0.16);
+  --color-header-hover: rgb(255 255 255 / 0.10);
+  /* 2단 머리(페이지 안쪽 카드·패널 머리줄) — 1단과 같은 기본 틸을 아주 옅게(6%), 선은 25%.
+     대비: #171717 on #F1F7F6 16.9:1 · #2a3038 on #F1F7F6 12.6:1 / 다크 #fafafa on #12302b 13.6:1 */
+  --color-subheader-background: light-dark(#F1F7F6, #12302b);
+  --color-subheader-border: light-dark(#C3DDDB, #1f5a4d);
+}
+/* 1단 머리줄(진한 기본 틸 면) 안쪽 — 글씨·아이콘은 흰색으로 물려받고, 탭·버튼은 흰 반투명 면.
+   배지·긴급 표시처럼 제 색 면을 가진 것은 손대지 않는다(Text가 color를 물려받으므로 제 면의 색을 따른다).
+   주 버튼(등록·저장·수정)은 같은 틸 위에서 묻히므로 흰 면 + 틸 글씨로 뒤집는다. */
+.carev-header-band { color: var(--color-header-text); }
+.carev-header-band .astryx-text,
+.carev-header-band .astryx-heading,
+.carev-header-band .astryx-icon { color: inherit; }
+.carev-header-band .astryx-button.ghost,
+.carev-header-band .astryx-button.secondary { color: var(--color-header-text) !important; }
+.carev-header-band .astryx-button.secondary { background-color: var(--color-header-selected) !important; }
+.carev-header-band .astryx-button.primary { background-color: var(--color-header-text) !important; color: var(--color-header-background) !important; }
+.carev-header-band :focus-visible { outline-color: var(--color-header-text) !important; }
+@media (hover: hover) {
+  .carev-header-band .astryx-button.ghost:hover,
+  .carev-header-band .astryx-button.secondary:hover { background-color: var(--color-header-hover) !important; }
 }
 /* admin/page 반응형 (Tailwind lg:/xl:/sm: 대체) */
 .carev-admin-sidebar { display: none; }

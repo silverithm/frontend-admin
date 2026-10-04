@@ -98,6 +98,7 @@ export default function NoticeRollingBanner({
 
   return (
     <motion.div
+      className="carev-header-band"
       whileHover={{ scale: 1.002 }}
       style={{
         width: '100%',
@@ -187,9 +188,10 @@ export default function NoticeRollingBanner({
                       padding: 'var(--spacing-0)',
                       border: 'none',
                       borderRadius: 'var(--radius-none)',
+                      // 면이 기본 틸이라 틸(accent) 점은 묻힌다 — 현재 점은 흰색, 나머지는 흰색을 옅게
                       backgroundColor: index === currentIndex
-                        ? 'var(--color-accent)'
-                        : 'color-mix(in srgb, var(--color-header-text-secondary) 35%, transparent)',
+                        ? 'var(--color-header-text)'
+                        : 'color-mix(in srgb, var(--color-header-text) 40%, transparent)',
                       transition: 'background-color var(--duration-medium) var(--ease-standard)',
                       cursor: 'pointer',
                     }}

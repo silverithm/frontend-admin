@@ -1310,7 +1310,7 @@ export default function AdminPage() {
             {/* 사이드바 (데스크탑) */}
             <aside className="carev-admin-sidebar" style={{ flexDirection: "column", width: 224, background: 'var(--color-background-card)', borderRight: "1px solid var(--color-border)", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 30 }}>
                 {/* 로고 */}
-                <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "0 var(--spacing-6)", height: 'var(--carev-header-height)', background: 'var(--color-header-background)', borderBottom: "1px solid var(--color-header-border)", flexShrink: 0 }}>
+                <div className="carev-header-band" style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', padding: "0 var(--spacing-6)", height: 'var(--carev-header-height)', background: 'var(--color-header-background)', borderBottom: "1px solid var(--color-header-border)", flexShrink: 0 }}>
                     <Image src="/images/carev-favicon.png" alt="케어브이" width={32} height={32} style={{ borderRadius: 'var(--radius-inner)' }} />
                     <div>
                         <Text as="p" type="body" weight="bold" color="primary">케어브이</Text>
@@ -1385,7 +1385,7 @@ export default function AdminPage() {
             </aside>
 
             {/* 모바일 헤더 (lg 미만) */}
-            <header className="carev-admin-mobile-header" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-header-background)', borderBottom: "1px solid var(--color-header-border)", boxShadow: 'var(--shadow-low)' }}>
+            <header className="carev-admin-mobile-header carev-header-band" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 30, background: 'var(--color-header-background)', borderBottom: "1px solid var(--color-header-border)", boxShadow: 'var(--shadow-low)' }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 var(--spacing-4)", height: 52 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
                         <Image src="/images/carev-favicon.png" alt="케어브이" width={26} height={26} style={{ borderRadius: 'var(--radius-inner)' }} />

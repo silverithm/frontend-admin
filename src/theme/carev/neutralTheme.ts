@@ -283,8 +283,10 @@ export const neutralTheme = defineTheme({
     // ~5% brighter than red/blue because the eye's luminance response
     // peaks in this band. Dropping L+C brings perceived brightness in
     // line with the rest of the palette without losing hue identity.
-    '--color-background-teal': ['#a5e3d6', '#7ec6b83D'],
-    '--color-border-teal': ['#94d6c8', '#63ab9d'],
+    // 틸 배지·강조 면은 브랜드 틸(#0f766e)을 옅게 섞은 색 — 예전 #a5e3d6(민트)은 형광처럼 떠 보였다(2026-10-04).
+    // 글씨 #005348 대비 7.9:1.
+    '--color-background-teal': ['#CAE1DF', '#7ec6b83D'],
+    '--color-border-teal': ['#A9CFCB', '#63ab9d'],
     '--color-icon-teal': ['#005348', '#7ec6b8'],
     '--color-text-teal': ['#005348', '#99e2d3'],
 

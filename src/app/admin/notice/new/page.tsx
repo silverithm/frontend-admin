@@ -85,6 +85,7 @@ export default function NewNoticePage() {
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
         {/* 헤더 */}
         <div
+          className="carev-header-band"
           style={{
             background: 'var(--color-header-background)',
             borderBottom: '1px solid var(--color-header-border)',

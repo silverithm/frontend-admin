@@ -489,7 +489,7 @@ export default function OrganizationProfilePage() {
       <AlertContainer />
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
       {/* 헤더 — 페이지 제목은 본문이 아니라 여기에만 둔다 (예전에는 헤더와 본문에 제목이 겹쳐 있었다) */}
-      <header style={{ background: 'var(--color-header-background)', borderBottom: '1px solid var(--color-header-border)' }}>
+      <header className="carev-header-band" style={{ background: 'var(--color-header-background)', borderBottom: '1px solid var(--color-header-border)' }}>
         <div style={{ ...pageContainer, paddingTop: 'var(--spacing-5)', paddingBottom: 'var(--spacing-5)' }}>
           <HStack hAlign="between" vAlign="center" gap={4}>
             <HStack gap={3} vAlign="center">
