@@ -511,7 +511,7 @@ const AdminPanel = ({
           {availableRoles.length === 0 ? (
             <EmptyState
               title="설정할 역할이 없습니다."
-              description="회원관리의 역할관리에서 역할을 먼저 등록해주세요."
+              description="회원관리 > 종사자 관리의 '역할 관리'에서 역할을 먼저 등록해주세요."
             />
           ) : (
             <VStack gap={2}>

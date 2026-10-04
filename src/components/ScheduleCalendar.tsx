@@ -1166,7 +1166,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     return map;
   }, [members]);
 
-  /** 직원 목록에 실제로 등장하는 직종 (역할관리에서 배정한 값 기준) */
+  /** 직원 목록에 실제로 등장하는 직종 (역할 관리에서 배정한 값 기준) */
   const memberRoleOptions = useMemo(() => {
     const seen = new Set<string>();
     members.forEach((m) => {
@@ -1199,8 +1199,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   /**
    * 직원에게 보여줄 직종명.
    *
-   * member.role에는 'caregiver' 같은 레거시 키가 남아 있어서 그것만 보면 역할관리에서
-   * 바꾼 직종이 반영되지 않는다. position(역할관리에서 배정한 직종)을 먼저 본다.
+   * member.role에는 'caregiver' 같은 레거시 키가 남아 있어서 그것만 보면 역할 관리에서
+   * 바꾼 직종이 반영되지 않는다. position(역할 관리에서 배정한 직종)을 먼저 본다.
    */
   const getMemberRoleText = (member?: { role?: string | null; position?: string | null }) => {
     const resolved = getMemberRoleName(member);
