@@ -3,7 +3,7 @@
 import { subheaderStyle } from '@/components/subheaderStyle';
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
-import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, setChatRoomPinned } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, setChatRoomPinned, renameChatRoom, CHAT_ROOM_NAME_MAX } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
@@ -148,6 +148,8 @@ interface ChatRoom {
      */
     pinned?: boolean;
     pinnedAt?: string | null;
+    /** 방을 만든 사람의 채팅 사용자 id — 이름 바꾸기 권한(관리자 또는 만든 사람)에 쓴다 */
+    createdBy?: string | null;
 }
 
 interface WebSocketMessage {
@@ -380,6 +382,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [showRoomMenu, setShowRoomMenu] = useState(false);
     /** 채팅방 나가기 확인 */
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    /** 이름 바꾸기 창 — 대상 방과 입력값. 저장 중에는 닫히지 않게 막는다 */
+    const [renameTarget, setRenameTarget] = useState<ChatRoom | null>(null);
+    const [renameValue, setRenameValue] = useState("");
+    const [isRenaming, setIsRenaming] = useState(false);
     /* 목록에서 방 자체를 눌러 나가기까지 갈 수 있어야 한다.
        앱은 목록 길게 누르기·방 ⋯·정보 화면 세 곳에서 나갈 수 있는데 웹은 방 머리의 ⋯ 하나뿐이라,
        "컴퓨터로는 나가기가 안 된다"는 이야기가 나왔다. 목록에도 같은 입구를 둔다. */
@@ -1556,6 +1562,50 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         }
     };
 
+    /** 이름 바꾸기 — 앱과 같은 규칙: 기관 관리자이거나 방을 만든 사람. 최종 판정은 서버가 한다(아니면 403) */
+    const canRenameRoom = (room: ChatRoom) =>
+        isAdmin || (Boolean(room.createdBy) && room.createdBy === userId);
+
+    const openRename = (room: ChatRoom) => {
+        setRoomMenuId(null);
+        setRenameTarget(room);
+        setRenameValue(room.name);
+    };
+
+    const closeRename = () => {
+        if (isRenaming) return;
+        setRenameTarget(null);
+        setRenameValue("");
+    };
+
+    const saveRename = async () => {
+        if (!renameTarget) return;
+        const name = renameValue.trim();
+        if (!name || name === renameTarget.name) {
+            closeRename();
+            return;
+        }
+        setIsRenaming(true);
+        try {
+            const updated = await renameChatRoom(renameTarget.id, name);
+            const confirmedName = typeof updated?.name === "string" && updated.name ? updated.name : name;
+            // 이름만 옮긴다 — 이 응답의 pinned는 기본값이라 통째로 펼치면 고정이 풀린다
+            setRooms(prev => prev.map(r => (r.id === renameTarget.id ? { ...r, name: confirmedName } : r)));
+            onNotification("채팅방 이름을 바꿨어요", "success");
+            setRenameTarget(null);
+            setRenameValue("");
+        } catch (error) {
+            console.error("채팅방 이름 변경 실패:", error);
+            const message = error instanceof Error && error.message ? error.message : "";
+            onNotification(
+                message && !message.startsWith("백엔드 서버 오류") ? message : "이름을 바꾸지 못했어요. 잠시 후 다시 시도해주세요",
+                "error",
+            );
+        } finally {
+            setIsRenaming(false);
+        }
+    };
+
     const toggleDrawer = () => {
         // 서랍을 열 때마다 다시 받아 이름·프로필이 최신이 되게 한다 (읽음 위치는 아래 effect가 이미 채워둔다)
         if (!showDrawer && selectedRoom) {
@@ -1806,6 +1856,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 onClick={() => toggleRoomPin(room)}
                                                 style={{ width: "100%", justifyContent: "flex-start" }}
                                             />
+                                            {canRenameRoom(room) && (
+                                                <Button
+                                                    label="이름 바꾸기"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    icon={<Icon icon={FiEdit2} size="sm" />}
+                                                    onClick={() => openRename(room)}
+                                                    style={{ width: "100%", justifyContent: "flex-start" }}
+                                                />
+                                            )}
                                             <Button
                                                 label="채팅방 나가기"
                                                 variant="ghost"
@@ -2958,6 +3018,46 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     onClick={createRoom}
                                     isLoading={isCreatingRoom}
                                     isDisabled={!newRoomName.trim() || isCreatingRoom}
+                                />
+                            </HStack>
+                        </LayoutFooter>
+                    }
+                />
+            </Dialog>
+
+            {/* 채팅방 이름 바꾸기 — 앱(채팅방 정보)과 같은 규칙·글자 수 */}
+            <Dialog
+                isOpen={renameTarget !== null}
+                onOpenChange={(open) => { if (!open) closeRename(); }}
+                purpose="form"
+                width={440}
+            >
+                <Layout
+                    header={<DialogHeader title="채팅방 이름 바꾸기" onOpenChange={(open) => { if (!open) closeRename(); }} />}
+                    content={
+                        <LayoutContent>
+                            <div onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); saveRename(); } }}>
+                                <TextInput
+                                    label="채팅방 이름"
+                                    value={renameValue}
+                                    onChange={(value) => setRenameValue(value.slice(0, CHAT_ROOM_NAME_MAX))}
+                                    placeholder="예: 요양보호사 1팀"
+                                    description={`${renameValue.trim().length}/${CHAT_ROOM_NAME_MAX}자 · 방에 있는 모든 사람에게 바뀐 이름이 보입니다`}
+                                    isDisabled={isRenaming}
+                                />
+                            </div>
+                        </LayoutContent>
+                    }
+                    footer={
+                        <LayoutFooter hasDivider>
+                            <HStack gap={2} hAlign="end">
+                                <Button label="취소" variant="ghost" onClick={closeRename} isDisabled={isRenaming} />
+                                <Button
+                                    label={isRenaming ? "바꾸는 중..." : "바꾸기"}
+                                    variant="primary"
+                                    onClick={saveRename}
+                                    isLoading={isRenaming}
+                                    isDisabled={!renameValue.trim() || renameValue.trim() === renameTarget?.name || isRenaming}
                                 />
                             </HStack>
                         </LayoutFooter>

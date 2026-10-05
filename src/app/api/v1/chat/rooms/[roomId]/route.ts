@@ -86,8 +86,11 @@ export async function PUT(
 
     if (!backendResponse.ok) {
       console.error(`[Chat API] PUT 백엔드 응답 오류: ${backendResponse.status}`);
+      // 서버가 이유를 말해 주는 거절(권한 없음 403, 빈 이름·50자 초과 400)은 그 문구를 그대로 넘겨
+      // 화면이 "백엔드 서버 오류: 403" 대신 무엇이 안 되는지 보여 주게 한다.
+      const backendError = await backendResponse.json().catch(() => null);
       return NextResponse.json({
-        error: `백엔드 서버 오류: ${backendResponse.status}`
+        error: backendError?.error || `백엔드 서버 오류: ${backendResponse.status}`
       }, { status: backendResponse.status, headers });
     }
 

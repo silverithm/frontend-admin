@@ -3172,6 +3172,22 @@ export async function leaveChatRoom(roomId: number) {
     });
 }
 
+// ================== 채팅방 이름 바꾸기 ==================
+
+/** 채팅방 이름 최대 길이 — 서버(ChatService.MAX_ROOM_NAME_LENGTH)와 같다 */
+export const CHAT_ROOM_NAME_MAX = 50;
+
+/**
+ * 채팅방 이름을 바꾼다 — 기관 관리자나 방을 만든 사람만 된다(서버가 가린다, 아니면 403).
+ * 응답은 바뀐 ChatRoomDTO. 이 응답의 pinned는 기본값(false)이라 목록에 그대로 펼치면 고정이 풀린다 — 이름만 옮긴다.
+ */
+export async function renameChatRoom(roomId: number, name: string) {
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+    });
+}
+
 // ================== 채팅방 상단 고정 ==================
 
 /**
