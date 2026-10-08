@@ -1975,9 +1975,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 )}
             </div>
 
-            {/* Right Panel - Messages */}
+            {/* Right Panel - Messages (채팅방 정보 서랍은 넓을 때 오른쪽에 나란히, 좁으면 대화를 덮는다) */}
+            <div className="carev-chat-panel" style={{ width: "66.6667%", display: "flex", position: "relative" }}>
             <div
-                style={{ width: "66.6667%", display: "flex", flexDirection: "column", position: "relative" }}
+                style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative" }}
                 onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2931,141 +2932,143 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             </div>
                         </div>
 
-                        {/* Info Drawer */}
-                        {showDrawer && (
-                            <div
-                                ref={drawerRef}
-                                role="dialog"
-                                aria-label="채팅방 정보"
-                                data-chat-info-drawer
-                                tabIndex={-1}
-                                style={{ position: "absolute", inset: 0, background: C.card, zIndex: 20, display: "flex", flexDirection: "column", outline: "none" }}
-                            >
-                                {/* Drawer Header */}
-                                <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <Text type="large" weight="semibold">채팅방 정보</Text>
-                                    <IconButton
-                                        label="닫기"
-                                        variant="ghost"
-                                        icon={<Icon icon="close" />}
-                                        onClick={() => setShowDrawer(false)}
-                                    />
-                                </div>
-
-                                <div style={{ flex: 1, overflowY: "auto" }}>
-                                    {/* 참여자 */}
-                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
-                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
-                                            <HStack gap={2} vAlign="center" hAlign="between">
-                                                <Text type="label" weight="semibold">
-                                                    참여자 ({participants.length}명)
-                                                </Text>
-                                                <Button
-                                                    label="초대"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => { setInviteIds([]); setShowInviteModal(true); }}
-                                                />
-                                            </HStack>
-                                        </div>
-                                        {isLoadingParticipants ? (
-                                            <Loading size="inline" label="참여자를 불러오는 중..." />
-                                        ) : participants.length > 0 ? (
-                                            <VStack gap={1}>
-                                                {participants.map((p, i) => (
-                                                    <Item
-                                                        key={p.userId || i}
-                                                        density="compact"
-                                                        startContent={<Avatar src={p.profileImageUrl || undefined} name={p.userName} size="small" />}
-                                                        label={p.userName}
-                                                    />
-                                                ))}
-                                            </VStack>
-                                        ) : (
-                                            <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
-                                                <Text type="supporting">참여자 정보를 불러올 수 없습니다</Text>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* 사진 */}
-                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
-                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
-                                            <Text type="label" weight="semibold">
-                                                사진 ({drawerImageMessages.length})
-                                            </Text>
-                                        </div>
-                                        {drawerImageMessages.length > 0 ? (
-                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-2)' }}>
-                                                {drawerImageMessages.map(m => (
-                                                    <button
-                                                        key={m.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            // 말풍선과 같은 확대 보기 — 방 안 사진 전체를 좌우로 넘긴다
-                                                            const items = drawerImageMessages.map(im => ({ fileUrl: im.fileUrl!, fileName: im.fileName || "이미지" }));
-                                                            setImagePreview({ items, index: Math.max(0, drawerImageMessages.findIndex(im => im.id === m.id)) });
-                                                        }}
-                                                        aria-label={`${m.fileName || "사진"} 크게 보기`}
-                                                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
-                                                    >
-                                                        <ChatImage
-                                                            src={chatListImageUrl(m)}
-                                                            alt={m.fileName || "사진"}
-                                                            className="carev-chat-photo"
-                                                            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)' }}
-                                                        />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
-                                                <Text type="supporting">공유된 사진이 없습니다</Text>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* 파일 */}
-                                    <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
-                                        <div style={{ marginBottom: 'var(--spacing-3)' }}>
-                                            <Text type="label" weight="semibold">
-                                                파일 ({drawerFileMessages.length})
-                                            </Text>
-                                        </div>
-                                        {drawerFileMessages.length > 0 ? (
-                                            <VStack gap={1}>
-                                                {drawerFileMessages.map(m => (
-                                                    <Item
-                                                        key={m.id}
-                                                        // 보이는 문서는 뷰어로, 동영상·그 밖은 새 탭 (파일 패널과 같은 규칙)
-                                                        {...(isViewableDocument(m.fileName)
-                                                            ? { onClick: () => setViewerFile({ fileUrl: m.fileUrl!, fileName: m.fileName || "문서" }) }
-                                                            : { href: m.fileUrl!, target: "_blank", rel: "noopener noreferrer" })}
-                                                        density="compact"
-                                                        startContent={<Icon icon={chatMediaType(m) === "VIDEO" ? FiVideo : FiPaperclip} size="sm" color="secondary" />}
-                                                        label={chatAttachmentLabel(m)}
-                                                        labelLines={1}
-                                                        description={<Text type="supporting">{formatMessageTime(m.createdAt)}</Text>}
-                                                    />
-                                                ))}
-                                            </VStack>
-                                        ) : (
-                                            <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
-                                                <Text type="supporting">공유된 파일이 없습니다</Text>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* 삭제는 헤더 더보기(⋯) 메뉴로 옮겼다 — 앱과 같은 자리에서 찾도록 */}
-                                </div>
-                            </div>
-                        )}
                     </>
                 ) : (
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                         <Text type="body" color="secondary">채팅방을 선택하세요</Text>
                     </div>
                 )}
+            </div>
+            {/* Info Drawer */}
+            {selectedRoom && showDrawer && (
+                <div
+                    ref={drawerRef}
+                    role="complementary"
+                    aria-label="채팅방 정보"
+                    className="carev-chat-info-drawer"
+                    data-chat-info-drawer
+                    tabIndex={-1}
+                    style={{ background: C.card, display: "flex", flexDirection: "column", outline: "none" }}
+                >
+                    {/* Drawer Header */}
+                    <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Text type="large" weight="semibold">채팅방 정보</Text>
+                        <IconButton
+                            label="닫기"
+                            variant="ghost"
+                            icon={<Icon icon="close" />}
+                            onClick={() => setShowDrawer(false)}
+                        />
+                    </div>
+
+                    <div style={{ flex: 1, overflowY: "auto" }}>
+                        {/* 참여자 */}
+                        <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
+                            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                                <HStack gap={2} vAlign="center" hAlign="between">
+                                    <Text type="label" weight="semibold">
+                                        참여자 ({participants.length}명)
+                                    </Text>
+                                    <Button
+                                        label="초대"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => { setInviteIds([]); setShowInviteModal(true); }}
+                                    />
+                                </HStack>
+                            </div>
+                            {isLoadingParticipants ? (
+                                <Loading size="inline" label="참여자를 불러오는 중..." />
+                            ) : participants.length > 0 ? (
+                                <VStack gap={1}>
+                                    {participants.map((p, i) => (
+                                        <Item
+                                            key={p.userId || i}
+                                            density="compact"
+                                            startContent={<Avatar src={p.profileImageUrl || undefined} name={p.userName} size="small" />}
+                                            label={p.userName}
+                                        />
+                                    ))}
+                                </VStack>
+                            ) : (
+                                <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
+                                    <Text type="supporting">참여자 정보를 불러올 수 없습니다</Text>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 사진 */}
+                        <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
+                            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                                <Text type="label" weight="semibold">
+                                    사진 ({drawerImageMessages.length})
+                                </Text>
+                            </div>
+                            {drawerImageMessages.length > 0 ? (
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-2)' }}>
+                                    {drawerImageMessages.map(m => (
+                                        <button
+                                            key={m.id}
+                                            type="button"
+                                            onClick={() => {
+                                                // 말풍선과 같은 확대 보기 — 방 안 사진 전체를 좌우로 넘긴다
+                                                const items = drawerImageMessages.map(im => ({ fileUrl: im.fileUrl!, fileName: im.fileName || "이미지" }));
+                                                setImagePreview({ items, index: Math.max(0, drawerImageMessages.findIndex(im => im.id === m.id)) });
+                                            }}
+                                            aria-label={`${m.fileName || "사진"} 크게 보기`}
+                                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
+                                        >
+                                            <ChatImage
+                                                src={chatListImageUrl(m)}
+                                                alt={m.fileName || "사진"}
+                                                className="carev-chat-photo"
+                                                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 'var(--radius-inner)' }}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
+                                    <Text type="supporting">공유된 사진이 없습니다</Text>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 파일 */}
+                        <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
+                            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                                <Text type="label" weight="semibold">
+                                    파일 ({drawerFileMessages.length})
+                                </Text>
+                            </div>
+                            {drawerFileMessages.length > 0 ? (
+                                <VStack gap={1}>
+                                    {drawerFileMessages.map(m => (
+                                        <Item
+                                            key={m.id}
+                                            // 보이는 문서는 뷰어로, 동영상·그 밖은 새 탭 (파일 패널과 같은 규칙)
+                                            {...(isViewableDocument(m.fileName)
+                                                ? { onClick: () => setViewerFile({ fileUrl: m.fileUrl!, fileName: m.fileName || "문서" }) }
+                                                : { href: m.fileUrl!, target: "_blank", rel: "noopener noreferrer" })}
+                                            density="compact"
+                                            startContent={<Icon icon={chatMediaType(m) === "VIDEO" ? FiVideo : FiPaperclip} size="sm" color="secondary" />}
+                                            label={chatAttachmentLabel(m)}
+                                            labelLines={1}
+                                            description={<Text type="supporting">{formatMessageTime(m.createdAt)}</Text>}
+                                        />
+                                    ))}
+                                </VStack>
+                            ) : (
+                                <div style={{ textAlign: "center", padding: "var(--spacing-4) 0" }}>
+                                    <Text type="supporting">공유된 파일이 없습니다</Text>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 삭제는 헤더 더보기(⋯) 메뉴로 옮겼다 — 앱과 같은 자리에서 찾도록 */}
+                    </div>
+                </div>
+            )}
             </div>
 
             {/* Create Room Modal */}

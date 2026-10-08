@@ -942,6 +942,25 @@ html {
   width: min(380px, calc(100vw - var(--spacing-12)));
   height: var(--carev-fchat-panel-h);
 }
+/* 채팅방 정보 서랍 — 기본(좁을 때)은 대화를 덮는다.
+   대화 패널 폭이 서랍 360px + 대화 최소 폭을 넉넉히 넘으면 오른쪽에 나란히 놓아 대화를 계속 보고 쓸 수 있게 한다.
+   뷰포트가 아니라 패널 폭 기준이다 — 사이드 레일이 열려 있는지에 따라 같은 화면 폭에서도 패널 폭이 다르기 때문. */
+.carev-chat-panel { container-type: inline-size; }
+.carev-chat-info-drawer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  min-width: 0;
+}
+@container (min-width: 800px) {
+  .carev-chat-info-drawer {
+    position: static;
+    z-index: auto;
+    flex: none;
+    width: 360px;
+    border-left: 1px solid var(--color-border);
+  }
+}
 .carev-chat-room-item { transition: background var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-chat-room-item:hover { background: var(--color-background-muted); } }
 .carev-chat-reaction { transition: background var(--duration-fast-min) var(--ease-standard); }
