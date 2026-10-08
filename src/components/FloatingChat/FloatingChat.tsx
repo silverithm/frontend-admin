@@ -517,7 +517,7 @@ export function FloatingChat() {
                                 borderRadius: "var(--radius-container)",
                                 background: "var(--color-background-card)",
                                 boxShadow: "var(--shadow-high)",
-                                padding: "10px 14px",
+                                padding: "var(--spacing-3) var(--spacing-4)",
                             }}
                         >
                             <div
@@ -526,7 +526,7 @@ export function FloatingChat() {
                                     justifyContent: "space-between",
                                     gap: 'var(--spacing-2)',
                                     marginBottom: 'var(--spacing-0-5)',
-                                    fontSize: 12,
+                                    fontSize: "var(--font-size-xs)",
                                     color: "var(--color-text-secondary)",
                                 }}
                             >
@@ -537,7 +537,7 @@ export function FloatingChat() {
                             </div>
                             <div
                                 style={{
-                                    fontSize: 13,
+                                    fontSize: "var(--font-size-sm)",
                                     color: "var(--color-text-primary)",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",

@@ -1,5 +1,7 @@
 "use client";
 
+import { subheaderStyle } from '@/components/subheaderStyle';
+import { ChatAttachmentLabel } from '@/components/chat/ChatAttachmentLabel';
 import { Fragment, useRef, useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
 import { FiSend, FiCornerUpLeft, FiPaperclip, FiTrash2, FiEdit2, FiCheck } from "react-icons/fi";
 import { Text } from "@astryxdesign/core/Text";
@@ -684,9 +686,9 @@ export function FloatingChatMessages({
                 <div style={{ opacity: 0.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     <Text type="supporting" color="inherit">
                         {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
-                        {message.replyToMediaType === "VIDEO" ? "🎬 동영상"
-                            : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? "📷 사진"
-                                : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                        {message.replyToMediaType === "VIDEO" ? <ChatAttachmentLabel kind="VIDEO">동영상</ChatAttachmentLabel>
+                            : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? <ChatAttachmentLabel kind="IMAGE">사진</ChatAttachmentLabel>
+                                : message.replyToType === "FILE" ? <ChatAttachmentLabel kind="FILE">파일</ChatAttachmentLabel> : message.replyToContent}
                     </Text>
                 </div>
             </button>
@@ -727,8 +729,8 @@ export function FloatingChatMessages({
             {/* Header */}
             <div
                 style={{
-                    padding: "10px var(--spacing-3)",
-                    borderBottom: `1px solid ${C.border}`,
+                    ...subheaderStyle,
+                    padding: "var(--spacing-3)",
                     display: "flex",
                     alignItems: "center",
                     gap: 'var(--spacing-2)',
@@ -874,7 +876,7 @@ export function FloatingChatMessages({
                             return (
                                 <Fragment key={message.id}>
                                     {dateSeparator}
-                                    <div style={{ display: "flex", justifyContent: "center", fontStyle: "italic" }}>
+                                    <div style={{ display: "flex", justifyContent: "center" }}>
                                         <Text type="supporting" color="secondary">{message.content}</Text>
                                     </div>
                                 </Fragment>
@@ -889,7 +891,6 @@ export function FloatingChatMessages({
                                         style={{
                                             display: "flex",
                                             justifyContent: isMyMessage ? "flex-end" : "flex-start",
-                                            fontStyle: "italic",
                                         }}
                                     >
                                         <div style={{ padding: "var(--spacing-1) var(--spacing-2)" }}>
@@ -1210,7 +1211,7 @@ export function FloatingChatMessages({
                         <Text type="supporting" weight="semibold" color="accent" maxLines={1}>{replyTo.senderName}</Text>
                         <div>
                             <Text type="supporting" color="secondary" maxLines={1}>
-                                {replyTo.type === "IMAGE" ? "📷 사진" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
+                                {replyTo.type === "IMAGE" ? <ChatAttachmentLabel kind="IMAGE">사진</ChatAttachmentLabel> : replyTo.type === "FILE" ? <ChatAttachmentLabel kind="FILE">파일</ChatAttachmentLabel> : replyTo.content}
                             </Text>
                         </div>
                     </div>
@@ -1330,8 +1331,8 @@ export function FloatingChatMessages({
                     {/* Drawer Header */}
                     <div
                         style={{
-                            padding: "10px var(--spacing-3)",
-                            borderBottom: `1px solid ${C.border}`,
+                            ...subheaderStyle,
+                            padding: "var(--spacing-3)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",

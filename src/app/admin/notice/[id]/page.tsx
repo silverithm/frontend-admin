@@ -33,6 +33,9 @@ import {
   deleteNoticeComment,
   getNoticeReaders,
 } from '@/lib/apiService';
+import RichTextEditor from '@/components/plaza/RichTextEditor';
+import { sanitizeRichText, isRichText, richTextToPlain } from '@/lib/richText';
+import { toEditorHtml } from '@/lib/noticeContent';
 import { Notice, NoticeComment, NoticeReader, NoticePriority } from '@/types/notice';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -86,7 +89,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
       const data = response.notice || response;
       setNotice(data);
       setTitle(data.title || '');
-      setContent(data.content || '');
+      setContent(toEditorHtml(data.content || ''));
       setPriority(data.priority || 'NORMAL');
       setIsPinned(data.isPinned || false);
     } catch (error) {
@@ -117,7 +120,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
 
   // 수정 저장
   const handleUpdate = async () => {
-    if (!title.trim() || !content.trim()) {
+    if (!title.trim() || !richTextToPlain(content).trim()) {
       showAlert({ type: 'warning', title: '입력 필요', message: '제목과 내용을 입력해주세요.' });
       return;
     }
@@ -126,7 +129,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
     try {
       await updateNotice(id, {
         title: title.trim(),
-        content: content.trim(),
+        content: sanitizeRichText(content).trim(),
         priority,
         isPinned,
       });
@@ -311,9 +314,10 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                     <div style={{ width: '100%' }}>
                       <TextInput label="제목" value={title} onChange={(value) => setTitle(value)} />
                     </div>
-                    <div style={{ width: '100%' }}>
-                      <TextArea label="내용" value={content} onChange={(value) => setContent(value)} rows={12} />
-                    </div>
+                    <VStack gap={1} align="start" width="100%">
+                      <Text type="label" weight="medium" color="primary">내용</Text>
+                      <RichTextEditor value={content} onChange={(html) => setContent(html)} minHeight={320} />
+                    </VStack>
                     <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)', alignItems: 'end' }}>
                       <Selector
                         label="우선순위"
@@ -351,9 +355,17 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                     <div style={{ width: '100%', paddingTop: 'var(--spacing-2)', paddingBottom: 'var(--spacing-2)' }}>
                       <Divider />
                     </div>
-                    <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
-                      <Text type="body" color="secondary" display="block">{notice.content}</Text>
-                    </div>
+                    {isRichText(notice.content) ? (
+                      <div
+                        className="carev-richtext-view"
+                        style={{ width: '100%', fontSize: 'var(--font-size-base)', color: 'var(--color-text-primary)' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.content) }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
+                        <Text type="body" color="secondary" display="block">{notice.content}</Text>
+                      </div>
+                    )}
                   </VStack>
                 </Card>
               )}
