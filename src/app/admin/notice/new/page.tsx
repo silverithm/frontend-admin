@@ -113,7 +113,7 @@ export default function NewNoticePage() {
                 <Text type="large" weight="bold">새 공지사항 작성</Text>
               </HStack>
               <Button
-                label="등록하기"
+                label={sendPushNotification ? '등록하고 알림 보내기' : '등록만 하기'}
                 variant="primary"
                 size="md"
                 icon={<Icon icon="check" size="sm" />}
@@ -190,14 +190,18 @@ export default function NewNoticePage() {
               </Card>
 
               {/* 알림 설정 */}
-              <Card variant="blue" padding={6}>
-                <CheckboxInput
-                  label="직원들에게 푸시 알림 발송"
-                  description="등록 시 모든 직원에게 알림이 발송됩니다."
-                  labelIcon={IconBell}
-                  value={sendPushNotification}
-                  onChange={(checked) => setSendPushNotification(checked)}
-                />
+              <Card padding={6}>
+                <VStack gap={2}>
+                  <CheckboxInput
+                    label="직원들에게 푸시 알림 발송"
+                    labelIcon={IconBell}
+                    value={sendPushNotification}
+                    onChange={(checked) => setSendPushNotification(checked)}
+                  />
+                  <Text type="supporting" color="secondary">
+                    등록 시 모든 직원에게 알림이 발송됩니다.
+                  </Text>
+                </VStack>
               </Card>
             </VStack>
           </motion.div>
