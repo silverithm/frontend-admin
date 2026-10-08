@@ -3,6 +3,7 @@
 import { subheaderStyle } from '@/components/subheaderStyle';
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
+import { createRoomBoundState, isStaleRoomResponse } from '@/lib/chatRoomSwitch';
 import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, setChatRoomPinned, renameChatRoom, CHAT_ROOM_NAME_MAX } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
@@ -21,6 +22,7 @@ import { buildChatRenderItems, formatDateSeparator, chatAttachmentLabel, lastMes
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
 import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/ChatImageLightbox';
+import { ChatAttachmentLabel } from '@/components/chat/ChatAttachmentLabel';
 import { ChatImage } from '@/components/chat/ChatImage';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
@@ -51,7 +53,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLogOut, FiCalendar, FiEdit2 } from 'react-icons/fi';
+import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLogOut, FiCalendar, FiEdit2, FiVideo } from 'react-icons/fi';
 import { IconPin, IconPinnedOff } from '@tabler/icons-react';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
@@ -382,6 +384,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     const [showRoomMenu, setShowRoomMenu] = useState(false);
     /** 채팅방 나가기 확인 */
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    /** 나가기·삭제 확인창이 가리키는 방 — 목록 메뉴에서 열어도 확인 전에 그 방을 열지 않는다 */
+    const [confirmRoomId, setConfirmRoomId] = useState<number | null>(null);
     /** 이름 바꾸기 창 — 대상 방과 입력값. 저장 중에는 닫히지 않게 막는다 */
     const [renameTarget, setRenameTarget] = useState<ChatRoom | null>(null);
     const [renameValue, setRenameValue] = useState("");
@@ -450,6 +454,21 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         return () => document.removeEventListener('keydown', onKeyDown);
     }, [showRoomMenu]);
 
+    // 채팅방 정보 서랍 — 열리면 서랍으로 포커스를 옮기고, Escape로 닫는다.
+    // (사진 확대·문서 뷰어·초대 창이 위에 떠 있을 땐 그쪽 Escape가 먼저이므로 건드리지 않는다)
+    const drawerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!showDrawer || imagePreview || viewerFile) return;
+        drawerRef.current?.focus();
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape' || event.defaultPrevented) return;
+            if (document.querySelector('[role="dialog"]:not([data-chat-info-drawer])')) return;
+            setShowDrawer(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [showDrawer, imagePreview, viewerFile]);
+
     // 방을 옮기면 열려 있던 메뉴는 닫는다
     useEffect(() => { setShowRoomMenu(false); }, [selectedRoom]);
     // 방을 옮기면 수정 중이던 상태는 의미가 없다 — 남겨두면 다른 방 메시지를 고치게 된다.
@@ -460,6 +479,28 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (!editingMessageRef.current) return;
         setEditingMessage(null);
         setMessageInput("");
+    }, [selectedRoom]);
+
+    // 방에 묶인 나머지 상태(답장 대기, 검색·파일함, 패널 …)도 함께 비운다 [[chatRoomSwitch]].
+    // 남기면 B방 메시지에 A방 replyToId가 실리고, A방 검색 결과를 눌러 B방 id로 조회하게 된다.
+    const selectedRoomRef = useRef<number | null>(selectedRoom);
+    useEffect(() => {
+        selectedRoomRef.current = selectedRoom;
+        const fresh = createRoomBoundState<ChatMessage>();
+        setReplyTo(fresh.replyTo);
+        setSidePanel(fresh.sidePanel);
+        setSearchKeyword(fresh.searchKeyword);
+        setSearchResults(fresh.searchResults);
+        setIsSearching(false);
+        setJumpToDate(fresh.jumpToDate);
+        setSharedFiles(fresh.sharedFiles);
+        setIsLoadingFiles(false);
+        setHighlightedMessageId(fresh.highlightedMessageId);
+        setIsJumpedToOlder(fresh.isJumpedToOlder);
+        setMentionQuery(fresh.mentionQuery);
+        setIsNoticeExpanded(fresh.isNoticeExpanded);
+        setContextMenuMessageId(fresh.contextMenuMessageId);
+        setPendingDeleteMessageId(fresh.pendingDeleteMessageId);
     }, [selectedRoom]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1162,7 +1203,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (!selectedRoom || !searchKeyword.trim()) return;
         setIsSearching(true);
         try {
-            const response = await searchChatMessages(selectedRoom, searchKeyword.trim());
+            const requestedRoom = selectedRoom;
+            const response = await searchChatMessages(requestedRoom, searchKeyword.trim());
+            if (isStaleRoomResponse(requestedRoom, selectedRoomRef.current)) return; // 그사이 방을 옮겼다
             setSearchResults(response.messages || []);
         } catch (error) {
             console.error("메시지 검색 실패:", error);
@@ -1288,7 +1331,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         if (!selectedRoom) return;
         setIsLoadingFiles(true);
         try {
-            const response = await fetchChatSharedFiles(selectedRoom);
+            const requestedRoom = selectedRoom;
+            const response = await fetchChatSharedFiles(requestedRoom);
+            if (isStaleRoomResponse(requestedRoom, selectedRoomRef.current)) return; // 그사이 방을 옮겼다
             setSharedFiles(response.files || []);
         } catch (error) {
             console.error("파일 목록 로드 실패:", error);
@@ -1478,17 +1523,21 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     }, [selectedRoom, onActiveRoomChange]);
 
     const deleteRoom = async () => {
-        if (!selectedRoom) return;
+        const targetId = confirmRoomId ?? selectedRoom;
+        if (!targetId) return;
 
         setIsDeletingRoom(true);
         try {
-            await deleteChatRoom(selectedRoom);
+            await deleteChatRoom(targetId);
 
             onNotification("채팅방이 삭제되었습니다", "success");
             setShowDeleteConfirm(false);
-            setShowDrawer(false);
-            setSelectedRoom(null);
-            setMessages([]);
+            setConfirmRoomId(null);
+            if (targetId === selectedRoom) {
+                setShowDrawer(false);
+                setSelectedRoom(null);
+                setMessages([]);
+            }
             fetchRooms();
         } catch (error) {
             console.error("Error deleting room:", error);
@@ -1500,17 +1549,21 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
     /** 나가기 — 방은 그대로 남고 나만 참가자 목록에서 빠진다. 삭제와 달리 되돌릴 수 없다는 문구를 확인받는다 */
     const leaveRoom = async () => {
-        if (!selectedRoom) return;
+        const targetId = confirmRoomId ?? selectedRoom;
+        if (!targetId) return;
 
         setIsLeavingRoom(true);
         try {
-            await leaveChatRoom(selectedRoom);
+            await leaveChatRoom(targetId);
 
             onNotification("채팅방에서 나갔습니다", "success");
             setShowLeaveConfirm(false);
-            setShowDrawer(false);
-            setSelectedRoom(null);
-            setMessages([]);
+            setConfirmRoomId(null);
+            if (targetId === selectedRoom) {
+                setShowDrawer(false);
+                setSelectedRoom(null);
+                setMessages([]);
+            }
             fetchRooms();
         } catch (error) {
             console.error("Error leaving room:", error);
@@ -1565,6 +1618,26 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     /** 이름 바꾸기 — 앱과 같은 규칙: 기관 관리자이거나 방을 만든 사람. 최종 판정은 서버가 한다(아니면 403) */
     const canRenameRoom = (room: ChatRoom) =>
         isAdmin || (Boolean(room.createdBy) && room.createdBy === userId);
+
+    /**
+     * 목록 방 ⋯ 메뉴 위치. 목록이 overflow:auto라 absolute로 두면 아래쪽 방에서 잘린다 —
+     * 행 위치를 재서 fixed로 띄우고, 아래 공간이 모자라면 행 위로 연다.
+     */
+    const roomMenuStyle = (roomId: number): React.CSSProperties => {
+        const row = typeof document !== "undefined"
+            ? document.querySelector<HTMLElement>(`[data-chat-room-row="${roomId}"]`)
+            : null;
+        if (!row) return { position: "absolute", top: "100%", right: 'var(--spacing-2)' };
+        const rect = row.getBoundingClientRect();
+        const menuHeight = 188; // 항목 4~5개 높이 여유
+        const right = Math.max(8, window.innerWidth - rect.right + 8);
+        return window.innerHeight - rect.bottom >= menuHeight
+            ? { position: "fixed", top: rect.bottom, right }
+            : { position: "fixed", bottom: window.innerHeight - rect.top, right };
+    };
+
+    /** 지금 열려 있는 방 — 대화방 머리 ⋯ 메뉴가 쓴다 */
+    const currentRoom = rooms.find(r => r.id === selectedRoom) ?? null;
 
     const openRename = (room: ChatRoom) => {
         setRoomMenuId(null);
@@ -1834,10 +1907,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         />
                                         <div
                                             style={{
-                                                position: "absolute",
+                                                ...roomMenuStyle(room.id),
                                                 zIndex: 40,
-                                                top: "100%",
-                                                right: 'var(--spacing-2)',
                                                 minWidth: 160,
                                                 background: C.card,
                                                 border: `1px solid ${C.border}`,
@@ -1872,8 +1943,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 size="sm"
                                                 icon={<Icon icon={FiLogOut} size="sm" />}
                                                 onClick={() => {
-                                                    /* 확인창이 selectedRoom을 기준으로 이름을 보여준다 — 먼저 그 방을 고른다 */
-                                                    setSelectedRoom(room.id);
+                                                    /* 확인창은 confirmRoomId 기준 — 확인하기 전에는 그 방을 열지 않는다 */
+                                                    setConfirmRoomId(room.id);
                                                     setRoomMenuId(null);
                                                     setShowLeaveConfirm(true);
                                                 }}
@@ -1886,7 +1957,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     size="sm"
                                                     icon={<Icon icon={FiTrash2} size="sm" color="error" />}
                                                     onClick={() => {
-                                                        setSelectedRoom(room.id);
+                                                        setConfirmRoomId(room.id);
                                                         setRoomMenuId(null);
                                                         setShowDeleteConfirm(true);
                                                     }}
@@ -1941,8 +2012,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     <>
                         {/* Header */}
                         <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div>
-                                <Text type="large" weight="semibold">
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <Text type="large" weight="semibold" maxLines={1}>
                                     {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
                                 </Text>
                                 <div>
@@ -1951,7 +2022,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     </Text>
                                 </div>
                             </div>
-                            <HStack gap={1}>
+                            <HStack gap={1} style={{ flexShrink: 0 }}>
                                 <IconButton
                                     label="메시지 검색"
                                     tooltip="이 방에서 검색"
@@ -2006,6 +2077,28 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     overflow: "hidden",
                                                 }}
                                             >
+                                                {/* 목록 ⋯ 메뉴와 같은 항목·같은 권한 조건 */}
+                                                {currentRoom && (
+                                                    <Button
+                                                        label={currentRoom.pinned ? "고정 해제" : "상단 고정"}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        icon={<Icon icon={currentRoom.pinned ? IconPinnedOff : IconPin} size="sm" />}
+                                                        isDisabled={pinPendingRoomIds.includes(currentRoom.id)}
+                                                        onClick={() => { setShowRoomMenu(false); toggleRoomPin(currentRoom); }}
+                                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                                    />
+                                                )}
+                                                {currentRoom && canRenameRoom(currentRoom) && (
+                                                    <Button
+                                                        label="이름 바꾸기"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        icon={<Icon icon={FiEdit2} size="sm" />}
+                                                        onClick={() => { setShowRoomMenu(false); openRename(currentRoom); }}
+                                                        style={{ width: "100%", justifyContent: "flex-start" }}
+                                                    />
+                                                )}
                                                 {/* 나가기 — 나만 방에서 빠진다. 방·메시지는 그대로 남는다 (삭제와 다르다) */}
                                                 <Button
                                                     label="채팅방 나가기"
@@ -2127,7 +2220,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             borderRadius: 'var(--radius-inner)', cursor: "pointer", textAlign: "left",
                                                         }}
                                                     >
-                                                        <span>{chatMediaType(m) === "IMAGE" ? "📷" : chatMediaType(m) === "VIDEO" ? "🎬" : "📎"}</span>
+                                                        <ChatAttachmentLabel kind={chatMediaType(m) === "IMAGE" ? "IMAGE" : chatMediaType(m) === "VIDEO" ? "VIDEO" : "FILE"} />
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
                                                                 {chatAttachmentLabel(m)}
@@ -2158,7 +2251,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     background: 'var(--color-background-yellow)',
                                     borderBottom: `1px solid ${C.border}`,
                                 }}>
-                                    <span style={{ flexShrink: 0, marginTop: 'var(--spacing-0-5)' }}>📌</span>
+                                    <span style={{ flexShrink: 0, marginTop: 'var(--spacing-0-5)', display: 'inline-flex' }}><ChatAttachmentLabel kind="NOTICE" /></span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <Text type="supporting" weight="semibold" color="primary">공지</Text>
                                         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -2193,7 +2286,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     textAlign: "left",
                                                 }}
                                             >
-                                                📎 {room.noticeFileName || "첨부 파일"}
+                                                <ChatAttachmentLabel kind="FILE">{room.noticeFileName || "첨부 파일"}</ChatAttachmentLabel>
                                             </button>
                                         )}
                                     </div>
@@ -2299,7 +2392,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         return (
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
-                                                <div style={{ display: "flex", justifyContent: "center", fontStyle: "italic" }}>
+                                                <div style={{ display: "flex", justifyContent: "center" }}>
                                                     <Text type="supporting" color="disabled">{message.content}</Text>
                                                 </div>
                                             </Fragment>
@@ -2310,7 +2403,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         return (
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
-                                                <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start", padding: "var(--spacing-2) var(--spacing-3)", fontStyle: "italic" }}>
+                                                <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start", padding: "var(--spacing-2) var(--spacing-3)" }}>
                                                     <Text type="supporting" color="disabled">
                                                         삭제된 메시지입니다
                                                     </Text>
@@ -2456,9 +2549,9 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{message.replyToSenderName}</div>
                                                                     <div style={{ opacity: 0.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                                                                         {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
-                                                                        {message.replyToMediaType === "VIDEO" ? "🎬 동영상"
-                                                                            : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? "📷 사진"
-                                                                                : message.replyToType === "FILE" ? "📎 파일" : message.replyToContent}
+                                                                        {message.replyToMediaType === "VIDEO" ? <ChatAttachmentLabel kind="VIDEO">동영상</ChatAttachmentLabel>
+                                                                            : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? <ChatAttachmentLabel kind="IMAGE">사진</ChatAttachmentLabel>
+                                                                                : message.replyToType === "FILE" ? <ChatAttachmentLabel kind="FILE">파일</ChatAttachmentLabel> : message.replyToContent}
                                                                     </div>
                                                                 </button>
                                                             )}
@@ -2520,7 +2613,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         textAlign: "left",
                                                                     }}
                                                                 >
-                                                                    📎 {message.fileName || message.content}
+                                                                    <ChatAttachmentLabel kind="FILE">{message.fileName || message.content}</ChatAttachmentLabel>
                                                                 </button>
                                                             ) : (
                                                                 <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
@@ -2621,7 +2714,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     label="공지로 등록"
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    icon={<span>📌</span>}
+                                                                    icon={<Icon icon={IconPin} size="sm" />}
                                                                     isLoading={isUpdatingNotice}
                                                                     onClick={() => changeNotice(message.id)}
                                                                     style={{ width: "100%", justifyContent: "flex-start" }}
@@ -2720,7 +2813,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     </div>
                                     <div>
                                         <Text type="supporting" maxLines={1}>
-                                            {chatMediaType(replyTo) === "IMAGE" ? "📷 사진" : chatMediaType(replyTo) === "VIDEO" ? "🎬 동영상" : replyTo.type === "FILE" ? "📎 파일" : replyTo.content}
+                                            {chatMediaType(replyTo) === "IMAGE" ? <ChatAttachmentLabel kind="IMAGE">사진</ChatAttachmentLabel> : chatMediaType(replyTo) === "VIDEO" ? <ChatAttachmentLabel kind="VIDEO">동영상</ChatAttachmentLabel> : replyTo.type === "FILE" ? <ChatAttachmentLabel kind="FILE">파일</ChatAttachmentLabel> : replyTo.content}
                                         </Text>
                                     </div>
                                 </div>
@@ -2818,7 +2911,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                             editingMessage ? "메시지를 고친 뒤 저장하세요 (Shift+Enter로 줄바꿈)"
                                                 : isUploadingFile ? "파일을 보내는 중..."
                                                 : replyTo ? `${replyTo.senderName}에게 답장... (Shift+Enter로 줄바꿈)`
-                                                : "메시지 입력 (Shift+Enter로 줄바꿈, 사진은 붙여넣기·끌어놓기로도 보낼 수 있어요)"
+                                                : "메시지 입력"
                                         }
                                         isDisabled={isUploadingFile || isSavingEdit}
                                     />
@@ -2831,11 +2924,23 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     isLoading={isSavingEdit}
                                 />
                             </div>
+                            <div style={{ paddingTop: 'var(--spacing-1)' }}>
+                                <Text type="supporting" color="secondary">
+                                    Shift+Enter로 줄바꿈 · 사진은 붙여넣기·끌어놓기로도 보낼 수 있어요
+                                </Text>
+                            </div>
                         </div>
 
                         {/* Info Drawer */}
                         {showDrawer && (
-                            <div style={{ position: "absolute", inset: 0, background: C.card, zIndex: 20, display: "flex", flexDirection: "column" }}>
+                            <div
+                                ref={drawerRef}
+                                role="dialog"
+                                aria-label="채팅방 정보"
+                                data-chat-info-drawer
+                                tabIndex={-1}
+                                style={{ position: "absolute", inset: 0, background: C.card, zIndex: 20, display: "flex", flexDirection: "column", outline: "none" }}
+                            >
                                 {/* Drawer Header */}
                                 <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <Text type="large" weight="semibold">채팅방 정보</Text>
@@ -2896,7 +3001,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     <button
                                                         key={m.id}
                                                         type="button"
-                                                        onClick={() => window.open(m.fileUrl, "_blank")}
+                                                        onClick={() => {
+                                                            // 말풍선과 같은 확대 보기 — 방 안 사진 전체를 좌우로 넘긴다
+                                                            const items = drawerImageMessages.map(im => ({ fileUrl: im.fileUrl!, fileName: im.fileName || "이미지" }));
+                                                            setImagePreview({ items, index: Math.max(0, drawerImageMessages.findIndex(im => im.id === m.id)) });
+                                                        }}
                                                         aria-label={`${m.fileName || "사진"} 크게 보기`}
                                                         style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", width: "100%" }}
                                                     >
@@ -2928,11 +3037,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 {drawerFileMessages.map(m => (
                                                     <Item
                                                         key={m.id}
-                                                        href={m.fileUrl!}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
+                                                        // 보이는 문서는 뷰어로, 동영상·그 밖은 새 탭 (파일 패널과 같은 규칙)
+                                                        {...(isViewableDocument(m.fileName)
+                                                            ? { onClick: () => setViewerFile({ fileUrl: m.fileUrl!, fileName: m.fileName || "문서" }) }
+                                                            : { href: m.fileUrl!, target: "_blank", rel: "noopener noreferrer" })}
                                                         density="compact"
-                                                        startContent={<Icon icon={FiPaperclip} size="sm" color="secondary" />}
+                                                        startContent={<Icon icon={chatMediaType(m) === "VIDEO" ? FiVideo : FiPaperclip} size="sm" color="secondary" />}
                                                         label={chatAttachmentLabel(m)}
                                                         labelLines={1}
                                                         description={<Text type="supporting">{formatMessageTime(m.createdAt)}</Text>}
@@ -3119,7 +3229,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             {/* Delete Room Confirm Modal */}
             <Dialog
                 isOpen={showDeleteConfirm}
-                onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}
+                onOpenChange={(open) => { if (!open) { setShowDeleteConfirm(false); setConfirmRoomId(null); } }}
                 purpose="required"
                 width={400}
             >
@@ -3127,14 +3237,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     header={
                         <DialogHeader
                             title="채팅방 삭제"
-                            onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}
+                            onOpenChange={(open) => { if (!open) { setShowDeleteConfirm(false); setConfirmRoomId(null); } }}
                         />
                     }
                     content={
                         <LayoutContent>
                             <VStack gap={3}>
                                 <Text type="body">
-                                    <strong>{rooms.find(r => r.id === selectedRoom)?.name}</strong> 채팅방을 삭제하시겠습니까?
+                                    <strong>{rooms.find(r => r.id === (confirmRoomId ?? selectedRoom))?.name}</strong> 채팅방을 삭제하시겠습니까?
                                 </Text>
                                 <Banner status="warning" title="삭제된 채팅방과 메시지는 복구할 수 없습니다." />
                             </VStack>
@@ -3146,7 +3256,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 <Button
                                     label="취소"
                                     variant="ghost"
-                                    onClick={() => setShowDeleteConfirm(false)}
+                                    onClick={() => { setShowDeleteConfirm(false); setConfirmRoomId(null); }}
                                     isDisabled={isDeletingRoom}
                                 />
                                 <Button
@@ -3165,7 +3275,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             {/* Leave Room Confirm Modal — 삭제와 달리 방은 그대로 남고 나만 빠진다 */}
             <Dialog
                 isOpen={showLeaveConfirm}
-                onOpenChange={(open) => { if (!open) setShowLeaveConfirm(false); }}
+                onOpenChange={(open) => { if (!open) { setShowLeaveConfirm(false); setConfirmRoomId(null); } }}
                 purpose="required"
                 width={400}
             >
@@ -3173,14 +3283,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     header={
                         <DialogHeader
                             title="채팅방 나가기"
-                            onOpenChange={(open) => { if (!open) setShowLeaveConfirm(false); }}
+                            onOpenChange={(open) => { if (!open) { setShowLeaveConfirm(false); setConfirmRoomId(null); } }}
                         />
                     }
                     content={
                         <LayoutContent>
                             <VStack gap={3}>
                                 <Text type="body">
-                                    <strong>{rooms.find(r => r.id === selectedRoom)?.name}</strong> 채팅방에서 나가시겠습니까?
+                                    <strong>{rooms.find(r => r.id === (confirmRoomId ?? selectedRoom))?.name}</strong> 채팅방에서 나가시겠습니까?
                                 </Text>
                                 <Banner status="warning" title="나가면 대화 내용을 더 볼 수 없고, 되돌릴 수 없습니다. (방과 메시지 자체는 삭제되지 않습니다)" />
                             </VStack>
@@ -3192,7 +3302,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 <Button
                                     label="취소"
                                     variant="ghost"
-                                    onClick={() => setShowLeaveConfirm(false)}
+                                    onClick={() => { setShowLeaveConfirm(false); setConfirmRoomId(null); }}
                                     isDisabled={isLeavingRoom}
                                 />
                                 <Button
