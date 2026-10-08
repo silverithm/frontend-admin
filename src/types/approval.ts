@@ -23,6 +23,8 @@ export interface ApprovalStep {
   signatureUrl?: string;        // 서명 이미지 (미서명 시 null)
   processedAt?: string;
   rejectReason?: string;
+  /** 승인 시 남긴 의견 (없으면 null) */
+  comment?: string | null;
 }
 
 // 결재선 지정 항목 (생성 요청) — 리스트 순서가 결재 순서, 마지막이 최종 결재자

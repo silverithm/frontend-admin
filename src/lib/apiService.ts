@@ -13,6 +13,7 @@ import {
     PasswordChangeRequest,
     UserRole
 } from '@/types/auth';
+import { buildApproveBody } from '@/lib/approvalComment';
 import { ApprovalImportPreview, ApprovalImportRow, ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
@@ -1867,16 +1868,17 @@ export async function createApprovalRequest(data: ApprovalRequestPayload) {
 }
 
 // 결재 승인 — options.signatureBase64가 있으면 즉석 서명, 없으면 등록 서명 자동 사용
-export async function approveApprovalRequest(id: string, options?: { signatureBase64?: string; force?: boolean }) {
+export async function approveApprovalRequest(id: string, options?: { signatureBase64?: string; comment?: string; force?: boolean }) {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
+
+    const approveBody = buildApproveBody(options);
 
     // force: 관리자 직권 승인(전결) — 남은 검토 단계를 건너뛰고 즉시 최종 승인
     return fetchWithAuth(`/api/v1/approvals/${id}?action=approve&processedBy=${userId}&processedByName=${encodeURIComponent(userName)}${options?.force ? '&force=true' : ''}`, {
         method: 'PUT',
-        ...(options?.signatureBase64
-            ? { body: JSON.stringify({ signatureBase64: options.signatureBase64 }) }
-            : {}),
+        // 서명·의견(선택)을 JSON 본문으로 — 둘 다 없으면 본문 없이
+        ...(approveBody ? { body: JSON.stringify(approveBody) } : {}),
     });
 }
 

@@ -26,7 +26,7 @@ import { useAlert } from './Alert';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
-  onApprove: (id: string, options?: { signatureBase64?: string; force?: boolean }) => void;
+  onApprove: (id: string, options?: { signatureBase64?: string; comment?: string; force?: boolean }) => void;
   onReject: (id: string, reason: string, options?: { force?: boolean }) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
@@ -123,6 +123,7 @@ export default function ApprovalDetail({
   const currentStep = hasLine
     ? approval.approvalLine!.find((step) => step.status === 'PENDING')
     : undefined;
+  const stepsWithComment = (approval.approvalLine ?? []).filter((step) => !!step.comment?.trim());
   const isMyTurn = hasLine
     ? (currentStep ? currentStep.approverId === myApproverId : false)
     : canManage;
@@ -322,6 +323,23 @@ export default function ApprovalDetail({
                   </VStack>
                 )}
 
+                {/* 결재선 단계별 승인 의견 — 반려 사유와 달리 상태색 없이 중립 톤 */}
+                {stepsWithComment.length > 0 && (
+                  <Card variant="muted" padding={3}>
+                    <VStack gap={2}>
+                      <Text type="label" weight="semibold">결재 의견</Text>
+                      {stepsWithComment.map((step) => (
+                        <VStack key={step.id} gap={1}>
+                          <Text type="supporting" color="secondary">
+                            {step.roleLabel === 'FINAL' ? '결재' : '검토'} · {step.approverName}
+                          </Text>
+                          <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{step.comment}</Text>
+                        </VStack>
+                      ))}
+                    </VStack>
+                  </Card>
+                )}
+
                 {/* 열람 대상 — 누가 이 문서를 볼 수 있는지 */}
                 {(approval.viewers?.length ?? 0) > 0 && (
                   <HStack gap={2} vAlign="center" wrap="wrap">
@@ -454,11 +472,13 @@ export default function ApprovalDetail({
       <SignatureConfirmDialog
         isOpen={showSignatureConfirm}
         isProcessing={isProcessing}
+        showComment={hasLine}
         onClose={() => setShowSignatureConfirm(false)}
-        onConfirm={(signatureBase64) => {
+        onConfirm={(signatureBase64, comment) => {
           setShowSignatureConfirm(false);
           onApprove(approval.id, {
             ...(signatureBase64 ? { signatureBase64 } : {}),
+            ...(comment ? { comment } : {}),
             ...(isForceMode ? { force: true } : {}),
           });
         }}

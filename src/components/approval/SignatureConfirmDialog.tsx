@@ -8,6 +8,8 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Loading } from '@/components/Loading';
 import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { APPROVAL_COMMENT_MAX_LENGTH, normalizeApprovalComment } from '@/lib/approvalComment';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { getMySignature } from '@/lib/apiService';
 import SignatureCanvas, { SignatureCanvasHandle } from './SignatureCanvas';
@@ -19,8 +21,10 @@ interface SignatureConfirmDialogProps {
   title?: string;
   isProcessing?: boolean;
   onClose: () => void;
-  /** 확정. 등록 서명 사용 시 signatureBase64는 undefined (서버가 자동 사용) */
-  onConfirm: (signatureBase64?: string) => void;
+  /** 선택 의견 입력칸 표시 여부. 결재선 없는 옛 문서는 서버가 저장하지 않으므로 false */
+  showComment?: boolean;
+  /** 확정. 등록 서명 사용 시 signatureBase64는 undefined (서버가 자동 사용), 의견이 비면 comment도 undefined */
+  onConfirm: (signatureBase64?: string, comment?: string) => void;
 }
 
 /**
@@ -31,6 +35,7 @@ export default function SignatureConfirmDialog({
   isOpen,
   title = '결재 승인',
   isProcessing = false,
+  showComment = true,
   onClose,
   onConfirm,
 }: SignatureConfirmDialogProps) {
@@ -39,9 +44,11 @@ export default function SignatureConfirmDialog({
   const [registeredUrl, setRegisteredUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canvasEmpty, setCanvasEmpty] = useState(true);
+  const [comment, setComment] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
+    setComment('');
     let cancelled = false;
     setIsLoading(true);
     (async () => {
@@ -65,14 +72,15 @@ export default function SignatureConfirmDialog({
   }, [isOpen]);
 
   const handleConfirm = () => {
+    const trimmedComment = showComment ? normalizeApprovalComment(comment) : undefined;
     if (mode === 'draw') {
       const dataUrl = canvasRef.current?.toDataURL();
       if (!dataUrl) return;
-      onConfirm(dataUrl);
+      onConfirm(dataUrl, trimmedComment);
       return;
     }
     // 등록 서명: 서버가 자동으로 사용하므로 base64 전송 불필요
-    onConfirm(undefined);
+    onConfirm(undefined, trimmedComment);
   };
 
   const confirmDisabled =
@@ -138,6 +146,19 @@ export default function SignatureConfirmDialog({
                   </div>
                 ) : (
                   <SignatureCanvas ref={canvasRef} width={340} onChange={(isEmpty) => setCanvasEmpty(isEmpty)} />
+                )}
+
+                {showComment && (
+                  <TextArea
+                    label="의견"
+                    isOptional
+                    value={comment}
+                    onChange={(value) => setComment(value)}
+                    placeholder="결재 기록에 남길 의견이 있으면 적어주세요"
+                    rows={3}
+                    maxLength={APPROVAL_COMMENT_MAX_LENGTH}
+                    isDisabled={isProcessing}
+                  />
                 )}
               </VStack>
             )}

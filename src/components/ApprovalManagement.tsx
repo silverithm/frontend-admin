@@ -274,7 +274,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     setSelectedIds(newSelected);
   };
 
-  const handleApprove = async (id: string | number, options?: { signatureBase64?: string; force?: boolean }) => {
+  const handleApprove = async (id: string | number, options?: { signatureBase64?: string; comment?: string; force?: boolean }) => {
     setIsProcessing(true);
     try {
       await approveApprovalRequest(String(id), options);
@@ -806,11 +806,13 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
       <SignatureConfirmDialog
         isOpen={!!quickApproveTarget}
         isProcessing={isProcessing}
+        showComment={!!quickApproveTarget?.approvalLine?.length}
         onClose={() => setQuickApproveTarget(null)}
-        onConfirm={(signatureBase64) => {
+        onConfirm={(signatureBase64, comment) => {
           if (quickApproveTarget) {
             handleApprove(quickApproveTarget.id, {
               ...(signatureBase64 ? { signatureBase64 } : {}),
+              ...(comment ? { comment } : {}),
               // 내 차례가 아닌 건은 관리자 직권 승인(전결)으로 처리
               ...(isActionable(quickApproveTarget) ? {} : { force: true }),
             });
