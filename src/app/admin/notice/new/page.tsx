@@ -67,14 +67,13 @@ export default function NewNoticePage() {
           : '공지사항이 등록되었습니다.'
       });
 
-      // 목록으로 돌아가기
+      // 목록으로 돌아가기 — 성공하면 이동할 때까지 등록 단추를 잠가 둔다(중복 등록 방지)
       setTimeout(() => {
         router.push('/admin?tab=notice');
       }, 1000);
     } catch (error) {
       console.error('공지사항 등록 실패:', error);
       showAlert({ type: 'error', title: '등록 실패', message: '공지사항 등록에 실패했습니다.' });
-    } finally {
       setIsSubmitting(false);
     }
   };
