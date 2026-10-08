@@ -1,5 +1,6 @@
 "use client";
 
+import { subheaderStyle } from '@/components/subheaderStyle';
 import { lastMessagePreview } from "@/lib/chatMessageGrouping";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
@@ -72,18 +73,17 @@ export function FloatingChatRoomList({
             {/* Header */}
             <div
                 style={{
+                    ...subheaderStyle,
                     padding: "var(--spacing-3) var(--spacing-4)",
-                    background: "var(--color-icon-teal)",
                     borderTopLeftRadius: "var(--radius-container)",
                     borderTopRightRadius: "var(--radius-container)",
                     display: "flex",
                     alignItems: "center",
                     gap: "var(--spacing-2)",
                     flexShrink: 0,
-                    color: "var(--color-on-accent)",
                 }}
             >
-                <Text type="body" weight="semibold" color="inherit">채팅</Text>
+                <Text type="body" weight="semibold" color="primary">채팅</Text>
                 <StatusDot
                     variant={isConnected ? "success" : authExhausted ? "error" : "neutral"}
                     label={isConnected ? "실시간 연결됨" : authExhausted ? "다시 로그인 필요" : "연결 중..."}

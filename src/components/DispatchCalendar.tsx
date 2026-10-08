@@ -151,7 +151,7 @@ export default function DispatchCalendar({
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(255, 255, 255, 0.5)",
+            background: "color-mix(in srgb, var(--color-background-card) 50%, transparent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
