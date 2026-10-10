@@ -46,7 +46,7 @@ const SUBSCRIPTION_TERMS: Array<{ title: string; body: string }> = [
     },
     {
         title: '제3조 (가입과 결제 방식)',
-        body: `구독자는 결제 화면에서 결제 수단(카드)을 등록하고 결제하기 버튼을 눌러 정기 구독 서비스에 가입합니다. 가입과 동시에 첫 1개월 요금(${BASIC_PLAN.amountLabel.replace('월 ', '')})이 결제되며, 이후 해지하기 전까지 이용 기간이 끝날 때마다 등록한 결제 수단으로 다음 1개월 요금이 자동 결제되는 것에 동의합니다.`,
+        body: `구독자는 결제 화면에서 결제 수단(카드)을 등록하고 결제하기 버튼을 눌러 정기 구독 서비스에 가입합니다. 가입과 동시에 첫 1개월 요금 ${BASIC_PLAN.chargeLabel}이 결제되며, 이후 해지하기 전까지 이용 기간이 끝날 때마다 등록한 결제 수단으로 다음 1개월 요금이 자동 결제되는 것에 동의합니다.`,
     },
     {
         title: '제4조 (구독 중 생성된 콘텐츠의 유효기간)',
@@ -70,6 +70,67 @@ const SUBSCRIPTION_TERMS: Array<{ title: string; body: string }> = [
     },
 ];
 
+/*
+ * 로그인 전 카드 등록.
+ * 로그인하지 않은 방문자(심사 담당자 포함)도 토스 카드 등록창을 열 수 있다. 등록창에는 이 탭에서만
+ * 쓰는 임시 customerKey를 넘기고, 돌아온 authKey는 결제하지 않은 채 sessionStorage에 잠시 맡겨 둔다.
+ * 관리자로 로그인해 이 화면으로 돌아오면 그 카드로 결제를 마친다. 실제 결제는 서버가 authKey로
+ * 빌링키를 발급받을 때 일어나므로 로그인 전에는 돈이 나가지 않는다.
+ * 서버는 빌링키와 짝인 customerKey를 계정에 함께 저장한다(api-server fd7f1e4) — 그래야 다음 달
+ * 자동결제가 같은 키로 나간다. 그 배포 전에는 이 흐름을 열면 안 된다.
+ */
+const PENDING_BILLING_STORAGE_KEY = 'carev:pendingBillingAuth';
+const GUEST_CUSTOMER_KEY_STORAGE_KEY = 'carev:guestBillingCustomerKey';
+/** 맡겨 둔 카드 등록 결과를 쓸 수 있는 시간. 넘으면 카드를 다시 등록하게 한다. */
+const PENDING_BILLING_TTL_MS = 30 * 60 * 1000;
+
+interface PendingBillingAuth {
+    authKey: string;
+    customerKey: string;
+    savedAt: number;
+}
+
+function guestCustomerKey(): string {
+    let key = sessionStorage.getItem(GUEST_CUSTOMER_KEY_STORAGE_KEY);
+    if (!key) {
+        key = `guest_${crypto.randomUUID()}`;
+        sessionStorage.setItem(GUEST_CUSTOMER_KEY_STORAGE_KEY, key);
+    }
+    return key;
+}
+
+function readPendingBilling(): PendingBillingAuth | null {
+    try {
+        const raw = sessionStorage.getItem(PENDING_BILLING_STORAGE_KEY);
+        if (!raw) return null;
+        const pending = JSON.parse(raw) as PendingBillingAuth;
+        if (!pending.authKey || !pending.customerKey || Date.now() - pending.savedAt > PENDING_BILLING_TTL_MS) {
+            sessionStorage.removeItem(PENDING_BILLING_STORAGE_KEY);
+            return null;
+        }
+        return pending;
+    } catch {
+        return null;
+    }
+}
+
+function savePendingBilling(pending: PendingBillingAuth): void {
+    try {
+        sessionStorage.setItem(PENDING_BILLING_STORAGE_KEY, JSON.stringify(pending));
+    } catch {
+        // 저장할 수 없으면 로그인 뒤 카드를 다시 등록하게 된다
+    }
+}
+
+function clearPendingBilling(): void {
+    try {
+        sessionStorage.removeItem(PENDING_BILLING_STORAGE_KEY);
+        sessionStorage.removeItem(GUEST_CUSTOMER_KEY_STORAGE_KEY);
+    } catch {
+        // 무시
+    }
+}
+
 function PaymentPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -89,17 +150,20 @@ function PaymentPageContent() {
     // 관리자가 이미 유료 구독 중이면 다시 결제하지 않게 막는다 (서버는 중복 결제를 막지 않는다)
     const [currentSubscription, setCurrentSubscription] = useState<SubscriptionResponseDTO | null>(null);
     const [subscriptionChecked, setSubscriptionChecked] = useState(false);
+    // 로그인 전에 등록해 둔 카드 (아직 결제 안 됨)
+    const [pendingBilling, setPendingBilling] = useState<PendingBillingAuth | null>(null);
 
     /*
      * 이 화면은 로그인 여부와 상관없이 열린다. 요금제의 결제 버튼과 PG 심사 담당자가
      * 로그인 없이 들어와도 상품·금액·정기결제 조건·환불 정책을 볼 수 있어야 하기 때문이다.
      * 예전에는 비로그인으로 들어오면 "결제자 정보가 누락되었습니다"만 뜨고 버튼이 잠겨
-     * 다음으로 갈 길이 없었다. 결제(카드 등록)만 관리자 로그인 뒤에 열린다.
-     * 체험(데모) 세션은 내 계정이 아니므로 결제를 막고 정식 가입을 안내한다.
+     * 다음으로 갈 길이 없었다. 카드 등록창은 누구나 열 수 있고, 결제 완료만 관리자 로그인 뒤에 한다.
+     * 직원·체험 계정도 카드는 등록할 수 있지만 결제는 기관 관리자 계정으로 로그인해야 끝난다.
      */
     useEffect(() => {
         const state = readAuthState();
         setAuthState(state);
+        setPendingBilling(readPendingBilling());
         if (state !== 'admin') {
             setSubscriptionChecked(true);
             return;
@@ -140,12 +204,14 @@ function PaymentPageContent() {
 
     }, []);
 
-    const handleBillingSuccess = useCallback(async (authKey: string) => {
+    // billingCustomerKey: 카드 등록창에 넘겼던 customerKey. 로그인 전에 등록했다면 임시 키라
+    // 계정의 customerKey와 다르다 — 빌링키 발급은 반드시 등록 때 키로 해야 한다.
+    const handleBillingSuccess = useCallback(async (authKey: string, billingCustomerKey: string) => {
         try {
             setLoading(true);
 
             // 사용자 정보 유효성 검사
-            if (!userInfo.email || !userInfo.name || !customerKey) {
+            if (!userInfo.email || !userInfo.name || !billingCustomerKey) {
                 showAlert({
                     type: 'error',
                     title: '사용자 정보 오류',
@@ -159,7 +225,7 @@ function PaymentPageContent() {
                 planName: SubscriptionType.BASIC,
                 billingType: SubscriptionBillingType.MONTHLY,
                 amount: BASIC_PLAN.monthlyAmount,
-                customerKey: customerKey,
+                customerKey: billingCustomerKey,
                 authKey: authKey,
                 orderName: BASIC_PLAN.orderName,
                 customerEmail: userInfo.email,
@@ -170,7 +236,13 @@ function PaymentPageContent() {
             // authKey 사용 후 즉시 변수 초기화 (보안)
             authKey = '';
 
-            await subscriptionService.createOrUpdateSubscription(subscriptionData);
+            try {
+                await subscriptionService.createOrUpdateSubscription(subscriptionData);
+            } finally {
+                // authKey는 한 번 쓰면 끝이다 — 성공·실패와 상관없이 맡겨 둔 카드 등록 결과를 버린다
+                clearPendingBilling();
+                setPendingBilling(null);
+            }
 
             // 폭죽 애니메이션 실행
             const duration = 3000;
@@ -358,12 +430,12 @@ function PaymentPageContent() {
         } finally {
             setLoading(false);
         }
-    }, [customerKey, userInfo.email, userInfo.name, showAlert, router]);
+    }, [userInfo.email, userInfo.name, showAlert, router]);
 
     // 빌링 인증 성공 처리
     useEffect(() => {
-        // 사용자 정보가 로드되지 않았으면 대기
-        if (!userInfoLoaded) {
+        // 사용자 정보·로그인 상태를 알기 전에는 대기
+        if (!userInfoLoaded || authState === null) {
             return;
         }
 
@@ -391,19 +463,30 @@ function PaymentPageContent() {
             url.searchParams.delete('customerKey');
             window.history.replaceState({}, '', url.toString());
 
-            handleBillingSuccess(authKey).finally(() => {
+            if (authState !== 'admin') {
+                // 로그인 전 카드 등록 — 결제하지 않고 맡겨 둔 뒤 관리자 로그인을 안내한다
+                const pending = { authKey, customerKey: customerKeyParam, savedAt: Date.now() };
+                savePendingBilling(pending);
+                setPendingBilling(pending);
+                setIsProcessingPayment(false);
+                showAlert({
+                    type: 'success',
+                    title: '카드 등록 완료',
+                    message: '아직 결제되지 않았습니다. 관리자 계정으로 로그인하면 이 카드로 결제가 완료됩니다.',
+                });
+                return;
+            }
+
+            handleBillingSuccess(authKey, customerKeyParam).finally(() => {
                 setIsProcessingPayment(false);
             });
         }
-    }, [searchParams, handleBillingSuccess, showAlert, userInfoLoaded, isProcessingPayment]);
+    }, [searchParams, handleBillingSuccess, showAlert, userInfoLoaded, isProcessingPayment, authState]);
 
     const handlePayment = async () => {
-        if (authState !== 'admin') {
-            router.push(loginPathFor('/payment'));
-            return;
-        }
+        const isAdmin = authState === 'admin';
 
-        if (!customerKey) {
+        if (isAdmin && !customerKey) {
             showAlert({
               type: 'error',
               title: '사용자 정보 오류',
@@ -412,7 +495,7 @@ function PaymentPageContent() {
             return;
         }
 
-        if (!userInfo.email) {
+        if (isAdmin && !userInfo.email) {
             showAlert({
               type: 'error',
               title: '이메일 정보 누락',
@@ -446,8 +529,9 @@ function PaymentPageContent() {
             const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
 
             // 토스페이먼츠 빌링 인증 위젯 호출 (구독 결제용)
+            // 로그인 전이면 이 탭 전용 임시 customerKey로 카드를 등록한다 (위 '로그인 전 카드 등록' 참고)
             await tossPayments.requestBillingAuth('카드', {
-                customerKey: customerKey,
+                customerKey: isAdmin ? customerKey : guestCustomerKey(),
                 successUrl: `${window.location.origin}/payment?success=true`,
                 failUrl: `${window.location.origin}/payment?success=false`,
             });
@@ -465,6 +549,7 @@ function PaymentPageContent() {
 
     // 결제 실패 처리
     useEffect(() => {
+        if (authState === null) return;
         const success = searchParams.get('success');
         if (success === 'false') {
             showAlert({
@@ -472,9 +557,16 @@ function PaymentPageContent() {
               title: '결제 취소',
               message: '결제가 취소되었습니다.'
             });
-            router.push('/subscription-check');
+            if (authState === 'admin') {
+                router.push('/subscription-check');
+            } else {
+                // 로그인 전이면 구독 확인 화면이 로그인으로 튕겨 낸다 — 이 화면에 남겨 다시 시도하게 한다
+                const url = new URL(window.location.href);
+                ['success', 'code', 'message'].forEach((param) => url.searchParams.delete(param));
+                window.history.replaceState({}, '', url.toString());
+            }
         }
-    }, [searchParams, router, showAlert]);
+    }, [searchParams, router, showAlert, authState]);
 
     // 이미 결제한 이용 기간이 남아 있는 유료 구독 — 다시 결제하면 한 달 요금이 또 나간다
     const hasPaidPeriodLeft =
@@ -483,7 +575,8 @@ function PaymentPageContent() {
         (currentSubscription.status === SubscriptionStatus.ACTIVE ||
             currentSubscription.status === SubscriptionStatus.CANCELLED) &&
         new Date(currentSubscription.endDate).getTime() > Date.now();
-    const canPay = authState === 'admin' && subscriptionChecked && !hasPaidPeriodLeft;
+    // 카드 등록창을 열 수 있는 상태 — 로그인 여부와 상관없다. 이미 이용 중이거나 등록해 둔 카드가 있으면 닫는다
+    const canPay = authState !== null && subscriptionChecked && !hasPaidPeriodLeft && !pendingBilling;
     const missingPayerInfo = authState === 'admin' && userInfoLoaded && (!userInfo.name || !userInfo.email);
     const billingDate = nextBillingDate();
 
@@ -491,7 +584,12 @@ function PaymentPageContent() {
         { label: '상품', value: `${BASIC_PLAN.name} (케어브이 전 기능 이용권)` },
         { label: '결제 금액', value: BASIC_PLAN.amountLabel },
         { label: '결제 방식', value: '카드 등록 후 매월 자동 결제 (정기결제)' },
-        { label: '첫 결제', value: '카드 등록 즉시 첫 달 요금 결제' },
+        {
+            label: '첫 결제',
+            value: authState === 'admin'
+                ? '카드 등록 즉시 첫 달 요금 결제'
+                : '카드 등록 후 관리자 계정으로 로그인하면 첫 달 요금 결제',
+        },
         { label: '다음 결제일', value: `${formatKoreanDate(billingDate)} (이후 매월 같은 날)` },
         { label: '해지', value: '기관 프로필 → 구독 정보에서 언제든 해지, 해지해도 결제한 기간까지 이용' },
         {
@@ -503,6 +601,23 @@ function PaymentPageContent() {
             ),
         },
     ];
+
+    // 이미 이용 중인 관리자에게 맡겨 둔 카드가 있으면 결제하지 않고 버린다 (이중 결제 방지)
+    useEffect(() => {
+        if (authState === 'admin' && hasPaidPeriodLeft && pendingBilling) {
+            clearPendingBilling();
+            setPendingBilling(null);
+        }
+    }, [authState, hasPaidPeriodLeft, pendingBilling]);
+
+    const signupForPaymentPath = `/signup?redirect=${encodeURIComponent('/payment')}`;
+    const completePendingBilling = () => {
+        if (pendingBilling) void handleBillingSuccess(pendingBilling.authKey, pendingBilling.customerKey);
+    };
+    const discardPendingBilling = () => {
+        clearPendingBilling();
+        setPendingBilling(null);
+    };
 
     const backAction =
         authState === 'admin' || authState === 'demo'
@@ -522,25 +637,39 @@ function PaymentPageContent() {
                                 <Heading level={1}>{BASIC_PLAN.name} 결제</Heading>
 
                                 {/* 방문자 상태별 안내 — 결제하려면 무엇을 해야 하는지 먼저 알려준다 */}
-                                {authState === 'guest' && (
+                                {authState !== null && authState !== 'admin' && pendingBilling && (
                                     <Banner
-                                        status="info"
-                                        title="결제하려면 관리자 계정으로 로그인해주세요"
-                                        description="로그인하면 이 화면으로 돌아와 바로 결제할 수 있습니다. 계정이 없으면 회원가입 후 30일 무료 체험부터 시작할 수 있습니다."
+                                        status="success"
+                                        title="카드 등록이 끝났습니다 — 아직 결제되지 않았습니다"
+                                        description="기관 관리자 계정으로 로그인하면 이 카드로 첫 달 요금이 결제됩니다. 계정이 없으면 회원가입 후 로그인해주세요."
                                     />
                                 )}
-                                {authState === 'employee' && (
+                                {authState === 'admin' && pendingBilling && !hasPaidPeriodLeft && (
                                     <Banner
                                         status="info"
-                                        title="결제는 기관 관리자 계정으로 진행합니다"
-                                        description="직원 계정으로는 결제할 수 없습니다. 관리자 계정으로 로그인해주세요."
+                                        title="로그인 전에 등록한 카드로 결제를 마칩니다"
+                                        description={`아래 버튼을 누르면 ${userInfo.email || '이'} 계정으로 ${BASIC_PLAN.name} 첫 달 요금 ${BASIC_PLAN.chargeLabel}이 결제되고, 이후 매월 자동 결제됩니다.`}
                                     />
                                 )}
-                                {authState === 'demo' && (
+                                {authState === 'guest' && !pendingBilling && (
                                     <Banner
                                         status="info"
-                                        title="체험 모드에서는 결제할 수 없습니다"
-                                        description="체험 계정은 실제 기관 계정이 아닙니다. 정식으로 가입한 뒤 결제해주세요."
+                                        title="로그인하지 않아도 카드 등록까지 진행할 수 있습니다"
+                                        description="결제는 카드를 등록한 뒤 기관 관리자 계정으로 로그인하면 완료됩니다. 계정이 없으면 회원가입 후 30일 무료 체험부터 시작할 수도 있습니다."
+                                    />
+                                )}
+                                {authState === 'employee' && !pendingBilling && (
+                                    <Banner
+                                        status="info"
+                                        title="결제는 기관 관리자 계정으로 완료됩니다"
+                                        description="카드를 등록한 뒤 관리자 계정으로 로그인해야 결제가 끝납니다. 직원 계정으로는 결제되지 않습니다."
+                                    />
+                                )}
+                                {authState === 'demo' && !pendingBilling && (
+                                    <Banner
+                                        status="info"
+                                        title="체험 계정으로는 결제가 완료되지 않습니다"
+                                        description="카드를 등록한 뒤 정식으로 가입한 관리자 계정으로 로그인하면 결제가 끝납니다."
                                     />
                                 )}
                                 {authState === 'admin' && hasPaidPeriodLeft && currentSubscription && (
@@ -689,6 +818,24 @@ function PaymentPageContent() {
                                                 size="lg"
                                                 onClick={() => router.push(loginPathFor('/payment'))}
                                             />
+                                        ) : pendingBilling ? (
+                                            <>
+                                                <Button
+                                                    label={loading ? '처리 중...' : `${BASIC_PLAN.priceLabel} 결제 완료하기`}
+                                                    variant="primary"
+                                                    size="lg"
+                                                    onClick={completePendingBilling}
+                                                    isLoading={loading}
+                                                    isDisabled={loading}
+                                                />
+                                                <Button
+                                                    label="다른 카드로 다시 등록하기"
+                                                    variant="secondary"
+                                                    size="lg"
+                                                    onClick={discardPendingBilling}
+                                                    isDisabled={loading}
+                                                />
+                                            </>
                                         ) : (
                                             <Button
                                                 label={loading ? '처리 중...' : `${BASIC_PLAN.priceLabel} 결제하기`}
@@ -699,29 +846,51 @@ function PaymentPageContent() {
                                                 isDisabled={loading || !customerKey || !agreementChecked}
                                             />
                                         )
-                                    ) : authState === 'demo' ? (
-                                        <Button
-                                            label="정식 회원가입하기"
-                                            variant="primary"
-                                            size="lg"
-                                            onClick={() => router.push(`/signup?redirect=${encodeURIComponent('/payment')}`)}
-                                        />
-                                    ) : (
+                                    ) : pendingBilling ? (
                                         <>
                                             <Button
-                                                label={authState === 'employee' ? '관리자 계정으로 로그인' : '로그인하고 결제하기'}
+                                                label="관리자 계정으로 로그인하고 결제 완료"
                                                 variant="primary"
                                                 size="lg"
                                                 onClick={() => router.push(loginPathFor('/payment'))}
                                             />
-                                            {authState === 'guest' && (
-                                                <Button
-                                                    label="계정이 없으면 회원가입 (30일 무료 체험)"
-                                                    variant="secondary"
-                                                    size="lg"
-                                                    onClick={() => router.push(`/signup?redirect=${encodeURIComponent('/payment')}`)}
-                                                />
-                                            )}
+                                            <Button
+                                                label="계정이 없으면 회원가입"
+                                                variant="secondary"
+                                                size="lg"
+                                                onClick={() => router.push(signupForPaymentPath)}
+                                            />
+                                            <Button
+                                                label="카드 다시 등록하기"
+                                                variant="ghost"
+                                                onClick={discardPendingBilling}
+                                            />
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* 로그인 전에도 카드 등록창은 열린다 — 결제 완료만 관리자 로그인 뒤 */}
+                                            <Button
+                                                label={loading ? '처리 중...' : `${BASIC_PLAN.priceLabel} 결제하기`}
+                                                variant="primary"
+                                                size="lg"
+                                                onClick={handlePayment}
+                                                isLoading={loading}
+                                                isDisabled={loading || !agreementChecked}
+                                            />
+                                            <Button
+                                                label={
+                                                    authState === 'demo'
+                                                        ? '정식 회원가입하기'
+                                                        : authState === 'employee'
+                                                          ? '관리자 계정으로 먼저 로그인'
+                                                          : '먼저 로그인하기'
+                                                }
+                                                variant="secondary"
+                                                size="lg"
+                                                onClick={() =>
+                                                    router.push(authState === 'demo' ? signupForPaymentPath : loginPathFor('/payment'))
+                                                }
+                                            />
                                         </>
                                     )}
                                     <Button

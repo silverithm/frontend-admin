@@ -12,6 +12,8 @@ export const BASIC_PLAN = {
     priceLabel: '₩9,900',
     /** 결제 금액 안내 문구 — 부가세는 금액에 포함돼 있다. */
     amountLabel: '월 9,900원 (부가세 포함)',
+    /** 한 번 결제되는 금액 — 문장 안에 넣을 때 쓴다 (괄호 겹침 방지). */
+    chargeLabel: '9,900원(부가세 포함)',
 } as const;
 
 export const FREE_TRIAL_DAYS = 30;
