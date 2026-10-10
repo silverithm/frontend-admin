@@ -24,6 +24,7 @@ import {
 } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import { duration } from '@/theme/motion';
+import { loginPathFor, readReturnPath } from '@/lib/authState';
 
 // 다음 주소 API 타입 정의
 declare global {
@@ -279,7 +280,9 @@ export default function SignupPage() {
         title: '회원가입 완료',
         message: '회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.'
       });
-      router.push('/login');
+      // 결제 버튼에서 가입하러 온 관리자는 로그인 뒤 결제 화면으로 이어지게 한다
+      const returnPath = readReturnPath(window.location.search);
+      router.push(returnPath ? loginPathFor(returnPath) : '/login');
     } catch (error) {
       console.error('회원가입 오류:', error);
 

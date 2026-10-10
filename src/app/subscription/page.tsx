@@ -15,8 +15,8 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { PLAN_FEATURES } from '@/lib/pricing';
 
-const BASIC_FEATURES = ['모든 기능 이용 가능', '무제한 사용자', '실시간 알림', '고객 지원'];
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -282,7 +282,7 @@ export default function SubscriptionPage() {
                 </HStack>
 
                 <VStack gap={2}>
-                  {BASIC_FEATURES.map((feature) => (
+                  {PLAN_FEATURES.map((feature) => (
                     <HStack key={feature} gap={2} vAlign="center">
                       <Icon icon="check" color="success" size="sm" />
                       <Text color="secondary">{feature}</Text>

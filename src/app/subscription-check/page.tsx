@@ -16,6 +16,7 @@ import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { SubscriptionResponseDTO, SubscriptionStatus, SubscriptionType } from '@/types/subscription';
 import { subscriptionService } from '@/services/subscription';
 import { duration } from '@/theme/motion';
+import { BASIC_PLAN, PLAN_FEATURES } from '@/lib/pricing';
 
 const PAGE_GRADIENT = 'var(--carev-page-gradient)';
 
@@ -409,7 +410,7 @@ export default function SubscriptionCheckPage() {
                           그냥 두면 버튼이 서로 어긋난 자리에 놓인다. */}
                       <StackItem size="fill">
                         <VStack gap={2}>
-                          {['모든 휴가 관리 기능', '직원 등록 및 관리', '실시간 알림 및 승인'].map((feature) => (
+                          {PLAN_FEATURES.map((feature) => (
                             <HStack key={feature} gap={2} vAlign="center">
                               <Icon icon="check" color="success" size="sm" />
                               <Text type="body" color="secondary">{feature}</Text>
@@ -472,13 +473,13 @@ export default function SubscriptionCheckPage() {
                       <Text type="body" color="secondary" justify="center">
                         {!canUseFreeSubscription
                           ? '지속적인 서비스 이용을 위해 Basic 플랜을 구독하세요'
-                          : '무료 체험 없이 바로 모든 기능을 이용하거나, 30일 무료 체험 후 자동으로 시작하세요'
+                          : `카드를 등록하면 바로 첫 달 요금이 결제되고, 이후 매월 자동 결제됩니다 (${BASIC_PLAN.amountLabel})`
                         }
                       </Text>
 
                       <StackItem size="fill">
                         <VStack gap={2}>
-                          {['모든 휴가 관리 기능', '무제한 직원 등록', '우선 고객 지원'].map((feature) => (
+                          {PLAN_FEATURES.map((feature) => (
                             <HStack key={feature} gap={2} vAlign="center">
                               <Icon icon="check" color="accent" size="sm" />
                               <Text type="body" color="secondary">{feature}</Text>

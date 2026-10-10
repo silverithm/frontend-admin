@@ -53,6 +53,7 @@ import {
 } from '@tabler/icons-react';
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
+import { BUSINESS_INFO } from '@/lib/businessInfo';
 
 // 탭 구성은 관리자 화면(src/app/admin/page.tsx)과 같은 순서·라벨·아이콘을 따른다.
 // 관리자 전용 기능(회원관리·편의기능 등)만 권한으로 항목을 숨긴다.
@@ -567,11 +568,17 @@ export default function EmployeePage() {
             <div style={{ maxWidth: 1600, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
               <div className="carev-emp-footer-row">
                 <div className="carev-emp-footer-meta">
-                  <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 (silverithm) 대표: 김준형</Text>
+                  <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 ({BUSINESS_INFO.companyName}) 대표: {BUSINESS_INFO.representative}</Text>
                   <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <Text as="span" type="supporting" color="secondary">사업자등록번호: 107-21-26475</Text>
+                  <Text as="span" type="supporting" color="secondary">사업자등록번호: {BUSINESS_INFO.registrationNumber}</Text>
+                  {BUSINESS_INFO.mailOrderNumber && (
+                    <>
+                      <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
+                      <Text as="span" type="supporting" color="secondary">통신판매업 신고번호: {BUSINESS_INFO.mailOrderNumber}</Text>
+                    </>
+                  )}
                   <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <Text as="span" type="supporting" color="secondary">서울특별시 신림동 1547-10</Text>
+                  <Text as="span" type="supporting" color="secondary">{BUSINESS_INFO.address}</Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
                   <Link

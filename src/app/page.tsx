@@ -20,7 +20,7 @@ import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { Grid } from '@astryxdesign/core/Grid';
-import { VStack, HStack } from '@astryxdesign/core/Stack';
+import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
@@ -29,11 +29,15 @@ import { Divider } from '@astryxdesign/core/Divider';
 import { AspectRatio } from '@astryxdesign/core/AspectRatio';
 import { FiArrowRight, FiCheck, FiFileText, FiLock, FiRefreshCw, FiShield } from 'react-icons/fi';
 import Navbar from '@/components/Navbar';
+import SiteFooter from '@/components/SiteFooter';
 import PartnerCard from '@/components/partners/PartnerCard';
 import { getFeaturedAds } from '@/lib/partnerAds';
 import { startDemo } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import { duration } from '@/theme/motion';
+import { readAuthState, type AuthState } from '@/lib/authState';
+import { LEGAL_LINKS } from '@/lib/businessInfo';
+import { BASIC_PLAN, FREE_TRIAL_DAYS, PLAN_FEATURES } from '@/lib/pricing';
 
 /** 랜딩에 노출할 제휴 기관 — 없으면 섹션 자체를 렌더링하지 않는다. */
 const FEATURED_PARTNERS = getFeaturedAds();
@@ -166,32 +170,39 @@ const PROCESS = [
     },
 ];
 
-const PLAN_FEATURES = [
-    '휴무 신청·승인과 근무조정 캘린더',
-    '월간일정·담당자·할 일 관리',
-    '전자결재 (공문 양식·결재선·서명·직인)',
-    '공지사항·실시간 채팅·케어브이 커뮤니티',
-    '직원용 iOS·Android 앱',
-];
-
+/**
+ * 요금제 카드. 카드마다 다음 단계로 가는 버튼이 있어야 한다 — 예전에는 가격만 있고
+ * 버튼이 없어 랜딩에서 결제 화면으로 가는 길이 없었다(PG 심사가 확인하는 경로).
+ * Basic은 로그인 여부와 상관없이 결제 화면으로 보내고, 로그인 안내는 결제 화면이 맡는다.
+ */
 const PLANS = [
     {
-        name: '30일 무료 체험',
+        id: 'trial',
+        name: `${FREE_TRIAL_DAYS}일 무료 체험`,
         price: '무료',
         priceNote: '',
-        description: '결제 수단 등록 없이 30일간 모든 기능을 사용해보세요',
+        description: `결제 수단 등록 없이 ${FREE_TRIAL_DAYS}일간 모든 기능을 사용해보세요. 체험이 끝나도 자동으로 결제되지 않습니다.`,
         features: PLAN_FEATURES,
         isRecommended: false,
+        ctaLabel: `${FREE_TRIAL_DAYS}일 무료로 시작하기`,
     },
     {
-        name: 'Basic 플랜',
-        price: '₩9,900',
-        priceNote: '/월',
-        description: '무료 체험 이후 모든 기능을 계속 이용하세요',
+        id: 'basic',
+        name: BASIC_PLAN.name,
+        price: BASIC_PLAN.priceLabel,
+        priceNote: '/월 (부가세 포함)',
+        description: '매월 자동 결제되는 정기 구독입니다. 언제든 해지할 수 있고, 해지해도 결제한 기간까지 이용할 수 있습니다.',
         features: PLAN_FEATURES,
         isRecommended: true,
+        ctaLabel: `${BASIC_PLAN.name} 결제하기`,
     },
-];
+] as const;
+
+/** 요금제 버튼이 갈 곳 — 무료 체험은 로그인한 관리자면 체험 시작 화면, 아니면 가입부터. */
+function planDestination(planId: (typeof PLANS)[number]['id'], authState: AuthState): string {
+    if (planId === 'basic') return '/payment';
+    return authState === 'admin' ? '/subscription-check' : '/signup';
+}
 
 const RESOURCES = [
     { href: '/guide', title: '사용 가이드', description: '관리자와 직원의 사용 방법을 단계별로 안내합니다.' },
@@ -311,6 +322,12 @@ export default function LandingPage() {
     const router = useRouter();
     const { showAlert, AlertContainer } = useAlert();
     const [isDemoLoading, setIsDemoLoading] = React.useState(false);
+    // 로그인 상태는 마운트 후에만 알 수 있다 — 첫 렌더는 비로그인으로 그려 하이드레이션을 맞춘다
+    const [authState, setAuthState] = React.useState<AuthState>('guest');
+
+    React.useEffect(() => {
+        setAuthState(readAuthState());
+    }, []);
 
     const handleStartDemo = async () => {
         setIsDemoLoading(true);
@@ -672,18 +689,37 @@ export default function LandingPage() {
 
                                         <Divider />
 
-                                        <VStack gap={2}>
-                                            {plan.features.map((feature) => (
-                                                <HStack key={feature} gap={2} vAlign="center">
-                                                    <Icon icon={FiCheck} size="sm" color="accent" />
-                                                    <Text color="secondary">{feature}</Text>
-                                                </HStack>
-                                            ))}
-                                        </VStack>
+                                        {/* 남는 높이를 목록이 먹어야 두 카드의 버튼이 같은 줄에 선다 */}
+                                        <StackItem size="fill">
+                                            <VStack gap={2}>
+                                                {plan.features.map((feature) => (
+                                                    <HStack key={feature} gap={2} vAlign="center">
+                                                        <Icon icon={FiCheck} size="sm" color="accent" />
+                                                        <Text color="secondary">{feature}</Text>
+                                                    </HStack>
+                                                ))}
+                                            </VStack>
+                                        </StackItem>
+
+                                        <Button
+                                            label={plan.ctaLabel}
+                                            variant={plan.isRecommended ? 'primary' : 'secondary'}
+                                            size="lg"
+                                            onClick={() => router.push(planDestination(plan.id, authState))}
+                                            style={{ width: '100%' }}
+                                        />
                                     </VStack>
                                 </Card>
                             ))}
                         </Grid>
+
+                        <Text type="supporting" color="secondary" justify="center">
+                            결제는 토스페이먼츠로 안전하게 처리됩니다. 해지·환불 기준은{' '}
+                            <a href={LEGAL_LINKS.refund} style={{ color: 'var(--color-text-accent)' }}>
+                                요금·환불 정책
+                            </a>
+                            에서 확인할 수 있습니다.
+                        </Text>
                     </VStack>
                 </div>
             </Section>
@@ -788,76 +824,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 푸터 ── */}
-            <Section id="contact" variant="transparent" padding={0} paddingBlock={8} dividers={['top']}>
-                <div style={container()}>
-                    <VStack gap={6}>
-                        <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={6}>
-                            <VStack gap={3}>
-                                <Image
-                                    src="/images/logo-text-dark.png"
-                                    alt="케어브이"
-                                    width={120}
-                                    height={40}
-                                />
-                                <Text type="supporting" color="secondary">
-                                    장기요양기관을 위한 올인원 운영 플랫폼
-                                </Text>
-                            </VStack>
-
-                            <VStack gap={2}>
-                                <Text weight="semibold">회사 정보</Text>
-                                <Text type="supporting" color="secondary">회사명: silverithm</Text>
-                                <Text type="supporting" color="secondary">대표자: 김준형</Text>
-                                <Text type="supporting" color="secondary">사업자등록번호: 107-21-26475</Text>
-                                <Text type="supporting" color="secondary">주소: 서울특별시 신림동 1547-10</Text>
-                            </VStack>
-
-                            <VStack gap={2}>
-                                <Text weight="semibold">연락처</Text>
-                                <a
-                                    href="mailto:ggprgrkjh2@gmail.com"
-                                    style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}
-                                >
-                                    <Text type="supporting" color="inherit">ggprgrkjh2@gmail.com</Text>
-                                </a>
-                                <a
-                                    href="tel:010-4549-2094"
-                                    style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}
-                                >
-                                    <Text type="supporting" color="inherit">010-4549-2094</Text>
-                                </a>
-                            </VStack>
-                        </Grid>
-
-                        <Divider />
-
-                        <div className="carev-admin-footer-row">
-                            <Text type="supporting" color="secondary">
-                                © 2025 케어브이. 모든 권리 보유.
-                            </Text>
-                            <HStack gap={3} vAlign="center">
-                                <a
-                                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ color: 'var(--color-text-accent)', textDecoration: 'none' }}
-                                >
-                                    <Text type="supporting" color="inherit">개인정보처리방침</Text>
-                                </a>
-                                <Text type="supporting" color="disabled">|</Text>
-                                <a
-                                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ color: 'var(--color-text-accent)', textDecoration: 'none' }}
-                                >
-                                    <Text type="supporting" color="inherit">이용약관</Text>
-                                </a>
-                            </HStack>
-                        </div>
-                    </VStack>
-                </div>
-            </Section>
+            <SiteFooter />
         </main>
     );
 }

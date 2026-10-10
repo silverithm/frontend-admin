@@ -34,10 +34,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
-      // FAQ는 홈·가이드와 따로 갱신된다 (2026-08-29 기관 유형·요금·근무표 문항 추가).
+      // FAQ는 홈·가이드와 따로 갱신된다 (2026-10-10 결제 문항을 실제 판매 조건(월간만)에 맞춤).
       // 공유 상수를 쓰면 바뀌지 않은 페이지의 날짜까지 함께 부풀려진다.
       url: `${SITE_URL}/faq`,
-      lastModified: '2026-08-29',
+      lastModified: '2026-10-10',
       changeFrequency: 'monthly',
       priority: 0.9,
     },
@@ -72,6 +72,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: '2026-08-01',
       changeFrequency: 'monthly',
       priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/refund-policy`,
+      lastModified: '2026-10-10',
+      changeFrequency: 'yearly',
+      priority: 0.5,
     },
   ]
 

@@ -116,6 +116,7 @@ import MeetingMinutes from "@/components/meetingMinutes/MeetingMinutes";
 import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
 import { useTabBadges } from "@/lib/useTabBadges";
+import { BUSINESS_INFO } from "@/lib/businessInfo";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -2097,11 +2098,17 @@ export default function AdminPage() {
                 <div style={{ maxWidth: 1600, margin: "0 auto", padding: "var(--spacing-4) var(--spacing-6)" }}>
                     <div className="carev-admin-footer-row">
                         <div className="carev-admin-footer-meta" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>
-                            <span>&copy; 2025 케어브이 (silverithm) 대표: 김준형</span>
+                            <span>&copy; 2025 케어브이 ({BUSINESS_INFO.companyName}) 대표: {BUSINESS_INFO.representative}</span>
                             <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <span>사업자등록번호: 107-21-26475</span>
+                            <span>사업자등록번호: {BUSINESS_INFO.registrationNumber}</span>
+                            {BUSINESS_INFO.mailOrderNumber && (
+                                <>
+                                    <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
+                                    <span>통신판매업 신고번호: {BUSINESS_INFO.mailOrderNumber}</span>
+                                </>
+                            )}
                             <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <span>서울특별시 신림동 1547-10</span>
+                            <span>{BUSINESS_INFO.address}</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)' }}>
                             <Link

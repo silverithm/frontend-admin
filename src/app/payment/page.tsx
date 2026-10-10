@@ -1,9 +1,15 @@
 'use client';
 
-import {useEffect, useState, useCallback, Suspense} from 'react';
+import React, {useEffect, useState, useCallback, Suspense} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {loadTossPayments} from '@tosspayments/payment-sdk';
-import {SubscriptionType, SubscriptionBillingType, SubscriptionRequestDTO} from '@/types/subscription';
+import {
+    SubscriptionType,
+    SubscriptionBillingType,
+    SubscriptionRequestDTO,
+    SubscriptionResponseDTO,
+    SubscriptionStatus,
+} from '@/types/subscription';
 import {subscriptionService} from '@/services/subscription';
 import {useAlert} from '@/components/Alert';
 import confetti from 'canvas-confetti';
@@ -16,9 +22,53 @@ import { Text, Heading } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Loading } from '@/components/Loading';
+import SiteFooter from '@/components/SiteFooter';
+import { readAuthState, loginPathFor, type AuthState } from '@/lib/authState';
+import { BUSINESS_INFO, LEGAL_LINKS } from '@/lib/businessInfo';
+import { BASIC_PLAN, PLAN_FEATURES, formatKoreanDate, nextBillingDate } from '@/lib/pricing';
 
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_PAYMENT_CLIENT_KEY;
+
+/**
+ * 정기 구독 약관 (결제 화면에서 펼쳐 보는 요약본).
+ * 예전 문구는 '특별한 해지 방법이 없다'(실제로는 구독 취소가 있다)거나, 상호가 '(주)실버리즘'으로
+ * 사업자등록증과 달랐고, 환불 기준도 이용약관 제20조와 어긋났다. 요금·환불 정책 페이지와 같은 내용으로 맞춘다.
+ */
+const SUBSCRIPTION_TERMS: Array<{ title: string; body: string }> = [
+    {
+        title: '제1조 (목적)',
+        body: `본 약관은 ${BUSINESS_INFO.companyName}(이하 "회사")가 제공하는 케어브이 서비스의 정기 구독 서비스(이하 "정기 구독 서비스")에 가입하고 결제한 회원(이하 "구독자")과 회사 사이의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정하는 것을 목적으로 합니다.`,
+    },
+    {
+        title: '제2조 (용어의 정의)',
+        body: '본 약관에서 사용하는 주요 용어의 정의는 케어브이 서비스 이용약관(이하 "이용약관")을 따릅니다.',
+    },
+    {
+        title: '제3조 (가입과 결제 방식)',
+        body: `구독자는 결제 화면에서 결제 수단(카드)을 등록하고 결제하기 버튼을 눌러 정기 구독 서비스에 가입합니다. 가입과 동시에 첫 1개월 요금(${BASIC_PLAN.amountLabel.replace('월 ', '')})이 결제되며, 이후 해지하기 전까지 이용 기간이 끝날 때마다 등록한 결제 수단으로 다음 1개월 요금이 자동 결제되는 것에 동의합니다.`,
+    },
+    {
+        title: '제4조 (구독 중 생성된 콘텐츠의 유효기간)',
+        body: '구독자가 구독 중 생성한 콘텐츠의 유효기간은 구독기간 내에 한하며, 사용자의 구독 콘텐츠 이용 시 이를 고지합니다.',
+    },
+    {
+        title: '제5조 (해지 방법)',
+        body: '구독자는 언제든지 관리자 화면의 [기관 프로필] → 구독 정보에서 구독을 취소(해지)할 수 있습니다. 해지하면 다음 자동 결제가 이뤄지지 않으며, 이미 결제한 이용 기간이 끝날 때까지 서비스를 이용할 수 있습니다.',
+    },
+    {
+        title: '제6조 (청약철회 및 환불)',
+        body: `결제일로부터 7일 이내이고 서비스 이용 내역이 없으면 전액 환불합니다. 이용 내역이 있으면 이용약관 제20조에 따라 이용한 일수에 해당하는 금액을 뺀 나머지를 환불합니다. 환불은 고객센터(${BUSINESS_INFO.email}, ${BUSINESS_INFO.phone})로 신청하며, 결제한 수단으로 3영업일 안에 처리합니다.`,
+    },
+    {
+        title: '제7조 (구독제 변경 및 중단)',
+        body: '회사는 구독자의 구독 혜택을 유지하기 위해 합리적으로 운영을 지속할 의무가 있습니다.',
+    },
+    {
+        title: '제8조 (구독 요금)',
+        body: '정기 구독 서비스의 요금은 케어브이 홈페이지의 요금·환불 정책에 게재합니다. 구독 요금을 변경하는 경우 변경 전에 구독자에게 미리 알립니다.',
+    },
+];
 
 function PaymentPageContent() {
     const router = useRouter();
@@ -34,18 +84,31 @@ function PaymentPageContent() {
     const [showTerms, setShowTerms] = useState(false);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [userInfoLoaded, setUserInfoLoaded] = useState(false);
+    // 누가 보고 있는지 — 마운트 전(null)에는 결제 버튼 영역을 그리지 않는다
+    const [authState, setAuthState] = useState<AuthState | null>(null);
+    // 관리자가 이미 유료 구독 중이면 다시 결제하지 않게 막는다 (서버는 중복 결제를 막지 않는다)
+    const [currentSubscription, setCurrentSubscription] = useState<SubscriptionResponseDTO | null>(null);
+    const [subscriptionChecked, setSubscriptionChecked] = useState(false);
 
+    /*
+     * 이 화면은 로그인 여부와 상관없이 열린다. 요금제의 결제 버튼과 PG 심사 담당자가
+     * 로그인 없이 들어와도 상품·금액·정기결제 조건·환불 정책을 볼 수 있어야 하기 때문이다.
+     * 예전에는 비로그인으로 들어오면 "결제자 정보가 누락되었습니다"만 뜨고 버튼이 잠겨
+     * 다음으로 갈 길이 없었다. 결제(카드 등록)만 관리자 로그인 뒤에 열린다.
+     * 체험(데모) 세션은 내 계정이 아니므로 결제를 막고 정식 가입을 안내한다.
+     */
     useEffect(() => {
-        // 체험 모드에서는 결제 페이지 진입을 차단하고 안내 후 되돌린다
-        if (localStorage.getItem('isDemoMode') === 'true') {
-            showAlert({
-                type: 'info',
-                title: '체험 모드 안내',
-                message: '체험 모드에서는 결제를 진행할 수 없습니다. 정식 가입 후 이용해주세요.',
-            });
-            router.replace('/admin');
+        const state = readAuthState();
+        setAuthState(state);
+        if (state !== 'admin') {
+            setSubscriptionChecked(true);
+            return;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        subscriptionService
+            .getMySubscription()
+            .then(setCurrentSubscription)
+            .catch(() => setCurrentSubscription(null)) // 404 = 아직 구독 없음 → 결제 가능
+            .finally(() => setSubscriptionChecked(true));
     }, []);
 
     useEffect(() => {
@@ -95,10 +158,10 @@ function PaymentPageContent() {
             const subscriptionData: SubscriptionRequestDTO = {
                 planName: SubscriptionType.BASIC,
                 billingType: SubscriptionBillingType.MONTHLY,
-                amount: 9900,
+                amount: BASIC_PLAN.monthlyAmount,
                 customerKey: customerKey,
                 authKey: authKey,
-                orderName: 'Basic 플랜 월간 구독',
+                orderName: BASIC_PLAN.orderName,
                 customerEmail: userInfo.email,
                 customerName: userInfo.name,
                 taxFreeAmount: 0
@@ -335,6 +398,11 @@ function PaymentPageContent() {
     }, [searchParams, handleBillingSuccess, showAlert, userInfoLoaded, isProcessingPayment]);
 
     const handlePayment = async () => {
+        if (authState !== 'admin') {
+            router.push(loginPathFor('/payment'));
+            return;
+        }
+
         if (!customerKey) {
             showAlert({
               type: 'error',
@@ -350,7 +418,7 @@ function PaymentPageContent() {
               title: '이메일 정보 누락',
               message: '이메일 정보가 필요합니다. 다시 로그인해주세요.'
             });
-            router.push('/login');
+            router.push(loginPathFor('/payment'));
             return;
         }
 
@@ -358,7 +426,7 @@ function PaymentPageContent() {
             showAlert({
               type: 'warning',
               title: '약관 동의 필수',
-              message: '정기 구독 서비스 이용약관에 동의해주세요.'
+              message: '정기결제 내용과 이용약관·환불 정책에 동의해주세요.'
             });
             return;
         }
@@ -408,103 +476,180 @@ function PaymentPageContent() {
         }
     }, [searchParams, router, showAlert]);
 
+    // 이미 결제한 이용 기간이 남아 있는 유료 구독 — 다시 결제하면 한 달 요금이 또 나간다
+    const hasPaidPeriodLeft =
+        !!currentSubscription &&
+        currentSubscription.planName === SubscriptionType.BASIC &&
+        (currentSubscription.status === SubscriptionStatus.ACTIVE ||
+            currentSubscription.status === SubscriptionStatus.CANCELLED) &&
+        new Date(currentSubscription.endDate).getTime() > Date.now();
+    const canPay = authState === 'admin' && subscriptionChecked && !hasPaidPeriodLeft;
+    const missingPayerInfo = authState === 'admin' && userInfoLoaded && (!userInfo.name || !userInfo.email);
+    const billingDate = nextBillingDate();
+
+    const billingTerms: Array<{ label: string; value: React.ReactNode }> = [
+        { label: '상품', value: `${BASIC_PLAN.name} (케어브이 전 기능 이용권)` },
+        { label: '결제 금액', value: BASIC_PLAN.amountLabel },
+        { label: '결제 방식', value: '카드 등록 후 매월 자동 결제 (정기결제)' },
+        { label: '첫 결제', value: '카드 등록 즉시 첫 달 요금 결제' },
+        { label: '다음 결제일', value: `${formatKoreanDate(billingDate)} (이후 매월 같은 날)` },
+        { label: '해지', value: '기관 프로필 → 구독 정보에서 언제든 해지, 해지해도 결제한 기간까지 이용' },
+        {
+            label: '환불',
+            value: (
+                <a href={LEGAL_LINKS.refund} style={{ color: 'var(--color-text-accent)' }}>
+                    7일 이내 미이용 시 전액 환불 · 요금·환불 정책 보기
+                </a>
+            ),
+        },
+    ];
+
+    const backAction =
+        authState === 'admin' || authState === 'demo'
+            ? { label: '관리자 페이지로 돌아가기', href: '/admin' }
+            : authState === 'employee'
+              ? { label: '직원 화면으로 돌아가기', href: '/employee' }
+              : { label: '요금제로 돌아가기', href: '/#pricing' };
+
     return (
         <>
             <AlertContainer />
-            <div
-                style={{
-                    minHeight: '100vh',
-                    background: 'var(--color-background-muted)',
-                    padding: 'var(--spacing-12) var(--spacing-4)',
-                }}
-            >
-                <div style={{ maxWidth: 448, margin: '0 auto' }}>
+            <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
+                <div style={{ maxWidth: 520, margin: '0 auto', padding: 'var(--spacing-12) var(--spacing-4)' }}>
                     <VStack gap={4}>
                         <Card width="100%" padding={6}>
                             <VStack gap={6}>
-                                <Heading level={1}>Basic 플랜 결제</Heading>
+                                <Heading level={1}>{BASIC_PLAN.name} 결제</Heading>
 
-                                {/* 사용자 정보 표시 */}
-                                <div style={{ width: '100%', background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
-                                    <VStack gap={2}>
-                                        <Text type="label">결제자 정보</Text>
-                                        <VStack gap={1}>
-                                            <HStack gap={1}>
-                                                <Text type="body" weight="medium">이름:</Text>
-                                                <Text type="body" color="secondary">{userInfo.name || '정보 없음'}</Text>
-                                            </HStack>
-                                            <HStack gap={1}>
-                                                <Text type="body" weight="medium">이메일:</Text>
-                                                <Text type="body" color="secondary">{userInfo.email || '정보 없음'}</Text>
-                                            </HStack>
+                                {/* 방문자 상태별 안내 — 결제하려면 무엇을 해야 하는지 먼저 알려준다 */}
+                                {authState === 'guest' && (
+                                    <Banner
+                                        status="info"
+                                        title="결제하려면 관리자 계정으로 로그인해주세요"
+                                        description="로그인하면 이 화면으로 돌아와 바로 결제할 수 있습니다. 계정이 없으면 회원가입 후 30일 무료 체험부터 시작할 수 있습니다."
+                                    />
+                                )}
+                                {authState === 'employee' && (
+                                    <Banner
+                                        status="info"
+                                        title="결제는 기관 관리자 계정으로 진행합니다"
+                                        description="직원 계정으로는 결제할 수 없습니다. 관리자 계정으로 로그인해주세요."
+                                    />
+                                )}
+                                {authState === 'demo' && (
+                                    <Banner
+                                        status="info"
+                                        title="체험 모드에서는 결제할 수 없습니다"
+                                        description="체험 계정은 실제 기관 계정이 아닙니다. 정식으로 가입한 뒤 결제해주세요."
+                                    />
+                                )}
+                                {authState === 'admin' && hasPaidPeriodLeft && currentSubscription && (
+                                    <Banner
+                                        status="success"
+                                        title={
+                                            currentSubscription.status === SubscriptionStatus.CANCELLED
+                                                ? '해지 예약된 Basic 플랜이 남아 있습니다'
+                                                : '이미 Basic 플랜을 이용 중입니다'
+                                        }
+                                        description={
+                                            currentSubscription.status === SubscriptionStatus.CANCELLED
+                                                ? `${formatKoreanDate(new Date(currentSubscription.endDate))}까지 이용할 수 있습니다. 계속 쓰시려면 구독 관리에서 다시 활성화해주세요 — 새로 결제할 필요는 없습니다.`
+                                                : `다음 자동 결제일은 ${formatKoreanDate(new Date(currentSubscription.endDate))}입니다. 다시 결제할 필요가 없습니다.`
+                                        }
+                                    />
+                                )}
+
+                                {/* 결제자 정보 — 로그인한 관리자에게만 의미가 있다 */}
+                                {authState === 'admin' && (
+                                    <div style={{ width: '100%', background: 'var(--color-background-muted)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
+                                        <VStack gap={2}>
+                                            <Text type="label">결제자 정보</Text>
+                                            <VStack gap={1}>
+                                                <HStack gap={1}>
+                                                    <Text type="body" weight="medium">이름:</Text>
+                                                    <Text type="body" color="secondary">{userInfo.name || '정보 없음'}</Text>
+                                                </HStack>
+                                                <HStack gap={1}>
+                                                    <Text type="body" weight="medium">이메일:</Text>
+                                                    <Text type="body" color="secondary">{userInfo.email || '정보 없음'}</Text>
+                                                </HStack>
+                                            </VStack>
+                                            {missingPayerInfo && (
+                                                <Banner
+                                                    status="error"
+                                                    title="결제자 정보가 누락되었습니다. 다시 로그인해주세요."
+                                                />
+                                            )}
                                         </VStack>
-                                        {(!userInfo.name || !userInfo.email) && (
-                                            <Banner
-                                                status="error"
-                                                title="결제자 정보가 누락되었습니다. 다시 로그인해주세요."
-                                            />
-                                        )}
-                                    </VStack>
-                                </div>
+                                    </div>
+                                )}
 
                                 {/* 플랜 가격 */}
                                 <div style={{ width: '100%', background: 'var(--color-background-blue)', border: '1px solid var(--color-border-blue)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                                     <VStack gap={1}>
-                                        <Text type="large" weight="semibold">Basic 플랜</Text>
+                                        <Text type="large" weight="semibold">{BASIC_PLAN.name}</Text>
                                         <HStack gap={1} vAlign="end">
-                                            <Text type="display-2" weight="bold">₩9,900</Text>
-                                            <Text type="supporting">/월</Text>
+                                            <Text type="display-2" weight="bold">{BASIC_PLAN.priceLabel}</Text>
+                                            <Text type="supporting">/월 (부가세 포함)</Text>
                                         </HStack>
                                     </VStack>
                                 </div>
+
+                                {/* 정기결제 조건 — 카드 등록 전에 금액·주기·결제일·해지·환불을 모두 보여준다 */}
+                                <VStack gap={3}>
+                                    <Text type="label">정기결제 안내</Text>
+                                    <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 'var(--spacing-4)', rowGap: 'var(--spacing-2)' }}>
+                                        {billingTerms.map((term) => (
+                                            <React.Fragment key={term.label}>
+                                                <dt><Text type="body" weight="medium">{term.label}</Text></dt>
+                                                <dd style={{ margin: 0 }}><Text type="body" color="secondary">{term.value}</Text></dd>
+                                            </React.Fragment>
+                                        ))}
+                                    </dl>
+                                </VStack>
 
                                 {/* 플랜 혜택 */}
                                 <VStack gap={3}>
                                     <Text type="label">플랜 혜택</Text>
                                     <VStack gap={2}>
-                                        <HStack gap={2} vAlign="start">
-                                            <Icon icon="check" color="success" size="sm" />
-                                            <Text type="body" color="secondary">모든 휴가 관리 기능 이용</Text>
-                                        </HStack>
-                                        <HStack gap={2} vAlign="start">
-                                            <Icon icon="check" color="success" size="sm" />
-                                            <Text type="body" color="secondary">무제한 직원 등록</Text>
-                                        </HStack>
-                                        <HStack gap={2} vAlign="start">
-                                            <Icon icon="check" color="success" size="sm" />
-                                            <Text type="body" color="secondary">실시간 알림 기능</Text>
-                                        </HStack>
-                                        <HStack gap={2} vAlign="start">
-                                            <Icon icon="check" color="success" size="sm" />
-                                            <Text type="body" color="secondary">우선 고객 지원</Text>
-                                        </HStack>
+                                        {PLAN_FEATURES.map((feature) => (
+                                            <HStack key={feature} gap={2} vAlign="start">
+                                                <Icon icon="check" color="success" size="sm" />
+                                                <Text type="body" color="secondary">{feature}</Text>
+                                            </HStack>
+                                        ))}
                                     </VStack>
                                 </VStack>
 
                                 <Divider />
 
-                                <Text type="supporting">
-                                    구독 서비스는 요금제에 따라 매월 또는 매년 자동 갱신되며, 별도의 해지 조치가 없는 한 정해진 구독 요금이 청구됩니다.
-                                </Text>
-
-                                <Divider />
-
-                                {/* 약관 동의 */}
+                                {/* 약관 동의 — 결제할 수 있는 관리자만 체크한다. 약관 내용은 누구나 펼쳐 볼 수 있다 */}
                                 <VStack gap={3}>
-                                    <HStack gap={1} vAlign="center">
-                                        <CheckboxInput
-                                            label="정기 구독 서비스 이용약관에 동의합니다"
-                                            value={agreementChecked}
-                                            onChange={(checked) => setAgreementChecked(checked)}
-                                            size="sm"
-                                        />
-                                        <Button
-                                            label="(약관 보기)"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setShowTerms(!showTerms)}
-                                        />
-                                    </HStack>
+                                    {canPay ? (
+                                        <HStack gap={1} vAlign="center" wrap="wrap">
+                                            <CheckboxInput
+                                                label={`위 정기결제 내용(${BASIC_PLAN.amountLabel} 자동 결제)과 이용약관·환불 정책에 동의합니다`}
+                                                value={agreementChecked}
+                                                onChange={(checked) => setAgreementChecked(checked)}
+                                                size="sm"
+                                            />
+                                            <Button
+                                                label="(약관 보기)"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowTerms(!showTerms)}
+                                            />
+                                        </HStack>
+                                    ) : (
+                                        <HStack>
+                                            <Button
+                                                label={showTerms ? '정기 구독 약관 접기' : '정기 구독 약관 보기'}
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowTerms(!showTerms)}
+                                            />
+                                        </HStack>
+                                    )}
 
                                     {/* 약관 내용 */}
                                     {showTerms && (
@@ -513,45 +658,12 @@ function PaymentPageContent() {
                                                 <VStack gap={3}>
                                                     <Text type="label">정기 구독 서비스 이용약관</Text>
                                                     <VStack gap={3}>
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제1조 (목적)</Text>
-                                                            <Text type="body" color="secondary">본 약관은 실버리즘(이하 &quot;회사&quot;)가 제공하는 서비스의 이용과 관련하여 일정 기간 서비스 이용을 보장하는 회사의 정기 구독 서비스(이하 &quot;정기 구독 서비스&quot;)에 가입 및 결제한 회원(이하 &quot;구독자&quot;) 사이의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정하는 것을 목적으로 합니다.</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제2조 (용어의 정의)</Text>
-                                                            <Text type="body" color="secondary">본 약관에서 사용하는 주요 용어의 정의는 실버리즘 서비스 이용약관을 따릅니다.</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제3조 (정기 구독 서비스 가입과 결제방식)</Text>
-                                                            <Text type="body" color="secondary">회원은 정기 구독 서비스에 가입하기 위하여 사이트 내 버튼을 클릭하여 정기 구독 서비스 가입 화면인 &quot;요금제 – 결제 페이지&quot;(이하 &quot;요금제 안내 화면&quot;)에서 가입할 수 있습니다. 회원은 계약기간을 선택하고 가입하기 버튼을 클릭함으로써 회사와 구독 계약을 체결하게 되며, 구독자는 구매 시점에 제시된 가격으로 구독자에게 계약기간 동안의 구독료를 청구하도록 허용합니다.</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제4조 (구독중 생성된 콘텐츠의 유효기간)</Text>
-                                                            <Text type="body" color="secondary">구독자가 구독 중 생성한 콘텐츠의 유효기간은 구독기간 내에 한하며, 사용자의 구독 콘텐츠 이용 시 이를 고지합니다.</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제5조 (정기 구독 서비스 해지 방법)</Text>
-                                                            <Text type="body" color="secondary">구독자는 특별한 구독 해지 방법이 있지 아니하고, 구매한 구독기간 만큼 구독서비스를 제공받을 수 있습니다.</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제6조 (구독 철회 및 환불)</Text>
-                                                            <Text type="body" color="secondary">구독자는 구독 시작일 이후 정기 구독 서비스를 1회라도 사용했거나 구독 시작일 이후 7일이 지난 경우 구독을 철회할 수 없습니다. (구독 환불은 고객센터, 취소는 홈페이지 내 구독 관리 페이지에서 가능합니다.)</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제7조 (구독제 변경 및 중단)</Text>
-                                                            <Text type="body" color="secondary">회사는 구독자의 구독 혜택을 유지하기 위해 합리적으로 운영을 지속할 의무가 있습니다.</Text>
-                                                        </VStack>
-
-                                                        <VStack gap={1}>
-                                                            <Text type="body" weight="medium">제8조 (구독 요금)</Text>
-                                                            <Text type="body" color="secondary">&quot;정기 구독 서비스&quot;의 월 이용요금의 구체적인 내용은 (주)실버리즘 홈페이지 내 게재하며, 구독 요금은 회사의 요금정책에 따라 변경될 수 있습니다.</Text>
-                                                        </VStack>
+                                                        {SUBSCRIPTION_TERMS.map((article) => (
+                                                            <VStack key={article.title} gap={1}>
+                                                                <Text type="body" weight="medium">{article.title}</Text>
+                                                                <Text type="body" color="secondary">{article.body}</Text>
+                                                            </VStack>
+                                                        ))}
                                                     </VStack>
                                                 </VStack>
                                             </div>
@@ -560,18 +672,62 @@ function PaymentPageContent() {
                                 </VStack>
 
                                 <VStack gap={3}>
+                                    {authState === null || (authState === 'admin' && !subscriptionChecked) ? (
+                                        <Button label="결제 정보를 확인하는 중..." variant="primary" size="lg" isLoading isDisabled />
+                                    ) : authState === 'admin' ? (
+                                        hasPaidPeriodLeft ? (
+                                            <Button
+                                                label="구독 관리로 이동"
+                                                variant="primary"
+                                                size="lg"
+                                                onClick={() => router.push('/subscription')}
+                                            />
+                                        ) : missingPayerInfo ? (
+                                            <Button
+                                                label="다시 로그인하기"
+                                                variant="primary"
+                                                size="lg"
+                                                onClick={() => router.push(loginPathFor('/payment'))}
+                                            />
+                                        ) : (
+                                            <Button
+                                                label={loading ? '처리 중...' : `${BASIC_PLAN.priceLabel} 결제하기`}
+                                                variant="primary"
+                                                size="lg"
+                                                onClick={handlePayment}
+                                                isLoading={loading}
+                                                isDisabled={loading || !customerKey || !agreementChecked}
+                                            />
+                                        )
+                                    ) : authState === 'demo' ? (
+                                        <Button
+                                            label="정식 회원가입하기"
+                                            variant="primary"
+                                            size="lg"
+                                            onClick={() => router.push(`/signup?redirect=${encodeURIComponent('/payment')}`)}
+                                        />
+                                    ) : (
+                                        <>
+                                            <Button
+                                                label={authState === 'employee' ? '관리자 계정으로 로그인' : '로그인하고 결제하기'}
+                                                variant="primary"
+                                                size="lg"
+                                                onClick={() => router.push(loginPathFor('/payment'))}
+                                            />
+                                            {authState === 'guest' && (
+                                                <Button
+                                                    label="계정이 없으면 회원가입 (30일 무료 체험)"
+                                                    variant="secondary"
+                                                    size="lg"
+                                                    onClick={() => router.push(`/signup?redirect=${encodeURIComponent('/payment')}`)}
+                                                />
+                                            )}
+                                        </>
+                                    )}
                                     <Button
-                                        label={loading ? '처리 중...' : '결제하기'}
-                                        variant="primary"
-                                        size="lg"
-                                        onClick={handlePayment}
-                                        isLoading={loading}
-                                        isDisabled={loading || !customerKey || !agreementChecked || !userInfo.name || !userInfo.email}
-                                    />
-                                    <Button
-                                        label="관리자 페이지로 돌아가기"
+                                        label={backAction.label}
                                         variant="ghost"
-                                        onClick={() => router.push('/admin')}
+                                        onClick={() => router.push(backAction.href)}
                                     />
                                 </VStack>
                             </VStack>
@@ -583,6 +739,9 @@ function PaymentPageContent() {
                             </Text>
                         </HStack>
                     </VStack>
+                </div>
+                <div style={{ background: 'var(--color-background-surface)' }}>
+                    <SiteFooter />
                 </div>
             </div>
         </>

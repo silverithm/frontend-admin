@@ -120,7 +120,7 @@ export default function RootLayout({
     '@id': 'https://carev.kr/#organization',
     name: '케어브이',
     alternateName: ['CareV'],
-    legalName: '주식회사 실버리즘',
+    legalName: '실버리즘', // 개인사업자(일반과세) — 사업자등록증 상호 그대로
     url: 'https://carev.kr',
     // 구글 로고 가이드는 정사각형을 권장한다 — 워드마크(2048×1000)를 넣으면
     // 지식패널·검색 결과에서 잘리거나 무시된다. 워드마크는 image 필드가 계속 쓴다.
@@ -147,7 +147,7 @@ export default function RootLayout({
     email: 'ggprgrkjh2@gmail.com',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: '신림동 1547-10',
+      streetAddress: '대학10길 41-8, 1층 101호',
       addressLocality: '관악구',
       addressRegion: '서울특별시',
       postalCode: '08706',

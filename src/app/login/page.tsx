@@ -19,6 +19,7 @@ import { signin, memberSignin, findPassword, startDemo } from '@/lib/apiService'
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from '@/components/Alert';
 import { LoginType } from '@/types/auth';
+import { readReturnPath } from '@/lib/authState';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,6 +38,16 @@ export default function LoginPage() {
   const [findPasswordMessage, setFindPasswordMessage] = useState('');
   const [findPasswordError, setFindPasswordError] = useState('');
   const [isDemoLoading, setIsDemoLoading] = useState(false);
+  // 로그인 뒤 돌아갈 화면 (?redirect=/payment). 요금제의 결제 버튼에서 넘어온 방문자는
+  // 로그인하면 구독 확인 화면이 아니라 결제 화면으로 바로 돌아가야 한다.
+  const [returnPath, setReturnPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    const path = readReturnPath(window.location.search);
+    setReturnPath(path);
+    // 결제는 관리자만 한다 — 직원 탭이 기억돼 있어도 관리자 탭으로 연다
+    if (path) setLoginType('admin');
+  }, []);
 
   useEffect(() => {
     // 컴포넌트 마운트 시 저장된 이메일 불러오기
@@ -49,7 +60,7 @@ export default function LoginPage() {
         setFormData(prev => ({ ...prev, email: savedEmail }));
         setRememberEmail(true);
       }
-      if (savedLoginType) {
+      if (savedLoginType && !readReturnPath(window.location.search)) {
         setLoginType(savedLoginType);
       }
     } catch (error) {
@@ -162,6 +173,12 @@ export default function LoginPage() {
           console.error('localStorage 저장 오류:', error);
         }
 
+        // 결제 화면에서 넘어왔으면 그대로 돌려보낸다 (결제 화면이 구독 상태를 다시 확인한다)
+        if (returnPath) {
+          router.push(returnPath);
+          return;
+        }
+
         // 로그인 성공 후 구독 상태 확인
         await checkSubscriptionAndRedirect();
       } else {
@@ -269,6 +286,14 @@ export default function LoginPage() {
                     </Text>
                   </VStack>
 
+                  {returnPath === '/payment' && (
+                    <Banner
+                      status="info"
+                      title="로그인하면 결제 화면으로 이어집니다"
+                      description="결제는 기관 관리자 계정으로 진행합니다."
+                    />
+                  )}
+
                   {/* 로그인 폼 */}
                   <form onSubmit={handleSubmit}>
                     <VStack gap={4}>
@@ -328,7 +353,7 @@ export default function LoginPage() {
               <VStack gap={2} hAlign="center">
                 <HStack gap={1} hAlign="center" vAlign="center">
                   <Text type="supporting" color="secondary">계정이 없으신가요?</Text>
-                  <Link href="/signup">회원가입</Link>
+                  <Link href={returnPath ? `/signup?redirect=${encodeURIComponent(returnPath)}` : '/signup'}>회원가입</Link>
                 </HStack>
                 <Button
                   label="메인으로"
