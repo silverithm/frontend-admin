@@ -14,6 +14,8 @@ export const BASIC_PLAN = {
     amountLabel: '월 9,900원 (부가세 포함)',
     /** 한 번 결제되는 금액 — 문장 안에 넣을 때 쓴다 (괄호 겹침 방지). */
     chargeLabel: '9,900원(부가세 포함)',
+    /** 한 번 결제로 이용하는 기간 — PG 심사는 상품 화면에 서비스 제공 기간이 적혀 있기를 요구한다. */
+    servicePeriodLabel: '결제일부터 1개월 (해지하지 않으면 매월 자동 갱신)',
 } as const;
 
 export const FREE_TRIAL_DAYS = 30;

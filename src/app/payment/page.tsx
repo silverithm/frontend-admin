@@ -583,6 +583,7 @@ function PaymentPageContent() {
     const billingTerms: Array<{ label: string; value: React.ReactNode }> = [
         { label: '상품', value: `${BASIC_PLAN.name} (케어브이 전 기능 이용권)` },
         { label: '결제 금액', value: BASIC_PLAN.amountLabel },
+        { label: '이용 기간', value: BASIC_PLAN.servicePeriodLabel },
         { label: '결제 방식', value: '카드 등록 후 매월 자동 결제 (정기결제)' },
         {
             label: '첫 결제',

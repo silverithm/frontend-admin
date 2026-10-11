@@ -191,7 +191,7 @@ const PLANS = [
         name: BASIC_PLAN.name,
         price: BASIC_PLAN.priceLabel,
         priceNote: '/월 (부가세 포함)',
-        description: '매월 자동 결제되는 정기 구독입니다. 언제든 해지할 수 있고, 해지해도 결제한 기간까지 이용할 수 있습니다.',
+        description: '매월 자동 결제되는 정기 구독입니다. 한 번 결제하면 결제일부터 1개월 동안 이용하고, 언제든 해지할 수 있으며 해지해도 결제한 기간까지 이용할 수 있습니다.',
         features: PLAN_FEATURES,
         isRecommended: true,
         ctaLabel: `${BASIC_PLAN.name} 결제하기`,
