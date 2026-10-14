@@ -1,0 +1,204 @@
+/* 실험실 6차 계획 화면(계약·인정, 퇴소 연계기록지, 공단 청구 대조) 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.plainList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.plainRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.plainRow:last-child {
+  border-bottom: 0;
+}
+
+.factList {
+  margin: 0;
+  padding-inline-start: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+/* ---------- 계약 알림 ---------- */
+.alertList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.alertItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-2) var(--spacing-3);
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.alertItem[data-tone='danger'] {
+  background: var(--color-background-red);
+}
+
+.alertItem[data-tone='warn'] {
+  background: var(--color-background-yellow);
+}
+
+.alertItem:hover {
+  border-color: var(--color-border-emphasized);
+}
+
+.alertItem:focus-visible {
+  outline: 2px solid var(--color-icon-accent);
+  outline-offset: 2px;
+}
+
+.alertBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.alertDue {
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+/* ---------- 갱신 신청 창 달력식 표시 ---------- */
+.windowBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.windowTrack {
+  position: relative;
+  height: 14px;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  overflow: hidden;
+}
+
+.windowOpen,
+.windowLate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.windowOpen {
+  background: var(--color-background-yellow);
+  border-inline: 1px solid var(--color-text-yellow);
+}
+
+.windowLate {
+  background: var(--color-background-red);
+}
+
+.windowToday {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-text-primary);
+}
+
+.windowLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-4);
+}
+
+.legendOpen {
+  color: var(--color-text-yellow);
+  font-weight: var(--font-weight-medium);
+}
+
+.legendLate {
+  color: var(--color-text-red);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ---------- 공단 청구 대조 ---------- */
+.pasteArea {
+  min-width: 0;
+}
+
+.wideTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.wideTable th,
+.wideTable td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+}
+
+.wideTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.wideTable tr[data-tone='danger'] td {
+  background: var(--color-background-red);
+}
+
+.wideTable tr[data-tone='warn'] td {
+  background: var(--color-background-yellow);
+}
+
+.colReason {
+  min-width: 220px;
+}
+
+.colName {
+  min-width: 96px;
+  white-space: nowrap;
+}
+
+.bandBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  min-width: 0;
+}
+
+.reasonList {
+  margin: 0;
+  padding-inline-start: var(--spacing-4);
+}
