@@ -15,6 +15,7 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { aiStructureCareNote, deleteCareRecord, saveCareRecord } from '@/lib/lab/labApi';
 import { findVaguePhrases } from '@/lib/lab/careRecordQuality';
 import type { CareRecord, CareRecordInput, CareRecordTextField, CareRecordWarning } from '@/lib/lab/labTypes';
+import CareRecordLabImport from './CareRecordLabImport';
 import { AiChip, Chip, ErrorBanner, LabConfirm, SupportText, useNotify } from './LabUi';
 import { PROVIDER_KEY, dateLabel, defaultPersonName, errorText, writeStored } from './labFormat';
 import styles from './lab.module.css';
@@ -124,6 +125,20 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
       const ai = { ...d.ai };
       delete ai[key]; // 사람이 손댄 칸은 더 이상 AI 제안이 아니다
       return { ...d, fields: { ...d.fields, [key]: value }, ai };
+    });
+  };
+
+  /** 다른 기록에서 가져온 문장을 칸 뒤에 덧붙인다. 이미 들어 있으면 건너뛰고, 칸 길이 제한을 넘기지 않는다. */
+  const insertImported = (key: CareRecordTextField, text: string) => {
+    const spec = CARE_FIELDS.find((f) => f.key === key);
+    if (!spec) return;
+    setDraft((d) => {
+      const current = d.fields[key].trim();
+      if (current.includes(text)) return d;
+      const next = (current === '' ? text : `${current}\n${text}`).slice(0, spec.max);
+      const ai = { ...d.ai };
+      delete ai[key];
+      return { ...d, fields: { ...d.fields, [key]: next }, ai };
     });
   };
 
@@ -300,6 +315,8 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
             </div>
           )}
         </VStack>
+
+        <CareRecordLabImport elderId={elderId} date={date} fields={draft.fields} onInsert={insertImported} />
 
         <div className={styles.fieldGridWide}>
           {CARE_FIELDS.map((spec) => {

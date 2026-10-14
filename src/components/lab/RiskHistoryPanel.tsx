@@ -11,7 +11,7 @@ import { deleteRiskAssessment, listRiskAssessments } from '@/lib/lab/labApi';
 import { riskKindLabel } from '@/lib/lab/riskScales';
 import type { RiskAssessment } from '@/lib/lab/labTypes';
 import { AiChip, ErrorBanner, LabConfirm, useNotify } from './LabUi';
-import { RiskLevelChip } from './RiskParts';
+import { RiskLevelChip, assessmentResultText } from './RiskParts';
 import { dotDate, errorText } from './labFormat';
 import styles from './lab.module.css';
 
@@ -85,7 +85,7 @@ export default function RiskHistoryPanel({ elderId, refreshToken, onChanged }: R
                     {riskKindLabel(item.kind)}
                   </Text>
                   <Text type="body" hasTabularNumbers>
-                    {dotDate(item.assessedOn)} · {item.total}점
+                    {dotDate(item.assessedOn)} · {assessmentResultText(item)}
                   </Text>
                   <RiskLevelChip level={item.riskLevel} />
                   {item.aiAssisted && <AiChip label="AI 도움" />}
@@ -103,7 +103,7 @@ export default function RiskHistoryPanel({ elderId, refreshToken, onChanged }: R
       <LabConfirm
         isOpen={target !== null}
         title="이 평가를 삭제할까요?"
-        description={target ? `${dotDate(target.assessedOn)} ${riskKindLabel(target.kind)} 평가(${target.total}점)가 지워지며 되돌릴 수 없습니다.` : ''}
+        description={target ? `${dotDate(target.assessedOn)} ${riskKindLabel(target.kind)} 평가(${assessmentResultText(target)})가 지워지며 되돌릴 수 없습니다.` : ''}
         actionLabel="삭제"
         isLoading={busy}
         onConfirm={() => void remove()}

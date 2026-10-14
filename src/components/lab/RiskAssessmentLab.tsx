@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 위험도 평가 — 욕창(Braden)·낙상(Morse). 반기(1~6월·7~12월)마다 모든 수급자를 한 번 이상 평가해야 한다.
+ * 위험도 평가 — 욕창(Braden)·낙상(Morse)·인지기능. 반기(1~6월·7~12월)마다 모든 수급자를 세 기준으로 평가해야 한다.
  * 위쪽은 이번 반기 진행 현황, 아래는 어르신별 마지막 평가와 "평가가 필요한 분"을 한눈에 보는 표다.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,7 +14,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Loading } from '@/components/Loading';
 import { StatRow, StatTile } from '@/components/StatTile';
 import { listRiskLatest } from '@/lib/lab/labApi';
-import { currentHalfLabel, daysUntilHalfEnd, halfYearStatus } from '@/lib/lab/riskScales';
+import { currentHalfLabel, daysUntilHalfEnd, elderHalfYearStatus, halfYearSummary } from '@/lib/lab/riskScales';
 import type { RiskKind, RiskLatest } from '@/lib/lab/labTypes';
 import { ErrorBanner } from './LabUi';
 import RiskElderDialog from './RiskElderDialog';
@@ -63,32 +63,26 @@ export default function RiskAssessmentLab() {
     };
   }, [load]);
 
-  const stats = useMemo(() => {
-    const braden = latest.filter((l) => halfYearStatus(l.braden?.assessedOn, today) === 'DONE').length;
-    const morse = latest.filter((l) => halfYearStatus(l.morse?.assessedOn, today) === 'DONE').length;
-    return { braden, morse };
-  }, [latest, today]);
-
-  const needs = useCallback(
-    (l: RiskLatest) => halfYearStatus(l.braden?.assessedOn, today) !== 'DONE' || halfYearStatus(l.morse?.assessedOn, today) !== 'DONE',
-    [today],
-  );
-  const visible = onlyDue ? latest.filter(needs) : latest;
+  // 반기 점검 요약: 욕창·낙상·인지 세 기준 각각의 완료 수와 하나라도 남은 어르신
+  const summary = useMemo(() => halfYearSummary(latest, today), [latest, today]);
+  const dueIds = useMemo(() => new Set(summary.pending.map((p) => p.elderlyId)), [summary]);
+  const visible = onlyDue ? latest.filter((l) => dueIds.has(l.elderlyId)) : latest;
   const daysLeft = daysUntilHalfEnd(today);
-  const dueCount = latest.filter(needs).length;
+  const dueCount = summary.pending.length;
 
   const open = (elder: RiskLatest, view: RiskDialogView) => {
-    // 이번 반기에 욕창을 마쳤고 낙상이 남았다면 낙상부터 연다
-    const bradenDone = halfYearStatus(elder.braden?.assessedOn, today) === 'DONE';
-    const morseDone = halfYearStatus(elder.morse?.assessedOn, today) === 'DONE';
-    setDialog({ elder, view, kind: bradenDone && !morseDone ? 'MORSE' : 'BRADEN' });
+    // 이번 반기에 남은 첫 평가부터 연다(욕창 → 낙상 → 인지). 모두 마쳤으면 욕창.
+    const status = elderHalfYearStatus(elder, today);
+    const firstMissing = (['BRADEN', 'MORSE', 'COGNITIVE'] as const).find((k) => status[k] !== 'DONE');
+    setDialog({ elder, view, kind: firstMissing ?? 'BRADEN' });
   };
 
   return (
     <div className={styles.stack}>
       <StatRow>
-        <StatTile value={`${stats.braden}/${latest.length}`} label="욕창(Braden) 완료" tone={latest.length > 0 && stats.braden === latest.length ? 'success' : 'neutral'} />
-        <StatTile value={`${stats.morse}/${latest.length}`} label="낙상(Morse) 완료" tone={latest.length > 0 && stats.morse === latest.length ? 'success' : 'neutral'} />
+        <StatTile value={`${summary.done.BRADEN}/${summary.total}`} label="욕창(Braden) 완료" tone={summary.total > 0 && summary.done.BRADEN === summary.total ? 'success' : 'neutral'} />
+        <StatTile value={`${summary.done.MORSE}/${summary.total}`} label="낙상(Morse) 완료" tone={summary.total > 0 && summary.done.MORSE === summary.total ? 'success' : 'neutral'} />
+        <StatTile value={`${summary.done.COGNITIVE}/${summary.total}`} label="인지기능 완료" tone={summary.total > 0 && summary.done.COGNITIVE === summary.total ? 'success' : 'neutral'} />
         <StatTile value={`${daysLeft}일`} label={`${currentHalfLabel(today)} 마감까지`} tone={daysLeft <= 30 && dueCount > 0 ? 'warning' : 'neutral'} />
       </StatRow>
 
@@ -96,7 +90,7 @@ export default function RiskAssessmentLab() {
         <Banner
           status="warning"
           title={`${currentHalfLabel(today)} 평가가 필요한 어르신이 ${dueCount}분 있습니다`}
-          description="평가 기준일은 한국 날짜입니다. 반기가 끝나기 전에 욕창·낙상을 한 번씩 평가해 주세요."
+          description={`2026 평가는 욕창·낙상·인지기능 세 기준을 반기마다 요구합니다. 세 가지를 모두 마친 어르신은 ${summary.allDone}/${summary.total}분이에요. 평가 기준일은 한국 날짜입니다.`}
         />
       )}
 
@@ -124,6 +118,7 @@ export default function RiskAssessmentLab() {
                   <th scope="col">어르신</th>
                   <th scope="col">욕창 (Braden)</th>
                   <th scope="col">낙상 (Morse)</th>
+                  <th scope="col">인지기능</th>
                   <th scope="col">
                     <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>작업</span>
                   </th>
@@ -142,6 +137,9 @@ export default function RiskAssessmentLab() {
                     </td>
                     <td data-label="낙상 (Morse)">
                       <RiskCell entry={l.morse} today={today} />
+                    </td>
+                    <td data-label="인지기능">
+                      <RiskCell entry={l.cognitive ?? null} today={today} isCognitive />
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 'var(--spacing-1)', justifyContent: 'flex-start', flexWrap: 'wrap' }}>

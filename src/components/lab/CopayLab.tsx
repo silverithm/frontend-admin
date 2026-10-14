@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * 본인부담금 — 달을 고르면 어르신별 청구 한 줄씩. 등급·출석일수는 미리 채워지고, 직원이 고쳐 저장한다.
+ * 본인부담금 — 달을 고르면 어르신별 청구 한 줄씩. 등급·출석일수·식재료비(이용일수 × 일 단가)는 미리 채워지고, 직원이 고쳐 저장한다.
+ * 수납한 청구서는 영수증·납부확인서로 인쇄하고, 한 해 납부 내역은 CSV로 내려받는다(의료비 공제 제출용).
  * 금액은 2026년 수가 기준 어림 계산이다(가산·미이용일 등 미반영). 은행 입금 맞춤은 브라우저 안에서만 돈다.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,18 +18,28 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { Loading } from '@/components/Loading';
 import { getElderAttendanceRange } from '@/lib/apiService';
 import { deleteCopayBill, listCopayBills, saveCopayBill } from '@/lib/lab/labApi';
-import { copayNoticeText, remainingDue } from '@/lib/lab/copayBill';
+import { MAX_MONEY, copayNoticeText, remainingDue } from '@/lib/lab/copayBill';
 import { formatWon } from '@/lib/ltc2026';
 import type { CopayBill } from '@/lib/lab/labTypes';
+import CopayAnnualDialog from './CopayAnnualDialog';
 import CopayDepositPanel from './CopayDepositPanel';
 import CopayPaymentDialog from './CopayPaymentDialog';
+import CopayReceiptDialog from './CopayReceipt';
 import CopayRow from './CopayRow';
-import { ErrorBanner, LabConfirm, MonthStepper, useNotify } from './LabUi';
-import { buildFromDraft, defaultDraft, draftFromBill, draftKey, isBuildError } from './copayDraft';
+import { ErrorBanner, LabConfirm, MonthStepper, NumField, SupportText, useNotify } from './LabUi';
+import { applyMealCost, buildFromDraft, defaultDraft, draftFromBill, draftKey, isBuildError, withoutMealCost } from './copayDraft';
 import type { CopayDraft } from './copayDraft';
-import { companyNameStored, currentMonth, errorText, monthRange, shiftMonth } from './labFormat';
+import { companyNameStored, currentMonth, errorText, monthRange, readStored, shiftMonth, writeStored } from './labFormat';
 import { useLabElders } from './useLabElders';
 import styles from './lab.module.css';
+
+/** 식재료비 일 단가는 기관 공통이라 이 브라우저에 하나만 기억한다 */
+const MEAL_PRICE_KEY = 'carev.lab.mealUnitPrice';
+
+function storedMealPrice(): number | null {
+  const n = Number(readStored(MEAL_PRICE_KEY));
+  return Number.isInteger(n) && n > 0 && n <= MAX_MONEY ? n : null;
+}
 
 /** 출결 기간 조회 응답에서 어르신별 출석(PRESENT) 일수를 센다. 응답 모양이 둘 이상이라 느슨하게 읽는다. */
 function countPresentDays(data: unknown): Map<number, number> {
@@ -63,6 +74,11 @@ export default function CopayLab() {
   const [deleteTarget, setDeleteTarget] = useState<CopayBill | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [noticeText, setNoticeText] = useState<string | null>(null);
+  const [receiptBill, setReceiptBill] = useState<CopayBill | null>(null);
+  const [annualOpen, setAnnualOpen] = useState(false);
+  const [mealPrice, setMealPrice] = useState<number | null>(storedMealPrice);
+  // 청구서를 불러오는 중에도 가장 최근 단가를 쓰도록, 불러오기 함수는 단가가 바뀌어도 다시 만들지 않는다
+  const mealPriceRef = useRef(mealPrice);
   const [pendingMonth, setPendingMonth] = useState<string | null>(null);
   const seq = useRef(0);
 
@@ -97,7 +113,7 @@ export default function CopayLab() {
       for (const elder of elders) {
         const bill = byElder.get(elder.id);
         const days = present ? present.get(elder.id) ?? 0 : null;
-        const draft = bill ? draftFromBill(bill) : defaultDraft(elder, days && days > 0 ? days : null, prevUnpaid.get(elder.id) ?? 0);
+        const draft = bill ? draftFromBill(bill) : applyMealCost(defaultDraft(elder, days && days > 0 ? days : null, prevUnpaid.get(elder.id) ?? 0), mealPriceRef.current);
         nextDrafts[elder.id] = draft;
         keys[elder.id] = draftKey(draft);
       }
@@ -194,7 +210,7 @@ export default function CopayLab() {
       // 지운 뒤에는 처음 상태(프로필 등급·출석일수)로 다시 채운다
       if (elder) {
         const days = attendance?.get(elder.id) ?? null;
-        const fresh = defaultDraft(elder, days && days > 0 ? days : null, 0);
+        const fresh = applyMealCost(defaultDraft(elder, days && days > 0 ? days : null, 0), mealPrice);
         setDrafts((prev) => ({ ...prev, [elder.id]: fresh }));
         setInitialKeys((prev) => ({ ...prev, [elder.id]: draftKey(fresh) }));
       }
@@ -206,6 +222,29 @@ export default function CopayLab() {
     } finally {
       setDeleteBusy(false);
     }
+  };
+
+  /**
+   * 식재료비 일 단가를 바꾸면, 아직 청구서가 없고 직원이 손대지 않은 줄에만 새 단가를 바로 반영한다.
+   * 이미 저장한 청구서와 고치는 중인 줄은 건드리지 않는다(각 줄의 "식재료비 다시 계산"으로 직접 반영).
+   * 새 값은 setState 안이 아니라 지금 상태에서 계산해 한 번에 넣는다.
+   */
+  const changeMealPrice = (next: number | null) => {
+    setMealPrice(next);
+    mealPriceRef.current = next;
+    writeStored(MEAL_PRICE_KEY, String(next ?? 0));
+    const nextDrafts = { ...drafts };
+    const nextKeys = { ...initialKeys };
+    for (const elder of elders) {
+      const d = drafts[elder.id];
+      if (!d || billByElder.has(elder.id) || isEdited(elder.id)) continue;
+      const updated = next === null ? withoutMealCost(d) : applyMealCost(d, next);
+      if (updated === d) continue;
+      nextDrafts[elder.id] = updated;
+      nextKeys[elder.id] = draftKey(updated);
+    }
+    setDrafts(nextDrafts);
+    setInitialKeys(nextKeys);
   };
 
   const requestMonth = (next: string) => {
@@ -231,7 +270,8 @@ export default function CopayLab() {
       <div className={styles.toolbar}>
         <MonthStepper value={month} onChange={requestMonth} isDisabled={busy} />
         <Button label="새로 불러오기" variant="ghost" isDisabled={busy} onClick={() => (anyEdited ? setPendingMonth(month) : void load(month))} />
-        <div style={{ marginInlineStart: 'auto' }}>
+        <div style={{ marginInlineStart: 'auto', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
+          <Button label="연간 납부 내역" variant="secondary" onClick={() => setAnnualOpen(true)} />
           <Button
             label={`전체 저장 (${savableIds.length}건)`}
             variant="primary"
@@ -240,6 +280,13 @@ export default function CopayLab() {
             onClick={() => void saveAll()}
           />
         </div>
+      </div>
+
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarGrow} style={{ maxWidth: 280 }}>
+          <NumField label="식재료비 일 단가 (원)" value={mealPrice} onChange={changeMealPrice} max={MAX_MONEY} placeholder="예: 3,500" />
+        </div>
+        <SupportText>이용일수 × 일 단가가 식재료비로 자동 입력됩니다. 이 브라우저에 기억해요.</SupportText>
       </div>
 
       {eldersError && <ErrorBanner message={eldersError} onRetry={() => void reloadElders()} />}
@@ -274,6 +321,7 @@ export default function CopayLab() {
                   dirty={isEdited(elder.id)}
                   isSaving={savingIds.has(elder.id)}
                   attendanceDays={attendance ? attendance.get(elder.id) ?? 0 : null}
+                  mealPrice={mealPrice}
                   onChange={(next) => setDrafts((prev) => ({ ...prev, [elder.id]: next }))}
                   onSave={() => void saveOne(elder.id)}
                   onPay={() => setPayBill(billByElder.get(elder.id) ?? null)}
@@ -281,6 +329,7 @@ export default function CopayLab() {
                     const bill = billByElder.get(elder.id);
                     if (bill) void copyNotice(bill);
                   }}
+                  onReceipt={() => setReceiptBill(billByElder.get(elder.id) ?? null)}
                   onDelete={() => setDeleteTarget(billByElder.get(elder.id) ?? null)}
                 />
               );
@@ -303,6 +352,9 @@ export default function CopayLab() {
           }}
         />
       )}
+
+      {receiptBill && <CopayReceiptDialog key={receiptBill.id} bill={receiptBill} onClose={() => setReceiptBill(null)} />}
+      {annualOpen && <CopayAnnualDialog initialYear={Number(month.slice(0, 4))} onClose={() => setAnnualOpen(false)} />}
 
       <LabConfirm
         isOpen={deleteTarget !== null}

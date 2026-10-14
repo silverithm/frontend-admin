@@ -2,12 +2,17 @@
 
 /**
  * 실험실 — 기관 업무를 AI와 함께 새로 만들어 보는 곳. 접근 권한이 있는 기관의 관리자에게만 탭이 보인다.
- * 네 가지 도구를 SegmentedControl로 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
+ * 도구가 늘어 묶음 세 개(기록·청구·평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
+ * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기라서, 메뉴 항목만 둘이고 같은 화면을 연다.
  */
 import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Text } from '@astryxdesign/core/Text';
 import PageHeader from '@/components/PageHeader';
+import ConsultationCarePlanLab from '@/components/labRecords/ConsultationCarePlanLab';
+import NursingLogLab from '@/components/labRecords/NursingLogLab';
+import ProgramLogLab from '@/components/labRecords/ProgramLogLab';
+import StaffTrainingLab from '@/components/labRecords/StaffTrainingLab';
 import CareRecordLab from './CareRecordLab';
 import CopayLab from './CopayLab';
 import EvalReadinessLab from './EvalReadinessLab';
@@ -15,19 +20,44 @@ import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'copay' | 'risk' | 'eval';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval';
 
-const TOOLS: ReadonlyArray<{ id: LabTool; label: string }> = [
-  { id: 'care', label: '급여제공기록' },
-  { id: 'copay', label: '본인부담금' },
-  { id: 'risk', label: '위험도 평가' },
-  { id: 'eval', label: '평가 준비' },
+interface ToolGroup {
+  id: string;
+  label: string;
+  tools: ReadonlyArray<{ id: LabTool; label: string }>;
+}
+
+const GROUPS: readonly ToolGroup[] = [
+  {
+    id: 'records',
+    label: '기록',
+    tools: [
+      { id: 'care', label: '급여제공기록' },
+      { id: 'nursing', label: '간호일지' },
+      { id: 'program', label: '프로그램 일지' },
+      { id: 'consult', label: '상담일지' },
+    ],
+  },
+  { id: 'billing', label: '청구', tools: [{ id: 'copay', label: '본인부담금' }] },
+  {
+    id: 'evaluation',
+    label: '평가 대비',
+    tools: [
+      { id: 'risk', label: '위험도 평가' },
+      { id: 'carePlan', label: '욕구사정·급여계획' },
+      { id: 'training', label: '직원 교육·회의' },
+      { id: 'eval', label: '평가 준비' },
+    ],
+  },
 ];
+
+const TOOL_IDS: readonly string[] = GROUPS.flatMap((g) => g.tools.map((t) => t.id));
 
 const TOOL_KEY = 'carev.lab.tool';
 
 function isTool(value: string | null): value is LabTool {
-  return TOOLS.some((t) => t.id === value);
+  return value !== null && TOOL_IDS.includes(value);
 }
 
 export default function LabHome() {
@@ -39,8 +69,7 @@ export default function LabHome() {
     if (isTool(stored)) setTool(stored);
   }, []);
 
-  const choose = (value: string) => {
-    if (!isTool(value)) return;
+  const choose = (value: LabTool) => {
     setTool(value);
     writeStored(TOOL_KEY, value);
   };
@@ -53,15 +82,32 @@ export default function LabHome() {
         description="기관 업무를 AI와 함께 새로 만들어 보는 곳입니다. 지금은 이 기관에만 열려 있어요."
       />
 
-      <SegmentedControl label="실험실 도구" value={tool} onChange={choose}>
-        {TOOLS.map((t) => (
-          <SegmentedControlItem key={t.id} value={t.id} label={t.label} />
+      <nav aria-label="실험실 도구" className={styles.toolGroups}>
+        {GROUPS.map((group) => (
+          <div key={group.id} role="group" aria-label={group.label} className={styles.toolGroup}>
+            <span className={styles.toolGroupTitle}>
+              <Text type="label" color="secondary">
+                {group.label}
+              </Text>
+            </span>
+            <div className={styles.toolChips}>
+              {group.tools.map((t) => (
+                <button key={t.id} type="button" className={styles.toolChip} aria-pressed={tool === t.id} onClick={() => choose(t.id)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
-      </SegmentedControl>
+      </nav>
 
       {tool === 'care' && <CareRecordLab />}
+      {tool === 'nursing' && <NursingLogLab />}
+      {tool === 'program' && <ProgramLogLab />}
+      {(tool === 'consult' || tool === 'carePlan') && <ConsultationCarePlanLab />}
       {tool === 'copay' && <CopayLab />}
       {tool === 'risk' && <RiskAssessmentLab />}
+      {tool === 'training' && <StaffTrainingLab />}
       {tool === 'eval' && <EvalReadinessLab />}
     </div>
   );

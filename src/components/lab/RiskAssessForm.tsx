@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 위험도 평가 입력 — 욕창(Braden)·낙상(Morse).
+ * 위험도 평가 입력 — 욕창(Braden)·낙상(Morse)·인지기능.
  * "AI로 점수 제안"은 관찰 메모를 읽고 항목별 선택지를 미리 골라 주되, 근거를 항목 아래에 보여 줄 뿐이다.
  * 직원이 고르고 "평가 저장"을 눌러야 기록된다. 합계와 단계는 서버와 같은 규칙(scoreAssessment)으로 바로 계산한다.
  */
@@ -14,9 +14,10 @@ import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { aiSuggestRiskScores, saveRiskAssessment } from '@/lib/lab/labApi';
-import { RISK_ITEMS, RISK_KINDS, allowedValues, riskKindLabel, scoreAssessment } from '@/lib/lab/riskScales';
-import type { RiskAssessment, RiskKind } from '@/lib/lab/labTypes';
+import { ALL_RISK_KINDS, RISK_ITEMS, allowedValues, cleanCognitiveScores, isScaleKind, riskKindLabel, riskLevelLabel, scoreAssessment } from '@/lib/lab/riskScales';
+import type { CognitiveScores, RiskAssessment, RiskAssessmentInput, RiskKind, ScaleKind } from '@/lib/lab/labTypes';
 import { AiChip, ErrorBanner, LabDateInput, SupportText, useNotify } from './LabUi';
+import RiskCognitiveFields, { cognitiveRaw, emptyCognitive } from './RiskCognitiveFields';
 import { RiskLevelChip } from './RiskParts';
 import { PROVIDER_KEY, defaultPersonName, errorText, todayString, writeStored } from './labFormat';
 import styles from './lab.module.css';
@@ -40,7 +41,8 @@ interface RiskAssessFormProps {
 export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAssessFormProps) {
   const notify = useNotify();
   const [kind, setKind] = useState<RiskKind>(initialKind);
-  const [byKind, setByKind] = useState<Record<RiskKind, KindState>>({ BRADEN: emptyKind(), MORSE: emptyKind() });
+  const [byKind, setByKind] = useState<Record<ScaleKind, KindState>>({ BRADEN: emptyKind(), MORSE: emptyKind() });
+  const [cognitive, setCognitive] = useState(emptyCognitive);
   // AI 제안을 적용할 때 최신 상태를 setState 밖에서 읽기 위한 거울
   const byKindRef = useRef(byKind);
   useEffect(() => {
@@ -55,24 +57,28 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const current = byKind[kind];
+  // 욕창·낙상은 항목 점수, 인지기능은 도구·점수·판정 한 벌이라 입력 상태를 따로 둔다
+  const scaleKind: ScaleKind | null = isScaleKind(kind) ? kind : null;
+  const current = byKind[scaleKind ?? 'BRADEN'];
   const items = RISK_ITEMS[kind];
   const chosen = items.filter((i) => current.scores[i.key] !== undefined).length;
-  const score = scoreAssessment(kind, current.scores);
+  const score = scoreAssessment(kind, scaleKind === null ? cognitiveRaw(cognitive) : current.scores);
 
-  const patchKind = (k: RiskKind, fn: (s: KindState) => KindState) => setByKind((prev) => ({ ...prev, [k]: fn(prev[k]) }));
+  const patchKind = (k: ScaleKind, fn: (s: KindState) => KindState) => setByKind((prev) => ({ ...prev, [k]: fn(prev[k]) }));
 
-  const choose = (key: string, value: number) =>
-    patchKind(kind, (s) => {
+  const choose = (key: string, value: number) => {
+    if (scaleKind === null) return;
+    patchKind(scaleKind, (s) => {
       const ai = { ...s.ai };
       delete ai[key]; // 사람이 고르면 더 이상 AI 제안이 아니다
       return { ...s, scores: { ...s.scores, [key]: value }, ai };
     });
+  };
 
   const runAi = async () => {
     const text = current.observations.trim();
-    if (text === '' || aiLoading) return;
-    const target = kind;
+    if (scaleKind === null || text === '' || aiLoading) return;
+    const target = scaleKind;
     setAiLoading(true);
     setAiError(null);
     setAiMessage(null);
@@ -123,20 +129,27 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
     setSaving(true);
     setSaveError(null);
     try {
-      const saved = await saveRiskAssessment({
+      const common = {
         elderlyId: elderId,
-        kind,
-        scores: current.scores,
         assessedOn,
         assessorName: assessor.trim(),
         note: note.trim() === '' ? null : note.trim(),
-        aiAssisted: current.aiUsed,
-      });
+      };
+      // 인지기능 판정은 직원이 확정하므로 AI 도움 표시는 늘 false다(AI 점수 제안은 욕창·낙상만)
+      const input: RiskAssessmentInput =
+        scaleKind === null
+          ? { ...common, kind: 'COGNITIVE', scores: cleanCognitiveScores(cognitiveRaw(cognitive) as unknown as CognitiveScores), aiAssisted: false }
+          : { ...common, kind: scaleKind, scores: current.scores, aiAssisted: current.aiUsed };
+      const saved = await saveRiskAssessment(input);
       writeStored(PROVIDER_KEY, assessor.trim());
-      patchKind(kind, () => emptyKind());
+      if (scaleKind === null) setCognitive(emptyCognitive());
+      else patchKind(scaleKind, () => emptyKind());
       setNote('');
       setAiMessage(null);
-      notify(`${riskKindLabel(kind)} 평가를 저장했습니다 (${saved.total}점)`, 'success');
+      notify(
+        saved.kind === 'COGNITIVE' ? `${riskKindLabel(kind)}를 저장했습니다 (${riskLevelLabel(saved.riskLevel)})` : `${riskKindLabel(kind)} 평가를 저장했습니다 (${saved.total}점)`,
+        'success',
+      );
       onSaved(saved);
     } catch (e) {
       setSaveError(errorText(e, '위험도 평가를 저장하지 못했습니다'));
@@ -148,18 +161,20 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
   return (
     <VStack gap={4}>
       <SegmentedControl label="평가 도구" value={kind} onChange={(v) => { setKind(v as RiskKind); setAiMessage(null); setAiError(null); setSaveError(null); }} size="sm">
-        {RISK_KINDS.map((k) => (
-          <SegmentedControlItem key={k.id} value={k.id} label={k.label} />
+        {ALL_RISK_KINDS.map((k) => (
+          <SegmentedControlItem key={k.id} value={k.id} label={k.id === 'COGNITIVE' ? '인지기능' : k.short} />
         ))}
       </SegmentedControl>
+      <Text type="label">{riskKindLabel(kind)}</Text>
 
+      {scaleKind !== null && (
       <VStack gap={2}>
         <TextArea
           label="관찰 메모"
           description="평소 모습을 적어 주세요. AI가 항목별 점수를 제안합니다. (어르신 이름은 적지 마세요)"
-          placeholder={kind === 'BRADEN' ? '예: 말로 불편을 잘 표현하심. 하루 대부분 휠체어에 앉아 계시고, 기저귀를 하루 두 번 갈아 드림.' : '예: 지팡이를 짚고 걸으심. 걸음이 느리고 가끔 휘청임. 혼자 화장실에 가려 하심.'}
+          placeholder={scaleKind === 'BRADEN' ? '예: 말로 불편을 잘 표현하심. 하루 대부분 휠체어에 앉아 계시고, 기저귀를 하루 두 번 갈아 드림.' : '예: 지팡이를 짚고 걸으심. 걸음이 느리고 가끔 휘청임. 혼자 화장실에 가려 하심.'}
           value={current.observations}
-          onChange={(v) => patchKind(kind, (s) => ({ ...s, observations: v }))}
+          onChange={(v) => patchKind(scaleKind, (s) => ({ ...s, observations: v }))}
           rows={3}
           maxLength={2000}
         />
@@ -169,6 +184,9 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
         </HStack>
         {aiError && <ErrorBanner message={aiError} />}
       </VStack>
+      )}
+
+      {scaleKind === null && <RiskCognitiveFields value={cognitive} onChange={setCognitive} />}
 
       <div className={styles.fieldGridWide}>
         {items.map((item) => (
@@ -210,13 +228,13 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
               {score.error === undefined ? (
                 <>
                   <Text type="large" weight="bold" hasTabularNumbers>
-                    합계 {score.total}점
+                    {scaleKind === null ? (cognitive.score === null ? '판정' : `${score.total}점`) : `합계 ${score.total}점`}
                   </Text>
                   <RiskLevelChip level={score.riskLevel} />
                 </>
               ) : (
                 <Text type="body" color="secondary" hasTabularNumbers>
-                  {chosen}/{items.length}개 항목 선택 · 모두 고르면 합계가 나옵니다
+                  {scaleKind === null ? score.error : `${chosen}/${items.length}개 항목 선택 · 모두 고르면 합계가 나옵니다`}
                 </Text>
               )}
             </HStack>

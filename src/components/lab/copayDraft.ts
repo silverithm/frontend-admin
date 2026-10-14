@@ -2,7 +2,7 @@
  * 본인부담금 한 줄(어르신 한 명)의 입력 초안과 계산 연결.
  * 계산식은 lib/lab/copayBill의 buildCopayBillInput 하나뿐이다 — 여기서는 입력값을 그 함수가 받는 모양으로 옮기기만 한다.
  */
-import { buildCopayBillInput, elderGradeToLtc, isBuildError, remainingDue } from '@/lib/lab/copayBill';
+import { MEAL_COST_LABEL, buildCopayBillInput, elderGradeToLtc, isBuildError, mealCostItem, remainingDue } from '@/lib/lab/copayBill';
 import type { BuildCopayResult } from '@/lib/lab/copayBill';
 import type { CopayBill, CopayClass, DaycareUnit, HourBand, LtcCareGrade } from '@/lib/lab/labTypes';
 import type { LabElder } from './useLabElders';
@@ -79,6 +79,30 @@ export function buildFromDraft(elderId: number, month: string, d: CopayDraft): B
     nonCoveredItems: d.items.map((i) => ({ label: i.label, amount: i.amount ?? 0 })),
     previousUnpaid: d.previousUnpaid ?? 0,
   });
+}
+
+/**
+ * 식재료비 일 단가가 있으면 식재료비 줄을 "이용일수 × 단가"로 맞춘다(mealCostItem).
+ * 이미 식재료비 줄이 있으면 그 줄의 금액만 바꾸고 다른 줄은 건드리지 않는다. 이용일수가 없으면 식재료비 줄을 뺀다.
+ * 단가가 비어 있으면 아무것도 바꾸지 않는다 — 직원이 손으로 적은 식재료비 줄을 지우지 않기 위해서다.
+ */
+export function applyMealCost(draft: CopayDraft, unitPrice: number | null): CopayDraft {
+  if (unitPrice === null || unitPrice <= 0) return draft;
+  const meal = mealCostItem(draft.days ?? 0, unitPrice);
+  const first = draft.items.findIndex((i) => i.label.trim() === MEAL_COST_LABEL);
+  const others = draft.items.filter((i) => i.label.trim() !== MEAL_COST_LABEL);
+  if (!meal) return first < 0 ? draft : { ...draft, items: others };
+  if (first < 0) return { ...draft, items: [newItem(meal.label, meal.amount), ...others] };
+  const kept = draft.items[first];
+  const rest = draft.items.filter((i, k) => k !== first && i.label.trim() !== MEAL_COST_LABEL);
+  const items = [...rest.slice(0, first), { ...kept, label: MEAL_COST_LABEL, amount: meal.amount }, ...rest.slice(first)];
+  return { ...draft, items };
+}
+
+/** 식재료비 줄을 모두 뺀다 — 단가를 지웠을 때, 자동으로 넣었던 줄을 치우는 데 쓴다. */
+export function withoutMealCost(draft: CopayDraft): CopayDraft {
+  const items = draft.items.filter((i) => i.label.trim() !== MEAL_COST_LABEL);
+  return items.length === draft.items.length ? draft : { ...draft, items };
 }
 
 export { isBuildError, remainingDue };

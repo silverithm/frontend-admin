@@ -17,7 +17,7 @@ import { billTotals, MAX_MONEY, MAX_NON_COVERED_ITEMS, MAX_NON_COVERED_LABEL } f
 import { CARE_GRADES, COPAY_CLASSES, DAYCARE_UNITS, HOUR_BANDS, MAX_DAYS_IN_MONTH, formatWon, gradeLabel, hourBand } from '@/lib/ltc2026';
 import type { CopayBill, CopayClass, DaycareUnit, HourBand, LtcCareGrade } from '@/lib/lab/labTypes';
 import { Chip, NumField, SupportText } from './LabUi';
-import { buildFromDraft, isBuildError, newItem, remainingDue, statusChip } from './copayDraft';
+import { applyMealCost, buildFromDraft, isBuildError, newItem, remainingDue, statusChip } from './copayDraft';
 import type { CopayDraft } from './copayDraft';
 import type { LabElder } from './useLabElders';
 import styles from './lab.module.css';
@@ -31,10 +31,13 @@ interface CopayRowProps {
   isSaving: boolean;
   /** 출석 기록 일수(불러오지 못했으면 null) */
   attendanceDays: number | null;
+  /** 식재료비 일 단가(기관 공통). 없으면 자동 계산을 하지 않는다. */
+  mealPrice: number | null;
   onChange: (next: CopayDraft) => void;
   onSave: () => void;
   onPay: () => void;
   onNotice: () => void;
+  onReceipt: () => void;
   onDelete: () => void;
 }
 
@@ -56,7 +59,7 @@ function Figure({ label, value, strong }: { label: string; value: string; strong
   );
 }
 
-export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, attendanceDays, onChange, onSave, onPay, onNotice, onDelete }: CopayRowProps) {
+export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, attendanceDays, mealPrice, onChange, onSave, onPay, onNotice, onReceipt, onDelete }: CopayRowProps) {
   const [open, setOpen] = useState(false);
   const built = useMemo(() => buildFromDraft(elder.id, month, draft), [elder.id, month, draft]);
   const ok = !isBuildError(built);
@@ -128,7 +131,7 @@ export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, a
             <NumField
               label="이용일수"
               value={draft.days}
-              onChange={(v) => patch({ days: v })}
+              onChange={(v) => onChange(applyMealCost({ ...draft, days: v }, mealPrice))}
               max={MAX_DAYS_IN_MONTH}
               grouped={false}
               description={attendanceDays !== null ? `출석 기록 ${attendanceDays}일` : '출석 기록을 불러오지 못했습니다'}
@@ -147,6 +150,16 @@ export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, a
                 onClick={() => patch({ items: [...draft.items, newItem()] })}
               />
             </HStack>
+            {mealPrice !== null && mealPrice > 0 ? (
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                <SupportText>
+                  식재료비는 이용일수 × 일 단가 {formatWon(mealPrice)}로 자동 입력됩니다. 금액을 직접 고쳐도 되고, 이용일수를 바꾸면 다시 계산돼요.
+                </SupportText>
+                <Button label="식재료비 다시 계산" size="sm" variant="ghost" onClick={() => onChange(applyMealCost(draft, mealPrice))} />
+              </HStack>
+            ) : (
+              <SupportText>화면 위쪽에서 식재료비 일 단가를 입력하면 이용일수만큼 자동으로 채워 드려요.</SupportText>
+            )}
             {draft.items.length === 0 && <SupportText>비급여 항목이 없습니다. 식비 등을 따로 받으면 항목을 추가해 주세요.</SupportText>}
             {draft.items.map((item, index) => (
               <div className={styles.itemLine} key={item.key}>
@@ -205,8 +218,10 @@ export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, a
         />
         <Button label="수납 입력" size="sm" variant="secondary" isDisabled={!bill || dirty || isSaving || remainingDue(bill) <= 0} onClick={onPay} />
         <Button label="안내 문자" size="sm" variant="secondary" isDisabled={!bill || dirty || isSaving} onClick={onNotice} />
+        <Button label="영수증·납부확인서" size="sm" variant="secondary" isDisabled={!bill || dirty || isSaving || bill.paidAmount <= 0} onClick={onReceipt} />
         {bill && <Button label="청구서 삭제" size="sm" variant="ghost" isDisabled={isSaving} onClick={onDelete} />}
-        {bill && dirty && <SupportText>변경을 저장하면 수납·안내 문자를 쓸 수 있어요.</SupportText>}
+        {bill && dirty && <SupportText>변경을 저장하면 수납·안내 문자·영수증을 쓸 수 있어요.</SupportText>}
+        {bill && !dirty && bill.paidAmount <= 0 && <SupportText>수납을 입력하면 영수증·납부확인서를 낼 수 있어요.</SupportText>}
       </HStack>
       </div>
     </div>
