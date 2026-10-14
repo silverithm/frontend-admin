@@ -92,7 +92,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 6);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 8);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -102,4 +102,13 @@ test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요�
   assert.match(text, /Braden/);
   assert.match(text, /Morse/);
   assert.match(indicatorByCode('SAFE-09')!.title, /인지기능/);
+});
+
+test('3차 자동 근거 — 점검 주기 이행은 위생·식품·감염·안전환경 지표에, 재난훈련 연 2회는 재난 지표에 붙어 있다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
+  assert.deepEqual(by('SAFETY_CHECKS'), ['SAFE-02', 'SAFE-03', 'SAFE-04', 'SAFE-06']);
+  assert.deepEqual(by('DRILL_TWICE'), ['SAFE-07']);
+  assert.match(indicatorByCode('SAFE-07')!.requirements.join(' '), /연 2회/);
+  // 안전·위생 묶음 안에서만 붙는다
+  for (const code of [...by('SAFETY_CHECKS'), ...by('DRILL_TWICE')]) assert.equal(indicatorByCode(code)!.group, 'SAFETY');
 });

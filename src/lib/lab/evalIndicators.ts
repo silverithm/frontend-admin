@@ -22,7 +22,11 @@ export type EvalAutoSource =
   /** 올해 법정 교육 다섯 범주를 모두 들은 직원 비율 */
   | 'TRAINING_COVERAGE'
   /** 올해 급여제공계획이 있고 보호자 동의를 받은 어르신 비율 */
-  | 'CARE_PLAN_AGREEMENT';
+  | 'CARE_PLAN_AGREEMENT'
+  /** 이번 달 필수 점검(운영일마다·주 1회·월 1회)을 주기대로 한 비율 — 지표마다 보는 점검 종류가 다르다(safetyRules의 EVAL_SAFETY_KINDS) */
+  | 'SAFETY_CHECKS'
+  /** 올해 재난 대응 훈련을 상반기·하반기에 각 1회(연 2회) 했는가 */
+  | 'DRILL_TWICE';
 
 export interface EvalIndicator {
   code: string;
@@ -49,6 +53,8 @@ export const EVAL_AUTO_SOURCE_LABEL: Readonly<Record<EvalAutoSource, string>> = 
   PROGRAM_COGNITIVE_WEEKLY: '프로그램 일지의 인지 프로그램 주 3회 운영',
   TRAINING_COVERAGE: '직원 교육 일지의 법정 교육 이수 현황',
   CARE_PLAN_AGREEMENT: '급여제공계획의 보호자 동의 현황',
+  SAFETY_CHECKS: '위생·안전 점검표의 이번 달 주기 이행 현황',
+  DRILL_TWICE: '재난 대응 훈련의 올해 반기별 실시 현황',
 };
 
 export const EVAL_INDICATORS: readonly EvalIndicator[] = [
@@ -125,6 +131,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '화장실·목욕실·휴게 공간의 점검 기록이 있다',
       '점검에서 지적된 사항의 조치 내용이 남아 있다',
     ],
+    autoSource: 'SAFETY_CHECKS',
   },
   {
     code: 'SAFE-03',
@@ -135,6 +142,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '조리·배식·보관의 위생 점검 기록이 있다',
       '조리원 건강진단결과서와 위생교육 기록이 유효하다',
     ],
+    autoSource: 'SAFETY_CHECKS',
   },
   {
     code: 'SAFE-04',
@@ -145,6 +153,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '손 위생, 소독, 환기 등 일상 감염관리 기록이 있다',
       '감염 의심 증상 수급자·직원의 분리와 보고 절차가 있다',
     ],
+    autoSource: 'SAFETY_CHECKS',
   },
   {
     code: 'SAFE-05',
@@ -165,6 +174,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '점검에서 발견한 위험 요소를 고친 기록이 있다',
       '이동 동선과 비상 통로에 장애물이 없다',
     ],
+    autoSource: 'SAFETY_CHECKS',
   },
   {
     code: 'SAFE-07',
@@ -172,9 +182,10 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
     title: '재난 대응과 소방 안전',
     requirements: [
       '소방시설 점검 결과와 안전관리자 지정 기록이 있다',
-      '연간 재난(화재·지진) 대응 훈련을 정해진 횟수만큼 실시했다',
+      '재난(화재·지진) 대응 훈련을 연 2회(상반기·하반기 각 1회) 실시하고, 대피 경로·역할 분담·소요 시간·보완점을 기록했다',
       '비상 대피도와 대피 방법이 게시되어 있다',
     ],
+    autoSource: 'DRILL_TWICE',
   },
   {
     code: 'SAFE-08',

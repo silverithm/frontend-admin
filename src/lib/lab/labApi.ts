@@ -29,6 +29,10 @@ import type {
   EvalReviewResult,
   LabAccess,
   LabStaff,
+  MealPlan,
+  MealPlanAiInput,
+  MealPlanInput,
+  MealPlanResult,
   NursingLog,
   NursingLogInput,
   NursingSummaryInput,
@@ -41,6 +45,11 @@ import type {
   RiskAssessmentInput,
   RiskLatest,
   RiskSuggestion,
+  SafetyActionsAiInput,
+  SafetyActionsResult,
+  SafetyCheck,
+  SafetyCheckInput,
+  SafetyKind,
   ScaleKind,
   StaffTraining,
   StaffTrainingInput,
@@ -308,4 +317,66 @@ export function aiDraftConsultation(input: ConsultationAiInput): Promise<Consult
 
 export function aiDraftCarePlan(input: CarePlanAiInput): Promise<CarePlanResult> {
   return request<CarePlanResult>(`${LAB_AI}/care-plan`, json('POST', redactDeep(input)), `AI가 급여제공계획 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+// =====================================================================
+// 3차
+// =====================================================================
+
+// ---------- 주간 식단표 ----------
+
+/** 그 주(월요일 weekStart)의 식단표. 아직 안 만들었으면 서버가 404를 주므로 null로 돌려준다. */
+export async function getMealPlan(weekStart: string): Promise<MealPlan | null> {
+  try {
+    const plan = await request<MealPlan | null>(`${LAB}/meal-plans?weekStart=${q(weekStart)}`, undefined, '주간 식단표를 불러오지 못했습니다');
+    return plan ?? null;
+  } catch (error) {
+    if (error instanceof LabApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** 그 달에 걸친 주들의 식단표(월요일이 전달이어도 그 달 날짜가 있는 주 포함) */
+export function listMealPlans(month: string): Promise<MealPlan[]> {
+  return request<MealPlan[]>(`${LAB}/meal-plans?month=${q(month)}`, undefined, '월간 식단표를 불러오지 못했습니다');
+}
+
+/** 기관 + 주 시작일로 덮어쓴다(upsert). weekStart는 월요일이어야 한다. */
+export function saveMealPlan(input: MealPlanInput): Promise<MealPlan> {
+  return request<MealPlan>(`${LAB}/meal-plans`, json('PUT', input), '주간 식단표를 저장하지 못했습니다');
+}
+
+export async function deleteMealPlan(id: number): Promise<void> {
+  await request<null>(`${LAB}/meal-plans/${q(String(id))}`, { method: 'DELETE' }, '주간 식단표를 삭제하지 못했습니다');
+}
+
+// ---------- 위생·안전·시설 점검 ----------
+
+export function listSafetyChecks(month: string, kind?: SafetyKind): Promise<SafetyCheck[]> {
+  const kindQuery = kind ? `&kind=${q(kind)}` : '';
+  return request<SafetyCheck[]>(`${LAB}/safety-checks?month=${q(month)}${kindQuery}`, undefined, '점검 기록을 불러오지 못했습니다');
+}
+
+/** 그 해 점검 기록 — 재난훈련(연 2회) 현황용 */
+export function listSafetyChecksByYear(year: number, kind: SafetyKind): Promise<SafetyCheck[]> {
+  return request<SafetyCheck[]>(`${LAB}/safety-checks?year=${q(String(year))}&kind=${q(kind)}`, undefined, '연간 점검 기록을 불러오지 못했습니다');
+}
+
+/** 종류 + 점검일로 덮어쓴다(upsert) */
+export function saveSafetyCheck(input: SafetyCheckInput): Promise<SafetyCheck> {
+  return request<SafetyCheck>(`${LAB}/safety-checks`, json('PUT', input), '점검 기록을 저장하지 못했습니다');
+}
+
+export async function deleteSafetyCheck(id: number): Promise<void> {
+  await request<null>(`${LAB}/safety-checks/${q(String(id))}`, { method: 'DELETE' }, '점검 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 3차 AI 작업 — 제안만 돌려준다. 이번 묶음은 원래 개인정보가 없지만 2차처럼 보내기 직전에 이름을 지운다 ----------
+
+export function aiDraftMealPlan(input: MealPlanAiInput): Promise<MealPlanResult> {
+  return request<MealPlanResult>(`${LAB_AI}/meal-plan`, json('POST', redactDeep(input)), `AI가 식단 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiDraftSafetyActions(input: SafetyActionsAiInput): Promise<SafetyActionsResult> {
+  return request<SafetyActionsResult>(`${LAB_AI}/safety-actions`, json('POST', redactDeep(input)), `AI가 조치 계획을 만들지 못했습니다. ${AI_RETRY}`);
 }

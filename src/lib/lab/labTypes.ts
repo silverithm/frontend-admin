@@ -500,3 +500,110 @@ export interface CarePlanResult {
   goals: string;
   services: CarePlanService[];
 }
+
+// =====================================================================
+// 3차 — 주간 식단표 · 위생·안전·시설 점검
+// =====================================================================
+
+// ---------- 주간 식단표 ----------
+
+/** 점심 한 끼의 여섯 칸. 칸마다 60자 이하(서버와 같다). */
+export interface MealLunch {
+  rice: string;
+  soup: string;
+  /** 주찬 — 한 주 안에서 겹치면 안 되는 칸(menuRepeats) */
+  main: string;
+  side1: string;
+  side2: string;
+  kimchi: string;
+}
+
+/** 하루 식단(월~토 6일 중 하루). date는 'YYYY-MM-DD' */
+export interface MealDay {
+  date: string;
+  lunch: MealLunch;
+  amSnack: string;
+  pmSnack: string;
+  /** 다진식·죽식 어르신을 위한 대체 메모(예: "다진식: 생선살 발라 으깸") */
+  soft: string;
+}
+
+export interface MealPlan {
+  id: number;
+  /** 월요일 'YYYY-MM-DD' */
+  weekStart: string;
+  /** 월~토 6일, 날짜 오름차순 */
+  days: MealDay[];
+  /** 주간 메모(1000자 이하) */
+  notes: string | null;
+  writerName: string | null;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+/** 저장 본문 — companyId+weekStart로 덮어쓴다(upsert) */
+export type MealPlanInput = Omit<MealPlan, 'id' | 'updatedAt'>;
+
+// ---------- 위생·안전·시설 점검 ----------
+
+export type SafetyKind = 'KITCHEN' | 'HYGIENE' | 'FIRE' | 'FACILITY' | 'VEHICLE' | 'INFECTION' | 'DRILL';
+/** 점검 주기: 운영일마다 · 주 1회 · 월 1회 · 연 2회(반기마다 1회) */
+export type SafetyCadence = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'TWICE_YEARLY';
+
+/** 점검 항목 한 줄. ok: 적합 true · 부적합 false · 아직 안 봄 null. code는 ^[A-Z0-9_]{2,30}$, note 200자 이하 */
+export interface SafetyItem {
+  code: string;
+  ok: boolean | null;
+  note: string;
+}
+
+export interface SafetyCheck {
+  id: number;
+  checkDate: string;
+  kind: SafetyKind;
+  /** 최대 60개 */
+  items: SafetyItem[];
+  /** 부적합 항목에 대한 조치 내용(2000자 이하) */
+  actions: string | null;
+  inspectorName: string | null;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+/** 저장 본문 — kind+checkDate로 덮어쓴다(upsert) */
+export type SafetyCheckInput = Omit<SafetyCheck, 'id' | 'updatedAt'>;
+
+// ---------- 3차 AI (Next.js /api/v1/lab-ai/<task>) — 이번 묶음은 원래 개인정보가 없고, 이름은 그래도 보내지 않는다 ----------
+
+export interface MealPlanAiInput {
+  /** 월요일 'YYYY-MM-DD' */
+  weekStart: string;
+  /** 센터가 원하는 방향(예: "국물은 싱겁게, 이번 주는 생선을 많이") */
+  preferences?: string;
+  /** 쓰지 말아야 할 주찬 — 보통 지난주 주찬 목록 */
+  avoid?: string[];
+  /** 다진식·죽식 어르신 수(대체 메모의 분량을 정하는 데만 쓴다) */
+  softCount?: number;
+}
+
+export interface MealPlanResult {
+  /** 월~토 6일, 날짜는 weekStart에서 계산해 채운다 */
+  days: MealDay[];
+}
+
+export interface SafetyFailedItem {
+  /** 점검표에 적힌 항목 문장 */
+  label: string;
+  /** 점검원이 적은 상황 메모(비어 있을 수 있다) */
+  note: string;
+}
+
+export interface SafetyActionsAiInput {
+  kind: SafetyKind;
+  failed: SafetyFailedItem[];
+}
+
+export interface SafetyActionsResult {
+  /** 부적합 항목별 조치 계획(줄바꿈으로 나뉜 문장들, 2000자 이하) */
+  actions: string;
+}

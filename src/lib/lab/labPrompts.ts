@@ -1,6 +1,6 @@
 /**
- * 실험실 AI 작업 8종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
- * 교육·회의 기록 · 상담일지 · 급여제공계획 초안)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 10종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -10,6 +10,12 @@
  */
 import type {
   CareNoteStructured,
+  MealDay,
+  MealPlanAiInput,
+  MealPlanResult,
+  SafetyActionsAiInput,
+  SafetyActionsResult,
+  SafetyFailedItem,
   CarePlanNeeds,
   CarePlanResult,
   CarePlanService,
@@ -41,6 +47,8 @@ import { PROGRAM_CATEGORY_LABEL } from './programRules.ts';
 import { TRAINING_CATEGORY_LABEL, TRAINING_KIND_LABEL, isCategoryForKind } from './trainingRules.ts';
 import { CARE_PLAN_NEEDS_LABEL } from './carePlanRules.ts';
 import { parseYmd } from './labDate.ts';
+import { MEAL_TEXT_LIMIT, emptyDay, isAvoidedDish, isMonday, weekDates, weekdayLabel } from './mealRules.ts';
+import { MAX_SAFETY_ACTIONS, MAX_SAFETY_ITEMS, MAX_SAFETY_NOTE, SAFETY_CADENCE_LABEL, isSafetyKind, templateFor } from './safetyRules.ts';
 
 export type LabAiTask =
   | 'care-record'
@@ -50,8 +58,10 @@ export type LabAiTask =
   | 'program-log'
   | 'training-log'
   | 'consultation'
-  | 'care-plan';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan'];
+  | 'care-plan'
+  | 'meal-plan'
+  | 'safety-actions';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions'];
 
 export function isLabAiTask(value: unknown): value is LabAiTask {
   return typeof value === 'string' && (LAB_AI_TASKS as readonly string[]).includes(value);
@@ -907,6 +917,213 @@ export function normalizeCarePlan(raw: unknown): CarePlanResult {
   return { goals: goalsText(raw.goals), services };
 }
 
+// =====================================================================
+// 3차 AI 작업 두 가지 — 주간 식단 · 점검 부적합 조치 계획
+// 이번 묶음의 입력은 원래 개인정보가 없다(메뉴 이름, 점검 항목 문장). 그래도 라우트까지 오는 글은 직원이 쓴 자유 서술이라
+// 2차와 같은 방어(태그로 감싸기·이름 쓰지 않기·응답 다시 다듬기)를 그대로 한다.
+// =====================================================================
+
+export const MAX_MEAL_PREFERENCES = 500;
+export const MAX_MEAL_AVOID = 30;
+export const MAX_MEAL_SOFT_COUNT = 500;
+export const MAX_FAILED_LABEL = 300;
+
+// ---------- 7) 주간 식단 ----------
+
+export function validateMealPlanInput(body: unknown): Validation<MealPlanAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const weekStart = body.weekStart;
+  if (typeof weekStart !== 'string' || !parseYmd(weekStart) || !isMonday(weekStart)) return { ok: false, message: '식단 주의 시작일은 월요일 날짜(YYYY-MM-DD)여야 합니다' };
+
+  const preferences = readOptionalText(body, 'preferences', '원하는 방향', MAX_MEAL_PREFERENCES);
+  if (!preferences.ok) return preferences;
+
+  const avoid: string[] = [];
+  if (body.avoid !== undefined && body.avoid !== null) {
+    if (!Array.isArray(body.avoid)) return { ok: false, message: '피할 주찬 목록은 목록이어야 합니다' };
+    for (const raw of body.avoid) {
+      if (typeof raw !== 'string') return { ok: false, message: '피할 주찬은 글이어야 합니다' };
+      const dish = clean(raw).replace(/\s+/g, ' ');
+      if (dish === '') continue;
+      if (Array.from(dish).length > MEAL_TEXT_LIMIT) return { ok: false, message: `피할 주찬 이름은 ${MEAL_TEXT_LIMIT}자까지 입력할 수 있습니다` };
+      if (!avoid.some((a) => isAvoidedDish(dish, [a]))) avoid.push(dish);
+    }
+    if (avoid.length > MAX_MEAL_AVOID) return { ok: false, message: `피할 주찬은 ${MAX_MEAL_AVOID}개까지 보낼 수 있습니다` };
+  }
+
+  let softCount: number | undefined;
+  if (body.softCount !== undefined && body.softCount !== null) {
+    const n = body.softCount;
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > MAX_MEAL_SOFT_COUNT) return { ok: false, message: `다진식·죽식 인원은 0~${MAX_MEAL_SOFT_COUNT}명의 정수여야 합니다` };
+    softCount = n;
+  }
+
+  const value: MealPlanAiInput = { weekStart };
+  if (preferences.value !== undefined) value.preferences = preferences.value;
+  if (avoid.length > 0) value.avoid = avoid;
+  if (softCount !== undefined) value.softCount = softCount;
+  return { ok: true, value };
+}
+
+export function buildMealPlanPrompt(input: MealPlanAiInput): string {
+  const dates = weekDates(input.weekStart);
+  // 주 중간(목요일) 날짜의 달 — 월 경계에 걸친 주는 대부분의 날이 속한 달의 제철로 짠다
+  const month = parseYmd(dates[3] ?? input.weekStart)?.month;
+  const dayLines = dates.map((d, i) => `- ${i + 1}일째 ${weekdayLabel(d)}요일 (${d})`).join('\n');
+  const avoid = input.avoid && input.avoid.length > 0 ? `\n지난주 주찬(이번 주 주찬으로 쓰지 않습니다)은 아래 <avoid>에 있습니다.\n${fence('avoid', input.avoid.join('\n'))}\n` : '';
+  const preferences = input.preferences ? `\n센터가 바라는 방향은 아래 <preferences>에 있습니다. 위 원칙과 어긋나지 않는 범위에서 반영합니다.\n${fence('preferences', input.preferences)}\n` : '';
+  const soft = input.softCount && input.softCount > 0
+    ? `이 센터에는 다진식·죽식 어르신이 ${input.softCount}명 있습니다. 대체 메모(soft)를 그날 메뉴에 맞게 구체적으로 씁니다.`
+    : '다진식·죽식 어르신 수는 알 수 없습니다. 대체 메모(soft)는 그날 메뉴에서 바뀌는 부분만 간단히 씁니다.';
+  return `당신은 노인 주야간보호센터의 주간 식단표 작성을 돕는 영양 보조자입니다.
+${month ? `${month}월` : '이번 주'}에 어르신께 낼 월~토 6일치 점심 식단과 간식을 짭니다. 센터 영양사나 시설장이 고쳐서 쓸 초안입니다.
+
+[식단 원칙]
+1. 저염: 국·찌개는 국물을 적게 하고 싱겁게 간합니다. 젓갈·장아찌·자반·가공육처럼 짠 반찬은 쓰지 않거나 아주 가끔만 씁니다. 김치는 매일 나오되 물김치·나박김치·겉절이 등으로 바꿔 짠맛 부담을 줄입니다.
+2. 부드러운 조리: 씹고 삼키기 어려운 어르신이 많으므로 찜·조림·무침·국처럼 부드럽게 익힌 요리를 중심으로 합니다. 튀김, 질긴 고기, 견과류 통째, 떡·찰밥 같이 목에 걸리기 쉬운 것은 피합니다.
+3. 제철: ${month ? `${month}월` : '이 시기'}에 흔한 제철 채소·과일·생선을 씁니다.
+4. 주찬 중복 없음: 6일의 주찬(main)은 모두 서로 다른 요리여야 합니다. 같은 재료(예: 닭)를 쓰더라도 요리 이름이 겹치지 않게 하고, 육류·생선·두부·달걀 단백질을 번갈아 배치합니다.
+5. 균형: 밥 외에 국 1, 주찬 1, 부찬 2(나물·무침·조림 등, 서로 다르게), 김치 1입니다. 부찬은 6일 동안 되도록 겹치지 않게 합니다.
+6. 간식: 오전 간식은 과일·두유·차처럼 가벼운 것, 오후 간식은 부담 없는 것(고구마·죽·요거트 등)으로 하고 당이 많은 과자·음료는 피합니다. 당뇨가 있는 어르신도 많습니다.
+7. 다진식·죽식 대체 메모(soft): 일반식과 달라지는 부분을 한 문장으로 씁니다. 예: "다진식은 생선살을 발라 으깨고, 죽식은 야채죽으로 대체". 바꿀 것이 없는 날은 빈 문자열("")로 둡니다.
+8. 칸 쓰기: 밥·국·주찬·부찬·김치·간식 칸은 음식 이름만 짧게 씁니다(예: "잡곡밥", "시금치된장국", "고등어무조림", "애호박나물"). 설명·수량·열량·조리법 문장은 쓰지 않고, ${MEAL_TEXT_LIMIT}자를 넘지 않습니다.
+9. ${INJECTION_RULE}
+10. ${PRIVACY_RULE}
+
+${soft}
+반드시 아래 6일을 순서대로 모두 채웁니다. 어떤 칸도 빼먹지 않고, 정말 쓸 것이 없는 칸만 빈 문자열("")로 둡니다.
+${dayLines}
+${avoid}${preferences}`;
+}
+
+const MEAL_CELL = (description: string) => ({ type: 'STRING', description: `${description} (음식 이름만, ${MEAL_TEXT_LIMIT}자 이내, 없으면 빈 문자열)` });
+
+export const MEAL_PLAN_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    days: {
+      type: 'ARRAY',
+      description: '월요일부터 토요일까지 6일, 순서대로',
+      minItems: 6,
+      maxItems: 6,
+      items: {
+        type: 'OBJECT',
+        properties: {
+          lunch: {
+            type: 'OBJECT',
+            properties: {
+              rice: MEAL_CELL('밥'),
+              soup: MEAL_CELL('국'),
+              main: MEAL_CELL('주찬(한 주 안에서 겹치지 않게)'),
+              side1: MEAL_CELL('부찬 1'),
+              side2: MEAL_CELL('부찬 2'),
+              kimchi: MEAL_CELL('김치'),
+            },
+            required: ['rice', 'soup', 'main', 'side1', 'side2', 'kimchi'],
+          },
+          amSnack: MEAL_CELL('오전 간식'),
+          pmSnack: MEAL_CELL('오후 간식'),
+          soft: MEAL_CELL('다진식·죽식 대체 메모'),
+        },
+        required: ['lunch', 'amSnack', 'pmSnack', 'soft'],
+      },
+    },
+  },
+  required: ['days'],
+} as const;
+
+/** 식단표 한 칸 글: 한 줄로 합치고 60자로 자른다. 글이 아니면 빈 칸. */
+function mealCell(value: unknown): string {
+  return typeof value === 'string' ? cut(clean(value).replace(/\s+/g, ' '), MEAL_TEXT_LIMIT) : '';
+}
+
+/**
+ * 모델 답을 월~토 6일 식단으로 다듬는다. 날짜는 모델이 아니라 weekStart에서 계산해 채운다.
+ * 6일보다 많으면 앞의 6일만 쓰고, 모자라면 빈 날로 채우며, 칸은 60자로 자른다.
+ * avoid를 주면 그 주찬은 비운다 — "지난주 주찬은 쓰지 않는다"를 모델 말이 아니라 코드로 지킨다(비운 칸은 직원이 채운다).
+ */
+export function normalizeMealPlan(raw: unknown, weekStart: string, avoid: ReadonlyArray<string> = []): MealPlanResult {
+  const rawDays = isRecord(raw) ? raw.days : undefined;
+  if (!Array.isArray(rawDays)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const dates = weekDates(weekStart);
+  if (dates.length === 0) throw new Error('식단 주의 시작일이 올바르지 않습니다');
+  const days: MealDay[] = dates.map((date, i) => {
+    const source: unknown = rawDays[i];
+    const day = emptyDay(date);
+    if (!isRecord(source)) return day;
+    const lunch = isRecord(source.lunch) ? source.lunch : {};
+    day.lunch = {
+      rice: mealCell(lunch.rice),
+      soup: mealCell(lunch.soup),
+      main: mealCell(lunch.main),
+      side1: mealCell(lunch.side1),
+      side2: mealCell(lunch.side2),
+      kimchi: mealCell(lunch.kimchi),
+    };
+    if (isAvoidedDish(day.lunch.main, avoid)) day.lunch.main = '';
+    day.amSnack = mealCell(source.amSnack);
+    day.pmSnack = mealCell(source.pmSnack);
+    day.soft = mealCell(source.soft);
+    return day;
+  });
+  return { days };
+}
+
+// ---------- 8) 점검 부적합 조치 계획 ----------
+
+export function validateSafetyActionsInput(body: unknown): Validation<SafetyActionsAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (!isSafetyKind(body.kind)) return { ok: false, message: '점검 종류가 올바르지 않습니다' };
+  if (!Array.isArray(body.failed) || body.failed.length === 0) return { ok: false, message: '부적합으로 표시한 항목이 있어야 조치 계획을 만들 수 있습니다' };
+  if (body.failed.length > MAX_SAFETY_ITEMS) return { ok: false, message: `부적합 항목은 ${MAX_SAFETY_ITEMS}개까지 보낼 수 있습니다` };
+  const failed: SafetyFailedItem[] = [];
+  for (const item of body.failed) {
+    if (!isRecord(item)) return { ok: false, message: '부적합 항목 형식이 올바르지 않습니다' };
+    const label = readText(item, 'label', '점검 항목', MAX_FAILED_LABEL);
+    if (!label.ok) return label;
+    const note = readOptionalText(item, 'note', '항목 메모', MAX_SAFETY_NOTE);
+    if (!note.ok) return note;
+    failed.push({ label: label.value, note: note.value ?? '' });
+  }
+  return { ok: true, value: { kind: body.kind, failed } };
+}
+
+export function buildSafetyActionsPrompt(input: SafetyActionsAiInput): string {
+  const template = templateFor(input.kind);
+  const lines = input.failed.map((f, i) => `${i + 1}. ${f.label}${f.note ? ` / 점검원 메모: ${f.note}` : ''}`).join('\n');
+  return `당신은 노인 주야간보호센터의 위생·안전 점검 결과를 보고 조치 계획을 정리해 주는 보조자입니다.
+점검 종류: ${template.label} (${SAFETY_CADENCE_LABEL[template.cadence]} 점검)
+아래 <failed>는 점검원이 "부적합"으로 표시한 항목입니다. 항목마다 센터가 바로 할 수 있는 조치 계획을 씁니다. 평가자가 "지적 사항에 조치를 했는가"를 확인하는 기록에 붙여 넣을 글입니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 항목 문장은 "이래야 한다"는 점검 기준이고, 부적합은 그 기준을 지키지 못했다는 뜻입니다. 기준을 못 지킨 상태를 바로잡는 조치를 씁니다(기준 자체를 뒤집거나 이미 지킨 것처럼 쓰지 않습니다).
+3. 부적합 항목마다 정확히 한 줄씩, 입력 순서대로 씁니다. 각 줄은 "번호. 문제 → 즉시 조치 → 재발 방지" 순서로 담백하게 씁니다. (예: "1. 냉장고 온도 7℃ → 즉시 식재료를 다른 냉장고로 옮기고 설정 온도 재조정, 온도 점검 후 기록 → 오전·오후 하루 2회 온도 확인")
+4. 어르신 안전이 걸린 항목(소화기·비상구·가스·차량 브레이크·음식 보관 온도 등)은 사용·운행·배식을 멈추거나 대체 수단을 두는 일을 첫 조치로 씁니다.
+5. 점검원 메모와 항목 문장에 없는 사실(업체 이름·수리 날짜·비용·담당자 이름·측정값)은 만들지 않습니다. 기한은 "즉시", "오늘 중", "이번 주 안"처럼 상대적으로만 씁니다.
+6. 센터 안에서 직원이 할 수 없는 일(전기·소방·가스 설비 수리 등)은 "전문 업체에 수리 요청"으로 씁니다. 의료·법률 판단을 단정하지 않습니다.
+7. ${PRIVACY_RULE}
+8. 전체 ${MAX_SAFETY_ACTIONS}자를 넘지 않게 짧게 씁니다. 인사말·머리말·맺음말은 쓰지 않습니다.
+
+${fence('failed', lines)}`;
+}
+
+export const SAFETY_ACTIONS_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    actions: { type: 'STRING', description: `부적합 항목마다 한 줄, 줄바꿈으로 구분 (전체 ${MAX_SAFETY_ACTIONS}자 이내)` },
+  },
+  required: ['actions'],
+} as const;
+
+/** 조치 글: 줄 구분은 살리고 빈 줄·앞뒤 공백을 정리해 2000자로 자른다. 모델이 줄 목록(배열)으로 줘도 받는다. */
+export function normalizeSafetyActions(raw: unknown): SafetyActionsResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const source = Array.isArray(raw.actions) ? raw.actions.filter((v): v is string => typeof v === 'string').join('\n') : raw.actions;
+  const text = typeof source === 'string' ? clean(source).split('\n').map((line) => line.trim()).filter((line) => line !== '').join('\n') : '';
+  return { actions: cut(text, MAX_SAFETY_ACTIONS) };
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -954,6 +1171,16 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateCarePlanInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildCarePlanPrompt(v.value), schema: CARE_PLAN_SCHEMA, normalize: normalizeCarePlan };
+  }
+  if (task === 'meal-plan') {
+    const v = validateMealPlanInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildMealPlanPrompt(v.value), schema: MEAL_PLAN_SCHEMA, normalize: (raw) => normalizeMealPlan(raw, v.value.weekStart, v.value.avoid) };
+  }
+  if (task === 'safety-actions') {
+    const v = validateSafetyActionsInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildSafetyActionsPrompt(v.value), schema: SAFETY_ACTIONS_SCHEMA, normalize: normalizeSafetyActions };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }
