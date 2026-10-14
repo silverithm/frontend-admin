@@ -1,6 +1,6 @@
 /**
- * 실험실 AI 작업 16종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
- * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 19종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안 / 6차: 투약의뢰서 약 목록 정리 · 퇴소 연계기록지 초안 · 목욕 메모 정리)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -9,6 +9,17 @@
  * 3) 어르신 이름은 입력에 들어가지 않는다 — 메모에 이름이 적혀 있어도 출력에 쓰지 말라고 지시한다.
  */
 import type {
+  BathMethod,
+  BathNoteAiInput,
+  BathNoteAiResult,
+  DischargeFacts,
+  DischargeReason,
+  DischargeReferralAiInput,
+  DischargeReferralAiResult,
+  MedicationItem,
+  MedicationRequestAiInput,
+  MedicationRequestAiResult,
+  MedicationSlot,
   BudgetDraftAccount,
   BudgetDraftAiInput,
   BudgetDraftAiResult,
@@ -72,6 +83,9 @@ import { isValidMonth, parseYmd } from './labDate.ts';
 import { EVENT_KINDS, EVENT_SEVERITIES, MAX_EVENT_TEXT } from './careEventRules.ts';
 import { MAX_REHAB_ITEMS, MAX_REHAB_ITEM_LENGTH, MAX_REHAB_MINUTES, REHAB_KINDS, isRehabKind, rehabKindLabel } from './rehabRules.ts';
 import { NAME_TOKEN } from './guardianNotice.ts';
+import { MAX_MEDICINES, MAX_MEDICINE_DOSE, MAX_MEDICINE_NAME, MAX_MEDICINE_NOTE, ROUTES, SLOTS, TIMINGS, isRoute, isSlot, isTiming } from './medicationRules.ts';
+import { BATH_METHODS, MAX_BATH_PRE_CHECK, isBathMethod } from './bathRules.ts';
+import { DISCHARGE_REASONS } from './dischargeRules.ts';
 import { RESOURCE_TYPES } from './communityRules.ts';
 import { MAX_BUDGET_AMOUNT, MAX_BUDGET_LINES, roundUpToThousand } from './budgetRules.ts';
 import { MEAL_TEXT_LIMIT, emptyDay, isAvoidedDish, isMonday, weekDates, weekdayLabel } from './mealRules.ts';
@@ -94,16 +108,19 @@ export type LabAiTask =
   | 'rehab-log'
   | 'guardian-notice'
   | 'resource-suggest'
-  | 'budget-draft';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft'];
+  | 'budget-draft'
+  | 'medication-request'
+  | 'discharge-referral'
+  | 'bath-note';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note'];
 
 /**
- * 5차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
+ * 5·6차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
  * 본문에는 JSON 겹따옴표·키 이름이 붙으므로 글 한도보다 조금 넉넉히 둔다. 그 밖의 작업은 null(라우트의 공통 상한만 적용).
  */
 export function labAiBodyLimit(task: string): number | null {
   if (task === 'budget-draft') return 20_500;
-  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest') return 3_500;
+  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note') return 3_500;
   return null;
 }
 
@@ -1683,6 +1700,235 @@ export function normalizeBudgetDraft(raw: unknown, input: Pick<BudgetDraftAiInpu
   return { lines };
 }
 
+// =====================================================================
+// 6차 AI 작업 셋 — 투약의뢰서 약 목록 · 퇴소 연계기록지 초안 · 목욕 메모 정리
+// 공통 원칙: 메모에 없는 약·용량·시간·진단·수치는 만들지 않고(모르면 빈 값), 복용 판단·용량 권고를 하지 않으며, 사람 이름을 쓰지 않는다.
+// =====================================================================
+
+// ---------- 13) 투약의뢰서 약 목록 ----------
+
+const SLOT_VALUES = SLOTS.map((s) => s.value) as readonly MedicationSlot[];
+const ROUTE_VALUES = ROUTES.map((r) => r.value);
+const TIMING_VALUES = TIMINGS.map((t) => t.value);
+
+export function validateMedicationRequestInput(body: unknown): Validation<MedicationRequestAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const text = readText(body, 'text', '보호자 메모', MAX_LOG_INPUT_LENGTH);
+  if (!text.ok) return text;
+  return { ok: true, value: { text: text.value } };
+}
+
+export function buildMedicationRequestPrompt(input: MedicationRequestAiInput): string {
+  return `당신은 주야간보호센터 직원이 투약의뢰서를 쓰는 것을 돕는 보조자입니다.
+아래 <memo>는 보호자가 적어 준 메모나 약봉투의 글을 직원이 옮겨 적은 것입니다. 이 글에 적힌 약만 목록으로 정리합니다. 목록은 직원이 원본과 대조해 확인하고 고칩니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 메모에 없는 약·용량·시간은 절대 만들지 않습니다. 약 이름과 용량은 메모에 적힌 글자 그대로 옮기고, 모르는 칸은 빈 문자열("")이나 빈 배열([])로 둡니다. 약 이름을 다른 이름이나 성분명으로 바꾸지 않습니다. name에는 약 이름만 쓰고 함량(mg 등)과 먹는 양(1알·한 방울 등)은 dose에 함께 적습니다(예: "5mg 1알").
+3. 복용해도 되는지, 용량이 맞는지, 약끼리 같이 먹어도 되는지, 효능·부작용을 판단하거나 권고하지 않습니다. 경고·주의 문구를 덧붙이지 않습니다. 정리만 합니다.
+4. 약 하나가 목록 항목 하나입니다. 같은 약이 여러 시간대에 있으면 그 약 하나에 slots를 여러 개 적습니다.
+5. slots는 메모에 시간이 적힌 것만 ${SLOT_VALUES.join(' | ')} 중에서 고릅니다(아침=MORNING, 점심=LUNCH, 저녁=EVENING, 자기 전=BEDTIME). "집에서 먹는다"처럼 센터에서 먹이지 않는다고 한 시간대는 넣지 않습니다. "하루 3회"처럼 시간대가 정해지지 않은 횟수는 slots를 빈 배열로 두고 note에 그 말을 옮깁니다.
+6. timing은 ${TIMING_VALUES.join(' | ')} 중에서 고릅니다(식전=BEFORE_MEAL, 식후·먹고 난 뒤=AFTER_MEAL, 식사 중=WITH_MEAL). 메모에 없으면 ANYTIME.
+7. route는 ${ROUTE_VALUES.join(' | ')} 중에서 고릅니다. 알·정·캡슐·가루·물약처럼 먹는 약이면 ORAL, 바르는 약·연고·패치면 TOPICAL, 안약이면 EYE, 흡입이면 INHALE, 그 밖이거나 알 수 없으면 OTHER.
+8. note는 메모에 적힌 부가 지시(예: "물과 함께", "하루 3회")만 ${MAX_MEDICINE_NOTE}자 이내로 옮기고, 없으면 빈 문자열입니다.
+9. ${PRIVACY_RULE}
+10. 약이 하나도 없으면 medicines는 빈 배열입니다. 최대 ${MAX_MEDICINES}개입니다.
+
+${fence('memo', input.text)}`;
+}
+
+export const MEDICATION_REQUEST_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    medicines: {
+      type: 'ARRAY',
+      description: `메모에 적힌 약 목록 (최대 ${MAX_MEDICINES}개)`,
+      items: {
+        type: 'OBJECT',
+        properties: {
+          name: STR(`약 이름 (메모에 적힌 그대로, ${MAX_MEDICINE_NAME}자 이내)`),
+          dose: STR(`용량 (메모에 적힌 그대로, 없으면 빈 문자열, ${MAX_MEDICINE_DOSE}자 이내)`),
+          route: { type: 'STRING', description: '투여 경로', enum: [...ROUTE_VALUES] },
+          slots: { type: 'ARRAY', description: '메모에 적힌 시간대만(없으면 빈 배열)', items: { type: 'STRING', enum: [...SLOT_VALUES] } },
+          timing: { type: 'STRING', description: '식전·식후 등. 메모에 없으면 ANYTIME', enum: [...TIMING_VALUES] },
+          note: STR(`메모에 적힌 부가 지시 (없으면 빈 문자열, ${MAX_MEDICINE_NOTE}자 이내)`),
+        },
+        required: ['name', 'dose', 'route', 'slots', 'timing', 'note'],
+      },
+    },
+  },
+  required: ['medicines'],
+} as const;
+
+/** 글자 비교용: 공백을 지우고 소문자로 */
+function compact(text: string): string {
+  return text.replace(/\s+/g, '').toLowerCase();
+}
+
+/** 숫자 토큰(소수 포함) — 용량이 메모에 있는 숫자인지 볼 때 쓴다 */
+function numberTokens(text: string): string[] {
+  return (text.replace(/(\d),(?=\d{3})/g, '$1').match(/\d+(?:\.\d+)?/g) ?? []).map((n) => String(Number(n)));
+}
+
+/**
+ * 모델 답을 의뢰서 약 목록으로. 허용 값 밖 route는 OTHER, timing은 ANYTIME, slots에서 허용 밖 값은 빼고 중복을 합친 뒤 아침~자기 전 순서로 둔다
+ * (빈 배열 허용 — 시간대는 화면에서 직원이 고른다). 이름이 빈 약은 버리고 15개로 자른다.
+ * memo를 함께 주면 모델이 지어낸 값을 한 번 더 막는다: 메모에 없는 약 이름은 버리고(이름의 앞 두 글자까지도 메모에 없을 때),
+ * 용량의 숫자가 메모에 없으면 용량을 비운다.
+ */
+export function normalizeMedicationRequest(raw: unknown, memo?: string): MedicationRequestAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const list = Array.isArray(raw.medicines) ? raw.medicines : [];
+  const memoCompact = typeof memo === 'string' ? compact(memo) : null;
+  const memoNumbers = typeof memo === 'string' ? new Set(numberTokens(memo)) : null;
+  const medicines: MedicationItem[] = [];
+  for (const item of list) {
+    if (!isRecord(item)) continue;
+    const name = cleanOutput(item.name, MAX_MEDICINE_NAME);
+    if (name === '') continue;
+    if (memoCompact !== null) {
+      const key = compact(name);
+      const head = Array.from(key).slice(0, 2).join('');
+      if (!memoCompact.includes(key) && !(head.length >= 2 && memoCompact.includes(head))) continue;
+    }
+    let dose = cleanOutput(item.dose, MAX_MEDICINE_DOSE);
+    if (memoNumbers !== null && numberTokens(dose).some((n) => !memoNumbers.has(n))) dose = '';
+    const route = typeof item.route === 'string' ? item.route.trim() : '';
+    const timing = typeof item.timing === 'string' ? item.timing.trim() : '';
+    const slots = Array.isArray(item.slots) ? item.slots.filter(isSlot) : [];
+    medicines.push({
+      name,
+      dose,
+      route: isRoute(route) ? route : 'OTHER',
+      slots: SLOT_VALUES.filter((slot) => slots.includes(slot)),
+      timing: isTiming(timing) ? timing : 'ANYTIME',
+      note: substantive(cleanOutput(item.note, MAX_MEDICINE_NOTE)),
+    });
+    if (medicines.length >= MAX_MEDICINES) break;
+  }
+  return { medicines };
+}
+
+// ---------- 14) 퇴소 연계기록지 초안 ----------
+
+const DISCHARGE_REASON_VALUES = DISCHARGE_REASONS.map((r) => r.value) as readonly DischargeReason[];
+const MAX_DISCHARGE_MONTHS = 120;
+/** AI 초안 칸 한도 — 서버 한도(2000·2000·1000)보다 짧게 받아 직원이 덧붙일 여지를 둔다 */
+export const MAX_DISCHARGE_STATUS = 800;
+export const MAX_DISCHARGE_SERVICES = 800;
+export const MAX_DISCHARGE_PLAN = 600;
+/** AI가 모르는 부분에 직원이 채우라고 남기는 표시 */
+export const COUNSEL_PLACEHOLDER = '(상담 후 기재)';
+
+export function validateDischargeReferralInput(body: unknown): Validation<DischargeReferralAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (!isRecord(body.facts)) return { ok: false, message: '초안에 쓸 사실이 없습니다' };
+  if (JSON.stringify(body.facts).length > MAX_LOG_INPUT_LENGTH) return { ok: false, message: `초안에 쓸 사실은 ${MAX_LOG_INPUT_LENGTH}자까지 보낼 수 있습니다` };
+  const reason = body.reason;
+  if (typeof reason !== 'string' || !(DISCHARGE_REASON_VALUES as readonly string[]).includes(reason)) return { ok: false, message: '퇴소 사유가 올바르지 않습니다' };
+  const months = body.months;
+  if (typeof months !== 'number' || !Number.isInteger(months) || months < 1 || months > MAX_DISCHARGE_MONTHS) return { ok: false, message: `이용 기간(개월)은 1~${MAX_DISCHARGE_MONTHS}의 정수여야 합니다` };
+  return { ok: true, value: { facts: body.facts as unknown as DischargeFacts, reason: reason as DischargeReason, months } };
+}
+
+export function buildDischargeReferralPrompt(input: DischargeReferralAiInput): string {
+  const reason = DISCHARGE_REASONS.find((r) => r.value === input.reason)?.label ?? input.reason;
+  return `당신은 주야간보호센터 직원이 퇴소(계약 종료) 때 수급자에게 드리는 연계기록지를 쓰는 것을 돕는 보조자입니다.
+아래 <facts>는 이용 기간 ${input.months}개월 동안 기록에서 모은 사실 묶음(JSON)입니다. 퇴소 사유: ${input.reason} (${reason}). 이 사실만을 근거로 세 칸의 초안을 씁니다. 담당자가 읽고 고쳐서 수급자·보호자에게 드립니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. facts에 없는 진단·병명·수치·날짜·횟수·시간은 절대 쓰지 않습니다. 숫자는 facts의 값을 그대로 옮기고, 값이 null이거나 비어 있는 항목은 언급하지 않습니다. 쓸 사실이 없는 칸은 빈 문자열("")로 둡니다.
+3. 의료 판단은 하지 않습니다. 혈압·혈당·체중은 "평균 ○○", "○○에서 ○○으로"처럼 사실만 쓰고, 정상·위험·좋아짐·나빠짐 같은 평가, 병명, 원인 추측, 약·치료 권유를 쓰지 않습니다.
+4. functionalStatus(심신기능 상태, ${MAX_DISCHARGE_STATUS}자 이내): 활력징후 요약, 직원이 관찰한 모습(specialNotes), 사고(events)를 사실대로. 사고는 날짜와 종류만 쓰고 원인·책임을 추측하지 않습니다.
+5. servicesProvided(제공한 급여, ${MAX_DISCHARGE_SERVICES}자 이내): 프로그램 참여(programs), 기능회복훈련(rehab), 목욕(bath), 출석 일수(attendanceDays가 있을 때만)를 facts의 숫자 그대로. 모든 프로그램·훈련 종류 이름은 facts에 있는 것만 씁니다.
+6. afterPlan(퇴소 후 서비스 이용계획, ${MAX_DISCHARGE_PLAN}자 이내): facts에는 이용계획이 없습니다. 퇴소 사유에서 알 수 있는 범위(예: 다른 기관·시설로 옮김)만 한 문장으로 쓰고, 옮겨 가는 기관 이름·시설 종류·희망 급여·시작일은 지어내지 말고 "${COUNSEL_PLACEHOLDER}"라는 표시만 남겨 직원이 채우게 합니다(예: "다른 기관으로 옮길 예정임. 기관 이름과 이용할 급여: ${COUNSEL_PLACEHOLDER}").
+7. ${PRIVACY_RULE}
+8. ${RECORD_STYLE_RULE}
+9. 영문 코드는 한글로 풉니다: programs.byCategory의 COGNITIVE=인지, PHYSICAL=신체·운동, LEISURE=여가·취미, SOCIAL=사회적응, OTHER=기타 프로그램.
+
+${fence('facts', JSON.stringify(input.facts, null, 1))}`;
+}
+
+export const DISCHARGE_REFERRAL_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    functionalStatus: STR(`심신기능 상태 (${MAX_DISCHARGE_STATUS}자 이내, 사실만, 쓸 사실이 없으면 빈 문자열)`),
+    servicesProvided: STR(`제공한 급여 (${MAX_DISCHARGE_SERVICES}자 이내, 사실만, 쓸 사실이 없으면 빈 문자열)`),
+    afterPlan: STR(`퇴소 후 서비스 이용계획 (${MAX_DISCHARGE_PLAN}자 이내, 모르는 부분은 ${COUNSEL_PLACEHOLDER})`),
+  },
+  required: ['functionalStatus', 'servicesProvided', 'afterPlan'],
+} as const;
+
+/** 길이를 자르고 형식적 문구뿐인 칸은 비운다. 세 칸이 모두 비면 쓸 수 없으므로 오류(라우트가 다시 시도를 안내한다). */
+export function normalizeDischargeReferral(raw: unknown): DischargeReferralAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const result = {
+    functionalStatus: substantive(cleanOutput(raw.functionalStatus, MAX_DISCHARGE_STATUS)),
+    servicesProvided: substantive(cleanOutput(raw.servicesProvided, MAX_DISCHARGE_SERVICES)),
+    afterPlan: substantive(cleanOutput(raw.afterPlan, MAX_DISCHARGE_PLAN)),
+  };
+  if (result.functionalStatus === '' && result.servicesProvided === '' && result.afterPlan === '') throw new Error('AI 응답에 연계기록지 내용이 없습니다');
+  return result;
+}
+
+// ---------- 15) 목욕 메모 정리 ----------
+
+const BATH_METHOD_VALUES = BATH_METHODS.map((m) => m.value) as readonly BathMethod[];
+export const MAX_BATH_NOTE_SKIN = 300;
+export const MAX_BATH_NOTE_NOTE = 300;
+
+export function validateBathNoteInput(body: unknown): Validation<BathNoteAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '목욕 메모', MAX_LOG_INPUT_LENGTH);
+  if (!note.ok) return note;
+  return { ok: true, value: { note: note.value } };
+}
+
+export function buildBathNotePrompt(input: BathNoteAiInput): string {
+  return `당신은 주야간보호센터의 목욕서비스 제공 일지 작성을 돕는 보조자입니다.
+아래 <note>는 요양보호사가 목욕을 마치고 적은 메모입니다. 이 메모만을 근거로 일지 칸을 채웁니다. 담당자가 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 혈압·체온 같은 수치, 피부 상태, 조치는 메모에 적힌 것만 씁니다. 시작·종료 시각과 소요시간은 다루지 않습니다(직원이 시각 칸에 직접 적습니다).
+3. method는 ${BATH_METHOD_VALUES.join(' | ')} 중에서 고릅니다. 욕조에 들어가 씻었으면 FULL_BATH, 목욕의자에 앉아 씻었으면 BATH_CHAIR, 침대에서 닦았으면 BED. 메모로 정할 수 없으면 null(샤워만 적혀 있고 어떻게 했는지 모르면 null).
+4. preCheck(목욕 전 상태, ${MAX_BATH_PRE_CHECK}자 이내): 목욕 전에 확인한 혈압·체온·컨디션·식사 후 시간 등 메모에 있는 것만. 없으면 빈 문자열.
+5. skinNote(피부·상처 관찰, ${MAX_BATH_NOTE_SKIN}자 이내): 피부·상처·발적·멍·욕창 부위 등 직원이 본 것을 위치·크기까지 메모대로. 없으면 빈 문자열.
+6. note(그 밖의 특이사항·조치, ${MAX_BATH_NOTE_NOTE}자 이내): 목욕 중 있었던 일, 누구에게 알렸는지 등 메모에 있는 것만. 없으면 빈 문자열.
+7. 진단·원인 단정·치료 권고는 하지 않고 관찰한 사실만 씁니다.
+8. ${NO_FILLER_RULE}
+9. ${PRIVACY_RULE}
+10. ${RECORD_STYLE_RULE}
+
+${fence('note', input.note)}`;
+}
+
+export const BATH_NOTE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    // nullable과 enum을 함께 쓰면 모델 쪽 스키마 검증이 까다로워 허용 값은 설명에 적고 normalizeBathNote가 걸러낸다.
+    method: { type: 'STRING', nullable: true, description: `목욕 방법(${BATH_METHOD_VALUES.join(' | ')}). 정할 수 없으면 null` },
+    preCheck: STR(`목욕 전 상태 (${MAX_BATH_PRE_CHECK}자 이내, 없으면 빈 문자열)`),
+    skinNote: STR(`피부·상처 관찰 (${MAX_BATH_NOTE_SKIN}자 이내, 없으면 빈 문자열)`),
+    note: STR(`그 밖의 특이사항·조치 (${MAX_BATH_NOTE_NOTE}자 이내, 없으면 빈 문자열)`),
+  },
+  required: ['method', 'preCheck', 'skinNote', 'note'],
+} as const;
+
+/** method는 허용 값이 아니면 null, 글자는 한도까지 자르고 형식적 문구뿐이면 비운다. */
+export function normalizeBathNote(raw: unknown): BathNoteAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const method = typeof raw.method === 'string' ? raw.method.trim() : '';
+  return {
+    method: isBathMethod(method) ? method : null,
+    preCheck: substantive(cleanOutput(raw.preCheck, MAX_BATH_PRE_CHECK)),
+    skinNote: substantive(cleanOutput(raw.skinNote, MAX_BATH_NOTE_SKIN)),
+    note: substantive(cleanOutput(raw.note, MAX_BATH_NOTE_NOTE)),
+  };
+}
+
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -1770,6 +2016,21 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateBudgetDraftInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildBudgetDraftPrompt(v.value), schema: BUDGET_DRAFT_SCHEMA, normalize: (raw) => normalizeBudgetDraft(raw, v.value) };
+  }
+  if (task === 'medication-request') {
+    const v = validateMedicationRequestInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildMedicationRequestPrompt(v.value), schema: MEDICATION_REQUEST_SCHEMA, normalize: (raw) => normalizeMedicationRequest(raw, v.value.text) };
+  }
+  if (task === 'discharge-referral') {
+    const v = validateDischargeReferralInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildDischargeReferralPrompt(v.value), schema: DISCHARGE_REFERRAL_SCHEMA, normalize: normalizeDischargeReferral };
+  }
+  if (task === 'bath-note') {
+    const v = validateBathNoteInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildBathNotePrompt(v.value), schema: BATH_NOTE_SCHEMA, normalize: normalizeBathNote };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

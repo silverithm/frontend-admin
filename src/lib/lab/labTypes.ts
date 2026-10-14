@@ -1088,3 +1088,288 @@ export interface BudgetDraftLine {
 export interface BudgetDraftAiResult {
   lines: BudgetDraftLine[];
 }
+
+// =====================================================================
+// 6차 — 투약·약품 · 목욕 제공 일지 · 수급자 계약·인정 · 퇴소 연계기록지 · 공단 청구 대조
+// =====================================================================
+
+// ---------- 투약의뢰서·투약 기록 ----------
+
+export type MedicationSlot = 'MORNING' | 'LUNCH' | 'EVENING' | 'BEDTIME';
+/** 경구·외용·점안·흡입·그 밖 */
+export type MedicationRoute = 'ORAL' | 'TOPICAL' | 'EYE' | 'INHALE' | 'OTHER';
+export type MedicationTiming = 'BEFORE_MEAL' | 'AFTER_MEAL' | 'WITH_MEAL' | 'ANYTIME';
+export type RequesterRelation = 'SELF' | 'SPOUSE' | 'CHILD' | 'OTHER_FAMILY' | 'OTHER';
+export type MedicationRequestStatus = 'ACTIVE' | 'ENDED';
+export type MedicationDoseStatus = 'GIVEN' | 'SKIPPED' | 'REFUSED';
+
+/** 의뢰서의 약 한 가지. 이름 60자·용량 40자·메모 100자, 시간대(slots)는 1개 이상(서버 검증) */
+export interface MedicationItem {
+  name: string;
+  dose: string;
+  route: MedicationRoute;
+  slots: MedicationSlot[];
+  timing: MedicationTiming;
+  note: string;
+}
+
+/** 보호자가 맡긴 약(투약의뢰서). 약은 1~15개 */
+export interface MedicationRequest {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  requestedOn: string;
+  requesterName: string;
+  requesterRelation: RequesterRelation;
+  medicines: MedicationItem[];
+  startDate: string;
+  /** 시작일 이상 */
+  endDate: string | null;
+  /** 의사 처방 확인 */
+  prescriptionChecked: boolean;
+  status: MedicationRequestStatus;
+  note: string | null;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type MedicationRequestInput = Omit<MedicationRequest, 'id' | 'elderlyName' | 'updatedAt'>;
+
+/** 투약 기록 — requestId+givenOn+slot이 하나뿐이다(upsert). 시각(givenAt)은 GIVEN이면 필수 */
+export interface MedicationDose {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  requestId: number;
+  givenOn: string;
+  slot: MedicationSlot;
+  status: MedicationDoseStatus;
+  /** 'HH:MM' */
+  givenAt: string | null;
+  giverName: string;
+  /** 투약 후 상태, 500자 이내 */
+  observation: string | null;
+  updatedAt: string | null;
+}
+
+export type MedicationDoseInput = Omit<MedicationDose, 'id' | 'elderlyName' | 'updatedAt'>;
+
+// ---------- 약품 관리대장·분기 점검 ----------
+
+export type MedicineStorage = 'ROOM' | 'FRIDGE';
+export type MedicineCheckAction = 'NONE' | 'DISPOSE' | 'REORDER' | 'MOVE';
+
+/** 일반·비상 의약품 관리대장 — 개인정보가 없다 */
+export interface MedicineStock {
+  id: number;
+  name: string;
+  efficacy: string;
+  /** 0~100000 */
+  quantity: number;
+  unit: string;
+  storage: MedicineStorage;
+  expiresOn: string;
+  openedOn: string | null;
+  disposedOn: string | null;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type MedicineStockInput = Omit<MedicineStock, 'id' | 'updatedAt'>;
+
+export interface MedicineCheckItem {
+  stockId: number;
+  ok: boolean;
+  action: MedicineCheckAction;
+  note: string;
+}
+
+/** 약품 보관 점검 — checkedOn마다 하나(upsert). 냉장 보관 약이 없으면 fridgeLocked는 null */
+export interface MedicineCheck {
+  id: number;
+  checkedOn: string;
+  inspectorName: string;
+  cabinetLocked: boolean;
+  fridgeLocked: boolean | null;
+  items: MedicineCheckItem[];
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type MedicineCheckInput = Omit<MedicineCheck, 'id' | 'updatedAt'>;
+
+// ---------- 목욕 제공 일지 ----------
+
+/** 전신입욕·목욕의자·침상 */
+export type BathMethod = 'FULL_BATH' | 'BATH_CHAIR' | 'BED';
+
+export interface BathLog {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  bathDate: string;
+  /** 'HH:MM' */
+  startTime: string;
+  endTime: string;
+  /** 서버가 계산한다(끝 ≤ 시작이거나 180분 초과면 400) */
+  minutes: number;
+  method: BathMethod;
+  /** 몸을 씻기는 요양보호사 */
+  providerName: string;
+  /** 목욕 전 상태, 100자 이내 */
+  preCheck: string | null;
+  /** 피부·상처 관찰, 500자 이내 */
+  skinNote: string | null;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type BathLogInput = Omit<BathLog, 'id' | 'elderlyName' | 'minutes' | 'updatedAt'>;
+
+// ---------- 급여 계약·장기요양 인정 ----------
+
+export type ContractStatus = 'ACTIVE' | 'ENDED';
+export type ContractEndReason = 'TRANSFER' | 'HOSPITAL' | 'DEATH' | 'SELF' | 'OTHER';
+
+export interface ElderContract {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  contractStart: string;
+  contractEnd: string | null;
+  careGrade: LtcCareGrade;
+  recognitionNo: string | null;
+  validFrom: string;
+  /** 유효기간 끝, validFrom 이상 */
+  validTo: string;
+  /** 0=최초 인정, 1 이상=갱신 */
+  renewalCount: number;
+  copayClass: CopayClass;
+  /** 1~31. 15 이상이면 미이용일 급여비용 대상 */
+  plannedDaysPerMonth: number | null;
+  signedOn: string | null;
+  /** 계약서 2부 중 1부를 수급자에게 교부했는가 */
+  copyGiven: boolean;
+  contractNotifiedOn: string | null;
+  planNotifiedOn: string | null;
+  rightsGuidedOn: string | null;
+  status: ContractStatus;
+  /** ENDED면 필수 */
+  endReason: ContractEndReason | null;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type ElderContractInput = Omit<ElderContract, 'id' | 'elderlyName' | 'updatedAt'>;
+
+// ---------- 퇴소 연계기록지 ----------
+
+/** 사망·퇴소 없는 입원은 작성 대상이 아니라 고르는 칸에 없다 */
+export type DischargeReason = 'TRANSFER' | 'HOSPITAL' | 'SELF' | 'OTHER';
+export type ReferralProvidedMethod = 'VISIT' | 'MAIL' | 'FAX' | 'ELECTRONIC' | 'OTHER';
+
+export interface DischargeReferral {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  contractId: number | null;
+  dischargeOn: string;
+  reason: DischargeReason;
+  writtenOn: string;
+  careGrade: LtcCareGrade;
+  /** 심신기능 상태, 2000자 이내 */
+  functionalStatus: string;
+  /** 제공한 급여, 2000자 이내 */
+  servicesProvided: string;
+  /** 퇴소 후 서비스 이용계획·희망급여, 1000자 이내 */
+  afterPlan: string;
+  counselNote: string | null;
+  /** 제공대장 네 칸(제공일자·방법·제공자·수령자)은 같이 있거나 같이 없어야 한다 */
+  providedOn: string | null;
+  providedMethod: ReferralProvidedMethod | null;
+  providerName: string | null;
+  recipientName: string | null;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type DischargeReferralInput = Omit<DischargeReferral, 'id' | 'elderlyName' | 'updatedAt'>;
+
+/** 퇴소 연계기록지 초안에 쓸 사실 묶음 — 기간은 from~to, 사람 이름은 들어 있지 않다 */
+export interface DischargeFacts {
+  period: { from: string; to: string };
+  /** 출석 일수를 아는 경우만. 모르면 null */
+  attendanceDays: number | null;
+  vitals: NoticeFacts['vitals'];
+  programs: NoticeFacts['programs'];
+  rehab: NoticeFacts['rehab'];
+  bath: { count: number };
+  events: NoticeFacts['events'];
+  specialNotes: string[];
+}
+
+// ---------- 공단 청구 대조 ----------
+
+/** 청구 시간 구간 — 고시 표의 다섯 구간과 3시간 미만 */
+export type ClaimBand = HourBand | 'under3';
+export type ClaimReviewStatus = 'MATCH' | 'MISMATCH' | 'RESOLVED';
+
+export interface ClaimReview {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  claimMonth: string;
+  claimedDays: number;
+  attendedDays: number;
+  billedDays: number | null;
+  claimedBand: ClaimBand | null;
+  status: ClaimReviewStatus;
+  note: string | null;
+  reviewerName: string;
+  updatedAt: string | null;
+}
+
+export type ClaimReviewInput = Omit<ClaimReview, 'id' | 'elderlyName' | 'updatedAt'>;
+
+/** PUT /claim-reviews/batch — 최대 200줄, 하나라도 틀리면 아무것도 저장하지 않는다 */
+export interface ClaimReviewBatchInput {
+  month: string;
+  rows: ClaimReviewInput[];
+}
+
+// ---------- 6차 AI ----------
+
+export interface MedicationRequestAiInput {
+  /** 보호자 메모·약봉투 글을 직원이 옮겨 적은 것 */
+  text: string;
+}
+
+export interface MedicationRequestAiResult {
+  medicines: MedicationItem[];
+}
+
+export interface DischargeReferralAiInput {
+  facts: DischargeFacts;
+  reason: DischargeReason;
+  /** 사실 묶음이 다루는 이용 기간(개월) */
+  months: number;
+}
+
+export interface DischargeReferralAiResult {
+  functionalStatus: string;
+  servicesProvided: string;
+  afterPlan: string;
+}
+
+export interface BathNoteAiInput {
+  note: string;
+}
+
+export interface BathNoteAiResult {
+  method: BathMethod | null;
+  preCheck: string;
+  skinNote: string;
+  note: string;
+}

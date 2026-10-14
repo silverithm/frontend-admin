@@ -7,6 +7,9 @@ import assert from 'node:assert/strict';
 
 import { EVAL_AUTO_SOURCE_LABEL, EVAL_GROUPS, EVAL_INDICATORS, groupLabel, indicatorByCode, indicatorsByGroup, readinessSummary } from './evalIndicators.ts';
 
+/** 2026판에서 삭제된 지표를 뺀, 준비율에 드는 지표 */
+const ACTIVE = EVAL_INDICATORS.filter((i) => !i.deletedIn2026);
+
 test('지표 24개 이상, 코드는 서버 규칙(^[A-Z0-9_-]{2,40}$)에 맞고 중복이 없다', () => {
   assert.ok(EVAL_INDICATORS.length >= 24);
   const codes = EVAL_INDICATORS.map((i) => i.code);
@@ -46,7 +49,7 @@ test('indicatorByCode', () => {
 });
 
 test('readinessSummary — 기록 없는 지표는 준비 안 됨, 해당 없음은 대상에서 제외', () => {
-  const n = EVAL_INDICATORS.length;
+  const n = ACTIVE.length;
   assert.deepEqual(readinessSummary([]), { ready: 0, partial: 0, missing: n, total: n, percent: 0 });
   const s = readinessSummary([
     { indicatorCode: 'OPS-01', status: 'READY' },
@@ -70,12 +73,12 @@ test('readinessSummary — 목록에 없는 코드는 세지 않고, 중복 코�
     { indicatorCode: 'OPS-01', status: 'MISSING' },
   ]);
   assert.equal(s.ready, 0);
-  assert.equal(s.missing, EVAL_INDICATORS.length);
+  assert.equal(s.missing, ACTIVE.length);
 });
 
 test('readinessSummary — 전부 준비 완료면 100%', () => {
   const all = EVAL_INDICATORS.map((i) => ({ indicatorCode: i.code, status: 'READY' as const }));
-  assert.deepEqual(readinessSummary(all), { ready: EVAL_INDICATORS.length, partial: 0, missing: 0, total: EVAL_INDICATORS.length, percent: 100 });
+  assert.deepEqual(readinessSummary(all), { ready: ACTIVE.length, partial: 0, missing: 0, total: ACTIVE.length, percent: 100 });
   const none = EVAL_INDICATORS.map((i) => ({ indicatorCode: i.code, status: 'NOT_APPLICABLE' as const }));
   assert.deepEqual(readinessSummary(none), { ready: 0, partial: 0, missing: 0, total: 0, percent: 0 });
 });
@@ -92,7 +95,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 11);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 15);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -141,9 +144,53 @@ test('소통노력 요건 — 보호자 상담 분기 1회, 기관 소식 월 1�
   assert.match(EVAL_AUTO_SOURCE_LABEL.GUARDIAN_NOTICE_MONTHLY, /일방향/);
 });
 
-test('외부기관연계 요건 — 진료 기록과 연계기록지·제공대장(제공자명 포함)', () => {
-  const text = indicatorByCode('HLT-04')!.requirements.join(' ');
+test('외부기관연계 요건 — 기준①(진료 기록)은 HLT-04, 기준②(연계기록지·제공대장, 제공자명 포함)는 HLT-05', () => {
+  const clinic = indicatorByCode('HLT-04')!;
+  assert.match(clinic.requirements.join(' '), /동행한 진료/);
+  assert.equal(clinic.autoSource, 'RESOURCE_LINKS');
+  const text = indicatorByCode('HLT-05')!.requirements.join(' ');
   assert.match(text, /연계기록지/);
   assert.match(text, /제공자명/);
   assert.match(text, /퇴소자가 없으면/);
+  assert.match(text, /사망/);
+});
+
+test('6차 자동 근거 — 약품 점검·퇴소 연계기록지·계획 통보·인권 안내가 각각 한 지표에 붙어 있다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
+  assert.deepEqual(by('MEDICINE_QUARTERLY'), ['HLT-02']);
+  assert.deepEqual(by('DISCHARGE_REFERRAL'), ['HLT-05']);
+  assert.deepEqual(by('PLAN_NOTIFIED_BY_START'), ['SVC-08']);
+  assert.deepEqual(by('RIGHTS_GUIDE_14D'), ['RGT-03']);
+  // 기존 연결은 그대로
+  assert.deepEqual(by('CARE_PLAN_AGREEMENT'), ['SVC-04']);
+  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-04']);
+});
+
+test('투약 및 약품관리 요건 — 잠금(냉장고 포함)·분기 점검 항목(폐기일자)·사용기한 지난 약 불인정·6원칙 면담', () => {
+  const store = indicatorByCode('HLT-02')!.requirements.join(' ');
+  assert.match(store, /냉장고도 잠금/);
+  assert.match(store, /분기별 1회 이상/);
+  assert.match(store, /폐기일자/);
+  assert.match(store, /사용기한이 지난 약품을 보관하고 있으면 불인정/);
+  const dosing = indicatorByCode('HLT-01')!.requirements.join(' ');
+  assert.match(dosing, /투약 6원칙/);
+  assert.match(dosing, /시설장과 면담/);
+});
+
+test('급여제공계획 통보·노인인권 안내 요건 — 시작일까지·14일 이내', () => {
+  assert.match(indicatorByCode('SVC-08')!.requirements.join(' '), /급여제공 시작일까지 공단에 통보/);
+  assert.match(indicatorByCode('RGT-03')!.requirements.join(' '), /14일 이내/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.RIGHTS_GUIDE_14D, /14일/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.PLAN_NOTIFIED_BY_START, /시작일까지/);
+});
+
+test('2026판에서 삭제된 계약체결·통보 지표는 삭제됐다고 표시하고 준비율에서 뺀다', () => {
+  const deleted = EVAL_INDICATORS.filter((i) => i.deletedIn2026).map((i) => i.code);
+  assert.deepEqual(deleted, ['SVC-01', 'SVC-02']);
+  for (const code of deleted) assert.match(indicatorByCode(code)!.title, /2026판 평가에서 삭제/);
+  assert.equal(ACTIVE.length, EVAL_INDICATORS.length - 2);
+  // 삭제된 지표에 READY를 적어 두어도 세지 않는다
+  const s = readinessSummary([{ indicatorCode: 'SVC-01', status: 'READY' }, { indicatorCode: 'SVC-02', status: 'READY' }]);
+  assert.equal(s.ready, 0);
+  assert.equal(s.total, ACTIVE.length);
 });

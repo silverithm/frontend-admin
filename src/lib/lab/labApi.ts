@@ -7,6 +7,31 @@
 import { authorizedFetch } from '../apiService';
 import { redactDeep, rememberStaffNames } from './nameRedaction.ts';
 import type {
+  BathLog,
+  BathLogInput,
+  BathNoteAiInput,
+  BathNoteAiResult,
+  ClaimReview,
+  ClaimReviewBatchInput,
+  ClaimReviewInput,
+  ContractStatus,
+  DischargeReferral,
+  DischargeReferralAiInput,
+  DischargeReferralAiResult,
+  DischargeReferralInput,
+  ElderContract,
+  ElderContractInput,
+  MedicationDose,
+  MedicationDoseInput,
+  MedicationRequest,
+  MedicationRequestAiInput,
+  MedicationRequestAiResult,
+  MedicationRequestInput,
+  MedicationRequestStatus,
+  MedicineCheck,
+  MedicineCheckInput,
+  MedicineStock,
+  MedicineStockInput,
   Budget,
   BudgetDraftAiInput,
   BudgetDraftAiResult,
@@ -670,4 +695,177 @@ export function aiSuggestResources(input: ResourceSuggestAiInput): Promise<Resou
 
 export function aiDraftBudget(input: BudgetDraftAiInput): Promise<BudgetDraftAiResult> {
   return request<BudgetDraftAiResult>(`${LAB_AI}/budget-draft`, json('POST', redactDeep(input)), `AI가 예산 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+// =====================================================================
+// 6차 — 투약·약품 · 목욕 제공 일지 · 수급자 계약·인정 · 퇴소 연계기록지 · 공단 청구 대조
+// =====================================================================
+
+// ---------- 투약의뢰서 ----------
+
+/** 진행 중/끝난 의뢰(status) 또는 어르신별(elderlyId) 중 하나로 묻는다. 시작일 최신순. */
+export function listMedicationRequests(params: { status: MedicationRequestStatus } | { elderlyId: number }): Promise<MedicationRequest[]> {
+  const query = 'status' in params ? `status=${q(params.status)}` : `elderlyId=${q(String(params.elderlyId))}`;
+  return request<MedicationRequest[]>(`${LAB}/medication-requests?${query}`, undefined, '투약의뢰서를 불러오지 못했습니다');
+}
+
+export function createMedicationRequest(input: MedicationRequestInput): Promise<MedicationRequest> {
+  return request<MedicationRequest>(`${LAB}/medication-requests`, json('POST', input), '투약의뢰서를 저장하지 못했습니다');
+}
+
+export function updateMedicationRequest(id: number, input: MedicationRequestInput): Promise<MedicationRequest> {
+  return request<MedicationRequest>(`${LAB}/medication-requests/${q(String(id))}`, json('PUT', input), '투약의뢰서를 고치지 못했습니다');
+}
+
+/** 투약 기록이 있는 의뢰서는 서버가 409를 준다(끝내기로 처리) */
+export async function deleteMedicationRequest(id: number): Promise<void> {
+  await request<null>(`${LAB}/medication-requests/${q(String(id))}`, { method: 'DELETE' }, '투약의뢰서를 삭제하지 못했습니다');
+}
+
+// ---------- 투약 기록 ----------
+
+/** 날짜별 또는 어르신의 월별 */
+export function listMedicationDoses(params: { date: string } | { elderlyId: number; month: string }): Promise<MedicationDose[]> {
+  const query = 'date' in params ? `date=${q(params.date)}` : `elderlyId=${q(String(params.elderlyId))}&month=${q(params.month)}`;
+  return request<MedicationDose[]>(`${LAB}/medication-doses?${query}`, undefined, '투약 기록을 불러오지 못했습니다');
+}
+
+/** requestId+givenOn+slot으로 덮어쓴다(upsert). 의뢰 기간 밖 날짜·의뢰에 없는 시간대·미래 날짜는 서버가 400을 준다. */
+export function saveMedicationDose(input: MedicationDoseInput): Promise<MedicationDose> {
+  return request<MedicationDose>(`${LAB}/medication-doses`, json('PUT', input), '투약 기록을 저장하지 못했습니다');
+}
+
+export async function deleteMedicationDose(id: number): Promise<void> {
+  await request<null>(`${LAB}/medication-doses/${q(String(id))}`, { method: 'DELETE' }, '투약 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 약품 관리대장 ----------
+
+/** 사용기한 순. 폐기한 약은 includeDisposed=true일 때만 */
+export function listMedicineStock(includeDisposed = false): Promise<MedicineStock[]> {
+  return request<MedicineStock[]>(`${LAB}/medicine-stock?includeDisposed=${includeDisposed ? 'true' : 'false'}`, undefined, '약품 관리대장을 불러오지 못했습니다');
+}
+
+export function createMedicineStock(input: MedicineStockInput): Promise<MedicineStock> {
+  return request<MedicineStock>(`${LAB}/medicine-stock`, json('POST', input), '약품을 등록하지 못했습니다');
+}
+
+export function updateMedicineStock(id: number, input: MedicineStockInput): Promise<MedicineStock> {
+  return request<MedicineStock>(`${LAB}/medicine-stock/${q(String(id))}`, json('PUT', input), '약품 정보를 고치지 못했습니다');
+}
+
+export async function deleteMedicineStock(id: number): Promise<void> {
+  await request<null>(`${LAB}/medicine-stock/${q(String(id))}`, { method: 'DELETE' }, '약품을 삭제하지 못했습니다');
+}
+
+// ---------- 약품 보관 점검 ----------
+
+export function listMedicineChecks(year: number): Promise<MedicineCheck[]> {
+  return request<MedicineCheck[]>(`${LAB}/medicine-checks?year=${q(String(year))}`, undefined, '약품 보관 점검을 불러오지 못했습니다');
+}
+
+/** checkedOn으로 덮어쓴다(upsert). 폐기(DISPOSE)로 표시한 약품은 서버가 폐기일을 점검일로 채운다. */
+export function saveMedicineCheck(input: MedicineCheckInput): Promise<MedicineCheck> {
+  return request<MedicineCheck>(`${LAB}/medicine-checks`, json('PUT', input), '약품 보관 점검을 저장하지 못했습니다');
+}
+
+export async function deleteMedicineCheck(id: number): Promise<void> {
+  await request<null>(`${LAB}/medicine-checks/${q(String(id))}`, { method: 'DELETE' }, '약품 보관 점검을 삭제하지 못했습니다');
+}
+
+// ---------- 목욕 제공 일지 ----------
+
+/** 월별 또는 어르신의 월별(날짜순) */
+export function listBathLogs(params: { month: string } | { elderlyId: number; month: string }): Promise<BathLog[]> {
+  const query = 'elderlyId' in params ? `elderlyId=${q(String(params.elderlyId))}&month=${q(params.month)}` : `month=${q(params.month)}`;
+  return request<BathLog[]>(`${LAB}/bath-logs?${query}`, undefined, '목욕 일지를 불러오지 못했습니다');
+}
+
+/** 끝 시각이 시작보다 늦지 않거나 180분을 넘으면 서버가 400을 준다 */
+export function createBathLog(input: BathLogInput): Promise<BathLog> {
+  return request<BathLog>(`${LAB}/bath-logs`, json('POST', input), '목욕 일지를 저장하지 못했습니다');
+}
+
+export function updateBathLog(id: number, input: BathLogInput): Promise<BathLog> {
+  return request<BathLog>(`${LAB}/bath-logs/${q(String(id))}`, json('PUT', input), '목욕 일지를 고치지 못했습니다');
+}
+
+export async function deleteBathLog(id: number): Promise<void> {
+  await request<null>(`${LAB}/bath-logs/${q(String(id))}`, { method: 'DELETE' }, '목욕 일지를 삭제하지 못했습니다');
+}
+
+// ---------- 수급자 계약·인정 ----------
+
+/** 진행 중(status=ACTIVE)·어르신별(elderlyId) 중 하나로 묻고, 아무것도 안 주면 전부 */
+export function listElderContracts(params?: { status: ContractStatus } | { elderlyId: number }): Promise<ElderContract[]> {
+  const query = !params ? '' : 'status' in params ? `?status=${q(params.status)}` : `?elderlyId=${q(String(params.elderlyId))}`;
+  return request<ElderContract[]>(`${LAB}/elder-contracts${query}`, undefined, '계약 정보를 불러오지 못했습니다');
+}
+
+/** 같은 어르신의 진행 중 계약이 이미 있으면 서버가 409를 준다 */
+export function createElderContract(input: ElderContractInput): Promise<ElderContract> {
+  return request<ElderContract>(`${LAB}/elder-contracts`, json('POST', input), '계약 정보를 저장하지 못했습니다');
+}
+
+export function updateElderContract(id: number, input: ElderContractInput): Promise<ElderContract> {
+  return request<ElderContract>(`${LAB}/elder-contracts/${q(String(id))}`, json('PUT', input), '계약 정보를 고치지 못했습니다');
+}
+
+export async function deleteElderContract(id: number): Promise<void> {
+  await request<null>(`${LAB}/elder-contracts/${q(String(id))}`, { method: 'DELETE' }, '계약 정보를 삭제하지 못했습니다');
+}
+
+// ---------- 퇴소 연계기록지 ----------
+
+/** 퇴소 연도별 또는 어르신별 */
+export function listDischargeReferrals(params: { year: number } | { elderlyId: number }): Promise<DischargeReferral[]> {
+  const query = 'year' in params ? `year=${q(String(params.year))}` : `elderlyId=${q(String(params.elderlyId))}`;
+  return request<DischargeReferral[]>(`${LAB}/discharge-referrals?${query}`, undefined, '퇴소 연계기록지를 불러오지 못했습니다');
+}
+
+/** 제공대장 네 칸을 일부만 적으면 서버가 400을 준다 */
+export function createDischargeReferral(input: DischargeReferralInput): Promise<DischargeReferral> {
+  return request<DischargeReferral>(`${LAB}/discharge-referrals`, json('POST', input), '퇴소 연계기록지를 저장하지 못했습니다');
+}
+
+export function updateDischargeReferral(id: number, input: DischargeReferralInput): Promise<DischargeReferral> {
+  return request<DischargeReferral>(`${LAB}/discharge-referrals/${q(String(id))}`, json('PUT', input), '퇴소 연계기록지를 고치지 못했습니다');
+}
+
+export async function deleteDischargeReferral(id: number): Promise<void> {
+  await request<null>(`${LAB}/discharge-referrals/${q(String(id))}`, { method: 'DELETE' }, '퇴소 연계기록지를 삭제하지 못했습니다');
+}
+
+// ---------- 공단 청구 대조 ----------
+
+export function listClaimReviews(month: string): Promise<ClaimReview[]> {
+  return request<ClaimReview[]>(`${LAB}/claim-reviews?month=${q(month)}`, undefined, '청구 대조 결과를 불러오지 못했습니다');
+}
+
+/** elderlyId+claimMonth로 덮어쓴다(upsert) */
+export function saveClaimReview(input: ClaimReviewInput): Promise<ClaimReview> {
+  return request<ClaimReview>(`${LAB}/claim-reviews`, json('PUT', input), '청구 대조 결과를 저장하지 못했습니다');
+}
+
+/** 최대 200줄. 하나라도 틀리면 서버는 아무것도 저장하지 않는다 */
+export function saveClaimReviewsBatch(input: ClaimReviewBatchInput): Promise<ClaimReview[]> {
+  return request<ClaimReview[]>(`${LAB}/claim-reviews/batch`, json('PUT', input), '청구 대조 결과를 한 번에 저장하지 못했습니다');
+}
+
+export async function deleteClaimReview(id: number): Promise<void> {
+  await request<null>(`${LAB}/claim-reviews/${q(String(id))}`, { method: 'DELETE' }, '청구 대조 결과를 삭제하지 못했습니다');
+}
+
+// ---------- 6차 AI 작업 — 제안만 돌려준다. 보내기 직전에 이름을 지운다 ----------
+
+export function aiStructureMedicationRequest(input: MedicationRequestAiInput): Promise<MedicationRequestAiResult> {
+  return request<MedicationRequestAiResult>(`${LAB_AI}/medication-request`, json('POST', redactDeep(input)), `AI가 약 목록을 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiDraftDischargeReferral(input: DischargeReferralAiInput): Promise<DischargeReferralAiResult> {
+  return request<DischargeReferralAiResult>(`${LAB_AI}/discharge-referral`, json('POST', redactDeep(input)), `AI가 연계기록지 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiStructureBathNote(input: BathNoteAiInput): Promise<BathNoteAiResult> {
+  return request<BathNoteAiResult>(`${LAB_AI}/bath-note`, json('POST', redactDeep(input)), `AI가 목욕 메모를 정리하지 못했습니다. ${AI_RETRY}`);
 }

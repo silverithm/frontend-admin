@@ -32,7 +32,15 @@ export type EvalAutoSource =
   /** 지난달 보호자 월간 안내를 보낸 어르신 비율 — 2026 '소통노력'의 기관 소식 월 1회. 보호자 상담(분기 1회)은 별도이며 일방향 안내만으로는 인정되지 않는다 */
   | 'GUARDIAN_NOTICE_MONTHLY'
   /** 올해 외부기관·지역자원 연계 건수(의료기관 진료 연계는 따로 셈) — 2026 '외부기관연계' 기준① */
-  | 'RESOURCE_LINKS';
+  | 'RESOURCE_LINKS'
+  /** 올해 지난 분기마다 일반 의약품 사용기한·보관상태 점검을 했고 보관함(냉장고 포함) 잠금을 확인했는가 — 2026 '투약 및 약품관리' 기준①② */
+  | 'MEDICINE_QUARTERLY'
+  /** 올해 퇴소한 수급자의 연계기록지를 퇴소일까지 작성·제공했는가(제공대장 포함) — 2026 '외부기관연계' 기준② */
+  | 'DISCHARGE_REFERRAL'
+  /** 진행 중 계약 중 급여제공계획을 급여제공 시작일까지 공단에 통보한 비율 — 2026 '급여제공계획 수립 및 제공' 기준② */
+  | 'PLAN_NOTIFIED_BY_START'
+  /** 신규 계약 중 급여제공 시작일부터 14일 안에 노인인권 지침을 안내한 비율 — 2026 '노인인권' 기준④ */
+  | 'RIGHTS_GUIDE_14D';
 
 export interface EvalIndicator {
   code: string;
@@ -40,6 +48,8 @@ export interface EvalIndicator {
   title: string;
   requirements: string[];
   autoSource?: EvalAutoSource;
+  /** 2025판에는 있었으나 2026판 평가에서 삭제된 지표. 점검표에는 남겨 두되 준비율 계산에서는 뺀다 */
+  deletedIn2026?: boolean;
 }
 
 export const EVAL_GROUPS: ReadonlyArray<{ id: EvalGroup; label: string }> = [
@@ -64,6 +74,10 @@ export const EVAL_AUTO_SOURCE_LABEL: Readonly<Record<EvalAutoSource, string>> = 
   CARE_EVENT_FOLLOWUP: '상태변화·사고 기록의 즉시 조치·보호자 연락 현황 (올해)',
   GUARDIAN_NOTICE_MONTHLY: '보호자 월간 안내 발송 현황 (지난달) — 기관 소식 월 1회 근거이며, 보호자 상담은 분기 1회 별도로 있어야 하고 일방향 안내만으로는 인정되지 않음',
   RESOURCE_LINKS: '외부기관·지역자원 연계 기록 (올해, 의료기관 진료 연계 따로 셈 — 퇴소 연계기록지는 포함 안 됨)',
+  MEDICINE_QUARTERLY: '약품 보관 점검의 올해 분기별 실시·잠금 확인 현황 (지난 분기마다 1회 이상, 사용기한 지난 약 보관 시 불인정 — 투약 6원칙 면담은 따로)',
+  DISCHARGE_REFERRAL: '퇴소 연계기록지와 제공대장의 올해 작성·제공 현황 (퇴소일까지 작성·제공, 퇴소자가 없으면 충족)',
+  PLAN_NOTIFIED_BY_START: '진행 중 계약의 급여제공계획 공단 통보 현황 (급여제공 시작일까지 통보 — 설명·확인서명은 따로 확인)',
+  RIGHTS_GUIDE_14D: '신규 계약의 노인인권 지침 안내 현황 (급여제공 시작일부터 14일 이내 — 신규 수급자 기준)',
 };
 
 export const EVAL_INDICATORS: readonly EvalIndicator[] = [
@@ -226,8 +240,10 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
   {
     code: 'SVC-01',
     group: 'SERVICE',
-    title: '급여 제공 계약 체결',
+    title: '급여 제공 계약 체결 (2026판 평가에서 삭제)',
+    deletedIn2026: true,
     requirements: [
+      '2026판 평가 지표에서는 삭제됐다(2025판 "계약체결 및 통보"). 계약은 시행규칙 제16조와 청구 요건으로 계속 지켜야 하며 계약·인정 도구의 알림으로 관리한다',
       '수급자(보호자)와 맺은 급여 제공 계약서가 모든 수급자에게 있다',
       '이용 요금·본인부담금·비급여 항목을 계약 전에 설명하고 동의받았다',
       '계약 내용이 바뀌면 변경 계약이나 동의 기록이 있다',
@@ -236,8 +252,10 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
   {
     code: 'SVC-02',
     group: 'SERVICE',
-    title: '급여 개시·변경 사항 통보',
+    title: '급여 개시·변경 사항 통보 (2026판 평가에서 삭제)',
+    deletedIn2026: true,
     requirements: [
+      '2026판 평가 지표에서는 삭제됐다(2025판 "계약체결 및 통보"의 전월 말일 통보). 다만 계약·변경은 지체 없이 공단에 통보해야 하고, 미이용일 급여비용은 급여 개시 전월 말일까지 통보돼야 청구할 수 있다(고시 제32조)',
       '급여 개시·종료·변경 사항을 정해진 기한 안에 공단에 통보한 기록이 있다',
       '통보 내용이 실제 이용 현황과 일치한다',
     ],
@@ -294,26 +312,41 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '상태 변화에 따라 급여제공계획을 고치거나 보호자와 상의한 기록이 있다',
     ],
   },
+  {
+    code: 'SVC-08',
+    group: 'SERVICE',
+    title: '급여제공계획의 공단 통보 (2026 급여제공계획 수립 및 제공 기준②)',
+    requirements: [
+      '모든 급여제공계획에 대해 수급자 또는 보호자에게 설명하고 확인서명을 받았다(스마트장기요양 앱 모바일 동의도 인정, 비대면은 계획서 전문을 보낸 뒤 유선 안내를 기록)',
+      '확인서명을 받은 급여제공계획을 급여제공 시작일까지 공단에 통보했다(\'급여제공 시작일까지\'는 2026.1월부터 확인)',
+      '기능상태·욕구가 바뀌어 계획을 고칠 때는 사유를 기록하고 고친 계획대로 제공한다(급여내용·시간·횟수 등)',
+    ],
+    autoSource: 'PLAN_NOTIFIED_BY_START',
+  },
 
   // ---------- 간호·건강 ----------
   {
     code: 'HLT-01',
     group: 'HEALTH',
-    title: '투약 관리',
+    title: '투약 관리 (2026 투약 및 약품관리 기준③)',
     requirements: [
-      '처방 내용과 투약 의뢰(보호자 요청·동의)가 확인된다',
-      '투약 기록(일시·약명·용량·투약자)이 빠짐없이 있다',
+      '가족의 투약의뢰서와 의사 처방을 확인한 뒤 투약한다(2026 매뉴얼에는 의뢰서 서식 항목이 정해져 있지 않아 기관 자체 서식이며 대조 필요)',
+      '수급자 이름·약물 이름·용량·투여경로·투약시간을 확인해 투약하고, 투약 후 수급자 상태와 처치 내용을 기록한다(투약자·시간 서식은 정해져 있지 않아 대조 필요)',
+      '간호(조무)사가 투약 6원칙(정확한 대상자·약물·용량·경로·시간·기록)을 안다 — 면담으로 확인하며 간호(조무)사가 없으면 시설장과 면담한다',
       '투약 오류·누락이 있었다면 보고와 조치가 남아 있다',
     ],
   },
   {
     code: 'HLT-02',
     group: 'HEALTH',
-    title: '약품 보관 관리',
+    title: '약품 보관 관리 (2026 투약 및 약품관리 기준①②)',
     requirements: [
-      '약품이 잠금 장치가 있는 곳에 수급자별로 구분되어 보관된다',
-      '유효기간과 보관 상태를 점검한 기록이 있다',
+      '약품보관함에 잠금장치가 있고 열쇠로 잠가 수급자가 열 수 없다. 냉장고에 약을 보관하면 냉장고도 잠금장치가 있다',
+      '일반 의약품의 사용기한과 보관상태를 분기별 1회 이상 점검하고 일자·의약품명·효능·사용기한·점검자명·폐기일자를 적는다(사용기한·폐기일자는 2026.1월부터 확인)',
+      '점검은 해당 급여를 제공하는 직원이 작성해야 인정되고, 사용기한이 지난 약품을 보관하고 있으면 불인정이다',
+      '냉장·실온 등 약품 취급방법에 따라 보관하는지 현장에서 확인한다(온도 기준 수치는 근거를 못 찾아 대조 필요)',
     ],
+    autoSource: 'MEDICINE_QUARTERLY',
   },
   {
     code: 'HLT-03',
@@ -328,14 +361,25 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
   {
     code: 'HLT-04',
     group: 'HEALTH',
-    title: '외부기관 연계 (2026 외부기관연계)',
+    title: '외부기관 연계 — 진료·지역자원 (2026 외부기관연계 기준①)',
     requirements: [
       '의료기관에서 진료받은 내용(급여제공시간 중 종사자와 동행한 진료)을 급여제공기록지·간호일지·상담일지 등에 기록한다',
-      '계약 종료일까지 수급자(보호자)에게 연계기록지(작성일자·수급자명·등급·심신기능 상태·제공한 급여·퇴소 후 서비스 이용계획)를 작성해 주고 제공대장(제공일자·방법·제공자명·수령자명)을 남긴다',
-      '지표 적용 기간에 퇴소자가 없으면 연계기록지 기준은 충족하고, 사망하거나 퇴소 없이 입원한 경우는 작성하지 않는다',
       '지역 보건·복지기관(치매안심센터·복지관 등) 연계는 별도 지표가 없으나 연계 날짜·내용·결과를 기록해 사례관리 근거로 둔다(대조 필요)',
+      '퇴소(계약 종료) 때 주는 연계기록지와 제공대장은 이 연계 기록으로 증명되지 않는다 — 아래 퇴소 연계기록지 지표에서 따로 확인한다',
     ],
     autoSource: 'RESOURCE_LINKS',
+  },
+  {
+    code: 'HLT-05',
+    group: 'HEALTH',
+    title: '퇴소 연계기록지와 제공대장 (2026 외부기관연계 기준②)',
+    requirements: [
+      '계약 종료일까지 수급자(보호자)에게 연계기록지(작성일자·수급자명·등급·심신기능 상태·제공한 급여·퇴소 후 서비스 이용계획)를 작성해 주고 제공대장(제공일자·방법·제공자명·수령자명)을 남긴다',
+      '제공자명은 2026.1월부터 확인한다. 퇴소일보다 작성일·제공일이 늦으면 상담기록지 등 관련 서류로 예외 인정될 수 있다',
+      '지표 적용 기간에 퇴소자가 없으면 연계기록지 기준은 충족하고, 사망하거나 퇴소 없이 입원한 경우는 작성하지 않는다. 병설·같은 법인 기관으로 전원하거나 입원 후 퇴소(계약해지)하면 작성한다',
+      '종료 상담은 수급자 본인과 하고, 인지기능 저하 등으로 어려우면 보호자와 한다(공개 법령에 연계기록지 서식 번호는 없어 기관 자체 서식 — 대조 필요)',
+    ],
+    autoSource: 'DISCHARGE_REFERRAL',
   },
 
   // ---------- 이동서비스 ----------
@@ -412,7 +456,9 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '노인학대 예방 교육을 직원에게 실시했다',
       '학대 의심 사례 신고 절차와 신고 의무가 게시·안내되어 있다',
       '수급자의 권리(존엄, 사생활, 자기결정)를 지키는 기관 지침이 있다',
+      '신규 수급자에게 급여제공 시작일부터 14일 이내(토·공휴일 포함) 노인인권 8가지 지침을 안내하고 기록했다(2026 노인인권 기준④)',
     ],
+    autoSource: 'RIGHTS_GUIDE_14D',
   },
   {
     code: 'RGT-04',
@@ -474,7 +520,7 @@ export interface ReadinessSummary {
 
 /**
  * 저장된 점검 상태를 지표 목록과 맞춰 요약한다.
- * 점검 기록이 없는 지표는 "준비 안 됨"이고, 목록에 없는 코드(옛 지표)는 세지 않는다. 같은 코드가 둘이면 마지막 것을 쓴다.
+ * 점검 기록이 없는 지표는 "준비 안 됨"이고, 목록에 없는 코드(옛 지표)와 2026판에서 삭제된 지표(deletedIn2026)는 세지 않는다. 같은 코드가 둘이면 마지막 것을 쓴다.
  */
 export function readinessSummary(checks: ReadonlyArray<Pick<EvalCheck, 'indicatorCode' | 'status'>>): ReadinessSummary {
   const byCode = new Map<string, EvalStatus>();
@@ -482,13 +528,14 @@ export function readinessSummary(checks: ReadonlyArray<Pick<EvalCheck, 'indicato
   let ready = 0;
   let partial = 0;
   let notApplicable = 0;
-  for (const indicator of EVAL_INDICATORS) {
+  const active = EVAL_INDICATORS.filter((i) => !i.deletedIn2026);
+  for (const indicator of active) {
     const status = byCode.get(indicator.code);
     if (status === 'READY') ready += 1;
     else if (status === 'PARTIAL') partial += 1;
     else if (status === 'NOT_APPLICABLE') notApplicable += 1;
   }
-  const total = EVAL_INDICATORS.length - notApplicable;
+  const total = active.length - notApplicable;
   return {
     ready,
     partial,

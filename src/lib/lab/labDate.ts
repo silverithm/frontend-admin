@@ -48,3 +48,40 @@ export function isValidMonth(value: unknown): value is string {
   const m = /^(\d{4})-(\d{2})$/.exec(value);
   return !!m && Number(m[2]) >= 1 && Number(m[2]) <= 12;
 }
+
+const DAY_MS = 86_400_000;
+
+function utcDayOf(ymd: string): number | null {
+  const p = parseYmd(ymd);
+  return p ? Date.UTC(p.year, p.month - 1, p.day) : null;
+}
+
+/** 'YYYY-MM-DD'에 일수를 더한다(음수 가능, 윤년·월말 처리). 날짜가 올바르지 않으면 null. */
+export function addDays(ymd: string, days: number): string | null {
+  const t = utcDayOf(ymd);
+  if (t === null || !Number.isInteger(days)) return null;
+  const d = new Date(t + days * DAY_MS);
+  return formatYmd(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+}
+
+/** to − from(일). 둘 중 하나라도 올바른 날짜가 아니면 null. */
+export function daysBetween(from: string, to: string): number | null {
+  const a = utcDayOf(from);
+  const b = utcDayOf(to);
+  return a === null || b === null ? null : Math.round((b - a) / DAY_MS);
+}
+
+/** 올바른 'YYYY-MM-DD'만 true(뒤에 시각이 붙은 값도 앞 10자만 본다). */
+export function isValidYmd(value: unknown): value is string {
+  return typeof value === 'string' && parseYmd(value) !== null;
+}
+
+/** 'HH:MM'(00:00~23:59)을 분으로. 형식이 틀리면 null. */
+export function timeToMinutes(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const m = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h <= 23 && min <= 59 ? h * 60 + min : null;
+}

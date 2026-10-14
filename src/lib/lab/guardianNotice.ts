@@ -43,10 +43,6 @@ export function smsKind(text: string): SmsKind {
 const MAX_SPECIAL_NOTES = 5;
 const MAX_SPECIAL_NOTE_LENGTH = 200;
 
-function inMonth(date: string | null | undefined, month: string): date is string {
-  return typeof date === 'string' && date.slice(0, 7) === month;
-}
-
 function mean(values: number[]): number {
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 }
@@ -55,57 +51,61 @@ function round1(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-export interface NoticeFactsInput {
+/** 기간 사실 묶음에 쓰는 기록들 — 월간 안내와 퇴소 연계기록지가 같이 쓴다. 날짜가 기간 밖인 기록은 collectPeriodFacts가 거른다. */
+export interface FactSources {
   elderlyId: number;
-  /** 'YYYY-MM' */
-  month: string;
-  attendanceDays: number;
   careRecords: ReadonlyArray<Pick<CareRecord, 'elderlyId' | 'recordDate' | 'specialNote'>>;
   nursingLogs: ReadonlyArray<Pick<NursingLog, 'elderlyId' | 'logDate' | 'systolic' | 'diastolic' | 'bloodSugar' | 'weight'>>;
   programs: ReadonlyArray<Pick<Program, 'programDate' | 'category' | 'participantIds'>>;
   rehabSessions: ReadonlyArray<Pick<RehabSession, 'elderlyId' | 'sessionDate' | 'kind' | 'minutes'>>;
   events: ReadonlyArray<Pick<CareEvent, 'elderlyId' | 'occurredAt' | 'kind' | 'severity'>>;
+}
+
+export interface NoticeFactsInput extends FactSources {
+  /** 'YYYY-MM' */
+  month: string;
+  attendanceDays: number;
   copayBill: Pick<CopayBill, 'elderlyId' | 'billMonth' | 'totalDue' | 'status'> | null;
 }
 
+type PeriodFacts = Pick<NoticeFacts, 'vitals' | 'programs' | 'rehab' | 'events' | 'specialNotes'>;
+
 /**
- * 한 어르신의 그 달 사실 묶음. 그 어르신 기록만, 날짜가 그 달 밖이면 뺀다.
+ * 한 어르신의 기간 사실(활력징후·프로그램·훈련·사고·특이사항). within이 날짜('YYYY-MM-DD' 앞 10자)가 기간 안인지 가린다.
  *  - 평균은 반올림 정수(체중은 소수 첫째 자리). 혈압은 수축기·이완기가 둘 다 있는 측정만 센다.
- *  - 체중은 두 번 이상 잰 달만 변화를 말할 수 있어 한 번뿐이면 null(한 번 재고 "변화 없음"이라 쓰는 것을 막는다).
+ *  - 체중은 두 번 이상 잰 기간만 변화를 말할 수 있어 한 번뿐이면 null(한 번 재고 "변화 없음"이라 쓰는 것을 막는다).
  *  - 특이사항은 형식적 문구가 아닌 것만 날짜순 최대 5개, 각 200자까지.
  */
-export function buildNoticeFacts(input: NoticeFactsInput): NoticeFacts {
-  const { elderlyId, month } = input;
+export function collectPeriodFacts(input: FactSources, within: (date: string) => boolean): PeriodFacts {
+  const { elderlyId } = input;
+  const inPeriod = (date: string | null | undefined): date is string => typeof date === 'string' && within(date.slice(0, 10));
 
-  const logs = input.nursingLogs.filter((l) => l.elderlyId === elderlyId && inMonth(l.logDate, month)).sort((a, b) => (a.logDate < b.logDate ? -1 : a.logDate > b.logDate ? 1 : 0));
+  const logs = input.nursingLogs.filter((l) => l.elderlyId === elderlyId && inPeriod(l.logDate)).sort((a, b) => (a.logDate < b.logDate ? -1 : a.logDate > b.logDate ? 1 : 0));
   const bp = logs.filter((l) => typeof l.systolic === 'number' && typeof l.diastolic === 'number');
   const sugar = logs.filter((l) => typeof l.bloodSugar === 'number').map((l) => l.bloodSugar as number);
   const weights = logs.filter((l) => typeof l.weight === 'number').map((l) => l.weight as number);
 
-  const programs = input.programs.filter((p) => inMonth(p.programDate, month) && p.participantIds.includes(elderlyId));
+  const programs = input.programs.filter((p) => inPeriod(p.programDate) && p.participantIds.includes(elderlyId));
   const byCategory: Record<string, number> = {};
   for (const p of programs) byCategory[p.category] = (byCategory[p.category] ?? 0) + 1;
 
-  const rehab = input.rehabSessions.filter((s) => s.elderlyId === elderlyId && inMonth(s.sessionDate, month));
+  const rehab = input.rehabSessions.filter((s) => s.elderlyId === elderlyId && inPeriod(s.sessionDate));
   const rehabKinds = REHAB_KINDS.filter((k) => rehab.some((s) => s.kind === k.value)).map((k) => k.label);
 
   const events = input.events
-    .filter((e) => e.elderlyId === elderlyId && inMonth(e.occurredAt, month))
+    .filter((e) => e.elderlyId === elderlyId && inPeriod(e.occurredAt))
     .sort((a, b) => (a.occurredAt < b.occurredAt ? -1 : a.occurredAt > b.occurredAt ? 1 : 0))
     .map((e) => ({ date: e.occurredAt.slice(0, 10), kindLabel: eventKindLabel(e.kind), severityLabel: eventSeverityLabel(e.severity) }));
 
   const specialNotes = input.careRecords
-    .filter((r) => r.elderlyId === elderlyId && inMonth(r.recordDate, month) && typeof r.specialNote === 'string' && r.specialNote.trim() !== '')
+    .filter((r) => r.elderlyId === elderlyId && inPeriod(r.recordDate) && typeof r.specialNote === 'string' && r.specialNote.trim() !== '')
     .sort((a, b) => (a.recordDate < b.recordDate ? -1 : a.recordDate > b.recordDate ? 1 : 0))
     .map((r) => (r.specialNote as string).trim())
     .filter((note) => findVaguePhrases({ specialNote: note }).length === 0)
     .slice(0, MAX_SPECIAL_NOTES)
     .map((note) => Array.from(note).slice(0, MAX_SPECIAL_NOTE_LENGTH).join(''));
 
-  const bill = input.copayBill;
   return {
-    month,
-    attendanceDays: input.attendanceDays,
     vitals: {
       bp: bp.length === 0 ? null : { avgSys: mean(bp.map((l) => l.systolic as number)), avgDia: mean(bp.map((l) => l.diastolic as number)), count: bp.length },
       bloodSugar: sugar.length === 0 ? null : { avg: mean(sugar), min: Math.min(...sugar), max: Math.max(...sugar), count: sugar.length },
@@ -115,6 +115,18 @@ export function buildNoticeFacts(input: NoticeFactsInput): NoticeFacts {
     rehab: { sessions: rehab.length, minutes: rehab.reduce((n, s) => n + (Number.isFinite(s.minutes) && s.minutes > 0 ? Math.trunc(s.minutes) : 0), 0), kinds: rehabKinds },
     events,
     specialNotes,
+  };
+}
+
+/** 한 어르신의 그 달 사실 묶음. 그 어르신 기록만, 날짜가 그 달 밖이면 뺀다. */
+export function buildNoticeFacts(input: NoticeFactsInput): NoticeFacts {
+  const { elderlyId, month } = input;
+  const facts = collectPeriodFacts(input, (date) => date.slice(0, 7) === month);
+  const bill = input.copayBill;
+  return {
+    month,
+    attendanceDays: input.attendanceDays,
+    ...facts,
     copay: bill && bill.elderlyId === elderlyId && bill.billMonth === month ? { totalDue: bill.totalDue, status: bill.status } : null,
   };
 }
@@ -123,7 +135,7 @@ export function buildNoticeFacts(input: NoticeFactsInput): NoticeFacts {
  * 안내 글에 있는 숫자 중 사실 묶음에 없는 것(AI가 지어냈을 수 있는 수치). 화면이 경고를 띄우는 데 쓴다.
  * 월·일처럼 사실 묶음 날짜에 든 숫자와 이름 자리표시자는 걸러지고, 천 단위 쉼표는 하나로 읽는다.
  */
-export function numbersNotInFacts(text: string, facts: NoticeFacts): string[] {
+export function numbersNotInFacts(text: string, facts: object): string[] {
   const read = (s: string) => (s.replace(/(\d),(?=\d{3})/g, '$1').match(/\d+(?:\.\d+)?/g) ?? []).map((n) => String(Number(n)));
   const allowed = new Set(read(JSON.stringify(facts)));
   return [...new Set(read(text))].filter((n) => !allowed.has(n));
