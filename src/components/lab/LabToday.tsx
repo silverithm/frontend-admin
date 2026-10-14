@@ -2,7 +2,8 @@
 
 /**
  * 실험실 첫 화면의 "오늘 확인할 것" 카드 — 계약 알림, 오늘 투약 대기, 약품 사용기한을 한눈에 보고 누르면 그 도구로 간다.
- * 줄마다 따로 불러오고, 실패한 줄만 숨긴다(셋 다 실패하면 카드를 그리지 않는다). 접힘 상태는 이 브라우저에 기억한다.
+ * 줄마다 따로 불러오고, 실패한 줄만 숨긴다(셋 다 실패하면 카드를 그리지 않는다).
+ * 기본은 한 줄 요약(묶음 메뉴 위에서 도구 내용을 아래로 밀어내지 않게)이고, '자세히'를 누르면 줄마다 미리보기가 펼쳐진다. 펼침 상태는 이 브라우저에 기억한다.
  * 투약 대기는 의뢰서와 투약 기록만 보고 센 것이라 오늘 출결은 반영하지 않는다.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -17,7 +18,7 @@ import type { TodayLine, TodayLineId, TodayTarget } from './LabTodayData';
 import { readStored, todayString, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-const COLLAPSED_KEY = 'carev.lab.todayCollapsed';
+const EXPANDED_KEY = 'carev.lab.todayExpanded';
 
 type LineState = { status: 'loading' } | { status: 'failed' } | { status: 'ok'; line: TodayLine };
 
@@ -35,13 +36,13 @@ interface LabTodayProps {
 }
 
 export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' } });
   const seq = useRef(0);
 
   // 저장된 값은 브라우저에서만 읽을 수 있으므로 첫 그림 뒤에 반영한다
   useEffect(() => {
-    setCollapsed(readStored(COLLAPSED_KEY) === '1');
+    setExpanded(readStored(EXPANDED_KEY) === '1');
   }, []);
 
   const load = useCallback(() => {
@@ -68,9 +69,9 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
   }, [load, refreshKey]);
 
   const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    writeStored(COLLAPSED_KEY, next ? '1' : '0');
+    const next = !expanded;
+    setExpanded(next);
+    writeStored(EXPANDED_KEY, next ? '1' : '0');
   };
 
   const shown = LINES.filter((l) => states[l.id].status !== 'failed');
@@ -83,28 +84,36 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
 
   return (
     <Card padding={0}>
-      <div className={styles.rowHead} style={{ padding: 'var(--spacing-3) var(--spacing-4)' }}>
-        <HStack gap={2} vAlign="center" wrap="wrap">
-          <Text type="label">오늘 확인할 것</Text>
-          {loaded && <Chip tone={total > 0 ? 'warn' : 'ok'} label={total > 0 ? `${total}건` : NOTHING_TO_CHECK} />}
-        </HStack>
-        <Button label={collapsed ? '펼치기' : '접기'} size="sm" variant="ghost" aria-expanded={!collapsed} onClick={toggle} />
-      </div>
-      {!collapsed &&
-        shown.map((l) => {
-          const s = states[l.id];
-          if (s.status === 'loading') {
-            return (
-              <div key={l.id} className={`${styles.todayRow} ${styles.todayRowStatic}`}>
-                <HStack gap={2} vAlign="center">
+      <div className={styles.todayBar}>
+        <Text type="label">오늘 확인할 것</Text>
+        <div className={styles.todayPills}>
+          {shown.map((l) => {
+            const st = states[l.id];
+            if (st.status === 'loading') {
+              return (
+                <span key={l.id} className={styles.todayPillStatic}>
                   <Spinner size="sm" aria-label={`${l.title}을 불러오는 중`} />
                   <Text type="supporting" color="secondary">
-                    {l.title} 불러오는 중...
+                    {l.title}
                   </Text>
-                </HStack>
-              </div>
+                </span>
+              );
+            }
+            if (st.status !== 'ok') return null;
+            return (
+              <button key={l.id} type="button" className={styles.todayPill} aria-label={`${l.title}: ${st.line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target)}>
+                <Text type="supporting">{l.title}</Text>
+                <Chip tone={st.line.count === 0 ? 'ok' : st.line.danger ? 'danger' : 'warn'} label={st.line.count === 0 ? '없음' : st.line.text} />
+              </button>
             );
-          }
+          })}
+          {loaded && total === 0 && <Chip tone="ok" label={NOTHING_TO_CHECK} />}
+        </div>
+        <Button label={expanded ? '간단히' : '자세히'} size="sm" variant="ghost" aria-expanded={expanded} onClick={toggle} />
+      </div>
+      {expanded &&
+        shown.map((l) => {
+          const s = states[l.id];
           if (s.status !== 'ok') return null;
           const { line } = s;
           return (

@@ -15,11 +15,16 @@ export interface CheckedRow extends ReconcileRow {
   name: string;
   bill: CopayBill | null;
   limit: MonthlyLimitUse | null;
+  /** 그 달 출결 기록이 한 건도 없어 출석 일수를 견주지 않은 줄 */
+  attendanceUnknown?: boolean;
 }
 
+/** 출결 기록이 없는 달에 저장하는 줄에 붙는 사유 — 서버는 청구 = 출석이어야 일치로 보므로, 확인함(RESOLVED)으로 남기고 이유를 적는다 */
+export const NO_ATTENDANCE_NOTE = '출결 기록이 없어 출석 일수는 견주지 않음';
+
 /** 일수는 모두 같고 구간만 다른 줄 — 서버는 일수만 봐서 MATCH로 저장해 버리므로 사유가 있어야 저장한다 */
-export function isBandOnly(row: Pick<ReconcileRow, 'status' | 'claimedDays' | 'attendedDays' | 'billedDays'>): boolean {
-  return row.status === 'MISMATCH' && row.claimedDays === row.attendedDays && (row.billedDays === null || row.billedDays === row.claimedDays);
+export function isBandOnly(row: Pick<CheckedRow, 'status' | 'claimedDays' | 'attendedDays' | 'billedDays' | 'attendanceUnknown'>): boolean {
+  return row.status === 'MISMATCH' && (row.attendanceUnknown === true || row.claimedDays === row.attendedDays) && (row.billedDays === null || row.billedDays === row.claimedDays);
 }
 
 /** 줄의 최종 상태: 일치면 MATCH, 차이가 있는데 사유를 적었으면 RESOLVED, 아니면 MISMATCH */
@@ -45,12 +50,22 @@ export function planSave(month: string, rows: ReadonlyArray<CheckedRow>, notes: 
   let skipped = 0;
   for (const r of rows) {
     // 일치한 줄은 옛 사유를 끌고 가지 않는다
-    const note = r.status === 'MATCH' ? '' : (notes[r.elderlyId] ?? '').trim();
-    if (isBandOnly(r) && note === '') {
+    const staffNote = r.status === 'MATCH' ? '' : (notes[r.elderlyId] ?? '').trim();
+    if (isBandOnly(r) && staffNote === '') {
       skipped += 1;
       continue;
     }
-    const status = finalStatus(r, note);
+    // 출결 기록이 없는 달: 출석 비교를 빼고 일치한 줄은 '확인함'으로, 사유가 있는 차이 줄은 사유 앞에 그 사실을 붙인다
+    let note = staffNote;
+    let status = finalStatus(r, staffNote);
+    if (r.attendanceUnknown) {
+      if (status === 'MATCH') {
+        status = 'RESOLVED';
+        note = NO_ATTENDANCE_NOTE;
+      } else if (status === 'RESOLVED') {
+        note = `${NO_ATTENDANCE_NOTE} · ${staffNote}`;
+      }
+    }
     if (status === 'MATCH') counts.match += 1;
     else if (status === 'RESOLVED') counts.resolved += 1;
     else counts.mismatch += 1;

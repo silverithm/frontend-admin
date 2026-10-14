@@ -58,10 +58,10 @@ export default function ClaimCheckTable({ rows, notes, onNote, isDisabled }: Pro
                   <tr key={r.elderlyId} data-tone={r.status === 'MATCH' ? undefined : note.trim() === '' ? 'danger' : undefined}>
                     <td className={six.colName}>{r.name}</td>
                     <td className={styles.num}>{r.claimedDays}일</td>
-                    <td className={styles.num}>{r.attendedDays}일</td>
+                    <td className={styles.num}>{r.attendanceUnknown ? '기록 없음' : `${r.attendedDays}일`}</td>
                     <td className={styles.num}>{r.billedDays === null ? '청구서 없음' : `${r.billedDays}일`}</td>
-                    <td>{bandShort(r.claimedBand)}</td>
-                    <td>{bandShort(r.billBand)}</td>
+                    <td className={six.nowrap}>{bandShort(r.claimedBand)}</td>
+                    <td className={six.nowrap}>{bandShort(r.billBand)}</td>
                     <td>
                       <StatusChip row={r} note={note} />
                     </td>

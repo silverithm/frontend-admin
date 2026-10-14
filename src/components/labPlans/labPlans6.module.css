@@ -188,6 +188,10 @@
   white-space: nowrap;
 }
 
+.nowrap {
+  white-space: nowrap;
+}
+
 .bandBox {
   display: flex;
   flex-direction: column;

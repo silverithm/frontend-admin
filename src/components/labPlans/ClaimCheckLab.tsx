@@ -21,7 +21,7 @@ import type { ClaimReview } from '@/lib/lab/labTypes';
 import ClaimCheckBandCalc from './ClaimCheckBandCalc';
 import { loadClaimData } from './ClaimCheckData';
 import type { ClaimData } from './ClaimCheckData';
-import { finalStatus, MAX_BATCH_ROWS, planSave } from './ClaimCheckFormat';
+import { finalStatus, MAX_BATCH_ROWS, NO_ATTENDANCE_NOTE, planSave } from './ClaimCheckFormat';
 import type { CheckedRow } from './ClaimCheckFormat';
 import ClaimCheckHistory from './ClaimCheckHistory';
 import ClaimCheckMatch from './ClaimCheckMatch';
@@ -111,11 +111,17 @@ export default function ClaimCheckLab() {
       attendance: data.attendance,
       bills: data.bills,
     });
+    // 그 달 출석 기록이 한 건도 없으면(출결을 쓰지 않는 달) 모든 줄이 '청구가 출석보다 많음'으로 보인다 — 출석 비교만 빼고 나머지로 판정한다
+    const noAttendance = !Object.values(data.attendance).some((dates) => dates.some((d) => d.slice(0, 7) === month));
     return result.map((r) => {
       const bill = data.bills.find((b) => b.elderlyId === r.elderlyId && b.billMonth === month) ?? null;
-      return { ...r, name: nameOf(r.elderlyId), bill, limit: bill ? monthlyLimitUse(bill.careGrade, bill.coveredTotal) : null };
+      const base = { ...r, name: nameOf(r.elderlyId), bill, limit: bill ? monthlyLimitUse(bill.careGrade, bill.coveredTotal) : null };
+      if (!noAttendance) return base;
+      const reasons = r.reasons.filter((reason) => !reason.startsWith('청구 일수가 출석보다'));
+      return { ...base, reasons, status: reasons.length === 0 ? ('MATCH' as const) : ('MISMATCH' as const), attendanceUnknown: true };
     });
   }, [data, month, usable, nameOf]);
+  const attendanceUnknown = checked.some((r) => r.attendanceUnknown);
 
   /** 이미 저장한 확인 사유가 있으면 처음에 채워 보여 준다 */
   const effectiveNotes = useMemo(() => {
@@ -234,6 +240,11 @@ export default function ClaimCheckLab() {
 
       {checked.length > 0 && (
         <>
+          {attendanceUnknown && (
+            <SupportText tone="warn">
+              {monthLabel(month)}에는 출결 기록이 한 건도 없어 출석 일수는 견주지 않았습니다. 청구 일수·구간을 본인부담금 청구서와만 비교했고, 저장하면 “{NO_ATTENDANCE_NOTE}”로 남습니다.
+            </SupportText>
+          )}
           <ClaimCheckTable rows={checked} notes={effectiveNotes} onNote={(id, v) => setNotes((n) => ({ ...n, [id]: v }))} isDisabled={saving} />
 
           {unclaimed.length > 0 && (
