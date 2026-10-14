@@ -3,7 +3,7 @@
 /**
  * 실험실 — 기관 업무를 AI와 함께 새로 만들어 보는 곳. 접근 권한이 있는 기관의 관리자에게만 탭이 보인다.
  * 도구가 늘어 묶음 세 개(기록·청구·평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
- * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기라서, 메뉴 항목만 둘이고 같은 화면을 연다.
+ * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기다. 메뉴 항목이 둘이고, 각자 그 보기로 바로 연다.
  */
 import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -104,7 +104,10 @@ export default function LabHome() {
       {tool === 'care' && <CareRecordLab />}
       {tool === 'nursing' && <NursingLogLab />}
       {tool === 'program' && <ProgramLogLab />}
-      {(tool === 'consult' || tool === 'carePlan') && <ConsultationCarePlanLab />}
+      {/* 메뉴가 둘이라 key로 다시 그려 각자 맞는 보기로 연다 */}
+      {(tool === 'consult' || tool === 'carePlan') && (
+        <ConsultationCarePlanLab key={tool} initialView={tool === 'carePlan' ? 'plan' : 'consult'} />
+      )}
       {tool === 'copay' && <CopayLab />}
       {tool === 'risk' && <RiskAssessmentLab />}
       {tool === 'training' && <StaffTrainingLab />}

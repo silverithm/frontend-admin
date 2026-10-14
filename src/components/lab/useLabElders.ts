@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCompanyElders } from '@/lib/apiService';
+import { rememberElderNames } from '@/lib/lab/nameRedaction';
 import { errorText } from './labFormat';
 
 /** 실험실 화면이 쓰는 어르신 최소 정보. 케어 프로필의 등급만 가져온다. */
@@ -16,7 +17,7 @@ export async function fetchLabElders(): Promise<LabElder[]> {
   const record = data as { elders?: unknown; content?: unknown; data?: unknown } | null;
   const raw = Array.isArray(data) ? data : record?.elders ?? record?.content ?? record?.data ?? [];
   const list = Array.isArray(raw) ? raw : [];
-  return list
+  const elders = list
     .map((e: { id?: unknown; name?: unknown; careProfile?: { careGrade?: unknown } | null }) => ({
       id: Number(e.id),
       name: typeof e.name === 'string' ? e.name : '',
@@ -24,6 +25,9 @@ export async function fetchLabElders(): Promise<LabElder[]> {
     }))
     .filter((e) => Number.isInteger(e.id) && e.id > 0 && e.name !== '')
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  // AI로 보내는 메모에서 어르신 이름을 지우려고 이름만 기억해 둔다(nameRedaction)
+  rememberElderNames(elders.map((e) => e.name));
+  return elders;
 }
 
 export function useLabElders() {

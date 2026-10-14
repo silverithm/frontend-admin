@@ -14,8 +14,13 @@ import styles from './labRecords.module.css';
 
 type View = 'consult' | 'plan';
 
-export default function ConsultationCarePlanLab() {
-  const [view, setView] = useState<View>('consult');
+interface ConsultationCarePlanLabProps {
+  /** 실험실 메뉴에서 '상담일지'로 들어오면 상담, '욕구사정·급여계획'으로 들어오면 계획 보기로 연다 */
+  initialView?: View;
+}
+
+export default function ConsultationCarePlanLab({ initialView = 'consult' }: ConsultationCarePlanLabProps) {
+  const [view, setView] = useState<View>(initialView);
   const { elders, isLoading, error, reload } = useLabElders();
 
   return (

@@ -5,6 +5,7 @@
  * 에러는 서버 JSON의 message를 그대로 Error 메시지로 던진다. 서버가 메시지를 주지 않으면 한국어 기본 문구.
  */
 import { authorizedFetch } from '../apiService';
+import { redactDeep, rememberStaffNames } from './nameRedaction.ts';
 import type {
   CareDelivery,
   CareDeliveryInput,
@@ -227,8 +228,11 @@ export async function deleteStaffTraining(id: number): Promise<void> {
 }
 
 /** 참석자 고르기용 같은 기관 직원 */
-export function listLabStaff(): Promise<LabStaff[]> {
-  return request<LabStaff[]>(`${LAB}/staff`, undefined, '직원 목록을 불러오지 못했습니다');
+export async function listLabStaff(): Promise<LabStaff[]> {
+  const staff = await request<LabStaff[]>(`${LAB}/staff`, undefined, '직원 목록을 불러오지 못했습니다');
+  // AI로 보내는 글에서 직원 이름을 지우려고 이름만 기억해 둔다(nameRedaction)
+  rememberStaffNames(staff.map((s) => s.name));
+  return staff;
 }
 
 // ---------- 상담일지 ----------
@@ -268,18 +272,18 @@ export async function deleteCarePlan(id: number): Promise<void> {
   await request<null>(`${LAB}/care-plans/${q(String(id))}`, { method: 'DELETE' }, '급여제공계획을 삭제하지 못했습니다');
 }
 
-// ---------- AI (어르신 이름은 보내지 않는다: 메모·관찰·증빙 글만) ----------
+// ---------- AI (어르신 이름은 보내지 않는다: 메모·관찰·증빙 글만, 그래도 적힌 이름은 redactDeep가 보내기 직전에 지운다) ----------
 
 export function aiStructureCareNote(note: string): Promise<CareNoteStructured> {
-  return request<CareNoteStructured>(`${LAB_AI}/care-record`, json('POST', { note }), 'AI가 메모를 정리하지 못했습니다. 잠시 후 다시 시도해 주세요');
+  return request<CareNoteStructured>(`${LAB_AI}/care-record`, json('POST', redactDeep({ note })), 'AI가 메모를 정리하지 못했습니다. 잠시 후 다시 시도해 주세요');
 }
 
 export function aiSuggestRiskScores(kind: ScaleKind, observations: string): Promise<RiskSuggestion> {
-  return request<RiskSuggestion>(`${LAB_AI}/risk`, json('POST', { kind, observations }), 'AI가 점수를 제안하지 못했습니다. 잠시 후 다시 시도해 주세요');
+  return request<RiskSuggestion>(`${LAB_AI}/risk`, json('POST', redactDeep({ kind, observations })), 'AI가 점수를 제안하지 못했습니다. 잠시 후 다시 시도해 주세요');
 }
 
 export function aiReviewEvalEvidence(input: EvalReviewInput): Promise<EvalReviewResult> {
-  return request<EvalReviewResult>(`${LAB_AI}/eval-review`, json('POST', input), 'AI가 증빙을 검토하지 못했습니다. 잠시 후 다시 시도해 주세요');
+  return request<EvalReviewResult>(`${LAB_AI}/eval-review`, json('POST', redactDeep(input)), 'AI가 증빙을 검토하지 못했습니다. 잠시 후 다시 시도해 주세요');
 }
 
 // ---------- 2차 AI 작업 — 직원이 고칠 수 있는 제안만 돌려준다. 이름은 보내지 않는다 ----------
@@ -287,21 +291,21 @@ export function aiReviewEvalEvidence(input: EvalReviewInput): Promise<EvalReview
 const AI_RETRY = '잠시 후 다시 시도해 주세요';
 
 export function aiSummarizeNursing(input: NursingSummaryInput): Promise<NursingSummaryResult> {
-  return request<NursingSummaryResult>(`${LAB_AI}/nursing-summary`, json('POST', input), `AI가 바이탈을 요약하지 못했습니다. ${AI_RETRY}`);
+  return request<NursingSummaryResult>(`${LAB_AI}/nursing-summary`, json('POST', redactDeep(input)), `AI가 바이탈을 요약하지 못했습니다. ${AI_RETRY}`);
 }
 
 export function aiDraftProgramLog(input: ProgramLogAiInput): Promise<ProgramLogResult> {
-  return request<ProgramLogResult>(`${LAB_AI}/program-log`, json('POST', input), `AI가 프로그램 일지를 정리하지 못했습니다. ${AI_RETRY}`);
+  return request<ProgramLogResult>(`${LAB_AI}/program-log`, json('POST', redactDeep(input)), `AI가 프로그램 일지를 정리하지 못했습니다. ${AI_RETRY}`);
 }
 
 export function aiDraftTrainingLog(input: TrainingLogAiInput): Promise<TrainingLogResult> {
-  return request<TrainingLogResult>(`${LAB_AI}/training-log`, json('POST', input), `AI가 교육·회의 기록을 정리하지 못했습니다. ${AI_RETRY}`);
+  return request<TrainingLogResult>(`${LAB_AI}/training-log`, json('POST', redactDeep(input)), `AI가 교육·회의 기록을 정리하지 못했습니다. ${AI_RETRY}`);
 }
 
 export function aiDraftConsultation(input: ConsultationAiInput): Promise<ConsultationResult> {
-  return request<ConsultationResult>(`${LAB_AI}/consultation`, json('POST', input), `AI가 상담 내용을 정리하지 못했습니다. ${AI_RETRY}`);
+  return request<ConsultationResult>(`${LAB_AI}/consultation`, json('POST', redactDeep(input)), `AI가 상담 내용을 정리하지 못했습니다. ${AI_RETRY}`);
 }
 
 export function aiDraftCarePlan(input: CarePlanAiInput): Promise<CarePlanResult> {
-  return request<CarePlanResult>(`${LAB_AI}/care-plan`, json('POST', input), `AI가 급여제공계획 초안을 만들지 못했습니다. ${AI_RETRY}`);
+  return request<CarePlanResult>(`${LAB_AI}/care-plan`, json('POST', redactDeep(input)), `AI가 급여제공계획 초안을 만들지 못했습니다. ${AI_RETRY}`);
 }
