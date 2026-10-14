@@ -113,6 +113,7 @@ export default function EvalIndicatorPanel({ indicator, check, onSaved }: EvalIn
       {indicator.autoSource && (
         <EvalAutoEvidence
           source={indicator.autoSource}
+          indicatorCode={indicator.code}
           onUse={(text) => setEvidence((prev) => (prev.trim() === '' ? text : `${prev.trim()}\n${text}`).slice(0, 3000))}
         />
       )}

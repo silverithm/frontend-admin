@@ -144,3 +144,50 @@ export function careFieldsOf(r: CareRecord): CareRecordFields {
     specialNote: r.specialNote,
   };
 }
+
+/**
+ * 위생·안전 점검 화면이 이 브라우저에 기억해 두는 운영 설정. 평가 준비의 자동 근거도 같은 값을 읽는다.
+ *  · SAFETY_CLOSED_KEY — 휴원일. 값은 JSON 배열 ["YYYY-MM-DD", ...] (여러 달 섞여도 됨)
+ *  · SAFETY_NO_VEHICLE_KEY — 차량 운행 안 함. 값은 "1"(운행 안 함), 없거나 "0"이면 운행함
+ */
+export const SAFETY_CLOSED_KEY = 'carev.lab.safety.closedDates';
+export const SAFETY_NO_VEHICLE_KEY = 'carev.lab.safety.noVehicle';
+
+/** 기억해 둔 설정을 읽는다. 없거나 모양이 틀리면 fallback. parse가 null을 주면 틀린 값으로 본다. */
+export function readLabPreference<T>(key: string, parse: (raw: string) => T | null, fallback: T): T {
+  const raw = readStored(key);
+  if (raw === null) return fallback;
+  try {
+    const value = parse(raw);
+    return value === null ? fallback : value;
+  } catch {
+    return fallback;
+  }
+}
+
+/** 기억해 둔 휴원일 목록('YYYY-MM-DD'만 남긴다) */
+export function readClosedDates(): string[] {
+  return readLabPreference<string[]>(
+    SAFETY_CLOSED_KEY,
+    (raw) => {
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return null;
+      return parsed.filter((v): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v));
+    },
+    [],
+  );
+}
+
+/** 차량 운행을 안 한다고 기억해 두었는가 */
+export function readNoVehicle(): boolean {
+  return readLabPreference<boolean>(SAFETY_NO_VEHICLE_KEY, (raw) => raw === '1' || raw === 'true', false);
+}
+
+/** 그 달의 운영일 = 평일(월~금)에서 기억해 둔 휴원일을 뺀 날 */
+export function operatingDaysOf(month: string, closed: ReadonlyArray<string> = readClosedDates()): string[] {
+  const off = new Set(closed);
+  return monthDates(month).filter((d) => {
+    const w = weekdayIndex(d);
+    return w >= 1 && w <= 5 && !off.has(d);
+  });
+}

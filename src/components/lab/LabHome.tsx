@@ -2,7 +2,7 @@
 
 /**
  * 실험실 — 기관 업무를 AI와 함께 새로 만들어 보는 곳. 접근 권한이 있는 기관의 관리자에게만 탭이 보인다.
- * 도구가 늘어 묶음 세 개(기록·청구·평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
+ * 도구가 늘어 묶음 네 개(기록·운영·청구·평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
  * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기다. 메뉴 항목이 둘이고, 각자 그 보기로 바로 연다.
  */
 import { useEffect, useState } from 'react';
@@ -10,8 +10,10 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Text } from '@astryxdesign/core/Text';
 import PageHeader from '@/components/PageHeader';
 import ConsultationCarePlanLab from '@/components/labRecords/ConsultationCarePlanLab';
+import MealPlanLab from '@/components/labRecords/MealPlanLab';
 import NursingLogLab from '@/components/labRecords/NursingLogLab';
 import ProgramLogLab from '@/components/labRecords/ProgramLogLab';
+import SafetyCheckLab from '@/components/labRecords/SafetyCheckLab';
 import StaffTrainingLab from '@/components/labRecords/StaffTrainingLab';
 import CareRecordLab from './CareRecordLab';
 import CopayLab from './CopayLab';
@@ -20,7 +22,7 @@ import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety';
 
 interface ToolGroup {
   id: string;
@@ -37,6 +39,14 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'nursing', label: '간호일지' },
       { id: 'program', label: '프로그램 일지' },
       { id: 'consult', label: '상담일지' },
+    ],
+  },
+  {
+    id: 'operations',
+    label: '운영',
+    tools: [
+      { id: 'meal', label: '주간 식단표' },
+      { id: 'safety', label: '위생·안전 점검' },
     ],
   },
   { id: 'billing', label: '청구', tools: [{ id: 'copay', label: '본인부담금' }] },
@@ -108,6 +118,8 @@ export default function LabHome() {
       {(tool === 'consult' || tool === 'carePlan') && (
         <ConsultationCarePlanLab key={tool} initialView={tool === 'carePlan' ? 'plan' : 'consult'} />
       )}
+      {tool === 'meal' && <MealPlanLab />}
+      {tool === 'safety' && <SafetyCheckLab />}
       {tool === 'copay' && <CopayLab />}
       {tool === 'risk' && <RiskAssessmentLab />}
       {tool === 'training' && <StaffTrainingLab />}

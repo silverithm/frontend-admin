@@ -9,16 +9,18 @@ import { Button } from '@astryxdesign/core/Button';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { listCareDeliveries, listCarePlans, listCareRecordsByDate, listLabStaff, listPrograms, listRiskLatest, listStaffTrainings } from '@/lib/lab/labApi';
+import { listCareDeliveries, listCarePlans, listCareRecordsByDate, listLabStaff, listPrograms, listRiskLatest, listSafetyChecks, listSafetyChecksByYear, listStaffTrainings } from '@/lib/lab/labApi';
 import { summarizeQuality } from '@/lib/lab/careRecordQuality';
 import { EVAL_AUTO_SOURCE_LABEL } from '@/lib/lab/evalIndicators';
 import type { EvalAutoSource } from '@/lib/lab/evalIndicators';
 import { carePlanCoverage } from '@/lib/lab/carePlanRules';
+import { EVAL_SAFETY_KINDS, monthlySafetySummary, safetyCoverage } from '@/lib/lab/safetyRules';
+import type { SafetyKind } from '@/lib/lab/labTypes';
 import { recentWeeklyStatuses, weeksMet } from '@/lib/lab/programRules';
 import { currentHalfLabel, halfYearSummary } from '@/lib/lab/riskScales';
 import { LEGAL_TRAINING_CATEGORIES, summarizeCoverage, trainingCategoryLabel, trainingCoverage } from '@/lib/lab/trainingRules';
 import { ErrorBanner } from './LabUi';
-import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, recentDates, todayString } from './labFormat';
+import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, operatingDaysOf, readClosedDates, readNoVehicle, recentDates, todayString } from './labFormat';
 import { fetchLabElders } from './useLabElders';
 import styles from './lab.module.css';
 
@@ -28,8 +30,40 @@ interface Evidence {
 
 const pct = (part: number, whole: number) => (whole === 0 ? 0 : Math.round((part / whole) * 100));
 
-async function collect(source: EvalAutoSource): Promise<Evidence> {
+async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<Evidence> {
   const asOf = todayString();
+  if (source === 'SAFETY_CHECKS') {
+    const month = currentMonth();
+    const noVehicle = readNoVehicle();
+    const closed = readClosedDates();
+    const allKinds: readonly SafetyKind[] = indicatorCode ? (EVAL_SAFETY_KINDS[indicatorCode] ?? []) : Object.values(EVAL_SAFETY_KINDS).flat();
+    const kinds = [...new Set(allKinds)].filter((k) => !(noVehicle && k === 'VEHICLE'));
+    if (kinds.length === 0) return { lines: ['이 지표에 맞는 점검 종류가 없어 이번 달 점검 현황을 셀 수 없습니다'] };
+    const checks = await listSafetyChecks(month);
+    const days = operatingDaysOf(month, closed);
+    const summary = monthlySafetySummary(checks, month, days, kinds);
+    const perKind = summary.perKind.map((k) => `${k.label} ${k.done}/${k.required}`).join(' · ');
+    const basis = `운영일 ${days.length}일(평일${closed.length > 0 ? '에서 기억해 둔 휴원일 제외' : ''}${noVehicle ? ', 차량 운행 안 함' : ''})`;
+    return {
+      lines: [
+        `${monthLabel(month)} 필수 점검 완료율: ${summary.done}/${summary.required}회 (${summary.percent}%)`,
+        `종류별: ${perKind} (${asOf} 기준)`,
+        `계산 기준: ${basis}`,
+      ],
+    };
+  }
+  if (source === 'DRILL_TWICE') {
+    const year = Number(asOf.slice(0, 4));
+    const drills = await listSafetyChecksByYear(year, 'DRILL');
+    const cov = safetyCoverage(drills, 'DRILL', { year });
+    const half = (h: 1 | 2) => (cov.missing.includes(`${year}-H${h}`) ? '아직 없음' : '실시함');
+    return {
+      lines: [
+        `${year}년 재난 대응 훈련: 상반기(1~6월) ${half(1)} · 하반기(7~12월) ${half(2)}`,
+        `반기별 실시 ${cov.done}/${cov.required}회 (${asOf} 기준)`,
+      ],
+    };
+  }
   if (source === 'RISK_HALF_YEAR') {
     const latest = await listRiskLatest();
     const summary = halfYearSummary(latest, new Date());
@@ -108,11 +142,13 @@ async function collect(source: EvalAutoSource): Promise<Evidence> {
 
 interface EvalAutoEvidenceProps {
   source: EvalAutoSource;
+  /** 지표 코드 — 지표마다 볼 점검 종류가 다를 때 쓴다 */
+  indicatorCode?: string;
   /** 근거 글에 이 내용을 넣는다 */
   onUse: (text: string) => void;
 }
 
-export default function EvalAutoEvidence({ source, onUse }: EvalAutoEvidenceProps) {
+export default function EvalAutoEvidence({ source, indicatorCode, onUse }: EvalAutoEvidenceProps) {
   const [evidence, setEvidence] = useState<Evidence | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +159,7 @@ export default function EvalAutoEvidence({ source, onUse }: EvalAutoEvidenceProp
     setLoading(true);
     setError(null);
     try {
-      const result = await collect(source);
+      const result = await collect(source, indicatorCode);
       if (n !== seq.current) return;
       setEvidence(result);
     } catch (e) {
@@ -132,7 +168,7 @@ export default function EvalAutoEvidence({ source, onUse }: EvalAutoEvidenceProp
     } finally {
       if (n === seq.current) setLoading(false);
     }
-  }, [source]);
+  }, [source, indicatorCode]);
 
   useEffect(() => {
     void load();
