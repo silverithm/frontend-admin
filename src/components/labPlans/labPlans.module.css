@@ -1,0 +1,317 @@
+/* 실험실 5차 계획 화면(봉사·자원연계, 예산·결산) 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.stack {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-3);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.spacer {
+  margin-inline-start: auto;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+.statBox {
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
+}
+
+.warnText {
+  color: var(--color-text-yellow);
+}
+
+.dangerText {
+  color: var(--color-text-red);
+  font-weight: var(--font-weight-medium);
+}
+
+.okText {
+  color: var(--color-text-green);
+}
+
+.mutedText {
+  color: var(--color-text-secondary);
+}
+
+.pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.suggestBox {
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border: 1px dashed var(--color-border-emphasized);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 표는 자기 상자 안에서만 가로로 움직인다 — 페이지 전체가 옆으로 밀리지 않게 */
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.table td.wrap {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.table tr[data-tone='danger'] td {
+  background: var(--color-background-red);
+}
+
+.table tr[data-tone='warn'] td {
+  background: var(--color-background-yellow);
+}
+
+.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 금액 줄 편집 표 — 좁은 화면에서는 표 안에서만 가로로 움직인다 */
+.lineTable {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+}
+
+.lineTable th,
+.lineTable td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.lineTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.colAccount {
+  min-width: 240px;
+}
+
+.colAmount {
+  min-width: 150px;
+}
+
+.colNote {
+  min-width: 160px;
+}
+
+.colAction {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* 좁은 화면: 표의 한 행을 카드처럼 쌓는다 */
+@media (max-width: 640px) {
+  .stackTable,
+  .stackTable tbody,
+  .stackTable tr,
+  .stackTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .stackTable thead {
+    display: none;
+  }
+  .stackTable tr {
+    padding: var(--spacing-3) var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .stackTable td {
+    padding: var(--spacing-1) 0;
+    border-bottom: 0;
+    white-space: normal;
+    text-align: start;
+  }
+  .stackTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+  .lineTable {
+    min-width: 0;
+  }
+  .lineTable thead {
+    display: none;
+  }
+  .lineTable,
+  .lineTable tbody,
+  .lineTable tr,
+  .lineTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .lineTable tr {
+    padding: var(--spacing-3) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .lineTable td {
+    border-bottom: 0;
+  }
+}
+
+.rowCard {
+  padding: var(--spacing-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.rowCard:last-child {
+  border-bottom: 0;
+}
+
+.meter {
+  height: 6px;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.meterFill {
+  height: 100%;
+  background: var(--color-icon-accent);
+}
+
+.meterFill[data-over='true'] {
+  background: var(--color-text-red);
+}
+
+/* ---------- 인쇄본: 화면에서는 숨기고 인쇄할 때만 나타난다 ---------- */
+.printRoot {
+  display: none;
+}
+
+@media print {
+  .printRoot {
+    display: block;
+    color: var(--color-text-primary);
+    background: var(--color-background-card);
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+}
+
+.printTitle {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--font-size-xl);
+  text-align: center;
+}
+
+.printSection {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: var(--font-weight-bold);
+  break-after: avoid;
+}
+
+.printMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-6);
+  margin-bottom: var(--spacing-2);
+}
+
+.printNote {
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.printSign {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-6);
+}
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sheetTable th,
+.sheetTable td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border-emphasized);
+  vertical-align: top;
+  text-align: start;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-primary);
+}
+
+.sheetTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.sheetTable tr {
+  break-inside: avoid;
+}
+
+.certPage {
+  break-after: page;
+}
+
+.certPage:last-child {
+  break-after: auto;
+}
