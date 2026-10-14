@@ -99,6 +99,7 @@ export default function EvalIndicatorPanel({ indicator, check, onSaved }: EvalIn
 
   return (
     <div className={styles.itemBody}>
+      {indicator.deletedIn2026 && <SupportText>2026판 평가에서 삭제된 지표입니다. 기록은 남길 수 있지만 전체 준비율에는 들어가지 않습니다.</SupportText>}
       <VStack gap={1}>
         <Text type="label">이 지표에서 확인하는 것</Text>
         <ul className={styles.reqList}>

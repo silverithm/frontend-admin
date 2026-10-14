@@ -16,7 +16,9 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { billTotals, MAX_MONEY, MAX_NON_COVERED_ITEMS, MAX_NON_COVERED_LABEL } from '@/lib/lab/copayBill';
 import { CARE_GRADES, COPAY_CLASSES, DAYCARE_UNITS, HOUR_BANDS, MAX_DAYS_IN_MONTH, formatWon, gradeLabel, hourBand } from '@/lib/ltc2026';
 import type { CopayBill, CopayClass, DaycareUnit, HourBand, LtcCareGrade } from '@/lib/lab/labTypes';
+import CopayContractFill from './CopayContractFill';
 import { Chip, NumField, SupportText } from './LabUi';
+import type { CopayContractsState } from './copayContracts';
 import { applyMealCost, buildFromDraft, isBuildError, newItem, remainingDue, statusChip } from './copayDraft';
 import type { CopayDraft } from './copayDraft';
 import type { LabElder } from './useLabElders';
@@ -33,6 +35,8 @@ interface CopayRowProps {
   attendanceDays: number | null;
   /** 식재료비 일 단가(기관 공통). 없으면 자동 계산을 하지 않는다. */
   mealPrice: number | null;
+  /** 진행 중 계약 목록(계약 정보로 채우기) */
+  contracts: CopayContractsState;
   onChange: (next: CopayDraft) => void;
   onSave: () => void;
   onPay: () => void;
@@ -59,7 +63,7 @@ function Figure({ label, value, strong }: { label: string; value: string; strong
   );
 }
 
-export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, attendanceDays, mealPrice, onChange, onSave, onPay, onNotice, onReceipt, onDelete }: CopayRowProps) {
+export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, attendanceDays, mealPrice, contracts, onChange, onSave, onPay, onNotice, onReceipt, onDelete }: CopayRowProps) {
   const [open, setOpen] = useState(false);
   const built = useMemo(() => buildFromDraft(elder.id, month, draft), [elder.id, month, draft]);
   const ok = !isBuildError(built);
@@ -117,6 +121,7 @@ export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, a
       {open && (
         <div style={{ marginTop: 'var(--spacing-3)' }}>
         <VStack gap={3}>
+          <CopayContractFill elderId={elder.id} draft={draft} contracts={contracts} onChange={onChange} />
           <div className={styles.fieldGrid}>
             <Selector
               label="등급"

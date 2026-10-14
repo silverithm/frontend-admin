@@ -26,6 +26,7 @@ import CopayDepositPanel from './CopayDepositPanel';
 import CopayPaymentDialog from './CopayPaymentDialog';
 import CopayReceiptDialog from './CopayReceipt';
 import CopayRow from './CopayRow';
+import { useCopayContracts } from './copayContracts';
 import { ErrorBanner, LabConfirm, MonthStepper, NumField, SupportText, useNotify } from './LabUi';
 import { applyMealCost, buildFromDraft, defaultDraft, draftFromBill, draftKey, isBuildError, withoutMealCost } from './copayDraft';
 import type { CopayDraft } from './copayDraft';
@@ -61,6 +62,7 @@ function countPresentDays(data: unknown): Map<number, number> {
 export default function CopayLab() {
   const notify = useNotify();
   const { elders, isLoading: eldersLoading, error: eldersError, reload: reloadElders } = useLabElders();
+  const contracts = useCopayContracts();
   const [month, setMonth] = useState(currentMonth);
   const [bills, setBills] = useState<CopayBill[]>([]);
   const [drafts, setDrafts] = useState<Record<number, CopayDraft>>({});
@@ -322,6 +324,7 @@ export default function CopayLab() {
                   isSaving={savingIds.has(elder.id)}
                   attendanceDays={attendance ? attendance.get(elder.id) ?? 0 : null}
                   mealPrice={mealPrice}
+                  contracts={contracts}
                   onChange={(next) => setDrafts((prev) => ({ ...prev, [elder.id]: next }))}
                   onSave={() => void saveOne(elder.id)}
                   onPay={() => setPayBill(billByElder.get(elder.id) ?? null)}

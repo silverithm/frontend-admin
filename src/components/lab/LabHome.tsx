@@ -2,7 +2,8 @@
 
 /**
  * 실험실 — 기관 업무를 AI와 함께 새로 만들어 보는 곳. 접근 권한이 있는 기관의 관리자에게만 탭이 보인다.
- * 도구가 늘어 묶음 여섯 개(기록, 운영, 소통·연계, 청구, 재무, 평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
+ * 도구가 늘어 묶음 일곱 개(수급자, 기록, 운영, 소통·연계, 청구, 재무, 평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
+ * 맨 위 "오늘 확인할 것" 카드(LabToday)는 계약 알림·오늘 투약 대기·약품 사용기한을 보여 주고, 줄을 누르면 그 도구를 연다.
  * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기다. 메뉴 항목이 둘이고, 각자 그 보기로 바로 연다.
  */
 import { useEffect, useState } from 'react';
@@ -10,11 +11,13 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Text } from '@astryxdesign/core/Text';
 import PageHeader from '@/components/PageHeader';
 import CareEventLab from '@/components/labRecords/CareEventLab';
+import BathLab from '@/components/labRecords/BathLab';
 import ConsultationCarePlanLab from '@/components/labRecords/ConsultationCarePlanLab';
 import DonationLab from '@/components/labRecords/DonationLab';
 import GuardianNoticeLab from '@/components/labRecords/GuardianNoticeLab';
 import LedgerLab from '@/components/labRecords/LedgerLab';
 import MealPlanLab from '@/components/labRecords/MealPlanLab';
+import MedicationLab from '@/components/labRecords/MedicationLab';
 import NursingLogLab from '@/components/labRecords/NursingLogLab';
 import PayrollLab from '@/components/labRecords/PayrollLab';
 import ProgramLogLab from '@/components/labRecords/ProgramLogLab';
@@ -22,15 +25,18 @@ import RehabLab from '@/components/labRecords/RehabLab';
 import SafetyCheckLab from '@/components/labRecords/SafetyCheckLab';
 import StaffTrainingLab from '@/components/labRecords/StaffTrainingLab';
 import BudgetLab from '@/components/labPlans/BudgetLab';
+import ClaimCheckLab from '@/components/labPlans/ClaimCheckLab';
 import CommunityLab from '@/components/labPlans/CommunityLab';
+import ContractLab from '@/components/labPlans/ContractLab';
 import CareRecordLab from './CareRecordLab';
 import CopayLab from './CopayLab';
 import EvalReadinessLab from './EvalReadinessLab';
+import LabToday from './LabToday';
 import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck';
 
 interface ToolGroup {
   id: string;
@@ -39,6 +45,7 @@ interface ToolGroup {
 }
 
 const GROUPS: readonly ToolGroup[] = [
+  { id: 'recipient', label: '수급자', tools: [{ id: 'contract', label: '계약·인정' }] },
   {
     id: 'records',
     label: '기록',
@@ -49,6 +56,8 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'consult', label: '상담일지' },
       { id: 'careEvent', label: '상태변화·사고' },
       { id: 'rehab', label: '기능회복훈련' },
+      { id: 'medication', label: '투약 관리' },
+      { id: 'bath', label: '목욕 일지' },
     ],
   },
   {
@@ -67,7 +76,14 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'community', label: '봉사·자원연계' },
     ],
   },
-  { id: 'billing', label: '청구', tools: [{ id: 'copay', label: '본인부담금' }] },
+  {
+    id: 'billing',
+    label: '청구',
+    tools: [
+      { id: 'copay', label: '본인부담금' },
+      { id: 'claimCheck', label: '공단 청구 대조' },
+    ],
+  },
   {
     id: 'finance',
     label: '재무',
@@ -120,7 +136,9 @@ export default function LabHome() {
         description="기관 업무를 AI와 함께 새로 만들어 보는 곳입니다. 지금은 이 기관에만 열려 있어요."
       />
 
-      {/* 휴대폰 폭에서는 묶음 여섯 줄이 첫 화면을 다 차지해 도구 내용이 안 보인다 — 묶음별 선택 상자 하나로 바꾼다 */}
+      <LabToday onOpenTool={choose} refreshKey={tool} />
+
+      {/* 휴대폰 폭에서는 묶음 일곱 줄이 첫 화면을 다 차지해 도구 내용이 안 보인다 — 묶음별 선택 상자 하나로 바꾼다 */}
       <label className={styles.toolPicker}>
         <Text type="label" color="secondary">
           도구
@@ -165,6 +183,10 @@ export default function LabHome() {
       {tool === 'guardian' && <GuardianNoticeLab />}
       {tool === 'community' && <CommunityLab />}
       {tool === 'budget' && <BudgetLab />}
+      {tool === 'contract' && <ContractLab />}
+      {tool === 'medication' && <MedicationLab />}
+      {tool === 'bath' && <BathLab />}
+      {tool === 'claimCheck' && <ClaimCheckLab />}
       {tool === 'nursing' && <NursingLogLab />}
       {tool === 'program' && <ProgramLogLab />}
       {/* 메뉴가 둘이라 key로 다시 그려 각자 맞는 보기로 연다 */}

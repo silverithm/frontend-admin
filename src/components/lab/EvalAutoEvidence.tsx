@@ -22,6 +22,7 @@ import type { SafetyKind } from '@/lib/lab/labTypes';
 import { recentWeeklyStatuses, weeksMet } from '@/lib/lab/programRules';
 import { currentHalfLabel, halfYearSummary } from '@/lib/lab/riskScales';
 import { LEGAL_TRAINING_CATEGORIES, summarizeCoverage, trainingCategoryLabel, trainingCoverage } from '@/lib/lab/trainingRules';
+import { collectContractEvidence, isContractEvidenceSource } from './EvalAutoEvidenceContract';
 import { ErrorBanner } from './LabUi';
 import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, operatingDaysOf, readClosedDates, readNoVehicle, recentDates, shiftMonth, todayString } from './labFormat';
 import { fetchLabElders } from './useLabElders';
@@ -35,6 +36,7 @@ const pct = (part: number, whole: number) => (whole === 0 ? 0 : Math.round((part
 
 async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<Evidence> {
   const asOf = todayString();
+  if (isContractEvidenceSource(source)) return collectContractEvidence(source, asOf);
   if (source === 'SAFETY_CHECKS') {
     const month = currentMonth();
     const noVehicle = readNoVehicle();

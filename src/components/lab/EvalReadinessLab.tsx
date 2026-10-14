@@ -14,7 +14,7 @@ import { VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
 import SectionHeader from '@/components/SectionHeader';
 import { listEvalChecks } from '@/lib/lab/labApi';
-import { EVAL_STATUS_LABEL, indicatorsByGroup, readinessSummary } from '@/lib/lab/evalIndicators';
+import { EVAL_INDICATORS, EVAL_STATUS_LABEL, indicatorsByGroup, readinessSummary } from '@/lib/lab/evalIndicators';
 import type { EvalCheck, EvalStatus } from '@/lib/lab/labTypes';
 import EvalIndicatorPanel from './EvalIndicatorPanel';
 import { Chip, ErrorBanner } from './LabUi';
@@ -70,6 +70,7 @@ export default function EvalReadinessLab() {
   const byCode = useMemo(() => new Map(checks.map((c) => [c.indicatorCode, c])), [checks]);
   const summary = useMemo(() => readinessSummary(checks), [checks]);
   const groups = useMemo(() => indicatorsByGroup(), []);
+  const deletedCount = useMemo(() => EVAL_INDICATORS.filter((i) => i.deletedIn2026).length, []);
 
   const handleSaved = (saved: EvalCheck) => setChecks((prev) => [...prev.filter((c) => c.indicatorCode !== saved.indicatorCode), saved]);
 
@@ -103,9 +104,14 @@ export default function EvalReadinessLab() {
             </Text>
           </div>
           <Meter percent={summary.percent} label="전체 준비 완료 비율" />
+          {deletedCount > 0 && (
+            <Text type="supporting" color="secondary">
+              2026판에서 삭제된 지표 {deletedCount}개는 준비율 계산에서 뺐습니다. 점검표에는 흐리게 남겨 두었어요.
+            </Text>
+          )}
           <div className={styles.groupGrid}>
             {groups.map((g) => {
-              const applicable = g.indicators.filter((i) => byCode.get(i.code)?.status !== 'NOT_APPLICABLE');
+              const applicable = g.indicators.filter((i) => !i.deletedIn2026 && byCode.get(i.code)?.status !== 'NOT_APPLICABLE');
               const ready = applicable.filter((i) => byCode.get(i.code)?.status === 'READY').length;
               const percent = applicable.length === 0 ? 0 : Math.round((ready / applicable.length) * 100);
               return (
@@ -132,7 +138,7 @@ export default function EvalReadinessLab() {
               const check = byCode.get(indicator.code) ?? null;
               const isOpen = openCode === indicator.code;
               return (
-                <div key={indicator.code} style={index > 0 ? { borderTop: '1px solid var(--color-border)' } : undefined}>
+                <div key={indicator.code} style={{ ...(index > 0 ? { borderTop: '1px solid var(--color-border)' } : {}), ...(indicator.deletedIn2026 ? { opacity: 0.6 } : {}) }}>
                   <Collapsible
                     isOpen={isOpen}
                     onOpenChange={(open) => setOpenCode(open ? indicator.code : null)}
@@ -145,9 +151,16 @@ export default function EvalReadinessLab() {
                           <Text type="supporting" color="secondary">
                             {indicator.code}
                             {indicator.autoSource ? ' · 자동 근거 있음' : ''}
+                            {indicator.deletedIn2026 ? ' · 준비율에서 뺌' : ''}
                           </Text>
                         </VStack>
-                        {check ? <Chip tone={STATUS_TONE[check.status]} label={EVAL_STATUS_LABEL[check.status]} /> : <Chip tone="neutral" label="점검 전" />}
+                        {indicator.deletedIn2026 ? (
+                          <Chip tone="neutral" label="2026판 삭제" />
+                        ) : check ? (
+                          <Chip tone={STATUS_TONE[check.status]} label={EVAL_STATUS_LABEL[check.status]} />
+                        ) : (
+                          <Chip tone="neutral" label="점검 전" />
+                        )}
                       </div>
                     }
                   >
