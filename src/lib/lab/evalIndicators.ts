@@ -31,7 +31,7 @@ export type EvalAutoSource =
   | 'CARE_EVENT_FOLLOWUP'
   /** 지난달 보호자 월간 안내를 보낸 어르신 비율 — 2026 '소통노력'의 기관 소식 월 1회. 보호자 상담(분기 1회)은 별도이며 일방향 안내만으로는 인정되지 않는다 */
   | 'GUARDIAN_NOTICE_MONTHLY'
-  /** 올해 외부기관·지역자원 연계 건수(연계기록지 제공 포함) — 2026 '외부기관연계' */
+  /** 올해 외부기관·지역자원 연계 건수(의료기관 진료 연계는 따로 셈) — 2026 '외부기관연계' 기준① */
   | 'RESOURCE_LINKS';
 
 export interface EvalIndicator {
@@ -63,7 +63,7 @@ export const EVAL_AUTO_SOURCE_LABEL: Readonly<Record<EvalAutoSource, string>> = 
   DRILL_TWICE: '재난 대응 훈련의 올해 반기별 실시 현황',
   CARE_EVENT_FOLLOWUP: '상태변화·사고 기록의 즉시 조치·보호자 연락 현황 (올해)',
   GUARDIAN_NOTICE_MONTHLY: '보호자 월간 안내 발송 현황 (지난달) — 기관 소식 월 1회 근거이며, 보호자 상담은 분기 1회 별도로 있어야 하고 일방향 안내만으로는 인정되지 않음',
-  RESOURCE_LINKS: '외부기관·지역자원 연계 기록 (올해, 연계기록지 제공 여부 포함)',
+  RESOURCE_LINKS: '외부기관·지역자원 연계 기록 (올해, 의료기관 진료 연계 따로 셈 — 퇴소 연계기록지는 포함 안 됨)',
 };
 
 export const EVAL_INDICATORS: readonly EvalIndicator[] = [

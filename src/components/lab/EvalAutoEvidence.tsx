@@ -174,7 +174,8 @@ async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<
     const links = await listResourceLinks({ year });
     if (links.length === 0) return { lines: [`${year}년에 기록된 외부기관·지역자원 연계가 없습니다 (${asOf} 기준)`] };
     const sum = resourceSummary(links, year, asOf);
-    const referral = links.filter((l) => l.linkedOn.slice(0, 4) === String(year) && l.referralGiven).length;
+    // 기준①은 직원이 동행한 의료기관 진료 기록이다 — 의료기관 연계만 따로 센다. 퇴소 연계기록지(기준②)는 이 기록으로 증명되지 않는다
+    const medical = sum.byType.MEDICAL ?? 0;
     const kinds = Object.entries(sum.byType)
       .filter(([, n]) => n > 0)
       .map(([type, n]) => `${resourceTypeLabel(type)} ${n}건`)
@@ -182,7 +183,8 @@ async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<
     return {
       lines: [
         `${year}년 외부기관·지역자원 연계 ${sum.total}건, 연계한 어르신 ${sum.eldersLinked}명 (${asOf} 기준)`,
-        `연계기록지를 제공한 건 ${referral}/${sum.total}건${kinds ? ` · 종류별: ${kinds}` : ''}`,
+        `의료기관 진료 연계 ${medical}건 — 진료 내용은 각 기록의 내용 칸${kinds ? ` · 종류별: ${kinds}` : ''}`,
+        '퇴소(계약 종료) 때 주는 연계기록지와 제공대장은 이 기록에 포함되지 않습니다 — 따로 확인해 주세요',
         ...(sum.followUpsDue.length > 0 ? [`후속 확인일이 지났는데 결과가 비어 있는 연계 ${sum.followUpsDue.length}건`] : []),
       ],
     };

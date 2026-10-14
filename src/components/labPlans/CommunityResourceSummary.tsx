@@ -61,7 +61,7 @@ export default function CommunityResourceSummary({ year, summary }: Props) {
             </VStack>
           </Banner>
         )}
-        <SupportText>연계기록지를 제공한 건은 목록에 ‘연계기록지 제공’으로 표시됩니다(2026년 평가 ‘외부기관연계’에서 확인). 지역사회 자원 연계 자체를 묻는 별도 지표는 없어, 이 기록은 기관의 사례 관리와 후속 확인용입니다.</SupportText>
+        <SupportText>2026년 평가 ‘외부기관연계’는 직원이 동행한 의료기관 진료 내용을 기록했는지(기준①)와 퇴소 때 연계기록지를 줬는지(기준②)를 봅니다. 이 목록은 기준①과 기관의 사례 관리·후속 확인용이고, 퇴소 연계기록지는 따로 남겨야 합니다. 지역사회 자원 연계 자체를 묻는 별도 지표는 없습니다.</SupportText>
       </VStack>
     </Card>
   );

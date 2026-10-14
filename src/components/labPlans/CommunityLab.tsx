@@ -21,7 +21,7 @@ export default function CommunityLab() {
         <SegmentedControlItem value="volunteer" label="봉사 일지" />
         <SegmentedControlItem value="resource" label="외부기관·자원 연계" />
       </SegmentedControl>
-      <SupportText>봉사 일지는 VMS(1365) 등록과 활동 확인서용 기관 기록입니다. 외부기관 연계는 어르신별 후속 확인과 연계기록지 제공을 관리합니다.</SupportText>
+      <SupportText>봉사 일지는 VMS(1365) 등록과 활동 확인서용 기관 기록입니다. 외부기관 연계는 어르신별 진료 동행 기록·후속 확인·보호자 안내를 관리합니다.</SupportText>
       <div hidden={view !== 'volunteer'}>
         <CommunityVolunteerLab />
       </div>

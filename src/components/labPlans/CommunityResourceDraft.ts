@@ -1,4 +1,4 @@
-/** 자원연계 한 건의 입력 상태 — 어르신 선택(또는 기관 전체), 연계 날짜, 자원 종류, 기관, 담당자, 내용, 결과, 후속 확인 예정일, 연계기록지 제공. */
+/** 자원연계 한 건의 입력 상태 — 어르신 선택(또는 기관 전체), 연계 날짜, 자원 종류, 기관, 담당자, 내용, 결과, 후속 확인 예정일, 보호자에게 알림 여부. */
 import { RESOURCE_TYPES } from '@/lib/lab/communityRules';
 import type { ResourceLink, ResourceLinkInput, ResourceType } from '@/lib/lab/labTypes';
 import { parseYmd } from '@/lib/lab/labDate';

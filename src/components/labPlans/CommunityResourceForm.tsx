@@ -1,6 +1,6 @@
 'use client';
 
-/** 자원연계 입력 양식 — 어르신(또는 기관 전체)·날짜·자원 종류·기관·담당자·내용·결과·후속 확인 예정일·연계기록지 제공. */
+/** 자원연계 입력 양식 — 어르신(또는 기관 전체)·날짜·자원 종류·기관·담당자·내용·결과·후속 확인 예정일·보호자에게 알림. */
 import { useMemo } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -90,8 +90,8 @@ export default function CommunityResourceForm({ draft, onChange, elders, eldersL
           <TextInput label="작성자" value={draft.writer} onChange={(v) => set({ writer: v.slice(0, MAX_WRITER_NAME) })} isDisabled={saving} />
         </div>
         <VStack gap={1}>
-          <Switch label="연계기록지를 제공했습니다" value={draft.referralGiven} onChange={(v) => set({ referralGiven: v })} isDisabled={saving} />
-          <SupportText>2026년 평가 ‘외부기관연계’ 지표에서 의료기관 진료 내용을 기록하고 연계기록지를 제공했는지 확인합니다. 제공했다면 켜 두세요.</SupportText>
+          <Switch label="연계 결과를 보호자에게 알렸습니다" value={draft.referralGiven} onChange={(v) => set({ referralGiven: v })} isDisabled={saving} />
+          <SupportText>2026년 평가 ‘외부기관연계’ 기준①은 급여제공시간에 직원이 동행한 진료 내용을 기록했는지 봅니다. 진료 동행이면 종류를 의료기관으로 두고 내용에 진료 결과를 적어 주세요. 퇴소 때 주는 연계기록지(기준②)는 이 기록과 별개입니다.</SupportText>
         </VStack>
         {touched && issues.length > 0 && (
           <VStack gap={1}>

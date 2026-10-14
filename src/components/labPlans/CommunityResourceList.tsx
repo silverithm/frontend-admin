@@ -60,7 +60,7 @@ export default function CommunityResourceList({ links, dueIds, isBusy, onEdit, o
                   <div className={styles.pre}>{l.content}</div>
                   <div className={`${styles.mutedText} ${styles.pre}`}>{l.outcome ? `결과: ${l.outcome}` : '결과 아직 없음'}</div>
                   <HStack gap={1} wrap="wrap">
-                    {l.referralGiven ? <Chip tone="ok" label="연계기록지 제공" /> : <Chip tone="neutral" label="연계기록지 미제공" />}
+                    {l.referralGiven ? <Chip tone="ok" label="보호자에게 알림" /> : <Chip tone="neutral" label="보호자 안내 전" />}
                   </HStack>
                 </td>
                 <td data-label="후속 확인">
