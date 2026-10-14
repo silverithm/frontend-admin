@@ -1,0 +1,145 @@
+/* 수급자 서류함 전용 스타일 — 공용 모양은 labRecords.module.css. 색은 토큰만. */
+
+.elderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+  min-height: 48px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.elderRow:hover {
+  background: var(--color-background-muted);
+}
+
+.elderRow[aria-expanded='true'] {
+  background: var(--color-background-muted);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-surface);
+  min-width: 0;
+}
+
+.docBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.docBlockWarn {
+  border-color: var(--color-border-yellow);
+  background: var(--color-background-yellow);
+}
+
+.docBlockDanger {
+  border-color: var(--color-border-red);
+  background: var(--color-background-red);
+}
+
+.docRecord {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-1) var(--spacing-3);
+  padding-top: var(--spacing-2);
+  border-top: 1px dashed var(--color-border);
+  min-width: 0;
+}
+
+.docRecordText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.formBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.retentionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-1) var(--spacing-3);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.retentionRow:last-child {
+  border-bottom: 0;
+}
+
+.guide {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.guide p {
+  margin: var(--spacing-1) 0;
+}
+
+/* 인쇄본 */
+.sheetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-1) var(--spacing-6);
+  margin-bottom: var(--spacing-3);
+}
+
+.sheetCell {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-1) 0;
+  min-height: 24px;
+}
+
+.sheetCellLabel {
+  flex: none;
+  min-width: 72px;
+  font-weight: var(--font-weight-medium);
+}

@@ -1,0 +1,142 @@
+/* 진료 동행 화면 전용 스타일 — 공용 모양은 labRecords.module.css. 색은 토큰만. */
+
+.visitRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.visitRow:last-child {
+  border-bottom: 0;
+}
+
+.dueRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.dueRow:last-child {
+  border-bottom: 0;
+}
+
+.dueBox {
+  border: 1px solid var(--color-border-yellow);
+  background: var(--color-background-yellow);
+  border-radius: var(--radius-inner);
+  padding: var(--spacing-3) var(--spacing-4);
+  min-width: 0;
+}
+
+.deptRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.deptName {
+  flex: 0 0 96px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.deptTrack {
+  flex: 1 1 auto;
+  height: 8px;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.deptFill {
+  height: 100%;
+  background: var(--color-border-emphasized);
+}
+
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3) var(--spacing-6);
+}
+
+.aiNote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+/* 인쇄본 */
+.sheetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-1) var(--spacing-6);
+  margin-bottom: var(--spacing-3);
+}
+
+.sheetCell {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-1) 0;
+  min-height: 24px;
+}
+
+.sheetCellLabel {
+  flex: none;
+  min-width: 84px;
+  font-weight: var(--font-weight-medium);
+}
+
+.sheetBlock {
+  border: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-2) var(--spacing-3);
+  min-height: 48px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dueActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.guide {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.guide summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.guide p {
+  margin: var(--spacing-1) 0;
+}
