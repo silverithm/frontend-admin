@@ -193,10 +193,16 @@ test('위험도 입력 검증·프롬프트 — 도구별 항목과 허용 점�
   assert.doesNotMatch(braden, /ambulatoryAid/);
 });
 
-test('위험도 스키마 — 도구별 항목, 모든 항목은 선택이고 value·reason은 필수', () => {
-  const s = riskSchema('MORSE') as { properties: { scores: { properties: Record<string, { required: string[] }> } } };
-  assert.deepEqual(Object.keys(s.properties.scores.properties), ['history', 'secondaryDiagnosis', 'ambulatoryAid', 'ivTherapy', 'gait', 'mentalStatus']);
+test('위험도 스키마 — 도구별 항목을 모두 필수로 두고, 근거 없는 항목은 value null로 받는다', () => {
+  const s = riskSchema('MORSE') as {
+    properties: { scores: { required: string[]; properties: Record<string, { required: string[]; properties: { value: { nullable?: boolean } } }> } };
+  };
+  const keys = ['history', 'secondaryDiagnosis', 'ambulatoryAid', 'ivTherapy', 'gait', 'mentalStatus'];
+  assert.deepEqual(Object.keys(s.properties.scores.properties), keys);
+  // 항목을 빼먹지 못하게 모두 필수 — 선택이면 모델이 근거 있는 항목도 실행마다 빼먹는다
+  assert.deepEqual(s.properties.scores.required, keys);
   assert.deepEqual(s.properties.scores.properties.gait.required, ['value', 'reason']);
+  assert.equal(s.properties.scores.properties.gait.properties.value.nullable, true);
   assert.equal(Object.keys((riskSchema('BRADEN') as typeof s).properties.scores.properties).length, 6);
   assert.equal(riskSchema('MORSE'), riskSchema('MORSE'));
 });

@@ -218,7 +218,7 @@ export function buildRiskPrompt(input: RiskAiInput): string {
 
 [규칙]
 1. ${INJECTION_RULE}
-2. 관찰 기록에서 해당 항목을 판단할 근거가 분명한 항목만 답에 넣습니다. 근거가 없으면 그 항목은 아예 빼고, 추측으로 점수를 채우지 않습니다.
+2. 모든 항목을 하나씩 검토해 답에 넣습니다. 관찰 기록에 그 항목을 판단할 근거가 분명하면 점수를, 근거가 없으면 value를 null로 두고 reason에 "관찰 기록에 근거 없음"이라고 적습니다. 추측으로 점수를 채우지 않습니다.
 3. 점수는 아래 허용된 값 중 하나만 씁니다. 허용되지 않은 값(예: 중간값)은 쓰지 않습니다.
 4. reason에는 점수를 준 근거가 된 관찰 내용을 한 문장으로 적습니다. 관찰 기록에 없는 내용을 지어내지 않습니다.
 5. ${PRIVACY_RULE}
@@ -231,7 +231,11 @@ ${fence('observations', input.observations)}`;
 
 const RISK_SCHEMA_CACHE: Partial<Record<RiskKind, object>> = {};
 
-/** 항목마다 {value, reason}. 항목은 모두 선택(근거 없는 항목은 빼게 한다). */
+/**
+ * 항목마다 {value, reason}. 모든 항목을 필수로 둔다 — 선택으로 두었더니 모델이 근거가 분명한 항목도
+ * 실행마다 들쭉날쭉 빼먹었다(2026-10-14 실측: 지팡이 보행인데 ambulatoryAid 누락, 다음 번엔 gait 누락).
+ * 대신 근거가 없으면 value를 null로 두게 해 추측 점수를 막고, 정규화에서 null은 버린다.
+ */
 export function riskSchema(kind: RiskKind): object {
   const cached = RISK_SCHEMA_CACHE[kind];
   if (cached) return cached;
@@ -242,13 +246,17 @@ export function riskSchema(kind: RiskKind): object {
       type: 'OBJECT',
       description: `${item.label} — 허용 점수: ${allowed}`,
       properties: {
-        value: { type: 'INTEGER', description: `허용 점수 중 하나: ${allowed}` },
+        value: { type: 'INTEGER', nullable: true, description: `허용 점수 중 하나: ${allowed}. 관찰 기록에 근거가 없으면 null` },
         reason: STR('근거가 된 관찰 내용 한 문장'),
       },
       required: ['value', 'reason'],
     };
   }
-  const schema = { type: 'OBJECT', properties: { scores: { type: 'OBJECT', properties } }, required: ['scores'] };
+  const schema = {
+    type: 'OBJECT',
+    properties: { scores: { type: 'OBJECT', properties, required: Object.keys(properties) } },
+    required: ['scores'],
+  };
   RISK_SCHEMA_CACHE[kind] = schema;
   return schema;
 }
