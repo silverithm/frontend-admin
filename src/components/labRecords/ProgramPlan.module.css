@@ -1,0 +1,306 @@
+/* 프로그램 계획 화면 전용 스타일 — 색·간격·모서리는 모두 토큰이다. */
+
+.planCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-3);
+  align-items: stretch;
+}
+
+.planCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  height: 100%;
+}
+
+.planCardBody {
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-1) var(--spacing-3);
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 월간 계획표 달력: 월요일부터 7칸. 휴대폰에서는 목록으로 바뀐다. */
+.cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.calHead {
+  text-align: center;
+  padding: var(--spacing-1) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.calBlank {
+  min-height: 0;
+}
+
+.calCell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 84px;
+  min-width: 0;
+  padding: var(--spacing-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.calCell:hover {
+  background: var(--color-background-muted);
+}
+
+.calCell[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+  background: var(--color-background-muted);
+}
+
+.calCell[data-operating='false'] {
+  background: var(--color-background-muted);
+  color: var(--color-text-secondary);
+}
+
+.calDay {
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+}
+
+.calDayWeek {
+  display: none;
+  margin-inline-start: var(--spacing-1);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}
+
+.calItem {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  min-width: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.calMark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-icon-gray);
+}
+
+.calMarkCognitive {
+  background: var(--color-icon-accent);
+}
+
+.calMarkPhysical {
+  background: var(--color-success);
+}
+
+.calMarkSocial {
+  background: var(--color-warning);
+}
+
+.calEmpty {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 640px) {
+  .cal {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-1);
+  }
+  .calHead,
+  .calBlank {
+    display: none;
+  }
+  .calCell {
+    min-height: 48px;
+    padding: var(--spacing-2) var(--spacing-3);
+  }
+  .calCell[data-empty='true'][data-operating='false'] {
+    display: none;
+  }
+  .calDayWeek {
+    display: inline;
+  }
+  .calItem {
+    font-size: var(--font-size-sm);
+  }
+}
+
+.dayPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.itemRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.itemRowText {
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.itemForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+.weekTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.weekTable th,
+.weekTable td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekTable th {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+}
+
+.weekScroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.low {
+  color: var(--color-text-red);
+  font-weight: var(--font-weight-medium);
+}
+
+.proposalScroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.issueList {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.halfGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.feedbackRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.clamp {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+/* 인쇄본 */
+.printCal {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.printCal th,
+.printCal td {
+  border: 1px solid var(--color-border-emphasized);
+  padding: 3px 4px;
+  vertical-align: top;
+  text-align: start;
+  overflow-wrap: anywhere;
+  font-size: 9pt;
+}
+
+.printCal th {
+  background: var(--color-background-muted);
+  text-align: center;
+}
+
+.printCal tr {
+  break-inside: avoid;
+}
+
+.printCal td {
+  height: 22mm;
+}
+
+.printDay {
+  font-weight: var(--font-weight-bold);
+}
+
+.printOff {
+  background: var(--color-background-muted);
+}
+
+.printItem {
+  margin-top: 2px;
+}
+
+.printPlanBlock {
+  break-inside: avoid;
+  margin-bottom: var(--spacing-4);
+}
+
+.printPlanBlock + .printPlanBlock {
+  break-before: auto;
+}

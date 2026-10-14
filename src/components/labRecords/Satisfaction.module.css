@@ -1,0 +1,173 @@
+/* 급여 만족도 화면 전용 스타일 — 색·간격·모서리는 모두 토큰이다. */
+
+.questionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.scoreRow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--spacing-2);
+}
+
+.scoreButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  min-width: 0;
+  padding: var(--spacing-1);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.scoreButton:hover {
+  background: var(--color-background-muted);
+}
+
+.scoreButton[aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.scoreNum {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreWord {
+  font-size: var(--font-size-xs);
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .scoreWord {
+    display: none;
+  }
+  .scoreButton[aria-pressed='true'] .scoreWord {
+    display: block;
+  }
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  gap: var(--spacing-1) var(--spacing-3);
+  align-items: center;
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.summaryText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.summaryAvg {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+}
+
+.summaryLow {
+  color: var(--color-text-red);
+}
+
+.bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.barFillLow {
+  height: 100%;
+  background: var(--color-error);
+}
+
+.halfGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.responseRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.commentText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.themeRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.suggestList {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.printTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.printTable th,
+.printTable td {
+  border: 1px solid var(--color-border-emphasized);
+  padding: 3px 6px;
+  text-align: start;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.printTable th {
+  background: var(--color-background-muted);
+}
+
+.printTable tr {
+  break-inside: avoid;
+}
+
+.printNum {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
