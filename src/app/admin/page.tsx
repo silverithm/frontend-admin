@@ -1,8 +1,5 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps, prefer-const --
-   이 파일에 원래 있던 경고들이다(실험실 연결과 무관, 코드는 건드리지 않았다). 린트 게이트가 경고 0건을 요구해 이 세 규칙만 파일 단위로 끈다. */
-
 import {useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import {useRouter} from "next/navigation";
 import {format, addMonths, subMonths, isSameDay, startOfMonth, endOfMonth} from "date-fns";
@@ -139,7 +136,7 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
     return "neutral";
 };
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library" | 'lab';
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library" | "lab";
 type ApprovalSubTab = "management" | "templates" | "submit";
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 type ScheduleMode = "schedule" | "annual";
