@@ -247,11 +247,11 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
 
         <VStack gap={3}>
           <div className={styles.fieldGrid}>
-            <LabDateInput label="욕구사정 날짜" value={draft.assessedOn} onChange={(v) => setDraft((d) => ({ ...d, assessedOn: v }))} max={todayString()} isRequired />
+            <LabDateInput label="욕구사정 날짜" value={draft.assessedOn} onChange={(v) => setDraft((d) => ({ ...d, assessedOn: v }))} max={todayString()} />
           </div>
           <div className={styles.fieldGridWide}>
             {NEEDS_KEYS.map((k) => (
-              <TextArea key={k} label={CARE_PLAN_NEEDS_LABEL[k]} value={draft.needs[k]} onChange={(v) => setNeed(k, v.slice(0, NEEDS_MAX))} rows={3} maxLength={NEEDS_MAX} isOptional />
+              <TextArea key={k} label={`${CARE_PLAN_NEEDS_LABEL[k]} (선택)`} value={draft.needs[k]} onChange={(v) => setNeed(k, v.slice(0, NEEDS_MAX))} rows={3} maxLength={NEEDS_MAX} />
             ))}
           </div>
         </VStack>
@@ -305,13 +305,12 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
         </VStack>
 
         <TextArea
-          label={draft.goalsFromAi ? '목표 · AI 제안' : '목표'}
+          label={draft.goalsFromAi ? '목표 (선택) · AI 제안' : '목표 (선택)'}
           description="욕구사정에서 이어지는 구체적인 상태로 적어 주세요. 예: 보행기로 혼자 화장실까지 이동하기"
           value={draft.goals}
           onChange={(v) => setDraft((d) => ({ ...d, goals: v.slice(0, GOALS_MAX), goalsFromAi: false }))}
           rows={4}
           maxLength={GOALS_MAX}
-          isOptional
         />
 
         <ConsultationCarePlanServices rows={draft.services} onChange={(rows) => setDraft((d) => ({ ...d, services: rows }))} isDisabled={saving} />
@@ -329,7 +328,7 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
 
         <div className={styles.fieldGrid}>
           <LabDateInput label="보호자 동의일" value={draft.guardianAgreedOn} onChange={(v) => setDraft((d) => ({ ...d, guardianAgreedOn: v }))} max={todayString()} />
-          <TextInput label="작성자 이름" value={draft.writer} onChange={(v) => setDraft((d) => ({ ...d, writer: v.slice(0, 50) }))} isRequired />
+          <TextInput label="작성자 이름" value={draft.writer} onChange={(v) => setDraft((d) => ({ ...d, writer: v.slice(0, 50) }))} />
         </div>
         <HStack gap={2} vAlign="center" wrap="wrap">
           <Button label="오늘 동의받음" variant="ghost" onClick={() => setDraft((d) => ({ ...d, guardianAgreedOn: todayString() }))} />

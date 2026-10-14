@@ -102,7 +102,6 @@ export default function RiskCognitiveFields({ value, onChange }: RiskCognitiveFi
             description="보건소·치매안심센터·병원 이름"
             value={value.institution}
             onChange={(v) => onChange({ ...value, institution: v.slice(0, COGNITIVE_INSTITUTION_MAX) })}
-            isRequired
           />
         )}
       </div>
@@ -114,7 +113,6 @@ export default function RiskCognitiveFields({ value, onChange }: RiskCognitiveFi
           value={value.judgment ?? ''}
           onChange={(v) => onChange({ ...value, judgment: v as CognitiveJudgment, judgmentByStaff: true })}
           size="sm"
-          isRequired
         >
           {COGNITIVE_JUDGMENTS.map((j) => (
             <RadioListItem key={j.id} value={j.id} label={j.label} description={j.hint} />

@@ -226,15 +226,15 @@ function DeliveryDialog({ elder, month, existing, onClose, onSaved }: DeliveryDi
         content={
           <LayoutContent>
             <VStack gap={3}>
-              <LabDateInput label="제공일" value={deliveredOn} onChange={setDeliveredOn} max={today} isRequired />
+              <LabDateInput label="제공일" value={deliveredOn} onChange={setDeliveredOn} max={today} />
               <Selector
                 label="제공 방법"
                 options={METHODS.map((m) => ({ value: m.value, label: m.label }))}
                 value={method}
                 onChange={(v) => v && setMethod(v as DeliveryMethod)}
               />
-              <TextInput label="받은 분" value={recipient} onChange={(v) => setRecipient(v.slice(0, 50))} isOptional placeholder="예: 보호자 김OO" />
-              <TextInput label="메모" value={note} onChange={(v) => setNote(v.slice(0, 200))} isOptional />
+              <TextInput label="받은 분 (선택)" value={recipient} onChange={(v) => setRecipient(v.slice(0, 50))} placeholder="예: 보호자 김OO" />
+              <TextInput label="메모 (선택)" value={note} onChange={(v) => setNote(v.slice(0, 200))} />
               {error && <ErrorBanner message={error} />}
             </VStack>
           </LayoutContent>

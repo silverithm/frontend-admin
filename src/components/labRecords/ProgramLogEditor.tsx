@@ -139,7 +139,7 @@ export default function ProgramLogEditor({ elders, program, preset, onSaved, onD
         </HStack>
 
         <div className={styles.fieldGrid}>
-          <LabDateInput label="진행 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} isRequired />
+          <LabDateInput label="진행 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
           <TimeField label="시작 시각" value={draft.time} onChange={(v) => setDraft((d) => ({ ...d, time: v }))} />
           <Selector
             label="분류"
@@ -166,19 +166,17 @@ export default function ProgramLogEditor({ elders, program, preset, onSaved, onD
           label={draft.ai.title ? `${FIELD_LABEL.title} · AI 제안` : FIELD_LABEL.title}
           value={draft.fields.title}
           onChange={(v) => setField('title', v.slice(0, PROGRAM_TEXT_MAX.title))}
-          isRequired
           placeholder="예: 회상 활동 — 옛날 사진 보며 이야기하기"
         />
         <div className={styles.fieldGridWide}>
           {(['goal', 'content', 'reaction'] as const).map((key) => (
             <TextArea
               key={key}
-              label={draft.ai[key] ? `${FIELD_LABEL[key]} · AI 제안` : FIELD_LABEL[key]}
+              label={draft.ai[key] ? `${FIELD_LABEL[key]} (선택) · AI 제안` : `${FIELD_LABEL[key]} (선택)`}
               value={draft.fields[key]}
               onChange={(v) => setField(key, v)}
               rows={key === 'content' ? 5 : 3}
               maxLength={PROGRAM_TEXT_MAX[key]}
-              isOptional
             />
           ))}
         </div>

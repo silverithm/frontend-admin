@@ -269,12 +269,12 @@ export default function NursingLogEditor({ elderId, elderName, date, log, hasNex
           </VStack>
 
           <div className={styles.fieldGridWide}>
-            <TextArea label="처치" value={draft.treatment} onChange={(v) => setDraft((d) => ({ ...d, treatment: v }))} rows={3} maxLength={TEXT_MAX} isOptional placeholder="예: 우측 발목 소독 후 드레싱, 보행 시 통증 호소 없음" />
-            <TextArea label="메모" value={draft.note} onChange={(v) => setDraft((d) => ({ ...d, note: v }))} rows={3} maxLength={TEXT_MAX} isOptional placeholder="특이사항·보호자 연락·의료기관 이용 등" />
+            <TextArea label="처치 (선택)" value={draft.treatment} onChange={(v) => setDraft((d) => ({ ...d, treatment: v }))} rows={3} maxLength={TEXT_MAX} placeholder="예: 우측 발목 소독 후 드레싱, 보행 시 통증 호소 없음" />
+            <TextArea label="메모 (선택)" value={draft.note} onChange={(v) => setDraft((d) => ({ ...d, note: v }))} rows={3} maxLength={TEXT_MAX} placeholder="특이사항·보호자 연락·의료기관 이용 등" />
           </div>
 
           <div className={styles.fieldGrid}>
-            <TextInput label="기록자 이름" value={draft.recorder} onChange={(v) => setDraft((d) => ({ ...d, recorder: v.slice(0, 50) }))} isRequired />
+            <TextInput label="기록자 이름" value={draft.recorder} onChange={(v) => setDraft((d) => ({ ...d, recorder: v.slice(0, 50) }))} />
           </div>
 
           {saveError && <ErrorBanner message={saveError} />}

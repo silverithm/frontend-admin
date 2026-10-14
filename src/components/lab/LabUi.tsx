@@ -177,13 +177,12 @@ interface LabDateInputProps {
 }
 
 /** DateInput은 ISODateString 형식 타입을 요구한다. 화면 상태는 평범한 문자열로 두고 여기서만 맞춘다. */
-export function LabDateInput({ label, value, onChange, max, isRequired }: LabDateInputProps) {
+export function LabDateInput({ label, value, onChange, max, }: LabDateInputProps) {
   return (
     <DateInput
       label={label}
       value={(value || undefined) as ISODateString | undefined}
       max={max as ISODateString | undefined}
-      isRequired={isRequired}
       onChange={(v) => onChange(v ?? '')}
     />
   );

@@ -215,10 +215,10 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
       </div>
 
       <div className={styles.fieldGrid}>
-        <LabDateInput label="평가일" value={assessedOn} onChange={setAssessedOn} max={todayString()} isRequired />
-        <TextInput label="평가자" value={assessor} onChange={(v) => setAssessor(v.slice(0, 50))} isRequired />
+        <LabDateInput label="평가일" value={assessedOn} onChange={setAssessedOn} max={todayString()} />
+        <TextInput label="평가자" value={assessor} onChange={(v) => setAssessor(v.slice(0, 50))} />
       </div>
-      <TextArea label="메모" isOptional value={note} onChange={setNote} rows={2} maxLength={1000} />
+      <TextArea label="메모 (선택)" value={note} onChange={setNote} rows={2} maxLength={1000} />
 
       <div className={styles.stickyBar}>
         <VStack gap={2}>

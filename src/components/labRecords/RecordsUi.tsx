@@ -112,5 +112,5 @@ interface TimeFieldProps {
 
 /** TimeInput은 ISOTimeString 형식 타입을 요구한다. 화면 상태는 평범한 문자열로 두고 여기서만 맞춘다. */
 export function TimeField({ label, value, onChange }: TimeFieldProps) {
-  return <TimeInput label={label} isOptional hasClear value={(value || undefined) as ISOTimeString | undefined} onChange={(v) => onChange(v ? String(v).slice(0, 5) : '')} />;
+  return <TimeInput label={label} hasClear value={(value || undefined) as ISOTimeString | undefined} onChange={(v) => onChange(v ? String(v).slice(0, 5) : '')} />;
 }

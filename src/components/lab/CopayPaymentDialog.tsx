@@ -70,8 +70,8 @@ export default function CopayPaymentDialog({ bill, onClose, onSaved }: CopayPaym
                   남은 금액보다 {formatWon(amount - remaining)} 많습니다. 초과 납부라면 그대로 기록해도 됩니다.
                 </Text>
               )}
-              <LabDateInput label="낸 날짜" value={paidOn} onChange={setPaidOn} max={todayString()} isRequired />
-              <TextInput label="낸 사람" value={payer} onChange={(v) => setPayer(v.slice(0, 50))} isOptional placeholder="예: 보호자 이름" />
+              <LabDateInput label="낸 날짜" value={paidOn} onChange={setPaidOn} max={todayString()} />
+              <TextInput label="낸 사람 (선택)" value={payer} onChange={(v) => setPayer(v.slice(0, 50))} placeholder="예: 보호자 이름" />
               {error && <ErrorBanner message={error} />}
             </VStack>
           </LayoutContent>

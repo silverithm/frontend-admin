@@ -144,9 +144,9 @@ export default function StaffTrainingEditor({ staff, training, preset, onSaved, 
         </SegmentedControl>
 
         <div className={styles.fieldGrid}>
-          <LabDateInput label="진행 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} isRequired />
+          <LabDateInput label="진행 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
           <Selector label="범주" options={categoryOptions(draft.kind)} value={draft.category} onChange={(v) => v && setDraft((d) => ({ ...d, category: v as TrainingDraft['category'] }))} />
-          <TextInput label="강사·진행자" value={draft.instructor} onChange={(v) => setDraft((d) => ({ ...d, instructor: v.slice(0, 50) }))} isOptional />
+          <TextInput label="강사·진행자 (선택)" value={draft.instructor} onChange={(v) => setDraft((d) => ({ ...d, instructor: v.slice(0, 50) }))} />
         </div>
 
         <AiMemoBox
@@ -165,16 +165,14 @@ export default function StaffTrainingEditor({ staff, training, preset, onSaved, 
           label={draft.ai.topic ? '주제 · AI 제안' : '주제'}
           value={draft.fields.topic}
           onChange={(v) => setField('topic', v.slice(0, TRAINING_TEXT_MAX.topic))}
-          isRequired
           placeholder="예: 2026년 노인학대 예방 교육"
         />
         <TextArea
-          label={draft.ai.content ? '내용 · AI 제안' : '내용'}
+          label={draft.ai.content ? '내용 (선택) · AI 제안' : '내용 (선택)'}
           value={draft.fields.content}
           onChange={(v) => setField('content', v)}
           rows={6}
           maxLength={TRAINING_TEXT_MAX.content}
-          isOptional
         />
 
         <PersonPicker label="참석 직원" items={items} selected={draft.attendeeIds} onChange={(ids) => setDraft((d) => ({ ...d, attendeeIds: ids }))} max={MAX_ATTENDEES} emptyText="등록된 직원이 없습니다" />

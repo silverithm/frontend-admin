@@ -135,9 +135,9 @@ export default function ConsultationCarePlanConsultEditor({ elderId, elderName, 
         </HStack>
 
         <div className={styles.fieldGrid}>
-          <LabDateInput label="상담 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} isRequired />
+          <LabDateInput label="상담 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
           <Selector label="상담 상대" options={COUNTERPART_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.counterpart} onChange={(v) => v && setDraft((d) => ({ ...d, counterpart: v as ConsultDraft['counterpart'] }))} />
-          <TextInput label="상대 이름" value={draft.counterpartName} onChange={(v) => setDraft((d) => ({ ...d, counterpartName: v.slice(0, 50) }))} isOptional placeholder="예: 큰딸 김OO" />
+          <TextInput label="상대 이름 (선택)" value={draft.counterpartName} onChange={(v) => setDraft((d) => ({ ...d, counterpartName: v.slice(0, 50) }))} placeholder="예: 큰딸 김OO" />
           <Selector label="상담 방법" options={METHOD_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.method} onChange={(v) => v && setDraft((d) => ({ ...d, method: v as ConsultDraft['method'] }))} />
         </div>
 
@@ -170,11 +170,11 @@ export default function ConsultationCarePlanConsultEditor({ elderId, elderName, 
         />
 
         <div className={styles.fieldGridWide}>
-          <TextArea label={draft.ai.content ? '상담 내용 · AI 제안' : '상담 내용'} value={draft.fields.content} onChange={(v) => setField('content', v)} rows={6} maxLength={CONSULT_TEXT_MAX.content} isRequired />
-          <TextArea label={draft.ai.followUp ? '후속 조치 · AI 제안' : '후속 조치'} value={draft.fields.followUp} onChange={(v) => setField('followUp', v)} rows={6} maxLength={CONSULT_TEXT_MAX.followUp} isOptional />
+          <TextArea label={draft.ai.content ? '상담 내용 · AI 제안' : '상담 내용'} value={draft.fields.content} onChange={(v) => setField('content', v)} rows={6} maxLength={CONSULT_TEXT_MAX.content} />
+          <TextArea label={draft.ai.followUp ? '후속 조치 (선택) · AI 제안' : '후속 조치 (선택)'} value={draft.fields.followUp} onChange={(v) => setField('followUp', v)} rows={6} maxLength={CONSULT_TEXT_MAX.followUp} />
         </div>
         <div className={styles.fieldGrid}>
-          <TextInput label="상담자 이름" value={draft.consultant} onChange={(v) => setDraft((d) => ({ ...d, consultant: v.slice(0, 50) }))} isRequired />
+          <TextInput label="상담자 이름" value={draft.consultant} onChange={(v) => setDraft((d) => ({ ...d, consultant: v.slice(0, 50) }))} />
         </div>
 
         {saveError && <ErrorBanner message={saveError} />}

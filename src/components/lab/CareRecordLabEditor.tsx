@@ -353,7 +353,6 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
             label="제공자 이름"
             value={draft.provider}
             onChange={(value) => setDraft((d) => ({ ...d, provider: value.slice(0, 50) }))}
-            isRequired
           />
         </div>
 
