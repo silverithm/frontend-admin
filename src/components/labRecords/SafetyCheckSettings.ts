@@ -6,15 +6,17 @@
  * 서버 렌더와 첫 화면이 어긋나지 않게 값은 화면이 뜬 뒤에 읽는다.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SAFETY_CLOSED_KEY, SAFETY_NO_VEHICLE_KEY, operatingDaysOf, readClosedDates, readNoVehicle, writeStored } from '@/components/lab/labFormat';
+import { SAFETY_CLOSED_KEY, SAFETY_NO_VEHICLE_KEY, SAFETY_SATURDAY_KEY, operatingDaysOf, readClosedDates, readNoVehicle, readOperatesSaturday, writeStored } from '@/components/lab/labFormat';
 
 export function useSafetySettings(month: string) {
   const [closed, setClosed] = useState<string[]>([]);
   const [noVehicle, setNoVehicleState] = useState(false);
+  const [saturday, setSaturdayState] = useState(false);
 
   useEffect(() => {
     setClosed(readClosedDates());
     setNoVehicleState(readNoVehicle());
+    setSaturdayState(readOperatesSaturday());
   }, []);
 
   const toggleClosed = useCallback(
@@ -31,6 +33,11 @@ export function useSafetySettings(month: string) {
     writeStored(SAFETY_NO_VEHICLE_KEY, value ? '1' : '0');
   }, []);
 
-  const operatingDays = useMemo(() => operatingDaysOf(month, closed), [month, closed]);
-  return { closed, noVehicle, operatingDays, toggleClosed, setNoVehicle };
+  const setSaturday = useCallback((value: boolean) => {
+    setSaturdayState(value);
+    writeStored(SAFETY_SATURDAY_KEY, value ? '1' : '0');
+  }, []);
+
+  const operatingDays = useMemo(() => operatingDaysOf(month, closed, saturday), [month, closed, saturday]);
+  return { closed, noVehicle, saturday, operatingDays, toggleClosed, setNoVehicle, setSaturday };
 }

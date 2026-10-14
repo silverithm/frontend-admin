@@ -17,6 +17,8 @@ interface SummaryProps {
   summary: MonthlySafetySummary;
   noVehicle: boolean;
   onNoVehicle: (value: boolean) => void;
+  saturday: boolean;
+  onSaturday: (value: boolean) => void;
   isLoading: boolean;
   onPick: (kind: SafetyKind, missing: string) => void;
 }
@@ -31,7 +33,7 @@ function missingLabel(kind: SafetyKind, value: string): string {
 
 const SHOW_MISSING = 12;
 
-export default function SafetyCheckSummary({ month, summary, noVehicle, onNoVehicle, isLoading, onPick }: SummaryProps) {
+export default function SafetyCheckSummary({ month, summary, noVehicle, onNoVehicle, saturday, onSaturday, isLoading, onPick }: SummaryProps) {
   const tone = summary.required === 0 ? 'neutral' : summary.percent >= 100 ? 'ok' : summary.percent >= 70 ? 'warn' : 'danger';
   return (
     <Card padding={4}>
@@ -55,6 +57,7 @@ export default function SafetyCheckSummary({ month, summary, noVehicle, onNoVehi
         </HStack>
 
         <CheckboxInput label="차량 운행 안 함 (차량 점검을 필요 횟수에서 뺍니다)" value={noVehicle} onChange={onNoVehicle} />
+        <CheckboxInput label="토요일도 운영 (토요일을 매일 점검 운영일에 넣습니다)" value={saturday} onChange={onSaturday} />
 
         <div>
           {summary.perKind.map((k) => {

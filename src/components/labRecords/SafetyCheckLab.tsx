@@ -2,7 +2,7 @@
 
 /**
  * 위생·안전 점검 — 위에는 이번 달 현황(종류별 done/required·빠진 날), 가운데는 월간 달력과 점검표 작성, 아래는 재난훈련 연 2회.
- * 운영일은 평일(월~금)에서 공휴일·휴원일을 뺀 날이고, 빼 둔 날과 "차량 운행 안 함"은 이 브라우저에 기억한다(평가 준비 화면도 읽는다).
+ * 운영일은 평일(월~금, '토요일도 운영'이면 토요일까지)에서 공휴일·휴원일을 뺀 날이고, 빼 둔 날과 "차량 운행 안 함"은 이 브라우저에 기억한다(평가 준비 화면도 읽는다).
  * 빠진 날을 누르면 그날 점검표가 바로 열린다. 달·날짜·종류를 바꿀 때 저장하지 않은 점검표가 있으면 먼저 묻는다.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -162,7 +162,7 @@ export default function SafetyCheckLab() {
 
       {error && <ErrorBanner message={error} onRetry={() => void load(month)} />}
 
-      <SafetyCheckSummary month={month} summary={summary} noVehicle={settings.noVehicle} onNoVehicle={settings.setNoVehicle} isLoading={loading} onPick={pickMissing} />
+      <SafetyCheckSummary month={month} summary={summary} noVehicle={settings.noVehicle} onNoVehicle={settings.setNoVehicle} saturday={settings.saturday} onSaturday={settings.setSaturday} isLoading={loading} onPick={pickMissing} />
 
       <Card padding={4}>
         <VStack gap={3}>
