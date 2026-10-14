@@ -92,7 +92,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 8);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 11);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -111,4 +111,39 @@ test('3차 자동 근거 — 점검 주기 이행은 위생·식품·감염·안
   assert.match(indicatorByCode('SAFE-07')!.requirements.join(' '), /연 2회/);
   // 안전·위생 묶음 안에서만 붙는다
   for (const code of [...by('SAFETY_CHECKS'), ...by('DRILL_TWICE')]) assert.equal(indicatorByCode(code)!.group, 'SAFETY');
+});
+
+test('5차 자동 근거 — 사고 후속은 응급상황 대응, 보호자 월간 안내는 소통, 연계 건수는 외부기관 연계 지표에 붙어 있다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
+  assert.deepEqual(by('CARE_EVENT_FOLLOWUP'), ['SAFE-08']);
+  assert.deepEqual(by('GUARDIAN_NOTICE_MONTHLY'), ['RGT-01']);
+  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-04']);
+});
+
+test('응급상황대응 요건 — 담당 역할·응급벨 위치·면담이 매뉴얼대로 적혀 있다', () => {
+  const text = indicatorByCode('SAFE-08')!.requirements.join(' ');
+  assert.match(text, /담당 역할/);
+  assert.match(text, /심정지·질식·경련·화상·낙상/);
+  assert.match(text, /화장실\(칸마다\)/);
+  assert.match(text, /면담/);
+  // 2026 지표에는 기록 필수사항이 없다 — 기관 자체 기록임을 밝힌다
+  assert.match(text, /자체 기록/);
+});
+
+test('소통노력 요건 — 보호자 상담 분기 1회, 기관 소식 월 1회, 일방향 안내만으로는 인정 안 됨', () => {
+  const text = indicatorByCode('RGT-01')!.requirements.join(' ');
+  assert.match(text, /분기별 1회 이상/);
+  assert.match(text, /월 1회 이상/);
+  assert.match(text, /일방향 안내만으로는 상담으로 인정되지 않는다/);
+  assert.match(text, /30일 이내/);
+  // 화면 문구에도 같은 한계가 드러난다
+  assert.match(EVAL_AUTO_SOURCE_LABEL.GUARDIAN_NOTICE_MONTHLY, /분기 1회/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.GUARDIAN_NOTICE_MONTHLY, /일방향/);
+});
+
+test('외부기관연계 요건 — 진료 기록과 연계기록지·제공대장(제공자명 포함)', () => {
+  const text = indicatorByCode('HLT-04')!.requirements.join(' ');
+  assert.match(text, /연계기록지/);
+  assert.match(text, /제공자명/);
+  assert.match(text, /퇴소자가 없으면/);
 });

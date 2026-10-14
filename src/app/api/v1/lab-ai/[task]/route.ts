@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isLabAiTask, prepareLabAiTask } from '@/lib/lab/labPrompts';
+import { isLabAiTask, labAiBodyLimit, prepareLabAiTask } from '@/lib/lab/labPrompts';
 
-// 실험실 AI 작업 11종(급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 · 간호일지 바이탈 요약 · 프로그램 일지 · 교육·회의 기록 · 상담일지 · 급여제공계획 초안 · 주간 식단 · 점검 부적합 조치 계획 · 장부 계정 제안).
+// 실험실 AI 작업 16종(급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 · 간호일지 바이탈 요약 · 프로그램 일지 · 교육·회의 기록 · 상담일지 · 급여제공계획 초안 · 주간 식단 · 점검 부적합 조치 계획 · 장부 계정 제안 · 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안).
 // 흐름: 작업 이름 확인 → 로그인 확인 → 백엔드에 "이 기관이 실험실을 쓸 수 있는가" 확인 → 입력 검증 → 모델 호출 → 응답 정규화.
-// 모델 키는 서버 전용(GEMINI_API_KEY)이다. 모델로 가는 글은 직원이 적은 메모·관찰·증빙 설명(바이탈 요약은 날짜와 숫자, 식단은 메뉴 이름·점검은 항목 문장, 장부는 내역 문구와 금액)뿐이고 어르신·직원·보호자 이름은 보내지 않는다.
+// 모델 키는 서버 전용(GEMINI_API_KEY)이다. 모델로 가는 글은 직원이 적은 메모·관찰·증빙 설명(바이탈 요약은 날짜와 숫자, 식단은 메뉴 이름·점검은 항목 문장, 장부는 내역 문구와 금액, 5차는 사고·훈련 메모와 날짜·수치로 모은 사실 묶음, 예산 초안은 계정 이름과 전년 실적 금액)뿐이고 어르신·직원·보호자 이름은 보내지 않는다.
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site';
 
 // 모델이 느릴 때 서버리스 제한(60초)보다 먼저 끊어서 사용자에게 한국어 오류를 돌려준다.
@@ -109,6 +109,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (declared > MAX_BODY_BYTES) return reply('입력이 너무 깁니다', 400);
   const text = await request.text().catch(() => '');
   if (text.length > MAX_BODY_CHARS) return reply('입력이 너무 깁니다', 400);
+  // 5차 작업은 글 입력 3,000자(예산 초안은 계정 목록 때문에 20,000자)로 더 좁게 막는다.
+  const taskLimit = labAiBodyLimit(task);
+  if (taskLimit !== null && text.length > taskLimit) return reply('입력이 너무 깁니다', 400);
   let body: unknown;
   try {
     body = JSON.parse(text);

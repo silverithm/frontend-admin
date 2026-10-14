@@ -808,3 +808,283 @@ export interface LedgerSuggestion {
 export interface LedgerClassifyResult {
   items: LedgerSuggestion[];
 }
+
+// =====================================================================
+// 5차 — 상태변화·사고 · 기능회복훈련 · 보호자 월간 안내 · 봉사·자원연계 · 예산·결산
+// 필드 이름은 서버 DTO와 같아야 한다(계약 개정 8). 날짜시간은 'YYYY-MM-DDTHH:MM'(초 없음, 서울 시각).
+// =====================================================================
+
+// ---------- 상태변화·사고·응급 ----------
+
+export type CareEventKind = 'CONDITION_CHANGE' | 'FALL' | 'INJURY' | 'EMERGENCY' | 'HOSPITAL' | 'MEDICATION' | 'BEHAVIOR' | 'OTHER';
+export type CareEventSeverity = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+export type CareEventStatus = 'OPEN' | 'CLOSED';
+export type GuardianContactMethod = 'PHONE' | 'SMS' | 'VISIT' | 'OTHER';
+
+export interface CareEvent {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  /** 'YYYY-MM-DDTHH:MM' (서울 시각) */
+  occurredAt: string;
+  kind: CareEventKind;
+  severity: CareEventSeverity;
+  place: string | null;
+  /** 필수, 2000자 이내 */
+  description: string;
+  immediateAction: string | null;
+  /** 'YYYY-MM-DDTHH:MM'. guardianMethod와 같이 있거나 같이 없어야 한다 */
+  guardianNotifiedAt: string | null;
+  guardianMethod: GuardianContactMethod | null;
+  guardianResponse: string | null;
+  hospitalName: string | null;
+  followUp: string | null;
+  prevention: string | null;
+  status: CareEventStatus;
+  closedOn: string | null;
+  reporterName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type CareEventInput = Omit<CareEvent, 'id' | 'elderlyName' | 'updatedAt'>;
+
+// ---------- 기능회복훈련 ----------
+
+export type RehabKind = 'PHYSICAL_FUNCTION' | 'BASIC_MOTION' | 'ADL' | 'PHYSIO' | 'OCCUPATIONAL' | 'COGNITIVE';
+
+export interface RehabSession {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  sessionDate: string;
+  kind: RehabKind;
+  /** 1~240 */
+  minutes: number;
+  /** 훈련 항목, 최대 10개·각 40자 */
+  items: string[];
+  content: string | null;
+  reaction: string | null;
+  therapistName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type RehabSessionInput = Omit<RehabSession, 'id' | 'elderlyName' | 'updatedAt'>;
+
+/** 여러 어르신(1~50명)에게 같은 훈련을 한 번에 기록한다. 반응은 어르신마다 달라 batch에는 없다. */
+export interface RehabSessionBatchInput {
+  elderlyIds: number[];
+  sessionDate: string;
+  kind: RehabKind;
+  minutes: number;
+  items: string[];
+  content: string | null;
+  therapistName: string;
+  aiAssisted: boolean;
+}
+
+// ---------- 보호자 월간 안내 ----------
+
+export type GuardianNoticeStatus = 'DRAFT' | 'SENT';
+export type GuardianNoticeMethod = 'SMS' | 'KAKAO' | 'PRINT' | 'EMAIL' | 'VISIT' | 'OTHER';
+
+export interface GuardianNotice {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  /** 'YYYY-MM' */
+  noticeMonth: string;
+  title: string;
+  body: string;
+  /** 초안에 쓴 사실 묶음(NoticeFacts)의 JSON 문자열 */
+  facts: string | null;
+  status: GuardianNoticeStatus;
+  sentOn: string | null;
+  method: GuardianNoticeMethod | null;
+  recipient: string | null;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type GuardianNoticeInput = Omit<GuardianNotice, 'id' | 'elderlyName' | 'status' | 'updatedAt'>;
+
+export interface GuardianNoticeSentInput {
+  sentOn: string;
+  method: GuardianNoticeMethod;
+  recipient: string | null;
+}
+
+/** 안내 초안에 쓸 사실 묶음 — 사람 이름은 들어 있지 않다 */
+export interface NoticeFacts {
+  month: string;
+  attendanceDays: number;
+  vitals: {
+    bp: { avgSys: number; avgDia: number; count: number } | null;
+    bloodSugar: { avg: number; min: number; max: number; count: number } | null;
+    weight: { first: number; last: number; change: number } | null;
+  };
+  programs: { total: number; byCategory: Record<string, number> };
+  rehab: { sessions: number; minutes: number; kinds: string[] };
+  events: Array<{ date: string; kindLabel: string; severityLabel: string }>;
+  specialNotes: string[];
+  copay: { totalDue: number; status: CopayStatus } | null;
+}
+
+// ---------- 봉사자 활동 ----------
+
+export type VolunteerActivityType = 'MEAL' | 'PROGRAM' | 'COMPANION' | 'CLEANING' | 'TALENT' | 'OTHER';
+
+export interface VolunteerLog {
+  id: number;
+  activityDate: string;
+  volunteerName: string;
+  organization: string | null;
+  /** 'HH:MM' */
+  startTime: string;
+  endTime: string;
+  /** 서버가 시작·끝으로 계산한다(끝 ≤ 시작이면 400, 720분 초과 400) */
+  minutes: number;
+  activityType: VolunteerActivityType;
+  content: string | null;
+  /** 1365·VMS 실적 등록 여부 */
+  vmsRegistered: boolean;
+  confirmerName: string;
+  updatedAt: string | null;
+}
+
+export type VolunteerLogInput = Omit<VolunteerLog, 'id' | 'minutes' | 'updatedAt'>;
+
+// ---------- 외부기관·지역자원 연계 ----------
+
+export type ResourceType = 'MEDICAL' | 'HEALTH_CENTER' | 'DEMENTIA_CENTER' | 'WELFARE' | 'COMMUNITY' | 'GOODS' | 'EDUCATION' | 'OTHER';
+
+export interface ResourceLink {
+  id: number;
+  /** 기관 전체 연계면 null */
+  elderlyId: number | null;
+  elderlyName: string | null;
+  linkedOn: string;
+  resourceType: ResourceType;
+  institution: string;
+  contactPerson: string | null;
+  content: string;
+  outcome: string | null;
+  followUpOn: string | null;
+  /** 연계기록지 제공 여부 — 2026 평가 '외부기관연계' */
+  referralGiven: boolean;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type ResourceLinkInput = Omit<ResourceLink, 'id' | 'elderlyName' | 'updatedAt'>;
+
+// ---------- 예산(본예산·추경) ----------
+
+export type BudgetStatus = 'DRAFT' | 'CONFIRMED';
+
+export interface BudgetLine {
+  direction: LedgerDirection;
+  accountCode: string;
+  /** 0~10,000,000,000 정수 */
+  amount: number;
+  note: string | null;
+}
+
+export interface Budget {
+  id: number;
+  fiscalYear: number;
+  /** 0 = 본예산, 1~9 = 추경 차수 */
+  revision: number;
+  decidedOn: string | null;
+  status: BudgetStatus;
+  note: string | null;
+  confirmedAt: string | null;
+  lines: BudgetLine[];
+  updatedAt: string | null;
+}
+
+export type BudgetInput = Omit<Budget, 'id' | 'status' | 'confirmedAt' | 'updatedAt'>;
+
+// ---------- 5차 AI ----------
+
+export interface CareEventAiInput {
+  note: string;
+}
+
+export interface CareEventAiResult {
+  kind: CareEventKind;
+  severity: CareEventSeverity;
+  description: string;
+  immediateAction: string;
+  followUp: string;
+  prevention: string;
+  /** 보호자에게 보낼 연락 문장. 이름 자리는 '[어르신]' */
+  guardianMessage: string;
+}
+
+export interface RehabLogAiInput {
+  note: string;
+  kind?: RehabKind;
+}
+
+export interface RehabLogAiResult {
+  kind: RehabKind | null;
+  minutes: number | null;
+  items: string[];
+  content: string;
+  reaction: string;
+}
+
+export interface GuardianNoticeAiInput {
+  month: string;
+  facts: NoticeFacts;
+  tone: 'WARM' | 'BRIEF';
+}
+
+export interface GuardianNoticeAiResult {
+  title: string;
+  body: string;
+}
+
+export interface ResourceSuggestAiInput {
+  needs: string;
+}
+
+export interface ResourceSuggestion {
+  resourceType: ResourceType;
+  reason: string;
+  howTo: string;
+}
+
+export interface ResourceSuggestAiResult {
+  suggestions: ResourceSuggestion[];
+}
+
+export interface BudgetDraftAccount {
+  direction: LedgerDirection;
+  accountCode: string;
+  accountName: string;
+  /** 전년 실적(0 가능) */
+  lastYear: number;
+}
+
+export interface BudgetDraftAiInput {
+  year: number;
+  /** 최대 300 */
+  accounts: BudgetDraftAccount[];
+  notes?: string;
+}
+
+export interface BudgetDraftLine {
+  direction: LedgerDirection;
+  accountCode: string;
+  amount: number;
+  reason: string;
+}
+
+export interface BudgetDraftAiResult {
+  lines: BudgetDraftLine[];
+}

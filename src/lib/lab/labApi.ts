@@ -7,7 +7,16 @@
 import { authorizedFetch } from '../apiService';
 import { redactDeep, rememberStaffNames } from './nameRedaction.ts';
 import type {
+  Budget,
+  BudgetDraftAiInput,
+  BudgetDraftAiResult,
+  BudgetInput,
   CareDelivery,
+  CareEvent,
+  CareEventAiInput,
+  CareEventAiResult,
+  CareEventInput,
+  CareEventStatus,
   CareDeliveryInput,
   CareNoteStructured,
   CareRecord,
@@ -29,6 +38,11 @@ import type {
   EvalCheckInput,
   EvalReviewInput,
   EvalReviewResult,
+  GuardianNotice,
+  GuardianNoticeAiInput,
+  GuardianNoticeAiResult,
+  GuardianNoticeInput,
+  GuardianNoticeSentInput,
   LabAccess,
   LedgerClassifyAiInput,
   LedgerClassifyResult,
@@ -51,6 +65,15 @@ import type {
   ProgramInput,
   ProgramLogAiInput,
   ProgramLogResult,
+  RehabLogAiInput,
+  RehabLogAiResult,
+  RehabSession,
+  RehabSessionBatchInput,
+  RehabSessionInput,
+  ResourceLink,
+  ResourceLinkInput,
+  ResourceSuggestAiInput,
+  ResourceSuggestAiResult,
   RiskAssessment,
   RiskAssessmentInput,
   RiskLatest,
@@ -65,6 +88,8 @@ import type {
   StaffTrainingInput,
   TrainingLogAiInput,
   TrainingLogResult,
+  VolunteerLog,
+  VolunteerLogInput,
 } from './labTypes.ts';
 
 const LAB = '/api/v1/lab';
@@ -485,4 +510,164 @@ export async function deleteDonation(id: number): Promise<void> {
 
 export function aiClassifyLedger(input: LedgerClassifyAiInput): Promise<LedgerClassifyResult> {
   return request<LedgerClassifyResult>(`${LAB_AI}/ledger-classify`, json('POST', redactDeep(input)), `AI가 계정을 제안하지 못했습니다. ${AI_RETRY}`);
+}
+
+// =====================================================================
+// 5차 — 상태변화·사고 · 기능회복훈련 · 보호자 월간 안내 · 봉사·자원연계 · 예산·결산
+// =====================================================================
+
+// ---------- 상태변화·사고 ----------
+
+/** 월별(최신순) · 어르신별 · 열린 것만 중 하나로 묻는다 */
+export function listCareEvents(params: { month: string } | { elderlyId: number } | { status: CareEventStatus }): Promise<CareEvent[]> {
+  const query =
+    'month' in params ? `month=${q(params.month)}` : 'elderlyId' in params ? `elderlyId=${q(String(params.elderlyId))}` : `status=${q(params.status)}`;
+  return request<CareEvent[]>(`${LAB}/care-events?${query}`, undefined, '상태변화·사고 기록을 불러오지 못했습니다');
+}
+
+export function createCareEvent(input: CareEventInput): Promise<CareEvent> {
+  return request<CareEvent>(`${LAB}/care-events`, json('POST', input), '상태변화·사고 기록을 저장하지 못했습니다');
+}
+
+/** 닫을 때 후속 조치·보호자 연락이 없으면 서버가 400을 준다 */
+export function updateCareEvent(id: number, input: CareEventInput): Promise<CareEvent> {
+  return request<CareEvent>(`${LAB}/care-events/${q(String(id))}`, json('PUT', input), '상태변화·사고 기록을 고치지 못했습니다');
+}
+
+export async function deleteCareEvent(id: number): Promise<void> {
+  await request<null>(`${LAB}/care-events/${q(String(id))}`, { method: 'DELETE' }, '상태변화·사고 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 기능회복훈련 ----------
+
+/** 날짜별 · 월별 · 어르신의 월별 중 하나로 묻는다 */
+export function listRehabSessions(params: { date: string } | { month: string } | { elderlyId: number; month: string }): Promise<RehabSession[]> {
+  const query =
+    'date' in params ? `date=${q(params.date)}` : 'elderlyId' in params ? `elderlyId=${q(String(params.elderlyId))}&month=${q(params.month)}` : `month=${q(params.month)}`;
+  return request<RehabSession[]>(`${LAB}/rehab-sessions?${query}`, undefined, '기능회복훈련 기록을 불러오지 못했습니다');
+}
+
+export function createRehabSession(input: RehabSessionInput): Promise<RehabSession> {
+  return request<RehabSession>(`${LAB}/rehab-sessions`, json('POST', input), '기능회복훈련을 기록하지 못했습니다');
+}
+
+/** 하나라도 같은 기관 어르신이 아니면 서버는 아무것도 저장하지 않는다 */
+export function createRehabSessionsBatch(input: RehabSessionBatchInput): Promise<RehabSession[]> {
+  return request<RehabSession[]>(`${LAB}/rehab-sessions/batch`, json('POST', input), '기능회복훈련을 한 번에 기록하지 못했습니다');
+}
+
+export function updateRehabSession(id: number, input: RehabSessionInput): Promise<RehabSession> {
+  return request<RehabSession>(`${LAB}/rehab-sessions/${q(String(id))}`, json('PUT', input), '기능회복훈련 기록을 고치지 못했습니다');
+}
+
+export async function deleteRehabSession(id: number): Promise<void> {
+  await request<null>(`${LAB}/rehab-sessions/${q(String(id))}`, { method: 'DELETE' }, '기능회복훈련 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 보호자 월간 안내 ----------
+
+export function listGuardianNotices(month: string): Promise<GuardianNotice[]> {
+  return request<GuardianNotice[]>(`${LAB}/guardian-notices?month=${q(month)}`, undefined, '보호자 안내를 불러오지 못했습니다');
+}
+
+/** elderlyId+noticeMonth로 덮어쓴다(upsert). 이미 보낸 안내면 서버가 409를 준다. */
+export function saveGuardianNotice(input: GuardianNoticeInput): Promise<GuardianNotice> {
+  return request<GuardianNotice>(`${LAB}/guardian-notices`, json('PUT', input), '보호자 안내를 저장하지 못했습니다');
+}
+
+export function markGuardianNoticeSent(id: number, input: GuardianNoticeSentInput): Promise<GuardianNotice> {
+  return request<GuardianNotice>(`${LAB}/guardian-notices/${q(String(id))}/sent`, json('POST', input), '보냄으로 표시하지 못했습니다');
+}
+
+export function markGuardianNoticeUnsent(id: number): Promise<GuardianNotice> {
+  return request<GuardianNotice>(`${LAB}/guardian-notices/${q(String(id))}/unsent`, { method: 'POST' }, '보냄 표시를 풀지 못했습니다');
+}
+
+export async function deleteGuardianNotice(id: number): Promise<void> {
+  await request<null>(`${LAB}/guardian-notices/${q(String(id))}`, { method: 'DELETE' }, '보호자 안내를 삭제하지 못했습니다');
+}
+
+// ---------- 봉사자 활동 ----------
+
+export function listVolunteerLogs(params: { month: string } | { year: number }): Promise<VolunteerLog[]> {
+  const query = 'month' in params ? `month=${q(params.month)}` : `year=${q(String(params.year))}`;
+  return request<VolunteerLog[]>(`${LAB}/volunteer-logs?${query}`, undefined, '봉사자 일지를 불러오지 못했습니다');
+}
+
+export function createVolunteerLog(input: VolunteerLogInput): Promise<VolunteerLog> {
+  return request<VolunteerLog>(`${LAB}/volunteer-logs`, json('POST', input), '봉사자 일지를 기록하지 못했습니다');
+}
+
+export function updateVolunteerLog(id: number, input: VolunteerLogInput): Promise<VolunteerLog> {
+  return request<VolunteerLog>(`${LAB}/volunteer-logs/${q(String(id))}`, json('PUT', input), '봉사자 일지를 고치지 못했습니다');
+}
+
+export async function deleteVolunteerLog(id: number): Promise<void> {
+  await request<null>(`${LAB}/volunteer-logs/${q(String(id))}`, { method: 'DELETE' }, '봉사자 일지를 삭제하지 못했습니다');
+}
+
+// ---------- 외부기관·지역자원 연계 ----------
+
+export function listResourceLinks(params: { year: number } | { elderlyId: number }): Promise<ResourceLink[]> {
+  const query = 'year' in params ? `year=${q(String(params.year))}` : `elderlyId=${q(String(params.elderlyId))}`;
+  return request<ResourceLink[]>(`${LAB}/resource-links?${query}`, undefined, '자원연계 기록을 불러오지 못했습니다');
+}
+
+export function createResourceLink(input: ResourceLinkInput): Promise<ResourceLink> {
+  return request<ResourceLink>(`${LAB}/resource-links`, json('POST', input), '자원연계를 기록하지 못했습니다');
+}
+
+export function updateResourceLink(id: number, input: ResourceLinkInput): Promise<ResourceLink> {
+  return request<ResourceLink>(`${LAB}/resource-links/${q(String(id))}`, json('PUT', input), '자원연계 기록을 고치지 못했습니다');
+}
+
+export async function deleteResourceLink(id: number): Promise<void> {
+  await request<null>(`${LAB}/resource-links/${q(String(id))}`, { method: 'DELETE' }, '자원연계 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 예산(본예산·추경) ----------
+
+/** 그 해 예산 전체(차수 순, 줄 포함) */
+export function listBudgets(year: number): Promise<Budget[]> {
+  return request<Budget[]>(`${LAB}/budgets?year=${q(String(year))}`, undefined, '예산을 불러오지 못했습니다');
+}
+
+/** fiscalYear+revision으로 덮어쓰고 줄은 통째로 바꾼다. 확정된 예산이면 서버가 409를 준다. */
+export function saveBudget(input: BudgetInput): Promise<Budget> {
+  return request<Budget>(`${LAB}/budgets`, json('PUT', input), '예산을 저장하지 못했습니다');
+}
+
+export function confirmBudget(id: number): Promise<Budget> {
+  return request<Budget>(`${LAB}/budgets/${q(String(id))}/confirm`, { method: 'POST' }, '예산을 확정하지 못했습니다');
+}
+
+export function unconfirmBudget(id: number): Promise<Budget> {
+  return request<Budget>(`${LAB}/budgets/${q(String(id))}/unconfirm`, { method: 'POST' }, '예산 확정을 풀지 못했습니다');
+}
+
+/** 초안만 지운다. 뒤 차수가 있으면 서버가 409를 준다. */
+export async function deleteBudget(id: number): Promise<void> {
+  await request<null>(`${LAB}/budgets/${q(String(id))}`, { method: 'DELETE' }, '예산을 삭제하지 못했습니다');
+}
+
+// ---------- 5차 AI 작업 — 제안만 돌려준다. 보내기 직전에 이름을 지운다 ----------
+
+export function aiStructureCareEvent(input: CareEventAiInput): Promise<CareEventAiResult> {
+  return request<CareEventAiResult>(`${LAB_AI}/care-event`, json('POST', redactDeep(input)), `AI가 사고 기록을 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiStructureRehabLog(input: RehabLogAiInput): Promise<RehabLogAiResult> {
+  return request<RehabLogAiResult>(`${LAB_AI}/rehab-log`, json('POST', redactDeep(input)), `AI가 훈련 기록을 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiDraftGuardianNotice(input: GuardianNoticeAiInput): Promise<GuardianNoticeAiResult> {
+  return request<GuardianNoticeAiResult>(`${LAB_AI}/guardian-notice`, json('POST', redactDeep(input)), `AI가 안내 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiSuggestResources(input: ResourceSuggestAiInput): Promise<ResourceSuggestAiResult> {
+  return request<ResourceSuggestAiResult>(`${LAB_AI}/resource-suggest`, json('POST', redactDeep(input)), `AI가 자원 종류를 제안하지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiDraftBudget(input: BudgetDraftAiInput): Promise<BudgetDraftAiResult> {
+  return request<BudgetDraftAiResult>(`${LAB_AI}/budget-draft`, json('POST', redactDeep(input)), `AI가 예산 초안을 만들지 못했습니다. ${AI_RETRY}`);
 }

@@ -1,6 +1,6 @@
 /**
- * 실험실 AI 작업 11종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
- * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 16종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -9,6 +9,24 @@
  * 3) 어르신 이름은 입력에 들어가지 않는다 — 메모에 이름이 적혀 있어도 출력에 쓰지 말라고 지시한다.
  */
 import type {
+  BudgetDraftAccount,
+  BudgetDraftAiInput,
+  BudgetDraftAiResult,
+  BudgetDraftLine,
+  CareEventAiInput,
+  CareEventAiResult,
+  CareEventKind,
+  CareEventSeverity,
+  GuardianNoticeAiInput,
+  GuardianNoticeAiResult,
+  NoticeFacts,
+  RehabKind,
+  RehabLogAiInput,
+  RehabLogAiResult,
+  ResourceSuggestAiInput,
+  ResourceSuggestAiResult,
+  ResourceSuggestion,
+  ResourceType,
   CareNoteStructured,
   LedgerClassifyAiInput,
   LedgerClassifyLine,
@@ -50,7 +68,12 @@ import { VITAL_THRESHOLDS, evaluateVitalSeries, type VitalFlag } from './vitalFl
 import { PROGRAM_CATEGORY_LABEL } from './programRules.ts';
 import { TRAINING_CATEGORY_LABEL, TRAINING_KIND_LABEL, isCategoryForKind } from './trainingRules.ts';
 import { CARE_PLAN_NEEDS_LABEL } from './carePlanRules.ts';
-import { parseYmd } from './labDate.ts';
+import { isValidMonth, parseYmd } from './labDate.ts';
+import { EVENT_KINDS, EVENT_SEVERITIES, MAX_EVENT_TEXT } from './careEventRules.ts';
+import { MAX_REHAB_ITEMS, MAX_REHAB_ITEM_LENGTH, MAX_REHAB_MINUTES, REHAB_KINDS, isRehabKind, rehabKindLabel } from './rehabRules.ts';
+import { NAME_TOKEN } from './guardianNotice.ts';
+import { RESOURCE_TYPES } from './communityRules.ts';
+import { MAX_BUDGET_AMOUNT, MAX_BUDGET_LINES, roundUpToThousand } from './budgetRules.ts';
 import { MEAL_TEXT_LIMIT, emptyDay, isAvoidedDish, isMonday, weekDates, weekdayLabel } from './mealRules.ts';
 import { MAX_LEDGER_AMOUNT, MAX_LEDGER_DESCRIPTION, accountsFor, isAccountCode } from './ledgerRules.ts';
 import { MAX_SAFETY_ACTIONS, MAX_SAFETY_ITEMS, MAX_SAFETY_NOTE, SAFETY_CADENCE_LABEL, isSafetyKind, templateFor } from './safetyRules.ts';
@@ -66,8 +89,23 @@ export type LabAiTask =
   | 'care-plan'
   | 'meal-plan'
   | 'safety-actions'
-  | 'ledger-classify';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify'];
+  | 'ledger-classify'
+  | 'care-event'
+  | 'rehab-log'
+  | 'guardian-notice'
+  | 'resource-suggest'
+  | 'budget-draft';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft'];
+
+/**
+ * 5차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
+ * 본문에는 JSON 겹따옴표·키 이름이 붙으므로 글 한도보다 조금 넉넉히 둔다. 그 밖의 작업은 null(라우트의 공통 상한만 적용).
+ */
+export function labAiBodyLimit(task: string): number | null {
+  if (task === 'budget-draft') return 20_500;
+  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest') return 3_500;
+  return null;
+}
 
 export function isLabAiTask(value: unknown): value is LabAiTask {
   return typeof value === 'string' && (LAB_AI_TASKS as readonly string[]).includes(value);
@@ -1254,6 +1292,397 @@ export function normalizeLedgerClassify(raw: unknown, lines: ReadonlyArray<Ledge
   return { items };
 }
 
+// ---------- 10) 상태변화·사고 기록 정리 ----------
+
+const EVENT_KIND_VALUES = EVENT_KINDS.map((k) => k.value) as readonly CareEventKind[];
+const EVENT_SEVERITY_VALUES = EVENT_SEVERITIES.map((s) => s.value) as readonly CareEventSeverity[];
+
+export function validateCareEventInput(body: unknown): Validation<CareEventAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '사고 메모', MAX_LOG_INPUT_LENGTH);
+  if (!note.ok) return note;
+  return { ok: true, value: { note: note.value } };
+}
+
+export function buildCareEventPrompt(input: CareEventAiInput): string {
+  return `당신은 주야간보호센터의 상태변화·사고 기록 작성을 돕는 보조자입니다.
+아래 <note>는 담당 직원이 어르신에게 생긴 일을 적은 메모입니다. 이 메모만을 근거로 사고 기록 칸을 채웁니다. 기록은 담당자가 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 일시·장소·원인·증상·수치·조치·병원 이름은 메모에 적힌 것만 씁니다.
+3. 진단·병명·원인 단정·치료 권고는 하지 않습니다. 메모에 직원이 관찰한 모습("통증을 호소함", "멍이 보임")이 있으면 그대로 옮기고, 의학적 판단은 덧붙이지 않습니다.
+4. kind는 ${EVENT_KIND_VALUES.join(' | ')} 중에서 고릅니다. 메모로 정할 수 없으면 OTHER.
+5. severity는 ${EVENT_SEVERITY_VALUES.join(' | ')} 중에서 고릅니다. 메모에 병원 이송·119·출혈·의식 변화처럼 중대한 사실이 있을 때만 HIGH·CRITICAL로 올리고, 메모로 정하기 어려우면 MODERATE.
+6. ${NO_FILLER_RULE}
+7. ${PRIVACY_RULE}
+8. ${RECORD_STYLE_RULE}
+
+[칸 설명]
+- description: 무슨 일이 어디서 어떻게 있었는지 사실만 1~4문장.
+- immediateAction: 사고 직후 직원이 한 조치(안정, 활력징후 확인, 응급처치, 상급자 보고, 병원 이송 등). 메모에 없으면 빈 문자열.
+- followUp: 이후 하기로 한 일(경과 관찰, 병원 진료, 보호자 협의 등). 메모에 없으면 빈 문자열.
+- prevention: 재발 방지 대책. 메모에 직원이 말한 것만 쓰고 없으면 빈 문자열.
+- guardianMessage: 보호자에게 보낼 연락 문장(존댓말 2~4문장). 어르신을 부를 때는 이름 대신 반드시 "${NAME_TOKEN}"라고 씁니다. 메모에 있는 사실만 담담하게 전하고, 원인 추측·진단·책임 판단은 쓰지 않습니다. 사고 내용이 없으면 빈 문자열.
+
+${fence('note', input.note)}`;
+}
+
+export const CARE_EVENT_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    kind: { type: 'STRING', description: '사고 종류', enum: [...EVENT_KIND_VALUES] },
+    severity: { type: 'STRING', description: '심각도', enum: [...EVENT_SEVERITY_VALUES] },
+    description: STR('무슨 일이 있었는지 (사실만)'),
+    immediateAction: STR('즉시 조치 (없으면 빈 문자열)'),
+    followUp: STR('후속 조치 (없으면 빈 문자열)'),
+    prevention: STR('재발 방지 대책 (없으면 빈 문자열)'),
+    guardianMessage: STR(`보호자에게 보낼 연락 문장. 어르신 이름 자리는 ${NAME_TOKEN}`),
+  },
+  required: ['kind', 'severity', 'description', 'immediateAction', 'followUp', 'prevention', 'guardianMessage'],
+} as const;
+
+export function normalizeCareEvent(raw: unknown): CareEventAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const kind = typeof raw.kind === 'string' ? raw.kind.trim() : '';
+  const severity = typeof raw.severity === 'string' ? raw.severity.trim() : '';
+  return {
+    kind: (EVENT_KIND_VALUES as readonly string[]).includes(kind) ? (kind as CareEventKind) : 'OTHER',
+    severity: (EVENT_SEVERITY_VALUES as readonly string[]).includes(severity) ? (severity as CareEventSeverity) : 'MODERATE',
+    description: cleanOutput(raw.description, MAX_EVENT_TEXT),
+    immediateAction: substantive(cleanOutput(raw.immediateAction, MAX_EVENT_TEXT)),
+    followUp: substantive(cleanOutput(raw.followUp, MAX_EVENT_TEXT)),
+    prevention: substantive(cleanOutput(raw.prevention, MAX_EVENT_TEXT)),
+    guardianMessage: cleanOutput(raw.guardianMessage, 600),
+  };
+}
+
+// ---------- 11) 기능회복훈련 기록 정리 ----------
+
+const REHAB_KIND_GUIDE: Record<RehabKind, string> = {
+  PHYSICAL_FUNCTION: '근력증강·연하·팔·손가락·조화운동·지구력 훈련 등',
+  BASIC_MOTION: '체위변경·일어나기·앉아있기·일어서기·균형·이동·휠체어 조작·보행·보장구 장착 등',
+  ADL: '식사·배설·옷 갈아입기·목욕·몸단장·요리 등 일상생활 동작',
+  PHYSIO: '온열·전기·수치료·견인 등 물리치료',
+  OCCUPATIONAL: '운동놀이·미술활동·도구적 일상생활 동작 훈련 등 작업치료',
+  COGNITIVE: '기억전략·회상·지각·판단 훈련 등 인지기능 향상 훈련',
+};
+
+export function validateRehabLogInput(body: unknown): Validation<RehabLogAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '훈련 메모', MAX_LOG_INPUT_LENGTH);
+  if (!note.ok) return note;
+  const kind = body.kind;
+  if (kind === undefined || kind === null || kind === '') return { ok: true, value: { note: note.value } };
+  if (!isRehabKind(kind)) return { ok: false, message: '훈련 종류가 올바르지 않습니다' };
+  return { ok: true, value: { note: note.value, kind } };
+}
+
+export function buildRehabLogPrompt(input: RehabLogAiInput): string {
+  const guide = REHAB_KINDS.map((k) => `- ${k.value} (${k.label}): ${REHAB_KIND_GUIDE[k.value]}`).join('\n');
+  return `당신은 주야간보호센터의 기능회복훈련 기록 작성을 돕는 보조자입니다.
+아래 <note>는 담당 직원(또는 치료사)이 훈련을 마치고 적은 메모입니다. 이 메모만을 근거로 훈련 기록 칸을 채웁니다.${input.kind ? `\n직원이 고른 훈련 종류: ${input.kind} (${rehabKindLabel(input.kind)})` : ''}
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 훈련 시간(분)·횟수·세트·도구·어르신 반응은 메모에 적힌 것만 씁니다.
+3. kind는 아래 값 중에서 메모에 맞는 하나를 고르고, 메모로 정할 수 없으면 null.${input.kind ? ' 직원이 종류를 골랐으면 그 값을 그대로 씁니다.' : ''}
+4. minutes는 메모에 적힌 총 훈련 시간(분, 1~240의 정수)입니다. 메모에 시간이 없으면 null — 짐작해서 넣지 않습니다.
+5. items는 훈련 항목 이름만 짧게(예: "평행봉 걷기", "계단 오르기") 최대 ${MAX_REHAB_ITEMS}개, 각 ${MAX_REHAB_ITEM_LENGTH}자 이내. 메모에 없으면 빈 배열.
+6. ${NO_FILLER_RULE}
+7. ${PRIVACY_RULE}
+8. 진단·치료 효과 단정·의학적 판단은 쓰지 않고 관찰한 사실만 씁니다.
+9. ${RECORD_STYLE_RULE}
+
+[훈련 종류]
+${guide}
+
+[칸 설명]
+- content: 무엇을 어떻게 했는지 1~3문장.
+- reaction: 어르신의 관찰된 반응(통증 호소, 피로, 참여 모습, 도움이 필요했던 점). 메모에 없으면 빈 문자열.
+
+${fence('note', input.note)}`;
+}
+
+export const REHAB_LOG_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    // nullable과 enum을 함께 쓰면 모델 쪽 스키마 검증이 까다로워 허용 값은 설명에 적고 normalizeRehabLog가 걸러낸다.
+    kind: { type: 'STRING', nullable: true, description: `훈련 종류(${REHAB_KINDS.map((k) => k.value).join(' | ')}). 정할 수 없으면 null` },
+    minutes: { type: 'INTEGER', nullable: true, description: '총 훈련 시간(분, 1~240). 메모에 없으면 null' },
+    items: { type: 'ARRAY', description: `훈련 항목 이름 (최대 ${MAX_REHAB_ITEMS}개, 각 ${MAX_REHAB_ITEM_LENGTH}자 이내)`, items: { type: 'STRING' } },
+    content: STR('훈련 내용 (없으면 빈 문자열)'),
+    reaction: STR('어르신 반응 (없으면 빈 문자열)'),
+  },
+  required: ['kind', 'minutes', 'items', 'content', 'reaction'],
+} as const;
+
+/** 메모에서 "30분"·"1시간 30분"처럼 시간으로 읽히는 값(분)들. 한글 수사("삼십 분", "한 시간")가 있으면 확인할 수 없다는 뜻으로 unverifiable을 켠다. */
+function minutesInNote(note: string): { values: Set<number>; unverifiable: boolean } {
+  const values = new Set<number>();
+  for (const m of note.matchAll(/(\d+)\s*시간(?:\s*(\d+)\s*분)?/g)) values.add(Number(m[1]) * 60 + (m[2] ? Number(m[2]) : 0));
+  for (const m of note.matchAll(/(?<![시간\d])\s*(\d+)\s*분/g)) values.add(Number(m[1]));
+  const unverifiable = /[일이삼사오육칠팔구십백한두세네반]\s*(?:분|시간)/.test(note.replace(/\d+\s*(?:분|시간)/g, ''));
+  return { values, unverifiable };
+}
+
+/**
+ * 모델 답을 훈련 기록 칸으로. kind는 허용 값이 아니면 null, minutes는 1~240 정수가 아니면 null,
+ * note를 함께 주면 메모에 그 시간이 없을 때도 null(모델이 시간을 지어내지 못하게 한다).
+ */
+export function normalizeRehabLog(raw: unknown, note?: string): RehabLogAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const kind = typeof raw.kind === 'string' ? raw.kind.trim() : '';
+  let minutes: number | null = typeof raw.minutes === 'number' && Number.isInteger(raw.minutes) && raw.minutes >= 1 && raw.minutes <= MAX_REHAB_MINUTES ? raw.minutes : null;
+  if (minutes !== null && typeof note === 'string') {
+    const found = minutesInNote(note);
+    if (!found.values.has(minutes) && !found.unverifiable) minutes = null;
+  }
+  return {
+    kind: isRehabKind(kind) ? kind : null,
+    minutes,
+    items: cleanList(raw.items, MAX_REHAB_ITEMS, MAX_REHAB_ITEM_LENGTH),
+    content: substantive(cleanOutput(raw.content, 2000)),
+    reaction: substantive(cleanOutput(raw.reaction, 1000)),
+  };
+}
+
+// ---------- 12) 보호자 월간 안내 초안 ----------
+
+export const MAX_NOTICE_TITLE = 40;
+export const MAX_NOTICE_BODY = 1500;
+
+export function validateGuardianNoticeInput(body: unknown): Validation<GuardianNoticeAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (!isValidMonth(body.month)) return { ok: false, message: '안내할 달이 올바르지 않습니다' };
+  if (body.tone !== 'WARM' && body.tone !== 'BRIEF') return { ok: false, message: '글투를 선택해 주세요' };
+  if (!isRecord(body.facts)) return { ok: false, message: '안내에 쓸 사실이 없습니다' };
+  if (JSON.stringify(body.facts).length > MAX_LOG_INPUT_LENGTH) return { ok: false, message: `안내에 쓸 사실은 ${MAX_LOG_INPUT_LENGTH}자까지 보낼 수 있습니다` };
+  return { ok: true, value: { month: body.month, tone: body.tone, facts: body.facts as unknown as NoticeFacts } };
+}
+
+export function buildGuardianNoticePrompt(input: GuardianNoticeAiInput): string {
+  const tone = input.tone === 'WARM' ? '따뜻하고 정중한 존댓말. 5~8문장 안팎' : '짧고 담백한 존댓말. 3~5문장 안팎, 사실 위주';
+  return `당신은 주야간보호센터가 보호자에게 보내는 월간 안내문 작성을 돕는 보조자입니다.
+아래 <facts>는 ${input.month}에 어르신이 센터에서 지낸 모습을 기록에서 모은 사실 묶음(JSON)입니다. 이 사실만을 근거로 안내문을 씁니다. 담당자가 읽고 고쳐서 보냅니다.
+글투: ${tone}
+
+[규칙]
+1. ${INJECTION_RULE}
+2. facts에 없는 숫자(날짜·횟수·시간·혈압·혈당·체중·금액)와 사건은 절대 쓰지 않습니다. 숫자는 facts의 값을 그대로 옮기고, 값이 null이거나 빈 목록인 항목은 언급하지 않습니다.
+3. 의료 판단·진단은 하지 않습니다. 혈압·혈당·체중 수치는 "평균 ○○", "○○에서 ○○으로"처럼 사실만 전하고, 정상·위험·좋아짐·나빠짐 같은 평가, 병명, 원인 추측, 약·치료·병원 진료 권유를 쓰지 않습니다. 걱정되는 점은 센터로 문의해 달라고만 안내합니다.
+4. 사고(events)가 있으면 날짜와 종류만 사실대로 한 문장으로 전하고 원인·책임을 추측하지 않습니다. 없으면 사고가 없었다고 따로 쓰지 않아도 됩니다.
+5. specialNotes는 직원이 관찰한 사실입니다. 그 뜻을 바꾸지 않고 풀어 쓰며, 없는 내용을 덧붙이지 않습니다.
+6. copay(본인부담금)는 있을 때만, 금액과 상태를 사실 그대로 한 문장으로 전합니다. 독촉하는 말투는 쓰지 않습니다.
+7. 어르신을 부를 때는 이름 대신 반드시 "${NAME_TOKEN}"라고 씁니다. 직원·보호자 이름도 쓰지 않고, 센터 이름·전화번호·주소도 지어내지 않습니다.
+8. 인사말·맺음말은 한 문장씩만 씁니다. 이모지·광고성 문구는 쓰지 않습니다.
+9. title은 ${MAX_NOTICE_TITLE}자 이내, body는 ${MAX_NOTICE_BODY}자 이내입니다.
+10. facts의 코드는 한글로 풀어 씁니다: programs.byCategory의 COGNITIVE=인지, PHYSICAL=신체·운동, LEISURE=여가·취미, SOCIAL=사회적응, OTHER=기타 프로그램, copay.status의 UNPAID=미납, PARTIAL=일부 납부, PAID=납부 완료. 영문 코드를 그대로 쓰지 않습니다.
+
+${fence('facts', JSON.stringify(input.facts, null, 1))}`;
+}
+
+export const GUARDIAN_NOTICE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    title: STR(`안내문 제목 (${MAX_NOTICE_TITLE}자 이내)`),
+    body: STR(`안내문 본문 (${MAX_NOTICE_BODY}자 이내). 어르신 이름 자리는 ${NAME_TOKEN}`),
+  },
+  required: ['title', 'body'],
+} as const;
+
+/** 제목·본문을 한도 안으로 자른다. 본문이 비면 쓸 수 없으므로 오류(라우트가 다시 시도를 안내한다). */
+export function normalizeGuardianNotice(raw: unknown): GuardianNoticeAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const body = cleanOutput(raw.body, MAX_NOTICE_BODY);
+  if (body === '') throw new Error('AI 응답에 안내 본문이 없습니다');
+  return { title: cleanOutput(raw.title, MAX_NOTICE_TITLE), body };
+}
+
+// ---------- 13) 외부기관·지역자원 종류 제안 ----------
+
+export const MAX_RESOURCE_SUGGESTIONS = 6;
+
+export function validateResourceSuggestInput(body: unknown): Validation<ResourceSuggestAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const needs = readText(body, 'needs', '어르신 욕구', MAX_LOG_INPUT_LENGTH);
+  if (!needs.ok) return needs;
+  return { ok: true, value: { needs: needs.value } };
+}
+
+export function buildResourceSuggestPrompt(input: ResourceSuggestAiInput): string {
+  const guide = RESOURCE_TYPES.map((t) => `- ${t.value}: ${t.label}`).join('\n');
+  return `당신은 주야간보호센터 사회복지사가 어르신의 욕구에 맞는 외부기관·지역자원을 찾는 일을 돕는 보조자입니다.
+아래 <needs>는 담당자가 적은 어르신의 욕구·상황입니다. 어떤 "종류"의 기관·자원에 연계하면 좋을지 제안합니다. 담당자가 확인하고 직접 알아본 뒤 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 특정 기관 이름, 전화번호, 주소, 담당자, 지원 금액·자격 기준을 지어내지 않습니다. 종류와 찾는 방법(예: "관할 시·군·구 보건소 누리집이나 전화 문의", "지역 사회복지관에 문의")만 씁니다.
+3. needs에 근거가 없는 욕구를 만들지 않습니다. 근거가 약하면 제안 수를 줄이고, 연계할 곳이 떠오르지 않으면 빈 목록을 돌려줍니다.
+4. 진단·병명·치료 판단은 하지 않습니다. 의료적 판단이 필요해 보이면 "의료기관 진료 상담"처럼 연결 종류만 제안합니다.
+5. 제안은 최대 ${MAX_RESOURCE_SUGGESTIONS}개이며 필요한 순서로 씁니다. resourceType은 아래 값 중 하나입니다.
+6. ${PRIVACY_RULE}
+
+[연계 종류]
+${guide}
+
+[칸 설명]
+- reason: 이 종류를 제안하는 이유. needs의 어떤 내용 때문인지 1~2문장.
+- howTo: 이 종류의 기관을 찾고 연결하는 일반적인 방법 1~2문장.
+
+${fence('needs', input.needs)}`;
+}
+
+export const RESOURCE_SUGGEST_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    suggestions: {
+      type: 'ARRAY',
+      description: `연계 종류 제안 (최대 ${MAX_RESOURCE_SUGGESTIONS}개)`,
+      items: {
+        type: 'OBJECT',
+        properties: {
+          resourceType: { type: 'STRING', description: '연계 종류', enum: [...RESOURCE_TYPES.map((t) => t.value)] },
+          reason: STR('제안 이유'),
+          howTo: STR('찾는 방법 (기관 이름·전화번호 없이)'),
+        },
+        required: ['resourceType', 'reason', 'howTo'],
+      },
+    },
+  },
+  required: ['suggestions'],
+} as const;
+
+// 모델이 지어낼 수 있는 전화번호 모양(지역번호·휴대전화·1588류 대표번호). 119·129 같은 짧은 번호는 남긴다.
+const PHONE_LIKE = /(?:\+?82[-\s.]?)?0\d{1,2}[-\s.)]*\d{3,4}[-\s.]*\d{4}|\b1[3-9]\d{2}[-\s.]?\d{4}\b/;
+
+function withoutPhone(text: string): string {
+  return PHONE_LIKE.test(text) ? '' : text;
+}
+
+/** 허용 값 밖 종류는 OTHER, 앞에서 6개만, 전화번호처럼 보이는 글이 든 칸은 비운다. 이유와 방법이 모두 비면 버린다. */
+export function normalizeResourceSuggest(raw: unknown): ResourceSuggestAiResult {
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.suggestions) ? raw.suggestions : null;
+  if (list === null) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const suggestions: ResourceSuggestion[] = [];
+  for (const item of list) {
+    if (!isRecord(item)) continue;
+    const type = typeof item.resourceType === 'string' ? item.resourceType.trim() : '';
+    const reason = withoutPhone(cleanOutput(item.reason, 400));
+    const howTo = withoutPhone(cleanOutput(item.howTo, 400));
+    if (reason === '' && howTo === '') continue;
+    suggestions.push({ resourceType: RESOURCE_TYPES.some((t) => t.value === type) ? (type as ResourceType) : 'OTHER', reason, howTo });
+    if (suggestions.length >= MAX_RESOURCE_SUGGESTIONS) break;
+  }
+  return { suggestions };
+}
+
+// ---------- 14) 예산 초안 ----------
+
+/** budget-draft 요청 전체 크기(글자) — 계정 목록 때문에 다른 작업(3000자)보다 크다 */
+export const MAX_BUDGET_DRAFT_INPUT = 20000;
+export const MAX_BUDGET_DRAFT_REASON = 100;
+
+export function validateBudgetDraftInput(body: unknown): Validation<BudgetDraftAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (JSON.stringify(body).length > MAX_BUDGET_DRAFT_INPUT) return { ok: false, message: `입력은 ${MAX_BUDGET_DRAFT_INPUT}자까지 보낼 수 있습니다` };
+  const year = body.year;
+  if (typeof year !== 'number' || !Number.isInteger(year) || year < 2020 || year > 2100) return { ok: false, message: '회계연도는 2020~2100년이어야 합니다' };
+  if (!Array.isArray(body.accounts) || body.accounts.length === 0) return { ok: false, message: '예산을 짤 계정 목록이 있어야 합니다' };
+  if (body.accounts.length > MAX_BUDGET_LINES) return { ok: false, message: `계정은 ${MAX_BUDGET_LINES}개까지 보낼 수 있습니다` };
+  const accounts: BudgetDraftAccount[] = [];
+  for (const [i, raw] of body.accounts.entries()) {
+    if (!isRecord(raw)) return { ok: false, message: `${i + 1}번째 계정 형식이 올바르지 않습니다` };
+    const direction = raw.direction;
+    if (direction !== 'INCOME' && direction !== 'EXPENSE') return { ok: false, message: `${i + 1}번째 계정의 세입·세출 구분이 올바르지 않습니다` };
+    const code = raw.accountCode;
+    if (typeof code !== 'string' || !/^[0-9]{3,4}$/.test(code)) return { ok: false, message: `${i + 1}번째 계정 코드가 올바르지 않습니다` };
+    const name = typeof raw.accountName === 'string' ? clean(raw.accountName) : '';
+    if (name === '' || Array.from(name).length > 100) return { ok: false, message: `${i + 1}번째 계정 이름이 올바르지 않습니다` };
+    const last = raw.lastYear;
+    if (typeof last !== 'number' || !Number.isInteger(last) || last < 0 || last > MAX_BUDGET_AMOUNT) return { ok: false, message: `${i + 1}번째 전년 실적은 0원 이상 100억 원 이하의 정수여야 합니다` };
+    accounts.push({ direction, accountCode: code, accountName: name, lastYear: last });
+  }
+  const notes = readOptionalText(body, 'notes', '예산 메모', MAX_LOG_INPUT_LENGTH);
+  if (!notes.ok) return notes;
+  return { ok: true, value: notes.value === undefined ? { year, accounts } : { year, accounts, notes: notes.value } };
+}
+
+export function buildBudgetDraftPrompt(input: BudgetDraftAiInput): string {
+  const lines = input.accounts
+    .map((a) => `${a.direction === 'INCOME' ? '세입' : '세출'} ${a.accountCode} ${a.accountName} | 전년 실적 ${a.lastYear}원`)
+    .join('\n');
+  return `당신은 노인 주야간보호센터의 ${input.year}년도 예산안 초안 작성을 돕는 보조자입니다. 세입·세출 계정별 전년 실적을 보고 올해 예산 금액을 제안합니다. 담당자가 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 아래 [계정] 목록에 있는 (세입·세출 구분, 코드)만 씁니다. 목록에 없는 계정을 만들지 않고, 같은 계정을 두 번 쓰지 않습니다. direction은 세입이면 INCOME, 세출이면 EXPENSE입니다.
+3. 금액(amount)은 원 단위 0 이상의 정수이며 천 원 단위로 맞춥니다.
+4. 근거는 전년 실적과 <notes>에 적힌 변동 사유뿐입니다. notes에 없는 증감(물가 상승률, 임금 인상률, 인원 변동)을 지어내지 않습니다. 근거가 없으면 전년 실적을 그대로 쓰거나 계정을 빼고, 전년 실적이 0인 계정은 notes에 근거가 있을 때만 넣습니다.
+5. 세입 합계와 세출 합계를 맞추려고 금액을 임의로 조정하지 않습니다. 차이는 담당자가 봅니다.
+6. 인건비 비율·예비비 한도 같은 규정 기준을 단정해서 말하지 않습니다.
+7. reason에 그 금액을 정한 근거(예: "전년 실적 유지", "notes의 ○○ 반영")를 ${MAX_BUDGET_DRAFT_REASON}자 안으로 씁니다.
+8. ${PRIVACY_RULE}
+
+[계정] 구분 코드 이름 | 전년 실적
+${lines}
+
+${input.notes ? fence('notes', input.notes) : '<notes>\n(없음)\n</notes>'}`;
+}
+
+export const BUDGET_DRAFT_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    lines: {
+      type: 'ARRAY',
+      description: '예산 줄 (계정 목록 안의 계정만)',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          direction: { type: 'STRING', description: '세입(INCOME) 또는 세출(EXPENSE)', enum: ['INCOME', 'EXPENSE'] },
+          accountCode: STR('계정 코드(목록에 있는 것)'),
+          amount: { type: 'INTEGER', description: '예산 금액(원, 천 원 단위, 0 이상)' },
+          reason: STR(`근거 (${MAX_BUDGET_DRAFT_REASON}자 이내)`),
+        },
+        required: ['direction', 'accountCode', 'amount', 'reason'],
+      },
+    },
+  },
+  required: ['lines'],
+} as const;
+
+/** 금액 모양: 숫자, 또는 "1,234,000" 같은 쉼표 숫자 문자열 */
+function draftAmount(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value : null;
+  if (typeof value === 'string' && /^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/.test(value.trim())) return Number(value.trim().replace(/,/g, ''));
+  return null;
+}
+
+/**
+ * 모델 답을 입력 계정에 맞춘다: input.accounts에 없는 (방향, 코드)는 버리고, 금액이 숫자가 아니거나 음수면 버리고,
+ * 천 원 단위로 올리고(상한 100억), 같은 (방향, 코드)는 처음 것만 남긴다. 모델이 배열 자체를 줘도 받는다.
+ */
+export function normalizeBudgetDraft(raw: unknown, input: Pick<BudgetDraftAiInput, 'accounts'>): BudgetDraftAiResult {
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.lines) ? raw.lines : null;
+  if (list === null) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const allowed = new Set(input.accounts.map((a) => `${a.direction}:${a.accountCode}`));
+  const seen = new Set<string>();
+  const lines: BudgetDraftLine[] = [];
+  for (const item of list) {
+    if (!isRecord(item)) continue;
+    const direction = item.direction;
+    const code = typeof item.accountCode === 'string' ? item.accountCode.trim() : typeof item.accountCode === 'number' ? String(item.accountCode) : '';
+    if (direction !== 'INCOME' && direction !== 'EXPENSE') continue;
+    const key = `${direction}:${code}`;
+    if (!allowed.has(key) || seen.has(key)) continue;
+    const amount = draftAmount(item.amount);
+    if (amount === null) continue;
+    seen.add(key);
+    lines.push({ direction, accountCode: code, amount: roundUpToThousand(amount), reason: cleanOutput(item.reason, MAX_BUDGET_DRAFT_REASON) });
+  }
+  return { lines };
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -1316,6 +1745,31 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateLedgerClassifyInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildLedgerClassifyPrompt(v.value), schema: LEDGER_CLASSIFY_SCHEMA, normalize: (raw) => normalizeLedgerClassify(raw, v.value.lines) };
+  }
+  if (task === 'care-event') {
+    const v = validateCareEventInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildCareEventPrompt(v.value), schema: CARE_EVENT_SCHEMA, normalize: normalizeCareEvent };
+  }
+  if (task === 'rehab-log') {
+    const v = validateRehabLogInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildRehabLogPrompt(v.value), schema: REHAB_LOG_SCHEMA, normalize: (raw) => normalizeRehabLog(raw, v.value.note) };
+  }
+  if (task === 'guardian-notice') {
+    const v = validateGuardianNoticeInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildGuardianNoticePrompt(v.value), schema: GUARDIAN_NOTICE_SCHEMA, normalize: normalizeGuardianNotice };
+  }
+  if (task === 'resource-suggest') {
+    const v = validateResourceSuggestInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildResourceSuggestPrompt(v.value), schema: RESOURCE_SUGGEST_SCHEMA, normalize: normalizeResourceSuggest };
+  }
+  if (task === 'budget-draft') {
+    const v = validateBudgetDraftInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildBudgetDraftPrompt(v.value), schema: BUDGET_DRAFT_SCHEMA, normalize: (raw) => normalizeBudgetDraft(raw, v.value) };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }
