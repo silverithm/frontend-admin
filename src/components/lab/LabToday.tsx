@@ -87,6 +87,10 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
     <Card padding={0}>
       <div className={styles.todayBar}>
         <Text type="label">오늘 확인할 것</Text>
+        {/* 휴대폰에서는 칩 대신 합계 하나만 — 펼치면 아래 줄별 상세가 나온다 */}
+        <span className={styles.todayTotalMobile}>
+          {loaded ? <Chip tone={total > 0 ? 'warn' : 'ok'} label={total > 0 ? `${total}건` : NOTHING_TO_CHECK} /> : <Spinner size="sm" aria-label="오늘 확인할 것을 불러오는 중" />}
+        </span>
         <div className={styles.todayPills}>
           {shown.map((l) => {
             const st = states[l.id];
@@ -103,7 +107,9 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
             if (st.status !== 'ok') return null;
             return (
               <button key={l.id} type="button" className={styles.todayPill} aria-label={`${l.title}: ${st.line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target)}>
-                <Text type="supporting">{l.title}</Text>
+                <span className={styles.todayPillTitle}>
+                  <Text type="supporting">{l.title}</Text>
+                </span>
                 <Chip tone={st.line.count === 0 ? 'ok' : st.line.danger ? 'danger' : 'warn'} label={st.line.count === 0 ? '없음' : st.line.text} />
               </button>
             );

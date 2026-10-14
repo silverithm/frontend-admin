@@ -641,3 +641,22 @@
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+.todayPillTitle {
+  white-space: nowrap;
+}
+
+.todayTotalMobile {
+  display: none;
+}
+
+/* 휴대폰: 요약 칩이 한 줄에 몰려 제목이 한 글자씩 세로로 쌓이고 첫 화면 절반을 차지했다 — 접힌 상태는 합계 한 줄, 펼치면 줄별 상세만 */
+@media (max-width: 640px) {
+  .todayPills {
+    display: none;
+  }
+  .todayTotalMobile {
+    display: inline-flex;
+    flex: 1 1 auto;
+  }
+}
