@@ -5,7 +5,7 @@
  * "AI로 점수 제안"은 관찰 메모를 읽고 항목별 선택지를 미리 골라 주되, 근거를 항목 아래에 보여 줄 뿐이다.
  * 직원이 고르고 "평가 저장"을 눌러야 기록된다. 합계와 단계는 서버와 같은 규칙(scoreAssessment)으로 바로 계산한다.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -41,6 +41,11 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
   const notify = useNotify();
   const [kind, setKind] = useState<RiskKind>(initialKind);
   const [byKind, setByKind] = useState<Record<RiskKind, KindState>>({ BRADEN: emptyKind(), MORSE: emptyKind() });
+  // AI 제안을 적용할 때 최신 상태를 setState 밖에서 읽기 위한 거울
+  const byKindRef = useRef(byKind);
+  useEffect(() => {
+    byKindRef.current = byKind;
+  }, [byKind]);
   const [assessedOn, setAssessedOn] = useState<string>(todayString());
   const [assessor, setAssessor] = useState(defaultPersonName);
   const [note, setNote] = useState('');
@@ -73,21 +78,22 @@ export default function RiskAssessForm({ elderId, initialKind, onSaved }: RiskAs
     setAiMessage(null);
     try {
       const result = await aiSuggestRiskScores(target, text);
+      // 채울 항목은 setState 밖에서 계산한다. 예전에는 updater 안에서 셌는데, updater는 나중에 돌아서
+      // 안내 문구를 고를 때 개수가 늘 0이었다 — 항목이 채워졌는데도 "고를 수 있는 항목이 없었다"고 떴다.
+      const before = byKindRef.current[target];
+      const scores = { ...before.scores };
+      const ai = { ...before.ai };
       let applied = 0;
-      patchKind(target, (s) => {
-        const scores = { ...s.scores };
-        const ai = { ...s.ai };
-        for (const item of RISK_ITEMS[target]) {
-          const suggestion = result.scores[item.key];
-          if (!suggestion || !allowedValues(target, item.key).includes(suggestion.value)) continue;
-          // 직원이 이미 고른 항목은 그대로 둔다
-          if (scores[item.key] !== undefined && !ai[item.key]) continue;
-          scores[item.key] = suggestion.value;
-          ai[item.key] = suggestion.reason;
-          applied += 1;
-        }
-        return { ...s, scores, ai, aiUsed: true };
-      });
+      for (const item of RISK_ITEMS[target]) {
+        const suggestion = result.scores[item.key];
+        if (!suggestion || !allowedValues(target, item.key).includes(suggestion.value)) continue;
+        // 직원이 이미 고른 항목은 그대로 둔다
+        if (scores[item.key] !== undefined && !ai[item.key]) continue;
+        scores[item.key] = suggestion.value;
+        ai[item.key] = suggestion.reason;
+        applied += 1;
+      }
+      patchKind(target, (s) => ({ ...s, scores, ai, aiUsed: true }));
       setAiMessage(
         applied === 0
           ? '메모만으로는 고를 수 있는 항목이 없었습니다. 관찰 내용을 조금 더 적어 보세요.'
