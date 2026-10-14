@@ -5,8 +5,29 @@
  * 에러는 서버 JSON의 message를 그대로 Error 메시지로 던진다. 서버가 메시지를 주지 않으면 한국어 기본 문구.
  */
 import { authorizedFetch } from '../apiService';
-import { redactDeep, rememberStaffNames } from './nameRedaction.ts';
+import { redactDeep, rememberElderNames, rememberStaffNames } from './nameRedaction.ts';
 import type {
+  BusinessPlan,
+  BusinessPlanAiInput,
+  BusinessPlanAiResult,
+  BusinessPlanInput,
+  IntakeInquiry,
+  IntakeInquiryInput,
+  IntakeNoteAiResult,
+  IntakeStatus,
+  ProgramFeedback,
+  ProgramFeedbackInput,
+  ProgramPlan,
+  ProgramPlanInput,
+  ProgramSchedule,
+  ProgramScheduleAiInput,
+  ProgramScheduleAiResult,
+  ProgramScheduleInput,
+  SatisfactionKind,
+  SatisfactionResponse,
+  SatisfactionResponseInput,
+  SurveySummaryAiInput,
+  SurveySummaryAiResult,
   BathLog,
   BathLogInput,
   BathNoteAiInput,
@@ -868,4 +889,147 @@ export function aiDraftDischargeReferral(input: DischargeReferralAiInput): Promi
 
 export function aiStructureBathNote(input: BathNoteAiInput): Promise<BathNoteAiResult> {
   return request<BathNoteAiResult>(`${LAB_AI}/bath-note`, json('POST', redactDeep(input)), `AI가 목욕 메모를 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+// ---------- 프로그램 연간계획 ----------
+
+export function listProgramPlans(year: number): Promise<ProgramPlan[]> {
+  return request<ProgramPlan[]>(`${LAB}/program-plans?year=${q(String(year))}`, undefined, '프로그램 연간계획을 불러오지 못했습니다');
+}
+
+/** planYear+category로 덮어쓴다(upsert) */
+export function saveProgramPlan(input: ProgramPlanInput): Promise<ProgramPlan> {
+  return request<ProgramPlan>(`${LAB}/program-plans`, json('PUT', input), '프로그램 연간계획을 저장하지 못했습니다');
+}
+
+export async function deleteProgramPlan(id: number): Promise<void> {
+  await request<null>(`${LAB}/program-plans/${q(String(id))}`, { method: 'DELETE' }, '프로그램 연간계획을 삭제하지 못했습니다');
+}
+
+// ---------- 월간 프로그램 계획표 ----------
+
+/** 그 달의 계획표. 아직 만들지 않았으면 서버가 404를 주므로 null로 돌려준다. */
+export async function getProgramSchedule(month: string): Promise<ProgramSchedule | null> {
+  try {
+    return await request<ProgramSchedule>(`${LAB}/program-schedules?month=${q(month)}`, undefined, '월간 프로그램 계획표를 불러오지 못했습니다');
+  } catch (error) {
+    if (error instanceof LabApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** 그 해 열두 달의 계획표(만든 달만) */
+export function listProgramSchedules(year: number): Promise<ProgramSchedule[]> {
+  return request<ProgramSchedule[]>(`${LAB}/program-schedules?year=${q(String(year))}`, undefined, '월간 프로그램 계획표를 불러오지 못했습니다');
+}
+
+/** scheduleMonth로 덮어쓴다(upsert). 그 달 밖 날짜·허용 밖 분류가 있으면 서버가 400을 준다 */
+export function saveProgramSchedule(input: ProgramScheduleInput): Promise<ProgramSchedule> {
+  return request<ProgramSchedule>(`${LAB}/program-schedules`, json('PUT', input), '월간 프로그램 계획표를 저장하지 못했습니다');
+}
+
+export async function deleteProgramSchedule(id: number): Promise<void> {
+  await request<null>(`${LAB}/program-schedules/${q(String(id))}`, { method: 'DELETE' }, '월간 프로그램 계획표를 삭제하지 못했습니다');
+}
+
+// ---------- 프로그램 의견수렴·반영 ----------
+
+export function listProgramFeedback(year: number): Promise<ProgramFeedback[]> {
+  return request<ProgramFeedback[]>(`${LAB}/program-feedback?year=${q(String(year))}`, undefined, '프로그램 의견수렴 기록을 불러오지 못했습니다');
+}
+
+export function createProgramFeedback(input: ProgramFeedbackInput): Promise<ProgramFeedback> {
+  return request<ProgramFeedback>(`${LAB}/program-feedback`, json('POST', input), '프로그램 의견수렴 기록을 저장하지 못했습니다');
+}
+
+export function updateProgramFeedback(id: number, input: ProgramFeedbackInput): Promise<ProgramFeedback> {
+  return request<ProgramFeedback>(`${LAB}/program-feedback/${q(String(id))}`, json('PUT', input), '프로그램 의견수렴 기록을 고치지 못했습니다');
+}
+
+export async function deleteProgramFeedback(id: number): Promise<void> {
+  await request<null>(`${LAB}/program-feedback/${q(String(id))}`, { method: 'DELETE' }, '프로그램 의견수렴 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 사업계획 ----------
+
+/** 그 해 사업계획서. 아직 없으면 서버가 404를 주므로 null로 돌려준다. */
+export async function getBusinessPlan(year: number): Promise<BusinessPlan | null> {
+  try {
+    return await request<BusinessPlan>(`${LAB}/business-plans?year=${q(String(year))}`, undefined, '사업계획서를 불러오지 못했습니다');
+  } catch (error) {
+    if (error instanceof LabApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** planYear로 덮어쓴다(upsert) */
+export function saveBusinessPlan(input: BusinessPlanInput): Promise<BusinessPlan> {
+  return request<BusinessPlan>(`${LAB}/business-plans`, json('PUT', input), '사업계획서를 저장하지 못했습니다');
+}
+
+export async function deleteBusinessPlan(id: number): Promise<void> {
+  await request<null>(`${LAB}/business-plans/${q(String(id))}`, { method: 'DELETE' }, '사업계획서를 삭제하지 못했습니다');
+}
+
+// ---------- 급여 만족도 ----------
+
+/** from·to는 'YYYY-MM-DD'(필수, 최대 1년). kind를 빼면 모든 종류 */
+export function listSatisfaction(params: { kind?: SatisfactionKind; from: string; to: string }): Promise<SatisfactionResponse[]> {
+  const kind = params.kind ? `kind=${q(params.kind)}&` : '';
+  return request<SatisfactionResponse[]>(`${LAB}/satisfaction?${kind}from=${q(params.from)}&to=${q(params.to)}`, undefined, '만족도 응답을 불러오지 못했습니다');
+}
+
+/** 미래 날짜는 서버가 400을 준다 */
+export function createSatisfaction(input: SatisfactionResponseInput): Promise<SatisfactionResponse> {
+  return request<SatisfactionResponse>(`${LAB}/satisfaction`, json('POST', input), '만족도 응답을 저장하지 못했습니다');
+}
+
+export function updateSatisfaction(id: number, input: SatisfactionResponseInput): Promise<SatisfactionResponse> {
+  return request<SatisfactionResponse>(`${LAB}/satisfaction/${q(String(id))}`, json('PUT', input), '만족도 응답을 고치지 못했습니다');
+}
+
+export async function deleteSatisfaction(id: number): Promise<void> {
+  await request<null>(`${LAB}/satisfaction/${q(String(id))}`, { method: 'DELETE' }, '만족도 응답을 삭제하지 못했습니다');
+}
+
+// ---------- 입소 상담·대기 ----------
+
+/** status를 빼면 전부(문의일 최신순) */
+export function listIntake(status?: IntakeStatus): Promise<IntakeInquiry[]> {
+  return request<IntakeInquiry[]>(`${LAB}/intake${status ? `?status=${q(status)}` : ''}`, undefined, '입소 상담 기록을 불러오지 못했습니다');
+}
+
+/** 연락처를 적었는데 동의일이 없으면 서버가 400을, 계약 완료(CONTRACTED)인데 어르신이 없으면 400을 준다 */
+export function createIntake(input: IntakeInquiryInput): Promise<IntakeInquiry> {
+  return request<IntakeInquiry>(`${LAB}/intake`, json('POST', input), '입소 상담을 저장하지 못했습니다');
+}
+
+export function updateIntake(id: number, input: IntakeInquiryInput): Promise<IntakeInquiry> {
+  return request<IntakeInquiry>(`${LAB}/intake/${q(String(id))}`, json('PUT', input), '입소 상담을 고치지 못했습니다');
+}
+
+export async function deleteIntake(id: number): Promise<void> {
+  await request<null>(`${LAB}/intake/${q(String(id))}`, { method: 'DELETE' }, '입소 상담을 삭제하지 못했습니다');
+}
+
+// ---------- 7차 AI 작업 — 제안만 돌려준다. 보내기 직전에 이름을 지운다 ----------
+
+export function aiDraftProgramSchedule(input: ProgramScheduleAiInput): Promise<ProgramScheduleAiResult> {
+  return request<ProgramScheduleAiResult>(`${LAB_AI}/program-schedule`, json('POST', redactDeep(input)), `AI가 계획표 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiDraftBusinessPlan(input: BusinessPlanAiInput): Promise<BusinessPlanAiResult> {
+  return request<BusinessPlanAiResult>(`${LAB_AI}/business-plan`, json('POST', redactDeep(input)), `AI가 사업계획 초안을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+export function aiSummarizeSurvey(input: SurveySummaryAiInput): Promise<SurveySummaryAiResult> {
+  return request<SurveySummaryAiResult>(`${LAB_AI}/survey-summary`, json('POST', redactDeep(input)), `AI가 의견을 요약하지 못했습니다. ${AI_RETRY}`);
+}
+
+/**
+ * 상담 메모 정리. names(신청 어르신·문의자 이름)는 알려진 이름으로 기억한 뒤 메모에서 지운다 — 이름은 서버로 보내지 않는다.
+ */
+export function aiStructureIntakeNote(note: string, names: ReadonlyArray<string | null | undefined> = []): Promise<IntakeNoteAiResult> {
+  rememberElderNames(names.filter((n): n is string => typeof n === 'string'));
+  return request<IntakeNoteAiResult>(`${LAB_AI}/intake-note`, json('POST', redactDeep({ note })), `AI가 상담 메모를 정리하지 못했습니다. ${AI_RETRY}`);
 }

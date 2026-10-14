@@ -1,6 +1,6 @@
 /**
- * 실험실 AI 작업 19종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
- * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안 / 6차: 투약의뢰서 약 목록 정리 · 퇴소 연계기록지 초안 · 목욕 메모 정리)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 23종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안 / 6차: 투약의뢰서 약 목록 정리 · 퇴소 연계기록지 초안 · 목욕 메모 정리 / 7차: 월간 프로그램 계획표 · 사업계획 초안 · 만족도 의견 주제 요약 · 입소 상담 메모 정리)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -9,6 +9,20 @@
  * 3) 어르신 이름은 입력에 들어가지 않는다 — 메모에 이름이 적혀 있어도 출력에 쓰지 말라고 지시한다.
  */
 import type {
+  BusinessPlanAiInput,
+  BusinessPlanAiResult,
+  BusinessPlanFacts,
+  BusinessPlanItem,
+  IntakeCareGrade,
+  IntakeNoteAiInput,
+  IntakeNoteAiResult,
+  ProgramScheduleAiInput,
+  ProgramScheduleAiResult,
+  SatisfactionKind,
+  ScheduleItem,
+  SurveySummaryAiInput,
+  SurveySummaryAiResult,
+  SurveyTheme,
   BathMethod,
   BathNoteAiInput,
   BathNoteAiResult,
@@ -90,6 +104,11 @@ import { RESOURCE_TYPES } from './communityRules.ts';
 import { MAX_BUDGET_AMOUNT, MAX_BUDGET_LINES, roundUpToThousand } from './budgetRules.ts';
 import { MEAL_TEXT_LIMIT, emptyDay, isAvoidedDish, isMonday, weekDates, weekdayLabel } from './mealRules.ts';
 import { MAX_LEDGER_AMOUNT, MAX_LEDGER_DESCRIPTION, accountsFor, isAccountCode } from './ledgerRules.ts';
+import { MAX_PLAN_FREQUENCY, MAX_PLAN_GOAL, MAX_SCHEDULE_TITLE, SCHEDULE_CATEGORIES, WEEKLY_TARGET, isPlanCategory, isScheduleCategory, planCategoryLabel } from './programPlanRules.ts';
+import { ITEM_LIMITS, MAX_ITEM_BUDGET, MAX_PLAN_TOTAL } from './businessPlanRules.ts';
+import { SATISFACTION_KINDS, satisfactionKindLabel } from './satisfactionRules.ts';
+import { INTAKE_CARE_GRADES } from './intakeRules.ts';
+import { mondayOf } from './careEventRules.ts';
 import { MAX_SAFETY_ACTIONS, MAX_SAFETY_ITEMS, MAX_SAFETY_NOTE, SAFETY_CADENCE_LABEL, isSafetyKind, templateFor } from './safetyRules.ts';
 
 export type LabAiTask =
@@ -111,8 +130,12 @@ export type LabAiTask =
   | 'budget-draft'
   | 'medication-request'
   | 'discharge-referral'
-  | 'bath-note';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note'];
+  | 'bath-note'
+  | 'program-schedule'
+  | 'business-plan'
+  | 'survey-summary'
+  | 'intake-note';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note'];
 
 /**
  * 5·6차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
@@ -120,7 +143,9 @@ export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-
  */
 export function labAiBodyLimit(task: string): number | null {
   if (task === 'budget-draft') return 20_500;
-  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note') return 3_500;
+  if (task === 'survey-summary') return 20_500;
+  if (task === 'program-schedule' || task === 'business-plan') return 8_500;
+  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note') return 3_500;
   return null;
 }
 
@@ -1929,6 +1954,452 @@ export function normalizeBathNote(raw: unknown): BathNoteAiResult {
 }
 
 
+// =====================================================================
+// 7차 AI 작업 넷 — 월간 프로그램 계획표 · 사업계획 초안 · 만족도 의견 주제 요약 · 입소 상담 메모 정리
+// 공통 원칙: 입력에 없는 숫자·주제·사실은 만들지 않고(모르면 빈 값·0), 담당자가 확인해 고치는 초안만 돌려주며, 사람 이름을 쓰지 않는다.
+// =====================================================================
+
+/** program-schedule·business-plan 요청 본문 상한(글자) — 운영일 목록·연간계획이 들어가 다른 작업(3000자)보다 크다 */
+export const MAX_PLAN_AI_INPUT = 8000;
+/** survey-summary 요청 전체 크기(글자) — 의견 목록 때문에 다른 작업(3000자)보다 크다 */
+export const MAX_SURVEY_AI_INPUT = 20000;
+export const MAX_SURVEY_COMMENTS = 200;
+export const MAX_SURVEY_COMMENT_LENGTH = 300;
+export const MAX_SURVEY_THEMES = 8;
+export const MAX_SURVEY_SUGGESTIONS = 5;
+export const MAX_THEME_LENGTH = 40;
+export const MAX_THEME_EXAMPLE = 120;
+export const MAX_SUGGESTION_LENGTH = 200;
+export const MAX_AI_SCHEDULE_ITEMS = 120;
+export const MAX_AI_PLAN_ITEMS_PER_SECTION = 20;
+export const MAX_INTAKE_NEEDS = 2000;
+export const MAX_INTAKE_DAYS = 60;
+export const MAX_INTAKE_SUMMARY = 200;
+
+// ---------- 16) 월간 프로그램 계획표 ----------
+
+const SCHEDULE_CATEGORY_VALUES = SCHEDULE_CATEGORIES.map((c) => c.value);
+const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+export function validateProgramScheduleInput(body: unknown): Validation<ProgramScheduleAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (JSON.stringify(body).length > MAX_PLAN_AI_INPUT) return { ok: false, message: `입력은 ${MAX_PLAN_AI_INPUT}자까지 보낼 수 있습니다` };
+  if (!isValidMonth(body.month)) return { ok: false, message: '계획표를 만들 달이 올바르지 않습니다' };
+  const month = body.month;
+  if (!Array.isArray(body.operatingDays) || body.operatingDays.length === 0) return { ok: false, message: '운영일이 있어야 계획표를 만들 수 있습니다' };
+  if (body.operatingDays.length > 31) return { ok: false, message: '운영일은 한 달 31일까지입니다' };
+  const days = new Set<string>();
+  for (const d of body.operatingDays) {
+    if (typeof d !== 'string' || !parseYmd(d) || !d.startsWith(`${month}-`) || d.length !== 10) return { ok: false, message: '운영일은 그 달 안의 올바른 날짜여야 합니다' };
+    days.add(d);
+  }
+  const operatingDays = [...days].sort();
+
+  let annualPlans: ProgramScheduleAiInput['annualPlans'];
+  if (body.annualPlans !== undefined && body.annualPlans !== null) {
+    if (!Array.isArray(body.annualPlans) || body.annualPlans.length > 3) return { ok: false, message: '연간계획은 신체·인지·사회적응 세 가지까지 보낼 수 있습니다' };
+    annualPlans = [];
+    for (const raw of body.annualPlans) {
+      if (!isRecord(raw) || !isPlanCategory(raw.category)) return { ok: false, message: '연간계획 분야가 올바르지 않습니다' };
+      const goal = typeof raw.goal === 'string' ? clean(raw.goal) : '';
+      const frequency = typeof raw.frequency === 'string' ? clean(raw.frequency) : '';
+      if (Array.from(goal).length > MAX_PLAN_GOAL) return { ok: false, message: `연간계획 목표는 ${MAX_PLAN_GOAL}자까지 보낼 수 있습니다` };
+      if (Array.from(frequency).length > MAX_PLAN_FREQUENCY) return { ok: false, message: `연간계획 횟수는 ${MAX_PLAN_FREQUENCY}자까지 보낼 수 있습니다` };
+      annualPlans.push({ category: raw.category, goal, frequency });
+    }
+  }
+
+  let recentTitles: string[] | undefined;
+  if (body.recentTitles !== undefined && body.recentTitles !== null) {
+    if (!Array.isArray(body.recentTitles) || body.recentTitles.length > 30) return { ok: false, message: '최근 프로그램 제목은 30개까지 보낼 수 있습니다' };
+    recentTitles = [];
+    for (const t of body.recentTitles) {
+      if (typeof t !== 'string') return { ok: false, message: '최근 프로그램 제목 형식이 올바르지 않습니다' };
+      const title = cut(clean(t), MAX_SCHEDULE_TITLE);
+      if (title !== '' && !recentTitles.includes(title)) recentTitles.push(title);
+    }
+  }
+  const value: ProgramScheduleAiInput = { month, operatingDays };
+  if (annualPlans && annualPlans.length > 0) value.annualPlans = annualPlans;
+  if (recentTitles && recentTitles.length > 0) value.recentTitles = recentTitles;
+  return { ok: true, value };
+}
+
+/** 운영일을 월~일 주로 묶는다(주 시작 월요일 → 그 주 운영일). 프롬프트에 보여 주고 주마다 채울 횟수를 못 박는다. */
+function operatingWeeks(operatingDays: readonly string[]): Array<{ weekStart: string; days: string[] }> {
+  const weeks = new Map<string, string[]>();
+  for (const d of operatingDays) {
+    const monday = mondayOf(d);
+    weeks.set(monday, [...(weeks.get(monday) ?? []), d]);
+  }
+  return [...weeks.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([weekStart, days]) => ({ weekStart, days }));
+}
+
+function dayLabel(ymd: string): string {
+  const p = parseYmd(ymd);
+  const dow = p ? new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay() : 0;
+  return `${ymd}(${WEEKDAY_NAMES[dow]})`;
+}
+
+export function buildProgramSchedulePrompt(input: ProgramScheduleAiInput): string {
+  const weeks = operatingWeeks(input.operatingDays);
+  const weekLines = weeks
+    .map((w) => `- ${w.days.map(dayLabel).join(', ')} → 운영일 ${w.days.length}일${w.days.length >= WEEKLY_TARGET ? ` (이 주는 COGNITIVE ${WEEKLY_TARGET}회 이상, PHYSICAL ${WEEKLY_TARGET}회 이상)` : ' (운영일이 3일 미만인 주라 횟수 기준 없음, 그래도 인지·신체를 되도록 넣음)'}`)
+    .join('\n');
+  const plans = (input.annualPlans ?? [])
+    .map((p) => `- ${planCategoryLabel(p.category)}(${p.category}): 목표 ${p.goal || '(적혀 있지 않음)'} / 횟수 ${p.frequency || '(적혀 있지 않음)'}`)
+    .join('\n');
+  const recent = input.recentTitles && input.recentTitles.length > 0 ? input.recentTitles.map((t) => `- ${t}`).join('\n') : '(없음)';
+  return `당신은 노인 주야간보호센터의 ${input.month} 월간 프로그램 계획표 초안 작성을 돕는 보조자입니다. 담당 사회복지사가 확인하고 고쳐서 보호자에게 안내합니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 날짜(date)는 아래 [운영일]에 있는 날짜만 씁니다. 운영일이 아닌 날(주말·휴원일)과 다른 달 날짜는 쓰지 않습니다.
+3. 주마다(아래 [주별 운영일]) 운영일이 3일 이상인 주는 인지기능(COGNITIVE)을 ${WEEKLY_TARGET}회 이상, 신체기능(PHYSICAL)을 ${WEEKLY_TARGET}회 이상 넣습니다. 한 날에 인지·신체를 함께 넣어도 되고, 되도록 여러 날에 나눕니다. 한 날에 프로그램은 3개를 넘기지 않습니다.
+4. 이 달에 사회적응(SOCIAL) 프로그램을 1회 이상 넣습니다(실내 프로그램이어도 됩니다). 여가·취미(LEISURE)와 기타(OTHER)는 필요할 때만 씁니다.
+5. 프로그램 제목(title)은 ${MAX_SCHEDULE_TITLE}자 이내의 일반적인 활동 이름입니다. [연간계획]의 목표에 맞추고, [최근 제목]과 똑같은 제목을 연달아 반복하지 말고 변화를 줍니다. 연간계획이 없으면 일반적인 활동 이름을 씁니다.
+6. 입력에 없는 사실은 만들지 않습니다: 외부 강사·기관 이름, 장소, 인원, 시간, 비용, 입력에 없는 행사(공연·명절·견학·기념일)는 제목에 쓰지 않습니다. 시각과 강사는 정하지 않습니다(담당자가 적습니다).
+7. 전체 프로그램은 ${MAX_AI_SCHEDULE_ITEMS}개를 넘기지 않습니다.
+8. ${PRIVACY_RULE}
+
+[운영일] (${input.month})
+${input.operatingDays.map(dayLabel).join(', ')}
+
+[주별 운영일]
+${weekLines}
+
+[연간계획]
+${plans || '(없음)'}
+
+[최근 제목]
+${fence('recent', recent)}`;
+}
+
+export const PROGRAM_SCHEDULE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    items: {
+      type: 'ARRAY',
+      description: `월간 계획표 프로그램 (${MAX_AI_SCHEDULE_ITEMS}개 이내, 운영일에만)`,
+      items: {
+        type: 'OBJECT',
+        properties: {
+          date: STR('운영일 목록에 있는 날짜 YYYY-MM-DD'),
+          category: { type: 'STRING', description: '프로그램 분류', enum: SCHEDULE_CATEGORY_VALUES },
+          title: STR(`프로그램 제목 (${MAX_SCHEDULE_TITLE}자 이내)`),
+        },
+        required: ['date', 'category', 'title'],
+      },
+    },
+  },
+  required: ['items'],
+} as const;
+
+/**
+ * 모델 답을 입력 운영일에 맞춘다: 운영일이 아닌(그 달 밖 포함) 날짜와 허용 밖 분류는 버리고, 제목을 40자로 자르고(빈 제목은 버림),
+ * 같은 (날짜·분류·제목)은 하나만 남기고, 날짜순으로 정렬해 120개까지. 시각·강사는 AI가 정하지 않으므로 null.
+ */
+export function normalizeProgramSchedule(raw: unknown, input: Pick<ProgramScheduleAiInput, 'month' | 'operatingDays'>): ProgramScheduleAiResult {
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.items) ? raw.items : null;
+  if (list === null) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const allowedDays = new Set(input.operatingDays.filter((d) => d.startsWith(`${input.month}-`)));
+  const seen = new Set<string>();
+  const items: ScheduleItem[] = [];
+  for (const item of list) {
+    if (!isRecord(item)) continue;
+    const date = typeof item.date === 'string' ? item.date.trim().slice(0, 10) : '';
+    if (!allowedDays.has(date)) continue;
+    const category = typeof item.category === 'string' ? item.category.trim().toUpperCase() : '';
+    if (!isScheduleCategory(category)) continue;
+    const title = cleanOutput(typeof item.title === 'string' ? item.title.replace(/\s+/g, ' ') : '', MAX_SCHEDULE_TITLE);
+    if (title === '') continue;
+    const key = `${date}|${category}|${title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push({ date, startTime: null, category, title, instructor: null });
+  }
+  if (items.length === 0) throw new Error('AI 응답에 사용할 수 있는 프로그램이 없습니다');
+  items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return { items: items.slice(0, MAX_AI_SCHEDULE_ITEMS) };
+}
+
+// ---------- 17) 사업계획 초안 ----------
+
+const FACT_KEYS = ['programs', 'trainings', 'events', 'elders'] as const;
+const FACT_LABEL: Record<(typeof FACT_KEYS)[number], string> = { programs: '지난해 프로그램 일지 수', trainings: '지난해 직원 교육·회의 수', events: '지난해 행사·사건 기록 수', elders: '이용 어르신 수' };
+
+export function validateBusinessPlanInput(body: unknown): Validation<BusinessPlanAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (JSON.stringify(body).length > MAX_PLAN_AI_INPUT) return { ok: false, message: `입력은 ${MAX_PLAN_AI_INPUT}자까지 보낼 수 있습니다` };
+  const year = body.year;
+  if (typeof year !== 'number' || !Number.isInteger(year) || year < 2020 || year > 2100) return { ok: false, message: '사업계획 연도는 2020~2100년이어야 합니다' };
+  if (!isRecord(body.facts)) return { ok: false, message: '지난해 기록 요약이 있어야 합니다' };
+  const facts = { programs: 0, trainings: 0, events: 0, elders: 0, budgetTotals: null as BusinessPlanFacts['budgetTotals'] };
+  for (const key of FACT_KEYS) {
+    const v = body.facts[key];
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 1_000_000) return { ok: false, message: `${FACT_LABEL[key]}는 0 이상의 정수여야 합니다` };
+    facts[key] = v;
+  }
+  const totals = body.facts.budgetTotals;
+  if (totals !== undefined && totals !== null) {
+    if (!isRecord(totals)) return { ok: false, message: '예산 합계 형식이 올바르지 않습니다' };
+    const income = totals.income;
+    const expense = totals.expense;
+    const ok = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= MAX_PLAN_TOTAL;
+    if (!ok(income) || !ok(expense)) return { ok: false, message: '예산 합계는 0원 이상 100억 원 이하의 정수여야 합니다' };
+    facts.budgetTotals = { income, expense };
+  }
+  const notes = readOptionalText(body, 'notes', '사업계획 메모', MAX_LOG_INPUT_LENGTH);
+  if (!notes.ok) return notes;
+  return { ok: true, value: notes.value === undefined ? { year, facts } : { year, facts, notes: notes.value } };
+}
+
+export function buildBusinessPlanPrompt(input: BusinessPlanAiInput): string {
+  const f = input.facts;
+  const factLines = [
+    ...FACT_KEYS.map((k) => `- ${FACT_LABEL[k]}: ${f[k]}`),
+    f.budgetTotals ? `- 기관 예산: 총수입 ${f.budgetTotals.income}원, 총지출 ${f.budgetTotals.expense}원` : '- 기관 예산: (없음)',
+  ].join('\n');
+  return `당신은 노인 주야간보호센터의 ${input.year}년도 연간 사업계획서 초안 작성을 돕는 보조자입니다. 센터장이 확인하고 고쳐서 씁니다. 2026 장기요양기관 평가는 사업계획서에 기관운영·서비스 제공·직원관리 세 분야가 모두 있고, 항목마다 세부사업명·사업목표·사업내용·사업대상·사업예산·추진일정이 있어야 인정합니다. 프로그램 계획만 쓰면 인정되지 않습니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. sections의 세 분야를 모두 채웁니다: operation(기관운영: 시설·설비·위생·소독·화재 같은 안전관리, 기관 내 행사 등), service(서비스 제공: 어르신·보호자에게 제공하는 서비스·프로그램·상담·급식·이동), staff(직원관리: 보수·복지, 직원회의, 직원교육 등). 분야마다 2~6개 항목을 씁니다.
+3. 항목 칸: name(세부사업명 ${ITEM_LIMITS.name}자), goal(사업목표 ${ITEM_LIMITS.goal}자), content(사업내용 ${ITEM_LIMITS.content}자), target(사업대상 ${ITEM_LIMITS.target}자), budget(사업예산, 원 단위 0 이상 정수), schedule(추진일정 ${ITEM_LIMITS.schedule}자).
+4. 숫자는 아래 [지난해 기록]과 <notes>에 있는 것만 씁니다. 거기에 없는 인원·횟수·금액·비율을 지어내지 않습니다. budget은 notes나 기관 예산에서 근거를 댈 수 있을 때만 쓰고, 근거가 없으면 0입니다. 추진일정은 "연중", "상반기", "하반기", "매 분기", "매월"처럼 일반적인 시기로만 씁니다(구체적 날짜는 notes에 있을 때만).
+5. 내용은 일반적이고 실제 센터에서 하는 일(예: 소방·소독 점검, 직원 법정교육, 프로그램 운영)로 쓰고, notes에 없는 특정 행사·외부기관·사람·장소를 만들지 않습니다.
+6. ${PRIVACY_RULE}
+
+[지난해 기록]
+${factLines}
+
+${input.notes ? fence('notes', input.notes) : '<notes>\n(없음)\n</notes>'}`;
+}
+
+const PLAN_ITEM_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    name: STR(`세부사업명 (${ITEM_LIMITS.name}자 이내)`),
+    goal: STR(`사업목표 (${ITEM_LIMITS.goal}자 이내)`),
+    content: STR(`사업내용 (${ITEM_LIMITS.content}자 이내)`),
+    target: STR(`사업대상 (${ITEM_LIMITS.target}자 이내)`),
+    budget: { type: 'INTEGER', description: '사업예산(원, 0 이상, 근거가 없으면 0)' },
+    schedule: STR(`추진일정 (${ITEM_LIMITS.schedule}자 이내)`),
+  },
+  required: ['name', 'goal', 'content', 'target', 'budget', 'schedule'],
+} as const;
+
+export const BUSINESS_PLAN_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    sections: {
+      type: 'OBJECT',
+      properties: {
+        operation: { type: 'ARRAY', description: '기관운영 사업 (2~6개)', items: PLAN_ITEM_SCHEMA },
+        service: { type: 'ARRAY', description: '서비스 제공 사업 (2~6개)', items: PLAN_ITEM_SCHEMA },
+        staff: { type: 'ARRAY', description: '직원관리 사업 (2~6개)', items: PLAN_ITEM_SCHEMA },
+      },
+      required: ['operation', 'service', 'staff'],
+    },
+  },
+  required: ['sections'],
+} as const;
+
+/** 예산: 숫자, 또는 "1,234,000" 같은 쉼표 숫자 문자열 중 0 이상 정수만. 그 밖(음수·소수·글자·상한 초과)은 0 */
+function planBudget(value: unknown): number {
+  const n = typeof value === 'number' ? value : typeof value === 'string' && /^(?:\d{1,3}(?:,\d{3})+|\d+)$/.test(value.trim()) ? Number(value.trim().replace(/,/g, '')) : NaN;
+  return Number.isInteger(n) && n >= 0 && n <= MAX_ITEM_BUDGET ? n : 0;
+}
+
+function normalizePlanItem(raw: unknown): BusinessPlanItem | null {
+  if (!isRecord(raw)) return null;
+  const name = cleanOutput(raw.name, ITEM_LIMITS.name).replace(/\n+/g, ' ');
+  if (name === '') return null;
+  return {
+    name,
+    goal: cleanOutput(raw.goal, ITEM_LIMITS.goal),
+    content: cleanOutput(raw.content, ITEM_LIMITS.content),
+    target: cleanOutput(raw.target, ITEM_LIMITS.target),
+    budget: planBudget(raw.budget),
+    schedule: cleanOutput(raw.schedule, ITEM_LIMITS.schedule),
+  };
+}
+
+/**
+ * 칸 길이를 자르고, 예산은 0 이상 정수(아니면 0), 분야마다 20개로 자른다. 세부사업명이 빈 항목은 버린다.
+ * 세 분야 모두 비면 쓸 수 없는 답이므로 오류.
+ */
+export function normalizeBusinessPlan(raw: unknown): BusinessPlanAiResult {
+  const sections = isRecord(raw) && isRecord(raw.sections) ? raw.sections : null;
+  if (sections === null) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const read = (value: unknown): BusinessPlanItem[] => {
+    const out: BusinessPlanItem[] = [];
+    if (!Array.isArray(value)) return out;
+    for (const v of value) {
+      const item = normalizePlanItem(v);
+      if (item) out.push(item);
+      if (out.length >= MAX_AI_PLAN_ITEMS_PER_SECTION) break;
+    }
+    return out;
+  };
+  const result: BusinessPlanAiResult = { sections: { operation: read(sections.operation), service: read(sections.service), staff: read(sections.staff) } };
+  if (result.sections.operation.length + result.sections.service.length + result.sections.staff.length === 0) throw new Error('AI 응답에 사업 항목이 없습니다');
+  return result;
+}
+
+// ---------- 18) 만족도 의견 주제 요약 ----------
+
+export function validateSurveySummaryInput(body: unknown): Validation<SurveySummaryAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (JSON.stringify(body).length > MAX_SURVEY_AI_INPUT) return { ok: false, message: `입력은 ${MAX_SURVEY_AI_INPUT}자까지 보낼 수 있습니다` };
+  const kind = body.kind;
+  if (typeof kind !== 'string' || !SATISFACTION_KINDS.some((k) => k.value === kind)) return { ok: false, message: '만족도 종류가 올바르지 않습니다' };
+  if (!Array.isArray(body.comments)) return { ok: false, message: '요약할 의견이 있어야 합니다' };
+  if (body.comments.length > MAX_SURVEY_COMMENTS) return { ok: false, message: `의견은 ${MAX_SURVEY_COMMENTS}개까지 요약할 수 있습니다` };
+  const comments: string[] = [];
+  for (const c of body.comments) {
+    if (typeof c !== 'string') return { ok: false, message: '의견 형식이 올바르지 않습니다' };
+    const text = cut(clean(c), MAX_SURVEY_COMMENT_LENGTH);
+    if (text !== '') comments.push(text);
+  }
+  if (comments.length === 0) return { ok: false, message: '요약할 의견이 있어야 합니다' };
+  return { ok: true, value: { kind: kind as SatisfactionKind, comments } };
+}
+
+export function buildSurveySummaryPrompt(input: SurveySummaryAiInput): string {
+  const list = input.comments.map((c, i) => `${i + 1}. ${c}`).join('\n');
+  return `당신은 노인 주야간보호센터의 만족도 조사(${satisfactionKindLabel(input.kind)}) 의견을 주제별로 묶어 주는 보조자입니다. 아래 <comments>는 어르신·보호자가 한 말을 직원이 옮겨 적은 의견 ${input.comments.length}개입니다. 센터장이 확인하고 개선에 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 주제(themes)는 <comments>에 실제로 나온 내용만 묶습니다. 의견에 없는 주제를 지어내지 않고, 조사 종류(${satisfactionKindLabel(input.kind)})에서 흔히 나올 법한 주제라도 의견에 없으면 쓰지 않습니다. 주제는 ${MAX_SURVEY_THEMES}개 이내입니다.
+3. 주제마다 theme(${MAX_THEME_LENGTH}자 이내, 예: "국·반찬이 짜다", 칭찬이면 "칭찬: ○○"처럼 방향이 드러나게), count(그 주제를 말한 의견의 수, 의견 전체 수 ${input.comments.length}개를 넘지 않는 정수), example(그 주제를 말한 의견 하나를 ${MAX_THEME_EXAMPLE}자 이내로 그대로 인용 — 새로 쓰지 않음)을 씁니다. 칭찬과 불만은 다른 주제로 나눕니다.
+4. 제안(suggestions)은 ${MAX_SURVEY_SUGGESTIONS}개 이내이고, 의견에서 곧바로 이어지는 개선 방법만 한 문장으로 씁니다. 의견에 없는 원인·금액·인원·일정을 만들지 않습니다.
+5. ${PRIVACY_RULE}
+
+${fence('comments', list)}`;
+}
+
+export const SURVEY_SUMMARY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    themes: {
+      type: 'ARRAY',
+      description: `의견에 실제로 나온 주제 (${MAX_SURVEY_THEMES}개 이내)`,
+      items: {
+        type: 'OBJECT',
+        properties: {
+          theme: STR(`주제 (${MAX_THEME_LENGTH}자 이내)`),
+          count: { type: 'INTEGER', description: '그 주제를 말한 의견 수' },
+          example: STR(`그 주제를 말한 의견 하나를 그대로 인용 (${MAX_THEME_EXAMPLE}자 이내)`),
+        },
+        required: ['theme', 'count', 'example'],
+      },
+    },
+    suggestions: { type: 'ARRAY', description: `개선 제안 (${MAX_SURVEY_SUGGESTIONS}개 이내)`, items: { type: 'STRING' } },
+  },
+  required: ['themes', 'suggestions'],
+} as const;
+
+/** 제안: 빈 항목은 버리고 글자 수를 맞춰 5개까지(같은 말을 거르지는 않는다 — 담당자가 보고 지운다) */
+function suggestionList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const item of value) {
+    const text = cleanOutput(item, MAX_SUGGESTION_LENGTH);
+    if (text !== '') out.push(text);
+    if (out.length >= MAX_SURVEY_SUGGESTIONS) break;
+  }
+  return out;
+}
+
+/**
+ * 주제 8개·제안 5개로 자르고 글자 수를 맞춘다. 주제는 많이 말한 순(같으면 모델 순서). input을 주면 count를 의견 수 안으로 자르고,
+ * 의견 중 어디에도 없는 인용(example)은 빈 문자열로 바꾼다 — 지어낸 인용을 막는다.
+ */
+export function normalizeSurveySummary(raw: unknown, input?: Pick<SurveySummaryAiInput, 'comments'>): SurveySummaryAiResult {
+  if (!isRecord(raw) || !Array.isArray(raw.themes)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const compactComments = input ? input.comments.map(compact) : null;
+  const themes: SurveyTheme[] = [];
+  for (const t of raw.themes) {
+    if (!isRecord(t)) continue;
+    const theme = cleanOutput(t.theme, MAX_THEME_LENGTH).replace(/\n+/g, ' ');
+    if (theme === '') continue;
+    let count = typeof t.count === 'number' && Number.isFinite(t.count) ? Math.floor(t.count) : 1;
+    if (count < 1) count = 1;
+    if (input && count > input.comments.length) count = input.comments.length;
+    let example = cleanOutput(t.example, MAX_THEME_EXAMPLE);
+    if (compactComments && example !== '' && !compactComments.some((c) => c.includes(compact(example)))) example = '';
+    themes.push({ theme, count, example });
+  }
+  if (themes.length === 0) throw new Error('AI 응답에 주제가 없습니다');
+  themes.sort((a, b) => b.count - a.count);
+  return { themes: themes.slice(0, MAX_SURVEY_THEMES), suggestions: suggestionList(raw.suggestions) };
+}
+
+// ---------- 19) 입소 상담 메모 정리 ----------
+
+const INTAKE_GRADE_VALUES = INTAKE_CARE_GRADES.map((g) => g.value) as readonly IntakeCareGrade[];
+
+export function validateIntakeNoteInput(body: unknown): Validation<IntakeNoteAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '상담 메모', MAX_LOG_INPUT_LENGTH);
+  return note.ok ? { ok: true, value: { note: note.value } } : note;
+}
+
+export function buildIntakeNotePrompt(input: IntakeNoteAiInput): string {
+  return `당신은 주야간보호센터의 이용 문의·입소 상담 기록 정리를 돕는 보조자입니다.
+아래 <note>는 직원이 전화·방문 상담 중에 적은 메모입니다. 이 메모만을 근거로 상담 기록 칸을 채웁니다. 담당자가 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE}
+3. needs(욕구·상태, ${MAX_INTAKE_NEEDS}자 이내): 메모에 적힌 어르신의 신체·인지 상태, 도움이 필요한 일, 이용하려는 이유, 보호자의 요청을 기록체로 정리합니다. 진단·치료 권고·이용 가능 여부 판단은 하지 않습니다.
+4. desiredDays(희망 요일, ${MAX_INTAKE_DAYS}자 이내): 이용을 원하는 요일·시기가 메모에 있을 때만 "월·수·금"처럼 씁니다. 없으면 빈 문자열.
+5. careGrade: 메모에 장기요양 등급이 적혀 있을 때만 ${INTAKE_GRADE_VALUES.filter((v) => v !== 'NONE' && v !== 'APPLYING').join(' | ')} 중 하나로 씁니다(인지지원등급은 cognitive). 등급 신청 중이라고 적혀 있으면 APPLYING, 등급이 없다고 적혀 있으면 NONE. 메모에 없으면 null.
+6. summary(한 줄 요약, ${MAX_INTAKE_SUMMARY}자 이내): 누가 어떤 이용을 문의했는지 한 문장. 형식적 문구는 쓰지 않습니다.
+7. 전화번호·주소는 어떤 칸에도 쓰지 않습니다.
+8. ${NO_FILLER_RULE}
+9. ${PRIVACY_RULE} 문의한 사람은 "딸", "아들", "배우자"처럼 관계로만 씁니다.
+10. ${RECORD_STYLE_RULE}
+
+${fence('note', input.note)}`;
+}
+
+export const INTAKE_NOTE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    needs: STR(`욕구·상태 (${MAX_INTAKE_NEEDS}자 이내, 없으면 빈 문자열)`),
+    desiredDays: STR(`희망 요일 (${MAX_INTAKE_DAYS}자 이내, 없으면 빈 문자열)`),
+    // nullable과 enum을 함께 쓰면 모델 쪽 스키마 검증이 까다로워 허용 값은 설명에 적고 normalizeIntakeNote가 걸러낸다.
+    careGrade: { type: 'STRING', nullable: true, description: `장기요양 등급(${INTAKE_GRADE_VALUES.join(' | ')}). 메모에 없으면 null` },
+    summary: STR(`한 줄 요약 (${MAX_INTAKE_SUMMARY}자 이내)`),
+  },
+  required: ['needs', 'desiredDays', 'careGrade', 'summary'],
+} as const;
+
+function intakeGradeOf(value: unknown): IntakeCareGrade | null {
+  const text = typeof value === 'number' ? String(value) : typeof value === 'string' ? value.trim() : '';
+  if ((INTAKE_GRADE_VALUES as readonly string[]).includes(text)) return text as IntakeCareGrade;
+  const m = /^([1-5])\s*등급$/.exec(text);
+  if (m) return m[1] as IntakeCareGrade;
+  if (/^인지\s*지원(?:\s*등급)?$/.test(text)) return 'cognitive';
+  return null;
+}
+
+/** careGrade는 허용 값이 아니면 null, 글은 한도까지 자르고 형식적 문구뿐이면 비우며 전화번호처럼 보이는 글이 든 칸은 비운다. 모두 비면 오류. */
+export function normalizeIntakeNote(raw: unknown): IntakeNoteAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const result: IntakeNoteAiResult = {
+    needs: withoutPhone(substantive(cleanOutput(raw.needs, MAX_INTAKE_NEEDS))),
+    desiredDays: withoutPhone(substantive(cleanOutput(raw.desiredDays, MAX_INTAKE_DAYS))).replace(/\n+/g, ' '),
+    careGrade: intakeGradeOf(raw.careGrade),
+    summary: withoutPhone(substantive(cleanOutput(raw.summary, MAX_INTAKE_SUMMARY))).replace(/\n+/g, ' '),
+  };
+  if (result.needs === '' && result.desiredDays === '' && result.careGrade === null && result.summary === '') throw new Error('AI 응답에 정리할 내용이 없습니다');
+  return result;
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -2031,6 +2502,26 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateBathNoteInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildBathNotePrompt(v.value), schema: BATH_NOTE_SCHEMA, normalize: normalizeBathNote };
+  }
+  if (task === 'program-schedule') {
+    const v = validateProgramScheduleInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildProgramSchedulePrompt(v.value), schema: PROGRAM_SCHEDULE_SCHEMA, normalize: (raw) => normalizeProgramSchedule(raw, v.value) };
+  }
+  if (task === 'business-plan') {
+    const v = validateBusinessPlanInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildBusinessPlanPrompt(v.value), schema: BUSINESS_PLAN_SCHEMA, normalize: normalizeBusinessPlan };
+  }
+  if (task === 'survey-summary') {
+    const v = validateSurveySummaryInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildSurveySummaryPrompt(v.value), schema: SURVEY_SUMMARY_SCHEMA, normalize: (raw) => normalizeSurveySummary(raw, v.value) };
+  }
+  if (task === 'intake-note') {
+    const v = validateIntakeNoteInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildIntakeNotePrompt(v.value), schema: INTAKE_NOTE_SCHEMA, normalize: normalizeIntakeNote };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

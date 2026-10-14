@@ -95,7 +95,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 15);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 23);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -184,13 +184,62 @@ test('급여제공계획 통보·노인인권 안내 요건 — 시작일까지�
   assert.match(EVAL_AUTO_SOURCE_LABEL.PLAN_NOTIFIED_BY_START, /시작일까지/);
 });
 
-test('2026판에서 삭제된 계약체결·통보 지표는 삭제됐다고 표시하고 준비율에서 뺀다', () => {
+test('2026판에서 삭제된 지표(계약체결·통보, 공단 유선 만족도류)는 삭제됐다고 표시하고 준비율에서 뺀다', () => {
   const deleted = EVAL_INDICATORS.filter((i) => i.deletedIn2026).map((i) => i.code);
-  assert.deepEqual(deleted, ['SVC-01', 'SVC-02']);
+  assert.deepEqual(deleted, ['SVC-01', 'SVC-02', 'RGT-05']);
   for (const code of deleted) assert.match(indicatorByCode(code)!.title, /2026판 평가에서 삭제/);
-  assert.equal(ACTIVE.length, EVAL_INDICATORS.length - 2);
+  assert.equal(ACTIVE.length, EVAL_INDICATORS.length - 3);
   // 삭제된 지표에 READY를 적어 두어도 세지 않는다
-  const s = readinessSummary([{ indicatorCode: 'SVC-01', status: 'READY' }, { indicatorCode: 'SVC-02', status: 'READY' }]);
+  const s = readinessSummary([{ indicatorCode: 'SVC-01', status: 'READY' }, { indicatorCode: 'SVC-02', status: 'READY' }, { indicatorCode: 'RGT-05', status: 'READY' }]);
   assert.equal(s.ready, 0);
   assert.equal(s.total, ACTIVE.length);
+});
+
+test('7차 자동 근거 — 여덟 소스가 각각 한 지표에 붙어 있고 기존 연결은 그대로다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
+  assert.deepEqual(by('PROGRAM_ANNUAL_PLAN'), ['PRG-02']);
+  assert.deepEqual(by('PROGRAM_FEEDBACK'), ['PRG-05']);
+  assert.deepEqual(by('PROGRAM_PHYSICAL_WEEKLY'), ['PRG-03']);
+  assert.deepEqual(by('PROGRAM_SOCIAL_MONTHLY'), ['PRG-04']);
+  assert.deepEqual(by('MONTHLY_SCHEDULE_SHARED'), ['RGT-07']);
+  assert.deepEqual(by('BUSINESS_PLAN'), ['OPS-06']);
+  assert.deepEqual(by('MEAL_SURVEY_HALF'), ['SVC-09']);
+  assert.deepEqual(by('SEVERANCE_READY'), ['OPS-07']);
+  // 인지기능 프로그램은 새 지표를 만들지 않고 기존 PRG-01을 쓴다
+  assert.deepEqual(by('PROGRAM_COGNITIVE_WEEKLY'), ['PRG-01']);
+  assert.deepEqual(by('GUARDIAN_NOTICE_MONTHLY'), ['RGT-01']);
+  assert.equal(EVAL_INDICATORS.filter((i) => i.title.startsWith('인지기능 프로그램')).length, 1);
+});
+
+test('프로그램 지표 — 24·25·26의 세 기준(연간계획·실시 횟수·반기 수렴)을 요건에 적는다', () => {
+  assert.match(indicatorByCode('PRG-02')!.requirements.join(' '), /직전 해 12월/);
+  assert.match(indicatorByCode('PRG-03')!.requirements.join(' '), /주 3회 이상/);
+  assert.match(indicatorByCode('PRG-04')!.requirements.join(' '), /월 1회 이상/);
+  assert.match(indicatorByCode('PRG-04')!.requirements.join(' '), /대조 필요/);
+  assert.match(indicatorByCode('PRG-05')!.requirements.join(' '), /반기별 1회 이상/);
+  assert.match(indicatorByCode('PRG-05')!.requirements.join(' '), /연 1회 이상/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.PROGRAM_SOCIAL_MONTHLY, /여가·취미는 세지 않음/);
+});
+
+test('사업계획·퇴직금·월간 계획표 지표 — 평가 2·8·17의 요건', () => {
+  const plan = indicatorByCode('OPS-06')!.requirements.join(' ');
+  assert.match(plan, /기관운영·서비스 제공·직원관리/);
+  assert.match(plan, /총수입, 총지출/);
+  assert.match(plan, /프로그램 계획만 있으면 불인정/);
+  assert.doesNotMatch(indicatorByCode('OPS-01')!.requirements.join(' '), /사업계획/);
+  assert.match(indicatorByCode('OPS-07')!.requirements.join(' '), /14일/);
+  assert.match(indicatorByCode('OPS-07')!.requirements.join(' '), /IRP/);
+  assert.match(indicatorByCode('RGT-07')!.requirements.join(' '), /월 1회 이상/);
+  assert.equal(indicatorByCode('OPS-06')!.group, 'OPERATION');
+  assert.equal(indicatorByCode('OPS-07')!.group, 'OPERATION');
+  assert.equal(indicatorByCode('RGT-07')!.group, 'RIGHTS');
+});
+
+test('만족도 — 삭제된 지표는 새 지표로 안내하고, 새 지표는 식사 반기 1회와 36 면담을 적는다', () => {
+  assert.match(indicatorByCode('RGT-05')!.requirements.join(' '), /SVC-09/);
+  assert.match(indicatorByCode('RGT-05')!.requirements.join(' '), /PRG-05/);
+  const text = indicatorByCode('SVC-09')!.requirements.join(' ');
+  assert.match(text, /반기별 1회 이상/);
+  assert.match(text, /이동서비스/);
+  assert.match(text, /면담/);
 });

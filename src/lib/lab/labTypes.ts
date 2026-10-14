@@ -1373,3 +1373,256 @@ export interface BathNoteAiResult {
   skinNote: string;
   note: string;
 }
+
+// ---------- 7차: 프로그램 연간계획·월간 계획표·의견수렴 ----------
+
+/** 연간계획 세 분야 — 2026 평가 24 신체기능·25 인지기능·26 사회적응 */
+export type PlanCategory = 'PHYSICAL' | 'COGNITIVE' | 'SOCIAL';
+
+/** 연간계획 한 장. 기관마다 해·분야당 하나(planYear+category upsert). 개인정보는 없다. */
+export interface ProgramPlan {
+  id: number;
+  planYear: number;
+  category: PlanCategory;
+  /** 목표, 500자 이내(필수) */
+  goal: string;
+  /** 세부 프로그램·방법, 3000자 이내(필수) */
+  content: string;
+  /** 횟수 문구(예: '주 3회'), 40자 이내(필수) */
+  frequency: string;
+  target: string | null;
+  /** 원, 0~1,000,000,000 */
+  budget: number | null;
+  /** 작성일 — 그 해 안이거나 직전 해 12월이어야 평가에서 인정된다 */
+  writtenOn: string;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type ProgramPlanInput = Omit<ProgramPlan, 'id' | 'updatedAt'>;
+
+export type ScheduleCategory = 'COGNITIVE' | 'PHYSICAL' | 'LEISURE' | 'SOCIAL' | 'OTHER';
+export type ScheduleSharedMethod = 'PRINT' | 'SMS' | 'KAKAO' | 'BOARD' | 'OTHER';
+
+/** 월간 계획표의 한 칸(그 달 안의 날짜) */
+export interface ScheduleItem {
+  date: string;
+  /** 'HH:MM' */
+  startTime: string | null;
+  category: ScheduleCategory;
+  /** 40자 이내(필수) */
+  title: string;
+  /** 30자 이내 */
+  instructor: string | null;
+}
+
+/** 월간 프로그램 계획표 — 평가 17 소통노력 기준③(월 1회 보호자 제공)의 증빙 */
+export interface ProgramSchedule {
+  id: number;
+  scheduleMonth: string;
+  /** 최대 200개 */
+  items: ScheduleItem[];
+  notes: string | null;
+  /** 보호자에게 제공한 날 — sharedMethod와 같이 있거나 같이 없다 */
+  sharedOn: string | null;
+  sharedMethod: ScheduleSharedMethod | null;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type ProgramScheduleInput = Omit<ProgramSchedule, 'id' | 'updatedAt'>;
+
+export type FeedbackMethod = 'SURVEY' | 'INTERVIEW' | 'MEETING' | 'OTHER';
+
+/** 프로그램 의견수렴·반영 — 반기별 수렴, 연 1회 반영(평가 24~26 기준③) */
+export interface ProgramFeedback {
+  id: number;
+  /** 'YYYY-H1' | 'YYYY-H2' */
+  half: string;
+  /** 그 반기 안의 날짜 */
+  collectedOn: string;
+  method: FeedbackMethod;
+  /** 0~500 */
+  participants: number;
+  /** 의견 요약(서버 암호화), 2000자 이내(필수) */
+  summary: string;
+  /** 반영 내용(서버 암호화), 2000자 이내 — reflectedOn과 같이 있거나 같이 없다 */
+  reflection: string | null;
+  /** collectedOn 이후 */
+  reflectedOn: string | null;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type ProgramFeedbackInput = Omit<ProgramFeedback, 'id' | 'updatedAt'>;
+
+// ---------- 7차: 사업계획 ----------
+
+export type BusinessSection = 'operation' | 'service' | 'staff';
+
+/** 사업계획 한 항목 — 평가 2 확인사항 여섯 칸 */
+export interface BusinessPlanItem {
+  /** 세부사업명, 60자 이내 */
+  name: string;
+  /** 사업목표, 300자 이내 */
+  goal: string;
+  /** 사업내용, 1000자 이내 */
+  content: string;
+  /** 사업대상, 100자 이내 */
+  target: string;
+  /** 사업예산(원, 0 이상 정수). 편집 중 비어 있는 칸은 null */
+  budget: number | null;
+  /** 추진일정, 100자 이내 */
+  schedule: string;
+}
+
+export interface BusinessPlanSections {
+  operation: BusinessPlanItem[];
+  service: BusinessPlanItem[];
+  staff: BusinessPlanItem[];
+}
+
+/** 연간 사업계획서. 분야마다 최대 20개 항목. 개인정보는 없다. */
+export interface BusinessPlan {
+  id: number;
+  planYear: number;
+  sections: BusinessPlanSections;
+  /** 원, 0~10,000,000,000 */
+  totalIncome: number | null;
+  totalExpense: number | null;
+  writtenOn: string | null;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type BusinessPlanInput = Omit<BusinessPlan, 'id' | 'updatedAt'>;
+
+// ---------- 7차: 급여 만족도 ----------
+
+export type SatisfactionKind = 'MEAL' | 'PROGRAM' | 'TRANSPORT' | 'GENERAL';
+export type SatisfactionRespondent = 'SELF' | 'GUARDIAN';
+
+/** 급여 만족도 응답 한 건. elderlyId가 null이면 익명 응답. */
+export interface SatisfactionResponse {
+  id: number;
+  surveyDate: string;
+  kind: SatisfactionKind;
+  elderlyId: number | null;
+  elderlyName: string | null;
+  respondent: SatisfactionRespondent;
+  /** {문항코드: 1~5}, 20개 이내 */
+  scores: Record<string, number>;
+  /** 서버 암호화, 1000자 이내 */
+  comment: string | null;
+  interviewerName: string;
+  updatedAt: string | null;
+}
+
+export type SatisfactionResponseInput = Omit<SatisfactionResponse, 'id' | 'elderlyName' | 'updatedAt'>;
+
+// ---------- 7차: 입소 상담·대기 ----------
+
+export type IntakeRelation = 'SELF' | 'SPOUSE' | 'CHILD' | 'OTHER_FAMILY' | 'OTHER';
+export type IntakeCareGrade = '1' | '2' | '3' | '4' | '5' | 'cognitive' | 'NONE' | 'APPLYING';
+export type IntakeSource = 'PHONE' | 'VISIT' | 'REFERRAL' | 'WEB' | 'OTHER';
+export type IntakeStatus = 'NEW' | 'CONSULTED' | 'WAITING' | 'CONTRACTED' | 'DECLINED' | 'WITHDRAWN';
+/** 노인장기요양보험법 제35조 — 정당한 사유 없는 급여 제공 거부는 금지된다 */
+export type IntakeDeclineReason = 'CAPACITY' | 'OUT_OF_AREA' | 'SERVICE_MISMATCH' | 'OTHER';
+
+/** 이용 문의·입소 상담·대기 한 건 */
+export interface IntakeInquiry {
+  id: number;
+  inquiryDate: string;
+  /** 신청 어르신 이름(서버 암호화), 50자 이내(필수) */
+  applicantName: string;
+  /** 문의한 분(서버 암호화), 50자 이내 */
+  contactName: string | null;
+  /** 서버 암호화, 20자 이내 — 저장하려면 consentOn이 있어야 한다 */
+  contactPhone: string | null;
+  relation: IntakeRelation | null;
+  careGrade: IntakeCareGrade | null;
+  /** 60자 이내 */
+  desiredDays: string | null;
+  /** 서버 암호화, 2000자 이내 */
+  needs: string | null;
+  source: IntakeSource;
+  status: IntakeStatus;
+  /** DECLINED이면 필수 */
+  declineReason: IntakeDeclineReason | null;
+  /** 500자 이내 */
+  declineNote: string | null;
+  /** 개인정보 수집·이용 동의일 */
+  consentOn: string | null;
+  nextContactOn: string | null;
+  /** CONTRACTED이면 필수(같은 기관 어르신) */
+  elderlyId: number | null;
+  elderlyName: string | null;
+  counselorName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type IntakeInquiryInput = Omit<IntakeInquiry, 'id' | 'elderlyName' | 'updatedAt'>;
+
+// ---------- 7차 AI ----------
+
+export interface ProgramScheduleAiInput {
+  month: string;
+  /** 계획표에 쓸 수 있는 날짜(그 달 운영일) */
+  operatingDays: string[];
+  annualPlans?: Array<{ category: PlanCategory; goal: string; frequency: string }>;
+  recentTitles?: string[];
+}
+
+export interface ProgramScheduleAiResult {
+  items: ScheduleItem[];
+}
+
+/** 사업계획 초안에 쓸 숫자 요약 — 사람 이름은 없다 */
+export interface BusinessPlanFacts {
+  programs: number;
+  trainings: number;
+  events: number;
+  elders: number;
+  budgetTotals: { income: number; expense: number } | null;
+}
+
+export interface BusinessPlanAiInput {
+  year: number;
+  facts: BusinessPlanFacts;
+  notes?: string;
+}
+
+export interface BusinessPlanAiResult {
+  sections: BusinessPlanSections;
+}
+
+export interface SurveySummaryAiInput {
+  kind: SatisfactionKind;
+  comments: string[];
+}
+
+export interface SurveyTheme {
+  theme: string;
+  count: number;
+  example: string;
+}
+
+export interface SurveySummaryAiResult {
+  themes: SurveyTheme[];
+  suggestions: string[];
+}
+
+export interface IntakeNoteAiInput {
+  note: string;
+}
+
+export interface IntakeNoteAiResult {
+  needs: string;
+  desiredDays: string;
+  careGrade: IntakeCareGrade | null;
+  summary: string;
+}
