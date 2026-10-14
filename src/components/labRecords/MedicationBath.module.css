@@ -1,0 +1,230 @@
+/* 투약 관리·목욕 일지 전용 스타일 — 공용 모양은 labRecords.module.css를 쓰고, 여기에는 이 두 화면만의 것을 둔다. 색은 토큰만. */
+
+.details {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  padding: var(--spacing-2) var(--spacing-3);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.details summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.details ol {
+  margin: var(--spacing-2) 0 var(--spacing-1);
+  padding-inline-start: var(--spacing-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.groupHead {
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-background-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.doseRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.doseRow:last-child {
+  border-bottom: 0;
+}
+
+.doseTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.doseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.medList {
+  margin: 0;
+  padding-inline-start: var(--spacing-4);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.doseForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border: 1px solid var(--color-border);
+}
+
+.itemBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border);
+  background: var(--color-background-surface);
+  min-width: 0;
+}
+
+.itemBlockAi {
+  border-color: var(--color-border-emphasized);
+}
+
+.slotChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-4);
+}
+
+.requestCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.requestCard:last-child {
+  border-bottom: 0;
+}
+
+.dimmed {
+  opacity: 0.75;
+}
+
+.quarterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.quarterCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  min-width: 0;
+}
+
+.quarterLate {
+  border-color: var(--color-border-red);
+  background: var(--color-background-red);
+}
+
+.stockCheckRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--spacing-2) var(--spacing-3);
+  align-items: end;
+  padding: var(--spacing-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stockCheckRow:last-child {
+  border-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .stockCheckRow {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.warnBlock {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border-yellow);
+  background: var(--color-background-yellow);
+  color: var(--color-text-yellow);
+  font-size: var(--font-size-sm);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.dangerBlock {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border-red);
+  background: var(--color-background-red);
+  color: var(--color-text-red);
+  font-size: var(--font-size-sm);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.expiredCell {
+  color: var(--color-text-red);
+  font-weight: var(--font-weight-medium);
+}
+
+.soonCell {
+  color: var(--color-text-yellow);
+  font-weight: var(--font-weight-medium);
+}
+
+/* 인쇄본 */
+.sheetHead {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-1) var(--spacing-6);
+  margin-bottom: var(--spacing-3);
+}
+
+.sheetCell {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-1) 0;
+  min-height: 24px;
+}
+
+.sheetCellLabel {
+  flex: none;
+  min-width: 84px;
+  font-weight: var(--font-weight-medium);
+}
+
+.checkBox {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-border-emphasized);
+  vertical-align: middle;
+  margin-inline-end: 4px;
+}
+
+.pageBreak {
+  break-after: page;
+}
