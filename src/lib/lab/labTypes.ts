@@ -1626,3 +1626,176 @@ export interface IntakeNoteAiResult {
   careGrade: IntakeCareGrade | null;
   summary: string;
 }
+
+// ---------- 8차: 인력배치 · 수급자 서류함 · 진료 동행 · 운영위원회 ----------
+
+/** 직종. NURSE·NURSE_AIDE·THERAPIST는 배치 기준에서 '간호(조무)사·물리(작업)치료사' 한 묶음으로 합산하고, OTHER는 세지 않는다 */
+export type StaffJobType = 'DIRECTOR' | 'SOCIAL_WORKER' | 'NURSE' | 'NURSE_AIDE' | 'THERAPIST' | 'CAREGIVER' | 'OFFICE' | 'COOK' | 'DRIVER' | 'OTHER';
+
+/** 월 인력배치 점검의 직원 한 줄 */
+export interface StaffingStaff {
+  /** 같은 기관 직원이면 id, 직접 적은 사람이면 null */
+  memberId: number | null;
+  /** 50자 이내 */
+  name: string;
+  jobType: StaffJobType;
+  /** 그 달 실근무시간 0~400, 소수 첫째 자리 */
+  hours: number;
+}
+
+/** 월 인력배치 점검(staffingMonth로 덮어쓴다) */
+export interface StaffingMonth {
+  id: number;
+  /** 'YYYY-MM' */
+  staffingMonth: string;
+  /** 그 달 급여제공일수 1~31 */
+  serviceDays: number;
+  /** 일자별 입소자 수(그날 가장 많은 시간대)의 합 0~100,000 */
+  usersSum: number;
+  /** 미이용일 급여비용 대상 등 더한 사유, 200자 이내 */
+  extraUsersNote: string | null;
+  /** 'YYYY-MM-DD' 최대 31개, 그 달 날짜 */
+  holidays: string[];
+  /** 서버 암호화, 최대 100명 */
+  staff: StaffingStaff[];
+  /** 500자 이내 */
+  note: string | null;
+  writerName: string;
+  updatedAt: string | null;
+}
+
+export type StaffingMonthInput = Omit<StaffingMonth, 'id' | 'updatedAt'>;
+
+export type ElderDocType = 'CONTRACT' | 'RECOGNITION' | 'USE_PLAN' | 'NEEDS_ASSESSMENT' | 'CARE_PLAN' | 'PRIVACY_CONSENT' | 'RIGHTS_GUIDE' | 'RISK_ASSESSMENT' | 'OTHER';
+
+/** 수급자 서류함 한 건 — 개인정보는 제목·위치에 적지 않는다(암호화하지 않음) */
+export interface ElderDocument {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  docType: ElderDocType;
+  /** 100자 이내(필수) */
+  title: string;
+  issuedOn: string | null;
+  /** issuedOn 이상 */
+  expiresOn: string | null;
+  /** 보관 위치, 100자 이내 */
+  location: string | null;
+  checkedOn: string | null;
+  /** 500자 이내 */
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type ElderDocumentInput = Omit<ElderDocument, 'id' | 'elderlyName' | 'updatedAt'>;
+
+/** 진료 동행 기록(2026 평가 30 기준①) */
+export interface MedicalVisit {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  /** 미래 400일까지 */
+  visitDate: string;
+  /** 'HH:MM' */
+  startTime: string | null;
+  /** 'HH:MM', 둘 다 있으면 시작보다 뒤 */
+  endTime: string | null;
+  /** 100자 이내(필수) */
+  hospital: string;
+  /** 40자 이내 */
+  department: string | null;
+  /** 서버 암호화, 1000자 이내 */
+  reason: string | null;
+  /** 서버 암호화, 진료 내용 2000자 이내(필수) */
+  result: string;
+  /** 서버 암호화, 1000자 이내 */
+  prescription: string | null;
+  /** 동행한 직원, 50자 이내(필수) */
+  escortName: string;
+  guardianNotified: boolean;
+  /** 서버 암호화, 100자 이내 */
+  guardianNote: string | null;
+  followUpOn: string | null;
+  followUpDone: boolean;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type MedicalVisitInput = Omit<MedicalVisit, 'id' | 'elderlyName' | 'updatedAt'>;
+
+export type CommitteeRole = 'CHAIR' | 'FACILITY_HEAD' | 'STAFF' | 'USER' | 'GUARDIAN' | 'EXPERT' | 'LOCAL' | 'PUBLIC_OFFICIAL' | 'OTHER';
+
+/** 운영위원 */
+export interface CommitteeMember {
+  id: number;
+  /** 서버 암호화, 50자 이내(필수) */
+  name: string;
+  role: CommitteeRole;
+  termStart: string;
+  /** termStart보다 뒤, 3년을 넘을 수 없다 */
+  termEnd: string;
+  active: boolean;
+  /** 200자 이내 */
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type CommitteeMemberInput = Omit<CommitteeMember, 'id' | 'updatedAt'>;
+
+export type CommitteeMeetingKind = 'REGULAR' | 'SPECIAL';
+
+/** 운영위원회 회의 */
+export interface CommitteeMeeting {
+  id: number;
+  heldOn: string;
+  kind: CommitteeMeetingKind;
+  /** 같은 기관 운영위원 id, 30명 이내 */
+  attendeeIds: number[];
+  /** 서버가 채운다(읽기 전용) */
+  attendeeNames: string[];
+  /** 2000자 이내(필수) */
+  agenda: string;
+  /** 서버 암호화, 회의 내용 5000자 이내 */
+  minutes: string;
+  /** 20개 이내, 각 200자 이내 */
+  decisions: string[];
+  nextOn: string | null;
+  writerName: string;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type CommitteeMeetingInput = Omit<CommitteeMeeting, 'id' | 'attendeeNames' | 'updatedAt'>;
+
+// ---------- 8차 AI ----------
+
+export interface MedicalVisitAiInput {
+  note: string;
+}
+
+export interface MedicalVisitAiResult {
+  /** 40자 이내 */
+  department: string;
+  /** 500자 이내 */
+  reason: string;
+  /** 1000자 이내 */
+  result: string;
+  /** 500자 이내 */
+  prescription: string;
+  /** 메모에 날짜가 적혀 있을 때만 date를 채운다 — '2주 뒤' 같은 상대 표현은 달력 날짜로 바꾸지 않고 null */
+  followUp: { date: string | null; note: string };
+}
+
+export interface MeetingMinutesAiInput {
+  note: string;
+  kind: CommitteeMeetingKind;
+}
+
+export interface MeetingMinutesAiResult {
+  /** 10개 이내 */
+  agenda: string[];
+  /** 2000자 이내, 사람 이름은 '[위원]' */
+  minutes: string;
+  /** 10개 이내 */
+  decisions: string[];
+}

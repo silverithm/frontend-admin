@@ -68,3 +68,17 @@ export function redactDeep<T>(value: T): T {
   }
   return value;
 }
+
+/**
+ * 알고 있는 사람 이름(운영위원 등)을 replacement로 바꾼다. 이름 뒤의 "위원장·위원·님·씨"는 이름과 함께 지운다.
+ * 한 글자 이름은 일반 낱말과 겹쳐 글을 망가뜨리므로 건드리지 않는다. 긴 이름부터 바꾼다.
+ */
+export function replaceNames(text: string, names: Iterable<string>, replacement: string): string {
+  if (!text) return text;
+  const list = [...new Set([...names].map(usable).filter((n): n is string => n !== null))].sort((a, b) => b.length - a.length);
+  let out = text;
+  for (const name of list) {
+    out = out.replace(new RegExp(`${escapeRegExp(name)}(\\s*(?:위원장|위원|님|씨))?`, 'g'), replacement);
+  }
+  return out;
+}

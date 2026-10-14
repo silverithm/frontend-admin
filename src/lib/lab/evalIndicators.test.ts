@@ -95,7 +95,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 23);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 25);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -120,7 +120,7 @@ test('5차 자동 근거 — 사고 후속은 응급상황 대응, 보호자 월
   const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
   assert.deepEqual(by('CARE_EVENT_FOLLOWUP'), ['SAFE-08']);
   assert.deepEqual(by('GUARDIAN_NOTICE_MONTHLY'), ['RGT-01']);
-  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-04']);
+  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-06']);
 });
 
 test('응급상황대응 요건 — 담당 역할·응급벨 위치·면담이 매뉴얼대로 적혀 있다', () => {
@@ -147,7 +147,7 @@ test('소통노력 요건 — 보호자 상담 분기 1회, 기관 소식 월 1�
 test('외부기관연계 요건 — 기준①(진료 기록)은 HLT-04, 기준②(연계기록지·제공대장, 제공자명 포함)는 HLT-05', () => {
   const clinic = indicatorByCode('HLT-04')!;
   assert.match(clinic.requirements.join(' '), /동행한 진료/);
-  assert.equal(clinic.autoSource, 'RESOURCE_LINKS');
+  assert.equal(clinic.autoSource, 'MEDICAL_VISIT_RECORDS');
   const text = indicatorByCode('HLT-05')!.requirements.join(' ');
   assert.match(text, /연계기록지/);
   assert.match(text, /제공자명/);
@@ -163,7 +163,7 @@ test('6차 자동 근거 — 약품 점검·퇴소 연계기록지·계획 통�
   assert.deepEqual(by('RIGHTS_GUIDE_14D'), ['RGT-03']);
   // 기존 연결은 그대로
   assert.deepEqual(by('CARE_PLAN_AGREEMENT'), ['SVC-04']);
-  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-04']);
+  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-06']);
 });
 
 test('투약 및 약품관리 요건 — 잠금(냉장고 포함)·분기 점검 항목(폐기일자)·사용기한 지난 약 불인정·6원칙 면담', () => {
@@ -242,4 +242,40 @@ test('만족도 — 삭제된 지표는 새 지표로 안내하고, 새 지표�
   assert.match(text, /반기별 1회 이상/);
   assert.match(text, /이동서비스/);
   assert.match(text, /면담/);
+});
+
+test('8차 자동 근거 — 인력기준은 OPS-02, 진료 동행은 HLT-04, 지역자원 연계는 보조 지표 HLT-06에 붙어 있고 기존 연결은 그대로다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
+  assert.deepEqual(by('STAFFING_STANDARD'), ['OPS-02']);
+  assert.deepEqual(by('MEDICAL_VISIT_RECORDS'), ['HLT-04']);
+  // 기존 RESOURCE_LINKS는 없어지지 않고 어느 지표엔가 붙어 있다(5차 점검)
+  assert.deepEqual(by('RESOURCE_LINKS'), ['HLT-06']);
+  assert.deepEqual(by('DISCHARGE_REFERRAL'), ['HLT-05']);
+  assert.deepEqual(by('SEVERANCE_READY'), ['OPS-07']);
+  assert.equal(indicatorByCode('OPS-02')!.group, 'OPERATION');
+  assert.equal(indicatorByCode('HLT-06')!.group, 'HEALTH');
+  assert.equal(indicatorByCode('HLT-06')!.deletedIn2026, undefined);
+});
+
+test('인력기준 요건 — 근무표·출퇴근을 따로 요구하지 않고 신고 인력과 수가 감액·가산 이력으로 본다(2026 지표 3)', () => {
+  const text = indicatorByCode('OPS-02')!.requirements.join(' ');
+  assert.match(text, /근무표·출퇴근 기록을 따로 요구하지 않고/);
+  assert.match(text, /감액을 받았거나 신고 인력이 허위로 확인되면 불인정/);
+  assert.match(text, /6\.4명/);
+  assert.match(text, /19\.0명/);
+  assert.match(text, /7명당 1명/);
+  assert.match(text, /기준②/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.STAFFING_STANDARD, /원문 대조 필요/);
+});
+
+test('진료 동행 요건 — 종사자 동행·필수 항목은 기관 서식·보호자 동행은 대조 필요', () => {
+  const text = indicatorByCode('HLT-04')!.requirements.join(' ');
+  assert.match(text, /종사자와 동행한 진료/);
+  assert.match(text, /기관 서식/);
+  assert.match(text, /보호자가 직접 동행/);
+  assert.match(text, /대조 필요/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.MEDICAL_VISIT_RECORDS, /기관 서식/);
+  // 지역자원 연계는 2026판에 별도 지표가 없는 보조 근거임을 숨기지 않는다
+  assert.match(indicatorByCode('HLT-06')!.title, /별도 지표 없음/);
+  assert.match(EVAL_AUTO_SOURCE_LABEL.RESOURCE_LINKS, /보조 근거/);
 });

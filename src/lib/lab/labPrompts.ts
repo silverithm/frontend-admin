@@ -1,6 +1,6 @@
 /**
- * 실험실 AI 작업 23종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
- * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안 / 6차: 투약의뢰서 약 목록 정리 · 퇴소 연계기록지 초안 · 목욕 메모 정리 / 7차: 월간 프로그램 계획표 · 사업계획 초안 · 만족도 의견 주제 요약 · 입소 상담 메모 정리)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 25종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안 / 5차: 사고 기록 정리 · 기능회복훈련 정리 · 보호자 안내 초안 · 자원연계 종류 제안 · 예산 초안 / 6차: 투약의뢰서 약 목록 정리 · 퇴소 연계기록지 초안 · 목욕 메모 정리 / 7차: 월간 프로그램 계획표 · 사업계획 초안 · 만족도 의견 주제 요약 · 입소 상담 메모 정리 / 8차: 진료 동행 메모 정리 · 운영위원회 회의록 정리)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -9,6 +9,11 @@
  * 3) 어르신 이름은 입력에 들어가지 않는다 — 메모에 이름이 적혀 있어도 출력에 쓰지 말라고 지시한다.
  */
 import type {
+  CommitteeMeetingKind,
+  MedicalVisitAiInput,
+  MedicalVisitAiResult,
+  MeetingMinutesAiInput,
+  MeetingMinutesAiResult,
   BusinessPlanAiInput,
   BusinessPlanAiResult,
   BusinessPlanFacts,
@@ -108,6 +113,9 @@ import { MAX_PLAN_FREQUENCY, MAX_PLAN_GOAL, MAX_SCHEDULE_TITLE, SCHEDULE_CATEGOR
 import { ITEM_LIMITS, MAX_ITEM_BUDGET, MAX_PLAN_TOTAL } from './businessPlanRules.ts';
 import { SATISFACTION_KINDS, satisfactionKindLabel } from './satisfactionRules.ts';
 import { INTAKE_CARE_GRADES } from './intakeRules.ts';
+import { MAX_VISIT_DEPARTMENT } from './medicalVisitRules.ts';
+import { MAX_MEETING_DECISION } from './committeeRules.ts';
+import { isValidYmd } from './labDate.ts';
 import { mondayOf } from './careEventRules.ts';
 import { MAX_SAFETY_ACTIONS, MAX_SAFETY_ITEMS, MAX_SAFETY_NOTE, SAFETY_CADENCE_LABEL, isSafetyKind, templateFor } from './safetyRules.ts';
 
@@ -134,8 +142,10 @@ export type LabAiTask =
   | 'program-schedule'
   | 'business-plan'
   | 'survey-summary'
-  | 'intake-note';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note'];
+  | 'intake-note'
+  | 'medical-visit'
+  | 'meeting-minutes';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note', 'medical-visit', 'meeting-minutes'];
 
 /**
  * 5·6차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
@@ -145,7 +155,7 @@ export function labAiBodyLimit(task: string): number | null {
   if (task === 'budget-draft') return 20_500;
   if (task === 'survey-summary') return 20_500;
   if (task === 'program-schedule' || task === 'business-plan') return 8_500;
-  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note') return 3_500;
+  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note' || task === 'medical-visit' || task === 'meeting-minutes') return 3_500;
   return null;
 }
 
@@ -2400,6 +2410,148 @@ export function normalizeIntakeNote(raw: unknown): IntakeNoteAiResult {
   return result;
 }
 
+// ---------- 20) 진료 동행 메모 정리 ----------
+
+export const MAX_VISIT_FOLLOWUP_NOTE = 200;
+// AI가 내는 칸은 저장 한도(사유 1000·내용 2000·처방 1000)의 절반으로 둔다 — 직원이 고쳐 쓸 여유를 남긴다
+export const MAX_VISIT_AI_REASON = 500;
+export const MAX_VISIT_AI_RESULT = 1000;
+export const MAX_VISIT_AI_PRESCRIPTION = 500;
+
+export function validateMedicalVisitInput(body: unknown): Validation<MedicalVisitAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '진료 메모', MAX_LOG_INPUT_LENGTH);
+  return note.ok ? { ok: true, value: { note: note.value } } : note;
+}
+
+export function buildMedicalVisitPrompt(input: MedicalVisitAiInput): string {
+  return `당신은 주야간보호센터 직원이 어르신 진료에 동행한 뒤 적은 메모를 기록 칸으로 정리하는 보조자입니다.
+아래 <note>는 직원이 병원에서 적은 메모입니다. 이 메모만을 근거로 진료 동행 기록 칸을 채웁니다. 직원이 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 진단명·약 이름·용량·검사 결과·날짜는 메모에 적힌 것만 씁니다. 메모에 없으면 지어내지 말고 빈 칸으로 둡니다.
+3. department(진료과, ${MAX_VISIT_DEPARTMENT}자 이내): 메모에 진료과 또는 병원 종류가 적혀 있을 때만 "정형외과"처럼 씁니다. 없으면 빈 문자열.
+4. reason(진료 사유, ${MAX_VISIT_AI_REASON}자 이내): 어르신이 병원에 간 이유(증상·정기 진료 등)를 메모에 적힌 대로만 기록체로 씁니다.
+5. result(진료 내용, ${MAX_VISIT_AI_RESULT}자 이내): 의사 설명·검사·진단·치료·주의사항을 메모에 적힌 대로만 기록체로 씁니다. 메모에 적힌 진단 외에 새 진단·원인·예후를 쓰지 않습니다.
+6. prescription(처방, ${MAX_VISIT_AI_PRESCRIPTION}자 이내): 메모에 적힌 약·주사·처치와 복용 방법만 씁니다. 없으면 빈 문자열. 약을 바꾸거나 추가하라는 권고는 쓰지 않습니다.
+7. followUp.date: 메모에 연·월·일이 모두 적힌 재방문·후속 날짜가 있을 때만 "YYYY-MM-DD"로 씁니다. "2주 뒤", "다음 달", "일주일 후", "다음 주 화요일"처럼 상대적인 표현이나 연도가 없는 날짜는 달력 날짜로 바꾸지 말고 null로 둡니다.
+8. followUp.note(후속 안내, ${MAX_VISIT_FOLLOWUP_NOTE}자 이내): 재방문·추가 검사·경과 관찰 등 후속 일정이 메모에 있으면 메모 표현 그대로 짧게 씁니다(예: "2주 뒤 재방문"). 없으면 빈 문자열.
+9. 건강 상태에 대한 판단·평가·조언(좋아졌다, 위험하다, 걱정된다 등)과 의료 행위 권고는 쓰지 않습니다. 메모에 적힌 사실만 옮깁니다.
+10. 아무 사실도 없는 형식적 문구("특이사항 없음", "잘 다녀오심")는 쓰지 않고 쓸 사실이 없으면 그 칸은 빈 문자열("")로 둡니다. 다만 메모에 적힌 검사·진료 결과는 "이상 없음", "정상"도 그대로 옮깁니다(예: "X-ray 이상 없음").
+11. ${PRIVACY_RULE} 의사·간호사·동행 직원 이름도 쓰지 않습니다. 병원 이름은 쓰지 않아도 됩니다.
+12. ${RECORD_STYLE_RULE}
+
+${fence('note', input.note)}`;
+}
+
+export const MEDICAL_VISIT_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    department: STR(`진료과 (${MAX_VISIT_DEPARTMENT}자 이내, 없으면 빈 문자열)`),
+    reason: STR(`진료 사유 (${MAX_VISIT_AI_REASON}자 이내, 없으면 빈 문자열)`),
+    result: STR(`진료 내용 (${MAX_VISIT_AI_RESULT}자 이내, 없으면 빈 문자열)`),
+    prescription: STR(`처방 (${MAX_VISIT_AI_PRESCRIPTION}자 이내, 없으면 빈 문자열)`),
+    followUp: {
+      type: 'OBJECT',
+      properties: {
+        date: { type: 'STRING', nullable: true, description: '메모에 연·월·일이 모두 있을 때만 YYYY-MM-DD. 상대 표현(2주 뒤 등)이면 null' },
+        note: STR(`후속 안내 (${MAX_VISIT_FOLLOWUP_NOTE}자 이내, 없으면 빈 문자열)`),
+      },
+      required: ['date', 'note'],
+    },
+  },
+  required: ['department', 'reason', 'result', 'prescription', 'followUp'],
+} as const;
+
+/** 메모에 'YYYY-MM-DD'·'YYYY. M. D'·'YYYY년 M월 D일'처럼 연·월·일이 모두 적혀 있고 그 날짜가 date와 같은가 */
+function fullDateMentioned(note: string, date: string): boolean {
+  const [y, m, d] = date.split('-').map(Number);
+  const dateRe = new RegExp(`(?<!\\d)${y}\\s*(?:[-./]|년)\\s*0?${m}\\s*(?:[-./]|월)\\s*0?${d}(?!\\d)`);
+  return dateRe.test(note);
+}
+
+/**
+ * 글은 한도까지 자르고 형식적 문구뿐이면 비운다. 후속 날짜는 올바른 'YYYY-MM-DD'가 아니면 null,
+ * 원문 메모(note)를 주면 메모에 연·월·일이 그대로 적혀 있지 않은 날짜도 null(모델이 '2주 뒤'를 달력 날짜로 바꾸는 것을 막는다).
+ * 진료과·사유·내용·처방·후속 안내가 모두 비면 오류.
+ */
+export function normalizeMedicalVisit(raw: unknown, note?: string): MedicalVisitAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const follow = isRecord(raw.followUp) ? raw.followUp : {};
+  const dateText = typeof follow.date === 'string' ? follow.date.trim() : '';
+  const date = isValidYmd(dateText) && dateText.length === 10 && (note === undefined || fullDateMentioned(note, dateText)) ? dateText : null;
+  const result: MedicalVisitAiResult = {
+    department: substantive(cleanOutput(raw.department, MAX_VISIT_DEPARTMENT)).replace(/\n+/g, ' '),
+    reason: substantive(cleanOutput(raw.reason, MAX_VISIT_AI_REASON)),
+    result: substantive(cleanOutput(raw.result, MAX_VISIT_AI_RESULT)),
+    prescription: substantive(cleanOutput(raw.prescription, MAX_VISIT_AI_PRESCRIPTION)),
+    followUp: { date, note: substantive(cleanOutput(follow.note, MAX_VISIT_FOLLOWUP_NOTE)).replace(/\n+/g, ' ') },
+  };
+  if (result.department === '' && result.reason === '' && result.result === '' && result.prescription === '' && result.followUp.note === '' && date === null) {
+    throw new Error('AI 응답에 정리할 내용이 없습니다');
+  }
+  return result;
+}
+
+// ---------- 21) 운영위원회 회의록 정리 ----------
+
+export const MAX_MINUTES_AGENDA_ITEMS = 10;
+export const MAX_MINUTES_AGENDA_ITEM = 100;
+export const MAX_MINUTES_TEXT = 2000;
+export const MAX_MINUTES_DECISIONS = 10;
+export const MINUTES_PERSON = '[위원]';
+
+export function validateMeetingMinutesInput(body: unknown): Validation<MeetingMinutesAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '회의 메모', MAX_LOG_INPUT_LENGTH);
+  if (!note.ok) return note;
+  if (body.kind !== 'REGULAR' && body.kind !== 'SPECIAL') return { ok: false, message: '회의 종류(정기·임시)를 골라 주세요' };
+  return { ok: true, value: { note: note.value, kind: body.kind as CommitteeMeetingKind } };
+}
+
+export function buildMeetingMinutesPrompt(input: MeetingMinutesAiInput): string {
+  const kind = input.kind === 'REGULAR' ? '정기' : '임시';
+  return `당신은 주야간보호센터 운영위원회(${kind} 회의)의 회의록 정리를 돕는 보조자입니다.
+아래 <note>는 간사가 회의 중에 적은 메모입니다. 이 메모만을 근거로 회의록 칸을 채웁니다. 간사가 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE}
+3. agenda(안건, ${MAX_MINUTES_AGENDA_ITEMS}개 이내, 각 ${MAX_MINUTES_AGENDA_ITEM}자 이내): 회의에서 다룬 안건을 한 줄씩 씁니다. 메모에 안건이 없으면 빈 목록.
+4. minutes(회의 내용, ${MAX_MINUTES_TEXT}자 이내): 안건별로 어떤 말이 오갔는지 메모에 적힌 내용만 기록체로 요약합니다. 보고 사항(회계·예산·후원금·사건사고)이 메모에 있으면 포함합니다. 메모에 없는 발언·찬반·수치·금액을 쓰지 않습니다.
+5. decisions(결정 사항, ${MAX_MINUTES_DECISIONS}개 이내, 각 ${MAX_MEETING_DECISION}자 이내): 메모에 "결정", "하기로 함", "의결", "승인", "유지" 등으로 정해진 것이 분명한 사항만 한 줄씩 씁니다. 논의만 하고 정하지 않은 것은 결정 사항에 넣지 않습니다.
+6. 사람 이름(위원·위원장·직원·보호자·이용자)은 어떤 경우에도 쓰지 않고 "${MINUTES_PERSON}"으로 바꿔 씁니다. 메모에 이름이 적혀 있어도 마찬가지입니다. 직책만 있으면(위원장, 시설장 등) 직책으로 씁니다.
+7. 회의 날짜·장소·참석자 명단은 다른 칸에 있으므로 쓰지 않습니다.
+8. ${NO_FILLER_RULE}
+9. ${RECORD_STYLE_RULE}
+
+${fence('note', input.note)}`;
+}
+
+export const MEETING_MINUTES_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    agenda: { type: 'ARRAY', items: { type: 'STRING' }, description: `안건 (${MAX_MINUTES_AGENDA_ITEMS}개 이내)` },
+    minutes: STR(`회의 내용 (${MAX_MINUTES_TEXT}자 이내, 없으면 빈 문자열)`),
+    decisions: { type: 'ARRAY', items: { type: 'STRING' }, description: `결정 사항 (${MAX_MINUTES_DECISIONS}개 이내, 메모에서 분명히 정해진 것만)` },
+  },
+  required: ['agenda', 'minutes', 'decisions'],
+} as const;
+
+/** 안건·결정은 개수·길이를 자르고 빈 줄·중복·형식적 문구를 버리고, 회의 내용은 한도까지 자른다. 셋 다 비면 오류. */
+export function normalizeMeetingMinutes(raw: unknown): MeetingMinutesAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const oneLineList = (value: unknown, max: number, len: number) => cleanList(value, max, len).map((t) => substantive(t).replace(/\n+/g, ' ')).filter((t) => t !== '');
+  const result: MeetingMinutesAiResult = {
+    agenda: oneLineList(raw.agenda, MAX_MINUTES_AGENDA_ITEMS, MAX_MINUTES_AGENDA_ITEM),
+    minutes: substantive(cleanOutput(raw.minutes, MAX_MINUTES_TEXT)),
+    decisions: oneLineList(raw.decisions, MAX_MINUTES_DECISIONS, MAX_MEETING_DECISION),
+  };
+  if (result.agenda.length === 0 && result.minutes === '' && result.decisions.length === 0) throw new Error('AI 응답에 정리할 내용이 없습니다');
+  return result;
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -2522,6 +2674,16 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateIntakeNoteInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildIntakeNotePrompt(v.value), schema: INTAKE_NOTE_SCHEMA, normalize: normalizeIntakeNote };
+  }
+  if (task === 'medical-visit') {
+    const v = validateMedicalVisitInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildMedicalVisitPrompt(v.value), schema: MEDICAL_VISIT_SCHEMA, normalize: (raw) => normalizeMedicalVisit(raw, v.value.note) };
+  }
+  if (task === 'meeting-minutes') {
+    const v = validateMeetingMinutesInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildMeetingMinutesPrompt(v.value), schema: MEETING_MINUTES_SCHEMA, normalize: normalizeMeetingMinutes };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

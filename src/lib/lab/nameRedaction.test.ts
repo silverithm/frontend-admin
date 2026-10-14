@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { forgetNames, redactDeep, redactNames, rememberElderNames, rememberStaffNames } from './nameRedaction.ts';
+import { forgetNames, redactDeep, redactNames, rememberElderNames, rememberStaffNames, replaceNames } from './nameRedaction.ts';
 
 test.beforeEach(() => forgetNames());
 
@@ -36,4 +36,17 @@ test('객체 안의 문자열만 바꾸고 숫자·배열 모양은 그대로 �
   const input = { note: '서옥자 어르신 미열', readings: [{ date: '2026-10-14', systolic: 130 }], needs: { family: '서옥자님 따님 방문' } };
   assert.deepEqual(redactDeep(input), { note: '어르신 미열', readings: [{ date: '2026-10-14', systolic: 130 }], needs: { family: '어르신 따님 방문' } });
   assert.equal(input.note, '서옥자 어르신 미열', '원본은 바꾸지 않는다');
+});
+
+test('운영위원 이름은 호칭(위원장·위원·님)과 함께 [위원]으로 바꾼다', () => {
+  assert.equal(replaceNames('김정숙 위원장 사회. 박철수 위원 반대, 이영희님 찬성', ['김정숙', '박철수', '이영희'], '[위원]'), '[위원] 사회. [위원] 반대, [위원] 찬성');
+});
+
+test('위원 이름 바꾸기 — 긴 이름 먼저, 한 글자 이름·빈 목록은 건드리지 않고, 정규식 문자가 든 이름도 안전하다', () => {
+  assert.equal(replaceNames('김정숙 김정 위원', ['김정', '김정숙'], 'X'), 'X X');
+  assert.equal(replaceNames('김 위원', ['김'], 'X'), '김 위원');
+  assert.equal(replaceNames('안건 논의', [], 'X'), '안건 논의');
+  assert.equal(replaceNames('', ['김정숙'], 'X'), '');
+  assert.equal(replaceNames('a.b 위원', ['a.b'], 'X'), 'X');
+  assert.equal(replaceNames('axb 위원', ['a.b'], 'X'), 'axb 위원');
 });

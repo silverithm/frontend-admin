@@ -5,8 +5,21 @@
  * 에러는 서버 JSON의 message를 그대로 Error 메시지로 던진다. 서버가 메시지를 주지 않으면 한국어 기본 문구.
  */
 import { authorizedFetch } from '../apiService';
-import { redactDeep, rememberElderNames, rememberStaffNames } from './nameRedaction.ts';
+import { redactDeep, rememberElderNames, rememberStaffNames, replaceNames } from './nameRedaction.ts';
 import type {
+  CommitteeMeeting,
+  CommitteeMeetingInput,
+  CommitteeMember,
+  CommitteeMemberInput,
+  ElderDocument,
+  ElderDocumentInput,
+  MedicalVisit,
+  MedicalVisitAiResult,
+  MedicalVisitInput,
+  MeetingMinutesAiInput,
+  MeetingMinutesAiResult,
+  StaffingMonth,
+  StaffingMonthInput,
   BusinessPlan,
   BusinessPlanAiInput,
   BusinessPlanAiResult,
@@ -1032,4 +1045,136 @@ export function aiSummarizeSurvey(input: SurveySummaryAiInput): Promise<SurveySu
 export function aiStructureIntakeNote(note: string, names: ReadonlyArray<string | null | undefined> = []): Promise<IntakeNoteAiResult> {
   rememberElderNames(names.filter((n): n is string => typeof n === 'string'));
   return request<IntakeNoteAiResult>(`${LAB_AI}/intake-note`, json('POST', redactDeep({ note })), `AI가 상담 메모를 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+// ---------- 8차: 월 인력배치 점검 ----------
+
+/** 그 달 인력배치 점검. 아직 저장하지 않았으면 서버가 404를 주므로 null로 돌려준다. */
+export async function getStaffingMonth(month: string): Promise<StaffingMonth | null> {
+  try {
+    return await request<StaffingMonth>(`${LAB}/staffing?month=${q(month)}`, undefined, '인력배치 점검을 불러오지 못했습니다');
+  } catch (error) {
+    if (error instanceof LabApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** 그 해 저장한 달들의 인력배치 점검 */
+export function listStaffingMonths(year: number): Promise<StaffingMonth[]> {
+  return request<StaffingMonth[]>(`${LAB}/staffing?year=${q(String(year))}`, undefined, '인력배치 점검 목록을 불러오지 못했습니다');
+}
+
+/** staffingMonth로 덮어쓴다(upsert) */
+export function saveStaffingMonth(input: StaffingMonthInput): Promise<StaffingMonth> {
+  return request<StaffingMonth>(`${LAB}/staffing`, json('PUT', input), '인력배치 점검을 저장하지 못했습니다');
+}
+
+export async function deleteStaffingMonth(id: number): Promise<void> {
+  await request<null>(`${LAB}/staffing/${q(String(id))}`, { method: 'DELETE' }, '인력배치 점검을 삭제하지 못했습니다');
+}
+
+// ---------- 수급자 서류함 ----------
+
+/** elderlyId를 빼면 기관 전체 */
+export function listElderDocuments(elderlyId?: number): Promise<ElderDocument[]> {
+  return request<ElderDocument[]>(`${LAB}/elder-documents${elderlyId === undefined ? '' : `?elderlyId=${q(String(elderlyId))}`}`, undefined, '수급자 서류 목록을 불러오지 못했습니다');
+}
+
+/** 만료일이 발급일보다 앞이면 서버가 400을 준다 */
+export function createElderDocument(input: ElderDocumentInput): Promise<ElderDocument> {
+  return request<ElderDocument>(`${LAB}/elder-documents`, json('POST', input), '서류 기록을 저장하지 못했습니다');
+}
+
+export function updateElderDocument(id: number, input: ElderDocumentInput): Promise<ElderDocument> {
+  return request<ElderDocument>(`${LAB}/elder-documents/${q(String(id))}`, json('PUT', input), '서류 기록을 고치지 못했습니다');
+}
+
+export async function deleteElderDocument(id: number): Promise<void> {
+  await request<null>(`${LAB}/elder-documents/${q(String(id))}`, { method: 'DELETE' }, '서류 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 진료 동행 기록 ----------
+
+/** 조건은 하나만 쓴다 — month('YYYY-MM') · elderlyId · followUpDue(후속 확인일이 오늘 이전이고 확인 전). 모두 빼면 전부. 진료일 최신순 */
+export function listMedicalVisits(params: { month?: string; elderlyId?: number; followUpDue?: boolean } = {}): Promise<MedicalVisit[]> {
+  const parts: string[] = [];
+  if (params.month) parts.push(`month=${q(params.month)}`);
+  if (params.elderlyId !== undefined) parts.push(`elderlyId=${q(String(params.elderlyId))}`);
+  if (params.followUpDue) parts.push('followUpDue=true');
+  return request<MedicalVisit[]>(`${LAB}/medical-visits${parts.length > 0 ? `?${parts.join('&')}` : ''}`, undefined, '진료 동행 기록을 불러오지 못했습니다');
+}
+
+/** 진료일이 400일 넘게 미래이거나 끝 시각이 시작보다 앞이면 서버가 400을 준다 */
+export function createMedicalVisit(input: MedicalVisitInput): Promise<MedicalVisit> {
+  return request<MedicalVisit>(`${LAB}/medical-visits`, json('POST', input), '진료 동행 기록을 저장하지 못했습니다');
+}
+
+export function updateMedicalVisit(id: number, input: MedicalVisitInput): Promise<MedicalVisit> {
+  return request<MedicalVisit>(`${LAB}/medical-visits/${q(String(id))}`, json('PUT', input), '진료 동행 기록을 고치지 못했습니다');
+}
+
+export async function deleteMedicalVisit(id: number): Promise<void> {
+  await request<null>(`${LAB}/medical-visits/${q(String(id))}`, { method: 'DELETE' }, '진료 동행 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 운영위원 ----------
+
+export function listCommitteeMembers(): Promise<CommitteeMember[]> {
+  return request<CommitteeMember[]>(`${LAB}/committee-members`, undefined, '운영위원 명단을 불러오지 못했습니다');
+}
+
+/** 임기가 시작일 + 3년을 넘으면 서버가 400을 준다 */
+export function createCommitteeMember(input: CommitteeMemberInput): Promise<CommitteeMember> {
+  return request<CommitteeMember>(`${LAB}/committee-members`, json('POST', input), '운영위원을 저장하지 못했습니다');
+}
+
+export function updateCommitteeMember(id: number, input: CommitteeMemberInput): Promise<CommitteeMember> {
+  return request<CommitteeMember>(`${LAB}/committee-members/${q(String(id))}`, json('PUT', input), '운영위원을 고치지 못했습니다');
+}
+
+export async function deleteCommitteeMember(id: number): Promise<void> {
+  await request<null>(`${LAB}/committee-members/${q(String(id))}`, { method: 'DELETE' }, '운영위원을 삭제하지 못했습니다');
+}
+
+// ---------- 운영위원회 회의 ----------
+
+/** 그 해 회의(attendeeNames는 서버가 채운다) */
+export function listCommitteeMeetings(year: number): Promise<CommitteeMeeting[]> {
+  return request<CommitteeMeeting[]>(`${LAB}/committee-meetings?year=${q(String(year))}`, undefined, '운영위원회 회의 기록을 불러오지 못했습니다');
+}
+
+/** 참석자가 다른 기관 위원이면 서버가 400을 준다 */
+export function createCommitteeMeeting(input: CommitteeMeetingInput): Promise<CommitteeMeeting> {
+  return request<CommitteeMeeting>(`${LAB}/committee-meetings`, json('POST', input), '회의 기록을 저장하지 못했습니다');
+}
+
+export function updateCommitteeMeeting(id: number, input: CommitteeMeetingInput): Promise<CommitteeMeeting> {
+  return request<CommitteeMeeting>(`${LAB}/committee-meetings/${q(String(id))}`, json('PUT', input), '회의 기록을 고치지 못했습니다');
+}
+
+export async function deleteCommitteeMeeting(id: number): Promise<void> {
+  await request<null>(`${LAB}/committee-meetings/${q(String(id))}`, { method: 'DELETE' }, '회의 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 8차 AI 작업 — 제안만 돌려준다. 보내기 직전에 이름을 지운다 ----------
+
+/**
+ * 진료 동행 메모 정리. elderNames(어르신)·staffNames(동행 직원)는 기억해 둔 뒤 메모에서 지운다 — 이름은 서버로 보내지 않는다.
+ * 후속 날짜는 메모에 날짜가 있을 때만 채워진다('2주 뒤'는 null).
+ */
+export function aiStructureMedicalVisit(
+  note: string,
+  names: { elderNames?: ReadonlyArray<string | null | undefined>; staffNames?: ReadonlyArray<string | null | undefined> } = {},
+): Promise<MedicalVisitAiResult> {
+  rememberElderNames((names.elderNames ?? []).filter((n): n is string => typeof n === 'string'));
+  rememberStaffNames((names.staffNames ?? []).filter((n): n is string => typeof n === 'string'));
+  return request<MedicalVisitAiResult>(`${LAB_AI}/medical-visit`, json('POST', redactDeep({ note })), `AI가 진료 메모를 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+/**
+ * 회의 메모를 회의록으로 정리. memberNames(운영위원 이름)는 '[위원]'으로 바꾼 뒤 보낸다 — 위원 이름은 서버로 가지 않는다.
+ */
+export function aiDraftMeetingMinutes(input: MeetingMinutesAiInput, memberNames: ReadonlyArray<string | null | undefined> = []): Promise<MeetingMinutesAiResult> {
+  const note = replaceNames(input.note, memberNames.filter((n): n is string => typeof n === 'string'), '[위원]');
+  return request<MeetingMinutesAiResult>(`${LAB_AI}/meeting-minutes`, json('POST', redactDeep({ ...input, note })), `AI가 회의록을 정리하지 못했습니다. ${AI_RETRY}`);
 }
