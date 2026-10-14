@@ -1,0 +1,233 @@
+/* 실험실 7차 계획 화면(사업계획, 입소 상담·대기, 퇴직금 추계) 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+  min-width: 0;
+}
+
+.itemTable {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.itemTable th,
+.itemTable td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+}
+
+.itemTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.colSmall {
+  min-width: 120px;
+}
+
+.colMid {
+  min-width: 160px;
+}
+
+.colWide {
+  min-width: 220px;
+}
+
+.colMoney {
+  min-width: 140px;
+}
+
+.colButtons {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.rowButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+}
+
+.fieldNote {
+  margin: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  color: var(--color-text-yellow);
+}
+
+.issueList {
+  margin: 0;
+  padding-inline-start: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.proposalRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.proposalRow:last-child {
+  border-bottom: 0;
+}
+
+.proposalBody {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+/* ---------- 입소 상담 목록 ---------- */
+.listButton {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2) var(--spacing-3);
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.listButton[data-active='true'] {
+  border-color: var(--color-icon-accent);
+  background: var(--color-background-muted);
+}
+
+.listButton:hover {
+  border-color: var(--color-border-emphasized);
+}
+
+.listButton:focus-visible {
+  outline: 2px solid var(--color-icon-accent);
+  outline-offset: 2px;
+}
+
+.listMain {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rankBadge {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--spacing-2);
+}
+
+.statCell {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+}
+
+/* ---------- 퇴직금 ---------- */
+.sevTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.sevTable th,
+.sevTable td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.sevTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.sevTable tr[data-active='true'] td {
+  background: var(--color-background-muted);
+}
+
+.sevTable tr[data-dim='true'] td {
+  color: var(--color-text-secondary);
+}
+
+.sevTable td.num,
+.sevTable th.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.formula {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 좁은 화면: 편집 표의 한 행을 카드처럼 쌓는다 */
+@media (max-width: 640px) {
+  .itemTable {
+    min-width: 0;
+  }
+  .itemTable thead {
+    display: none;
+  }
+  .itemTable,
+  .itemTable tbody,
+  .itemTable tr,
+  .itemTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .itemTable tr {
+    padding: var(--spacing-3) 0;
+    border-bottom: 2px solid var(--color-border-emphasized);
+  }
+  .itemTable td {
+    border-bottom: 0;
+  }
+  .itemTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+}
