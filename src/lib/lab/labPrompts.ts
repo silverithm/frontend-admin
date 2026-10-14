@@ -1,6 +1,6 @@
 /**
- * 실험실 AI 작업 10종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
- * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 11종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안 / 3차: 주간 식단 · 점검 부적합 조치 계획 / 4차: 장부 계정 제안)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -10,6 +10,10 @@
  */
 import type {
   CareNoteStructured,
+  LedgerClassifyAiInput,
+  LedgerClassifyLine,
+  LedgerClassifyResult,
+  LedgerDirection,
   MealDay,
   MealPlanAiInput,
   MealPlanResult,
@@ -48,6 +52,7 @@ import { TRAINING_CATEGORY_LABEL, TRAINING_KIND_LABEL, isCategoryForKind } from 
 import { CARE_PLAN_NEEDS_LABEL } from './carePlanRules.ts';
 import { parseYmd } from './labDate.ts';
 import { MEAL_TEXT_LIMIT, emptyDay, isAvoidedDish, isMonday, weekDates, weekdayLabel } from './mealRules.ts';
+import { MAX_LEDGER_AMOUNT, MAX_LEDGER_DESCRIPTION, accountsFor, isAccountCode } from './ledgerRules.ts';
 import { MAX_SAFETY_ACTIONS, MAX_SAFETY_ITEMS, MAX_SAFETY_NOTE, SAFETY_CADENCE_LABEL, isSafetyKind, templateFor } from './safetyRules.ts';
 
 export type LabAiTask =
@@ -60,8 +65,9 @@ export type LabAiTask =
   | 'consultation'
   | 'care-plan'
   | 'meal-plan'
-  | 'safety-actions';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions'];
+  | 'safety-actions'
+  | 'ledger-classify';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify'];
 
 export function isLabAiTask(value: unknown): value is LabAiTask {
   return typeof value === 'string' && (LAB_AI_TASKS as readonly string[]).includes(value);
@@ -1124,6 +1130,130 @@ export function normalizeSafetyActions(raw: unknown): SafetyActionsResult {
   return { actions: cut(text, MAX_SAFETY_ACTIONS) };
 }
 
+// ---------- 9) 장부 계정 제안 ----------
+
+/** 한 번에 제안받을 수 있는 장부 줄 수(계약) */
+export const MAX_LEDGER_LINES = 50;
+/** 계정 제안 이유의 글자 수 */
+export const MAX_LEDGER_REASON = 100;
+
+export function validateLedgerClassifyInput(body: unknown): Validation<LedgerClassifyAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (!Array.isArray(body.lines) || body.lines.length === 0) return { ok: false, message: '계정을 제안받을 내역이 있어야 합니다' };
+  if (body.lines.length > MAX_LEDGER_LINES) return { ok: false, message: `한 번에 ${MAX_LEDGER_LINES}줄까지 제안받을 수 있습니다` };
+  const lines: LedgerClassifyLine[] = [];
+  for (const [i, raw] of body.lines.entries()) {
+    if (!isRecord(raw)) return { ok: false, message: `${i + 1}번째 내역 형식이 올바르지 않습니다` };
+    const description = readText(raw, 'description', `${i + 1}번째 내역`, MAX_LEDGER_DESCRIPTION);
+    if (!description.ok) return description;
+    const amount = raw.amount;
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1 || amount > MAX_LEDGER_AMOUNT) return { ok: false, message: `${i + 1}번째 금액은 1원 이상 100억 원 이하의 정수여야 합니다` };
+    const direction = raw.direction;
+    if (direction !== 'INCOME' && direction !== 'EXPENSE') return { ok: false, message: `${i + 1}번째 내역의 수입·지출 구분이 올바르지 않습니다` };
+    lines.push({ description: description.value, amount, direction });
+  }
+  return { ok: true, value: { lines } };
+}
+
+/** 계정 이름만으로 헷갈리기 쉬운 세출 계정의 명세 요약(재무ㆍ회계 규칙 별표 10 명세 칸). 코드 → 어떤 비용인지. */
+const EXPENSE_HINTS: Readonly<Record<string, string>> = {
+  '111': '직원 기본 봉급(기말·정근수당 포함)',
+  '112': '상여금과 각종 수당(시간외·야간·휴일근무수당, 장기근속장려금 등)',
+  '113': '일급·단기 임시직 급여',
+  '115': '퇴직급여, 퇴직적립금',
+  '116': '직원 사회보험(국민연금·건강보험·고용보험·산재보험) 기관 부담금',
+  '121': '기관운영·유관기관 업무협의 경비',
+  '123': '각종 회의 다과비',
+  '131': '직원 출장여비',
+  '132': '사무용품·인쇄·소모품·도서·수수료·운송·주차료·소규모 수선비(장기간 쓰는 집기는 212)',
+  '133': '우편·전화·전기·수도·가스료, 법령상 세금(자동차세 등), 협회비, 화재·자동차보험료',
+  '135': '차량 유류대·정비·소모품',
+  '136': '건물·토지 임차료',
+  '137': '직원 건강진단비·복리후생·급량비 등 위에 분류되지 않는 운영경비',
+  '211': '시설 개보수 비용',
+  '212': '비품·토지·건물 등 자산 취득',
+  '213': '건물·설비·공구·비품 수선·유지관리',
+  '311': '이용자 주식·부식·특별부식·장류·김장 등 식재료',
+  '312': '이용자를 위한 수용비(치약·칫솔·수건 등)',
+  '314': '이용자 보건위생·약값',
+  '331': '의료재활·사회심리재활 등 이용자 프로그램 운영비',
+};
+
+function accountGuide(direction: LedgerDirection): string {
+  return accountsFor(direction)
+    .map((a) => {
+      const hint = direction === 'EXPENSE' ? EXPENSE_HINTS[a.code] : undefined;
+      return `${a.code} ${a.name} [${a.group} > ${a.section}]${hint ? ` — ${hint}` : ''}`;
+    })
+    .join('\n');
+}
+
+export function buildLedgerClassifyPrompt(input: LedgerClassifyAiInput): string {
+  const lines = input.lines.map((l, i) => `${i}. [${l.direction === 'INCOME' ? '수입' : '지출'}] ${l.description} / ${l.amount}원`).join('\n');
+  return `당신은 노인 주야간보호센터의 회계 장부 정리를 돕는 보조자입니다. 현금출납부(카드·통장 내역)의 각 줄이 어느 계정 과목(목)에 해당하는지 제안합니다. 담당자가 확인하고 고쳐서 씁니다.
+
+아래 <lines>의 줄마다 번호(index)가 있습니다. 줄마다 정확히 한 개씩, 번호 순서대로 답합니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 지출 줄은 아래 [지출 계정] 목록의 코드만, 수입 줄은 [수입 계정] 목록의 코드만 고릅니다. 목록에 없는 코드를 만들어 쓰지 않고, 반대 방향 목록의 코드도 쓰지 않습니다.
+3. 내역만으로 계정을 정할 수 없으면 억지로 고르지 않고 accountCode를 null로 둡니다. 비슷한 계정이 둘이고 근거가 없을 때도 null입니다.
+4. reason에 그 계정으로 본 이유를 ${MAX_LEDGER_REASON}자 안으로 짧게 씁니다(예: "전기요금은 공공요금"). null이면 왜 정하지 못했는지 씁니다.
+5. 금액은 참고용입니다. 계산하거나 고치지 않습니다.
+6. ${PRIVACY_RULE}
+
+[지출 계정] 코드 이름 [관 > 항] — 명세
+${accountGuide('EXPENSE')}
+
+[수입 계정] 코드 이름 [관 > 항]
+${accountGuide('INCOME')}
+
+${fence('lines', lines)}`;
+}
+
+export const LEDGER_CLASSIFY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    items: {
+      type: 'ARRAY',
+      description: '입력 줄마다 하나씩, index 순서대로',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          index: { type: 'INTEGER', description: '입력 줄 번호(0부터)' },
+          accountCode: NULLABLE_STR('그 줄의 방향에 맞는 계정 목록 안의 세 자리 코드. 정할 수 없으면 null'),
+          reason: { type: 'STRING', description: `이유 (${MAX_LEDGER_REASON}자 이내)` },
+        },
+        required: ['index', 'accountCode', 'reason'],
+      },
+    },
+  },
+  required: ['items'],
+} as const;
+
+/**
+ * 모델 답을 입력 줄에 맞춘다. 줄마다 정확히 하나, 방향별 계정 목록 안의 코드만 받고 밖이면 null.
+ * 번호가 빠지거나 겹치면 빠진 줄은 null, 겹치면 먼저 나온 것을 쓴다. 모델이 배열 자체를 줘도 받는다.
+ */
+export function normalizeLedgerClassify(raw: unknown, lines: ReadonlyArray<LedgerClassifyLine>): LedgerClassifyResult {
+  const list = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.items) ? raw.items : null;
+  if (list === null) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const byIndex = new Map<number, Record<string, unknown>>();
+  for (const item of list) {
+    if (!isRecord(item)) continue;
+    const index = typeof item.index === 'number' ? item.index : typeof item.index === 'string' && /^\d+$/.test(item.index) ? Number(item.index) : NaN;
+    if (Number.isInteger(index) && !byIndex.has(index)) byIndex.set(index, item);
+  }
+  const items = lines.map((line, index) => {
+    const item = byIndex.get(index);
+    const code = typeof item?.accountCode === 'string' ? item.accountCode.trim() : '';
+    const accountCode = isAccountCode(line.direction, code) ? code : null;
+    const reason = cleanOutput(item?.reason, MAX_LEDGER_REASON);
+    return { index, accountCode, reason: reason !== '' ? reason : accountCode === null ? '계정을 정하지 못했습니다' : '' };
+  });
+  return { items };
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -1181,6 +1311,11 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateSafetyActionsInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildSafetyActionsPrompt(v.value), schema: SAFETY_ACTIONS_SCHEMA, normalize: normalizeSafetyActions };
+  }
+  if (task === 'ledger-classify') {
+    const v = validateLedgerClassifyInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildLedgerClassifyPrompt(v.value), schema: LEDGER_CLASSIFY_SCHEMA, normalize: (raw) => normalizeLedgerClassify(raw, v.value.lines) };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

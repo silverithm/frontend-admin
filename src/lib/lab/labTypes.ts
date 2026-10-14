@@ -607,3 +607,204 @@ export interface SafetyActionsResult {
   /** 부적합 항목별 조치 계획(줄바꿈으로 나뉜 문장들, 2000자 이하) */
   actions: string;
 }
+
+// =====================================================================
+// 4차 — 직원 급여대장 · 인건비 지출비율 · 회계 장부 · 후원금
+// 금액은 모두 정수 원이다(소수 금액 없음). 날짜는 'YYYY-MM-DD', 월은 'YYYY-MM'.
+// =====================================================================
+
+// ---------- 직원 급여 ----------
+
+export type PayrollJobType =
+  | 'CAREGIVER'
+  | 'SOCIAL_WORKER'
+  | 'NURSE'
+  | 'NURSE_AIDE'
+  | 'THERAPIST'
+  | 'COOK'
+  | 'NUTRITIONIST'
+  | 'DRIVER'
+  | 'SANITATION'
+  | 'OFFICE'
+  | 'DIRECTOR'
+  | 'OTHER';
+export type PayrollPayType = 'MONTHLY' | 'HOURLY';
+/** 원천징수 선택 비율(%) — 간이세액표 금액의 80·100·120% */
+export type WithholdingRate = 80 | 100 | 120;
+export type PayrollStatus = 'DRAFT' | 'CONFIRMED';
+
+/** 직원별 급여 기준. 같은 기관 직원(memberId)마다 하나(upsert). */
+export interface PayrollProfile {
+  id: number;
+  memberId: number;
+  memberName: string | null;
+  jobType: PayrollJobType;
+  payType: PayrollPayType;
+  /** 월급 또는 시급(원), 1~20,000,000 */
+  baseAmount: number;
+  /** 주 소정근로시간, 1~52 (소수 한 자리) */
+  weeklyHours: number;
+  /** 공제대상가족 수(본인 포함), 1~11 */
+  dependents: number;
+  /** 8세 이상 20세 이하 자녀 수, 0~10 */
+  children: number;
+  withholdingRate: WithholdingRate;
+  /** 비과세 식대(원), 0~200,000 */
+  mealAllowance: number;
+  hireDate: string;
+  /** 선임 요양보호사 수당 대상 */
+  seniorCaregiver: boolean;
+  npsEnrolled: boolean;
+  healthEnrolled: boolean;
+  employmentEnrolled: boolean;
+  updatedAt: string | null;
+}
+
+export type PayrollProfileInput = Omit<PayrollProfile, 'id' | 'memberName' | 'updatedAt'>;
+
+/** 기타 수당 한 줄(최대 10줄). taxable=false이면 비과세 수당이라 4대보험·소득세 기준에서 뺀다. */
+export interface PayrollOtherAllowance {
+  label: string;
+  amount: number;
+  taxable: boolean;
+}
+
+/** 기타 공제 한 줄(최대 10줄) */
+export interface PayrollOtherDeduction {
+  label: string;
+  amount: number;
+}
+
+export type PayrollLineStatus = PayrollStatus;
+
+/** 월 급여대장 한 줄. 같은 (직원, 월)마다 하나(upsert). */
+export interface PayrollLine {
+  id: number;
+  memberId: number;
+  memberName: string | null;
+  payMonth: string;
+  regularHours: number;
+  overtimeHours: number;
+  nightHours: number;
+  holidayHours: number;
+  /** 휴일근로 8시간 초과분 시간 */
+  holidayOver8Hours: number;
+  basePay: number;
+  overtimePay: number;
+  nightPay: number;
+  /** 휴일근로 수당(8시간 이내 + 8시간 초과 합) */
+  holidayPay: number;
+  longServiceAward: number;
+  seniorAllowance: number;
+  otherAllowances: PayrollOtherAllowance[];
+  /** 비과세 식대 */
+  mealAllowance: number;
+  grossPay: number;
+  taxablePay: number;
+  nps: number;
+  health: number;
+  ltc: number;
+  employment: number;
+  incomeTax: number;
+  localTax: number;
+  otherDeductions: PayrollOtherDeduction[];
+  netPay: number;
+  employerNps: number;
+  employerHealth: number;
+  employerLtc: number;
+  employerEmployment: number;
+  status: PayrollLineStatus;
+  confirmedAt: string | null;
+  updatedAt: string | null;
+}
+
+/** 저장 본문 — memberId+payMonth로 덮어쓴다(upsert). 확정된 줄은 서버가 409를 준다. */
+export type PayrollLineInput = Omit<PayrollLine, 'id' | 'memberName' | 'status' | 'confirmedAt' | 'updatedAt'>;
+
+/** 한 달 근로시간 입력(시간, 소수 한 자리) */
+export interface PayrollHours {
+  regularHours: number;
+  overtimeHours: number;
+  nightHours: number;
+  holidayHours: number;
+  holidayOver8Hours: number;
+}
+
+export interface PayrollExtras {
+  otherAllowances: PayrollOtherAllowance[];
+  otherDeductions: PayrollOtherDeduction[];
+}
+
+/** 기관 형태 — 장기근속장려금 금액이 다르다. HOME=재가·방문형, RESIDENTIAL=입소형 */
+export type LongServiceFacility = 'HOME' | 'RESIDENTIAL';
+
+// ---------- 회계 장부 ----------
+
+export type LedgerDirection = 'INCOME' | 'EXPENSE';
+export type LedgerEvidenceType = 'RECEIPT' | 'CARD' | 'TAX_INVOICE' | 'TRANSFER' | 'OTHER';
+
+/** 현금출납부 한 줄. accountCode는 세 자리 숫자 문자열(예: '133'). */
+export interface LedgerEntry {
+  id: number;
+  entryDate: string;
+  direction: LedgerDirection;
+  accountCode: string;
+  description: string;
+  amount: number;
+  counterparty: string | null;
+  evidenceType: LedgerEvidenceType | null;
+  /** 이 지출이 쓰인 후원금(같은 기관 후원금만) */
+  donationId: number | null;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type LedgerEntryInput = Omit<LedgerEntry, 'id' | 'updatedAt'>;
+
+// ---------- 후원금 ----------
+
+export type DonorType = 'INDIVIDUAL' | 'CORPORATE' | 'GROUP';
+export type DonationKind = 'CASH' | 'GOODS';
+
+export interface Donation {
+  id: number;
+  receivedOn: string;
+  donorName: string;
+  donorType: DonorType;
+  kind: DonationKind;
+  /** 현금은 받은 금액, 물품은 환산액(원) */
+  amount: number;
+  goodsDescription: string | null;
+  /** 지정 후원이면 그 용도, 비지정이면 null */
+  designatedPurpose: string | null;
+  receiptNo: string | null;
+  /** 이 후원금에 연결된 지출의 합 — 서버가 계산한다 */
+  usedAmount: number;
+  updatedAt: string | null;
+}
+
+export type DonationInput = Omit<Donation, 'id' | 'usedAmount' | 'updatedAt'>;
+
+// ---------- 4차 AI — 계정 제안 ----------
+
+export interface LedgerClassifyLine {
+  description: string;
+  amount: number;
+  direction: LedgerDirection;
+}
+
+export interface LedgerClassifyAiInput {
+  /** 최대 50줄 */
+  lines: LedgerClassifyLine[];
+}
+
+/** index는 입력 줄 번호(0부터). accountCode는 그 방향의 계정 목록 안의 코드이고, 알 수 없으면 null. */
+export interface LedgerSuggestion {
+  index: number;
+  accountCode: string | null;
+  reason: string;
+}
+
+export interface LedgerClassifyResult {
+  items: LedgerSuggestion[];
+}

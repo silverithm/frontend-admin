@@ -23,11 +23,17 @@ import type {
   CopayBill,
   CopayBillInput,
   CopayPaymentInput,
+  Donation,
+  DonationInput,
   EvalCheck,
   EvalCheckInput,
   EvalReviewInput,
   EvalReviewResult,
   LabAccess,
+  LedgerClassifyAiInput,
+  LedgerClassifyResult,
+  LedgerEntry,
+  LedgerEntryInput,
   LabStaff,
   MealPlan,
   MealPlanAiInput,
@@ -37,6 +43,10 @@ import type {
   NursingLogInput,
   NursingSummaryInput,
   NursingSummaryResult,
+  PayrollLine,
+  PayrollLineInput,
+  PayrollProfile,
+  PayrollProfileInput,
   Program,
   ProgramInput,
   ProgramLogAiInput,
@@ -376,4 +386,103 @@ export function aiDraftMealPlan(input: MealPlanAiInput): Promise<MealPlanResult>
 
 export function aiDraftSafetyActions(input: SafetyActionsAiInput): Promise<SafetyActionsResult> {
   return request<SafetyActionsResult>(`${LAB_AI}/safety-actions`, json('POST', redactDeep(input)), `AI가 조치 계획을 만들지 못했습니다. ${AI_RETRY}`);
+}
+
+// =====================================================================
+// 4차 — 직원 급여대장 · 회계 장부 · 후원금
+// =====================================================================
+
+// ---------- 직원 급여 기준 ----------
+
+export function listPayrollProfiles(): Promise<PayrollProfile[]> {
+  return request<PayrollProfile[]>(`${LAB}/payroll-profiles`, undefined, '직원 급여 기준을 불러오지 못했습니다');
+}
+
+/** memberId로 덮어쓴다(upsert) */
+export function savePayrollProfile(input: PayrollProfileInput): Promise<PayrollProfile> {
+  return request<PayrollProfile>(`${LAB}/payroll-profiles`, json('PUT', input), '직원 급여 기준을 저장하지 못했습니다');
+}
+
+export async function deletePayrollProfile(id: number): Promise<void> {
+  await request<null>(`${LAB}/payroll-profiles/${q(String(id))}`, { method: 'DELETE' }, '직원 급여 기준을 삭제하지 못했습니다');
+}
+
+// ---------- 월 급여대장 ----------
+
+export function listPayrollLines(month: string): Promise<PayrollLine[]> {
+  return request<PayrollLine[]>(`${LAB}/payroll-lines?month=${q(month)}`, undefined, '월 급여대장을 불러오지 못했습니다');
+}
+
+/** 그 해 급여대장 전체 — 인건비 지출비율(연 단위)용 */
+export function listPayrollLinesByYear(year: number): Promise<PayrollLine[]> {
+  return request<PayrollLine[]>(`${LAB}/payroll-lines?year=${q(String(year))}`, undefined, '연간 급여대장을 불러오지 못했습니다');
+}
+
+/** memberId+payMonth로 덮어쓴다(upsert). 확정된 줄은 서버가 409를 준다. */
+export function savePayrollLine(input: PayrollLineInput): Promise<PayrollLine> {
+  return request<PayrollLine>(`${LAB}/payroll-lines`, json('PUT', input), '급여를 저장하지 못했습니다');
+}
+
+/** 그 달 초안(DRAFT) 줄을 모두 확정한다 */
+export function confirmPayrollMonth(month: string): Promise<{ confirmed: number }> {
+  return request<{ confirmed: number }>(`${LAB}/payroll-lines/confirm`, json('POST', { month }), '급여를 확정하지 못했습니다');
+}
+
+/** 그 달 확정(CONFIRMED) 줄을 모두 초안으로 되돌린다 */
+export function unconfirmPayrollMonth(month: string): Promise<{ unconfirmed: number }> {
+  return request<{ unconfirmed: number }>(`${LAB}/payroll-lines/unconfirm`, json('POST', { month }), '확정을 풀지 못했습니다');
+}
+
+/** 초안(DRAFT) 줄만 지운다. 확정된 줄은 서버가 409를 준다. */
+export async function deletePayrollLine(id: number): Promise<void> {
+  await request<null>(`${LAB}/payroll-lines/${q(String(id))}`, { method: 'DELETE' }, '급여 줄을 삭제하지 못했습니다');
+}
+
+// ---------- 현금출납부 ----------
+
+export function listLedgerEntries(month: string): Promise<LedgerEntry[]> {
+  return request<LedgerEntry[]>(`${LAB}/ledger?month=${q(month)}`, undefined, '현금출납부를 불러오지 못했습니다');
+}
+
+/** 그 해 장부 전체 — 연간 관·항·목 요약용 */
+export function listLedgerEntriesByYear(year: number): Promise<LedgerEntry[]> {
+  return request<LedgerEntry[]>(`${LAB}/ledger?year=${q(String(year))}`, undefined, '연간 장부를 불러오지 못했습니다');
+}
+
+export function createLedgerEntry(input: LedgerEntryInput): Promise<LedgerEntry> {
+  return request<LedgerEntry>(`${LAB}/ledger`, json('POST', input), '장부에 기록하지 못했습니다');
+}
+
+export function updateLedgerEntry(id: number, input: LedgerEntryInput): Promise<LedgerEntry> {
+  return request<LedgerEntry>(`${LAB}/ledger/${q(String(id))}`, json('PUT', input), '장부 기록을 고치지 못했습니다');
+}
+
+export async function deleteLedgerEntry(id: number): Promise<void> {
+  await request<null>(`${LAB}/ledger/${q(String(id))}`, { method: 'DELETE' }, '장부 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 후원금 ----------
+
+/** 그 해 후원금(usedAmount = 연결된 지출 합, 서버 계산) */
+export function listDonations(year: number): Promise<Donation[]> {
+  return request<Donation[]>(`${LAB}/donations?year=${q(String(year))}`, undefined, '후원금을 불러오지 못했습니다');
+}
+
+export function createDonation(input: DonationInput): Promise<Donation> {
+  return request<Donation>(`${LAB}/donations`, json('POST', input), '후원금을 기록하지 못했습니다');
+}
+
+export function updateDonation(id: number, input: DonationInput): Promise<Donation> {
+  return request<Donation>(`${LAB}/donations/${q(String(id))}`, json('PUT', input), '후원금을 고치지 못했습니다');
+}
+
+/** 연결된 지출이 있으면 서버가 409를 준다 */
+export async function deleteDonation(id: number): Promise<void> {
+  await request<null>(`${LAB}/donations/${q(String(id))}`, { method: 'DELETE' }, '후원금을 삭제하지 못했습니다');
+}
+
+// ---------- 4차 AI 작업 — 계정 제안만 돌려준다. 내역 문구에 이름이 적혀 있으면 보내기 직전에 지운다 ----------
+
+export function aiClassifyLedger(input: LedgerClassifyAiInput): Promise<LedgerClassifyResult> {
+  return request<LedgerClassifyResult>(`${LAB_AI}/ledger-classify`, json('POST', redactDeep(input)), `AI가 계정을 제안하지 못했습니다. ${AI_RETRY}`);
 }
