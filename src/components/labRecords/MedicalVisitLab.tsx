@@ -59,7 +59,7 @@ export default function MedicalVisitLab() {
       {monthData.error && <ErrorBanner message={monthData.error} onRetry={() => void monthData.reload()} />}
       <MedicalVisitList
         month={month}
-        visits={monthData.data}
+        visits={monthData.isLoading ? [] : monthData.data}
         isLoading={monthData.isLoading}
         canCreate={canCreate}
         onCreate={() => setMode({ type: 'edit', visit: null })}
