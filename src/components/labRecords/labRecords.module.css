@@ -1,0 +1,527 @@
+/* 실험실 2차 기록 화면 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.stack {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-3);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.toolbarGrow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.spacer {
+  margin-inline-start: auto;
+}
+
+/* 목록 | 편집 두 칸. 좁은 화면에서는 한 칸씩 번갈아 보여 준다. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: var(--spacing-4);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .split[data-has-selection='true'] .splitList {
+    display: none;
+  }
+  .split[data-has-selection='false'] .splitDetail {
+    display: none;
+  }
+}
+
+.onlyNarrow {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .onlyNarrow {
+    display: block;
+  }
+}
+
+.listScroll {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.elderButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.elderButton:hover:not(:disabled) {
+  background: var(--color-background-muted);
+}
+
+.elderButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.elderButton[aria-current='true'] {
+  background: var(--color-background-muted);
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+  justify-content: flex-end;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+.fieldGridWide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+/* 바이탈 칸: 입력칸 아래에 판정 칩이 붙는다. 칩이 없을 때도 높이를 비워 두어 칸이 흔들리지 않게 한다. */
+.vitalField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.vitalFlag {
+  min-height: 22px;
+}
+
+.rowBlock {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.rowBlock:last-child {
+  border-bottom: 0;
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.suggestBox {
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border: 1px dashed var(--color-border-emphasized);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.warnText {
+  color: var(--color-text-yellow);
+}
+
+.errorText {
+  color: var(--color-error);
+}
+
+.dangerText {
+  color: var(--color-text-red);
+  font-weight: var(--font-weight-medium);
+}
+
+.okText {
+  color: var(--color-text-green);
+}
+
+.mutedText {
+  color: var(--color-text-secondary);
+}
+
+.pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 표는 자기 상자 안에서만 가로로 움직인다 — 페이지 전체가 옆으로 밀리지 않게 */
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.table td.wrap {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.stickyName {
+  position: sticky;
+  inset-inline-start: 0;
+  background: var(--color-background-card);
+  z-index: 1;
+}
+
+th.stickyName {
+  background: var(--color-background-muted);
+}
+
+/* 14일 기록 띠 — 하루 한 칸 */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.stripCell {
+  height: 14px;
+  border-radius: var(--radius-none);
+  background: var(--color-border);
+}
+
+.stripOk {
+  background: var(--color-success);
+}
+
+.stripWatch {
+  background: var(--color-warning);
+}
+
+.stripDanger {
+  background: var(--color-error);
+}
+
+.meter {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+/* 사람 고르기 목록 */
+.pickerBox {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+}
+
+.pickerRow {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: var(--spacing-1) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pickerRow:last-child {
+  border-bottom: 0;
+}
+
+.pickerHead {
+  padding: var(--spacing-1) var(--spacing-3);
+  background: var(--color-background-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* 월 달력 */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.calendarHead {
+  text-align: center;
+  padding: var(--spacing-1) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.calendarCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 48px;
+  padding: var(--spacing-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.calendarCell:hover {
+  background: var(--color-background-muted);
+}
+
+.calendarCell[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+  background: var(--color-background-muted);
+}
+
+.calendarCell[data-today='true'] .dayNum {
+  color: var(--color-text-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.calendarBlank {
+  min-height: 48px;
+}
+
+.dayNum {
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.dayDots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-icon-gray);
+}
+
+.dotCognitive {
+  background: var(--color-icon-accent);
+}
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sheetTable th,
+.sheetTable td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border-emphasized);
+  vertical-align: top;
+  text-align: start;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-primary);
+}
+
+.sheetTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.sheetLabel {
+  width: 22%;
+}
+
+.sheetBox {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 서비스 줄 */
+.serviceLine {
+  display: grid;
+  grid-template-columns: minmax(0, 160px) minmax(0, 1fr) minmax(0, 150px) auto;
+  gap: var(--spacing-2);
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .serviceLine {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-bottom: var(--spacing-3);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .serviceLine > :nth-child(1),
+  .serviceLine > :nth-child(2),
+  .serviceLine > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 긴 입력 양식 아래에 붙어 따라오는 저장 줄 */
+.stickyBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: var(--spacing-3) 0 var(--spacing-1);
+  background: var(--color-background-card);
+  border-top: 1px solid var(--color-border);
+}
+
+/* 좁은 화면: 표의 한 행을 카드처럼 쌓는다 */
+@media (max-width: 640px) {
+  .stackTable,
+  .stackTable tbody,
+  .stackTable tr,
+  .stackTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .stackTable thead {
+    display: none;
+  }
+  .stackTable tr {
+    padding: var(--spacing-3) var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .stackTable td {
+    padding: var(--spacing-1) 0;
+    border-bottom: 0;
+    white-space: normal;
+  }
+  .stackTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ---------- 급여제공계획서: 화면 미리보기와 인쇄본이 같은 모양이다. 인쇄 전용 사본은 화면에서 숨긴다. ---------- */
+.printRoot {
+  display: none;
+}
+
+@media print {
+  .printRoot {
+    display: block;
+    color: var(--color-text-primary);
+    background: var(--color-background-card);
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+}
+
+.printTitle {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--font-size-xl);
+  text-align: center;
+}
+
+.printSection {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-weight: var(--font-weight-bold);
+  break-after: avoid;
+}
+
+.printMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-6);
+  margin-bottom: var(--spacing-2);
+}
+
+.printNote {
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.printSign {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-6);
+}
+
+.sheetTable tr {
+  break-inside: avoid;
+}
+
+.printPreviewBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  align-items: center;
+}
