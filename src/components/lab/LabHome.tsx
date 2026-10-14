@@ -3,7 +3,8 @@
 /**
  * 실험실 — 기관 업무를 AI와 함께 새로 만들어 보는 곳. 접근 권한이 있는 기관의 관리자에게만 탭이 보인다.
  * 도구가 늘어 묶음 일곱 개(수급자, 기록, 운영, 소통·연계, 청구, 재무, 평가 대비)로 나눠 오간다. 마지막으로 쓴 도구는 이 브라우저에 기억해 다음에 바로 연다.
- * 맨 위 "오늘 확인할 것" 카드(LabToday)는 계약 알림·오늘 투약 대기·약품 사용기한을 보여 주고, 줄을 누르면 그 도구를 연다.
+ * 맨 위 "오늘 확인할 것" 카드(LabToday)는 계약 알림·오늘 투약 대기·약품 사용기한·입소 상담 연락을 보여 주고, 줄을 누르면 그 도구를 연다.
+ * 7차 도구(입소 상담·대기, 프로그램 계획, 사업계획, 급여 만족도, 퇴직금 추계)도 각 묶음에 들어 있고, '입소 상담 연락' 줄은 '입소 상담·대기'를 연다.
  * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기다. 메뉴 항목이 둘이고, 각자 그 보기로 바로 연다.
  */
 import { useEffect, useState } from 'react';
@@ -21,13 +22,18 @@ import MedicationLab from '@/components/labRecords/MedicationLab';
 import NursingLogLab from '@/components/labRecords/NursingLogLab';
 import PayrollLab from '@/components/labRecords/PayrollLab';
 import ProgramLogLab from '@/components/labRecords/ProgramLogLab';
+import ProgramPlanLab from '@/components/labRecords/ProgramPlanLab';
 import RehabLab from '@/components/labRecords/RehabLab';
 import SafetyCheckLab from '@/components/labRecords/SafetyCheckLab';
+import SatisfactionLab from '@/components/labRecords/SatisfactionLab';
 import StaffTrainingLab from '@/components/labRecords/StaffTrainingLab';
 import BudgetLab from '@/components/labPlans/BudgetLab';
 import ClaimCheckLab from '@/components/labPlans/ClaimCheckLab';
 import CommunityLab from '@/components/labPlans/CommunityLab';
 import ContractLab from '@/components/labPlans/ContractLab';
+import BusinessPlanLab from '@/components/labPlans/BusinessPlanLab';
+import IntakeLab from '@/components/labPlans/IntakeLab';
+import SeveranceLab from '@/components/labPlans/SeveranceLab';
 import CareRecordLab from './CareRecordLab';
 import CopayLab from './CopayLab';
 import EvalReadinessLab from './EvalReadinessLab';
@@ -36,7 +42,7 @@ import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance';
 
 interface ToolGroup {
   id: string;
@@ -45,7 +51,11 @@ interface ToolGroup {
 }
 
 const GROUPS: readonly ToolGroup[] = [
-  { id: 'recipient', label: '수급자', tools: [{ id: 'contract', label: '계약·인정' }] },
+  { id: 'recipient', label: '수급자', tools: [
+      { id: 'intake', label: '입소 상담·대기' },
+      { id: 'contract', label: '계약·인정' },
+    ],
+  },
   {
     id: 'records',
     label: '기록',
@@ -65,6 +75,7 @@ const GROUPS: readonly ToolGroup[] = [
     label: '운영',
     tools: [
       { id: 'meal', label: '주간 식단표' },
+      { id: 'programPlan', label: '프로그램 계획' },
       { id: 'safety', label: '위생·안전 점검' },
     ],
   },
@@ -92,6 +103,7 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'ledger', label: '회계 장부' },
       { id: 'donation', label: '후원금' },
       { id: 'budget', label: '예산·결산' },
+      { id: 'severance', label: '퇴직금 추계' },
     ],
   },
   {
@@ -101,6 +113,8 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'risk', label: '위험도 평가' },
       { id: 'carePlan', label: '욕구사정·급여계획' },
       { id: 'training', label: '직원 교육·회의' },
+      { id: 'businessPlan', label: '사업계획' },
+      { id: 'satisfaction', label: '급여 만족도' },
       { id: 'eval', label: '평가 준비' },
     ],
   },
@@ -183,6 +197,11 @@ export default function LabHome() {
       {tool === 'guardian' && <GuardianNoticeLab />}
       {tool === 'community' && <CommunityLab />}
       {tool === 'budget' && <BudgetLab />}
+      {tool === 'intake' && <IntakeLab />}
+      {tool === 'programPlan' && <ProgramPlanLab />}
+      {tool === 'businessPlan' && <BusinessPlanLab />}
+      {tool === 'satisfaction' && <SatisfactionLab />}
+      {tool === 'severance' && <SeveranceLab />}
       {tool === 'contract' && <ContractLab />}
       {tool === 'medication' && <MedicationLab />}
       {tool === 'bath' && <BathLab />}

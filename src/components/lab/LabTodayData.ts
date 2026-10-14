@@ -1,16 +1,17 @@
 /**
- * 실험실 첫 화면 "오늘 확인할 것" 카드의 세 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한.
+ * 실험실 첫 화면 "오늘 확인할 것" 카드의 네 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락.
  * 줄마다 따로 불러온다(한 줄이 실패해도 나머지는 보인다). 규칙은 lib/lab의 contractAlerts·dosesDue·doseStatus·expiringStock을 그대로 쓴다.
  */
-import { listElderContracts, listMedicationDoses, listMedicationRequests, listMedicineStock } from '@/lib/lab/labApi';
+import { listElderContracts, listIntake, listMedicationDoses, listMedicationRequests, listMedicineStock } from '@/lib/lab/labApi';
 import { contractAlerts } from '@/lib/lab/contractRules';
+import { inquiryAlerts } from '@/lib/lab/intakeRules';
 import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medicationRules';
 import { dotDate } from './labFormat';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication';
+export type TodayTarget = 'contract' | 'medication' | 'intake';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */
@@ -68,5 +69,21 @@ export async function loadStockLine(today: string): Promise<TodayLine> {
     text: [expired.length > 0 ? `사용기한 지남 ${expired.length}건` : '', soon.length > 0 ? `30일 안 임박 ${soon.length}건` : ''].filter(Boolean).join(' · '),
     preview: `${first.name} — ${dotDate(first.expiresOn)}${expired.length > 0 ? ' 지남' : '까지'}`,
     danger: expired.length > 0,
+  };
+}
+
+export async function loadIntakeLine(today: string): Promise<TodayLine> {
+  const inquiries = await listIntake();
+  const due = inquiryAlerts(inquiries, today).filter((a) => a.code === 'FOLLOW_UP_DUE');
+  if (due.length === 0) return none();
+  // 연락 예정일이 가장 오래 지난 문의를 미리 보여 준다
+  const dueOf = (id: number) => inquiries.find((q) => q.id === id)?.nextContactOn?.slice(0, 10) ?? '';
+  const oldest = [...due].sort((a, b) => dueOf(a.inquiryId).localeCompare(dueOf(b.inquiryId)) || a.inquiryId - b.inquiryId)[0];
+  const name = inquiries.find((q) => q.id === oldest.inquiryId)?.applicantName ?? '';
+  return {
+    count: due.length,
+    text: `연락 예정 ${due.length}건`,
+    preview: name ? `${name} — ${oldest.message}` : oldest.message,
+    danger: false,
   };
 }
