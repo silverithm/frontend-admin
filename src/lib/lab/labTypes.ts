@@ -1801,3 +1801,97 @@ export interface MeetingMinutesAiResult {
   /** 10개 이내 */
   decisions: string[];
 }
+
+// =====================================================================
+// 9차 — 직원 인사(경력직·보수교육·건강검진) · 통장 대사
+// 금액은 정수 원, 날짜는 'YYYY-MM-DD', 월은 'YYYY-MM'. 통장 거래 글은 AI로 보내지 않는다.
+// =====================================================================
+
+// ---------- 직원 인사 ----------
+
+/** 급여 기준(PayrollJobType)과 같은 값 */
+export type StaffProfileJobType = PayrollJobType;
+
+/** 직원 인사 기준. 같은 기관 직원(memberId)마다 하나(upsert). */
+export interface StaffProfile {
+  id: number;
+  memberId: number;
+  /** 서버가 채운다(읽기 전용) */
+  memberName: string | null;
+  /** 기관 입사일 */
+  hireDate: string;
+  jobType: StaffProfileJobType;
+  /** 1930~2010 — 보수교육 홀수·짝수년생 대상 판단 */
+  birthYear: number | null;
+  /** 요양보호사 자격시험 합격일 — 2년 미만 보수교육 면제 */
+  licensePassedOn: string | null;
+  /** 산업안전보건법상 사무직 — 건강검진 2년 */
+  officeWorker: boolean;
+  /** 200자 이내 */
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type StaffProfileInput = Omit<StaffProfile, 'id' | 'memberName' | 'updatedAt'>;
+
+export type StaffCertKind = 'CONTINUING_EDU' | 'HEALTH_CHECK' | 'OTHER';
+
+/** 이수·검진 기록 */
+export interface StaffCert {
+  id: number;
+  memberId: number;
+  /** 서버가 채운다(읽기 전용) */
+  memberName: string | null;
+  kind: StaffCertKind;
+  /** 미래 400일 넘으면 400 */
+  doneOn: string;
+  /** CONTINUING_EDU면 필수 0.5~40(소수 첫째 자리) */
+  hours: number | null;
+  /** 100자 이내 */
+  institution: string | null;
+  /** 40자 이내 */
+  certNo: string | null;
+  /** 200자 이내 */
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type StaffCertInput = Omit<StaffCert, 'id' | 'memberName' | 'updatedAt'>;
+
+// ---------- 통장 ----------
+
+export type BankAccountPurpose = 'OPERATING' | 'DONATION' | 'DEPOSIT' | 'OTHER';
+
+/** 통장. 계좌번호는 끝 4자리만 저장한다. */
+export interface BankAccount {
+  id: number;
+  /** 필수 50자 이내 */
+  name: string;
+  purpose: BankAccountPurpose;
+  /** 30자 이내 */
+  bankName: string;
+  /** 숫자 4자리가 아니면 400 */
+  accountTail: string | null;
+  /** −10,000,000,000 ~ 10,000,000,000 */
+  openingBalance: number;
+  openingDate: string;
+  active: boolean;
+  updatedAt: string | null;
+}
+
+export type BankAccountInput = Omit<BankAccount, 'id' | 'updatedAt'>;
+
+/** 통장 월말 잔액 (통장 + 달마다 하나, upsert) */
+export interface BankStatement {
+  id: number;
+  accountId: number;
+  /** 서버가 채운다(읽기 전용) */
+  accountName: string | null;
+  statementMonth: string;
+  closingBalance: number;
+  /** 200자 이내 */
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type BankStatementInput = Omit<BankStatement, 'id' | 'accountName' | 'updatedAt'>;

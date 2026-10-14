@@ -7,6 +7,14 @@
 import { authorizedFetch } from '../apiService';
 import { redactDeep, rememberElderNames, rememberStaffNames, replaceNames } from './nameRedaction.ts';
 import type {
+  BankAccount,
+  BankAccountInput,
+  BankStatement,
+  BankStatementInput,
+  StaffCert,
+  StaffCertInput,
+  StaffProfile,
+  StaffProfileInput,
   CommitteeMeeting,
   CommitteeMeetingInput,
   CommitteeMember,
@@ -1149,6 +1157,83 @@ export function updateCommitteeMeeting(id: number, input: CommitteeMeetingInput)
 
 export async function deleteCommitteeMeeting(id: number): Promise<void> {
   await request<null>(`${LAB}/committee-meetings/${q(String(id))}`, { method: 'DELETE' }, '회의 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 직원 인사 기준 ----------
+
+export function listStaffProfiles(): Promise<StaffProfile[]> {
+  return request<StaffProfile[]>(`${LAB}/staff-profiles`, undefined, '직원 인사 기준을 불러오지 못했습니다');
+}
+
+/** memberId마다 하나(upsert). 입사일이 400일 넘게 미래이거나 출생연도가 1930~2010 밖이면 서버가 400을 준다 */
+export function saveStaffProfile(input: StaffProfileInput): Promise<StaffProfile> {
+  return request<StaffProfile>(`${LAB}/staff-profiles`, json('PUT', input), '직원 인사 기준을 저장하지 못했습니다');
+}
+
+export async function deleteStaffProfile(id: number): Promise<void> {
+  await request<null>(`${LAB}/staff-profiles/${q(String(id))}`, { method: 'DELETE' }, '직원 인사 기준을 삭제하지 못했습니다');
+}
+
+// ---------- 이수·검진 기록 ----------
+
+/** 조건은 하나만 쓴다 — memberId · year(그 해 기록). 모두 빼면 전부. 이수·검진일 최신순 */
+export function listStaffCerts(params: { memberId?: number; year?: number } = {}): Promise<StaffCert[]> {
+  const parts: string[] = [];
+  if (params.memberId !== undefined) parts.push(`memberId=${q(String(params.memberId))}`);
+  if (params.year !== undefined) parts.push(`year=${q(String(params.year))}`);
+  return request<StaffCert[]>(`${LAB}/staff-certs${parts.length > 0 ? `?${parts.join('&')}` : ''}`, undefined, '이수·검진 기록을 불러오지 못했습니다');
+}
+
+/** 보수교육인데 시간이 없거나 0.5~40시간 밖이면, 날짜가 400일 넘게 미래이면 서버가 400을 준다 */
+export function createStaffCert(input: StaffCertInput): Promise<StaffCert> {
+  return request<StaffCert>(`${LAB}/staff-certs`, json('POST', input), '이수·검진 기록을 저장하지 못했습니다');
+}
+
+export function updateStaffCert(id: number, input: StaffCertInput): Promise<StaffCert> {
+  return request<StaffCert>(`${LAB}/staff-certs/${q(String(id))}`, json('PUT', input), '이수·검진 기록을 고치지 못했습니다');
+}
+
+export async function deleteStaffCert(id: number): Promise<void> {
+  await request<null>(`${LAB}/staff-certs/${q(String(id))}`, { method: 'DELETE' }, '이수·검진 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 통장 ----------
+
+export function listBankAccounts(): Promise<BankAccount[]> {
+  return request<BankAccount[]>(`${LAB}/bank-accounts`, undefined, '통장 목록을 불러오지 못했습니다');
+}
+
+/** 계좌번호는 끝 4자리(숫자)만 보낸다 — 4자리 숫자가 아니면 서버가 400을 준다 */
+export function createBankAccount(input: BankAccountInput): Promise<BankAccount> {
+  return request<BankAccount>(`${LAB}/bank-accounts`, json('POST', input), '통장을 저장하지 못했습니다');
+}
+
+export function updateBankAccount(id: number, input: BankAccountInput): Promise<BankAccount> {
+  return request<BankAccount>(`${LAB}/bank-accounts/${q(String(id))}`, json('PUT', input), '통장을 고치지 못했습니다');
+}
+
+/** 월말 잔액 기록이 있으면 서버가 409를 준다 */
+export async function deleteBankAccount(id: number): Promise<void> {
+  await request<null>(`${LAB}/bank-accounts/${q(String(id))}`, { method: 'DELETE' }, '통장을 삭제하지 못했습니다. 월말 잔액 기록이 있으면 먼저 지워야 합니다');
+}
+
+// ---------- 통장 월말 잔액 ----------
+
+/** 조건은 하나만 쓴다 — month('YYYY-MM') · accountId. 모두 빼면 전부 */
+export function listBankStatements(params: { month?: string; accountId?: number } = {}): Promise<BankStatement[]> {
+  const parts: string[] = [];
+  if (params.month) parts.push(`month=${q(params.month)}`);
+  if (params.accountId !== undefined) parts.push(`accountId=${q(String(params.accountId))}`);
+  return request<BankStatement[]>(`${LAB}/bank-statements${parts.length > 0 ? `?${parts.join('&')}` : ''}`, undefined, '통장 월말 잔액을 불러오지 못했습니다');
+}
+
+/** accountId + statementMonth마다 하나(upsert) */
+export function saveBankStatement(input: BankStatementInput): Promise<BankStatement> {
+  return request<BankStatement>(`${LAB}/bank-statements`, json('PUT', input), '통장 월말 잔액을 저장하지 못했습니다');
+}
+
+export async function deleteBankStatement(id: number): Promise<void> {
+  await request<null>(`${LAB}/bank-statements/${q(String(id))}`, { method: 'DELETE' }, '통장 월말 잔액을 삭제하지 못했습니다');
 }
 
 // ---------- 8차 AI 작업 — 제안만 돌려준다. 보내기 직전에 이름을 지운다 ----------

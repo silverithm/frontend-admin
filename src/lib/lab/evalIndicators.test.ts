@@ -95,7 +95,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 25);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 28);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
