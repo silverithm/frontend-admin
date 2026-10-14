@@ -12,9 +12,9 @@ import {
 } from '@/lib/lab/medicalVisitRules';
 import { orNull } from './recordsFormat';
 
-export const AI_FIELD_LIMITS = { department: MAX_VISIT_DEPARTMENT, reason: 500, result: 1000, prescription: 500 } as const;
+export const AI_FIELD_LIMITS = { hospital: MAX_VISIT_HOSPITAL, department: MAX_VISIT_DEPARTMENT, reason: 500, result: 1000, prescription: 500 } as const;
 export type AiField = keyof typeof AI_FIELD_LIMITS;
-export const AI_FIELD_LABEL: Record<AiField, string> = { department: '진료과', reason: '진료 사유', result: '진료 내용', prescription: '처방' };
+export const AI_FIELD_LABEL: Record<AiField, string> = { hospital: '병원', department: '진료과', reason: '진료 사유', result: '진료 내용', prescription: '처방' };
 
 export const VISIT_LIMITS = {
   hospital: MAX_VISIT_HOSPITAL,

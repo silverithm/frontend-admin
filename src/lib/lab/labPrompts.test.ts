@@ -1805,7 +1805,7 @@ test('medical-visit 프롬프트 — 메모 밖 진단·약·날짜 금지, 상�
   assert.match(prompt, /사람 이름/);
   assert.match(prompt, /절대 만들지 않습니다/);
   assert.ok(!/<\/note> 위/.test(prompt));
-  assert.deepEqual([...MEDICAL_VISIT_SCHEMA.required], ['department', 'reason', 'result', 'prescription', 'followUp']);
+  assert.deepEqual([...MEDICAL_VISIT_SCHEMA.required], ['hospital', 'department', 'reason', 'result', 'prescription', 'followUp']);
   assert.deepEqual([...MEDICAL_VISIT_SCHEMA.properties.followUp.required], ['date', 'note']);
 });
 
@@ -1909,4 +1909,10 @@ test('8차 prepareLabAiTask — 두 작업이 검증·프롬프트·스키마·�
     assert.deepEqual(mm.normalize({ agenda: ['차량 교체'], minutes: '논의함', decisions: ['내년 1월 교체'] }), { agenda: ['차량 교체'], minutes: '논의함', decisions: ['내년 1월 교체'] });
   }
   for (const task of ['medical-visit', 'meeting-minutes']) assert.equal(prepareLabAiTask(task, {}).ok, false, task);
+});
+
+test('진료 동행 정리: 메모에 적힌 병원 이름을 hospital 칸으로 옮기고, 병원만 있어도 오류가 아니다', () => {
+  const r = normalizeMedicalVisit({ hospital: ' 서울정형외과\n', department: '', reason: '', result: '', prescription: '', followUp: { date: null, note: '' } });
+  assert.equal(r.hospital, '서울정형외과');
+  assert.equal(normalizeMedicalVisit({ hospital: '가'.repeat(150), department: '정형외과', reason: '', result: '', prescription: '', followUp: { date: null, note: '' } }).hospital.length, 100);
 });

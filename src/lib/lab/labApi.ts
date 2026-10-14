@@ -921,14 +921,12 @@ export async function deleteProgramPlan(id: number): Promise<void> {
 
 // ---------- 월간 프로그램 계획표 ----------
 
-/** 그 달의 계획표. 아직 만들지 않았으면 서버가 404를 주므로 null로 돌려준다. */
+/** 그 달의 계획표. 아직 만들지 않았으면 null. */
 export async function getProgramSchedule(month: string): Promise<ProgramSchedule | null> {
-  try {
-    return await request<ProgramSchedule>(`${LAB}/program-schedules?month=${q(month)}`, undefined, '월간 프로그램 계획표를 불러오지 못했습니다');
-  } catch (error) {
-    if (error instanceof LabApiError && error.status === 404) return null;
-    throw error;
-  }
+  // ?month=로 물으면 아직 계획표가 없는 달마다 404가 나고, 공용 요청 도우미가 그것을 오류로 기록한다(식단표와 같은 이유).
+  // 그 해 목록을 받아 그 달을 찾는다.
+  const list = await listProgramSchedules(Number(month.slice(0, 4)));
+  return list.find((x) => x.scheduleMonth === month) ?? null;
 }
 
 /** 그 해 열두 달의 계획표(만든 달만) */
@@ -1049,14 +1047,11 @@ export function aiStructureIntakeNote(note: string, names: ReadonlyArray<string 
 
 // ---------- 8차: 월 인력배치 점검 ----------
 
-/** 그 달 인력배치 점검. 아직 저장하지 않았으면 서버가 404를 주므로 null로 돌려준다. */
+/** 그 달 인력배치 점검. 아직 저장하지 않았으면 null. */
 export async function getStaffingMonth(month: string): Promise<StaffingMonth | null> {
-  try {
-    return await request<StaffingMonth>(`${LAB}/staffing?month=${q(month)}`, undefined, '인력배치 점검을 불러오지 못했습니다');
-  } catch (error) {
-    if (error instanceof LabApiError && error.status === 404) return null;
-    throw error;
-  }
+  // 지난달·새 달처럼 기록이 없는 달을 여는 것은 정상 흐름이다 — ?month=의 404가 오류로 기록되지 않게 그 해 목록에서 찾는다.
+  const list = await listStaffingMonths(Number(month.slice(0, 4)));
+  return list.find((x) => x.staffingMonth === month) ?? null;
 }
 
 /** 그 해 저장한 달들의 인력배치 점검 */

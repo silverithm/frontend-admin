@@ -1774,6 +1774,8 @@ export interface MedicalVisitAiInput {
 }
 
 export interface MedicalVisitAiResult {
+  /** 병원 이름 100자 이내 — 메모에 적힌 것만 */
+  hospital: string;
   /** 40자 이내 */
   department: string;
   /** 500자 이내 */

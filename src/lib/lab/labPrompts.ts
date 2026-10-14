@@ -2431,7 +2431,7 @@ export function buildMedicalVisitPrompt(input: MedicalVisitAiInput): string {
 [규칙]
 1. ${INJECTION_RULE}
 2. ${NO_INVENT_RULE} 특히 진단명·약 이름·용량·검사 결과·날짜는 메모에 적힌 것만 씁니다. 메모에 없으면 지어내지 말고 빈 칸으로 둡니다.
-3. department(진료과, ${MAX_VISIT_DEPARTMENT}자 이내): 메모에 진료과 또는 병원 종류가 적혀 있을 때만 "정형외과"처럼 씁니다. 없으면 빈 문자열.
+3. hospital(병원 이름, 100자 이내): 메모에 적힌 병원·의원 이름을 그대로 씁니다(예: "서울정형외과"). 없으면 빈 문자열. department(진료과, ${MAX_VISIT_DEPARTMENT}자 이내): 메모에 진료과 또는 병원 종류가 적혀 있을 때만 "정형외과"처럼 씁니다. 없으면 빈 문자열.
 4. reason(진료 사유, ${MAX_VISIT_AI_REASON}자 이내): 어르신이 병원에 간 이유(증상·정기 진료 등)를 메모에 적힌 대로만 기록체로 씁니다.
 5. result(진료 내용, ${MAX_VISIT_AI_RESULT}자 이내): 의사 설명·검사·진단·치료·주의사항을 메모에 적힌 대로만 기록체로 씁니다. 메모에 적힌 진단 외에 새 진단·원인·예후를 쓰지 않습니다.
 6. prescription(처방, ${MAX_VISIT_AI_PRESCRIPTION}자 이내): 메모에 적힌 약·주사·처치와 복용 방법만 씁니다. 없으면 빈 문자열. 약을 바꾸거나 추가하라는 권고는 쓰지 않습니다.
@@ -2439,7 +2439,7 @@ export function buildMedicalVisitPrompt(input: MedicalVisitAiInput): string {
 8. followUp.note(후속 안내, ${MAX_VISIT_FOLLOWUP_NOTE}자 이내): 재방문·추가 검사·경과 관찰 등 후속 일정이 메모에 있으면 메모 표현 그대로 짧게 씁니다(예: "2주 뒤 재방문"). 없으면 빈 문자열.
 9. 건강 상태에 대한 판단·평가·조언(좋아졌다, 위험하다, 걱정된다 등)과 의료 행위 권고는 쓰지 않습니다. 메모에 적힌 사실만 옮깁니다.
 10. 아무 사실도 없는 형식적 문구("특이사항 없음", "잘 다녀오심")는 쓰지 않고 쓸 사실이 없으면 그 칸은 빈 문자열("")로 둡니다. 다만 메모에 적힌 검사·진료 결과는 "이상 없음", "정상"도 그대로 옮깁니다(예: "X-ray 이상 없음").
-11. ${PRIVACY_RULE} 의사·간호사·동행 직원 이름도 쓰지 않습니다. 병원 이름은 쓰지 않아도 됩니다.
+11. ${PRIVACY_RULE} 의사·간호사·동행 직원 이름도 쓰지 않습니다. 병원 이름은 사람 이름이 아니므로 hospital 칸에 씁니다.
 12. ${RECORD_STYLE_RULE}
 
 ${fence('note', input.note)}`;
@@ -2448,6 +2448,7 @@ ${fence('note', input.note)}`;
 export const MEDICAL_VISIT_SCHEMA = {
   type: 'OBJECT',
   properties: {
+    hospital: STR('병원·의원 이름 (100자 이내, 메모에 없으면 빈 문자열)'),
     department: STR(`진료과 (${MAX_VISIT_DEPARTMENT}자 이내, 없으면 빈 문자열)`),
     reason: STR(`진료 사유 (${MAX_VISIT_AI_REASON}자 이내, 없으면 빈 문자열)`),
     result: STR(`진료 내용 (${MAX_VISIT_AI_RESULT}자 이내, 없으면 빈 문자열)`),
@@ -2461,7 +2462,7 @@ export const MEDICAL_VISIT_SCHEMA = {
       required: ['date', 'note'],
     },
   },
-  required: ['department', 'reason', 'result', 'prescription', 'followUp'],
+  required: ['hospital', 'department', 'reason', 'result', 'prescription', 'followUp'],
 } as const;
 
 /** 메모에 'YYYY-MM-DD'·'YYYY. M. D'·'YYYY년 M월 D일'처럼 연·월·일이 모두 적혀 있고 그 날짜가 date와 같은가 */
@@ -2482,13 +2483,14 @@ export function normalizeMedicalVisit(raw: unknown, note?: string): MedicalVisit
   const dateText = typeof follow.date === 'string' ? follow.date.trim() : '';
   const date = isValidYmd(dateText) && dateText.length === 10 && (note === undefined || fullDateMentioned(note, dateText)) ? dateText : null;
   const result: MedicalVisitAiResult = {
+    hospital: substantive(cleanOutput(raw.hospital, 100)).replace(/\n+/g, ' '),
     department: substantive(cleanOutput(raw.department, MAX_VISIT_DEPARTMENT)).replace(/\n+/g, ' '),
     reason: substantive(cleanOutput(raw.reason, MAX_VISIT_AI_REASON)),
     result: substantive(cleanOutput(raw.result, MAX_VISIT_AI_RESULT)),
     prescription: substantive(cleanOutput(raw.prescription, MAX_VISIT_AI_PRESCRIPTION)),
     followUp: { date, note: substantive(cleanOutput(follow.note, MAX_VISIT_FOLLOWUP_NOTE)).replace(/\n+/g, ' ') },
   };
-  if (result.department === '' && result.reason === '' && result.result === '' && result.prescription === '' && result.followUp.note === '' && date === null) {
+  if (result.hospital === '' && result.department === '' && result.reason === '' && result.result === '' && result.prescription === '' && result.followUp.note === '' && date === null) {
     throw new Error('AI 응답에 정리할 내용이 없습니다');
   }
   return result;

@@ -61,7 +61,7 @@ export default function MedicalVisitEditor({ elders, visit, onSaved, onClose }: 
 
   const set = <K extends keyof VisitDraft>(key: K, value: VisitDraft[K]) => setDraft((d) => ({ ...d, [key]: value }));
   /** AI가 채운 칸을 직원이 고치면 그 칸은 직접 쓴 칸이 되어, 다시 정리해도 덮어쓰지 않는다 */
-  const setText = (key: AiField | 'hospital' | 'escort' | 'guardianNote', value: string) =>
+  const setText = (key: AiField | 'escort' | 'guardianNote', value: string) =>
     setDraft((d) => {
       const marks = { ...d.aiMarks };
       if (key in AI_FIELD_LIMITS) delete marks[key as AiField];
@@ -79,9 +79,9 @@ export default function MedicalVisitEditor({ elders, visit, onSaved, onClose }: 
       const followDate = isValidYmd(r.followUp?.date) ? r.followUp.date : null;
       setDraft((d) => {
         const m = mergeAiSuggestions(
-          { department: d.department, reason: d.reason, result: d.result, prescription: d.prescription },
+          { hospital: d.hospital, department: d.department, reason: d.reason, result: d.result, prescription: d.prescription },
           d.aiMarks,
-          { department: r.department, reason: r.reason, result: r.result, prescription: r.prescription },
+          { hospital: r.hospital, department: r.department, reason: r.reason, result: r.result, prescription: r.prescription },
           AI_FIELD_LIMITS,
         );
         const followUpOn = followDate && d.followUpOn === '' ? followDate : d.followUpOn;
