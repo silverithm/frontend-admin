@@ -525,3 +525,238 @@ th.stickyName {
   gap: var(--spacing-2);
   align-items: center;
 }
+
+/* ---------- 3차: 주간 식단표 ---------- */
+.statBox {
+  display: flex;
+  flex-direction: column;
+  min-width: 84px;
+}
+
+.mealScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 데스크톱: 왼쪽에 행 이름, 요일 6열. 요일 한 칸이 세로로 이어져(subgrid) 행 높이가 모든 요일에서 같다. */
+.mealGrid {
+  display: grid;
+  grid-template-columns: 92px repeat(6, minmax(136px, 1fr));
+  grid-template-rows: auto repeat(9, auto);
+  column-gap: var(--spacing-2);
+  row-gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.mealCorner {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.mealRowLabel {
+  grid-column: 1;
+  align-self: center;
+  padding-inline-end: var(--spacing-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  word-break: keep-all;
+}
+
+.mealDay {
+  grid-row: 1 / span 10;
+  display: grid;
+  grid-template-rows: subgrid;
+  min-width: 0;
+  padding: var(--spacing-1);
+  border-radius: var(--radius-inner);
+}
+
+.mealDay[data-today='true'] {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.mealDayHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding-block: var(--spacing-1);
+  background: var(--color-background-muted);
+  border-radius: var(--radius-inner);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.mealCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px;
+  border-radius: var(--radius-inner);
+}
+
+.mealCellLabel {
+  display: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.cellNote {
+  color: var(--color-text-yellow);
+  font-size: var(--font-size-xs);
+}
+
+.aiCell {
+  background: var(--color-background-blue);
+}
+
+.repeatCell {
+  background: var(--color-background-yellow);
+}
+
+.sameCell {
+  background: var(--color-background-gray);
+}
+
+/* 휴대폰: 요일마다 카드 한 장, 칸 이름이 입력칸 위에 보인다 */
+@media (max-width: 760px) {
+  .mealGrid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+  .mealCorner,
+  .mealRowLabel {
+    display: none;
+  }
+  .mealDay {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+    padding: var(--spacing-2);
+    border: 1px solid var(--color-border);
+  }
+  .mealCellLabel {
+    display: block;
+  }
+}
+
+.mealPrintTable {
+  table-layout: fixed;
+  font-size: 9pt;
+}
+
+.mealPrintTable td {
+  height: 11mm;
+}
+
+.mealPrintLabel {
+  width: 12%;
+}
+
+/* ---------- 3차: 위생·안전 점검 ---------- */
+.safetyItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  border-inline-start: 3px solid transparent;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.safetyItem[data-answer='ok'] {
+  border-inline-start-color: var(--color-success);
+}
+
+.safetyItem[data-answer='fail'] {
+  border-inline-start-color: var(--color-error);
+  background: var(--color-background-red);
+}
+
+.safetyItem[data-answer='na'] {
+  border-inline-start-color: var(--color-border-emphasized);
+}
+
+.safetyControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.safetyControls > :last-child {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.missingWrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-sm);
+}
+
+.missingChip {
+  min-height: 32px;
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-border-yellow);
+  border-radius: var(--radius-full);
+  background: var(--color-background-yellow);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.missingChip:hover {
+  background: var(--color-background-muted);
+}
+
+.calendarCell[data-state='full'] {
+  background: var(--color-background-green);
+}
+
+.calendarCell[data-state='part'] {
+  background: var(--color-background-yellow);
+}
+
+.calendarCell[data-state='none'] {
+  background: var(--color-background-red);
+}
+
+.calendarCell[data-state='off'] {
+  color: var(--color-text-secondary);
+}
+
+.calendarCell:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.calendarMark {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.calendarCell[data-state='off'] .calendarMark {
+  color: var(--color-text-secondary);
+}
+
+.calendarOther {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-accent);
+}
+
+@media (max-width: 480px) {
+  .calendarCell {
+    min-height: 44px;
+    padding: 2px;
+  }
+}
