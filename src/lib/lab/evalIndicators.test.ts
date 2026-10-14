@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { EVAL_GROUPS, EVAL_INDICATORS, groupLabel, indicatorByCode, indicatorsByGroup, readinessSummary } from './evalIndicators.ts';
+import { EVAL_AUTO_SOURCE_LABEL, EVAL_GROUPS, EVAL_INDICATORS, groupLabel, indicatorByCode, indicatorsByGroup, readinessSummary } from './evalIndicators.ts';
 
 test('지표 24개 이상, 코드는 서버 규칙(^[A-Z0-9_-]{2,40}$)에 맞고 중복이 없다', () => {
   assert.ok(EVAL_INDICATORS.length >= 24);
@@ -78,4 +78,28 @@ test('readinessSummary — 전부 준비 완료면 100%', () => {
   assert.deepEqual(readinessSummary(all), { ready: EVAL_INDICATORS.length, partial: 0, missing: 0, total: EVAL_INDICATORS.length, percent: 100 });
   const none = EVAL_INDICATORS.map((i) => ({ indicatorCode: i.code, status: 'NOT_APPLICABLE' as const }));
   assert.deepEqual(readinessSummary(none), { ready: 0, partial: 0, missing: 0, total: 0, percent: 0 });
+});
+
+test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수·급여계획 동의가 각각 한 지표에 붙어 있다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src);
+  assert.deepEqual(by('PROGRAM_COGNITIVE_WEEKLY').map((i) => i.code), ['PRG-01']);
+  assert.deepEqual(by('TRAINING_COVERAGE').map((i) => i.code), ['OPS-04']);
+  assert.deepEqual(by('CARE_PLAN_AGREEMENT').map((i) => i.code), ['SVC-04']);
+  assert.match(by('PROGRAM_COGNITIVE_WEEKLY')[0].requirements.join(' '), /주 3회/);
+  assert.match(by('TRAINING_COVERAGE')[0].requirements.join(' '), /법정 교육/);
+  assert.match(by('CARE_PLAN_AGREEMENT')[0].requirements.join(' '), /동의/);
+});
+
+test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
+  for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 6);
+});
+
+test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
+  const text = indicatorByCode('SAFE-09')!.requirements.join(' ');
+  assert.match(text, /인지기능/);
+  assert.match(text, /K-MMSE/);
+  assert.match(text, /Braden/);
+  assert.match(text, /Morse/);
+  assert.match(indicatorByCode('SAFE-09')!.title, /인지기능/);
 });

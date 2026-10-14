@@ -1,5 +1,6 @@
 /**
- * 실험실 AI 작업 3종(급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토)의 입력 검증·프롬프트·응답 스키마·정규화.
+ * 실험실 AI 작업 8종(1차: 급여제공기록 정리 · 위험도 점수 제안 · 평가 증빙 검토 / 2차: 간호일지 바이탈 요약 · 프로그램 일지 ·
+ * 교육·회의 기록 · 상담일지 · 급여제공계획 초안)의 입력 검증·프롬프트·응답 스키마·정규화.
  * 모델 호출 자체는 라우트(lab-ai/[task])가 하고, 여기는 전부 순수 함수라 오프라인으로 테스트한다.
  *
  * 설계 원칙 세 가지
@@ -7,12 +8,50 @@
  * 2) 모델 답은 믿지 않는다. 점수는 허용값으로 맞추고, 모르는 항목은 버리고, 글자 수를 자르고, 형식적 문구는 비운다.
  * 3) 어르신 이름은 입력에 들어가지 않는다 — 메모에 이름이 적혀 있어도 출력에 쓰지 말라고 지시한다.
  */
-import type { CareNoteStructured, CareRecordTextField, CareRecordWarning, CareRecordWarningField, EvalReviewInput, EvalReviewResult, RiskKind, RiskSuggestion } from './labTypes.ts';
+import type {
+  CareNoteStructured,
+  CarePlanNeeds,
+  CarePlanResult,
+  CarePlanService,
+  CareRecordTextField,
+  CareRecordWarning,
+  CareRecordWarningField,
+  ConsultationAiInput,
+  ConsultationResult,
+  EvalReviewInput,
+  EvalReviewResult,
+  NursingFlagMetric,
+  NursingSummaryFlag,
+  NursingSummaryInput,
+  NursingSummaryResult,
+  ProgramCategory,
+  ProgramLogAiInput,
+  ProgramLogResult,
+  RiskSuggestion,
+  ScaleKind,
+  StaffTrainingCategory,
+  TrainingLogAiInput,
+  TrainingLogResult,
+  VitalSeriesEntry,
+} from './labTypes.ts';
 import { findVaguePhrases, isVagueOnly } from './careRecordQuality.ts';
-import { RISK_ITEMS, allowedValues, isRiskKind, riskItemKeys, riskKindLabel } from './riskScales.ts';
+import { RISK_ITEMS, allowedValues, isScaleKind, riskItemKeys, riskKindLabel } from './riskScales.ts';
+import { VITAL_THRESHOLDS, evaluateVitalSeries, type VitalFlag } from './vitalFlags.ts';
+import { PROGRAM_CATEGORY_LABEL } from './programRules.ts';
+import { TRAINING_CATEGORY_LABEL, TRAINING_KIND_LABEL, isCategoryForKind } from './trainingRules.ts';
+import { CARE_PLAN_NEEDS_LABEL } from './carePlanRules.ts';
+import { parseYmd } from './labDate.ts';
 
-export type LabAiTask = 'care-record' | 'risk' | 'eval-review';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review'];
+export type LabAiTask =
+  | 'care-record'
+  | 'risk'
+  | 'eval-review'
+  | 'nursing-summary'
+  | 'program-log'
+  | 'training-log'
+  | 'consultation'
+  | 'care-plan';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan'];
 
 export function isLabAiTask(value: unknown): value is LabAiTask {
   return typeof value === 'string' && (LAB_AI_TASKS as readonly string[]).includes(value);
@@ -24,6 +63,11 @@ export const MAX_EVIDENCE_LENGTH = 3000;
 export const MAX_REQUIREMENTS = 12;
 export const MAX_REQUIREMENT_LENGTH = 300;
 export const MAX_TITLE_LENGTH = 100;
+/** 2차 작업의 글 입력 한도(글자) — 필드마다 적용한다 */
+export const MAX_LOG_INPUT_LENGTH = 3000;
+/** 간호 요약에 보낼 수 있는 측정일 수(계약은 최근 14일, 여유를 두고 한 달) */
+export const MAX_READINGS = 31;
+export const MAX_CARE_PLAN_SERVICES = 30;
 
 // ---------- 공통 ----------
 
@@ -192,18 +236,18 @@ export function normalizeCareRecordResult(raw: unknown, note?: string): CareNote
 // ---------- 2) 위험도 점수 제안 ----------
 
 export interface RiskAiInput {
-  kind: RiskKind;
+  kind: ScaleKind;
   observations: string;
 }
 
 export function validateRiskInput(body: unknown): Validation<RiskAiInput> {
   if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
-  if (!isRiskKind(body.kind)) return { ok: false, message: '평가 도구는 BRADEN 또는 MORSE여야 합니다' };
+  if (!isScaleKind(body.kind)) return { ok: false, message: '평가 도구는 BRADEN 또는 MORSE여야 합니다' };
   const observations = readText(body, 'observations', '관찰 내용', MAX_OBSERVATIONS_LENGTH);
   return observations.ok ? { ok: true, value: { kind: body.kind, observations: observations.value } } : observations;
 }
 
-function itemGuide(kind: RiskKind): string {
+function itemGuide(kind: ScaleKind): string {
   return RISK_ITEMS[kind]
     .map((item) => {
       const options = item.options.map((o) => `${o.value}점=${o.label}(${o.hint})`).join(' / ');
@@ -229,14 +273,14 @@ ${itemGuide(input.kind)}
 ${fence('observations', input.observations)}`;
 }
 
-const RISK_SCHEMA_CACHE: Partial<Record<RiskKind, object>> = {};
+const RISK_SCHEMA_CACHE: Partial<Record<ScaleKind, object>> = {};
 
 /**
  * 항목마다 {value, reason}. 모든 항목을 필수로 둔다 — 선택으로 두었더니 모델이 근거가 분명한 항목도
  * 실행마다 들쭉날쭉 빼먹었다(2026-10-14 실측: 지팡이 보행인데 ambulatoryAid 누락, 다음 번엔 gait 누락).
  * 대신 근거가 없으면 value를 null로 두게 해 추측 점수를 막고, 정규화에서 null은 버린다.
  */
-export function riskSchema(kind: RiskKind): object {
+export function riskSchema(kind: ScaleKind): object {
   const cached = RISK_SCHEMA_CACHE[kind];
   if (cached) return cached;
   const properties: Record<string, object> = {};
@@ -282,8 +326,8 @@ function toNumber(value: unknown): number | null {
  * 모델이 준 점수를 도구의 허용값으로 맞춘다. 모르는 항목 이름은 버리고, 숫자가 아니면 그 항목을 버린다.
  * 허용값에서 벗어난 값은 가장 가까운 허용값으로 맞추되, UI가 "AI가 조정함"을 알 수 있게 reason 끝에 표시한다.
  */
-export function normalizeRiskSuggestion(kind: RiskKind, raw: unknown): RiskSuggestion {
-  if (!isRiskKind(kind)) throw new Error('평가 도구를 알 수 없습니다');
+export function normalizeRiskSuggestion(kind: ScaleKind, raw: unknown): RiskSuggestion {
+  if (!isScaleKind(kind)) throw new Error('평가 도구를 알 수 없습니다');
   if (!isRecord(raw) || !isRecord(raw.scores)) throw new Error('AI 응답 형식이 올바르지 않습니다');
   const scores: RiskSuggestion['scores'] = {};
   for (const key of riskItemKeys(kind)) {
@@ -372,6 +416,497 @@ export function normalizeEvalReviewResult(raw: unknown): EvalReviewResult {
   return { suggestedStatus, missing, comment: cleanOutput(raw.comment, 600) };
 }
 
+// =====================================================================
+// 2차 AI 작업 다섯 가지
+// 공통 원칙: 입력은 글자 수 한도 안에서 검증하고, 메모는 태그로 감싼 자료로만 쓰며(주입 방어),
+// 메모에 없는 내용은 빈 값으로 두게 하고(지어내기 금지), 응답은 허용 값·길이로 다시 다듬는다.
+// =====================================================================
+
+const NULLABLE_STR = (description: string) => ({ type: 'STRING', nullable: true, description });
+
+/** 선택 글 입력: 없거나 빈 글이면 undefined, 글이 아니거나 한도를 넘으면 오류 */
+function readOptionalText(body: Record<string, unknown>, key: string, label: string, max: number): Validation<string | undefined> {
+  const raw = body[key];
+  if (raw === undefined || raw === null) return { ok: true, value: undefined };
+  if (typeof raw !== 'string') return { ok: false, message: `${label}은(는) 글이어야 합니다` };
+  const text = clean(raw);
+  if (text === '') return { ok: true, value: undefined };
+  if (Array.from(text).length > max) return { ok: false, message: `${label}은(는) ${max}자까지 입력할 수 있습니다` };
+  return { ok: true, value: text };
+}
+
+/** 모델이 낸 문자열 목록을 글자 수·개수 한도 안으로. 빈 항목과 중복은 버린다. */
+function cleanList(value: unknown, maxItems: number, maxLength: number): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const item of value) {
+    const text = cleanOutput(item, maxLength);
+    if (text !== '' && !out.includes(text)) out.push(text);
+    if (out.length >= maxItems) break;
+  }
+  return out;
+}
+
+/** 내용이 형식적 문구뿐이면 비운다(평가에서 불인정되는 문구가 일지에 들어가지 않게). */
+function substantive(text: string): string {
+  return isVagueOnly(text) ? '' : text;
+}
+
+const NO_FILLER_RULE = '"특이사항 없음", "이상 없음", "잘 참여함", "양호함"처럼 아무 사실도 없는 문구는 쓰지 않습니다. 쓸 사실이 없으면 그 칸은 빈 문자열("")로 둡니다.';
+const NO_INVENT_RULE = '메모에 없는 사실(인원·시간·횟수·수치·도구·반응·결정)은 절대 만들지 않습니다. 근거가 없는 칸은 빈 문자열("")로 둡니다.';
+const RECORD_STYLE_RULE = '문장은 기록체(~함, ~하심, ~하였음)로, 기록에 바로 붙여 넣을 수 있게 담백하게 씁니다. 인사말·머리말·"다음과 같습니다" 같은 군말은 쓰지 않습니다.';
+
+// ---------- 4) 간호일지 바이탈 요약 ----------
+
+const VITAL_RANGES = {
+  systolic: [50, 260],
+  diastolic: [30, 160],
+  pulse: [30, 200],
+  temperature: [34, 42],
+  bloodSugar: [20, 600],
+  weight: [20, 200],
+} as const;
+const VITAL_FIELD_LABEL = { systolic: '수축기 혈압', diastolic: '이완기 혈압', pulse: '맥박', temperature: '체온', bloodSugar: '혈당', weight: '체중' } as const;
+const VITAL_KEYS = Object.keys(VITAL_RANGES) as Array<keyof typeof VITAL_RANGES>;
+
+/**
+ * 바이탈 요약 입력 — 날짜와 숫자만 받는다. 이름·메모가 숫자 칸으로 새어 들어오지 못하게 알려진 칸만 골라 새 객체로 만든다.
+ * 값이 서버 허용 범위를 벗어나면 입력 오류로 막는다(모델에게 불가능한 값을 보여 주지 않는다).
+ */
+export function validateNursingSummaryInput(body: unknown): Validation<NursingSummaryInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  if (!Array.isArray(body.readings) || body.readings.length === 0) return { ok: false, message: '바이탈 측정 기록을 보내 주세요' };
+  if (body.readings.length > MAX_READINGS) return { ok: false, message: `바이탈 측정 기록은 ${MAX_READINGS}건까지 보낼 수 있습니다` };
+  const readings: VitalSeriesEntry[] = [];
+  let valueCount = 0;
+  for (const raw of body.readings) {
+    if (!isRecord(raw)) return { ok: false, message: '바이탈 측정 기록 형식이 올바르지 않습니다' };
+    const date = typeof raw.date === 'string' ? raw.date.trim() : '';
+    if (!parseYmd(date)) return { ok: false, message: '바이탈 측정 날짜가 올바르지 않습니다 (예: 2026-10-14)' };
+    const entry: VitalSeriesEntry = { date: date.slice(0, 10) };
+    for (const key of VITAL_KEYS) {
+      const value = raw[key];
+      if (value === undefined || value === null) continue;
+      const [min, max] = VITAL_RANGES[key];
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+        return { ok: false, message: `${VITAL_FIELD_LABEL[key]} 값은 ${min}~${max} 사이의 숫자여야 합니다` };
+      }
+      entry[key] = value;
+      valueCount += 1;
+    }
+    if (entry.systolic != null && entry.diastolic != null && entry.systolic < entry.diastolic) {
+      return { ok: false, message: '수축기 혈압이 이완기 혈압보다 낮을 수 없습니다' };
+    }
+    readings.push(entry);
+  }
+  if (valueCount === 0) return { ok: false, message: '측정한 바이탈 값이 없습니다' };
+  readings.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const treatment = readOptionalText(body, 'treatment', '처치·투약 메모', MAX_LOG_INPUT_LENGTH);
+  if (!treatment.ok) return treatment;
+  return { ok: true, value: treatment.value === undefined ? { readings } : { readings, treatment: treatment.value } };
+}
+
+function readingLine(r: VitalSeriesEntry): string {
+  const dash = '-';
+  const bp = r.systolic != null || r.diastolic != null ? `${r.systolic ?? dash}/${r.diastolic ?? dash}` : dash;
+  return `${r.date} | 혈압 ${bp} | 맥박 ${r.pulse ?? dash} | 체온 ${r.temperature ?? dash} | 혈당 ${r.bloodSugar ?? dash} | 체중 ${r.weight ?? dash}`;
+}
+
+export function buildNursingSummaryPrompt(input: NursingSummaryInput): string {
+  const T = VITAL_THRESHOLDS;
+  const table = input.readings.map(readingLine).join('\n');
+  const treatment = input.treatment ? `\n[처치·투약 메모]\n${fence('treatment', input.treatment)}\n` : '';
+  return `당신은 주야간보호센터 간호(조무)사의 간호일지 작성을 돕는 보조자입니다.
+아래 <readings>는 한 어르신의 최근 바이탈 측정 기록입니다(날짜와 숫자뿐이며 "-"는 측정하지 않은 항목). 이 기록만을 근거로 간호일지에 쓸 요약과 눈여겨볼 점을 만듭니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 기록에 있는 숫자만 근거로 씁니다. "-"인 항목은 언급하지 않고, 없는 수치를 추정하거나 만들지 않습니다.
+3. 진단명·병명 추정, 약 종류·용량 조언, 응급 여부 단정은 하지 않습니다. 필요한 대응은 "재측정", "보호자·담당 의료진에게 알림 검토" 수준으로만 씁니다.
+4. summary는 간호일지에 바로 붙여 넣을 2~4문장입니다. 측정 기간과 횟수, 값이 오르내린 방향, 기준을 벗어난 값은 날짜와 수치를 함께 적습니다. 모든 값이 기준 안이면 "측정한 항목이 기준 범위 안에서 유지됨"처럼 측정 범위를 적되 "특이사항 없음" 같은 문구는 쓰지 않습니다.
+5. flags에는 기준을 벗어난 값이거나 며칠에 걸친 뚜렷한 변화(상승·하강 추세)만 넣습니다. 추세는 metric을 "trend"로 씁니다. 기준 안의 값은 넣지 않습니다. 없으면 빈 목록입니다. message는 날짜와 수치가 들어간 한 문장입니다.
+6. ${RECORD_STYLE_RULE}
+7. ${PRIVACY_RULE}
+
+[눈여겨볼 기준 — 규칙 기반 판정과 같은 값]
+- 혈압: 수축기 ${T.systolicHigh} 이상 또는 이완기 ${T.diastolicHigh} 이상 높음 / 수축기 ${T.systolicWatch}~${T.systolicHigh - 1} 또는 이완기 ${T.diastolicWatch}~${T.diastolicHigh - 1} 관찰 / 수축기 ${T.systolicLow} 미만 낮음
+- 맥박: ${T.pulseLow} 미만 또는 ${T.pulseHigh} 초과 관찰
+- 체온: ${T.tempHigh} 이상 발열 / ${T.tempWatch}~37.7 미열 / ${T.tempLow} 미만 낮음
+- 혈당: ${T.sugarLow} 미만 저혈당 / ${T.sugarHigh} 이상 높음 / ${T.sugarWatch}~${T.sugarHigh - 1} 관찰 (식전·식후는 알 수 없음)
+- 체중: ${T.weightWindowDays}일 안의 이전 측정 대비 ${T.weightChangePercent}% 이상 변화 관찰
+
+${fence('readings', table)}
+${treatment}`;
+}
+
+const NURSING_FLAG_METRICS: readonly NursingFlagMetric[] = ['bloodPressure', 'pulse', 'temperature', 'bloodSugar', 'weight', 'trend', 'treatment', 'other'];
+const VITAL_RULE_METRICS: readonly NursingFlagMetric[] = ['bloodPressure', 'pulse', 'temperature', 'bloodSugar', 'weight'];
+
+export const NURSING_SUMMARY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    summary: NULLABLE_STR('간호일지에 붙여 넣을 2~4문장 요약'),
+    flags: {
+      type: 'ARRAY',
+      description: '기준을 벗어난 값이나 뚜렷한 추세만. 없으면 빈 배열',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          metric: { type: 'STRING', description: '항목', enum: [...NURSING_FLAG_METRICS] },
+          message: STR('날짜와 수치가 들어간 한 문장'),
+        },
+        required: ['metric', 'message'],
+      },
+    },
+  },
+  required: ['summary', 'flags'],
+} as const;
+
+const VITAL_LEVEL_RANK = { HIGH: 3, LOW: 2, WATCH: 1 } as const;
+
+/** 날짜를 "10/10"처럼 짧게 */
+function shortDate(date: string): string {
+  return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
+}
+
+/**
+ * 모델 요약을 다듬는다. readings를 함께 주면(권장) 규칙 판정으로 검산한다:
+ *  · 기간 안 규칙 판정을 항목마다 가장 심한 한 건씩 flags 앞에 확정으로 넣는다(같은 단계면 더 최근 것). 가장 최근 값이 아니면
+ *    날짜를 앞에 붙인다 — 10/10에 166/98이 나온 뒤 10/14에 158/94라면 "10/10 혈압 166/98"을 놓치지 않는다.
+ *  · 모델이 혈압·맥박·체온·혈당·체중에 대해 낸 flag는, 그 기간 어느 날에도 규칙에 걸린 적 없는 항목이면 버린다 — 지어낸 이상 소견 차단.
+ *    (며칠에 걸친 추세는 metric을 trend로 받으므로 이 검산을 받지 않는다.)
+ *  · 같은 항목은 규칙 판정이 이미 있으면 모델 문구를 쓰지 않는다.
+ */
+export function normalizeNursingSummary(raw: unknown, readings?: ReadonlyArray<VitalSeriesEntry>): NursingSummaryResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const summary = cleanOutput(raw.summary, 700);
+  const flags: NursingSummaryFlag[] = [];
+
+  // 기간 안 규칙 판정에 한 번이라도 걸린 항목. readings가 없으면 검산하지 않는다(null).
+  let ruleMetrics: Set<NursingFlagMetric> | null = null;
+  if (readings && readings.length > 0) {
+    const series = evaluateVitalSeries(readings);
+    const lastDate = series[series.length - 1]?.date ?? '';
+    const worst = new Map<NursingFlagMetric, { flag: VitalFlag; date: string }>();
+    for (const day of series) {
+      for (const f of day.flags) {
+        const prev = worst.get(f.metric);
+        // 날짜순으로 돌므로 같은 단계면 나중(더 최근) 것으로 덮는다.
+        if (!prev || VITAL_LEVEL_RANK[f.level] >= VITAL_LEVEL_RANK[prev.flag.level]) worst.set(f.metric, { flag: f, date: day.date });
+      }
+    }
+    for (const { flag, date } of worst.values()) {
+      const message = date === lastDate ? flag.message : `${shortDate(date)} 측정: ${flag.message}`;
+      flags.push({ metric: flag.metric, message: cut(message, 200) });
+    }
+    ruleMetrics = new Set(worst.keys());
+  }
+  if (Array.isArray(raw.flags)) {
+    for (const item of raw.flags) {
+      if (!isRecord(item) || flags.length >= 8) continue;
+      const metric = (NURSING_FLAG_METRICS as readonly unknown[]).includes(item.metric) ? (item.metric as NursingFlagMetric) : 'other';
+      const message = cleanOutput(item.message, 200);
+      if (!message) continue;
+      if (ruleMetrics && (VITAL_RULE_METRICS as readonly string[]).includes(metric)) continue; // 다섯 항목은 규칙 판정이 맡는다(없으면 이상 없음)
+      if (flags.some((f) => f.metric === metric && f.message === message)) continue;
+      flags.push({ metric, message });
+    }
+  }
+  return { summary, flags };
+}
+
+// ---------- 5) 프로그램 일지 ----------
+
+export function validateProgramLogInput(body: unknown): Validation<ProgramLogAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const category = body.category;
+  if (typeof category !== 'string' || !Object.hasOwn(PROGRAM_CATEGORY_LABEL, category)) return { ok: false, message: '프로그램 분류가 올바르지 않습니다' };
+  const note = readText(body, 'note', '프로그램 메모', MAX_LOG_INPUT_LENGTH);
+  if (!note.ok) return note;
+  return { ok: true, value: { note: note.value, category: category as ProgramCategory } };
+}
+
+const PROGRAM_CATEGORY_GUIDE: Record<ProgramCategory, string> = {
+  COGNITIVE: '인지기능 향상 프로그램 (회상·퍼즐·계산·언어·기억 자극 등). 평가에서 주 3회 이상 운영을 확인하는 분류입니다.',
+  PHYSICAL: '신체·운동 프로그램 (체조·근력·보행·균형 운동 등)',
+  LEISURE: '여가·취미 프로그램 (공예·음악·원예·미술 등)',
+  SOCIAL: '사회적응 프로그램 (외출·행사·지역사회 연계·집단 활동 등)',
+  OTHER: '그 밖의 프로그램',
+};
+
+export function buildProgramLogPrompt(input: ProgramLogAiInput): string {
+  return `당신은 주야간보호센터의 프로그램 일지 작성을 돕는 보조자입니다.
+아래 <note>는 담당 직원이 프로그램을 마치고 적은 메모입니다. 이 메모만을 근거로 프로그램 일지의 칸을 채웁니다.
+프로그램 분류: ${PROGRAM_CATEGORY_LABEL[input.category]} — ${PROGRAM_CATEGORY_GUIDE[input.category]}
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 참여 인원, 진행 시간, 사용한 도구, 어르신의 반응은 메모에 적힌 것만 씁니다.
+3. ${NO_FILLER_RULE}
+4. ${PRIVACY_RULE} 개별 어르신의 반응은 "일부 어르신"처럼 이름 없이 씁니다.
+5. ${RECORD_STYLE_RULE}
+
+[칸 설명]
+- title: 프로그램 이름 (예: "옛날 사진으로 이야기 나누기"). 메모에 이름이 없으면 진행한 활동을 짧은 명사구로 씁니다. 40자 이내.
+- goal: 이 활동으로 기대한 효과 한 문장. 메모에 목적이 있으면 그대로, 없으면 활동 유형에서 통상 읽히는 목적(예: 회상 활동 → 기억·정서 자극)만 쓰고, 그것도 분명하지 않으면 비웁니다.
+- content: 진행 순서와 방법, 사용한 도구를 2~4문장으로. 평가자가 "무엇을 어떻게 했는지" 알 수 있어야 합니다.
+- reaction: 참여한 어르신들의 관찰된 반응(참여 정도, 표정·발언, 어려워한 점, 도움이 필요했던 점). 평가어만 쓰지 말고 본 사실을 씁니다. 메모에 없으면 비웁니다.
+
+${fence('note', input.note)}`;
+}
+
+export const PROGRAM_LOG_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    title: NULLABLE_STR('프로그램 이름 (40자 이내)'),
+    goal: NULLABLE_STR('기대한 효과 한 문장'),
+    content: NULLABLE_STR('진행 순서·방법·도구'),
+    reaction: NULLABLE_STR('참여 반응 (관찰한 사실)'),
+  },
+  required: ['title', 'goal', 'content', 'reaction'],
+} as const;
+
+export function normalizeProgramLog(raw: unknown): ProgramLogResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  return {
+    title: cleanOutput(raw.title, 100),
+    goal: substantive(cleanOutput(raw.goal, 400)),
+    content: substantive(cleanOutput(raw.content, 1500)),
+    reaction: substantive(cleanOutput(raw.reaction, 1000)),
+  };
+}
+
+// ---------- 6) 직원 교육·회의 기록 ----------
+
+export function validateTrainingLogInput(body: unknown): Validation<TrainingLogAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const kind = body.kind;
+  if (kind !== 'TRAINING' && kind !== 'MEETING') return { ok: false, message: '교육인지 회의인지 선택해 주세요' };
+  const category = body.category;
+  if (typeof category !== 'string' || !isCategoryForKind(kind, category)) return { ok: false, message: '교육·회의 분류가 올바르지 않습니다' };
+  const note = readText(body, 'note', '교육·회의 메모', MAX_LOG_INPUT_LENGTH);
+  if (!note.ok) return note;
+  return { ok: true, value: { note: note.value, kind, category: category as StaffTrainingCategory } };
+}
+
+const TRAINING_CATEGORY_GUIDE: Partial<Record<StaffTrainingCategory, string>> = {
+  ELDER_ABUSE: '법정 교육. 노인학대 예방·신고의무자 교육 — 메모에 학대 유형, 징후, 신고 방법·의무가 있으면 빠뜨리지 않습니다.',
+  SEXUAL_HARASSMENT: '법정 교육. 직장 내 성희롱 예방 교육 — 메모에 있는 사례·신고 절차·피해자 보호 내용을 담습니다.',
+  INFECTION: '법정 교육. 감염 예방·관리 교육 — 손 위생, 소독, 격리·보고 절차 등 메모에 있는 내용을 담습니다.',
+  SAFETY: '법정 교육. 안전 교육 — 응급 대응, 낙상 예방, 화재·재난 대피 등 메모에 있는 내용을 담습니다.',
+  PRIVACY: '법정 교육. 개인정보 보호 교육 — 수집·이용 동의, 보관·열람 권한, 유출 시 대응 등 메모에 있는 내용을 담습니다.',
+  CASE: '사례 회의 — 사례의 쟁점, 논의 내용, 결정 사항, 후속 조치(담당·기한)를 구분합니다.',
+  STAFF: '직원 회의 — 안건, 논의 내용, 결정 사항, 후속 조치(담당·기한)를 구분합니다.',
+};
+
+export function buildTrainingLogPrompt(input: TrainingLogAiInput): string {
+  const kindLabel = TRAINING_KIND_LABEL[input.kind];
+  const guide = TRAINING_CATEGORY_GUIDE[input.category] ?? '';
+  return `당신은 주야간보호센터의 직원 ${kindLabel} 기록(${kindLabel}일지) 작성을 돕는 보조자입니다.
+아래 <note>는 담당자가 ${kindLabel}을 마치고 적은 메모입니다. 이 메모만을 근거로 일지를 정리합니다. 평가에서는 일지에 주제·내용·참석자가 남아 있는지를 확인합니다(참석자는 따로 기록하므로 쓰지 않습니다).
+분류: ${input.kind === 'TRAINING' ? '교육' : '회의'} / ${TRAINING_CATEGORY_LABEL[input.category]}${guide ? `\n${guide}` : ''}
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 일시·장소·강사·참석 인원·소요 시간·결정 내용은 메모에 있는 것만 씁니다. 해당 분류의 일반적인 교육 내용을 메모에 없이 덧붙이지 않습니다.
+3. ${NO_FILLER_RULE}
+4. ${PRIVACY_RULE}
+5. ${RECORD_STYLE_RULE}
+
+[칸 설명]
+- topic: ${kindLabel} 주제 한 줄 (예: "노인학대 신고의무와 신고 절차"). 메모에 없으면 다룬 내용을 짧게 요약해 씁니다. 60자 이내.
+- content: 진행한 내용을 3~6문장으로 요약. ${input.kind === 'MEETING' ? '안건 → 논의 → 결정 사항 → 후속 조치 순으로 메모에 있는 것만 씁니다.' : '다룬 항목과 방법(강의·시청각·실습 등)을 씁니다.'}
+- keyPoints: 참석자가 꼭 알아야 할 핵심 사항을 짧은 구절로 3~6개. 메모에 근거가 없으면 빈 목록.
+
+${fence('note', input.note)}`;
+}
+
+export const TRAINING_LOG_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    topic: NULLABLE_STR('주제 한 줄 (60자 이내)'),
+    content: NULLABLE_STR('진행 내용 요약'),
+    keyPoints: { type: 'ARRAY', description: '핵심 사항 3~6개 (근거 없으면 빈 배열)', items: { type: 'STRING' } },
+  },
+  required: ['topic', 'content', 'keyPoints'],
+} as const;
+
+export function normalizeTrainingLog(raw: unknown): TrainingLogResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  return {
+    topic: cleanOutput(raw.topic, 100),
+    content: substantive(cleanOutput(raw.content, 2000)),
+    keyPoints: cleanList(raw.keyPoints, 8, 150),
+  };
+}
+
+// ---------- 7) 상담일지 ----------
+
+export function validateConsultationInput(body: unknown): Validation<ConsultationAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '상담 메모', MAX_LOG_INPUT_LENGTH);
+  return note.ok ? { ok: true, value: { note: note.value } } : note;
+}
+
+export function buildConsultationPrompt(input: ConsultationAiInput): string {
+  return `당신은 주야간보호센터 사회복지사의 상담일지 작성을 돕는 보조자입니다.
+아래 <note>는 사회복지사가 어르신 본인이나 보호자와 상담한 뒤 적은 메모입니다. 이 메모만을 근거로 상담일지를 정리합니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 상대가 한 말, 센터가 약속한 조치, 기한은 메모에 있는 것만 씁니다.
+3. 사실과 상대의 말을 구분합니다. 상대의 요청·호소는 "~라고 함", "~를 요청함"처럼 말한 사람이 드러나게 쓰고, 상담자가 확인한 사실과 섞지 않습니다.
+4. 메모에 학대·방임 의심 정황, 낙상·사고, 급격한 상태 변화, 이용 중단 의사가 있으면 content와 needSignals에서 빠뜨리지 않고 사실 그대로 씁니다. 해석·단정은 하지 않습니다.
+5. ${NO_FILLER_RULE}
+6. ${PRIVACY_RULE} 상담 상대는 "보호자", "어르신 본인", "가족"으로 씁니다.
+7. ${RECORD_STYLE_RULE}
+
+[칸 설명]
+- content: 상담 내용 요약 3~6문장. 상담의 계기(또는 주제), 상대가 전한 어르신의 상태·요구·걱정, 센터가 설명한 내용 순서로 씁니다.
+- followUp: 센터가 하기로 한 조치와 확인할 일. 담당·기한이 메모에 있으면 함께 씁니다. 메모에 없으면 빈 문자열.
+- needSignals: 급여제공계획에 반영을 검토할 욕구 신호를 짧은 구절로 (예: "식사량 감소 우려", "야간 불면 호소", "보호자 돌봄 부담"). 최대 6개. 근거 없으면 빈 목록.
+
+${fence('note', input.note)}`;
+}
+
+export const CONSULTATION_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    content: NULLABLE_STR('상담 내용 요약'),
+    followUp: NULLABLE_STR('센터가 할 조치·확인할 일 (없으면 빈 문자열)'),
+    needSignals: { type: 'ARRAY', description: '급여계획에 반영을 검토할 욕구 신호 (최대 6개)', items: { type: 'STRING' } },
+  },
+  required: ['content', 'followUp', 'needSignals'],
+} as const;
+
+export function normalizeConsultation(raw: unknown): ConsultationResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  return {
+    content: substantive(cleanOutput(raw.content, 2000)),
+    followUp: substantive(cleanOutput(raw.followUp, 800)),
+    needSignals: cleanList(raw.needSignals, 8, 60),
+  };
+}
+
+// ---------- 8) 급여제공계획 초안 ----------
+
+const NEED_KEYS = Object.keys(CARE_PLAN_NEEDS_LABEL) as Array<keyof CarePlanNeeds>;
+
+export interface CarePlanPromptInput {
+  grade?: string;
+  /** 욕구사정을 글 한 덩어리로 정리한 것 */
+  needs: string;
+  recentConsultations?: string;
+  riskSummary?: string;
+}
+
+/**
+ * 급여제공계획 입력 — needs는 글 한 덩어리 또는 영역별 글(물리·인지 등). 영역별이면 "영역: 내용" 줄로 합쳐 글자 수를 센다.
+ * 필드마다 3000자 한도. 세 글 모두 직원이 쓴 자료이므로 태그로 감싸 쓴다.
+ */
+export function validateCarePlanInput(body: unknown): Validation<CarePlanPromptInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  let needsText = '';
+  if (typeof body.needs === 'string') {
+    needsText = clean(body.needs);
+  } else if (isRecord(body.needs)) {
+    const lines: string[] = [];
+    for (const key of NEED_KEYS) {
+      const value = body.needs[key];
+      if (value === undefined || value === null) continue;
+      if (typeof value !== 'string') return { ok: false, message: '욕구사정 내용은 글이어야 합니다' };
+      const text = clean(value);
+      if (text !== '') lines.push(`${CARE_PLAN_NEEDS_LABEL[key]}: ${text}`);
+    }
+    needsText = lines.join('\n');
+  }
+  if (needsText === '') return { ok: false, message: '욕구사정 내용을 입력해 주세요' };
+  if (Array.from(needsText).length > MAX_LOG_INPUT_LENGTH) return { ok: false, message: `욕구사정 내용은 ${MAX_LOG_INPUT_LENGTH}자까지 입력할 수 있습니다` };
+
+  const consultations = readOptionalText(body, 'recentConsultations', '최근 상담 내용', MAX_LOG_INPUT_LENGTH);
+  if (!consultations.ok) return consultations;
+  const risk = readOptionalText(body, 'riskSummary', '위험도 요약', MAX_LOG_INPUT_LENGTH);
+  if (!risk.ok) return risk;
+  const grade = readOptionalText(body, 'grade', '장기요양 등급', 20);
+  if (!grade.ok) return grade;
+
+  const value: CarePlanPromptInput = { needs: needsText };
+  if (grade.value) value.grade = grade.value;
+  if (consultations.value) value.recentConsultations = consultations.value;
+  if (risk.value) value.riskSummary = risk.value;
+  return { ok: true, value };
+}
+
+export function buildCarePlanPrompt(input: CarePlanPromptInput): string {
+  const parts = [`[욕구사정]\n${fence('needs', input.needs)}`];
+  if (input.grade) parts.push(`[장기요양 등급]\n${fence('grade', input.grade)}`);
+  if (input.recentConsultations) parts.push(`[최근 상담 내용]\n${fence('consultations', input.recentConsultations)}`);
+  if (input.riskSummary) parts.push(`[위험도 평가 요약]\n${fence('risk', input.riskSummary)}`);
+  return `당신은 주야간보호센터 사회복지사의 급여제공계획 작성을 돕는 보조자입니다.
+아래 태그 안의 자료(욕구사정·등급·상담·위험도)만을 근거로 급여제공계획의 "초안"을 만듭니다. 최종 계획은 사회복지사가 고치고 수급자·보호자에게 설명해 동의를 받아 확정합니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. 서비스는 자료에 나온 욕구·위험·상담 내용에서 직접 이어지는 것만 만듭니다. 욕구가 드러나지 않은 영역의 서비스를 채우기 위해 만들지 않습니다. 근거가 부족하면 서비스 수가 적어도 됩니다(최대 12개).
+3. 자료에 없는 진단·질환·투약·수치를 만들지 않습니다. 진단·치료 지시나 의료 행위는 쓰지 않고, 간호·건강 관련은 "관찰·측정·보호자 연락" 수준으로 씁니다.
+4. goals는 어르신이 이용을 통해 이루려는 목표를 1~3개 문장(또는 "1. … 2. …")으로 씁니다. "삶의 질 향상", "건강 유지"처럼 막연한 말만 쓰지 말고 욕구와 연결된 구체적 상태(예: "혼자 화장실까지 보행기로 이동하기")로 씁니다.
+5. services의 area는 장기요양 주야간보호 서비스 영역(신체활동지원, 인지활동·인지자극, 기능회복훈련, 건강·간호관리, 식사·영양관리, 배설·위생 지원, 정서·사회참여, 가족 상담·교육, 송영서비스 등)에서 고릅니다. content는 무엇을 어떻게 지원하는지 한 문장, frequency는 제공 횟수·주기입니다. 횟수·주기는 자료에 근거가 있을 때만 쓰고, 없으면 빈 문자열("")로 둡니다.
+6. 위험도 평가에 높은 위험(욕창·낙상·인지저하)이 있으면 그 위험을 줄이는 서비스를 포함합니다.
+7. ${PRIVACY_RULE}
+8. ${RECORD_STYLE_RULE}
+
+${parts.join('\n\n')}`;
+}
+
+export const CARE_PLAN_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    goals: NULLABLE_STR('목표 1~3개 (문장 또는 번호 목록)'),
+    services: {
+      type: 'ARRAY',
+      description: '제공 서비스 (최대 12개, 근거 있는 것만)',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          area: STR('서비스 영역'),
+          content: STR('지원 내용 한 문장'),
+          frequency: NULLABLE_STR('제공 횟수·주기 (근거 없으면 빈 문자열)'),
+        },
+        required: ['area', 'content', 'frequency'],
+      },
+    },
+  },
+  required: ['goals', 'services'],
+} as const;
+
+/** 모델이 준 목표를 글로. 문자열이 정상이지만 목록으로 와도 줄바꿈으로 이어 붙여 받아 준다. */
+function goalsText(value: unknown): string {
+  if (typeof value === 'string') return cleanOutput(value, 1500);
+  if (Array.isArray(value)) return cleanOutput(value.filter((v): v is string => typeof v === 'string').join('\n'), 1500);
+  return '';
+}
+
+/** 서비스는 내용이 있는 것만, 같은 (영역, 내용)은 한 번만, 30개까지 받는다. */
+export function normalizeCarePlan(raw: unknown): CarePlanResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const services: CarePlanService[] = [];
+  const seen = new Set<string>();
+  if (Array.isArray(raw.services)) {
+    for (const item of raw.services) {
+      if (services.length >= MAX_CARE_PLAN_SERVICES) break;
+      if (!isRecord(item)) continue;
+      const content = cleanOutput(item.content, 300);
+      if (content === '') continue;
+      const area = cleanOutput(item.area, 30);
+      const key = `${area}|${content}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      services.push({ area, content, frequency: cleanOutput(item.frequency, 40) });
+    }
+  }
+  return { goals: goalsText(raw.goals), services };
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -394,6 +929,31 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateEvalReviewInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildEvalReviewPrompt(v.value), schema: EVAL_REVIEW_SCHEMA, normalize: normalizeEvalReviewResult };
+  }
+  if (task === 'nursing-summary') {
+    const v = validateNursingSummaryInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildNursingSummaryPrompt(v.value), schema: NURSING_SUMMARY_SCHEMA, normalize: (raw) => normalizeNursingSummary(raw, v.value.readings) };
+  }
+  if (task === 'program-log') {
+    const v = validateProgramLogInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildProgramLogPrompt(v.value), schema: PROGRAM_LOG_SCHEMA, normalize: normalizeProgramLog };
+  }
+  if (task === 'training-log') {
+    const v = validateTrainingLogInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildTrainingLogPrompt(v.value), schema: TRAINING_LOG_SCHEMA, normalize: normalizeTrainingLog };
+  }
+  if (task === 'consultation') {
+    const v = validateConsultationInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildConsultationPrompt(v.value), schema: CONSULTATION_SCHEMA, normalize: normalizeConsultation };
+  }
+  if (task === 'care-plan') {
+    const v = validateCarePlanInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildCarePlanPrompt(v.value), schema: CARE_PLAN_SCHEMA, normalize: normalizeCarePlan };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

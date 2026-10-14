@@ -6,8 +6,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  ALL_RISK_KINDS,
+  COGNITIVE_TOOLS,
   RISK_ITEMS,
+  RISK_KINDS,
   allowedValues,
+  cleanCognitiveScores,
+  elderHalfYearStatus,
+  halfYearSummary,
+  isRiskKind,
+  isScaleKind,
+  riskKindLabel,
+  suggestCognitiveJudgment,
   currentHalfLabel,
   daysUntilHalfEnd,
   halfYearEnd,
@@ -138,4 +148,122 @@ test('등급 이름과 색 단계', () => {
   assert.equal(riskLevelTone('MILD'), 'caution');
   assert.equal(riskLevelTone('NONE'), 'ok');
   assert.equal(riskLevelTone('LOW'), 'ok');
+});
+
+// ---------- 인지기능 평가 ----------
+
+test('인지 판정 제안 — K-MMSE 경계 24/23/18/17, 범위 밖·소수·없음은 제안하지 않는다', () => {
+  const j = (score?: number | null) => suggestCognitiveJudgment('KMMSE', score);
+  assert.equal(j(30), 'NORMAL');
+  assert.equal(j(24), 'NORMAL');
+  assert.equal(j(23), 'SUSPECTED');
+  assert.equal(j(18), 'SUSPECTED');
+  assert.equal(j(17), 'IMPAIRED');
+  assert.equal(j(0), 'IMPAIRED');
+  assert.equal(j(31), null);
+  assert.equal(j(-1), null);
+  assert.equal(j(23.5), null);
+  assert.equal(j(undefined), null);
+  assert.equal(j(null), null);
+});
+
+test('인지 판정 제안 — CIST·외부기관은 제안 없음, 치매 진단은 인지저하가 기본', () => {
+  assert.equal(suggestCognitiveJudgment('CIST', 20), null);
+  assert.equal(suggestCognitiveJudgment('EXTERNAL'), null);
+  assert.equal(suggestCognitiveJudgment('DIAGNOSIS'), 'IMPAIRED');
+  assert.equal(suggestCognitiveJudgment('DIAGNOSIS', 28), 'IMPAIRED');
+});
+
+test('인지 평가 도구 정의 — 네 가지, 점수·기관 필수 조건', () => {
+  assert.deepEqual(COGNITIVE_TOOLS.map((t) => t.id), ['KMMSE', 'CIST', 'EXTERNAL', 'DIAGNOSIS']);
+  assert.deepEqual(COGNITIVE_TOOLS.filter((t) => t.scoreRequired).map((t) => t.id), ['KMMSE', 'CIST']);
+  assert.deepEqual(COGNITIVE_TOOLS.filter((t) => t.institutionRequired).map((t) => t.id), ['EXTERNAL']);
+});
+
+test('scoreAssessment(COGNITIVE) — total은 점수(없으면 0), riskLevel은 판정 그대로', () => {
+  assert.deepEqual(scoreAssessment('COGNITIVE', { tool: 'KMMSE', score: 22, judgment: 'SUSPECTED' }), { total: 22, riskLevel: 'SUSPECTED' });
+  assert.deepEqual(scoreAssessment('COGNITIVE', { tool: 'EXTERNAL', institution: '강남구 치매안심센터', judgment: 'NORMAL' }), { total: 0, riskLevel: 'NORMAL' });
+  assert.deepEqual(scoreAssessment('COGNITIVE', { tool: 'DIAGNOSIS', judgment: 'IMPAIRED' }), { total: 0, riskLevel: 'IMPAIRED' });
+  assert.deepEqual(scoreAssessment('COGNITIVE', { tool: 'CIST', score: 0, judgment: 'IMPAIRED' }), { total: 0, riskLevel: 'IMPAIRED' }, '0점도 점수다');
+});
+
+test('scoreAssessment(COGNITIVE) — 검증 실패는 모두 오류', () => {
+  const bad = (scores: unknown) => assert.ok('error' in scoreAssessment('COGNITIVE', scores), JSON.stringify(scores));
+  bad(null);
+  bad([]);
+  bad({});
+  bad({ tool: 'MMSE', score: 20, judgment: 'NORMAL' });
+  bad({ tool: 'KMMSE', judgment: 'NORMAL' }); // 점수 필수
+  bad({ tool: 'CIST', score: null, judgment: 'NORMAL' });
+  bad({ tool: 'KMMSE', score: 31, judgment: 'NORMAL' });
+  bad({ tool: 'KMMSE', score: -1, judgment: 'NORMAL' });
+  bad({ tool: 'KMMSE', score: 20.5, judgment: 'NORMAL' });
+  bad({ tool: 'KMMSE', score: '20', judgment: 'NORMAL' });
+  bad({ tool: 'KMMSE', score: 20 }); // 판정 없음
+  bad({ tool: 'KMMSE', score: 20, judgment: 'HIGH' });
+  bad({ tool: 'EXTERNAL', judgment: 'NORMAL' }); // 기관 필수
+  bad({ tool: 'EXTERNAL', institution: '   ', judgment: 'NORMAL' });
+  bad({ tool: 'EXTERNAL', institution: '가'.repeat(51), judgment: 'NORMAL' });
+  bad({ tool: 'DIAGNOSIS', score: 40, judgment: 'IMPAIRED' }); // 선택 점수도 범위는 본다
+  bad({ tool: 'KMMSE', score: 20, judgment: 'NORMAL', extra: 1 });
+});
+
+test('cleanCognitiveScores — 필요 없는 칸은 빼고 기관명은 외부기관일 때만 남긴다', () => {
+  assert.deepEqual(cleanCognitiveScores({ tool: 'KMMSE', score: 20, judgment: 'SUSPECTED', institution: '무관한 기관' }), { tool: 'KMMSE', score: 20, judgment: 'SUSPECTED' });
+  assert.deepEqual(cleanCognitiveScores({ tool: 'EXTERNAL', score: null, judgment: 'NORMAL', institution: ' 보건소 ' }), { tool: 'EXTERNAL', judgment: 'NORMAL', institution: '보건소' });
+  assert.deepEqual(cleanCognitiveScores({ tool: 'DIAGNOSIS', judgment: 'IMPAIRED' }), { tool: 'DIAGNOSIS', judgment: 'IMPAIRED' });
+});
+
+test('평가 종류 — 세 가지가 있고, 점수 합산 도구는 두 가지, 라벨·색 단계에 인지 판정도 포함', () => {
+  assert.deepEqual(ALL_RISK_KINDS.map((k) => k.id), ['BRADEN', 'MORSE', 'COGNITIVE']);
+  assert.deepEqual(RISK_KINDS.map((k) => k.id), ['BRADEN', 'MORSE']);
+  assert.equal(isRiskKind('COGNITIVE'), true);
+  assert.equal(isScaleKind('COGNITIVE'), false);
+  assert.equal(isScaleKind('MORSE'), true);
+  assert.equal(riskKindLabel('COGNITIVE'), '인지기능 평가');
+  assert.equal(riskLevelLabel('NORMAL'), '정상');
+  assert.equal(riskLevelLabel('SUSPECTED'), '의심');
+  assert.equal(riskLevelLabel('IMPAIRED'), '인지저하');
+  assert.equal(riskLevelTone('NORMAL'), 'ok');
+  assert.equal(riskLevelTone('SUSPECTED'), 'caution');
+  assert.equal(riskLevelTone('IMPAIRED'), 'danger');
+  assert.deepEqual(RISK_ITEMS.COGNITIVE, []);
+  assert.deepEqual(riskItemKeys('COGNITIVE'), []);
+});
+
+// ---------- 반기 점검 세 기준 ----------
+
+const entry = (assessedOn: string) => ({ assessedOn, total: 10, riskLevel: 'HIGH' as const });
+const NOW = new Date('2026-10-14T09:00:00+09:00');
+
+test('어르신별 반기 점검 — 욕창·낙상·인지를 따로 본다, 인지 응답이 없으면(옛 서버) 기록 없음', () => {
+  const status = elderHalfYearStatus({ braden: entry('2026-09-01'), morse: entry('2026-03-01'), cognitive: null }, NOW);
+  assert.deepEqual(status, { BRADEN: 'DONE', MORSE: 'DUE', COGNITIVE: 'NEVER' });
+  const legacy = elderHalfYearStatus({ braden: entry('2026-09-01'), morse: entry('2026-09-01') }, NOW);
+  assert.equal(legacy.COGNITIVE, 'NEVER');
+});
+
+test('반기 점검은 서울 날짜 기준 — 6/30 23:30 KST까지는 상반기, 7/1 00:10 KST부터 하반기', () => {
+  const june = new Date('2026-06-30T23:30:00+09:00');
+  const july = new Date('2026-07-01T00:10:00+09:00');
+  const last = { braden: entry('2026-06-30'), morse: entry('2026-06-30'), cognitive: entry('2026-06-30') };
+  assert.equal(elderHalfYearStatus(last, june).COGNITIVE, 'DONE');
+  assert.equal(elderHalfYearStatus(last, july).COGNITIVE, 'DUE');
+});
+
+test('halfYearSummary — 세 가지를 모두 마쳐야 완료, 남은 어르신과 빠진 종류를 알려 준다', () => {
+  const list = [
+    { elderlyId: 1, braden: entry('2026-08-01'), morse: entry('2026-08-01'), cognitive: entry('2026-08-01') },
+    { elderlyId: 2, braden: entry('2026-08-01'), morse: entry('2026-08-01'), cognitive: null },
+    { elderlyId: 3, braden: null, morse: null, cognitive: entry('2026-02-01') },
+  ];
+  const s = halfYearSummary(list, NOW);
+  assert.equal(s.total, 3);
+  assert.equal(s.allDone, 1);
+  assert.deepEqual(s.done, { BRADEN: 2, MORSE: 2, COGNITIVE: 1 });
+  assert.deepEqual(s.pending, [
+    { elderlyId: 2, missing: ['COGNITIVE'] },
+    { elderlyId: 3, missing: ['BRADEN', 'MORSE', 'COGNITIVE'] },
+  ]);
+  assert.deepEqual(halfYearSummary([], NOW), { total: 0, done: { BRADEN: 0, MORSE: 0, COGNITIVE: 0 }, allDone: 0, pending: [] });
 });

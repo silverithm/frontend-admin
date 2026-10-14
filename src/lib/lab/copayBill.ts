@@ -160,3 +160,97 @@ export function copayNoticeText(bill: CopayBill, companyName: string): string {
   lines.push('문의는 센터로 연락해 주세요.');
   return lines.join('\n');
 }
+
+// ---------- 식재료비 ----------
+
+export const MEAL_COST_LABEL = '식재료비';
+
+/**
+ * 식재료비 비급여 항목 — 이용일수 × 하루 단가. 주야간보호는 점심·간식 식재료비를 비급여로 받는다.
+ * 단가가 0이거나 이용일이 없으면 만들지 않는다(null) — 0원짜리 항목이 청구서에 찍히면 보호자가 오해한다.
+ * 정수가 아닌 값·음수, 한도(1억원) 초과도 null: 잘못된 입력으로 청구액이 생기지 않게 한다.
+ */
+export function mealCostItem(days: number, unitPrice: number): NonCoveredItem | null {
+  if (!Number.isInteger(days) || !Number.isInteger(unitPrice) || days <= 0 || unitPrice <= 0) return null;
+  const amount = days * unitPrice;
+  return amount > MAX_MONEY ? null : { label: MEAL_COST_LABEL, amount };
+}
+
+/**
+ * 비급여 항목 목록에 식재료비를 반영한다 — 이미 식재료비 줄이 있으면 그 줄만 새 금액으로 바꾸고(직원이 손으로 고친 다른 줄은 그대로),
+ * 없으면 맨 앞에 넣는다. 단가가 0이면 식재료비 줄을 뺀다.
+ */
+export function withMealCost(items: ReadonlyArray<NonCoveredItem>, days: number, unitPrice: number): NonCoveredItem[] {
+  const meal = mealCostItem(days, unitPrice);
+  const rest = items.filter((i) => i.label.trim() !== MEAL_COST_LABEL);
+  if (!meal) return rest;
+  const index = items.findIndex((i) => i.label.trim() === MEAL_COST_LABEL);
+  if (index < 0) return [meal, ...rest];
+  // 첫 식재료비 줄이 있던 자리에 새 금액을 둔다(그 앞은 모두 식재료비가 아닌 줄이다).
+  return [...rest.slice(0, index), meal, ...rest.slice(index)];
+}
+
+// ---------- 연간 납부 내역 (의료비 공제 증빙) ----------
+
+export interface AnnualPaymentRow {
+  billId: number;
+  elderlyName: string;
+  billMonth: string;
+  paidAmount: number;
+  lastPaidOn: string | null;
+}
+
+/**
+ * 그 해(billMonth 기준)에 수납이 있는 청구서를 어르신·월 순으로 뽑는다.
+ * 기준을 납부일이 아니라 청구 월로 둔 이유: 12월분을 1월에 내면 보호자는 "작년 이용분"으로 인식하고,
+ * 기관의 월별 청구·미수 관리도 청구 월 단위이기 때문이다. (연말정산 증빙은 세무 기준과 대조해 쓴다.)
+ * 낸 돈이 0원이거나 음수인 청구서는 뺀다.
+ */
+export function annualPaymentRows(
+  bills: ReadonlyArray<Pick<CopayBill, 'id' | 'elderlyName' | 'billMonth' | 'paidAmount' | 'lastPaidOn'>>,
+  year: number,
+): AnnualPaymentRow[] {
+  const prefix = `${String(year).padStart(4, '0')}-`;
+  return bills
+    .filter((b) => typeof b.billMonth === 'string' && b.billMonth.startsWith(prefix) && isValidMonth(b.billMonth) && b.paidAmount > 0)
+    .map((b) => ({ billId: b.id, elderlyName: b.elderlyName, billMonth: b.billMonth, paidAmount: b.paidAmount, lastPaidOn: b.lastPaidOn ?? null }))
+    .sort((a, b) => a.elderlyName.localeCompare(b.elderlyName, 'ko') || a.billMonth.localeCompare(b.billMonth));
+}
+
+/** 어르신별 연간 납부 합계(어르신 이름순) — 어르신별 납부확인서 머리말용 */
+export function annualPaymentTotals(rows: ReadonlyArray<Pick<AnnualPaymentRow, 'elderlyName' | 'paidAmount'>>): Array<{ elderlyName: string; paidAmount: number }> {
+  const map = new Map<string, number>();
+  for (const r of rows) map.set(r.elderlyName, (map.get(r.elderlyName) ?? 0) + r.paidAmount);
+  return [...map.entries()].map(([elderlyName, paidAmount]) => ({ elderlyName, paidAmount })).sort((a, b) => a.elderlyName.localeCompare(b.elderlyName, 'ko'));
+}
+
+// ---------- CSV ----------
+
+export interface CsvHeader<T> {
+  key: keyof T & string;
+  label: string;
+}
+
+/**
+ * 셀 하나를 CSV 규칙으로 감싼다. 쉼표·큰따옴표·줄바꿈이 있으면 큰따옴표로 감싸고 안의 큰따옴표는 두 개로 쓴다.
+ * 숫자는 그대로(따옴표·콤마 없이) 써야 엑셀이 숫자로 읽는다. 값이 없으면 빈 칸.
+ * 문자열이 = + - @ 로 시작하면 엑셀이 수식으로 실행할 수 있어 앞에 작은따옴표를 붙인다(이름 칸에 누가 "=…"를 적어도 안전).
+ */
+function csvCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+  let text = String(value);
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/**
+ * 표를 CSV 문자열로 만든다. 맨 앞에 BOM(﻿)을 붙여야 엑셀이 UTF-8 한글을 깨뜨리지 않고 연다.
+ * 줄 구분은 CRLF(RFC 4180). 첫 줄은 headers의 label, 이후는 key 순서대로.
+ */
+export function toCsv<T extends object>(rows: ReadonlyArray<T>, headers: ReadonlyArray<CsvHeader<T>>): string {
+  const lines = [headers.map((h) => csvCell(h.label)).join(',')];
+  for (const row of rows) lines.push(headers.map((h) => csvCell((row as Record<string, unknown>)[h.key])).join(','));
+  return `﻿${lines.join('\r\n')}`;
+}

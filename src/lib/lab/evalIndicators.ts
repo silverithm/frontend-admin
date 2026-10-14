@@ -13,7 +13,16 @@ import type { EvalCheck, EvalStatus } from './labTypes.ts';
 export type EvalGroup = 'OPERATION' | 'SAFETY' | 'SERVICE' | 'HEALTH' | 'TRANSPORT' | 'PROGRAM' | 'RIGHTS';
 
 /** 케어브이 기록에서 근거를 자동으로 가져올 수 있는 지표 */
-export type EvalAutoSource = 'RISK_HALF_YEAR' | 'CARE_RECORD_DELIVERY' | 'CARE_RECORD_QUALITY';
+export type EvalAutoSource =
+  | 'RISK_HALF_YEAR'
+  | 'CARE_RECORD_DELIVERY'
+  | 'CARE_RECORD_QUALITY'
+  /** 최근 4주(끝난 주) 중 인지 프로그램을 주 3회 이상 연 주 수 */
+  | 'PROGRAM_COGNITIVE_WEEKLY'
+  /** 올해 법정 교육 다섯 범주를 모두 들은 직원 비율 */
+  | 'TRAINING_COVERAGE'
+  /** 올해 급여제공계획이 있고 보호자 동의를 받은 어르신 비율 */
+  | 'CARE_PLAN_AGREEMENT';
 
 export interface EvalIndicator {
   code: string;
@@ -37,6 +46,9 @@ export const EVAL_AUTO_SOURCE_LABEL: Readonly<Record<EvalAutoSource, string>> = 
   RISK_HALF_YEAR: '위험도 평가 반기 점검 결과',
   CARE_RECORD_DELIVERY: '급여제공기록 제공대장',
   CARE_RECORD_QUALITY: '급여제공기록 문구 점검',
+  PROGRAM_COGNITIVE_WEEKLY: '프로그램 일지의 인지 프로그램 주 3회 운영',
+  TRAINING_COVERAGE: '직원 교육 일지의 법정 교육 이수 현황',
+  CARE_PLAN_AGREEMENT: '급여제공계획의 보호자 동의 현황',
 };
 
 export const EVAL_INDICATORS: readonly EvalIndicator[] = [
@@ -80,6 +92,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '교육일지(일시·내용·참석자 서명)가 계획대로 남아 있다',
       '법정 교육(노인학대 예방, 성희롱 예방, 감염관리 등)이 빠짐없이 들어 있다',
     ],
+    autoSource: 'TRAINING_COVERAGE',
   },
   {
     code: 'OPS-05',
@@ -176,10 +189,11 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
   {
     code: 'SAFE-09',
     group: 'SAFETY',
-    title: '위험도 평가 (욕창·낙상·인지) 반기 실시',
+    title: '위험도 평가 (욕창·낙상·인지기능) 반기 실시',
     requirements: [
-      '모든 수급자에 대해 욕창·낙상·인지 위험도를 반기(1~6월, 7~12월)마다 1회 이상 평가했다',
-      '검증된 도구(예: Braden, Morse Fall Scale)를 썼고 도구의 모든 항목이 기록되어 있다',
+      '모든 수급자에 대해 욕창·낙상·인지기능 위험도를 반기(1~6월, 7~12월)마다 1회 이상 평가했다',
+      '검증된 도구(욕창 Braden, 낙상 Morse Fall Scale, 인지기능 K-MMSE·CIST 등)를 썼고 도구의 모든 항목·점수가 기록되어 있다',
+      '외부기관 검사나 치매 진단(진단서·소견서)으로 인지기능을 확인한 경우 기관명과 판정이 기록되어 있다',
       '수급자명, 평가일, 작성자명이 기록되어 있고 해당 급여 직원이 직접 평가했다',
       '신규 수급자는 급여 시작일까지 평가했다',
     ],
@@ -225,6 +239,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '계획 수립·변경 때 수급자 또는 보호자에게 설명하고 동의받은 기록이 있다',
       '계획의 목표와 서비스 내용이 구체적이다',
     ],
+    autoSource: 'CARE_PLAN_AGREEMENT',
   },
   {
     code: 'SVC-05',
@@ -329,6 +344,7 @@ export const EVAL_INDICATORS: readonly EvalIndicator[] = [
       '프로그램 일지에 일시·내용·참여자·담당자가 기록되어 있다',
       '수급자 수준에 맞춘 프로그램이다(집단 구분 또는 개별 조정)',
     ],
+    autoSource: 'PROGRAM_COGNITIVE_WEEKLY',
   },
   {
     code: 'PRG-02',
