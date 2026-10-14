@@ -1,0 +1,328 @@
+/* 실험실 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-3);
+}
+
+.toolbarGrow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* 목록 | 편집 두 칸. 좁은 화면에서는 한 칸씩 번갈아 보여 준다. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: var(--spacing-4);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .split[data-has-selection='true'] .splitList {
+    display: none;
+  }
+  .split[data-has-selection='false'] .splitDetail {
+    display: none;
+  }
+}
+
+.onlyNarrow {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .onlyNarrow {
+    display: block;
+  }
+}
+
+.elderButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+}
+
+.elderButton:hover {
+  background: var(--color-background-muted);
+}
+
+.elderButton[aria-current='true'] {
+  background: var(--color-background-muted);
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+  justify-content: flex-end;
+}
+
+/* 입력칸을 한 줄에 여러 개 — 칸 폭이 모자라면 알아서 다음 줄로 */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-3);
+  align-items: end;
+}
+
+.fieldGridWide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+.rowBlock {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rowBlock:last-child {
+  border-bottom: 0;
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 150px) auto;
+  gap: var(--spacing-2);
+  align-items: end;
+}
+
+@media (max-width: 480px) {
+  .itemLine {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .itemLine > :nth-child(2) {
+    grid-column: 1;
+  }
+}
+
+.suggestBox {
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border: 1px dashed var(--color-border-emphasized);
+}
+
+.warnText {
+  color: var(--color-text-yellow);
+}
+
+.errorText {
+  color: var(--color-error);
+}
+
+/* 표는 자기 상자 안에서만 가로로 움직인다 — 페이지 전체가 옆으로 밀리지 않게 */
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+}
+
+.table th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.tableMuted {
+  color: var(--color-text-secondary);
+}
+
+.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.meter {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.groupGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-3) var(--spacing-5);
+}
+
+.reqList {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  color: var(--color-text-primary);
+}
+
+.triggerLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-width: 0;
+}
+
+.itemBody {
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+/* ---------- 월별 기록지: 화면 미리보기와 인쇄본이 같은 표를 쓴다 ---------- */
+.sheetTable {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.sheetTable th,
+.sheetTable td {
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border-emphasized);
+  vertical-align: top;
+  text-align: start;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sheetTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.sheetWeekend td:first-child {
+  color: var(--color-text-secondary);
+}
+
+.printRoot {
+  display: none;
+}
+
+@media print {
+  .printRoot {
+    display: block;
+    color: var(--color-text-primary);
+    background: var(--color-background-card);
+  }
+  .printRoot .sheetTable {
+    min-width: 0;
+    font-size: 8.5pt;
+  }
+  .printTitle {
+    margin: 0 0 var(--spacing-2);
+    font-size: 14pt;
+  }
+  .printMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-1) var(--spacing-6);
+    margin-bottom: var(--spacing-2);
+    font-size: 9.5pt;
+  }
+  .printNote {
+    margin-top: var(--spacing-2);
+    font-size: 8.5pt;
+    color: var(--color-text-secondary);
+  }
+  .printSign {
+    margin-top: var(--spacing-4);
+    font-size: 9.5pt;
+    text-align: end;
+  }
+}
+
+
+/* 긴 입력 양식 아래에 붙어 따라오는 합계·저장 줄 */
+.stickyBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: var(--spacing-3) 0 var(--spacing-1);
+  background: var(--color-background-card);
+  border-top: 1px solid var(--color-border);
+}

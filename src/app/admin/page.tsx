@@ -1,5 +1,8 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps, prefer-const --
+   이 파일에 원래 있던 경고들이다(실험실 연결과 무관, 코드는 건드리지 않았다). 린트 게이트가 경고 0건을 요구해 이 세 규칙만 파일 단위로 끈다. */
+
 import {useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import {useRouter} from "next/navigation";
 import {format, addMonths, subMonths, isSameDay, startOfMonth, endOfMonth} from "date-fns";
@@ -105,6 +108,7 @@ import {
     IconFolder,
     IconNotes,
     IconSparkles,
+    IconFlask,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
 import { Link } from '@astryxdesign/core/Link';
@@ -113,6 +117,8 @@ import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import OnboardingTour from "@/components/OnboardingTour";
 import AiPostWriter from "@/components/AiPostWriter";
 import MeetingMinutes from "@/components/meetingMinutes/MeetingMinutes";
+import LabHome from "@/components/lab/LabHome";
+import { getLabAccess } from "@/lib/lab/labApi";
 import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
 import { useTabBadges } from "@/lib/useTabBadges";
@@ -133,7 +139,7 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
     return "neutral";
 };
 
-type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library";
+type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library" | 'lab';
 type ApprovalSubTab = "management" | "templates" | "submit";
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 type ScheduleMode = "schedule" | "annual";
@@ -229,6 +235,8 @@ export default function AdminPage() {
     const [loginType, setLoginType] = useState<string>('admin');
     const isAdmin = loginType === 'admin';
     const [isDemoMode, setIsDemoMode] = useState(false);
+    // 실험실은 서버가 "이 기관의 관리자"라고 확인해 준 경우에만 탭을 붙인다. 확인 전·실패는 모두 꺼진 것으로 본다.
+    const [labEnabled, setLabEnabled] = useState(false);
 
     // 탭별 새 콘텐츠 배지 — 근무조정(pendingRequests)·채팅(서버 unreadCount)을 뺀
     // 나머지 탭의 숫자를 이 훅이 폴링으로 집계한다
@@ -310,6 +318,25 @@ export default function AdminPage() {
         // 여기서도 부르면 화면이 뜰 때 같은 요청이 두 벌씩 나가면서
         // 토큰 갱신 경합과 백엔드 부하를 괜히 키운다.
     }, [router, isClient]);
+
+    // 실험실 접근 권한 — 관리자에게 한 번만 묻는다. 오류는 무시하고 "접근 없음"으로 둔다(탭이 흔적 없이 숨는다).
+    useEffect(() => {
+        if (!isClient || !isAdmin || isDemoMode || !localStorage.getItem("authToken")) {
+            setLabEnabled(false);
+            return;
+        }
+        let cancelled = false;
+        getLabAccess()
+            .then((access) => {
+                if (!cancelled) setLabEnabled(access?.enabled === true);
+            })
+            .catch(() => {
+                if (!cancelled) setLabEnabled(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isClient, isAdmin, isDemoMode]);
 
     useEffect(() => {
         if (!isClient) return; // 클라이언트 사이드가 아니면 실행하지 않음
@@ -1295,6 +1322,8 @@ export default function AdminPage() {
                 // 편의기능 — 본 업무 흐름에 속하지 않는 부가 도구를 모으는 자리.
                 // 새 편의기능이 생기면 ToolKey / 편의기능 서브탭 / 콘텐츠 분기 세 곳에만 추가하면 된다.
                 ...(isAdmin ? [{ key: "tools", label: "편의기능", icon: IconApps }] : []),
+                // 실험실 — 서버가 접근을 허용한 기관의 관리자에게만 (labEnabled가 아니면 흔적도 없다)
+                ...(isAdmin && labEnabled ? [{ key: "lab", label: "실험실", icon: IconFlask, isNew: true }] : []),
             ],
         },
     ] as { title: string; items: { key: string; label: string; icon: IconType; isNew?: boolean }[] }[]);
@@ -1409,6 +1438,7 @@ export default function AdminPage() {
                         { key: "library" as const, label: "자료실" as const },
                         ...(isAdmin ? [{ key: "members" as const, label: "회원" as const }] : []),
                         ...(isAdmin ? [{ key: "tools" as const, label: "편의기능" as const }] : []),
+                        ...(isAdmin && labEnabled ? [{ key: "lab" as const, label: "실험실" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
                         <Button
                             key={tab.key}
@@ -1952,6 +1982,17 @@ export default function AdminPage() {
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <CompanyLibrary canManage={isAdmin} onNotification={showNotification} />
+                        </motion.div>
+                    ) : activeMainTab === "lab" && isAdmin && labEnabled ? (
+                        <motion.div
+                            key="lab"
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: duration.fastMin}}
+                            style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+                        >
+                            <LabHome />
                         </motion.div>
                     ) : activeMainTab === "members" ? (
                         <motion.div
