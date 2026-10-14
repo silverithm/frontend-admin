@@ -3,8 +3,9 @@
  * 칸에 바로 쓰지 않고 "제안"으로만 보여 주므로, 사람이 읽어 보고 넣는다.
  * 값이 없는 항목은 문장에 넣지 않는다(없는 수치를 지어내지 않는다).
  */
+import { eventKindLabel, eventSeverityLabel } from '@/lib/lab/careEventRules';
 import { PROGRAM_CATEGORY_LABEL } from '@/lib/lab/programRules';
-import type { CareRecordTextField, MedStatus, NursingLog, Program, ProgramCategory } from '@/lib/lab/labTypes';
+import type { CareEvent, CareRecordTextField, MedStatus, NursingLog, Program, ProgramCategory } from '@/lib/lab/labTypes';
 
 const MED_TEXT: Record<Exclude<MedStatus, 'NA'>, string> = { GIVEN: '투약함', SKIPPED: '건너뜀' };
 
@@ -88,4 +89,20 @@ export function programSuggestions(
     items.push({ field, text: `${when}${PROGRAM_CATEGORY_LABEL[p.category]} 프로그램 「${p.title}」에 참여함${goal}.` });
   }
   return { items, skipped };
+}
+
+/**
+ * 그날 이 어르신의 상태변화·사고 기록 → 특이사항 칸에 넣을 문장(없으면 null). 시간순, 한 건이 한 줄.
+ * 사고 기록의 설명·즉시 조치는 그대로 옮기고, 보호자 연락 내용·병원 이름 같은 곁가지는 가져오지 않는다.
+ */
+export function eventSentence(events: ReadonlyArray<CareEvent>, elderId: number, date: string): string | null {
+  const mine = events
+    .filter((e) => e.elderlyId === elderId && e.occurredAt.slice(0, 10) === date)
+    .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  if (mine.length === 0) return null;
+  const lines = mine.map((e) => {
+    const action = e.immediateAction?.trim() ? ` 즉시 조치: ${e.immediateAction.trim()}` : '';
+    return `${e.occurredAt.slice(11, 16)} ${eventKindLabel(e.kind)}(${eventSeverityLabel(e.severity)}): ${e.description.trim()}${action}`;
+  });
+  return lines.join('\n');
 }

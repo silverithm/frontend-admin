@@ -9,7 +9,10 @@ import { Button } from '@astryxdesign/core/Button';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { listCareDeliveries, listCarePlans, listCareRecordsByDate, listLabStaff, listPrograms, listRiskLatest, listSafetyChecks, listSafetyChecksByYear, listStaffTrainings } from '@/lib/lab/labApi';
+import { listCareDeliveries, listCareEvents, listCarePlans, listCareRecordsByDate, listGuardianNotices, listLabStaff, listPrograms, listResourceLinks, listRiskLatest, listSafetyChecks, listSafetyChecksByYear, listStaffTrainings } from '@/lib/lab/labApi';
+import { eventChecklist } from '@/lib/lab/careEventRules';
+import { resourceSummary, resourceTypeLabel } from '@/lib/lab/communityRules';
+import { noticeCoverage } from '@/lib/lab/guardianNotice';
 import { summarizeQuality } from '@/lib/lab/careRecordQuality';
 import { EVAL_AUTO_SOURCE_LABEL } from '@/lib/lab/evalIndicators';
 import type { EvalAutoSource } from '@/lib/lab/evalIndicators';
@@ -20,7 +23,7 @@ import { recentWeeklyStatuses, weeksMet } from '@/lib/lab/programRules';
 import { currentHalfLabel, halfYearSummary } from '@/lib/lab/riskScales';
 import { LEGAL_TRAINING_CATEGORIES, summarizeCoverage, trainingCategoryLabel, trainingCoverage } from '@/lib/lab/trainingRules';
 import { ErrorBanner } from './LabUi';
-import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, operatingDaysOf, readClosedDates, readNoVehicle, recentDates, todayString } from './labFormat';
+import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, operatingDaysOf, readClosedDates, readNoVehicle, recentDates, shiftMonth, todayString } from './labFormat';
 import { fetchLabElders } from './useLabElders';
 import styles from './lab.module.css';
 
@@ -123,6 +126,65 @@ async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<
     const delivered = new Set(deliveries.map((d) => d.elderlyId)).size;
     return {
       lines: [`${monthLabel(month)} 급여제공기록 제공대장: ${delivered}/${elders.length}명 제공 기록 있음 (${pct(delivered, elders.length)}%, ${asOf} 기준)`],
+    };
+  }
+  if (source === 'CARE_EVENT_FOLLOWUP') {
+    // 사고 기록은 월 단위로만 읽을 수 있어 올해 1월부터 이번 달까지 나란히 받는다
+    const year = asOf.slice(0, 4);
+    const thisMonth = currentMonth();
+    const months = Array.from({ length: Number(thisMonth.slice(5)) }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+    const events = (await Promise.all(months.map((m) => listCareEvents({ month: m })))).flat();
+    if (events.length === 0) return { lines: [`${year}년에 기록된 상태변화·사고가 없습니다 (${asOf} 기준). 사고가 없었다면 자동 근거로 채울 내용도 없습니다`] };
+    // 즉시 조치가 있고, 보호자 연락이 필요한 사고는 연락 기록까지 있어야 "갖춘" 것으로 센다
+    let ready = 0;
+    let noAction = 0;
+    let noGuardian = 0;
+    for (const e of events) {
+      const items = eventChecklist(e);
+      const actionOk = items.find((i) => i.code === 'ACTION')?.ok ?? false;
+      const guardian = items.find((i) => i.code === 'GUARDIAN');
+      const guardianOk = guardian ? guardian.ok : true;
+      if (!actionOk) noAction += 1;
+      if (!guardianOk) noGuardian += 1;
+      if (actionOk && guardianOk) ready += 1;
+    }
+    return {
+      lines: [
+        `${year}년 상태변화·사고 ${events.length}건 중 즉시 조치와 필요한 보호자 연락을 갖춘 기록: ${ready}/${events.length}건 (${pct(ready, events.length)}%)`,
+        `즉시 조치 빠짐 ${noAction}건 · 보호자 연락이 필요한데 기록 없음 ${noGuardian}건 (${asOf} 기준)`,
+        '2026 지표에 이 기록의 서식·필수 항목은 정해져 있지 않아 기관 자체 기록입니다 (대조 필요)',
+      ],
+    };
+  }
+  if (source === 'GUARDIAN_NOTICE_MONTHLY') {
+    const month = shiftMonth(currentMonth(), -1);
+    const [notices, elders] = await Promise.all([listGuardianNotices(month), fetchLabElders()]);
+    if (elders.length === 0) return { lines: ['등록된 어르신이 없어 보호자 안내 현황을 셀 수 없습니다'] };
+    const cov = noticeCoverage(notices, elders, month);
+    return {
+      lines: [
+        `${monthLabel(month)} 보호자 월간 안내를 보낸 어르신: ${cov.sent}/${elders.length}명 (${pct(cov.sent, elders.length)}%)`,
+        `초안만 있음 ${cov.draft}명 · 안내 없음 ${cov.missing}명 (${asOf} 기준)`,
+        '기관 소식 월 1회 제공의 근거일 뿐입니다. 보호자 상담은 분기 1회 이상이 따로 있어야 하고, 문자·소식 같은 일방향 안내만으로는 소통노력으로 인정되지 않습니다 (대조 필요)',
+      ],
+    };
+  }
+  if (source === 'RESOURCE_LINKS') {
+    const year = Number(asOf.slice(0, 4));
+    const links = await listResourceLinks({ year });
+    if (links.length === 0) return { lines: [`${year}년에 기록된 외부기관·지역자원 연계가 없습니다 (${asOf} 기준)`] };
+    const sum = resourceSummary(links, year, asOf);
+    const referral = links.filter((l) => l.linkedOn.slice(0, 4) === String(year) && l.referralGiven).length;
+    const kinds = Object.entries(sum.byType)
+      .filter(([, n]) => n > 0)
+      .map(([type, n]) => `${resourceTypeLabel(type)} ${n}건`)
+      .join(' · ');
+    return {
+      lines: [
+        `${year}년 외부기관·지역자원 연계 ${sum.total}건, 연계한 어르신 ${sum.eldersLinked}명 (${asOf} 기준)`,
+        `연계기록지를 제공한 건 ${referral}/${sum.total}건${kinds ? ` · 종류별: ${kinds}` : ''}`,
+        ...(sum.followUpsDue.length > 0 ? [`후속 확인일이 지났는데 결과가 비어 있는 연계 ${sum.followUpsDue.length}건`] : []),
+      ],
     };
   }
   const dates = recentDates(7);

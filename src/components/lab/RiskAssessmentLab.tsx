@@ -3,6 +3,7 @@
 /**
  * 위험도 평가 — 욕창(Braden)·낙상(Morse)·인지기능. 반기(1~6월·7~12월)마다 모든 수급자를 세 기준으로 평가해야 한다.
  * 위쪽은 이번 반기 진행 현황, 아래는 어르신별 마지막 평가와 "평가가 필요한 분"을 한눈에 보는 표다.
+ * 최근 6개월 낙상 사고 기록보다 마지막 Morse 평가가 이르면 "낙상 후 재평가"로 표시한다(사고 기록을 못 불러와도 표는 그대로).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banner } from '@astryxdesign/core/Banner';
@@ -13,14 +14,15 @@ import { Switch } from '@astryxdesign/core/Switch';
 import { Text } from '@astryxdesign/core/Text';
 import { Loading } from '@/components/Loading';
 import { StatRow, StatTile } from '@/components/StatTile';
-import { listRiskLatest } from '@/lib/lab/labApi';
+import { fallsNeedingReassessment } from '@/lib/lab/careEventRules';
+import { listCareEvents, listRiskLatest } from '@/lib/lab/labApi';
 import { currentHalfLabel, daysUntilHalfEnd, elderHalfYearStatus, halfYearSummary } from '@/lib/lab/riskScales';
 import type { RiskKind, RiskLatest } from '@/lib/lab/labTypes';
-import { ErrorBanner } from './LabUi';
+import { Chip, ErrorBanner, SupportText } from './LabUi';
 import RiskElderDialog from './RiskElderDialog';
 import type { RiskDialogView } from './RiskElderDialog';
 import { RiskCell } from './RiskParts';
-import { errorText } from './labFormat';
+import { currentMonth, errorText, shiftMonth } from './labFormat';
 import styles from './lab.module.css';
 
 interface DialogState {
@@ -35,7 +37,11 @@ export default function RiskAssessmentLab() {
   const [error, setError] = useState<string | null>(null);
   const [onlyDue, setOnlyDue] = useState(false);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [fallIds, setFallIds] = useState<number[]>([]);
+  const [fallNote, setFallNote] = useState<string | null>(null);
+  const [fallLoading, setFallLoading] = useState(false);
   const seq = useRef(0);
+  const fallSeq = useRef(0);
   // 화면을 연 시각 기준으로 반기를 판정한다(자정을 넘겨 열어 두면 새로 불러오기 때 갱신됨)
   const [today, setToday] = useState(() => new Date());
 
@@ -56,10 +62,30 @@ export default function RiskAssessmentLab() {
     }
   }, []);
 
+  // 낙상 사고는 월 단위로만 읽을 수 있어 최근 6개월을 나란히 받는다. 일부 달이 실패해도 받은 달로 계산하고 안내만 남긴다.
+  const loadFalls = useCallback(async (list: RiskLatest[]) => {
+    const n = ++fallSeq.current;
+    setFallLoading(true);
+    setFallNote(null);
+    const base = currentMonth();
+    const results = await Promise.allSettled([0, 1, 2, 3, 4, 5].map((i) => listCareEvents({ month: shiftMonth(base, -i) })));
+    if (n !== fallSeq.current) return;
+    const events = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    setFallIds(fallsNeedingReassessment(events, list));
+    setFallNote(failed > 0 ? '일부 달의 사고 기록을 불러오지 못해 "낙상 후 재평가" 표시가 빠졌을 수 있습니다.' : null);
+    setFallLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !error) void loadFalls(latest);
+  }, [loading, error, latest, loadFalls]);
+
   useEffect(() => {
     void load();
     return () => {
       seq.current += 1;
+      fallSeq.current += 1;
     };
   }, [load]);
 
@@ -69,6 +95,8 @@ export default function RiskAssessmentLab() {
   const visible = onlyDue ? latest.filter((l) => dueIds.has(l.elderlyId)) : latest;
   const daysLeft = daysUntilHalfEnd(today);
   const dueCount = summary.pending.length;
+  const fallSet = useMemo(() => new Set(fallIds), [fallIds]);
+  const fallNames = latest.filter((l) => fallSet.has(l.elderlyId)).map((l) => l.elderlyName);
 
   const open = (elder: RiskLatest, view: RiskDialogView) => {
     // 이번 반기에 남은 첫 평가부터 연다(욕창 → 낙상 → 인지). 모두 마쳤으면 욕창.
@@ -93,6 +121,16 @@ export default function RiskAssessmentLab() {
           description={`2026 평가는 욕창·낙상·인지기능 세 기준을 반기마다 요구합니다. 세 가지를 모두 마친 어르신은 ${summary.allDone}/${summary.total}분이에요. 평가 기준일은 한국 날짜입니다.`}
         />
       )}
+
+      {fallNames.length > 0 && !loading && (
+        <Banner
+          status="warning"
+          title={`낙상 후 재평가가 필요한 어르신이 ${fallNames.length}분 있습니다`}
+          description={`최근 6개월 안에 낙상 사고가 있었는데 그 뒤 낙상(Morse) 평가가 없습니다: ${fallNames.join(', ')}. 낙상 뒤 재평가는 필수 항목이 아니라 낙상 후 관리 차원의 권장입니다.`}
+        />
+      )}
+      {fallLoading && <SupportText>낙상 사고 기록을 확인하는 중입니다...</SupportText>}
+      {fallNote && <SupportText tone="warn">{fallNote}</SupportText>}
 
       <div className={styles.toolbar}>
         <Switch label="평가가 필요한 어르신만" value={onlyDue} onChange={setOnlyDue} />
@@ -131,6 +169,11 @@ export default function RiskAssessmentLab() {
                       <Text type="body" weight="medium">
                         {l.elderlyName}
                       </Text>
+                      {fallSet.has(l.elderlyId) && (
+                        <div>
+                          <Chip tone="warn" label="낙상 후 재평가" />
+                        </div>
+                      )}
                     </td>
                     <td data-label="욕창 (Braden)">
                       <RiskCell entry={l.braden} today={today} />
