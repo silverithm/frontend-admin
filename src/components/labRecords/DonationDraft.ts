@@ -11,8 +11,8 @@ export const DONOR_TYPE_OPTIONS: Array<{ value: string; label: string }> = (Obje
 export const MAX_DONATION_AMOUNT = MAX_LEDGER_AMOUNT;
 export const MAX_DONOR_NAME = 50;
 export const MAX_GOODS_DESCRIPTION = 200;
-export const MAX_PURPOSE = 100;
-export const MAX_RECEIPT_NO = 50;
+export const MAX_PURPOSE = 200; // 서버 designated_purpose VARCHAR(200)
+export const MAX_RECEIPT_NO = 30; // 서버 receipt_no VARCHAR(30) — 넘으면 저장이 400으로 실패한다
 
 export interface DonationDraft {
   /** 고치는 중인 후원금 번호(새로 적는 중이면 null) */
