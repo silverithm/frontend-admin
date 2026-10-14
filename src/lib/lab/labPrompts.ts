@@ -1221,7 +1221,7 @@ export const LEDGER_CLASSIFY_SCHEMA = {
         type: 'OBJECT',
         properties: {
           index: { type: 'INTEGER', description: '입력 줄 번호(0부터)' },
-          accountCode: NULLABLE_STR('그 줄의 방향에 맞는 계정 목록 안의 세 자리 코드. 정할 수 없으면 null'),
+          accountCode: NULLABLE_STR('그 줄의 방향에 맞는 계정 목록 안의 3~4자리 코드. 정할 수 없으면 null'),
           reason: { type: 'STRING', description: `이유 (${MAX_LEDGER_REASON}자 이내)` },
         },
         required: ['index', 'accountCode', 'reason'],

@@ -7,14 +7,13 @@
  *  https://www.law.go.kr/법령/사회복지법인및사회복지시설재무ㆍ회계규칙
  * 대조 필요: 이 규칙이 2023-01-01 이후 바뀌었는지, 기관이 시설회계 별표(법인 소속 일반 시설)를 따라야 하는지는 사용 시점에 확인한다.
  *
- * 서버 장부는 계정 코드를 세 자리 숫자(CHAR(3))로만 저장한다. 별표의 네 자리 목(세출 1011·1012, 세입 1011~1014·1111·1112)은
- * 저장할 수 없으므로 그 항(세 자리, '101')의 코드를 대신 쓴다 — 이 항목은 `approximate: true`로 표시하고 화면이 "대조 필요"를 붙인다.
+ * 계정 코드는 세 자리 항·목 또는 네 자리 목이다(별표의 세출 1011·1012, 세입 1011~1014·1111·1112). 서버도 3~4자리 숫자를 그대로 저장한다.
  * 세입과 세출은 코드가 같아도 다른 계정이다(예: 세입 111 적립금 / 세출 111 급여). 반드시 방향과 함께 찾는다.
  */
 import type { Donation, LedgerDirection, LedgerEntry } from './labTypes.ts';
 
 export interface LedgerAccount {
-  /** 세 자리 코드(목). 네 자리 목을 항 코드로 대신하는 계정은 approximate */
+  /** 3~4자리 숫자 코드(목) */
   code: string;
   name: string;
   /** 관 이름 */
@@ -23,12 +22,10 @@ export interface LedgerAccount {
   section: string;
   groupCode: string;
   sectionCode: string;
-  /** 별표의 네 자리 목을 세 자리 항 코드로 대신한 계정 — 대조 필요 */
-  approximate?: boolean;
 }
 
-function account(groupCode: string, group: string, sectionCode: string, section: string, code: string, name: string, approximate?: boolean): LedgerAccount {
-  return approximate ? { code, name, group, section, groupCode, sectionCode, approximate } : { code, name, group, section, groupCode, sectionCode };
+function account(groupCode: string, group: string, sectionCode: string, section: string, code: string, name: string): LedgerAccount {
+  return { code, name, group, section, groupCode, sectionCode };
 }
 
 /** 세출 — 노인장기요양기관 세출예산과목 구분(별표 10)의 관·항·목. 별표에 없는 번호(114·134·313)는 넣지 않았다. */
@@ -67,12 +64,12 @@ export const EXPENSE_ACCOUNTS: ReadonlyArray<LedgerAccount> = [
   account('08', '예비비 및 기타', '81', '예비비 및 기타', '812', '반환금'),
   account('09', '적립금 및 준비금', '91', '운영충당 적립금 및 환경개선준비금', '911', '운영충당 적립금'),
   account('09', '적립금 및 준비금', '91', '운영충당 적립금 및 환경개선준비금', '912', '시설환경개선준비금'),
-  account('10', '적립금 및 준비금 지출(특별회계)', '101', '운영충당 적립금 지출 및 환경개선준비금 지출', '101', '적립금·준비금 지출(별표 목 1011 운영충당적립금 지출 · 1012 시설환경개선준비금 지출)', true),
+  account('10', '적립금 및 준비금 지출(특별회계)', '101', '운영충당 적립금 지출 및 환경개선준비금 지출', '1011', '운영충당 적립금 지출'),
+  account('10', '적립금 및 준비금 지출(특별회계)', '101', '운영충당 적립금 지출 및 환경개선준비금 지출', '1012', '시설환경개선준비금 지출'),
 ];
 
 /**
  * 세입 — 노인장기요양기관 세입예산과목 구분(별표 9)의 관·항·목. 화면이 AI 제안·입력 선택에 쓰는 참고 목록이며 "대조 필요" 표시를 붙인다.
- * 별표에 없는 번호(111)는 넣지 않았다. 별표 9의 111은 세입 11관 적립금의 항 코드다.
  */
 export const INCOME_ACCOUNTS: ReadonlyArray<LedgerAccount> = [
   account('01', '입소자(이용자)부담금수입', '11', '입소(이용)비용수입', '112', '본인부담금수입'),
@@ -100,13 +97,17 @@ export const INCOME_ACCOUNTS: ReadonlyArray<LedgerAccount> = [
   account('09', '이월금', '91', '이월금', '912', '전년도이월금(후원금)'),
   account('09', '이월금', '91', '이월금', '913', '전년도이월금(식재료비)'),
   account('09', '이월금', '91', '이월금', '914', '○○ 이월사업비'),
-  account('10', '잡수입', '101', '잡수입', '101', '잡수입(별표 목 1011 불용품매각대 · 1012 기타예금이자수입 · 1013 직원식재료비수입 · 1014 기타잡수입)', true),
+  account('10', '잡수입', '101', '잡수입', '1011', '불용품매각대'),
+  account('10', '잡수입', '101', '잡수입', '1012', '기타예금이자수입'),
+  account('10', '잡수입', '101', '잡수입', '1013', '직원식재료비수입'),
+  account('10', '잡수입', '101', '잡수입', '1014', '기타잡수입'),
+  account('11', '적립금', '111', '적립금', '1111', '운영충당 적립금'),
+  account('11', '적립금', '111', '적립금', '1112', '시설환경개선준비금'),
 ];
 
 /** 화면이 "대조 필요"로 표시해야 하는 장부 규칙 */
 export const LEDGER_VERIFY_NOTES: readonly string[] = [
   '계정 과목은 재무ㆍ회계 규칙 별표 9·10(노인장기요양기관, 시행 2023-01-01본)입니다. 이후 개정 여부와 기관이 시설회계 별표를 따라야 하는지 대조 필요',
-  '네 자리 목(세입 1011~1014·1111·1112, 세출 1011·1012)은 장부가 세 자리 코드만 저장해 항 코드 101로 대신합니다. 대조 필요',
   '세입 계정은 참고용입니다. 결산서(세입결산서·세출결산서) 제출 전에 과목을 대조해 주세요',
 ] as const;
 

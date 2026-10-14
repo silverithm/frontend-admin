@@ -743,7 +743,7 @@ export type LongServiceFacility = 'HOME' | 'RESIDENTIAL';
 export type LedgerDirection = 'INCOME' | 'EXPENSE';
 export type LedgerEvidenceType = 'RECEIPT' | 'CARD' | 'TAX_INVOICE' | 'TRANSFER' | 'OTHER';
 
-/** 현금출납부 한 줄. accountCode는 세 자리 숫자 문자열(예: '133'). */
+/** 현금출납부 한 줄. accountCode는 3~4자리 숫자 문자열(예: '133', 네 자리 목 '1011'). */
 export interface LedgerEntry {
   id: number;
   entryDate: string;

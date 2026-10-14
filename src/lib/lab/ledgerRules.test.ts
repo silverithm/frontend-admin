@@ -47,11 +47,11 @@ test('세출 계정 — 이름이 확인된 값(111 급여 · 133 공공요금 �
   assert.equal(findAccount('EXPENSE', '311')?.group, '사업비');
 });
 
-test('계정 목록 — 코드는 방향 안에서 중복이 없고 세 자리 숫자다(서버 CHAR(3))', () => {
+test('계정 목록 — 코드는 방향 안에서 중복이 없고 3~4자리 숫자다(서버 VARCHAR(4))', () => {
   for (const list of [EXPENSE_ACCOUNTS, INCOME_ACCOUNTS]) {
     assert.equal(new Set(list.map((a) => a.code)).size, list.length);
     for (const a of list) {
-      assert.match(a.code, /^\d{3}$/);
+      assert.match(a.code, /^\d{3,4}$/);
       assert.ok(a.name.length > 0 && a.group.length > 0 && a.section.length > 0);
     }
   }
@@ -60,19 +60,46 @@ test('계정 목록 — 코드는 방향 안에서 중복이 없고 세 자리 �
 test('계정 목록 — 목의 앞자리가 항 코드와 맞고, 항의 앞자리가 관 번호와 맞는다(관 01 → 항 11 → 목 111)', () => {
   for (const list of [EXPENSE_ACCOUNTS, INCOME_ACCOUNTS]) {
     for (const a of list) {
-      if (a.approximate) continue;
       assert.ok(a.code.startsWith(a.sectionCode), `${a.code}의 항 ${a.sectionCode}`);
       assert.ok(a.sectionCode.startsWith(String(Number(a.groupCode))), `${a.sectionCode}의 관 ${a.groupCode}`);
     }
   }
 });
 
-test('네 자리 목(별표 1011~1014 등)은 세 자리 항 코드 101로 대신하고 approximate로 표시한다', () => {
-  assert.equal(findAccount('EXPENSE', '101')?.approximate, true);
-  assert.equal(findAccount('INCOME', '101')?.approximate, true);
-  assert.equal(findAccount('EXPENSE', '1011'), null);
-  assert.equal(EXPENSE_ACCOUNTS.filter((a) => a.approximate).length, 1);
-  assert.equal(INCOME_ACCOUNTS.filter((a) => a.approximate).length, 1);
+test('네 자리 목(별표 1011~1014·1111·1112)을 근사 없이 그대로 가진다', () => {
+  assert.equal(findAccount('EXPENSE', '1011')?.name, '운영충당 적립금 지출');
+  assert.equal(findAccount('EXPENSE', '1012')?.name, '시설환경개선준비금 지출');
+  for (const c of ['1011', '1012', '1013', '1014', '1111', '1112']) assert.ok(findAccount('INCOME', c), c);
+  assert.equal(findAccount('INCOME', '1014')?.name, '기타잡수입');
+  assert.equal(findAccount('EXPENSE', '101'), null);
+  assert.equal(findAccount('INCOME', '101'), null);
+  assert.ok([...EXPENSE_ACCOUNTS, ...INCOME_ACCOUNTS].every((a) => !('approximate' in a)));
+  assert.equal(isAccountCode('INCOME', '1111'), true);
+  assert.equal(isAccountCode('EXPENSE', '1111'), false);
+  assert.equal(accountLabel('INCOME', '1014'), '1014 기타잡수입');
+});
+
+test('연간 요약 — 네 자리 목이 관·항·목으로 묶인다(세입 관 10 항 101 목 1011·1014, 세출 관 10)', () => {
+  const s = ledgerSummary(
+    [
+      { entryDate: '2026-03-02', direction: 'INCOME', accountCode: '1011', amount: 1000 },
+      { entryDate: '2026-03-09', direction: 'INCOME', accountCode: '1014', amount: 500 },
+      { entryDate: '2026-04-01', direction: 'INCOME', accountCode: '1111', amount: 70 },
+      { entryDate: '2026-03-03', direction: 'EXPENSE', accountCode: '1012', amount: 300 },
+    ],
+    2026,
+  );
+  const g10 = s.income.groups.find((g) => g.code === '10')!;
+  assert.equal(g10.total, 1500);
+  const sec = g10.sections.find((x) => x.code === '101')!;
+  assert.equal(sec.total, 1500);
+  assert.equal(sec.accounts.find((x) => x.code === '1011')!.months[2], 1000);
+  assert.equal(sec.accounts.find((x) => x.code === '1014')!.total, 500);
+  assert.equal(s.income.groups.find((g) => g.code === '11')!.total, 70);
+  assert.equal(s.income.total, 1570);
+  assert.equal(s.expense.groups.find((g) => g.code === '10')!.sections[0].accounts.find((x) => x.code === '1012')!.total, 300);
+  assert.equal(s.net, 1270);
+  assert.ok(s.income.groups.every((g) => !g.sections.some((x) => x.accounts.some((a) => a.unknown))));
 });
 
 test('세입 계정(참고용) — 본인부담금·식재료비·기타비급여·후원금·장기요양급여수입이 있다', () => {
