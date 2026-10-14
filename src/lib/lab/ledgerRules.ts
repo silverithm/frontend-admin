@@ -109,6 +109,7 @@ export const INCOME_ACCOUNTS: ReadonlyArray<LedgerAccount> = [
 export const LEDGER_VERIFY_NOTES: readonly string[] = [
   '계정 과목은 재무ㆍ회계 규칙 별표 9·10(노인장기요양기관, 시행 2023-01-01본)입니다. 이후 개정 여부와 기관이 시설회계 별표를 따라야 하는지 대조 필요',
   '세입 계정은 참고용입니다. 결산서(세입결산서·세출결산서) 제출 전에 과목을 대조해 주세요',
+  '세입 1111 운영충당 적립금은 장기요양기관 재무ㆍ회계 규칙 세출표 설명("세입계정으로 적립된 운영충당적립금(1111목)")으로 확인했고, 1112 시설환경개선준비금은 대응하는 세출 과목(1012)에서 추정한 이름입니다. 별표 9 원문 대조 필요',
 ] as const;
 
 export function accountsFor(direction: LedgerDirection): ReadonlyArray<LedgerAccount> {
