@@ -100,3 +100,16 @@ export function useElderAttendanceDays(start: string, end: string): { days: Map<
 
   return state;
 }
+
+/** 기간 응답에서 어르신별 출석한 날짜('YYYY-MM-DD', 오름차순·중복 없음). 날짜가 없는 줄은 건너뛴다. */
+export function presentDatesOf(data: unknown): Record<number, string[]> {
+  const dates = new Map<number, Set<string>>();
+  for (const r of rowsOf(data)) {
+    const id = Number(r.elderlyId);
+    if (!Number.isInteger(id) || !isPresent(r.status) || typeof r.date !== 'string') continue;
+    const set = dates.get(id) ?? new Set<string>();
+    set.add(r.date.slice(0, 10));
+    dates.set(id, set);
+  }
+  return Object.fromEntries([...dates].map(([id, set]) => [id, [...set].sort()]));
+}

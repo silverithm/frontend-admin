@@ -907,3 +907,89 @@ th.stickyName {
   padding-inline-start: var(--spacing-6) !important;
   color: var(--color-text-secondary);
 }
+
+/* ---------- 5차: 상태변화·사고 · 기능회복훈련 · 보호자 안내 ---------- */
+.eventRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.eventRow:hover {
+  background: var(--color-background-muted);
+}
+
+.eventRow:last-child {
+  border-bottom: 0;
+}
+
+.checkItem {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: flex-start;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.checkMark {
+  flex: none;
+  min-width: 20px;
+  font-weight: var(--font-weight-bold);
+}
+
+.messageBox {
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  border: 1px solid var(--color-border);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.factList {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.printBody {
+  white-space: pre-wrap;
+  font-size: 11pt;
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.printBox {
+  min-height: 24mm;
+  white-space: pre-wrap;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.wrap {
+  white-space: normal;
+}
