@@ -760,3 +760,150 @@ th.stickyName {
     padding: 2px;
   }
 }
+
+/* ---------- 4차: 급여대장·회계 장부·후원금 ---------- */
+.noteList {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+/* 월 급여대장 표: 시간 입력칸이 좁아도 줄이 깨지지 않게 */
+.payTable td {
+  vertical-align: middle;
+}
+
+.payName {
+  min-width: 120px;
+  white-space: normal;
+}
+
+.payHour {
+  min-width: 80px;
+}
+
+.payActions {
+  white-space: normal;
+  min-width: 190px;
+}
+
+.payActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.paySub td {
+  white-space: normal;
+  background: var(--color-background-surface);
+}
+
+/* 기타 수당·공제 한 줄 */
+.extraLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 150px) auto auto;
+  gap: var(--spacing-2);
+  align-items: end;
+}
+
+@media (max-width: 640px) {
+  .extraLine {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .extraLine > :nth-child(1),
+  .extraLine > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  /* 급여대장 표: 직원 한 명이 카드 한 장. 시간 다섯 칸은 3열로 모은다. */
+  .payTable,
+  .payTable tbody,
+  .payTable tr,
+  .payTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .payTable thead {
+    display: none;
+  }
+  .payTable tr[data-main] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-2);
+    padding: var(--spacing-3) var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .payTable tr[data-main] > td {
+    padding: 0;
+    border-bottom: 0;
+    white-space: normal;
+    position: static;
+  }
+  .payTable tr[data-main] > td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+  }
+  .payTable tr[data-main] > td.payName,
+  .payTable tr[data-main] > td.payActions {
+    grid-column: 1 / -1;
+  }
+  .payTable tr[data-main] > td.payName::before,
+  .payTable tr[data-main] > td.payActions::before {
+    display: none;
+  }
+  .payTable tr[data-main] > td.num {
+    text-align: start;
+  }
+  .payTable tr.paySub {
+    padding: var(--spacing-2) var(--spacing-4) var(--spacing-3);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .payTable tr.paySub td {
+    padding: 0;
+    border-bottom: 0;
+  }
+}
+
+/* 급여명세서 인쇄 */
+.slipPage {
+  break-after: page;
+}
+
+.slipPage:last-child {
+  break-after: auto;
+}
+
+.slipCols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+  align-items: start;
+}
+
+.slipNet {
+  margin-top: var(--spacing-3);
+}
+
+.slipBasis {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.sumSection {
+  padding-inline-start: var(--spacing-5) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+.sumAccount {
+  padding-inline-start: var(--spacing-6) !important;
+  color: var(--color-text-secondary);
+}
