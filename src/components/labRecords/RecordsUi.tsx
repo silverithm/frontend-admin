@@ -1,15 +1,14 @@
 'use client';
 
 /** 2차 기록 화면 공용 조각 — 연도 이동, AI 메모 상자, 판정 칩, 시각 입력. */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
-import { TimeInput } from '@astryxdesign/core/TimeInput';
-import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { VitalLevel } from '@/lib/lab/vitalFlags';
 import { VITAL_LEVEL_LABEL } from '@/lib/lab/vitalFlags';
 import { AiChip, Chip, ErrorBanner } from '@/components/lab/LabUi';
@@ -110,7 +109,61 @@ interface TimeFieldProps {
   onChange: (value: string) => void;
 }
 
-/** TimeInput은 ISOTimeString 형식 타입을 요구한다. 화면 상태는 평범한 문자열로 두고 여기서만 맞춘다. */
+/**
+ * '1430'·'14:30'·'9:5'·'오후 2:30'을 'HH:MM'(24시간제)으로 맞춘다. 읽을 수 없으면 null.
+ * Astryx TimeInput은 12시간제가 기본이고 칸을 누르면 'e.g., 2:30 PM' 같은 영어 안내가 떠서 쓰지 않는다.
+ */
+export function normalizeTimeText(raw: string): string | null {
+  let t = raw.trim().replace(/\s+/g, ' ');
+  let pm = false;
+  let am = false;
+  if (/^(오후|pm)\s*/i.test(t)) { pm = true; t = t.replace(/^(오후|pm)\s*/i, ''); }
+  else if (/^(오전|am)\s*/i.test(t)) { am = true; t = t.replace(/^(오전|am)\s*/i, ''); }
+  const m = /^(\d{1,2})(?:[:시.\s]\s*(\d{1,2})분?)?$/.exec(t) ?? /^(\d{1,2})(\d{2})$/.exec(t);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = m[2] === undefined ? 0 : Number(m[2]);
+  if (pm && h < 12) h += 12;
+  if (am && h === 12) h = 0;
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/** 시각 칸 — 24시간제 글 칸. 칸을 떠날 때 'HH:MM'으로 맞춰 올리고, 읽을 수 없으면 한글로 알린다. */
 export function TimeField({ label, value, onChange }: TimeFieldProps) {
-  return <TimeInput label={label} hasClear value={(value || undefined) as ISOTimeString | undefined} onChange={(v) => onChange(v ? String(v).slice(0, 5) : '')} />;
+  const [text, setText] = useState(value);
+  const [invalid, setInvalid] = useState(false);
+  // 바깥 값(불러온 기록·AI 제안)이 바뀌면 칸 글자도 따라간다 — 렌더 중 이전 값과 비교하는 React 권장 방식
+  const [shown, setShown] = useState(value);
+  if (shown !== value) {
+    setShown(value);
+    setText(value);
+    setInvalid(false);
+  }
+  const commit = () => {
+    if (text.trim() === '') {
+      setInvalid(false);
+      if (value !== '') onChange('');
+      return;
+    }
+    const hhmm = normalizeTimeText(text);
+    if (!hhmm) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    setText(hhmm);
+    if (hhmm !== value) onChange(hhmm);
+  };
+  return (
+    <div onBlur={commit}>
+      <TextInput
+        label={label}
+        value={text}
+        placeholder="예: 14:30"
+        onChange={(v) => setText(v.slice(0, 12))}
+        status={invalid ? { type: 'error', message: '14:30처럼 24시간제로 적어 주세요' } : undefined}
+      />
+    </div>
+  );
 }

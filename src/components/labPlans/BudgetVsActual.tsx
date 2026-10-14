@@ -32,7 +32,7 @@ export default function BudgetVsActual({ result, throughMonth, onThroughMonth, l
           <Text type="label">예산 대비 집행</Text>
           <span className={styles.spacer} />
           <div style={{ minWidth: 160 }}>
-            <Selector label="집행 기준" options={MONTH_OPTIONS} value={String(throughMonth)} onChange={(v) => onThroughMonth(Number(v ?? '0'))} />
+            <Selector placeholder="고르기" label="집행 기준" options={MONTH_OPTIONS} value={String(throughMonth)} onChange={(v) => onThroughMonth(Number(v ?? '0'))} />
           </div>
         </div>
         {ledgerError && <SupportText tone="warn">{ledgerError}</SupportText>}

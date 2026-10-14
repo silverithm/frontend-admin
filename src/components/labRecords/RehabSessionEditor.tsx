@@ -91,7 +91,7 @@ export default function RehabSessionEditor({ session, onSaved, onDeleted, onClos
         </HStack>
         <div className={styles.fieldGrid}>
           <LabDateInput label="훈련 날짜" value={draft.date} onChange={(v) => set('date', v)} max={todayString()} />
-          <Selector label="종류" options={REHAB_KINDS.map((k) => ({ value: k.value, label: k.label }))} value={draft.kind} onChange={(v) => v && set('kind', v as RehabKind)} />
+          <Selector placeholder="고르기" label="종류" options={REHAB_KINDS.map((k) => ({ value: k.value, label: k.label }))} value={draft.kind} onChange={(v) => v && set('kind', v as RehabKind)} />
           <NumField label="훈련 시간 (분)" value={draft.minutes} onChange={(v) => set('minutes', v)} max={MAX_REHAB_MINUTES} grouped={false} />
           <TextInput label="담당자" value={draft.therapist} onChange={(v) => set('therapist', v.slice(0, 50))} />
         </div>

@@ -240,7 +240,7 @@ export default function LedgerPaste({ year, fallbackDate, existing, onSaved }: P
                         </div>
                         <div className={styles.fieldGridWide}>
                           <TextInput label="적요" value={r.description} onChange={(v) => patch(r.key, { description: v.slice(0, 200) })} isDisabled={saving || !r.include} />
-                          <Selector
+                          <Selector searchPlaceholder="찾기"
                             label="계정"
                             placeholder="계정 고르기"
                             hasSearch

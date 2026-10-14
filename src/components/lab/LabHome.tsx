@@ -120,7 +120,27 @@ export default function LabHome() {
         description="기관 업무를 AI와 함께 새로 만들어 보는 곳입니다. 지금은 이 기관에만 열려 있어요."
       />
 
-      <nav aria-label="실험실 도구" className={styles.toolGroups}>
+      {/* 휴대폰 폭에서는 묶음 여섯 줄이 첫 화면을 다 차지해 도구 내용이 안 보인다 — 묶음별 선택 상자 하나로 바꾼다 */}
+      <label className={styles.toolPicker}>
+        <Text type="label" color="secondary">
+          도구
+        </Text>
+        <select aria-label="실험실 도구" className={styles.toolPickerSelect} value={tool} onChange={(e) => {
+            if (isTool(e.target.value)) choose(e.target.value);
+          }}>
+          {GROUPS.map((group) => (
+            <optgroup key={group.id} label={group.label}>
+              {group.tools.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+
+      <nav aria-label="실험실 도구 묶음" className={styles.toolGroups}>
         {GROUPS.map((group) => (
           <div key={group.id} role="group" aria-label={group.label} className={styles.toolGroup}>
             <span className={styles.toolGroupTitle}>

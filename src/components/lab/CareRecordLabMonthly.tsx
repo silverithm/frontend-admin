@@ -68,7 +68,7 @@ export default function CareRecordLabMonthly({ elders, eldersLoading }: CareMont
     <div className={styles.stack}>
       <div className={styles.toolbar}>
         <div className={styles.toolbarGrow} style={{ maxWidth: 240 }}>
-          <Selector
+          <Selector placeholder="고르기"
             label="어르신"
             options={options}
             value={elderId === null ? undefined : String(elderId)}

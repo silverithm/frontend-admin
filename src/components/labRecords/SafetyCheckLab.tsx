@@ -195,7 +195,7 @@ export default function SafetyCheckLab() {
         <Card padding={4}>
           <div className={styles.fieldGrid}>
             <LabDateInput label="점검 날짜" value={target.date} max={today} onChange={(v) => v && v !== target.date && openTarget({ ...target, date: v })} />
-            <Selector label="점검 종류" options={kindOptions} value={target.kind} onChange={(v) => v && v !== target.kind && guarded(() => setTarget((t) => ({ ...t, kind: v as SafetyKind })))} />
+            <Selector placeholder="고르기" label="점검 종류" options={kindOptions} value={target.kind} onChange={(v) => v && v !== target.kind && guarded(() => setTarget((t) => ({ ...t, kind: v as SafetyKind })))} />
           </div>
         </Card>
 

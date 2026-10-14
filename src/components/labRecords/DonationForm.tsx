@@ -41,7 +41,7 @@ export default function DonationForm({ draft, onChange, saving, error, onSave, o
         <div className={styles.fieldGridWide}>
           <LabDateInput label="받은 날짜" value={draft.receivedOn} onChange={(v) => set({ receivedOn: v })} />
           <TextInput label="후원자 이름" value={draft.donorName} onChange={(v) => set({ donorName: v.slice(0, MAX_DONOR_NAME) })} isDisabled={saving} />
-          <Selector label="후원자 구분" options={DONOR_TYPE_OPTIONS} value={draft.donorType} onChange={(v) => v && set({ donorType: v as DonorType })} isDisabled={saving} />
+          <Selector placeholder="고르기" label="후원자 구분" options={DONOR_TYPE_OPTIONS} value={draft.donorType} onChange={(v) => v && set({ donorType: v as DonorType })} isDisabled={saving} />
         </div>
         <div className={styles.fieldGridWide}>
           <SegmentedControl label="현금·물품" value={draft.kind} onChange={(v) => set({ kind: v as DonationKind })}>

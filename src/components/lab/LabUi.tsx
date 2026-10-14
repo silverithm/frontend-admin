@@ -181,6 +181,7 @@ export function LabDateInput({ label, value, onChange, max, }: LabDateInputProps
   return (
     <DateInput
       label={label}
+      placeholder="날짜 고르기"
       value={(value || undefined) as ISODateString | undefined}
       max={max as ISODateString | undefined}
       onChange={(v) => onChange(v ?? '')}

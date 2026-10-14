@@ -102,7 +102,7 @@ export default function GuardianNoticeSend({ notice, dirty, onChanged }: Props) 
       <SupportText>문자·카카오톡·인쇄 등으로 실제로 보낸 뒤 눌러 주세요. 제공 대장(일자·방법·받는 분)으로 평가 때 확인할 수 있습니다.</SupportText>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--spacing-3)', alignItems: 'start' }}>
         <LabDateInput label="보낸 날" value={sentOn} onChange={setSentOn} max={todayString()} />
-        <Selector label="방법" options={NOTICE_METHODS.map((m) => ({ value: m.value, label: m.label }))} value={method} onChange={(v) => v && setMethod(v as GuardianNoticeMethod)} />
+        <Selector placeholder="고르기" label="방법" options={NOTICE_METHODS.map((m) => ({ value: m.value, label: m.label }))} value={method} onChange={(v) => v && setMethod(v as GuardianNoticeMethod)} />
         <TextInput label="받는 분 (선택)" value={recipient} onChange={(v) => setRecipient(v.slice(0, 50))} placeholder="예: 큰아드님" />
       </div>
       {error && <ErrorBanner message={error} />}

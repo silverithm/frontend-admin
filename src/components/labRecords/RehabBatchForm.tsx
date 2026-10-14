@@ -127,7 +127,7 @@ export default function RehabBatchForm({ elders, date, onSaved, onClose }: Props
 
         <div className={styles.fieldGrid}>
           <LabDateInput label="훈련 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
-          <Selector
+          <Selector placeholder="고르기"
             label="종류"
             options={REHAB_KINDS.map((k) => ({ value: k.value, label: k.label }))}
             value={draft.kind}

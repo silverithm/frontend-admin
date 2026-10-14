@@ -235,7 +235,7 @@ export default function BudgetLab() {
         <YearStepper value={year} onChange={changeYear} max={thisYear + 1} isDisabled={saving || working} />
         {revisionOptions.length > 0 && (
           <div style={{ minWidth: 180 }}>
-            <Selector label="차수" options={revisionOptions} value={draft === null ? undefined : String(draft.revision)} onChange={(v) => selectRevision(Number(v))} isDisabled={saving || working} />
+            <Selector placeholder="고르기" label="차수" options={revisionOptions} value={draft === null ? undefined : String(draft.revision)} onChange={(v) => selectRevision(Number(v))} isDisabled={saving || working} />
           </div>
         )}
         <span className={styles.spacer} />
@@ -248,7 +248,7 @@ export default function BudgetLab() {
 
       {error && <ErrorBanner message={error} onRetry={() => void load()} />}
 
-      <BudgetDeadlines year={year} revision={draft?.revision ?? 0} decidedOn={draft?.decidedOn ?? ''} today={today} />
+      <BudgetDeadlines year={year} revision={draft?.revision ?? 0} decidedOn={draft?.decidedOn ?? ''} baseDecidedOn={budgets.find((b) => b.revision === 0)?.decidedOn ?? null} hasBase={budgets.some((b) => b.revision === 0)} today={today} />
 
       {loading ? (
         <Loading size="section" label="예산을 불러오는 중..." />

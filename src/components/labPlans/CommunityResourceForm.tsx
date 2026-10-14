@@ -61,7 +61,7 @@ export default function CommunityResourceForm({ draft, onChange, elders, eldersL
             isDisabled={saving}
           />
           <LabDateInput label="연계 날짜" value={draft.linkedOn} onChange={(v) => set({ linkedOn: v })} />
-          <Selector label="자원 종류" options={RESOURCE_OPTIONS} value={draft.resourceType} onChange={(v) => v && set({ resourceType: v as ResourceType, aiAssisted: false })} isDisabled={saving} />
+          <Selector placeholder="고르기" label="자원 종류" options={RESOURCE_OPTIONS} value={draft.resourceType} onChange={(v) => v && set({ resourceType: v as ResourceType, aiAssisted: false })} isDisabled={saving} />
         </div>
         <div className={styles.fieldGrid}>
           <TextInput label="기관 이름" placeholder="예: ○○보건소 치매안심센터" value={draft.institution} onChange={(v) => set({ institution: v.slice(0, MAX_INSTITUTION) })} isDisabled={saving} />

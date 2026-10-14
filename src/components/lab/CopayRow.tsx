@@ -125,9 +125,9 @@ export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, a
               placeholder="등급 선택"
               onChange={(v) => v && patch({ grade: v as LtcCareGrade })}
             />
-            <Selector label="감경 구분" options={CLASS_OPTIONS} value={draft.copayClass} onChange={(v) => v && patch({ copayClass: v as CopayClass })} />
-            <Selector label="단위" options={UNIT_OPTIONS} value={draft.unit} onChange={(v) => v && patch({ unit: v as DaycareUnit })} />
-            <Selector label="시간 구간" options={BAND_OPTIONS} value={draft.band} onChange={(v) => v && patch({ band: v as HourBand })} />
+            <Selector placeholder="고르기" label="감경 구분" options={CLASS_OPTIONS} value={draft.copayClass} onChange={(v) => v && patch({ copayClass: v as CopayClass })} />
+            <Selector placeholder="고르기" label="단위" options={UNIT_OPTIONS} value={draft.unit} onChange={(v) => v && patch({ unit: v as DaycareUnit })} />
+            <Selector placeholder="고르기" label="시간 구간" options={BAND_OPTIONS} value={draft.band} onChange={(v) => v && patch({ band: v as HourBand })} />
             <NumField
               label="이용일수"
               value={draft.days}

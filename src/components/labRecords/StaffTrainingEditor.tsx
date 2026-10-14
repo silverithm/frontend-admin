@@ -145,7 +145,7 @@ export default function StaffTrainingEditor({ staff, training, preset, onSaved, 
 
         <div className={styles.fieldGrid}>
           <LabDateInput label="진행 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
-          <Selector label="범주" options={categoryOptions(draft.kind)} value={draft.category} onChange={(v) => v && setDraft((d) => ({ ...d, category: v as TrainingDraft['category'] }))} />
+          <Selector placeholder="고르기" label="범주" options={categoryOptions(draft.kind)} value={draft.category} onChange={(v) => v && setDraft((d) => ({ ...d, category: v as TrainingDraft['category'] }))} />
           <TextInput label="강사·진행자 (선택)" value={draft.instructor} onChange={(v) => setDraft((d) => ({ ...d, instructor: v.slice(0, 50) }))} />
         </div>
 

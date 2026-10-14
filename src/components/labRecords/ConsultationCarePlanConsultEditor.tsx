@@ -136,9 +136,9 @@ export default function ConsultationCarePlanConsultEditor({ elderId, elderName, 
 
         <div className={styles.fieldGrid}>
           <LabDateInput label="상담 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
-          <Selector label="상담 상대" options={COUNTERPART_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.counterpart} onChange={(v) => v && setDraft((d) => ({ ...d, counterpart: v as ConsultDraft['counterpart'] }))} />
+          <Selector placeholder="고르기" label="상담 상대" options={COUNTERPART_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.counterpart} onChange={(v) => v && setDraft((d) => ({ ...d, counterpart: v as ConsultDraft['counterpart'] }))} />
           <TextInput label="상대 이름 (선택)" value={draft.counterpartName} onChange={(v) => setDraft((d) => ({ ...d, counterpartName: v.slice(0, 50) }))} placeholder="예: 큰딸 김OO" />
-          <Selector label="상담 방법" options={METHOD_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.method} onChange={(v) => v && setDraft((d) => ({ ...d, method: v as ConsultDraft['method'] }))} />
+          <Selector placeholder="고르기" label="상담 방법" options={METHOD_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.method} onChange={(v) => v && setDraft((d) => ({ ...d, method: v as ConsultDraft['method'] }))} />
         </div>
 
         <AiMemoBox

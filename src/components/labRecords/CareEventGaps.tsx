@@ -95,6 +95,12 @@ export default function CareEventGaps({ month, elders, events, onWrite }: Props)
     });
   }, [loaded, month, elders, events]);
 
+  // 출결은 읽었는데 이번 달 출석이 한 건도 없으면 따질 주가 없다 — '빠진 주 없음'으로 보이면 다 채운 것처럼 오해한다
+  const noAttendance = useMemo(() => {
+    if (!loaded || loaded.month !== month || loaded.attendance === null) return false;
+    return !Object.values(loaded.attendance).some((dates) => dates.some((d) => d.startsWith(month)));
+  }, [loaded, month]);
+
   const today = todayString();
   const nameOf = (id: number) => elders.find((e) => e.id === id)?.name ?? `어르신 ${id}`;
   const inProgress = (monday: string) => (addDays(monday, 6) ?? monday) >= today;
@@ -107,6 +113,8 @@ export default function CareEventGaps({ month, elders, events, onWrite }: Props)
           <Text type="label">{monthLabel(month)} 상태변화 기록이 빠진 주</Text>
           {loading ? (
             <Chip tone="neutral" label="확인하는 중" />
+          ) : ready && noAttendance ? (
+            <Chip tone="neutral" label="출석 기록 없음" />
           ) : ready && gaps.length === 0 ? (
             <Chip tone="ok" label="빠진 주 없음" />
           ) : ready ? (
@@ -116,6 +124,11 @@ export default function CareEventGaps({ month, elders, events, onWrite }: Props)
         <Text type="supporting" color="secondary">
           2026 평가(급여제공 결과평가): 상태변화를 주 1회 이상 기록해야 합니다. “특이사항 없음”·“양호함”·“지난주와 동일” 같은 문구만으로는 인정되지 않습니다.
         </Text>
+        {ready && noAttendance && (
+          <Text type="supporting" color="secondary">
+            이번 달 출석 기록이 아직 없어 따질 주가 없습니다. 출결이 쌓이면 출석한 주마다 확인합니다.
+          </Text>
+        )}
         {ready && loaded.attendance === null && (
           <Text type="supporting" color="secondary">
             출결을 불러오지 못해 달 전체의 주를 모두 따졌습니다.

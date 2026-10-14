@@ -57,7 +57,7 @@ export default function PayrollProfileForm({ name, meta, draft, onChange, isExis
         </HStack>
 
         <div className={styles.fieldGridWide}>
-          <Selector label="직종" options={JOB_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.jobType} onChange={(v) => v && set({ jobType: v as ProfileDraft['jobType'] })} isDisabled={saving} />
+          <Selector placeholder="고르기" label="직종" options={JOB_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} value={draft.jobType} onChange={(v) => v && set({ jobType: v as ProfileDraft['jobType'] })} isDisabled={saving} />
           <SegmentedControl label="급여 방식" value={draft.payType} onChange={(v) => set({ payType: v as PayrollPayType })}>
             <SegmentedControlItem value="HOURLY" label="시급제" />
             <SegmentedControlItem value="MONTHLY" label="월급제" />

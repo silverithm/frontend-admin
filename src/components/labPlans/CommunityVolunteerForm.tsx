@@ -58,7 +58,7 @@ export default function CommunityVolunteerForm({ draft, onChange, saving, error,
           </VStack>
         </div>
         <div className={styles.fieldGrid}>
-          <Selector label="활동 종류" options={ACTIVITY_OPTIONS} value={draft.activityType} onChange={(v) => v && set({ activityType: v as VolunteerActivityType })} isDisabled={saving} />
+          <Selector placeholder="고르기" label="활동 종류" options={ACTIVITY_OPTIONS} value={draft.activityType} onChange={(v) => v && set({ activityType: v as VolunteerActivityType })} isDisabled={saving} />
           <TextInput label="확인자 (기관 담당자)" value={draft.confirmer} onChange={(v) => set({ confirmer: v.slice(0, MAX_CONFIRMER_NAME) })} isDisabled={saving} />
         </div>
         <TextArea

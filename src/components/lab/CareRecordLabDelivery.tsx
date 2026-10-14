@@ -227,7 +227,7 @@ function DeliveryDialog({ elder, month, existing, onClose, onSaved }: DeliveryDi
           <LayoutContent>
             <VStack gap={3}>
               <LabDateInput label="제공일" value={deliveredOn} onChange={setDeliveredOn} max={today} />
-              <Selector
+              <Selector placeholder="고르기"
                 label="제공 방법"
                 options={METHODS.map((m) => ({ value: m.value, label: m.label }))}
                 value={method}

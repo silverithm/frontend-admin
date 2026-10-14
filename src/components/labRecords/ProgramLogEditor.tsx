@@ -141,7 +141,7 @@ export default function ProgramLogEditor({ elders, program, preset, onSaved, onD
         <div className={styles.fieldGrid}>
           <LabDateInput label="진행 날짜" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} max={todayString()} />
           <TimeField label="시작 시각" value={draft.time} onChange={(v) => setDraft((d) => ({ ...d, time: v }))} />
-          <Selector
+          <Selector placeholder="고르기"
             label="분류"
             options={PROGRAM_CATEGORIES.map((c) => ({ value: c, label: c === 'COGNITIVE' ? `${categoryLabel(c)} (주 3회 점검)` : categoryLabel(c) }))}
             value={draft.category}

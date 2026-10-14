@@ -434,7 +434,36 @@
   outline-offset: 2px;
 }
 
+/* 휴대폰 폭에서만 보이는 도구 선택 상자 */
+.toolPicker {
+  display: none;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.toolPickerSelect {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.toolPickerSelect:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 @media (max-width: 640px) {
+  .toolGroups {
+    display: none;
+  }
+  .toolPicker {
+    display: flex;
+  }
   .toolGroup {
     flex-direction: column;
     align-items: stretch;

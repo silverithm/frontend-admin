@@ -202,7 +202,7 @@ export default function CareEventEditor({ elders, event, presetElderId, onChange
         </HStack>
 
         <div className={styles.fieldGridWide}>
-          <Selector
+          <Selector placeholder="어르신 고르기"
             label="어르신"
             options={elders.map((e) => ({ value: String(e.id), label: e.name }))}
             value={draft.elderId === null ? '' : String(draft.elderId)}
@@ -217,13 +217,13 @@ export default function CareEventEditor({ elders, event, presetElderId, onChange
         {submitted && errors.occurred && <SupportText tone="error">{errors.occurred}</SupportText>}
 
         <div className={styles.fieldGrid}>
-          <Selector
+          <Selector placeholder="고르기"
             label="종류"
             options={EVENT_KINDS.map((k) => ({ value: k.value, label: k.label }))}
             value={draft.kind}
             onChange={(v) => v && setDraft((d) => ({ ...d, kind: v as CareEventKind, kindTouched: true }))}
           />
-          <Selector
+          <Selector placeholder="고르기"
             label="중증도"
             options={EVENT_SEVERITIES.map((s) => ({ value: s.value, label: s.label }))}
             value={draft.severity}
