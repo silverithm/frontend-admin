@@ -327,13 +327,10 @@ export function aiDraftCarePlan(input: CarePlanAiInput): Promise<CarePlanResult>
 
 /** 그 주(월요일 weekStart)의 식단표. 아직 안 만들었으면 서버가 404를 주므로 null로 돌려준다. */
 export async function getMealPlan(weekStart: string): Promise<MealPlan | null> {
-  try {
-    const plan = await request<MealPlan | null>(`${LAB}/meal-plans?weekStart=${q(weekStart)}`, undefined, '주간 식단표를 불러오지 못했습니다');
-    return plan ?? null;
-  } catch (error) {
-    if (error instanceof LabApiError && error.status === 404) return null;
-    throw error;
-  }
+  // ?weekStart=로 물으면 아직 식단이 없는 주마다 404가 나고, 공용 요청 도우미가 그것을 오류로 기록한다.
+  // 새 주를 여는 것은 정상 흐름이므로, 그 주가 걸친 달을 한 번에 받아 그 주를 찾는다(요청 수는 같다).
+  const plans = await listMealPlans(weekStart.slice(0, 7));
+  return plans.find((p) => p.weekStart === weekStart) ?? null;
 }
 
 /** 그 달에 걸친 주들의 식단표(월요일이 전달이어도 그 달 날짜가 있는 주 포함) */
