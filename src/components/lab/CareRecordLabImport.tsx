@@ -8,11 +8,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { listCareEvents, listNursingLogsByDate, listPrograms, listRehabSessions } from '@/lib/lab/labApi';
+import { listCareEvents, listMedicalVisits, listNursingLogsByDate, listPrograms, listRehabSessions } from '@/lib/lab/labApi';
 import { rehabCareRecordText } from '@/lib/lab/rehabRules';
 import type { CareRecordTextField } from '@/lib/lab/labTypes';
 import { Chip, ErrorBanner, SupportText } from './LabUi';
-import { PROGRAM_FIELD_LABEL, eventSentence, nursingSentence, programSuggestions } from './CareRecordLabImportText';
+import { PROGRAM_FIELD_LABEL, eventSentence, nursingSentence, programSuggestions, visitSentence } from './CareRecordLabImportText';
 import type { ProgramSuggestion } from './CareRecordLabImportText';
 import { errorText } from './labFormat';
 import styles from './lab.module.css';
@@ -69,6 +69,7 @@ export default function CareRecordLabImport({ elderId, date, fields, onInsert }:
   const [programs, setPrograms] = useState<Loaded<{ items: Suggestion[]; skipped: number }> | null>(null);
   const [rehab, setRehab] = useState<Loaded<Suggestion | null> | null>(null);
   const [events, setEvents] = useState<Loaded<Suggestion | null> | null>(null);
+  const [visits, setVisits] = useState<Loaded<Suggestion | null> | null>(null);
   const alive = useRef(true);
 
   useEffect(() => {
@@ -134,6 +135,20 @@ export default function CareRecordLabImport({ elderId, date, fields, onInsert }:
     }
   };
 
+  // 이 어르신의 진료 동행 기록을 받아 그날 것만 남긴다(다른 가져오기와 따로 실패한다)
+  const importVisits = async () => {
+    if (visits?.state === 'loading') return;
+    setVisits({ state: 'loading', value: null, error: null });
+    try {
+      const list = await listMedicalVisits({ elderlyId: elderId });
+      if (!alive.current) return;
+      const text = visitSentence(list, elderId, date);
+      setVisits({ state: 'done', value: text ? { field: 'specialNote', label: '특이사항', text } : null, error: null });
+    } catch (e) {
+      if (alive.current) setVisits({ state: 'error', value: null, error: errorText(e, '진료 동행 기록을 불러오지 못했습니다') });
+    }
+  };
+
   return (
     <VStack gap={2}>
       <HStack gap={2} vAlign="center" wrap="wrap">
@@ -142,8 +157,9 @@ export default function CareRecordLabImport({ elderId, date, fields, onInsert }:
         <Button label="프로그램 가져오기" size="sm" variant="secondary" isLoading={programs?.state === 'loading'} onClick={() => void importPrograms()} />
         <Button label="기능회복훈련 가져오기" size="sm" variant="secondary" isLoading={rehab?.state === 'loading'} onClick={() => void importRehab()} />
         <Button label="상태변화·사고 가져오기" size="sm" variant="secondary" isLoading={events?.state === 'loading'} onClick={() => void importEvents()} />
+        <Button label="진료 동행 가져오기" size="sm" variant="secondary" isLoading={visits?.state === 'loading'} onClick={() => void importVisits()} />
       </HStack>
-      <SupportText>그날 바이탈·처치, 참여한 프로그램, 기능회복훈련, 상태변화·사고를 제안으로 보여 드립니다. 칸을 덮어쓰지 않고, 넣기를 눌러야 들어가요.</SupportText>
+      <SupportText>그날 바이탈·처치, 참여한 프로그램, 기능회복훈련, 상태변화·사고, 진료 동행을 제안으로 보여 드립니다. 칸을 덮어쓰지 않고, 넣기를 눌러야 들어가요.</SupportText>
 
       {nursing?.state === 'error' && nursing.error && <ErrorBanner message={nursing.error} onRetry={() => void importNursing()} />}
       {nursing?.state === 'done' &&
@@ -178,6 +194,14 @@ export default function CareRecordLabImport({ elderId, date, fields, onInsert }:
           <SuggestionLine suggestion={events.value} fields={fields} onInsert={onInsert} />
         ) : (
           <SupportText>그날 이 어르신의 상태변화·사고 기록이 없습니다.</SupportText>
+        ))}
+
+      {visits?.state === 'error' && visits.error && <ErrorBanner message={visits.error} onRetry={() => void importVisits()} />}
+      {visits?.state === 'done' &&
+        (visits.value ? (
+          <SuggestionLine suggestion={visits.value} fields={fields} onInsert={onInsert} />
+        ) : (
+          <SupportText>그날 이 어르신의 진료 동행 기록이 없습니다.</SupportText>
         ))}
     </VStack>
   );

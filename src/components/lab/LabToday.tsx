@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 실험실 첫 화면의 "오늘 확인할 것" 카드 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락을 한눈에 보고 누르면 그 도구로 간다.
+ * 실험실 첫 화면의 "오늘 확인할 것" 카드 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인을 한눈에 보고 누르면 그 도구로 간다.
  * 줄마다 따로 불러오고, 실패한 줄만 숨긴다(전부 실패하면 카드를 그리지 않는다).
  * 기본은 한 줄 요약(묶음 메뉴 위에서 도구 내용을 아래로 밀어내지 않게)이고, '자세히'를 누르면 줄마다 미리보기가 펼쳐진다. 펼침 상태는 이 브라우저에 기억한다.
  * 투약 대기는 의뢰서와 투약 기록만 보고 센 것이라 오늘 출결은 반영하지 않는다.
@@ -13,7 +13,7 @@ import { Spinner } from '@astryxdesign/core/Spinner';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Chip } from './LabUi';
-import { NOTHING_TO_CHECK, loadContractLine, loadDoseLine, loadIntakeLine, loadStockLine } from './LabTodayData';
+import { NOTHING_TO_CHECK, loadContractLine, loadDoseLine, loadIntakeLine, loadStockLine, loadVisitLine } from './LabTodayData';
 import type { TodayLine, TodayLineId, TodayTarget } from './LabTodayData';
 import { readStored, todayString, writeStored } from './labFormat';
 import styles from './lab.module.css';
@@ -27,6 +27,7 @@ const LINES: ReadonlyArray<{ id: TodayLineId; title: string; note: string | null
   { id: 'dose', title: '오늘 투약 대기', note: '의뢰 기준 · 출결은 반영하지 않음', target: 'medication', actionLabel: '투약 관리 열기', load: loadDoseLine },
   { id: 'stock', title: '약품 사용기한', note: null, target: 'medication', actionLabel: '투약 관리 열기', load: loadStockLine },
   { id: 'intake', title: '입소 상담 연락', note: '연락 예정일이 오늘이거나 지난 상담', target: 'intake', actionLabel: '입소 상담·대기 열기', load: loadIntakeLine },
+  { id: 'visit', title: '진료 후속 확인', note: '후속 확인일이 오늘이거나 지났는데 확인 전인 진료 동행', target: 'medicalVisit', actionLabel: '진료 동행 열기', load: loadVisitLine },
 ];
 
 interface LabTodayProps {
@@ -38,7 +39,7 @@ interface LabTodayProps {
 
 export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
   const [expanded, setExpanded] = useState(false);
-  const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' }, intake: { status: 'loading' } });
+  const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' }, intake: { status: 'loading' }, visit: { status: 'loading' } });
   const seq = useRef(0);
 
   // 저장된 값은 브라우저에서만 읽을 수 있으므로 첫 그림 뒤에 반영한다

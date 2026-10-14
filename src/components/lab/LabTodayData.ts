@@ -1,17 +1,18 @@
 /**
- * 실험실 첫 화면 "오늘 확인할 것" 카드의 네 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락.
+ * 실험실 첫 화면 "오늘 확인할 것" 카드의 다섯 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인.
  * 줄마다 따로 불러온다(한 줄이 실패해도 나머지는 보인다). 규칙은 lib/lab의 contractAlerts·dosesDue·doseStatus·expiringStock을 그대로 쓴다.
  */
-import { listElderContracts, listIntake, listMedicationDoses, listMedicationRequests, listMedicineStock } from '@/lib/lab/labApi';
+import { listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock } from '@/lib/lab/labApi';
 import { contractAlerts } from '@/lib/lab/contractRules';
+import { followUpsDue } from '@/lib/lab/medicalVisitRules';
 import { inquiryAlerts } from '@/lib/lab/intakeRules';
 import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medicationRules';
 import { dotDate } from './labFormat';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication' | 'intake';
+export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */
@@ -84,6 +85,20 @@ export async function loadIntakeLine(today: string): Promise<TodayLine> {
     count: due.length,
     text: `연락 예정 ${due.length}건`,
     preview: name ? `${name} — ${oldest.message}` : oldest.message,
+    danger: false,
+  };
+}
+
+export async function loadVisitLine(today: string): Promise<TodayLine> {
+  // 서버가 후속 확인일이 오늘이거나 지났고 아직 확인하지 않은 기록만 주지만, 날짜 순서와 건수는 같은 규칙으로 다시 센다
+  const visits = await listMedicalVisits({ followUpDue: true });
+  const due = followUpsDue(visits, today);
+  if (due.length === 0) return none();
+  const first = due[0];
+  return {
+    count: due.length,
+    text: `후속 확인 ${due.length}건`,
+    preview: `${first.elderlyName ? `${first.elderlyName} · ` : ''}${first.hospital} — 확인일 ${dotDate(first.followUpOn!)}`,
     danger: false,
   };
 }

@@ -4,8 +4,9 @@
  * 값이 없는 항목은 문장에 넣지 않는다(없는 수치를 지어내지 않는다).
  */
 import { eventKindLabel, eventSeverityLabel } from '@/lib/lab/careEventRules';
+import { visitCareRecordText } from '@/lib/lab/medicalVisitRules';
 import { PROGRAM_CATEGORY_LABEL } from '@/lib/lab/programRules';
-import type { CareEvent, CareRecordTextField, MedStatus, NursingLog, Program, ProgramCategory } from '@/lib/lab/labTypes';
+import type { CareEvent, CareRecordTextField, MedStatus, MedicalVisit, NursingLog, Program, ProgramCategory } from '@/lib/lab/labTypes';
 
 const MED_TEXT: Record<Exclude<MedStatus, 'NA'>, string> = { GIVEN: '투약함', SKIPPED: '건너뜀' };
 
@@ -105,4 +106,16 @@ export function eventSentence(events: ReadonlyArray<CareEvent>, elderId: number,
     return `${e.occurredAt.slice(11, 16)} ${eventKindLabel(e.kind)}(${eventSeverityLabel(e.severity)}): ${e.description.trim()}${action}`;
   });
   return lines.join('\n');
+}
+
+/**
+ * 그날 이 어르신의 진료 동행 → 특이사항 칸에 넣을 문장(없으면 null). 시작 시각 순, 한 건이 한 줄.
+ * 문장은 lib/lab의 visitCareRecordText가 만든다(진료 내용은 앞 60자만, 처방·보호자 메모는 싣지 않음).
+ */
+export function visitSentence(visits: ReadonlyArray<MedicalVisit>, elderId: number, date: string): string | null {
+  const mine = visits
+    .filter((v) => v.elderlyId === elderId && v.visitDate.slice(0, 10) === date)
+    .sort((a, b) => (a.startTime ?? '99:99').localeCompare(b.startTime ?? '99:99'));
+  if (mine.length === 0) return null;
+  return mine.map((v) => visitCareRecordText(v)).join('\n');
 }
