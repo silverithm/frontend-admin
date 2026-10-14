@@ -55,7 +55,7 @@ export default function CopayPaymentDialog({ bill, onClose, onSaved }: CopayPaym
   };
 
   return (
-    <Dialog isOpen onOpenChange={guardClose} purpose="form" width={420}>
+    <Dialog isOpen onOpenChange={guardClose} purpose="form" width="min(420px, calc(100vw - 24px))">
       <Layout
         header={<DialogHeader title={`${bill.elderlyName} · 수납 입력`} onOpenChange={guardClose} />}
         content={

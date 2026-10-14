@@ -330,7 +330,7 @@ export default function CopayLab() {
       />
 
       {noticeText !== null && (
-        <Dialog isOpen onOpenChange={(open) => !open && setNoticeText(null)} purpose="info" width={460}>
+        <Dialog isOpen onOpenChange={(open) => !open && setNoticeText(null)} purpose="info" width="min(460px, calc(100vw - 24px))">
           <Layout
             header={<DialogHeader title="안내 문자" onOpenChange={(open) => !open && setNoticeText(null)} />}
             content={

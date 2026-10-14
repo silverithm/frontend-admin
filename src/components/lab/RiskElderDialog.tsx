@@ -7,6 +7,7 @@ import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { VStack } from '@astryxdesign/core/Stack';
 import type { RiskKind } from '@/lib/lab/labTypes';
+import styles from './lab.module.css';
 import RiskAssessForm from './RiskAssessForm';
 import RiskHistoryPanel from './RiskHistoryPanel';
 
@@ -27,11 +28,12 @@ export default function RiskElderDialog({ elderId, elderName, initialView, initi
   const [refreshToken, setRefreshToken] = useState(0);
 
   return (
-    <Dialog isOpen onOpenChange={(open) => !open && onClose()} purpose="form" width={760} maxHeight="90vh">
+    <Dialog isOpen onOpenChange={(open) => !open && onClose()} purpose="form" width="min(760px, calc(100vw - 24px))" maxHeight="90vh">
       <Layout
         header={<DialogHeader title={`${elderName} · 위험도 평가`} onOpenChange={(open) => !open && onClose()} />}
         content={
           <LayoutContent>
+            <div className={styles.kr}>
             <VStack gap={4}>
               <SegmentedControl label="평가 화면" value={view} onChange={(v) => setView(v as RiskDialogView)} size="sm">
                 <SegmentedControlItem value="assess" label="새 평가" />
@@ -50,6 +52,7 @@ export default function RiskElderDialog({ elderId, elderName, initialView, initi
               </div>
               {view === 'history' && <RiskHistoryPanel elderId={elderId} refreshToken={refreshToken} onChanged={onChanged} />}
             </VStack>
+            </div>
           </LayoutContent>
         }
       />

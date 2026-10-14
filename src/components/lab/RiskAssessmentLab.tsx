@@ -118,7 +118,7 @@ export default function RiskAssessmentLab() {
       ) : (
         <Card padding={0}>
           <div className={styles.tableScroll}>
-            <table className={styles.table} style={{ minWidth: 640 }}>
+            <table className={`${styles.table} ${styles.stackTable}`}>
               <thead>
                 <tr>
                   <th scope="col">어르신</th>
@@ -137,14 +137,14 @@ export default function RiskAssessmentLab() {
                         {l.elderlyName}
                       </Text>
                     </td>
-                    <td>
+                    <td data-label="욕창 (Braden)">
                       <RiskCell entry={l.braden} today={today} />
                     </td>
-                    <td>
+                    <td data-label="낙상 (Morse)">
                       <RiskCell entry={l.morse} today={today} />
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: 'var(--spacing-1)', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 'var(--spacing-1)', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                         <Button label="평가" size="sm" variant="secondary" onClick={() => open(l, 'assess')} />
                         <Button label="이력" size="sm" variant="ghost" onClick={() => open(l, 'history')} />
                       </div>

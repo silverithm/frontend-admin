@@ -94,11 +94,16 @@ export default function CopayRow({ elder, month, draft, bill, dirty, isSaving, a
         <HStack gap={3} vAlign="center" wrap="wrap">
           <VStack gap={0.5} hAlign="end">
             <Text type="body" weight="bold" hasTabularNumbers>
-              {totals ? formatWon(totals.totalDue) : '-'}
+              {bill && !dirty ? formatWon(bill.totalDue) : totals ? formatWon(totals.totalDue) : '-'}
             </Text>
             {bill && !dirty && (
               <Text type="supporting" color="secondary" hasTabularNumbers>
                 남은 금액 {formatWon(remainingDue(bill))}
+              </Text>
+            )}
+            {bill && !dirty && totals && totals.totalDue !== bill.totalDue && (
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                지금 수가로 다시 계산하면 {formatWon(totals.totalDue)} — 편집 후 변경 저장으로 반영
               </Text>
             )}
           </VStack>

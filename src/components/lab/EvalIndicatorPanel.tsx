@@ -34,7 +34,7 @@ interface EvalIndicatorPanelProps {
 
 export default function EvalIndicatorPanel({ indicator, check, onSaved }: EvalIndicatorPanelProps) {
   const notify = useNotify();
-  const [status, setStatus] = useState<EvalStatus>(check?.status ?? 'MISSING');
+  const [status, setStatus] = useState<EvalStatus | null>(check?.status ?? null);
   const [evidence, setEvidence] = useState(check?.evidence ?? '');
   const [review, setReview] = useState<EvalReviewResult | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -71,7 +71,7 @@ export default function EvalIndicatorPanel({ indicator, check, onSaved }: EvalIn
   };
 
   const save = async () => {
-    if (saving) return;
+    if (saving || status === null) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -89,12 +89,13 @@ export default function EvalIndicatorPanel({ indicator, check, onSaved }: EvalIn
     }
   };
 
-  // 아직 저장한 적 없는 지표는 "없음"을 그대로 남기는 것도 점검이므로 바로 저장할 수 있다
+  // 저장한 적 없는 지표는 직원이 상태를 직접 고르기 전까지 어느 것도 선택되어 있지 않고, 저장도 막혀 있다
   const changed =
-    check === null ||
+    status !== null &&
+    (check === null ||
     status !== check.status ||
     (evidence.trim() || null) !== (check.evidence ?? null) ||
-    (review !== null && review.comment !== (check.aiComment ?? ''));
+    (review !== null && review.comment !== (check.aiComment ?? '')));
 
   return (
     <div className={styles.itemBody}>
@@ -162,7 +163,7 @@ export default function EvalIndicatorPanel({ indicator, check, onSaved }: EvalIn
       )}
 
       <VStack gap={2}>
-        <SegmentedControl label="준비 상태" value={status} onChange={(v) => setStatus(v as EvalStatus)} size="sm">
+        <SegmentedControl label="준비 상태" value={status ?? ''} onChange={(v) => setStatus(v as EvalStatus)} size="sm">
           {STATUS_CHOICES.map((s) => (
             <SegmentedControlItem key={s.value} value={s.value} label={s.label} />
           ))}

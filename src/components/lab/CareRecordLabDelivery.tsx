@@ -220,7 +220,7 @@ function DeliveryDialog({ elder, month, existing, onClose, onSaved }: DeliveryDi
   };
 
   return (
-    <Dialog isOpen onOpenChange={(open) => !open && !saving && onClose()} purpose="form" width={440}>
+    <Dialog isOpen onOpenChange={(open) => !open && !saving && onClose()} purpose="form" width="min(440px, calc(100vw - 24px))">
       <Layout
         header={<DialogHeader title={`${elder.name} · ${monthLabel(month)} 제공 기록`} onOpenChange={(open) => !open && !saving && onClose()} />}
         content={

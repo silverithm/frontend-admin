@@ -1,6 +1,14 @@
 /* 실험실 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
 
+.kr {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 .stack {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
@@ -236,6 +244,9 @@
 }
 
 .triggerLine {
+  padding: var(--spacing-3) var(--spacing-4);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -325,4 +336,44 @@
   padding: var(--spacing-3) 0 var(--spacing-1);
   background: var(--color-background-card);
   border-top: 1px solid var(--color-border);
+}
+
+/* 좁은 화면: 표의 한 행을 카드처럼 쌓는다 */
+@media (max-width: 640px) {
+  .stackTable,
+  .stackTable tbody,
+  .stackTable tr,
+  .stackTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .stackTable thead {
+    display: none;
+  }
+  .stackTable tr {
+    padding: var(--spacing-3) var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .stackTable td {
+    padding: var(--spacing-1) 0;
+    border-bottom: 0;
+  }
+  .stackTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+}
+
+.itemBody,
+.rowBlock,
+.suggestBox,
+.figures,
+.elderButton,
+.toolbar {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
