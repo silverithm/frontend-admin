@@ -29,7 +29,8 @@ export default function FacilityLedgerRow({ item, row, override, autoApplies, is
   const applies = APPLIES_INFO[row.applies];
   const status = statusInfoOf(item.code, row.status);
   const tone = rowTone(row.applies, row.status, row.daysLeft);
-  const statusLabel = row.status === 'NEED_INFO' && needApproval ? '사용승인일 필요' : status.label;
+  const unknownOverdue = row.applies === 'UNKNOWN' && row.status === 'OVERDUE';
+  const statusLabel = row.status === 'NEED_INFO' && needApproval ? '사용승인일 필요' : unknownOverdue ? '해당이면 기한 지남' : status.label;
   return (
     <tr className={styles.row} data-tone={tone} data-na={row.status === 'NA' ? 'true' : undefined} data-open={isOpen ? 'true' : undefined}>
       <td data-label="항목">
@@ -74,7 +75,7 @@ export default function FacilityLedgerRow({ item, row, override, autoApplies, is
       <td data-label="상태">
         <div className={styles.cell}>
           <div className={styles.chipRow}>
-            <Chip tone={status.tone} label={statusLabel} />
+            <Chip tone={unknownOverdue ? 'warn' : status.tone} label={statusLabel} />
           </div>
           {row.missed > 0 && row.status !== 'NA' && <Text type="supporting" color="secondary">빠진 기간 {row.missed}번</Text>}
         </div>
