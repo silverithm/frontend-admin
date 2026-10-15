@@ -1,8 +1,9 @@
 /** 시설 관리 대장 공용 — 선택지, 상태 문구·색, D-day, 날짜 계산. */
 import { addDays, daysBetween, isValidYmd } from '@/lib/lab/labDate';
+import { facilityItem } from '@/lib/lab/facilityLedgerRules';
 import type { LedgerStatus } from '@/lib/lab/facilityLedgerRules';
 import type { Tone } from '@/components/lab/LabUi';
-import type { FacilityDoneBy, FacilityLogResult } from '@/lib/lab/labTypes';
+import type { FacilityDoneBy, FacilityItemCode, FacilityLogResult } from '@/lib/lab/labTypes';
 
 export const MAX_VENDOR = 100;
 export const MAX_ACTION = 500;
@@ -85,6 +86,16 @@ export const APPLIES_INFO = {
   NO: { label: '아니오', tone: 'neutral' as Tone },
   UNKNOWN: { label: '확인 필요', tone: 'warn' as Tone },
 };
+
+/** 상태 표시 — 달력 기간 주기(월·분기·반기·해)에서 DUE는 '기한이 다가옴'이 아니라 '이번 기간에 아직 안 함'이다 */
+export function statusInfoOf(code: FacilityItemCode, status: LedgerStatus): { label: string; tone: Tone } {
+  const kind = facilityItem(code)?.cadence.kind;
+  if (status === 'DUE' && kind && PERIOD_KINDS.has(kind)) return { label: PERIOD_DUE_LABEL[kind] ?? '이번 기간 미실시', tone: 'warn' };
+  return STATUS_INFO[status];
+}
+
+const PERIOD_KINDS = new Set(['MONTH', 'QUARTER', 'HALF', 'YEAR']);
+const PERIOD_DUE_LABEL: Record<string, string> = { MONTH: '이번 달 미실시', QUARTER: '이번 분기 미실시', HALF: '이번 반기 미실시', YEAR: '올해 미실시' };
 
 /** 기한까지 남은 일수 → 'D-12' · 'D-day' · 'D+3'(지남). 기한이 없으면 '-' */
 export function ddayText(daysLeft: number | null): string {

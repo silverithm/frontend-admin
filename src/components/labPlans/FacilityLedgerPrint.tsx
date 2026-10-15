@@ -5,7 +5,7 @@ import { companyNameStored, dotDate } from '@/components/lab/labFormat';
 import { cadenceLabel, FACILITY_GROUPS, FACILITY_ITEMS } from '@/lib/lab/facilityLedgerRules';
 import type { LedgerSummary } from '@/lib/lab/facilityLedgerRules';
 import type { FacilityLog, FacilityProfile } from '@/lib/lab/labTypes';
-import { APPLIES_INFO, STATUS_INFO } from './FacilityLedgerFormat';
+import { APPLIES_INFO, statusInfoOf } from './FacilityLedgerFormat';
 import PlansPrintPortal from './PlansPrintPortal';
 import styles from './labPlans.module.css';
 import mine from './facilityLedger.module.css';
@@ -41,7 +41,17 @@ export default function FacilityLedgerPrint({ summary, profile, logs, today, pri
       {FACILITY_GROUPS.map((g) => (
         <div key={g.key}>
           <p className={styles.printSection}>{g.label}</p>
-          <table className={`${styles.sheetTable} ${mine.printSmall}`}>
+          <table className={`${styles.sheetTable} ${mine.printSmall} ${mine.printFixed}`}>
+            <colgroup>
+              <col style={{ width: '17%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '17%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '5%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>항목</th>
@@ -66,7 +76,7 @@ export default function FacilityLedgerPrint({ summary, profile, logs, today, pri
                     <td>{cadenceLabel(item.cadence)}</td>
                     <td>{applies}{row && row.applies !== 'YES' ? `\n${row.reason}` : ''}</td>
                     <td>{dotDate(row?.lastDoneOn)}</td>
-                    <td>{na ? '-' : row?.dueYmd ? dotDate(row.dueYmd) : row ? STATUS_INFO[row.status].label : ''}</td>
+                    <td>{na ? '-' : row?.dueYmd ? dotDate(row.dueYmd) : row ? statusInfoOf(item.code, row.status).label : ''}</td>
                     <td>{latestLocation(logs, item.code)}</td>
                     <td className={mine.printCheck} />
                   </tr>

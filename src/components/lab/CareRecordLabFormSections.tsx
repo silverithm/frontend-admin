@@ -60,7 +60,7 @@ function TemperatureField({ label, value, onChange, isDisabled }: { label: strin
 
 /** 직원 고르기 후보 — 퇴사 등으로 목록에 없는 사람이 저장돼 있어도 번호만 남지 않게 한 칸 더한다 */
 export function staffOptionsOf(staff: LabStaff[], writers: Record<CareFormSectionKey, number | null>, names?: Record<CareFormSectionKey, string | null>) {
-  const options = staff.map((s) => ({ value: String(s.id), label: s.role ? `${s.name} (${s.role})` : s.name }));
+  const options = staff.map((s) => ({ value: String(s.id), label: s.position ? `${s.name} (${s.position})` : s.name }));
   for (const k of CARE_FORM_SECTIONS.map((x) => x.key)) {
     const id = writers[k];
     if (id !== null && !options.some((o) => o.value === String(id))) options.push({ value: String(id), label: names?.[k] ?? `직원 ${id}` });

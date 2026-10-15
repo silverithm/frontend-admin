@@ -9,7 +9,7 @@ import { dotDate } from '@/components/lab/labFormat';
 import { cadenceLabel } from '@/lib/lab/facilityLedgerRules';
 import type { ApplyResult, FacilityItem, LedgerRow } from '@/lib/lab/facilityLedgerRules';
 import type { FacilityApplies } from '@/lib/lab/labTypes';
-import { APPLIES_INFO, OVERRIDE_OPTIONS, STATUS_INFO, ddayText, rowTone } from './FacilityLedgerFormat';
+import { APPLIES_INFO, OVERRIDE_OPTIONS, ddayText, rowTone, statusInfoOf } from './FacilityLedgerFormat';
 import styles from './facilityLedger.module.css';
 
 interface Props {
@@ -27,7 +27,7 @@ interface Props {
 
 export default function FacilityLedgerRow({ item, row, override, autoApplies, isOpen, isSaving, needApproval, onToggle, onOverride }: Props) {
   const applies = APPLIES_INFO[row.applies];
-  const status = STATUS_INFO[row.status];
+  const status = statusInfoOf(item.code, row.status);
   const tone = rowTone(row.applies, row.status, row.daysLeft);
   const statusLabel = row.status === 'NEED_INFO' && needApproval ? '사용승인일 필요' : status.label;
   return (

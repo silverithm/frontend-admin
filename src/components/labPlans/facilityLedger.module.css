@@ -246,3 +246,13 @@
 .printSmall {
   font-size: 8.5pt;
 }
+
+.printFixed {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.printFixed td,
+.printFixed th {
+  overflow-wrap: anywhere;
+}

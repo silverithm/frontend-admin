@@ -13,7 +13,7 @@ import { FAILED, attempt, perDate } from './EvalAutoEvidenceShared';
 
 const STATUS_LABEL: Readonly<Record<DueStatus, string>> = {
   OK: '이번 기한 이행',
-  DUE: '기한이 가까움',
+  DUE: '기한 다가옴',
   IN_WINDOW: '점검 시기(기한 안)',
   OVERDUE: '기한 지남',
   NEVER: '실시 기록 없음',
@@ -40,7 +40,7 @@ export async function infectionDisinfectLines(asOf: string): Promise<string[]> {
   const due = nextDue('DISINFECT_QUARTERLY', logs, null, asOf);
   return [
     `${year}년 분기별 전문소독(시설 관리 대장): ${chips.join(' · ')}`,
-    `이번 분기 상태: ${STATUS_LABEL[due.status]}${dueText(due.daysLeft, due.dueYmd)} (${asOf} 기준)`,
+    `이번 분기 상태: ${due.status === 'DUE' ? '이번 분기 아직 안 함' : STATUS_LABEL[due.status]}${dueText(due.daysLeft, due.dueYmd)} (${asOf} 기준)`,
     '살균·살충·살서를 모두 했는지와 계약서·소독증명서·지출내역은 서류로 확인해 주세요',
   ];
 }
