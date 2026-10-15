@@ -1,0 +1,97 @@
+/* 직원 복지·권익 화면 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.criteriaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.criteriaCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.criteriaCard[data-tone='ok'] {
+  border-color: var(--color-text-green);
+}
+
+.criteriaCard[data-tone='danger'] {
+  border-color: var(--color-text-red);
+}
+
+.criteriaCard[data-tone='warn'] {
+  border-color: var(--color-text-yellow);
+}
+
+.chipLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+  min-width: 0;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.warnBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 2px solid var(--color-text-red);
+  background: var(--color-background-red);
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.noteBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border);
+  background: var(--color-background-muted);
+  min-width: 0;
+}
+
+.quarterTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+  margin-top: var(--spacing-2);
+}
+
+.reasonCell {
+  white-space: normal;
+  min-width: 200px;
+}
+
+.signCell {
+  min-width: 36mm;
+  height: 10mm;
+}
+
+.printSmall {
+  font-size: 9pt;
+}
+
+.printGap {
+  margin-top: var(--spacing-4);
+}
