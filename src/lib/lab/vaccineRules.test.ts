@@ -62,12 +62,20 @@ test('점수 경계: 100% → 1, 90% → 0.75, 80% → 0.5, 그 아래 0', () =>
   assert.equal(score(7, 10), 0);
 });
 
-test('점수는 반올림한 비율이 아니라 정확한 비율로 가른다: 89.96%는 0.75점이 아니다', () => {
-  // 2499/2778 = 89.95...% — 소수 첫째 자리로 반올림하면 90.0이지만 90%에 못 미친다
+test('점수는 반올림한 접종률로 가른다(매뉴얼 정의): 89.96%는 90.0%로 0.75점, 99.96%는 100.0%로 1점, 89.94%는 89.9%로 0.5점', () => {
+  // 2499/2778 = 89.956...% → 90.0
   const cs = group(2778);
   const r = evalVaccineRate(cs, cs.slice(0, 2499).map((c) => V(c.elderlyId, 2027, 'DONE')), 2028);
   assert.equal(r.rate, 90);
-  assert.equal(r.score, 0.5);
+  assert.equal(r.score, 0.75);
+  // 2777/2778 = 99.964...% → 100.0
+  const r2 = evalVaccineRate(cs, cs.slice(0, 2777).map((c) => V(c.elderlyId, 2027, 'DONE')), 2028);
+  assert.equal(r2.rate, 100);
+  assert.equal(r2.score, 1);
+  // 2498/2778 = 89.920...% → 89.9
+  const r3 = evalVaccineRate(cs, cs.slice(0, 2498).map((c) => V(c.elderlyId, 2027, 'DONE')), 2028);
+  assert.equal(r3.rate, 89.9);
+  assert.equal(r3.score, 0.5);
 });
 
 test('반올림: 소수 첫째 자리, 66.7과 8.8(8.75% 올림)', () => {

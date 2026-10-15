@@ -63,12 +63,15 @@ function influenzaByElder(vaccinations: readonly VaccineRecord[], year: number):
   return map;
 }
 
-function scoreOf(vaccinated: number, denominator: number): number | null {
-  if (denominator <= 0) return null;
-  // 반올림한 rate가 아니라 정확한 비율로 가른다 — 89.96%가 90%로 반올림돼 0.75점이 되면 안 된다
-  if (vaccinated >= denominator) return 1;
-  if (vaccinated * 100 >= 90 * denominator) return 0.75;
-  if (vaccinated * 100 >= 80 * denominator) return 0.5;
+/**
+ * 점수 — 매뉴얼은 접종률을 "소수점 첫째자리 반올림"한 값으로 정의하고 그 값으로 구간을 가른다(9차 경력직·보수교육과 같은 방식).
+ * 그래서 89.96%는 접종률 90.0%로 0.75점, 99.96%는 100.0%로 1점이다.
+ */
+function scoreOf(rate: number | null): number | null {
+  if (rate === null) return null;
+  if (rate >= 100) return 1;
+  if (rate >= 90) return 0.75;
+  if (rate >= 80) return 0.5;
   return 0;
 }
 
@@ -94,13 +97,14 @@ export function evalVaccineRate(contracts: readonly VaccineContract[], vaccinati
     else if (status === 'REFUSED' || status === 'EXCLUDED') excluded += 1;
   }
   const denominator = eligibleIds.size - excluded;
+  const rate = percentOneDecimal(vaccinated, denominator);
   return {
     eligible: eligibleIds.size,
     excluded,
     denominator,
     vaccinated,
-    rate: percentOneDecimal(vaccinated, denominator),
-    score: scoreOf(vaccinated, denominator),
+    rate,
+    score: scoreOf(rate),
     autoMet: evalYear <= VACCINE_AUTO_MET_UNTIL_YEAR,
   };
 }
