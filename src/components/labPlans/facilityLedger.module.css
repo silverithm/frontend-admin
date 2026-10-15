@@ -1,0 +1,248 @@
+/* 시설 관리 대장 전용 스타일 — 색·간격·모서리는 모두 Astryx 토큰이다. */
+
+.noteBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border);
+  background: var(--color-background-muted);
+  min-width: 0;
+}
+
+.callout {
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border-yellow);
+  background: var(--color-background-yellow);
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.callout[data-tone='danger'] {
+  border-color: var(--color-border-red);
+  background: var(--color-background-red);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+  min-width: 0;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.groupTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+  margin-top: var(--spacing-2);
+}
+
+/* 표는 자기 상자 안에서만 가로로 움직인다 */
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ledgerTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ledgerTable th,
+.ledgerTable td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.ledgerTable th {
+  background: var(--color-background-muted);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.colName {
+  min-width: 180px;
+}
+
+.colLaw {
+  min-width: 160px;
+}
+
+.colApply {
+  min-width: 190px;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 기한 지남·30일 안 — 왼쪽 막대로 강조 */
+.row[data-tone='danger'] td:first-child {
+  box-shadow: inset 4px 0 0 var(--color-border-red);
+}
+
+.row[data-tone='warn'] td:first-child {
+  box-shadow: inset 4px 0 0 var(--color-border-yellow);
+}
+
+.row[data-na='true'] td {
+  opacity: 0.6;
+}
+
+.row[data-open='true'] td {
+  background: var(--color-background-muted);
+}
+
+.panelRow td {
+  padding: 0;
+  background: var(--color-background-card);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+.formBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border);
+  background: var(--color-background-surface);
+  min-width: 0;
+}
+
+.logList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.logCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.logCard[data-active='true'] {
+  border-color: var(--color-border-emphasized);
+  background: var(--color-background-muted);
+}
+
+.logHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+.logBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+/* 좁은 화면: 표의 한 행을 카드처럼 쌓는다 */
+@media (max-width: 760px) {
+  .ledgerTable,
+  .ledgerTable tbody,
+  .ledgerTable tr,
+  .ledgerTable td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .ledgerTable thead {
+    display: none;
+  }
+
+  .ledgerTable tr.row {
+    padding: var(--spacing-3) var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .ledgerTable td {
+    padding: var(--spacing-1) 0;
+    border-bottom: 0;
+    white-space: normal;
+  }
+
+  .ledgerTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .row[data-tone='danger'] td:first-child {
+    box-shadow: none;
+  }
+
+  .row[data-tone='warn'] td:first-child {
+    box-shadow: none;
+  }
+
+  .ledgerTable tr.row[data-tone='danger'] {
+    box-shadow: inset 4px 0 0 var(--color-border-red);
+  }
+
+  .ledgerTable tr.row[data-tone='warn'] {
+    box-shadow: inset 4px 0 0 var(--color-border-yellow);
+  }
+
+  .panel {
+    padding: var(--spacing-3);
+  }
+}
+
+.printCheck {
+  min-width: 14mm;
+}
+
+.printSmall {
+  font-size: 8.5pt;
+}
