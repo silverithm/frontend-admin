@@ -4,8 +4,9 @@
  * EvalAutoEvidence의 collect가 이 함수를 불러 같은 모양({lines})의 근거를 받는다. 규칙은 lib/lab의 policyDocRules·evalGapRules가 맡는다.
  * 일부 조회가 실패하면 그 부분만 "계산하지 못했습니다"로 두고, 전부 실패하면 던진다.
  */
-import { listCareEvents, listCareRecordsByDate, listElderContracts, listElderDocuments, listNursingLogsByDate, listPolicyDocs, listStaffTrainings } from '@/lib/lab/labApi';
+import { listCareEvents, listCareRecordsByDate, listElderContracts, listElderDocuments, listNursingLogsByDate, listOutbreaks, listPolicyDocs, listStaffTrainings } from '@/lib/lab/labApi';
 import { eventFollowUpRates, medicationRecordCompleteness, privacyConsentRate, vitalsCompleteness } from '@/lib/lab/evalGapRules';
+import { outbreakSummary } from '@/lib/lab/outbreakRules';
 import type { EvalAutoSource } from '@/lib/lab/evalIndicators';
 import { POLICY_ITEMS, PRIVACY_GUIDE_NO, docStatus, infectionResponseEvidence, operatingRulesEvidence } from '@/lib/lab/policyDocRules';
 import type { PolicyDoc } from '@/lib/lab/labTypes';
@@ -71,7 +72,7 @@ async function privacy(asOf: string): Promise<GapsEvidence> {
 async function infection(asOf: string): Promise<GapsEvidence> {
   const year = Number(asOf.slice(0, 4));
   // 최근 12개월 교육은 작년 일부를 포함할 수 있어 올해와 작년을 함께 받는다
-  const [docs, trainings] = await Promise.all([attempt(() => listPolicyDocs()), attempt(async () => (await Promise.all([listStaffTrainings(year), listStaffTrainings(year - 1)])).flat())]);
+  const [docs, trainings, outbreaks] = await Promise.all([attempt(() => listPolicyDocs()), attempt(async () => (await Promise.all([listStaffTrainings(year), listStaffTrainings(year - 1)])).flat()), attempt(() => listOutbreaks(year))]);
   if (!docs || !trainings) {
     if (!docs && !trainings) throw new Error('근거를 계산하지 못했습니다');
     return { lines: [docs ? `감염병 대응계획: 대장에서 확인했으나 교육 기록을 ${FAILED}` : `감염병 대응계획 대장을 ${FAILED}`] };
@@ -79,10 +80,16 @@ async function infection(asOf: string): Promise<GapsEvidence> {
   const r = infectionResponseEvidence(docs, trainings, asOf);
   const doc = docOf(docs, 'INFECTION_PLAN');
   const missing = doc ? docStatus(doc, asOf).missingItems : [];
+  const o = outbreaks ? outbreakSummary(outbreaks, `${year}-01-01`, asOf.slice(0, 10), asOf) : null;
   return {
     lines: [
       `감염병 대응 체계: ${STATE_LABEL[r.state]} — 계획 ${r.plan ? '있음(두 체계 체크)' : '미비'} · 최근 12개월 감염 교육 ${r.trainings12m}건 (${asOf} 기준)`,
       !doc ? '규정·지침 대장에 감염병 대응계획이 없습니다' : `국가 위기상황 대응체계와 기관 내 환자 발생·확산 대응체계${missing.length > 0 ? `: 빠진 항목 ${missing.join(' · ')}` : ' 모두 체크'} · 개정일 ${dotDate(doc.revisedOn)}${r.revisedWithin12m ? '(12개월 안)' : '(12개월 넘음 또는 없음)'}`,
+      o === null
+        ? `${year}년 유행·발생 기록: ${FAILED}`
+        : o.total === 0
+          ? `${year}년 유행·발생 대응 기록이 없습니다 — 유행·발생이 없었다면 채울 내용도 없습니다`
+          : `${year}년 유행·발생 기록 ${o.total}건 중 진행 중 ${o.open}건 · 보호자 안내·보건소 신고·공단 보고를 갖춘 기록 ${o.complete}건 · 조치를 기록한 건 ${o.withActions}건`,
       '교육·개정 주기는 평가 문구에 없어 기관 기준입니다(대조 필요). 직원이 유행·발생 때 한 조치는 면담에서 설명할 수 있어야 하고, 훈련·비축은 권고입니다',
     ],
   };

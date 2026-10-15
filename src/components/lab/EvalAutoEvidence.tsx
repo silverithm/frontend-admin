@@ -26,6 +26,7 @@ import { collectContractEvidence, isContractEvidenceSource } from './EvalAutoEvi
 import { collectProgramEvidence, isProgramEvidenceSource } from './EvalAutoEvidenceProgram';
 import { collectStaffHrEvidence, isStaffHrEvidenceSource } from './EvalAutoEvidenceStaffHr';
 import { collectGapsEvidence, isGapsEvidenceSource } from './EvalAutoEvidenceGaps';
+import { collectRightsEvidence, isRightsEvidenceSource } from './EvalAutoEvidenceRights';
 import { collectTransportEvidence, isTransportEvidenceSource } from './EvalAutoEvidenceTransport';
 import { collectStaffingEvidence, isStaffingEvidenceSource } from './EvalAutoEvidenceStaffing';
 import { recallEvidence, rememberEvidence } from './evalEvidenceCache';
@@ -48,6 +49,7 @@ export async function collect(source: EvalAutoSource, indicatorCode?: string): P
   if (isStaffHrEvidenceSource(source)) return collectStaffHrEvidence(source, asOf);
   if (isGapsEvidenceSource(source)) return collectGapsEvidence(source, asOf);
   if (isTransportEvidenceSource(source)) return collectTransportEvidence(source, asOf);
+  if (isRightsEvidenceSource(source)) return collectRightsEvidence(source, asOf);
   if (source === 'SAFETY_CHECKS') {
     const month = currentMonth();
     const noVehicle = readNoVehicle();

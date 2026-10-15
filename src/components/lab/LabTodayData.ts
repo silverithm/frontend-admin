@@ -1,8 +1,9 @@
 /**
- * 실험실 첫 화면 "오늘 확인할 것" 카드의 여덟 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한, 사례관리 기한, 차량 보험.
+ * 실험실 첫 화면 "오늘 확인할 것" 카드의 아홉 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한, 사례관리 기한, 차량 보험, 감염병 대응.
  * 줄마다 따로 불러온다(한 줄이 실패해도 나머지는 보인다). 규칙은 lib/lab의 contractAlerts·dosesDue·doseStatus·expiringStock을 그대로 쓴다.
  */
-import { listCaseMeetings, listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles, listTransportVehicles } from '@/lib/lab/labApi';
+import { listCaseMeetings, listOutbreaks, listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles, listTransportVehicles } from '@/lib/lab/labApi';
+import { OUTBREAK_GAP_LABEL, outbreakCheck } from '@/lib/lab/outbreakRules';
 import { followUpAlerts } from '@/lib/lab/caseMeetingRules';
 import { insuranceStatus } from '@/lib/lab/transportRules';
 import { contractAlerts } from '@/lib/lab/contractRules';
@@ -12,10 +13,10 @@ import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medica
 import { healthCheckStatus } from '@/lib/lab/staffHrRules';
 import { dotDate } from './labFormat';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle' | 'outbreak';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport';
+export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport' | 'outbreak';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */
@@ -168,5 +169,26 @@ export async function loadVehicleLine(today: string): Promise<TodayLine> {
     text: [expired > 0 ? `만기 지남 ${expired}대` : '', plain > 0 ? `종합보험 아님 ${plain}대` : '', soon > 0 ? `30일 안 임박 ${soon}대` : ''].filter(Boolean).join(' · '),
     preview: `${first.v.vehicleNo}${first.v.label ? `(${first.v.label})` : ''} — ${detail}`,
     danger: expired > 0 || plain > 0,
+  };
+}
+
+export async function loadOutbreakLine(today: string): Promise<TodayLine> {
+  // 유행·발생은 해를 넘겨 이어질 수 있어 올해와 작년 기록을 함께 본다
+  const year = Number(today.slice(0, 4));
+  const all = (await Promise.all([listOutbreaks(year), listOutbreaks(year - 1)])).flat();
+  const rows = all
+    .map((o) => ({ o, check: outbreakCheck(o, today) }))
+    .filter((r) => r.check.open);
+  if (rows.length === 0) return none();
+  const gapped = rows.filter((r) => r.check.missing.length > 0);
+  // 가장 급한 것 = 빠진 신고가 있는 것 중 가장 오래 열린 것, 없으면 가장 오래 열린 것
+  const pool = gapped.length > 0 ? gapped : rows;
+  const first = [...pool].sort((a, b) => b.check.daysOpen - a.check.daysOpen || b.o.id - a.o.id)[0];
+  const detail = first.check.missing.length > 0 ? `${first.check.missing.map((g) => OUTBREAK_GAP_LABEL[g]).join('·')} 없음` : `${first.check.daysOpen}일째 진행 중`;
+  return {
+    count: rows.length,
+    text: [`진행 중 ${rows.length}건`, gapped.length > 0 ? `신고·안내 빠짐 ${gapped.length}건` : ''].filter(Boolean).join(' · '),
+    preview: `${first.o.disease} — ${detail} (시작 ${dotDate(first.o.startedOn)})`,
+    danger: gapped.length > 0,
   };
 }
