@@ -1,0 +1,99 @@
+/* 감염병 대응 화면 전용 스타일 — 공용 모양은 labRecords.module.css. 색은 토큰만. */
+
+.guide {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.guide summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.guide p {
+  margin: var(--spacing-1) 0;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: var(--spacing-3);
+  align-items: start;
+  min-width: 0;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  gap: var(--spacing-2) var(--spacing-4);
+  min-width: 0;
+}
+
+.box {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  padding: var(--spacing-3) var(--spacing-4);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.boxWarn {
+  border-color: var(--color-border-yellow);
+  background: var(--color-background-yellow);
+}
+
+/* 진행 중 기록 줄은 연한 노랑으로 눈에 띄게 */
+.openRow {
+  background: var(--color-background-yellow);
+}
+
+/* 인쇄본 */
+.sheetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-1) var(--spacing-6);
+  margin-bottom: var(--spacing-3);
+}
+
+.sheetCell {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-1) 0;
+  min-height: 24px;
+}
+
+.sheetCellLabel {
+  flex: none;
+  min-width: 96px;
+  font-weight: var(--font-weight-medium);
+}
+
+.sheetBlock {
+  border: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-2) var(--spacing-3);
+  min-height: 36px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .sheetGrid {
+    grid-template-columns: 1fr;
+  }
+}

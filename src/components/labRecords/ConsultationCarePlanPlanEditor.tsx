@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * 욕구사정·급여제공계획 편집 — 욕구사정 여섯 칸, 목표, 서비스 표(30줄), 보호자 동의일.
+ * 욕구사정·급여제공계획 편집 — 욕구사정 열 칸·기피식품(ConsultationCarePlanNeedsSection), 목표, 서비스 표(30줄), 보호자 동의일.
  * "AI 계획 초안"은 욕구사정·최근 상담 요약·위험도 단계만 보낸다(이름은 보내지 않는다). 결과는 제안이고,
  * 직접 쓴 목표·서비스는 덮어쓰지 않으며(덧붙이기 버튼으로만 더한다), 저장은 직원이 누를 때만 한다.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
@@ -14,7 +14,8 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { aiDraftCarePlan, deleteCarePlan, listCarePlans, listConsultationsByElder, saveCarePlan } from '@/lib/lab/labApi';
 import type { CarePlan, CarePlanService, RiskLatest } from '@/lib/lab/labTypes';
-import { CARE_PLAN_NEEDS_LABEL, CARE_PLAN_STATUS_LABEL, carePlanStatus } from '@/lib/lab/carePlanRules';
+import { CARE_PLAN_STATUS_LABEL, carePlanStatus } from '@/lib/lab/carePlanRules';
+import { needsComplete } from '@/lib/lab/needsRules';
 import { AiChip, Chip, ErrorBanner, LabConfirm, LabDateInput, SupportText, useNotify } from '@/components/lab/LabUi';
 import { PROVIDER_KEY, dotDate, defaultPersonName, errorText, todayString, writeStored } from '@/components/lab/labFormat';
 import type { LabElder } from '@/components/lab/useLabElders';
@@ -22,7 +23,6 @@ import {
   GOALS_MAX,
   MAX_SERVICES,
   NEEDS_KEYS,
-  NEEDS_MAX,
   consultationsForAi,
   draftFromPlan,
   gapsOfDraft,
@@ -37,6 +37,7 @@ import {
   validate,
 } from './ConsultationCarePlanPlanDraft';
 import type { PlanDraft } from './ConsultationCarePlanPlanDraft';
+import ConsultationCarePlanNeedsSection from './ConsultationCarePlanNeedsSection';
 import ConsultationCarePlanServices from './ConsultationCarePlanServices';
 import { useAlive, useLatest } from './recordsFormat';
 import styles from './labRecords.module.css';
@@ -72,14 +73,14 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
   const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmIncomplete, setConfirmIncomplete] = useState(false);
+  const savingLock = useRef(false);
   const [deleting, setDeleting] = useState(false);
 
   const dirty = snapshotOf(draft) !== baseline;
   const gaps = useMemo(() => gapsOfDraft(draft), [draft]);
   const status = carePlanStatus({ planYear: year, guardianAgreedOn: draft.guardianAgreedOn || null }, year);
   const filledNeeds = needsFilled(draft.needs);
-
-  const setNeed = (key: (typeof NEEDS_KEYS)[number], value: string) => setDraft((d) => ({ ...d, needs: { ...d.needs, [key]: value } }));
 
   const runAi = async () => {
     const now0 = latest.current;
@@ -177,13 +178,19 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
     }
   };
 
-  const save = async () => {
-    if (saving) return;
+  const save = async (force = false) => {
+    if (saving || savingLock.current) return;
     const problem = validate(draft);
     if (problem) {
       setSaveError(problem);
       return;
     }
+    if (!force && !needsComplete(draft.needs).complete) {
+      setSaveError(null);
+      setConfirmIncomplete(true);
+      return;
+    }
+    savingLock.current = true;
     setSaving(true);
     setSaveError(null);
     try {
@@ -194,6 +201,7 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
     } catch (e) {
       if (alive.current) setSaveError(errorText(e, '급여제공계획을 저장하지 못했습니다'));
     } finally {
+      savingLock.current = false;
       if (alive.current) setSaving(false);
     }
   };
@@ -249,11 +257,7 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
           <div className={styles.fieldGrid}>
             <LabDateInput label="욕구사정 날짜" value={draft.assessedOn} onChange={(v) => setDraft((d) => ({ ...d, assessedOn: v }))} max={todayString()} />
           </div>
-          <div className={styles.fieldGridWide}>
-            {NEEDS_KEYS.map((k) => (
-              <TextArea key={k} label={`${CARE_PLAN_NEEDS_LABEL[k]} (선택)`} value={draft.needs[k]} onChange={(v) => setNeed(k, v.slice(0, NEEDS_MAX))} rows={3} maxLength={NEEDS_MAX} />
-            ))}
-          </div>
+          <ConsultationCarePlanNeedsSection draft={draft} setDraft={setDraft} elderName={elder.name} isDisabled={saving} />
         </VStack>
 
         <VStack gap={2}>
@@ -360,6 +364,17 @@ export default function ConsultationCarePlanPlanEditor({ elder, year, plan, risk
         isLoading={deleting}
         onConfirm={() => void remove()}
         onClose={() => setConfirmDelete(false)}
+      />
+      <LabConfirm
+        isOpen={confirmIncomplete}
+        title="빠진 욕구사정 칸이 있습니다"
+        description="열 칸이나 기피식품이 비어 있으면 평가에서 빈 칸으로 봅니다. 그대로 저장할까요?"
+        actionLabel="그대로 저장"
+        onConfirm={() => {
+          setConfirmIncomplete(false);
+          void save(true);
+        }}
+        onClose={() => setConfirmIncomplete(false)}
       />
       <LabConfirm
         isOpen={confirmClose}

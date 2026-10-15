@@ -16,6 +16,7 @@ import { StatRow, StatTile } from '@/components/StatTile';
 import { listCarePlans, listRiskLatest } from '@/lib/lab/labApi';
 import type { CarePlan, RiskLatest } from '@/lib/lab/labTypes';
 import { CARE_PLAN_STATUS_LABEL, carePlanCoverage, carePlanGaps } from '@/lib/lab/carePlanRules';
+import { needsComplete } from '@/lib/lab/needsRules';
 import type { CarePlanStatus } from '@/lib/lab/carePlanRules';
 import { Chip, ErrorBanner, useNotify } from '@/components/lab/LabUi';
 import { dotDate, errorText, todayString } from '@/components/lab/labFormat';
@@ -175,6 +176,8 @@ export default function ConsultationCarePlanPlanView({ elders, eldersLoading }: 
             const plan = planByElder.get(elder.id);
             const status = coverage.perElder[elder.id] ?? 'MISSING';
             const gaps = plan ? carePlanGaps(plan) : [];
+            const needsCheck = plan ? needsComplete(plan.needs) : null;
+            const needsMissing = needsCheck ? needsCheck.missing.length + (needsCheck.avoidFoodsRecorded ? 0 : 1) : 0;
             return (
               <div className={styles.rowBlock} key={elder.id}>
                 <div className={styles.rowHead}>
@@ -185,6 +188,7 @@ export default function ConsultationCarePlanPlanView({ elders, eldersLoading }: 
                       </Text>
                       <Chip tone={STATUS_TONE[status]} label={CARE_PLAN_STATUS_LABEL[status]} />
                       {gaps.length > 0 && <Chip tone="warn" label={`빈 곳: ${gaps.join(', ')}`} />}
+                      {needsMissing > 0 && <Chip tone="warn" label={`욕구사정 빈 칸 ${needsMissing}개`} />}
                     </HStack>
                     <Text type="supporting" color="secondary">
                       {plan

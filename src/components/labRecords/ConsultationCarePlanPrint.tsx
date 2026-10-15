@@ -8,9 +8,8 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import type { CarePlan } from '@/lib/lab/labTypes';
-import { CARE_PLAN_NEEDS_LABEL } from '@/lib/lab/carePlanRules';
 import { companyNameStored, dotDate, todayString } from '@/components/lab/labFormat';
-import { NEEDS_KEYS } from './ConsultationCarePlanPlanDraft';
+import { NEEDS_KEYS, NEEDS_LABEL } from './ConsultationCarePlanPlanDraft';
 import styles from './labRecords.module.css';
 
 interface SheetProps {
@@ -36,10 +35,11 @@ export function CarePlanSheet({ plan, grade, companyName }: SheetProps) {
       <div className={styles.printSection}>1. 욕구사정</div>
       <table className={styles.sheetTable}>
         <tbody>
-          {NEEDS_KEYS.map((k) => (
+          {/* 열 칸과 기피식품은 비어 있어도 줄을 그린다. 옛 '기타 요구'는 글이 있을 때만 */}
+          {NEEDS_KEYS.filter((k) => k !== 'other' || (plan.needs.other ?? '').trim() !== '').map((k) => (
             <tr key={k}>
               <th scope="row" className={styles.sheetLabel}>
-                {CARE_PLAN_NEEDS_LABEL[k]}
+                {k === 'avoidFoods' ? '기피식품 (식사 유의사항)' : NEEDS_LABEL[k]}
               </th>
               <td>{plan.needs[k] || ' '}</td>
             </tr>

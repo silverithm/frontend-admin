@@ -1,9 +1,11 @@
 /** 욕구사정·급여제공계획 입력 초안 — 서비스 줄에는 화면용 키를 붙인다 */
-import type { CarePlan, CarePlanInput, CarePlanNeeds, CarePlanService, Consultation, RiskLatest } from '@/lib/lab/labTypes';
-import { CARE_PLAN_NEEDS_LABEL, carePlanGaps } from '@/lib/lab/carePlanRules';
+import type { CarePlan, CarePlanInput, CarePlanNeeds, CarePlanService, Consultation, NeedsAssessmentKey, RiskLatest } from '@/lib/lab/labTypes';
+import { carePlanGaps } from '@/lib/lab/carePlanRules';
+import { NEEDS_ITEMS } from '@/lib/lab/needsRules';
 import { riskLevelLabel } from '@/lib/lab/riskScales';
 import { orNull } from './recordsFormat';
 import { methodLabel } from './ConsultationCarePlanConsultDraft';
+import { mergeAiSuggestions } from './recordsFormat';
 
 export const NEEDS_MAX = 1000;
 export const GOALS_MAX = 2000;
@@ -14,7 +16,32 @@ export const FREQUENCY_MAX = 30;
 /** 서버 AI 입력 한도(필드마다 3000자)보다 조금 아래로 잡는다 */
 const AI_TEXT_BUDGET = 2900;
 
-export const NEEDS_KEYS = Object.keys(CARE_PLAN_NEEDS_LABEL) as Array<keyof CarePlanNeeds>;
+export type NeedsKey = keyof CarePlanNeeds;
+
+/** 욕구사정 칸의 화면 이름 — 열 칸(NEEDS_ITEMS)은 평가 문구 그대로, 기피식품과 옛 '기타 요구'를 뒤에 붙인다 */
+export const NEEDS_LABEL: Readonly<Record<NeedsKey, string>> = {
+  physical: '신체상태',
+  disease: '질병상태',
+  cognition: '인지상태',
+  communication: '의사소통',
+  oral: '구강상태',
+  nutrition: '영양상태',
+  family: '가족 및 환경상태',
+  subjective: '주관적 욕구',
+  resources: '자원이용 욕구',
+  summary: '총평',
+  avoidFoods: '기피식품',
+  other: '기타 요구',
+};
+
+/** 화면 순서: 열 칸 → 기피식품 → 기타 요구(옛 기록에 적힌 글을 잃지 않으려고 남긴 칸) */
+export const NEEDS_KEYS: NeedsKey[] = [...NEEDS_ITEMS.map((i) => i.key as NeedsKey), 'avoidFoods', 'other'];
+
+/** AI가 채울 수 있는 칸(열 칸 + 기피식품) — 'other'는 채우지 않는다 */
+export const NEEDS_AI_KEYS: NeedsAssessmentKey[] = NEEDS_KEYS.filter((k): k is NeedsAssessmentKey => k !== 'other');
+export const NEEDS_AI_LIMITS = Object.fromEntries(NEEDS_AI_KEYS.map((k) => [k, NEEDS_MAX])) as Record<NeedsAssessmentKey, number>;
+/** 면담 메모 입력 한도 — 서버 본문 상한(3,500자)보다 아래 */
+export const NEEDS_MEMO_MAX = 3000;
 export const COMMON_AREAS: readonly string[] = ['신체활동지원', '인지활동', '기능회복훈련', '건강·간호관리', '식사·영양관리', '배설·위생 지원', '정서·사회참여', '송영서비스'];
 
 export interface ServiceRow {
@@ -46,12 +73,14 @@ export interface PlanDraft {
   guardianAgreedOn: string;
   writer: string;
   aiUsed: boolean;
+  /** 면담 메모 AI 정리가 채운 칸 — 직원이 고치면 풀린다 */
+  needsAi: Partial<Record<NeedsAssessmentKey, true>>;
 }
 
 export const emptyNeeds = (): CarePlanNeeds => ({ physical: '', cognition: '', nutrition: '', communication: '', family: '', other: '', disease: '', oral: '', subjective: '', resources: '', summary: '', avoidFoods: '' });
 
 export function newDraft(today: string, writer: string): PlanDraft {
-  return { assessedOn: today, needs: emptyNeeds(), goals: '', goalsFromAi: false, services: [], guardianAgreedOn: '', writer, aiUsed: false };
+  return { assessedOn: today, needs: emptyNeeds(), goals: '', goalsFromAi: false, services: [], guardianAgreedOn: '', writer, aiUsed: false, needsAi: {} };
 }
 
 export function draftFromPlan(p: CarePlan): PlanDraft {
@@ -64,6 +93,7 @@ export function draftFromPlan(p: CarePlan): PlanDraft {
     guardianAgreedOn: p.guardianAgreedOn?.slice(0, 10) ?? '',
     writer: p.writerName ?? '',
     aiUsed: false,
+    needsAi: {},
   };
 }
 
@@ -118,7 +148,7 @@ export function toInput(d: PlanDraft, elderlyId: number, planYear: number, aiAss
 export function needsForAi(needs: CarePlanNeeds): { needs: Partial<CarePlanNeeds>; truncated: boolean } {
   const filled = NEEDS_KEYS.filter((k) => needs[k].trim() !== '');
   if (filled.length === 0) return { needs: {}, truncated: false };
-  const overhead = filled.reduce((sum, k) => sum + CARE_PLAN_NEEDS_LABEL[k].length + 2, 0) + (filled.length - 1);
+  const overhead = filled.reduce((sum, k) => sum + NEEDS_LABEL[k].length + 2, 0) + (filled.length - 1);
   const perField = Math.max(50, Math.floor((AI_TEXT_BUDGET - overhead) / filled.length));
   const out: Partial<CarePlanNeeds> = {};
   let truncated = false;
@@ -149,4 +179,15 @@ export function riskSummaryForAi(risk: RiskLatest | undefined): string | undefin
   if (risk.morse) parts.push(`낙상 위험 ${riskLevelLabel(risk.morse.riskLevel)}`);
   if (risk.cognitive) parts.push(`인지기능 ${riskLevelLabel(risk.cognitive.riskLevel)}`);
   return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
+/**
+ * 면담 메모 AI 정리 결과를 욕구사정 칸에 합친다 — 빈 칸과 이전 AI 제안 칸만 채우고, 직접 쓴 칸은 덮지 않는다.
+ * 반드시 setState 갱신 함수 안에서 부른다. kept는 직접 쓴 칸이라 남겨 둔 수, filled는 이번에 채운 수.
+ */
+export function mergeNeedsAi(d: PlanDraft, suggestions: Partial<Record<NeedsAssessmentKey, string | null | undefined>>): { draft: PlanDraft; kept: number; filled: number } {
+  const current = Object.fromEntries(NEEDS_AI_KEYS.map((k) => [k, d.needs[k]])) as Record<NeedsAssessmentKey, string>;
+  const m = mergeAiSuggestions(current, d.needsAi, suggestions, NEEDS_AI_LIMITS);
+  const filled = NEEDS_AI_KEYS.filter((k) => m.fields[k] !== current[k]).length;
+  return { draft: { ...d, needs: { ...d.needs, ...m.fields }, needsAi: m.ai, aiUsed: true }, kept: m.kept, filled };
 }
