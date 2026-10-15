@@ -16,6 +16,9 @@ import type {
   MeetingMinutesAiResult,
   CaseMeetingAiInput,
   CaseMeetingAiResult,
+  NeedsAssessmentAiInput,
+  NeedsAssessmentAiResult,
+  NeedsAssessmentKey,
   PolicyCheckAiInput,
   PolicyCheckAiResult,
   PolicyCheckKind,
@@ -103,6 +106,7 @@ import { VITAL_THRESHOLDS, evaluateVitalSeries, type VitalFlag } from './vitalFl
 import { PROGRAM_CATEGORY_LABEL } from './programRules.ts';
 import { TRAINING_CATEGORY_LABEL, TRAINING_KIND_LABEL, isCategoryForKind } from './trainingRules.ts';
 import { CARE_PLAN_NEEDS_LABEL } from './carePlanRules.ts';
+import { NEEDS_ITEMS } from './needsRules.ts';
 import { isValidMonth, parseYmd } from './labDate.ts';
 import { EVENT_KINDS, EVENT_SEVERITIES, MAX_EVENT_TEXT } from './careEventRules.ts';
 import { MAX_REHAB_ITEMS, MAX_REHAB_ITEM_LENGTH, MAX_REHAB_MINUTES, REHAB_KINDS, isRehabKind, rehabKindLabel } from './rehabRules.ts';
@@ -152,8 +156,9 @@ export type LabAiTask =
   | 'medical-visit'
   | 'meeting-minutes'
   | 'case-meeting'
-  | 'policy-check';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note', 'medical-visit', 'meeting-minutes', 'case-meeting', 'policy-check'];
+  | 'policy-check'
+  | 'needs-assessment';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note', 'medical-visit', 'meeting-minutes', 'case-meeting', 'policy-check', 'needs-assessment'];
 
 /**
  * 5·6차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
@@ -164,7 +169,7 @@ export function labAiBodyLimit(task: string): number | null {
   if (task === 'survey-summary') return 20_500;
   if (task === 'program-schedule' || task === 'business-plan') return 8_500;
   if (task === 'policy-check') return 24_000;
-  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note' || task === 'medical-visit' || task === 'meeting-minutes' || task === 'case-meeting') return 3_500;
+  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note' || task === 'medical-visit' || task === 'meeting-minutes' || task === 'case-meeting' || task === 'needs-assessment') return 3_500;
   return null;
 }
 
@@ -905,7 +910,8 @@ export function normalizeConsultation(raw: unknown): ConsultationResult {
 
 // ---------- 8) 급여제공계획 초안 ----------
 
-const NEED_KEYS = Object.keys(CARE_PLAN_NEEDS_LABEL) as Array<keyof CarePlanNeeds>;
+/** 급여제공계획 프롬프트에 넣는 욕구사정 칸 — 11차 열 칸 순서 뒤에 기피식품·기타 */
+const NEED_KEYS: ReadonlyArray<keyof CarePlanNeeds> = ['physical', 'disease', 'cognition', 'communication', 'oral', 'nutrition', 'family', 'subjective', 'resources', 'summary', 'avoidFoods', 'other'];
 
 export interface CarePlanPromptInput {
   grade?: string;
@@ -969,6 +975,7 @@ export function buildCarePlanPrompt(input: CarePlanPromptInput): string {
 6. 위험도 평가에 높은 위험(욕창·낙상·인지저하)이 있으면 그 위험을 줄이는 서비스를 포함합니다.
 7. ${PRIVACY_RULE}
 8. ${RECORD_STYLE_RULE}
+9. [욕구사정]의 구강상태·기피식품·주관적 욕구·자원이용 욕구·총평이 있으면 서비스에 반영합니다. 기피식품이 있으면 식사·영양관리 서비스에 그 식품을 피한다고 쓰고, 구강상태(틀니 등)가 있으면 식사 형태·구강 위생 지원에 반영합니다. 해당 칸이 없으면 그 서비스를 만들지 않습니다.
 
 ${parts.join('\n\n')}`;
 }
@@ -2769,6 +2776,66 @@ export type PreparedLabAiTask =
   | { ok: true; prompt: string; schema: object; normalize: (raw: unknown) => unknown }
   | { ok: false; message: string };
 
+// ---------- 24) 욕구사정 면담 메모 정리 (11차) ----------
+
+/** 면담 메모 글자 수(본문 상한은 labAiBodyLimit의 3,500자 — JSON 겹따옴표·키 이름 몫을 남긴다) */
+export const MAX_NEEDS_NOTE = 3000;
+export const MAX_NEEDS_FIELD = 500;
+/** AI가 채우는 열한 칸 — 열 항목 순서 뒤에 기피식품 */
+export const NEEDS_AI_KEYS: readonly NeedsAssessmentKey[] = [...NEEDS_ITEMS.map((i) => i.key), 'avoidFoods'];
+
+export function validateNeedsAssessmentInput(body: unknown): Validation<NeedsAssessmentAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '욕구사정 면담 메모', MAX_NEEDS_NOTE);
+  if (!note.ok) return note;
+  return { ok: true, value: { note: note.value } };
+}
+
+export function buildNeedsAssessmentPrompt(input: NeedsAssessmentAiInput): string {
+  const fields = NEEDS_ITEMS.map((i) => `- ${i.key}: ${i.label}`).concat('- avoidFoods: 기피식품(식사 유의사항)').join('\n');
+  return `당신은 주야간보호센터 사회복지사의 욕구사정 기록을 돕는 보조자입니다.
+아래 <note>는 직원이 어르신 면담·관찰을 적은 메모입니다. 이 메모만을 근거로 욕구사정의 열한 칸을 채웁니다. 직원이 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 메모에 없는 진단명·질병·복용 약·수치를 만들지 않습니다. 질병상태(disease)는 메모에 적힌 질환·복약·치료만 씁니다. 메모에 없는 칸은 빈 문자열("")이며, 그럴듯하게 채우기 위해 추측하지 않습니다.
+3. 각 칸(${MAX_NEEDS_FIELD}자 이내)은 "양호", "해당 없음" 같은 한 단어나 체크리스트식 표현이 아니라, 메모에 있는 판단 근거(할 수 있는 것·어려운 것·도움이 필요한 상황 등 기능과 상태)를 담은 서술로 씁니다. 한 칸에 해당하는 내용이 메모에 한 마디뿐이면 그 한 마디를 그대로 서술하고 늘려 쓰지 않습니다.
+4. summary(총평)는 칸 전체를 종합한 소견을 서술로 씁니다. 메모에 쓸 내용이 하나라도 있으면 반드시 채우되, 메모에 없는 내용을 보태 종합하지 않습니다.
+5. avoidFoods(기피식품)에는 메모에 적힌 기피·알레르기·못 드시는 식재료·식품과 그 이유만 씁니다. 메모에 없으면 빈 문자열("")입니다. 식단에서 피하면 좋을 것 같은 식품을 스스로 정하지 않습니다.
+6. oral(구강상태)에는 틀니·치아·씹기·삼킴에 관해 메모에 있는 것만 씁니다. subjective(주관적 욕구)에는 어르신이나 보호자가 원한다고 말한 것만, resources(자원이용 욕구)에는 이용 중이거나 원하는 외부 서비스·자원만 씁니다.
+7. ${PRIVACY_RULE}
+8. ${NO_FILLER_RULE}
+9. ${RECORD_STYLE_RULE}
+
+[칸]
+${fields}
+
+${fence('note', input.note)}`;
+}
+
+export const NEEDS_ASSESSMENT_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    needs: {
+      type: 'OBJECT',
+      description: '욕구사정 열한 칸 (각 500자 이내, 메모에 없으면 빈 문자열)',
+      properties: Object.fromEntries(NEEDS_AI_KEYS.map((k) => [k, STR(`${k} — 메모에 있는 판단 근거를 담은 서술, 없으면 빈 문자열`)])),
+      required: [...NEEDS_AI_KEYS],
+    },
+  },
+  required: ['needs'],
+} as const;
+
+/** 열한 칸만 남기고 모르는 키는 버린다. 빠진 칸·글이 아닌 값·형식적 문구는 ''. 칸이 모두 비면 오류. */
+export function normalizeNeedsAssessment(raw: unknown): NeedsAssessmentAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const src = isRecord(raw.needs) ? raw.needs : {};
+  const needs = {} as Record<NeedsAssessmentKey, string>;
+  for (const key of NEEDS_AI_KEYS) needs[key] = substantive(cleanOutput(src[key], MAX_NEEDS_FIELD));
+  if (NEEDS_AI_KEYS.every((k) => needs[k] === '')) throw new Error('AI 응답에 정리할 내용이 없습니다');
+  return { needs };
+}
+
 /** 작업 이름과 요청 본문을 검증하고, 모델에 보낼 프롬프트·스키마와 응답 정규화 함수를 한 번에 만든다. */
 export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask {
   if (task === 'care-record') {
@@ -2905,6 +2972,11 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validatePolicyCheckInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildPolicyCheckPrompt(v.value), schema: policyCheckSchema(v.value.kind), normalize: (raw) => normalizePolicyCheck(raw, v.value.kind, v.value.text) };
+  }
+  if (task === 'needs-assessment') {
+    const v = validateNeedsAssessmentInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildNeedsAssessmentPrompt(v.value), schema: NEEDS_ASSESSMENT_SCHEMA, normalize: normalizeNeedsAssessment };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

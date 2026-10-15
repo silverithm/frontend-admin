@@ -95,7 +95,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 38);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 41);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -278,4 +278,15 @@ test('진료 동행 요건 — 종사자 동행·필수 항목은 기관 서식�
   // 지역자원 연계는 2026판에 별도 지표가 없는 보조 근거임을 숨기지 않는다
   assert.match(indicatorByCode('HLT-06')!.title, /별도 지표 없음/);
   assert.match(EVAL_AUTO_SOURCE_LABEL.RESOURCE_LINKS, /보조 근거/);
+});
+
+test('11차 자동 근거 — 욕구사정·계획 변경·직원권익이 붙고 삭제 지표를 뺀 44개 모두 자동 근거가 있다', () => {
+  const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
+  assert.deepEqual(by('NEEDS_ASSESSMENT'), ['SVC-03']);
+  assert.deepEqual(by('PLAN_CHANGES'), ['SVC-07']);
+  assert.deepEqual(by('STAFF_RIGHTS'), ['OPS-05']);
+  const active = EVAL_INDICATORS.filter((i) => !i.deletedIn2026);
+  assert.equal(active.length, 44);
+  assert.deepEqual(active.filter((i) => !i.autoSource).map((i) => i.code), []);
+  assert.match(indicatorByCode('SAFE-05')!.requirements.join(' '), /유행·발생 때 한 조치\(보호자 안내·보건소 신고·공단 보고\)를 기록/);
 });

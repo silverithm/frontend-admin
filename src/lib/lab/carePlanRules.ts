@@ -22,6 +22,12 @@ export const CARE_PLAN_NEEDS_LABEL: Readonly<Record<keyof CarePlanNeeds, string>
   communication: '의사소통',
   family: '가족·환경',
   other: '기타 요구',
+  disease: '질병상태',
+  oral: '구강상태',
+  subjective: '주관적 욕구',
+  resources: '자원이용 욕구',
+  summary: '총평',
+  avoidFoods: '기피식품',
 };
 
 /** 점검에 필요한 칸만 */
@@ -79,7 +85,7 @@ export function carePlanCoverage(
  * 계획서가 "구체적인가"의 최소 점검 — 비어 있는 부분의 이름을 돌려준다(비어 있으면 []가 아니라 항목이 나온다).
  * 평가 요건은 욕구사정에 근거한 구체적인 목표·서비스 내용이다.
  */
-export function carePlanGaps(plan: Pick<CarePlan, 'needs' | 'goals' | 'services'>): string[] {
+export function carePlanGaps(plan: Pick<CarePlan, 'goals' | 'services'> & { needs: Partial<CarePlanNeeds> }): string[] {
   const gaps: string[] = [];
   const needs = plan.needs ?? ({} as Partial<CarePlanNeeds>);
   const filled = (Object.keys(CARE_PLAN_NEEDS_LABEL) as Array<keyof CarePlanNeeds>).filter((k) => typeof needs[k] === 'string' && needs[k]!.trim() !== '');

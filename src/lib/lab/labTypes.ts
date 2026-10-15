@@ -380,7 +380,10 @@ export type ConsultationInput = Omit<Consultation, 'id' | 'elderlyName' | 'creat
 
 // ---------- 욕구사정 · 급여제공계획 ----------
 
-/** 욕구사정 여섯 영역(각 1000자 이하) */
+/**
+ * 욕구사정 칸(각 1000자 이하). 11차에 disease·oral·subjective·resources·summary·avoidFoods를 더했다.
+ * 옛 기록에는 새 칸이 없을 수 있어 받을 때 labApi가 ''로 채운다(normalizeCarePlanNeeds).
+ */
 export interface CarePlanNeeds {
   physical: string;
   cognition: string;
@@ -388,6 +391,18 @@ export interface CarePlanNeeds {
   communication: string;
   family: string;
   other: string;
+  /** 질병상태 */
+  disease: string;
+  /** 구강상태 */
+  oral: string;
+  /** 주관적 욕구 */
+  subjective: string;
+  /** 자원이용 욕구 */
+  resources: string;
+  /** 총평 — 서술형 종합소견 */
+  summary: string;
+  /** 기피식품(식사 유의사항) — '없음'도 기록으로 센다 */
+  avoidFoods: string;
 }
 
 export interface CarePlanService {
@@ -2144,3 +2159,178 @@ export interface PolicyCheckAiResult {
   /** 500자 이내 */
   advice: string;
 }
+
+// =====================================================================
+// 11차 — 욕구사정 열 칸 · 계획 변경 이력 · 직원 복지(포상)·가산금·고충 · 감염병 유행·발생 대응
+// =====================================================================
+
+// ---------- 욕구사정 AI ----------
+
+/** 욕구사정 열 칸 + 기피식품 (other는 AI가 채우지 않는다) */
+export type NeedsAssessmentKey = 'physical' | 'disease' | 'cognition' | 'communication' | 'oral' | 'nutrition' | 'family' | 'subjective' | 'resources' | 'summary' | 'avoidFoods';
+
+export interface NeedsAssessmentAiInput {
+  /** 욕구사정 면담 메모 3,500자. 사람 이름은 보내지 않는다 */
+  note: string;
+}
+
+export interface NeedsAssessmentAiResult {
+  /** 열한 칸, 각 500자 이내. 메모에 없는 칸은 '' */
+  needs: Record<NeedsAssessmentKey, string>;
+}
+
+// ---------- 급여제공계획 변경 이력 ----------
+
+export type CarePlanChangeReason = 'FUNCTION_CHANGE' | 'ELDER_WISH' | 'GUARDIAN_REQUEST' | 'GRADE_CHANGE' | 'OTHER';
+export type CarePlanChangeItem = 'CONTENT' | 'TIME' | 'FREQUENCY';
+
+export interface CarePlanChange {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  changedOn: string;
+  reason: CarePlanChangeReason;
+  /** 필수 300자 */
+  reasonNote: string;
+  /** 1~3개, 중복 없음 */
+  changeItems: CarePlanChangeItem[];
+  /** 필수 1,000자 */
+  changeDetail: string;
+  /** 같은 어르신의 상태변화·사고 기록 */
+  eventId: number | null;
+  guardianExplainedOn: string | null;
+  guardianSignedOn: string | null;
+  /** 공단 통보일 */
+  notifiedOn: string | null;
+  writerName: string | null;
+  updatedAt: string | null;
+}
+
+export type CarePlanChangeInput = Omit<CarePlanChange, 'id' | 'elderlyName' | 'writerName' | 'updatedAt'>;
+
+// ---------- 직원 복지(포상) 제공대장 · 가산금 ----------
+
+export type WelfareKind =
+  | 'GIFT_CARD'
+  | 'BOOKS'
+  | 'TRAINING'
+  | 'CLUB'
+  | 'MEDICAL'
+  | 'VACATION_PAY'
+  | 'TRANSPORT'
+  | 'CLOTHING'
+  | 'VACCINE'
+  | 'INSURANCE'
+  | 'REWARD_LEAVE'
+  | 'BONUS'
+  | 'HOLIDAY_GIFT'
+  | 'SPECIAL_ALLOWANCE'
+  | 'OTHER'
+  | 'DINNER'
+  | 'PLAQUE_ONLY'
+  | 'DONATED_GOODS';
+
+export interface StaffWelfare {
+  id: number;
+  givenOn: string;
+  memberId: number;
+  memberName: string;
+  kind: WelfareKind;
+  /** 포상품·내용(필수 100자) */
+  item: string;
+  /** 0~100,000,000 */
+  amount: number;
+  /** 수령인 서명을 받았는가 */
+  signed: boolean;
+  /** 대표자 본인에게 준 것인가 */
+  recipientIsOwner: boolean;
+  /** 같은 기관 회계 장부 기록 */
+  evidenceLedgerId: number | null;
+  /** 영수증·이체내역 보관 위치(200자) */
+  evidenceNote: string | null;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type StaffWelfareInput = Omit<StaffWelfare, 'id' | 'memberName' | 'updatedAt'>;
+
+export type BonusFundKind = 'RECEIVED' | 'SPENT';
+
+export interface BonusFund {
+  id: number;
+  kind: BonusFundKind;
+  occurredOn: string;
+  /** 1~1,000,000,000 */
+  amount: number;
+  /** SPENT 대상 직원. null이면 여러 직원 */
+  memberId: number | null;
+  memberName: string | null;
+  /** 필수 100자 */
+  purpose: string;
+  /** 대표자 겸 시설장·직원에게 쓴 금액 — 사용 비율에서 뺀다 */
+  ownerUse: boolean;
+  evidenceLedgerId: number | null;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type BonusFundInput = Omit<BonusFund, 'id' | 'memberName' | 'updatedAt'>;
+
+// ---------- 고충 건수(내용은 가져오지 않는다) ----------
+
+export interface GrievanceSummary {
+  year: number;
+  total: number;
+  anonymous: number;
+  received: number;
+  inReview: number;
+  resolved: number;
+  onHold: number;
+  replied: number;
+  /** 답한 건의 (답한 날 − 만든 날) 일수 중앙값, 소수 첫째 자리. 없으면 null */
+  medianReplyDays: number | null;
+  /** 조치완료가 아닌 건 중 가장 오래된 것의 경과 일수. 없으면 null */
+  oldestOpenDays: number | null;
+}
+
+// ---------- 감염병 유행·발생·국가 위기 기록 ----------
+
+export type OutbreakKind = 'OUTBREAK' | 'CASE' | 'NATIONAL';
+export type OutbreakAlertLevel = 'BLUE' | 'YELLOW' | 'ORANGE' | 'RED';
+export type OutbreakActionKey =
+  | 'VISIT_LIMIT'
+  | 'FEVER_CHECK'
+  | 'EXTRA_DISINFECT'
+  | 'HYGIENE_SUPPLY'
+  | 'EXTRA_TRAINING'
+  | 'FLU_VACCINE'
+  | 'MASK_HAND'
+  | 'SYMPTOM_WATCH'
+  | 'ISOLATION'
+  | 'HOSPITAL_TRANSFER'
+  | 'ACTIVITY_STOP';
+
+export interface Outbreak {
+  id: number;
+  kind: OutbreakKind;
+  /** 병명·증상(필수 50자) */
+  disease: string;
+  startedOn: string;
+  /** 0~500 */
+  elderCases: number;
+  /** 0~500 */
+  staffCases: number;
+  guardianNotifiedOn: string | null;
+  healthCenterReportedOn: string | null;
+  /** 지자체·공단 보고일 */
+  authorityReportedOn: string | null;
+  /** NATIONAL이면 필수, 그 밖이면 null */
+  alertLevel: OutbreakAlertLevel | null;
+  actions: OutbreakActionKey[];
+  endedOn: string | null;
+  note: string | null;
+  writerName: string | null;
+  updatedAt: string | null;
+}
+
+export type OutbreakInput = Omit<Outbreak, 'id' | 'writerName' | 'updatedAt'>;

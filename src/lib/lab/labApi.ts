@@ -88,6 +88,18 @@ import type {
   CareNoteStructured,
   CareRecord,
   CarePlan,
+  CarePlanChange,
+  CarePlanChangeInput,
+  CarePlanNeeds,
+  NeedsAssessmentAiInput,
+  NeedsAssessmentAiResult,
+  Outbreak,
+  OutbreakInput,
+  StaffWelfare,
+  StaffWelfareInput,
+  BonusFund,
+  BonusFundInput,
+  GrievanceSummary,
   CarePlanAiInput,
   CarePlanInput,
   CarePlanResult,
@@ -389,13 +401,28 @@ export async function deleteConsultation(id: number): Promise<void> {
 
 // ---------- 욕구사정·급여제공계획 ----------
 
-export function listCarePlans(year: number): Promise<CarePlan[]> {
-  return request<CarePlan[]>(`${LAB}/care-plans?year=${q(String(year))}`, undefined, '급여제공계획을 불러오지 못했습니다');
+const NEEDS_KEYS: ReadonlyArray<keyof CarePlanNeeds> = ['physical', 'cognition', 'nutrition', 'communication', 'family', 'other', 'disease', 'oral', 'subjective', 'resources', 'summary', 'avoidFoods'];
+
+/** 11차 이전에 저장된 욕구사정에는 새 칸이 없다 — 받을 때 모든 칸을 글로 채운다(없거나 글이 아니면 ''). */
+export function normalizeCarePlanNeeds(raw: unknown): CarePlanNeeds {
+  const src = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const out = {} as CarePlanNeeds;
+  for (const key of NEEDS_KEYS) out[key] = typeof src[key] === 'string' ? (src[key] as string) : '';
+  return out;
+}
+
+export function normalizeCarePlan(plan: CarePlan): CarePlan {
+  return { ...plan, needs: normalizeCarePlanNeeds(plan.needs) };
+}
+
+export async function listCarePlans(year: number): Promise<CarePlan[]> {
+  const plans = await request<CarePlan[]>(`${LAB}/care-plans?year=${q(String(year))}`, undefined, '급여제공계획을 불러오지 못했습니다');
+  return Array.isArray(plans) ? plans.map(normalizeCarePlan) : plans;
 }
 
 /** 어르신 + 연도로 덮어쓴다(upsert) */
-export function saveCarePlan(input: CarePlanInput): Promise<CarePlan> {
-  return request<CarePlan>(`${LAB}/care-plans`, json('PUT', input), '급여제공계획을 저장하지 못했습니다');
+export async function saveCarePlan(input: CarePlanInput): Promise<CarePlan> {
+  return normalizeCarePlan(await request<CarePlan>(`${LAB}/care-plans`, json('PUT', input), '급여제공계획을 저장하지 못했습니다'));
 }
 
 export async function deleteCarePlan(id: number): Promise<void> {
@@ -1408,4 +1435,101 @@ export function aiCaseMeeting(
 /** 규정 원문에 항목이 있는지 점검한다. 원문은 이 요청에만 쓰이고 저장되지 않는다. 결과는 체크 제안이다 */
 export function aiPolicyCheck(input: PolicyCheckAiInput): Promise<PolicyCheckAiResult> {
   return request<PolicyCheckAiResult>(`${LAB_AI}/policy-check`, json('POST', redactDeep(input)), `AI가 규정 항목을 점검하지 못했습니다. ${AI_RETRY}`);
+}
+
+// =====================================================================
+// 11차
+// =====================================================================
+
+/**
+ * 욕구사정 면담 메모를 열한 칸으로 정리한다. 메모의 어르신·직원 이름은 보내기 직전에 지운다(names로 이름을 알려 주면 더 확실하다).
+ * 결과는 제안이다 — 화면이 빈 칸에만 'AI 제안'으로 채운다.
+ */
+export function aiNeedsAssessment(
+  input: NeedsAssessmentAiInput,
+  names: { elderNames?: ReadonlyArray<string | null | undefined>; staffNames?: ReadonlyArray<string | null | undefined> } = {},
+): Promise<NeedsAssessmentAiResult> {
+  rememberElderNames((names.elderNames ?? []).filter((n): n is string => typeof n === 'string'));
+  rememberStaffNames((names.staffNames ?? []).filter((n): n is string => typeof n === 'string'));
+  return request<NeedsAssessmentAiResult>(`${LAB_AI}/needs-assessment`, json('POST', redactDeep(input)), `AI가 욕구사정 메모를 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+// ---------- 감염병 유행·발생 기록 ----------
+
+export function listOutbreaks(year: number): Promise<Outbreak[]> {
+  return request<Outbreak[]>(`${LAB}/outbreaks?year=${q(String(year))}`, undefined, '감염병 유행·발생 기록을 불러오지 못했습니다');
+}
+
+export function createOutbreak(input: OutbreakInput): Promise<Outbreak> {
+  return request<Outbreak>(`${LAB}/outbreaks`, json('POST', input), '감염병 유행·발생 기록을 저장하지 못했습니다');
+}
+
+export function updateOutbreak(id: number, input: OutbreakInput): Promise<Outbreak> {
+  return request<Outbreak>(`${LAB}/outbreaks/${q(String(id))}`, json('PUT', input), '감염병 유행·발생 기록을 고치지 못했습니다');
+}
+
+export async function deleteOutbreak(id: number): Promise<void> {
+  await request<null>(`${LAB}/outbreaks/${q(String(id))}`, { method: 'DELETE' }, '감염병 유행·발생 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 직원 복지(포상) 제공대장 ----------
+
+export function listStaffWelfare(year: number): Promise<StaffWelfare[]> {
+  return request<StaffWelfare[]>(`${LAB}/staff-welfare?year=${q(String(year))}`, undefined, '직원 복지 제공대장을 불러오지 못했습니다');
+}
+
+export function createStaffWelfare(input: StaffWelfareInput): Promise<StaffWelfare> {
+  return request<StaffWelfare>(`${LAB}/staff-welfare`, json('POST', input), '직원 복지 제공 기록을 저장하지 못했습니다');
+}
+
+export function updateStaffWelfare(id: number, input: StaffWelfareInput): Promise<StaffWelfare> {
+  return request<StaffWelfare>(`${LAB}/staff-welfare/${q(String(id))}`, json('PUT', input), '직원 복지 제공 기록을 고치지 못했습니다');
+}
+
+export async function deleteStaffWelfare(id: number): Promise<void> {
+  await request<null>(`${LAB}/staff-welfare/${q(String(id))}`, { method: 'DELETE' }, '직원 복지 제공 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 평가 가산금 수령·사용 ----------
+
+export function listBonusFunds(year: number): Promise<BonusFund[]> {
+  return request<BonusFund[]>(`${LAB}/bonus-funds?year=${q(String(year))}`, undefined, '가산금 기록을 불러오지 못했습니다');
+}
+
+export function createBonusFund(input: BonusFundInput): Promise<BonusFund> {
+  return request<BonusFund>(`${LAB}/bonus-funds`, json('POST', input), '가산금 기록을 저장하지 못했습니다');
+}
+
+export function updateBonusFund(id: number, input: BonusFundInput): Promise<BonusFund> {
+  return request<BonusFund>(`${LAB}/bonus-funds/${q(String(id))}`, json('PUT', input), '가산금 기록을 고치지 못했습니다');
+}
+
+export async function deleteBonusFund(id: number): Promise<void> {
+  await request<null>(`${LAB}/bonus-funds/${q(String(id))}`, { method: 'DELETE' }, '가산금 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 급여제공계획 변경 이력 ----------
+
+/** 어르신별(elderlyId) 또는 그 해(year) 변경 이력, 변경일 최신순. 하나는 꼭 줘야 한다 */
+export function listCarePlanChanges(filter: { elderlyId: number } | { year: number }): Promise<CarePlanChange[]> {
+  const query = 'elderlyId' in filter ? `elderlyId=${q(String(filter.elderlyId))}` : `year=${q(String(filter.year))}`;
+  return request<CarePlanChange[]>(`${LAB}/care-plan-changes?${query}`, undefined, '급여제공계획 변경 이력을 불러오지 못했습니다');
+}
+
+export function createCarePlanChange(input: CarePlanChangeInput): Promise<CarePlanChange> {
+  return request<CarePlanChange>(`${LAB}/care-plan-changes`, json('POST', input), '급여제공계획 변경 이력을 저장하지 못했습니다');
+}
+
+export function updateCarePlanChange(id: number, input: CarePlanChangeInput): Promise<CarePlanChange> {
+  return request<CarePlanChange>(`${LAB}/care-plan-changes/${q(String(id))}`, json('PUT', input), '급여제공계획 변경 이력을 고치지 못했습니다');
+}
+
+export async function deleteCarePlanChange(id: number): Promise<void> {
+  await request<null>(`${LAB}/care-plan-changes/${q(String(id))}`, { method: 'DELETE' }, '급여제공계획 변경 이력을 삭제하지 못했습니다');
+}
+
+// ---------- 고충 건수(내용은 서버가 내보내지 않는다) ----------
+
+export function getGrievanceSummary(year: number): Promise<GrievanceSummary> {
+  return request<GrievanceSummary>(`${LAB}/grievance-summary?year=${q(String(year))}`, undefined, '고충 처리 현황을 불러오지 못했습니다');
 }
