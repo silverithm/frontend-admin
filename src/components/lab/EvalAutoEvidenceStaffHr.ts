@@ -6,6 +6,9 @@
 import { listStaffCerts, listStaffProfiles } from '@/lib/lab/labApi';
 import { continuingEduRate, continuingEduStatus, experiencedRatio, healthCheckRate, healthCheckStatus } from '@/lib/lab/staffHrRules';
 import type { EvalAutoSource } from '@/lib/lab/evalIndicators';
+import { isValidYmd } from '@/lib/lab/labDate';
+import { OPENED_ON_KEY } from '@/components/labRecords/StaffHrDraft';
+import { readStored } from './labFormat';
 
 export interface StaffHrEvidence {
   lines: string[];
@@ -32,11 +35,15 @@ export async function collectStaffHrEvidence(source: EvalAutoSource, asOf: strin
   if (profiles.length === 0) return EMPTY(asOf);
 
   if (source === 'EXPERIENCED_STAFF') {
-    const r = experiencedRatio(profiles, asOf);
+    // 직원 인사 화면에서 이 브라우저에 기억해 둔 기관 개설일 — 운영 2년 미만이면 기준이 12개월이 된다
+    const stored = readStored(OPENED_ON_KEY);
+    const openedOn = stored && isValidYmd(stored) ? stored : null;
+    const r = experiencedRatio(profiles, asOf, openedOn);
     if (r.total === 0 || r.ratio === null) return { lines: [`근무 중인 직원이 없어(입사 예정자는 뺌) 비율을 셀 수 없습니다 (${asOf} 기준)`] };
     return {
       lines: [
         `기관에 연속 ${r.threshold}개월 이상 근무한 직원: ${r.eligible}/${r.total}명 (${r.ratio}%) — 추정 ${r.score}점/1점`,
+        openedOn ? `기관 개설일 ${openedOn} 기준${r.threshold === 12 ? ' — 운영 2년 미만이라 12개월로 셌습니다' : ''}` : '기관 개설일을 직원 인사 > 경력직에 넣지 않아 24개월로 셌습니다(운영 2년 미만 기관은 12개월)',
         '입사일부터 지금까지 이어 근무한 것으로 센 "지금 기준 추정"입니다. 공단 전산 산정 기간 기준의 연속 근무·제외 사유(정년·사망 등)·법인 내 이동은 반영되지 않습니다',
         ...(r.score === 0 ? ['30% 미만의 점수는 매뉴얼 표에 없어 0점은 대조 필요입니다'] : []),
         `(${asOf} 기준)`,
