@@ -1,0 +1,204 @@
+/* 송영 일지 화면 전용 스타일 — 공용 모양은 labRecords.module.css. 색은 토큰만. */
+
+.guide {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.guideInline {
+  flex: 1 1 260px;
+}
+
+.guide summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.guide p {
+  margin: var(--spacing-1) 0;
+}
+
+.noticeBox {
+  border: 1px solid var(--color-border-yellow);
+  background: var(--color-background-yellow);
+  border-radius: var(--radius-inner);
+  padding: var(--spacing-3) var(--spacing-4);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.dangerBox {
+  border: 1px solid var(--color-border-red);
+  background: var(--color-background-red);
+  border-radius: var(--radius-inner);
+  padding: var(--spacing-3) var(--spacing-4);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.infoBox {
+  border: 1px solid var(--color-border);
+  background: var(--color-background-surface);
+  border-radius: var(--radius-inner);
+  padding: var(--spacing-3) var(--spacing-4);
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.summaryBox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3) var(--spacing-6);
+  align-items: baseline;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  min-width: 0;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowWarn td {
+  background: var(--color-background-yellow);
+}
+
+.rowDanger td {
+  background: var(--color-background-red);
+}
+
+.rowBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-2);
+  align-items: center;
+}
+
+.dateChip {
+  border: 1px solid var(--color-border-emphasized);
+  background: var(--color-background-card);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  padding: 0 var(--spacing-3);
+  min-height: 32px;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.dateChip:hover {
+  background: var(--color-background-muted);
+}
+
+/* 탑승자 한 명 — 이름·탑승 칸 위, 시각·메모는 아래에 나란히 */
+.riderRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.riderRow:last-child {
+  border-bottom: 0;
+}
+
+.riderGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 140px) minmax(0, 1fr);
+  gap: var(--spacing-2);
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .riderGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .riderGrid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.riderBox {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  min-width: 0;
+}
+
+.riderOff {
+  opacity: 0.6;
+}
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.sheetTable th,
+.sheetTable td {
+  border: 1px solid var(--color-border-emphasized);
+  padding: var(--spacing-1) var(--spacing-2);
+  text-align: start;
+  vertical-align: top;
+}
+
+.sheetTable th {
+  background: var(--color-background-muted);
+}
+
+.sheetTable tr {
+  break-inside: avoid;
+}
+
+.signRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-6);
+}
+
+.signBox {
+  flex: 1 1 200px;
+  border-bottom: 1px solid var(--color-border-emphasized);
+  min-height: 48px;
+  padding-bottom: var(--spacing-1);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.pageBreak {
+  break-after: page;
+}
+
+.pageBreak:last-child {
+  break-after: auto;
+}
