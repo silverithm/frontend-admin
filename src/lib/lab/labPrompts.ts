@@ -14,6 +14,11 @@ import type {
   MedicalVisitAiResult,
   MeetingMinutesAiInput,
   MeetingMinutesAiResult,
+  CaseMeetingAiInput,
+  CaseMeetingAiResult,
+  PolicyCheckAiInput,
+  PolicyCheckAiResult,
+  PolicyCheckKind,
   BusinessPlanAiInput,
   BusinessPlanAiResult,
   BusinessPlanFacts,
@@ -115,6 +120,7 @@ import { SATISFACTION_KINDS, satisfactionKindLabel } from './satisfactionRules.t
 import { INTAKE_CARE_GRADES } from './intakeRules.ts';
 import { MAX_VISIT_DEPARTMENT } from './medicalVisitRules.ts';
 import { MAX_MEETING_DECISION } from './committeeRules.ts';
+import { POLICY_ITEMS } from './policyDocRules.ts';
 import { isValidYmd } from './labDate.ts';
 import { mondayOf } from './careEventRules.ts';
 import { MAX_SAFETY_ACTIONS, MAX_SAFETY_ITEMS, MAX_SAFETY_NOTE, SAFETY_CADENCE_LABEL, isSafetyKind, templateFor } from './safetyRules.ts';
@@ -144,8 +150,10 @@ export type LabAiTask =
   | 'survey-summary'
   | 'intake-note'
   | 'medical-visit'
-  | 'meeting-minutes';
-export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note', 'medical-visit', 'meeting-minutes'];
+  | 'meeting-minutes'
+  | 'case-meeting'
+  | 'policy-check';
+export const LAB_AI_TASKS: readonly LabAiTask[] = ['care-record', 'risk', 'eval-review', 'nursing-summary', 'program-log', 'training-log', 'consultation', 'care-plan', 'meal-plan', 'safety-actions', 'ledger-classify', 'care-event', 'rehab-log', 'guardian-notice', 'resource-suggest', 'budget-draft', 'medication-request', 'discharge-referral', 'bath-note', 'program-schedule', 'business-plan', 'survey-summary', 'intake-note', 'medical-visit', 'meeting-minutes', 'case-meeting', 'policy-check'];
 
 /**
  * 5·6차 작업의 요청 본문 상한(글자). 글 입력은 3,000자, 예산 초안은 계정 목록 때문에 20,000자.
@@ -155,7 +163,8 @@ export function labAiBodyLimit(task: string): number | null {
   if (task === 'budget-draft') return 20_500;
   if (task === 'survey-summary') return 20_500;
   if (task === 'program-schedule' || task === 'business-plan') return 8_500;
-  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note' || task === 'medical-visit' || task === 'meeting-minutes') return 3_500;
+  if (task === 'policy-check') return 24_000;
+  if (task === 'care-event' || task === 'rehab-log' || task === 'guardian-notice' || task === 'resource-suggest' || task === 'medication-request' || task === 'discharge-referral' || task === 'bath-note' || task === 'intake-note' || task === 'medical-visit' || task === 'meeting-minutes' || task === 'case-meeting') return 3_500;
   return null;
 }
 
@@ -2554,6 +2563,206 @@ export function normalizeMeetingMinutes(raw: unknown): MeetingMinutesAiResult {
   return result;
 }
 
+// ---------- 22) 사례관리 회의 메모 정리 ----------
+
+export const MAX_CASE_NOTE = 3000;
+export const MAX_CASE_ROLES = 10;
+export const MAX_CASE_ROLE_LENGTH = 30;
+export const MAX_CASE_REASON = 300;
+export const MAX_CASE_OPINION = 300;
+export const MAX_CASE_PLAN = 500;
+export const MAX_CASE_MINUTES = 1500;
+export const MAX_CASE_WARNING = 200;
+export const CASE_OLDER_TOKEN = '[어르신]';
+export const CASE_STAFF_TOKEN = '[직원]';
+
+export function validateCaseMeetingInput(body: unknown): Validation<CaseMeetingAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const note = readText(body, 'note', '회의 메모', MAX_CASE_NOTE);
+  if (!note.ok) return note;
+  if (!Array.isArray(body.roles)) return { ok: false, message: '참석 직종을 보내 주세요' };
+  if (body.roles.length > MAX_CASE_ROLES) return { ok: false, message: `참석 직종은 ${MAX_CASE_ROLES}개까지 보낼 수 있습니다` };
+  const roles: string[] = [];
+  for (const r of body.roles) {
+    if (typeof r !== 'string') return { ok: false, message: '참석 직종은 글로 보내 주세요' };
+    const role = clean(r).replace(/\n+/g, ' ');
+    if (role === '') continue;
+    if (Array.from(role).length > MAX_CASE_ROLE_LENGTH) return { ok: false, message: `참석 직종 이름은 ${MAX_CASE_ROLE_LENGTH}자까지 입니다` };
+    if (!roles.includes(role)) roles.push(role);
+  }
+  return { ok: true, value: { note: note.value, roles } };
+}
+
+export function buildCaseMeetingPrompt(input: CaseMeetingAiInput): string {
+  const roleList = input.roles.length > 0 ? input.roles.map((r) => `- ${r}`).join('\n') : '(없음)';
+  return `당신은 주야간보호센터의 사례관리 회의 메모를 회의록 칸으로 정리하는 보조자입니다.
+아래 <note>는 회의를 기록한 직원이 적은 메모입니다. 이 메모만을 근거로 칸을 채웁니다. 직원이 확인하고 고쳐서 씁니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. ${NO_INVENT_RULE} 특히 메모에 없는 의견·계획·일정·담당자·수치를 지어내지 않습니다. 의견을 낸 사람과 내용이 메모에 분명하지 않으면 그 의견은 쓰지 않습니다.
+3. reason(선정 사유, ${MAX_CASE_REASON}자 이내): 이 어르신을 사례관리 대상으로 정한 까닭을 메모에 적힌 대로만 씁니다. 없으면 빈 문자열.
+4. opinions(직종별 의견, ${MAX_CASE_ROLES}개 이내): 메모에서 어느 직종이 어떤 의견을 냈는지 분명한 것만 { role, opinion }으로 씁니다. role은 아래 [참석 직종] 목록의 이름 중 하나를 글자 그대로 써야 하며, 목록에 없는 직종의 의견은 쓰지 않습니다. 의견은 ${MAX_CASE_OPINION}자 이내 기록체입니다. 의견을 낸 직종이 메모에 분명하지 않으면 opinions에 넣지 말고 minutes에만 반영합니다.
+5. plan(사례관리 계획, ${MAX_CASE_PLAN}자 이내): 메모에 정해진 것으로 적힌 목표·내용·방법·담당·일정만 씁니다. "~하면 좋겠다"처럼 논의만 한 것은 계획으로 단정하지 않고 minutes에 둡니다. 정해진 계획이 없으면 빈 문자열.
+6. minutes(회의 내용 요약, ${MAX_CASE_MINUTES}자 이내): 메모에 오간 내용을 기록체로 요약합니다. 메모에 없는 발언을 보태지 않습니다.
+7. warning: 메모의 내용이 사례관리로 인정되지 않는 예에 가까우면 그 이유를 한 줄(${MAX_CASE_WARNING}자 이내)로 씁니다. 인정되지 않는 예: 단순 업무 보고·공유, 한 번으로 끝나는 일회성 상담이나 조치, 병원 입원 지원, 장기요양 등급변경 신청, 다른 기관으로의 전원 의뢰, 물품 구매. 사례(어르신 상태 파악 → 목표와 계획 → 반영 → 평가)로 이어지는 내용이면 null입니다. 확실하지 않으면 null입니다.
+8. 사람 이름은 어떤 경우에도 쓰지 않습니다. 어르신은 "${CASE_OLDER_TOKEN}", 직원은 "${CASE_STAFF_TOKEN}"으로 바꿔 씁니다. 직종 이름(시설장 등)은 이름이 아니므로 그대로 씁니다.
+9. ${NO_FILLER_RULE}
+10. ${RECORD_STYLE_RULE}
+
+[참석 직종]
+${roleList}
+
+${fence('note', input.note)}`;
+}
+
+export const CASE_MEETING_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    reason: STR(`선정 사유 (${MAX_CASE_REASON}자 이내, 없으면 빈 문자열)`),
+    opinions: {
+      type: 'ARRAY',
+      description: `직종별 의견 (${MAX_CASE_ROLES}개 이내, 참석 직종 목록에 있는 직종만)`,
+      items: {
+        type: 'OBJECT',
+        properties: { role: STR('참석 직종 목록의 이름 그대로'), opinion: STR(`의견 (${MAX_CASE_OPINION}자 이내)`) },
+        required: ['role', 'opinion'],
+      },
+    },
+    plan: STR(`사례관리 계획 (${MAX_CASE_PLAN}자 이내, 메모에 정해진 것만, 없으면 빈 문자열)`),
+    minutes: STR(`회의 내용 요약 (${MAX_CASE_MINUTES}자 이내, 없으면 빈 문자열)`),
+    warning: { type: 'STRING', nullable: true, description: '사례관리로 인정되지 않는 예에 가까우면 이유 한 줄, 아니면 null' },
+  },
+  required: ['reason', 'opinions', 'plan', 'minutes', 'warning'],
+} as const;
+
+/**
+ * 글은 한도까지 자르고 형식적 문구뿐이면 비운다. 의견은 roles에 없는 직종의 것을 버리고(글자 그대로 같은 이름만 인정),
+ * 같은 직종의 같은 의견 중복도 버린다. warning은 한 줄로 줄이고 비어 있으면 null. 칸이 모두 비면(warning만 있어도) 오류.
+ */
+export function normalizeCaseMeeting(raw: unknown, roles: readonly string[]): CaseMeetingAiResult {
+  if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const opinions: CaseMeetingAiResult['opinions'] = [];
+  if (Array.isArray(raw.opinions)) {
+    for (const item of raw.opinions) {
+      if (!isRecord(item) || typeof item.role !== 'string') continue;
+      const role = clean(item.role).replace(/\n+/g, ' ');
+      if (!roles.includes(role)) continue;
+      const opinion = substantive(cleanOutput(item.opinion, MAX_CASE_OPINION));
+      if (opinion === '' || opinions.some((o) => o.role === role && o.opinion === opinion)) continue;
+      opinions.push({ role, opinion });
+      if (opinions.length >= MAX_CASE_ROLES) break;
+    }
+  }
+  const warning = substantive(cleanOutput(raw.warning, MAX_CASE_WARNING)).replace(/\n+/g, ' ');
+  const result: CaseMeetingAiResult = {
+    reason: substantive(cleanOutput(raw.reason, MAX_CASE_REASON)),
+    opinions,
+    plan: substantive(cleanOutput(raw.plan, MAX_CASE_PLAN)),
+    minutes: substantive(cleanOutput(raw.minutes, MAX_CASE_MINUTES)),
+    warning: warning === '' ? null : warning,
+  };
+  if (result.reason === '' && result.opinions.length === 0 && result.plan === '' && result.minutes === '') throw new Error('AI 응답에 정리할 내용이 없습니다');
+  return result;
+}
+
+// ---------- 23) 규정 원문 항목 점검 ----------
+
+export const MAX_POLICY_TEXT = 20_000;
+export const MAX_POLICY_QUOTE = 200;
+export const MAX_POLICY_ADVICE = 500;
+const POLICY_KINDS = Object.keys(POLICY_ITEMS) as PolicyCheckKind[];
+
+export function validatePolicyCheckInput(body: unknown): Validation<PolicyCheckAiInput> {
+  if (!isRecord(body)) return { ok: false, message: '요청 형식이 올바르지 않습니다' };
+  const kind = body.kind;
+  if (typeof kind !== 'string' || !(POLICY_KINDS as string[]).includes(kind)) return { ok: false, message: '점검할 규정의 종류를 골라 주세요' };
+  const text = readText(body, 'text', '규정 원문', MAX_POLICY_TEXT);
+  if (!text.ok) return text;
+  return { ok: true, value: { kind: kind as PolicyCheckKind, text: text.value } };
+}
+
+export function buildPolicyCheckPrompt(input: PolicyCheckAiInput): string {
+  const items = POLICY_ITEMS[input.kind].map((i) => `- ${i.key}: ${i.label}`).join('\n');
+  return `당신은 주야간보호센터의 규정·지침 원문에 꼭 들어가야 할 항목이 있는지 점검하는 보조자입니다.
+아래 <text>는 기관이 가진 규정 원문입니다. 이 원문만을 근거로 [항목]마다 그 내용이 원문에 들어 있는지 판단합니다. 사람이 확인한 뒤에야 확정되는 제안입니다.
+
+[규칙]
+1. ${INJECTION_RULE}
+2. items에는 [항목]의 key마다 정확히 하나씩, 아래 목록의 key만 씁니다. 목록에 없는 key를 만들지 않고 빠뜨리지 않습니다.
+3. present: 그 항목의 내용(조문·문단)이 원문에 실제로 적혀 있으면 true, 제목만 있고 내용이 없거나 원문에서 찾지 못하면 false. 원문에 없는 내용을 있다고 하지 않습니다. 비슷한 낱말만 있다고 true로 하지 않고 항목의 뜻이 담겨 있어야 합니다.
+4. quote: present가 true일 때 그 근거가 되는 원문의 구절을 한 글자도 바꾸지 말고 그대로 옮깁니다(${MAX_POLICY_QUOTE}자 이내, 한 구절). 요약·바꿔 쓰기·이어 붙이기를 하지 않습니다. 그대로 옮길 수 없거나 present가 false이면 null.
+5. advice(${MAX_POLICY_ADVICE}자 이내): 없는 항목이 있으면 그 항목을 규정에 어떻게 채우면 되는지 알려 줍니다. 법령 조항 번호나 원문에 없는 기준 수치를 지어내지 않습니다. 모두 있으면 빈 문자열.
+6. 사람 이름·연락처는 쓰지 않습니다.
+
+[점검할 규정의 종류] ${input.kind}
+[항목]
+${items}
+
+${fence('text', input.text)}`;
+}
+
+export function policyCheckSchema(kind: PolicyCheckKind) {
+  return {
+    type: 'OBJECT',
+    properties: {
+      items: {
+        type: 'ARRAY',
+        description: '항목마다 하나',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            key: { type: 'STRING', description: '항목 key', enum: POLICY_ITEMS[kind].map((i) => i.key) },
+            present: { type: 'BOOLEAN', description: '원문에 그 항목의 내용이 있는가' },
+            quote: { type: 'STRING', nullable: true, description: `근거 구절, 원문 그대로 (${MAX_POLICY_QUOTE}자 이내), 없으면 null` },
+          },
+          required: ['key', 'present', 'quote'],
+        },
+      },
+      advice: STR(`빠진 항목을 채우는 방법 (${MAX_POLICY_ADVICE}자 이내, 없으면 빈 문자열)`),
+    },
+    required: ['items', 'advice'],
+  } as const;
+}
+
+/** 줄바꿈·공백 차이는 같은 글로 본다(모델이 줄을 이어 붙여 옮기는 경우). 꺾쇠는 프롬프트에서 전각으로 바뀌므로 맞춘다. */
+function squashForQuote(text: string): string {
+  return text.replace(/[＜]/g, '<').replace(/[＞]/g, '>').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * 점검 결과를 그 종류의 항목으로 맞춘다. 키마다 정확히 하나만(같은 키가 여럿이면 원문에서 확인된 근거가 있는 쪽, 그다음 present인 쪽, 그다음 먼저 온 쪽),
+ * 모르는 키는 버리고, 빠진 키는 present:false·quote:null로 채우며, quote가 원문(text)에 그대로 들어 있지 않으면 null로 바꾼다.
+ * present가 false인 항목의 quote도 null이다. 항목 순서는 항상 그 종류의 목록 순서.
+ */
+export function normalizePolicyCheck(raw: unknown, kind: PolicyCheckKind, text: string): PolicyCheckAiResult {
+  if (!isRecord(raw) || !Array.isArray(raw.items)) throw new Error('AI 응답 형식이 올바르지 않습니다');
+  const haystack = squashForQuote(text);
+  type Candidate = { present: boolean; quote: string | null };
+  const byKey = new Map<string, Candidate[]>();
+  for (const item of raw.items) {
+    if (!isRecord(item) || typeof item.key !== 'string') continue;
+    const key = item.key.trim();
+    if (!POLICY_ITEMS[kind].some((i) => i.key === key)) continue;
+    const present = item.present === true;
+    let quote: string | null = null;
+    if (present && typeof item.quote === 'string') {
+      const q = squashForQuote(cut(clean(item.quote), MAX_POLICY_QUOTE));
+      if (q !== '' && haystack.includes(q)) quote = q;
+    }
+    const list = byKey.get(key);
+    if (list) list.push({ present, quote });
+    else byKey.set(key, [{ present, quote }]);
+  }
+  const items = POLICY_ITEMS[kind].map((i) => {
+    const list = byKey.get(i.key) ?? [];
+    const pick = list.find((c) => c.present && c.quote !== null) ?? list.find((c) => c.present) ?? list[0];
+    return { key: i.key, present: pick?.present ?? false, quote: pick?.quote ?? null };
+  });
+  const advice = substantive(cleanOutput(raw.advice, MAX_POLICY_ADVICE));
+  return { items, advice };
+}
+
 // ---------- 라우트용 묶음 ----------
 
 export type PreparedLabAiTask =
@@ -2686,6 +2895,16 @@ export function prepareLabAiTask(task: string, body: unknown): PreparedLabAiTask
     const v = validateMeetingMinutesInput(body);
     if (!v.ok) return v;
     return { ok: true, prompt: buildMeetingMinutesPrompt(v.value), schema: MEETING_MINUTES_SCHEMA, normalize: normalizeMeetingMinutes };
+  }
+  if (task === 'case-meeting') {
+    const v = validateCaseMeetingInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildCaseMeetingPrompt(v.value), schema: CASE_MEETING_SCHEMA, normalize: (raw) => normalizeCaseMeeting(raw, v.value.roles) };
+  }
+  if (task === 'policy-check') {
+    const v = validatePolicyCheckInput(body);
+    if (!v.ok) return v;
+    return { ok: true, prompt: buildPolicyCheckPrompt(v.value), schema: policyCheckSchema(v.value.kind), normalize: (raw) => normalizePolicyCheck(raw, v.value.kind, v.value.text) };
   }
   return { ok: false, message: '지원하지 않는 AI 작업입니다' };
 }

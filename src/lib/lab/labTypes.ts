@@ -1895,3 +1895,252 @@ export interface BankStatement {
 }
 
 export type BankStatementInput = Omit<BankStatement, 'id' | 'accountName' | 'updatedAt'>;
+
+// =====================================================================
+// 10차 — 예방접종 · 사례관리 회의 · 송영 일지(수칙·운행표 제공, 차량 보험) · 규정·지침 대장
+// 날짜는 'YYYY-MM-DD', 시각(departTime·arriveTime·boardTime·alightTime)은 JSON에서 'HH:mm'. 필드 이름은 서버 계약과 같다.
+// =====================================================================
+
+// ---------- 예방접종 ----------
+
+export type VaccineKind = 'INFLUENZA' | 'PNEUMOCOCCAL' | 'COVID19';
+export type VaccinationStatus = 'DONE' | 'REFUSED' | 'EXCLUDED' | 'UNKNOWN';
+export type VaccineVerifiedBy = 'CERT' | 'GUARDIAN' | 'NIP' | 'OTHER';
+
+/** 수급자 연도별 예방접종. elderlyId + seasonYear + vaccine마다 하나(upsert). */
+export interface Vaccination {
+  id: number;
+  elderlyId: number;
+  /** 서버가 채운다(읽기 전용) */
+  elderlyName: string;
+  /** 접종 연도(달력 연도), 2020~2100 */
+  seasonYear: number;
+  vaccine: VaccineKind;
+  status: VaccinationStatus;
+  /** DONE이면 필수(seasonYear와 같은 해, 미래 400), 그 밖이면 비운다 */
+  givenOn: string | null;
+  institution: string | null;
+  /** DONE이면 필수 */
+  verifiedBy: VaccineVerifiedBy | null;
+  /** REFUSED·EXCLUDED면 필수, 200자 */
+  reason: string | null;
+  note: string | null;
+  writerName: string | null;
+  updatedAt: string | null;
+}
+
+export type VaccinationInput = Omit<Vaccination, 'id' | 'elderlyName' | 'writerName' | 'updatedAt'>;
+
+/** GET /vaccinations — 연도 또는 어르신 중 하나는 꼭 필요하다(없으면 400) */
+export type VaccinationQuery = { year: number } | { elderlyId: number };
+
+// ---------- 사례관리 회의 ----------
+
+export type CaseReflectMethod = 'CARE_PLAN' | 'CARE_RECORD' | 'RESOURCE' | 'INTERNAL';
+
+export interface CaseAttendee {
+  memberId: number;
+  memberName: string;
+}
+
+export interface CaseOpinion {
+  memberId: number;
+  memberName: string;
+  /** null = '의견 없음' 으로 기록, 300자 */
+  opinion: string | null;
+}
+
+export interface CaseTarget {
+  elderlyId: number;
+  elderlyName: string;
+  /** 선정 사유(필수 300자) */
+  reason: string;
+  /** 사례관리 계획(필수 500자) */
+  plan: string;
+  ownerMemberId: number | null;
+  ownerName: string | null;
+  /** 회의일 이상 */
+  reflectedOn: string | null;
+  /** reflectedOn이 있으면 필수 */
+  reflectMethod: CaseReflectMethod | null;
+  reflectNote: string | null;
+  /** reflectedOn 이상(반영 없이 평가 400) */
+  evaluatedOn: string | null;
+  /** evaluatedOn이 있으면 필수 */
+  evaluatorName: string | null;
+  /** evaluatedOn이 있으면 필수 */
+  resolved: boolean | null;
+  /** resolved=false면 필수 */
+  nextAction: string | null;
+}
+
+export interface CaseMeeting {
+  id: number;
+  heldOn: string;
+  attendees: CaseAttendee[];
+  opinions: CaseOpinion[];
+  targets: CaseTarget[];
+  minutes: string | null;
+  writerName: string | null;
+  aiAssisted: boolean;
+  updatedAt: string | null;
+}
+
+export type CaseTargetInput = Omit<CaseTarget, 'elderlyName' | 'ownerName'>;
+
+export interface CaseMeetingInput {
+  heldOn: string;
+  /** 같은 기관 직원 1~30명, 중복 없음 */
+  attendeeIds: number[];
+  opinions: Array<{ memberId: number; opinion: string | null }>;
+  /** 1~10명 */
+  targets: CaseTargetInput[];
+  minutes: string | null;
+  aiAssisted: boolean;
+}
+
+// ---------- 송영 ----------
+
+export type TransportDirection = 'PICKUP' | 'DROPOFF';
+
+export interface TransportRider {
+  elderlyId: number;
+  elderlyName: string;
+  boarded: boolean;
+  boardTime: string | null;
+  alightTime: string | null;
+  note: string | null;
+}
+
+/** 송영 운행일지(고시 제34조④). runDate + direction + vehicleNo마다 하나(upsert). */
+export interface TransportLog {
+  id: number;
+  runDate: string;
+  direction: TransportDirection;
+  vehicleNo: string;
+  driverMemberId: number;
+  driverName: string;
+  escortMemberId: number | null;
+  escortName: string | null;
+  departTime: string | null;
+  arriveTime: string | null;
+  riders: TransportRider[];
+  note: string | null;
+  writerName: string | null;
+  updatedAt: string | null;
+}
+
+export type TransportRiderInput = Omit<TransportRider, 'elderlyName'>;
+export type TransportLogInput = Omit<TransportLog, 'id' | 'driverName' | 'escortName' | 'riders' | 'writerName' | 'updatedAt'> & {
+  riders: TransportRiderInput[];
+};
+
+export interface TransportVehicle {
+  id: number;
+  vehicleNo: string;
+  label: string | null;
+  insurer: string | null;
+  policyNo: string | null;
+  insuranceFrom: string | null;
+  insuranceTo: string | null;
+  /** 자동차종합보험 — 책임보험만이면 false */
+  comprehensive: boolean;
+  active: boolean;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type TransportVehicleInput = Omit<TransportVehicle, 'id' | 'updatedAt'>;
+
+/** GET /transport-logs — 날짜 또는 달 중 하나 */
+export type TransportLogQuery = { date: string } | { month: string };
+
+export type GuideKind = 'TRANSPORT_RULES' | 'TIMETABLE';
+export type GuideMethod = 'FACE' | 'PAPER' | 'SMS' | 'SNS' | 'OTHER';
+
+export interface GuideDelivery {
+  id: number;
+  elderlyId: number;
+  elderlyName: string;
+  kind: GuideKind;
+  deliveredOn: string;
+  method: GuideMethod;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+/** POST /guide-deliveries/batch */
+export interface GuideDeliveryBatchInput {
+  kind: GuideKind;
+  deliveredOn: string;
+  method: GuideMethod;
+  note: string | null;
+  /** 1~100명 */
+  elderlyIds: number[];
+}
+
+// ---------- 규정·지침 대장 ----------
+
+export type PolicyDocKind = 'OPERATING_RULES' | 'CARE_GUIDE' | 'PRIVACY_POLICY' | 'INFECTION_PLAN' | 'TRANSPORT_RULES' | 'GRIEVANCE_GUIDE' | 'OTHER';
+
+export interface PolicyDoc {
+  id: number;
+  kind: PolicyDocKind;
+  /** CARE_GUIDE면 1~12 필수, 그 밖이면 null */
+  guideNo: number | null;
+  title: string;
+  revisedOn: string | null;
+  /** 비치 장소 */
+  location: string | null;
+  /** 항목 키 → 체크, 키 30개·키 40자 이내·영문·숫자·_ */
+  checks: Record<string, boolean>;
+  trainedOn: string | null;
+  note: string | null;
+  updatedAt: string | null;
+}
+
+export type PolicyDocInput = Omit<PolicyDoc, 'id' | 'updatedAt'>;
+
+// ---------- AI 결과 ----------
+
+export interface CaseMeetingAiInput {
+  /** 회의 메모 3,000자. 사람 이름은 보내지 않는다 */
+  note: string;
+  /** 참석 직종 이름(예: '시설장'), 10개 이내 */
+  roles: string[];
+}
+
+export interface CaseMeetingAiResult {
+  /** 300자 이내 */
+  reason: string;
+  /** roles 중 하나인 직종만, 10개 이내 */
+  opinions: Array<{ role: string; opinion: string }>;
+  /** 500자 이내 */
+  plan: string;
+  /** 1,500자 이내 */
+  minutes: string;
+  /** 사례관리로 인정되지 않는 예에 가까우면 이유 한 줄, 아니면 null */
+  warning: string | null;
+}
+
+/** AI 항목 점검을 받는 규정 종류(대장의 CARE_GUIDE ⑩은 PRIVACY_GUIDE로 보낸다) */
+export type PolicyCheckKind = 'OPERATING_RULES' | 'PRIVACY_GUIDE' | 'INFECTION_PLAN' | 'TRANSPORT_RULES' | 'GRIEVANCE_GUIDE';
+
+export interface PolicyCheckAiInput {
+  kind: PolicyCheckKind;
+  /** 규정 원문 20,000자. 요청에만 쓰고 저장하지 않는다 */
+  text: string;
+}
+
+export interface PolicyCheckItem {
+  key: string;
+  present: boolean;
+  /** 원문에 그대로 있는 근거 구절 200자, 없으면 null */
+  quote: string | null;
+}
+
+export interface PolicyCheckAiResult {
+  items: PolicyCheckItem[];
+  /** 500자 이내 */
+  advice: string;
+}

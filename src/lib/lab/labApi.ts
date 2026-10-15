@@ -157,6 +157,25 @@ import type {
   TrainingLogResult,
   VolunteerLog,
   VolunteerLogInput,
+  CaseMeeting,
+  CaseMeetingAiInput,
+  CaseMeetingAiResult,
+  CaseMeetingInput,
+  GuideDelivery,
+  GuideDeliveryBatchInput,
+  GuideKind,
+  PolicyCheckAiInput,
+  PolicyCheckAiResult,
+  PolicyDoc,
+  PolicyDocInput,
+  TransportLog,
+  TransportLogInput,
+  TransportLogQuery,
+  TransportVehicle,
+  TransportVehicleInput,
+  Vaccination,
+  VaccinationInput,
+  VaccinationQuery,
 } from './labTypes.ts';
 
 const LAB = '/api/v1/lab';
@@ -1257,4 +1276,136 @@ export function aiStructureMedicalVisit(
 export function aiDraftMeetingMinutes(input: MeetingMinutesAiInput, memberNames: ReadonlyArray<string | null | undefined> = []): Promise<MeetingMinutesAiResult> {
   const note = replaceNames(input.note, memberNames.filter((n): n is string => typeof n === 'string'), '[위원]');
   return request<MeetingMinutesAiResult>(`${LAB_AI}/meeting-minutes`, json('POST', redactDeep({ ...input, note })), `AI가 회의록을 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+// =====================================================================
+// 10차
+// =====================================================================
+
+// ---------- 예방접종 ----------
+
+/** 연도 또는 어르신 중 하나는 꼭 있어야 한다(둘 다 없으면 서버가 400) — 함수 모양으로 강제한다 */
+export function listVaccinations(query: VaccinationQuery): Promise<Vaccination[]> {
+  const qs = 'year' in query ? `year=${q(String(query.year))}` : `elderlyId=${q(String(query.elderlyId))}`;
+  return request<Vaccination[]>(`${LAB}/vaccinations?${qs}`, undefined, '예방접종 기록을 불러오지 못했습니다');
+}
+
+/** 어르신 + 연도 + 백신마다 하나(upsert). 접종이면 접종일·확인 방법, 거부·제외면 사유가 필요하고 미래 날짜는 서버가 400을 준다 */
+export function saveVaccination(input: VaccinationInput): Promise<Vaccination> {
+  return request<Vaccination>(`${LAB}/vaccinations`, json('PUT', input), '예방접종 기록을 저장하지 못했습니다');
+}
+
+export async function deleteVaccination(id: number): Promise<void> {
+  await request<null>(`${LAB}/vaccinations/${q(String(id))}`, { method: 'DELETE' }, '예방접종 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 사례관리 회의 ----------
+
+/** 회의일 최신순 */
+export function listCaseMeetings(year: number): Promise<CaseMeeting[]> {
+  return request<CaseMeeting[]>(`${LAB}/case-meetings?year=${q(String(year))}`, undefined, '사례관리 회의를 불러오지 못했습니다');
+}
+
+export function createCaseMeeting(input: CaseMeetingInput): Promise<CaseMeeting> {
+  return request<CaseMeeting>(`${LAB}/case-meetings`, json('POST', input), '사례관리 회의를 저장하지 못했습니다');
+}
+
+export function updateCaseMeeting(id: number, input: CaseMeetingInput): Promise<CaseMeeting> {
+  return request<CaseMeeting>(`${LAB}/case-meetings/${q(String(id))}`, json('PUT', input), '사례관리 회의를 고치지 못했습니다');
+}
+
+export async function deleteCaseMeeting(id: number): Promise<void> {
+  await request<null>(`${LAB}/case-meetings/${q(String(id))}`, { method: 'DELETE' }, '사례관리 회의를 삭제하지 못했습니다');
+}
+
+// ---------- 송영 운행일지 ----------
+
+/** 날짜 또는 달('YYYY-MM') 중 하나는 꼭 있어야 한다 */
+export function listTransportLogs(query: TransportLogQuery): Promise<TransportLog[]> {
+  const qs = 'date' in query ? `date=${q(query.date)}` : `month=${q(query.month)}`;
+  return request<TransportLog[]>(`${LAB}/transport-logs?${qs}`, undefined, '운행일지를 불러오지 못했습니다');
+}
+
+/** 운행일 + 방향 + 차량번호마다 하나(upsert). 운전원과 동승자가 같거나 도착이 출발보다 빠르면 서버가 400을 준다 */
+export function saveTransportLog(input: TransportLogInput): Promise<TransportLog> {
+  return request<TransportLog>(`${LAB}/transport-logs`, json('PUT', input), '운행일지를 저장하지 못했습니다');
+}
+
+export async function deleteTransportLog(id: number): Promise<void> {
+  await request<null>(`${LAB}/transport-logs/${q(String(id))}`, { method: 'DELETE' }, '운행일지를 삭제하지 못했습니다');
+}
+
+// ---------- 송영 차량·보험 ----------
+
+export function listTransportVehicles(): Promise<TransportVehicle[]> {
+  return request<TransportVehicle[]>(`${LAB}/transport-vehicles`, undefined, '송영 차량 목록을 불러오지 못했습니다');
+}
+
+/** 같은 차량번호가 있으면 서버가 409를 준다 */
+export function createTransportVehicle(input: TransportVehicleInput): Promise<TransportVehicle> {
+  return request<TransportVehicle>(`${LAB}/transport-vehicles`, json('POST', input), '송영 차량을 저장하지 못했습니다');
+}
+
+export function updateTransportVehicle(id: number, input: TransportVehicleInput): Promise<TransportVehicle> {
+  return request<TransportVehicle>(`${LAB}/transport-vehicles/${q(String(id))}`, json('PUT', input), '송영 차량을 고치지 못했습니다');
+}
+
+export async function deleteTransportVehicle(id: number): Promise<void> {
+  await request<null>(`${LAB}/transport-vehicles/${q(String(id))}`, { method: 'DELETE' }, '송영 차량을 삭제하지 못했습니다');
+}
+
+// ---------- 수칙·운행표 제공 기록 ----------
+
+/** 제공일 최신순. elderlyId를 주면 그 어르신만 */
+export function listGuideDeliveries(kind: GuideKind, elderlyId?: number): Promise<GuideDelivery[]> {
+  const extra = elderlyId === undefined ? '' : `&elderlyId=${q(String(elderlyId))}`;
+  return request<GuideDelivery[]>(`${LAB}/guide-deliveries?kind=${q(kind)}${extra}`, undefined, '수칙·운행표 제공 기록을 불러오지 못했습니다');
+}
+
+/** 어르신 1~100명에게 같은 날·같은 방법으로 한꺼번에 기록한다 */
+export function createGuideDeliveries(input: GuideDeliveryBatchInput): Promise<GuideDelivery[]> {
+  return request<GuideDelivery[]>(`${LAB}/guide-deliveries/batch`, json('POST', input), '수칙·운행표 제공 기록을 저장하지 못했습니다');
+}
+
+export async function deleteGuideDelivery(id: number): Promise<void> {
+  await request<null>(`${LAB}/guide-deliveries/${q(String(id))}`, { method: 'DELETE' }, '수칙·운행표 제공 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 규정·지침 대장 ----------
+
+export function listPolicyDocs(): Promise<PolicyDoc[]> {
+  return request<PolicyDoc[]>(`${LAB}/policy-docs`, undefined, '규정·지침 대장을 불러오지 못했습니다');
+}
+
+/** 같은 종류(급여제공지침은 번호까지)가 이미 있으면 서버가 409를 준다 — 기타는 여러 개 가능 */
+export function createPolicyDoc(input: PolicyDocInput): Promise<PolicyDoc> {
+  return request<PolicyDoc>(`${LAB}/policy-docs`, json('POST', input), '규정·지침을 저장하지 못했습니다');
+}
+
+export function updatePolicyDoc(id: number, input: PolicyDocInput): Promise<PolicyDoc> {
+  return request<PolicyDoc>(`${LAB}/policy-docs/${q(String(id))}`, json('PUT', input), '규정·지침을 고치지 못했습니다');
+}
+
+export async function deletePolicyDoc(id: number): Promise<void> {
+  await request<null>(`${LAB}/policy-docs/${q(String(id))}`, { method: 'DELETE' }, '규정·지침을 삭제하지 못했습니다');
+}
+
+// ---------- 10차 AI 작업 — 제안만 돌려준다. 보내기 직전에 이름을 지운다 ----------
+
+/**
+ * 사례관리 회의 메모 정리. roles(참석 직종 이름)만 보낸다 — 어르신·직원 이름은 메모에서 지운 뒤 보내며 서버로 가지 않는다.
+ * 의견은 그 직종 참석자가 한 명일 때만 화면이 그 칸에 제안한다.
+ */
+export function aiCaseMeeting(
+  input: CaseMeetingAiInput,
+  names: { elderNames?: ReadonlyArray<string | null | undefined>; staffNames?: ReadonlyArray<string | null | undefined> } = {},
+): Promise<CaseMeetingAiResult> {
+  rememberElderNames((names.elderNames ?? []).filter((n): n is string => typeof n === 'string'));
+  rememberStaffNames((names.staffNames ?? []).filter((n): n is string => typeof n === 'string'));
+  return request<CaseMeetingAiResult>(`${LAB_AI}/case-meeting`, json('POST', redactDeep(input)), `AI가 회의 메모를 정리하지 못했습니다. ${AI_RETRY}`);
+}
+
+/** 규정 원문에 항목이 있는지 점검한다. 원문은 이 요청에만 쓰이고 저장되지 않는다. 결과는 체크 제안이다 */
+export function aiPolicyCheck(input: PolicyCheckAiInput): Promise<PolicyCheckAiResult> {
+  return request<PolicyCheckAiResult>(`${LAB_AI}/policy-check`, json('POST', redactDeep(input)), `AI가 규정 항목을 점검하지 못했습니다. ${AI_RETRY}`);
 }
