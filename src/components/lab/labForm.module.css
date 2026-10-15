@@ -102,9 +102,21 @@
 
 .elderRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+/* 이름은 칩에 밀려 '강복/순'처럼 쪼개지지 않는다 — 칩이 다음 줄로 내려간다 */
+.elderRow > :first-child {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.elderRow > :last-child {
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }
 
 /* ---------- 별지 제15호 인쇄 ---------- */

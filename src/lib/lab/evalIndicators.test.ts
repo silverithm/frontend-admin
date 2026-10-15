@@ -300,6 +300,8 @@ test('12차 평가 근거 보강 — 전문소독·법정 소방 자체점검·�
   const text = (code: string) => indicatorByCode(code)!.requirements.join(' ');
   assert.match(text('SAFE-04'), /전문소독.*소독증명서/);
   assert.match(text('SAFE-07'), /작동·종합.*15일.*2년/);
-  assert.match(text('SVC-06'), /별지 제15호 유의사항 7/);
-  assert.equal(indicatorByCode('SVC-06')!.autoSource, 'CARE_RECORD_DELIVERY');
+  // 영역별 제공 직원 서명은 기록 품질(2026 지표 34④ — 급여제공자 서명으로 확인) 쪽이다. 월 1회 제공(SVC-06)이 아니다
+  assert.match(text('SVC-05'), /별지 제15호 유의사항 7/);
+  assert.doesNotMatch(text('SVC-06'), /별지 제15호 유의사항 7/);
+  assert.equal(indicatorByCode('SVC-05')!.autoSource, 'CARE_RECORD_QUALITY');
 });
