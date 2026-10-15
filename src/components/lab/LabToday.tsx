@@ -18,6 +18,8 @@ import type { TodayLine, TodayLineId, TodayTarget } from './LabTodayData';
 import { readStored, todayString, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
+/** 접힌 줄에 보일 칩 수 — 넘으면 '+N' */
+const MAX_PILLS = 5;
 const EXPANDED_KEY = 'carev.lab.todayExpanded';
 
 type LineState = { status: 'loading' } | { status: 'failed' } | { status: 'ok'; line: TodayLine };
@@ -86,6 +88,19 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
     return sum + (s.status === 'ok' ? s.line.count : 0);
   }, 0);
   const loaded = shown.every((l) => states[l.id].status === 'ok');
+  // 접힌 줄은 한 줄을 넘지 않게: 확인할 것이 있는 줄만, 급한 것(빨강)부터 최대 MAX_PILLS개, 나머지는 '+N'으로 펼친다
+  const urgentRank = (id: TodayLineId): number => {
+    const st = states[id];
+    return st.status === 'ok' && st.line.danger ? 1 : 0;
+  };
+  const pending = shown.filter((l) => {
+    const st = states[l.id];
+    return st.status === 'ok' && st.line.count > 0;
+  });
+  const ordered = pending.map((l, i) => ({ l, i })).sort((a, b) => urgentRank(b.l.id) - urgentRank(a.l.id) || a.i - b.i).map((x) => x.l);
+  const pills = ordered.slice(0, MAX_PILLS);
+  const morePills = ordered.length - pills.length;
+  const loadingCount = shown.filter((l) => states[l.id].status === 'loading').length;
 
   return (
     <Card padding={0}>
@@ -96,28 +111,31 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
           {loaded ? <Chip tone={total > 0 ? 'warn' : 'ok'} label={total > 0 ? `${total}건` : NOTHING_TO_CHECK} /> : <Spinner size="sm" aria-label="오늘 확인할 것을 불러오는 중" />}
         </span>
         <div className={styles.todayPills}>
-          {shown.map((l) => {
+          {pills.map((l) => {
             const st = states[l.id];
-            if (st.status === 'loading') {
-              return (
-                <span key={l.id} className={styles.todayPillStatic}>
-                  <Spinner size="sm" aria-label={`${l.title}을 불러오는 중`} />
-                  <Text type="supporting" color="secondary">
-                    {l.title}
-                  </Text>
-                </span>
-              );
-            }
             if (st.status !== 'ok') return null;
             return (
               <button key={l.id} type="button" className={styles.todayPill} aria-label={`${l.title}: ${st.line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target)}>
                 <span className={styles.todayPillTitle}>
                   <Text type="supporting">{l.title}</Text>
                 </span>
-                <Chip tone={st.line.count === 0 ? 'ok' : st.line.danger ? 'danger' : 'warn'} label={st.line.count === 0 ? '없음' : st.line.text} />
+                <Chip tone={st.line.danger ? 'danger' : 'warn'} label={st.line.text} />
               </button>
             );
           })}
+          {morePills > 0 && (
+            <button type="button" className={styles.todayPill} aria-label={`확인할 것 ${morePills}가지 더 보기`} onClick={toggle}>
+              <Text type="supporting">+{morePills}</Text>
+            </button>
+          )}
+          {loadingCount > 0 && (
+            <span className={styles.todayPillStatic}>
+              <Spinner size="sm" aria-label="오늘 확인할 것을 불러오는 중" />
+              <Text type="supporting" color="secondary">
+                {loadingCount}가지 불러오는 중
+              </Text>
+            </span>
+          )}
           {loaded && total === 0 && <Chip tone="ok" label={NOTHING_TO_CHECK} />}
         </div>
         <Button label={expanded ? '간단히' : '자세히'} size="sm" variant="ghost" aria-expanded={expanded} onClick={toggle} />
