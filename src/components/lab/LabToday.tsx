@@ -119,7 +119,8 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
                 <span className={styles.todayPillTitle}>
                   <Text type="supporting">{l.title}</Text>
                 </span>
-                <Chip tone={st.line.danger ? 'danger' : 'warn'} label={st.line.text} />
+                {/* 접힌 줄에는 숫자만 — 자세한 글은 '자세히'와 읽어 주는 이름에 있다 */}
+                <Chip tone={st.line.danger ? 'danger' : 'warn'} label={String(st.line.count)} />
               </button>
             );
           })}
