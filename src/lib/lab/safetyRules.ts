@@ -360,6 +360,7 @@ export function checksNeedingActions<T extends Pick<SafetyCheck, 'items' | 'acti
 /**
  * 평가 지표별로 어떤 점검 종류가 근거인지. 평가 준비 화면이 SAFETY_CHECKS 자동 근거를 지표마다 따로 보여 줄 때 쓴다.
  * SAFE-07(재난 대응과 소방 안전)의 재난훈련은 DRILL_TWICE가 맡으므로 월 점검 종류에는 넣지 않았다.
+ * [12차] SAFE-04는 autoSource가 INFECTION_CONTROL이 되었지만 감염 일상 점검 줄은 이 표의 INFECTION을 그대로 쓴다(분기 전문소독은 시설 관리 대장).
  */
 export const EVAL_SAFETY_KINDS: Readonly<Record<string, readonly SafetyKind[]>> = {
   'SAFE-02': ['HYGIENE'],

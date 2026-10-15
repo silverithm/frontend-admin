@@ -277,8 +277,9 @@ test('monthlySafetySummary — 종류를 골라 센다(차량을 운영하지 �
   assert.equal(monthlySafetySummary([], '2026-10', ['2026-10-01'], ['KITCHEN']).percent, 0);
 });
 
-test('평가 연결 — 점검 종류 대응표는 SAFETY_CHECKS 지표에만, 재난 지표는 DRILL_TWICE', () => {
-  const withSafety = EVAL_INDICATORS.filter((i) => i.autoSource === 'SAFETY_CHECKS').map((i) => i.code);
+test('평가 연결 — 점검 종류 대응표는 SAFETY_CHECKS·INFECTION_CONTROL 지표에만, 재난 지표는 DRILL_TWICE', () => {
+  // [12차] SAFE-04는 감염 일상 점검(대응표의 INFECTION)에 분기 전문소독을 더한 INFECTION_CONTROL이 맡는다
+  const withSafety = EVAL_INDICATORS.filter((i) => i.autoSource === 'SAFETY_CHECKS' || i.autoSource === 'INFECTION_CONTROL').map((i) => i.code);
   assert.deepEqual(Object.keys(EVAL_SAFETY_KINDS).sort(), [...withSafety].sort());
   for (const kinds of Object.values(EVAL_SAFETY_KINDS)) for (const k of kinds) assert.ok(isSafetyKind(k) && cadenceOf(k) !== 'TWICE_YEARLY');
   assert.equal(EVAL_INDICATORS.find((i) => i.code === 'SAFE-07')?.autoSource, 'DRILL_TWICE');
