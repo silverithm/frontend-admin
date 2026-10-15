@@ -25,6 +25,8 @@ import { LEGAL_TRAINING_CATEGORIES, summarizeCoverage, trainingCategoryLabel, tr
 import { collectContractEvidence, isContractEvidenceSource } from './EvalAutoEvidenceContract';
 import { collectProgramEvidence, isProgramEvidenceSource } from './EvalAutoEvidenceProgram';
 import { collectStaffHrEvidence, isStaffHrEvidenceSource } from './EvalAutoEvidenceStaffHr';
+import { collectGapsEvidence, isGapsEvidenceSource } from './EvalAutoEvidenceGaps';
+import { collectTransportEvidence, isTransportEvidenceSource } from './EvalAutoEvidenceTransport';
 import { collectStaffingEvidence, isStaffingEvidenceSource } from './EvalAutoEvidenceStaffing';
 import { recallEvidence, rememberEvidence } from './evalEvidenceCache';
 import { ErrorBanner } from './LabUi';
@@ -44,6 +46,8 @@ export async function collect(source: EvalAutoSource, indicatorCode?: string): P
   if (isProgramEvidenceSource(source)) return collectProgramEvidence(source, asOf);
   if (isStaffingEvidenceSource(source)) return collectStaffingEvidence(source, asOf);
   if (isStaffHrEvidenceSource(source)) return collectStaffHrEvidence(source, asOf);
+  if (isGapsEvidenceSource(source)) return collectGapsEvidence(source, asOf);
+  if (isTransportEvidenceSource(source)) return collectTransportEvidence(source, asOf);
   if (source === 'SAFETY_CHECKS') {
     const month = currentMonth();
     const noVehicle = readNoVehicle();

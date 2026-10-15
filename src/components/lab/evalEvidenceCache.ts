@@ -2,6 +2,8 @@
  * 평가 지표 자동 근거를 이 화면 안에서 잠시 기억해 둔다 — 지표 칸을 열어 이미 계산한 근거를 묶음 인쇄가 다시 계산하지 않게 한다.
  * 브라우저 메모리에만 두고(새로고침하면 사라짐) 10분이 지나면 낡은 것으로 보고 버린다.
  */
+import { clearBriefly } from './EvalAutoEvidenceShared';
+
 const TTL_MS = 10 * 60 * 1000;
 
 interface Entry {
@@ -31,4 +33,5 @@ export function recallEvidence(source: string, indicatorCode?: string): string[]
 /** 모두 버린다 — 평가 준비 화면에 들어올 때 부른다(다른 도구에서 기록을 고치고 돌아온 경우 낡은 근거가 인쇄되지 않게) */
 export function clearEvidence(): void {
   cache.clear();
+  clearBriefly();
 }

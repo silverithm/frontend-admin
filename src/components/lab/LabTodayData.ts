@@ -1,8 +1,10 @@
 /**
- * 실험실 첫 화면 "오늘 확인할 것" 카드의 여섯 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한.
+ * 실험실 첫 화면 "오늘 확인할 것" 카드의 여덟 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한, 사례관리 기한, 차량 보험.
  * 줄마다 따로 불러온다(한 줄이 실패해도 나머지는 보인다). 규칙은 lib/lab의 contractAlerts·dosesDue·doseStatus·expiringStock을 그대로 쓴다.
  */
-import { listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles } from '@/lib/lab/labApi';
+import { listCaseMeetings, listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles, listTransportVehicles } from '@/lib/lab/labApi';
+import { followUpAlerts } from '@/lib/lab/caseMeetingRules';
+import { insuranceStatus } from '@/lib/lab/transportRules';
 import { contractAlerts } from '@/lib/lab/contractRules';
 import { followUpsDue } from '@/lib/lab/medicalVisitRules';
 import { inquiryAlerts } from '@/lib/lab/intakeRules';
@@ -10,10 +12,10 @@ import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medica
 import { healthCheckStatus } from '@/lib/lab/staffHrRules';
 import { dotDate } from './labFormat';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr';
+export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */
@@ -121,5 +123,50 @@ export async function loadHealthLine(today: string): Promise<TodayLine> {
     text: [overdue > 0 ? `기한 지남 ${overdue}명` : '', soon > 0 ? `30일 안 임박 ${soon}명` : ''].filter(Boolean).join(' · '),
     preview: `${first.name ? `${first.name} — ` : ''}검진 기한 ${dotDate(first.dueOn)}${first.status === 'OVERDUE' ? ' 지남' : '까지'}`,
     danger: overdue > 0,
+  };
+}
+
+export async function loadCaseMeetingLine(today: string): Promise<TodayLine> {
+  // 반영·평가 기한은 회의 다음날부터 30일이라 작년 12월 회의가 올해 1월에 닿을 수 있다 — 올해와 작년 회의를 함께 본다
+  const year = Number(today.slice(0, 4));
+  const meetings = (await Promise.all([listCaseMeetings(year), listCaseMeetings(year - 1)])).flat();
+  const alerts = followUpAlerts(meetings, today);
+  if (alerts.length === 0) return none();
+  const overdue = alerts.filter((a) => a.daysLeft < 0).length;
+  const soon = alerts.length - overdue;
+  // 가장 급한 것 = 기한이 가장 이른 것(지난 것이 먼저 온다)
+  const first = [...alerts].sort((a, b) => a.dueOn.localeCompare(b.dueOn) || a.elderlyId - b.elderlyId)[0];
+  const meeting = meetings.find((m) => m.id === first.meetingId);
+  const name = meeting?.targets.find((t) => t.elderlyId === first.elderlyId)?.elderlyName ?? '';
+  const what = first.kind === 'REFLECT' ? '반영' : '평가';
+  return {
+    count: alerts.length,
+    text: [overdue > 0 ? `기한 지남 ${overdue}건` : '', soon > 0 ? `5일 안 임박 ${soon}건` : ''].filter(Boolean).join(' · '),
+    preview: `${name ? `${name} — ` : ''}${what} 기한 ${dotDate(first.dueOn)}${first.daysLeft < 0 ? ' 지남' : first.daysLeft === 0 ? ' (오늘)' : `까지 ${first.daysLeft}일 남음`}`,
+    danger: overdue > 0,
+  };
+}
+
+/** 위험 먼저(만기 지남 → 종합보험 아님), 그다음 임박 */
+const INSURANCE_RANK = { EXPIRED: 0, NOT_COMPREHENSIVE: 1, EXPIRING: 2 } as const;
+
+export async function loadVehicleLine(today: string): Promise<TodayLine> {
+  const vehicles = await listTransportVehicles();
+  const rows = vehicles
+    .filter((v) => v.active)
+    .map((v) => ({ v, status: insuranceStatus(v, today) }))
+    .filter((r): r is { v: typeof r.v; status: keyof typeof INSURANCE_RANK } => r.status === 'EXPIRED' || r.status === 'NOT_COMPREHENSIVE' || r.status === 'EXPIRING');
+  if (rows.length === 0) return none();
+  const expired = rows.filter((r) => r.status === 'EXPIRED').length;
+  const plain = rows.filter((r) => r.status === 'NOT_COMPREHENSIVE').length;
+  const soon = rows.length - expired - plain;
+  const first = [...rows].sort((a, b) => INSURANCE_RANK[a.status] - INSURANCE_RANK[b.status] || (a.v.insuranceTo ?? '').localeCompare(b.v.insuranceTo ?? '') || a.v.vehicleNo.localeCompare(b.v.vehicleNo))[0];
+  const detail =
+    first.status === 'EXPIRED' ? `보험 만기 ${dotDate(first.v.insuranceTo)} 지남` : first.status === 'NOT_COMPREHENSIVE' ? '종합보험이 아님 — 책임보험만으로는 인정 안 됨' : `보험 만기 ${dotDate(first.v.insuranceTo)}까지 30일 안`;
+  return {
+    count: rows.length,
+    text: [expired > 0 ? `만기 지남 ${expired}대` : '', plain > 0 ? `종합보험 아님 ${plain}대` : '', soon > 0 ? `30일 안 임박 ${soon}대` : ''].filter(Boolean).join(' · '),
+    preview: `${first.v.vehicleNo}${first.v.label ? `(${first.v.label})` : ''} — ${detail}`,
+    danger: expired > 0 || plain > 0,
   };
 }
