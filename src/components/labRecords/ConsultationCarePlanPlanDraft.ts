@@ -48,7 +48,7 @@ export interface PlanDraft {
   aiUsed: boolean;
 }
 
-export const emptyNeeds = (): CarePlanNeeds => ({ physical: '', cognition: '', nutrition: '', communication: '', family: '', other: '' });
+export const emptyNeeds = (): CarePlanNeeds => ({ physical: '', cognition: '', nutrition: '', communication: '', family: '', other: '', disease: '', oral: '', subjective: '', resources: '', summary: '', avoidFoods: '' });
 
 export function newDraft(today: string, writer: string): PlanDraft {
   return { assessedOn: today, needs: emptyNeeds(), goals: '', goalsFromAi: false, services: [], guardianAgreedOn: '', writer, aiUsed: false };
