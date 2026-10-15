@@ -3,6 +3,7 @@
 /**
  * 평가 준비 — 장기요양기관 평가(재가·주야간보호) 지표별 준비 상태 점검표.
  * 지표 목록은 공개 매뉴얼을 요약한 것이라 번호·배점은 원문과 다르다. 실제 평가 전에는 원문과 대조해야 한다.
+ * 맨 아래 '평가 준비 묶음 인쇄'(EvalBundlePrint)는 모든 지표를 분야별 한 문서로 묶어 인쇄한다.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banner } from '@astryxdesign/core/Banner';
@@ -16,6 +17,8 @@ import SectionHeader from '@/components/SectionHeader';
 import { listEvalChecks } from '@/lib/lab/labApi';
 import { EVAL_INDICATORS, EVAL_STATUS_LABEL, indicatorsByGroup, readinessSummary } from '@/lib/lab/evalIndicators';
 import type { EvalCheck, EvalStatus } from '@/lib/lab/labTypes';
+import { clearEvidence } from './evalEvidenceCache';
+import EvalBundleButton from './EvalBundlePrint';
 import EvalIndicatorPanel from './EvalIndicatorPanel';
 import { Chip, ErrorBanner } from './LabUi';
 import type { Tone } from './LabUi';
@@ -43,6 +46,11 @@ export default function EvalReadinessLab() {
   const [error, setError] = useState<string | null>(null);
   const [openCode, setOpenCode] = useState<string | null>(null);
   const seq = useRef(0);
+
+  // 다른 도구에서 기록을 고치고 돌아온 경우를 위해, 들어올 때 기억해 둔 자동 근거를 비운다
+  useEffect(() => {
+    clearEvidence();
+  }, []);
 
   const load = useCallback(async () => {
     const n = ++seq.current;
@@ -174,9 +182,12 @@ export default function EvalReadinessLab() {
         </VStack>
       ))}
 
-      <div>
-        <Button label="새로 불러오기" variant="ghost" isDisabled={loading} onClick={() => void load()} />
-      </div>
+      <VStack gap={2}>
+        <EvalBundleButton checks={checks} isDisabled={loading} />
+        <div>
+          <Button label="새로 불러오기" variant="ghost" isDisabled={loading} onClick={() => void load()} />
+        </div>
+      </VStack>
     </div>
   );
 }

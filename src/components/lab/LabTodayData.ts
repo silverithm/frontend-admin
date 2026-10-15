@@ -1,18 +1,19 @@
 /**
- * 실험실 첫 화면 "오늘 확인할 것" 카드의 다섯 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인.
+ * 실험실 첫 화면 "오늘 확인할 것" 카드의 여섯 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한.
  * 줄마다 따로 불러온다(한 줄이 실패해도 나머지는 보인다). 규칙은 lib/lab의 contractAlerts·dosesDue·doseStatus·expiringStock을 그대로 쓴다.
  */
-import { listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock } from '@/lib/lab/labApi';
+import { listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles } from '@/lib/lab/labApi';
 import { contractAlerts } from '@/lib/lab/contractRules';
 import { followUpsDue } from '@/lib/lab/medicalVisitRules';
 import { inquiryAlerts } from '@/lib/lab/intakeRules';
 import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medicationRules';
+import { healthCheckStatus } from '@/lib/lab/staffHrRules';
 import { dotDate } from './labFormat';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit';
+export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */
@@ -100,5 +101,25 @@ export async function loadVisitLine(today: string): Promise<TodayLine> {
     text: `후속 확인 ${due.length}건`,
     preview: `${first.elderlyName ? `${first.elderlyName} · ` : ''}${first.hospital} — 확인일 ${dotDate(first.followUpOn!)}`,
     danger: false,
+  };
+}
+
+export async function loadHealthLine(today: string): Promise<TodayLine> {
+  const [profiles, certs] = await Promise.all([listStaffProfiles(), listStaffCerts()]);
+  // 입사일이 오늘 뒤인 입사 예정자는 아직 검진 대상이 아니다
+  const rows = profiles
+    .filter((p) => p.hireDate.slice(0, 10) <= today)
+    .map((p) => ({ name: p.memberName ?? '', ...healthCheckStatus(p, certs, today) }))
+    .filter((r) => r.status === 'OVERDUE' || r.status === 'DUE_SOON');
+  if (rows.length === 0) return none();
+  const overdue = rows.filter((r) => r.status === 'OVERDUE').length;
+  const soon = rows.length - overdue;
+  // 기한이 지난 사람 중 가장 오래된 것, 없으면 가장 먼저 닥치는 것
+  const first = [...rows].sort((a, b) => (a.status === b.status ? 0 : a.status === 'OVERDUE' ? -1 : 1) || (a.dueOn ?? '').localeCompare(b.dueOn ?? ''))[0];
+  return {
+    count: rows.length,
+    text: [overdue > 0 ? `기한 지남 ${overdue}명` : '', soon > 0 ? `30일 안 임박 ${soon}명` : ''].filter(Boolean).join(' · '),
+    preview: `${first.name ? `${first.name} — ` : ''}검진 기한 ${dotDate(first.dueOn)}${first.status === 'OVERDUE' ? ' 지남' : '까지'}`,
+    danger: overdue > 0,
   };
 }

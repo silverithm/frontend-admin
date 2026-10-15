@@ -24,7 +24,9 @@ import { currentHalfLabel, halfYearSummary } from '@/lib/lab/riskScales';
 import { LEGAL_TRAINING_CATEGORIES, summarizeCoverage, trainingCategoryLabel, trainingCoverage } from '@/lib/lab/trainingRules';
 import { collectContractEvidence, isContractEvidenceSource } from './EvalAutoEvidenceContract';
 import { collectProgramEvidence, isProgramEvidenceSource } from './EvalAutoEvidenceProgram';
+import { collectStaffHrEvidence, isStaffHrEvidenceSource } from './EvalAutoEvidenceStaffHr';
 import { collectStaffingEvidence, isStaffingEvidenceSource } from './EvalAutoEvidenceStaffing';
+import { recallEvidence, rememberEvidence } from './evalEvidenceCache';
 import { ErrorBanner } from './LabUi';
 import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, operatingDaysOf, readClosedDates, readNoVehicle, recentDates, shiftMonth, todayString } from './labFormat';
 import { fetchLabElders } from './useLabElders';
@@ -36,11 +38,12 @@ interface Evidence {
 
 const pct = (part: number, whole: number) => (whole === 0 ? 0 : Math.round((part / whole) * 100));
 
-async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<Evidence> {
+export async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<Evidence> {
   const asOf = todayString();
   if (isContractEvidenceSource(source)) return collectContractEvidence(source, asOf);
   if (isProgramEvidenceSource(source)) return collectProgramEvidence(source, asOf);
   if (isStaffingEvidenceSource(source)) return collectStaffingEvidence(source, asOf);
+  if (isStaffHrEvidenceSource(source)) return collectStaffHrEvidence(source, asOf);
   if (source === 'SAFETY_CHECKS') {
     const month = currentMonth();
     const noVehicle = readNoVehicle();
@@ -210,6 +213,15 @@ async function collect(source: EvalAutoSource, indicatorCode?: string): Promise<
   };
 }
 
+/** 묶음 인쇄용 — 최근 10분 안에 계산해 둔 근거가 있으면 그것을, 없으면 새로 계산해 기억해 둔다 */
+export async function collectEvidenceCached(source: EvalAutoSource, indicatorCode?: string): Promise<string[]> {
+  const hit = recallEvidence(source, indicatorCode);
+  if (hit) return hit;
+  const { lines } = await collect(source, indicatorCode);
+  rememberEvidence(source, indicatorCode, lines);
+  return lines;
+}
+
 interface EvalAutoEvidenceProps {
   source: EvalAutoSource;
   /** 지표 코드 — 지표마다 볼 점검 종류가 다를 때 쓴다 */
@@ -231,6 +243,7 @@ export default function EvalAutoEvidence({ source, indicatorCode, onUse }: EvalA
     try {
       const result = await collect(source, indicatorCode);
       if (n !== seq.current) return;
+      rememberEvidence(source, indicatorCode, result.lines);
       setEvidence(result);
     } catch (e) {
       if (n !== seq.current) return;

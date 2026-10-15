@@ -6,6 +6,7 @@
  * 맨 위 "오늘 확인할 것" 카드(LabToday)는 계약 알림·오늘 투약 대기·약품 사용기한·입소 상담 연락을 보여 주고, 줄을 누르면 그 도구를 연다.
  * 7차 도구(입소 상담·대기, 프로그램 계획, 사업계획, 급여 만족도, 퇴직금 추계)도 각 묶음에 들어 있고, '입소 상담 연락' 줄은 '입소 상담·대기'를 연다.
  * 8차 도구(수급자 서류함, 진료 동행, 인력배치, 운영위원회)는 각각 '수급자'·'기록'·'운영' 묶음에 들어 있고, 오늘 확인할 것의 '진료 후속 확인' 줄은 '진료 동행'을 연다.
+ * 9차 도구(직원 인사, 통장 대사)는 '운영'·'재무' 묶음에 들어 있고, 오늘 확인할 것의 '건강검진 기한' 줄은 '직원 인사'를 연다.
  * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기다. 메뉴 항목이 둘이고, 각자 그 보기로 바로 연다.
  */
 import { useEffect, useState } from 'react';
@@ -27,11 +28,13 @@ import ProgramPlanLab from '@/components/labRecords/ProgramPlanLab';
 import RehabLab from '@/components/labRecords/RehabLab';
 import SafetyCheckLab from '@/components/labRecords/SafetyCheckLab';
 import SatisfactionLab from '@/components/labRecords/SatisfactionLab';
+import StaffHrLab from '@/components/labRecords/StaffHrLab';
 import StaffTrainingLab from '@/components/labRecords/StaffTrainingLab';
 import ElderDocsLab from '@/components/labRecords/ElderDocsLab';
 import MedicalVisitLab from '@/components/labRecords/MedicalVisitLab';
 import CommitteeLab from '@/components/labPlans/CommitteeLab';
 import StaffingLab from '@/components/labPlans/StaffingLab';
+import BankReconLab from '@/components/labPlans/BankReconLab';
 import BudgetLab from '@/components/labPlans/BudgetLab';
 import ClaimCheckLab from '@/components/labPlans/ClaimCheckLab';
 import CommunityLab from '@/components/labPlans/CommunityLab';
@@ -47,7 +50,7 @@ import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance' | 'elderDocs' | 'medicalVisit' | 'staffing' | 'committee';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance' | 'elderDocs' | 'medicalVisit' | 'staffing' | 'committee' | 'staffHr' | 'bankRecon';
 
 interface ToolGroup {
   id: string;
@@ -86,6 +89,7 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'safety', label: '위생·안전 점검' },
       { id: 'staffing', label: '인력배치' },
       { id: 'committee', label: '운영위원회' },
+      { id: 'staffHr', label: '직원 인사' },
     ],
   },
   {
@@ -113,6 +117,7 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'donation', label: '후원금' },
       { id: 'budget', label: '예산·결산' },
       { id: 'severance', label: '퇴직금 추계' },
+      { id: 'bankRecon', label: '통장 대사' },
     ],
   },
   {
@@ -216,6 +221,8 @@ export default function LabHome() {
       {tool === 'medicalVisit' && <MedicalVisitLab />}
       {tool === 'staffing' && <StaffingLab />}
       {tool === 'committee' && <CommitteeLab />}
+      {tool === 'staffHr' && <StaffHrLab />}
+      {tool === 'bankRecon' && <BankReconLab />}
       {tool === 'medication' && <MedicationLab />}
       {tool === 'bath' && <BathLab />}
       {tool === 'claimCheck' && <ClaimCheckLab />}
