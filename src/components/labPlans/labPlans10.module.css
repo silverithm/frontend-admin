@@ -153,6 +153,38 @@
   border-style: dashed;
 }
 
+/* 번호 단추를 담은 줄은 줄 전체가 단추가 아니다 */
+.listRow[data-static='true'] {
+  cursor: default;
+}
+
+.guideNos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+}
+
+.guideNo {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.guideNo:hover {
+  border-color: var(--color-border-emphasized);
+}
+
+.guideNo[data-active='true'] {
+  border-color: var(--color-icon-accent);
+  background: var(--color-background-muted);
+}
+
 .groupTitle {
   margin-top: var(--spacing-2);
 }

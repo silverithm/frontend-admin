@@ -583,6 +583,12 @@
   outline-offset: -2px;
 }
 
+/* 휴대폰 폭에서 '열기'가 한 글자씩 끊기지 않게 */
+.todayOpen {
+  flex: none;
+  white-space: nowrap;
+}
+
 .todayRowStatic {
   cursor: default;
 }

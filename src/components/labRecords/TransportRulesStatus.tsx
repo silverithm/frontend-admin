@@ -8,6 +8,7 @@ import { docStatus } from '@/lib/lab/policyDocRules';
 import { TRANSPORT_RULE_ITEMS } from '@/lib/lab/transportRules';
 import { Chip } from '@/components/lab/LabUi';
 import { dotDate } from '@/components/lab/labFormat';
+import styles from './labRecords.module.css';
 import own from './Transport.module.css';
 
 export default function TransportRulesStatus({ doc, today }: { doc: PolicyDoc | null; today: string }) {
@@ -22,24 +23,26 @@ export default function TransportRulesStatus({ doc, today }: { doc: PolicyDoc | 
   const status = docStatus(doc, today);
   return (
     <Card padding={4}>
-      <div className={own.chipRow}>
-        <Text type="large" weight="semibold">
-          {doc.title}
+      <div className={styles.stackTight}>
+        <div className={own.chipRow}>
+          <Text type="large" weight="semibold">
+            {doc.title}
+          </Text>
+          <Chip tone={status.complete ? 'ok' : 'warn'} label={status.complete ? '필수 항목 모두 있음' : `필수 항목 ${status.itemsTotal - status.itemsChecked}개 빠짐`} />
+        </div>
+        <div className={own.chipRow}>
+          {TRANSPORT_RULE_ITEMS.map((item) => (
+            <Chip key={item.key} tone={doc.checks[item.key] === true ? 'ok' : 'warn'} label={`${item.label} ${doc.checks[item.key] === true ? '확인' : '없음'}`} />
+          ))}
+        </div>
+        <Text type="supporting" color="secondary">
+          최근 개정일 {doc.revisedOn ? dotDate(doc.revisedOn) : '입력 안 됨'}
+          {doc.revisedOn && !status.revisedWithin12m ? ' (1년 넘음)' : ''} · 비치 장소 {doc.location?.trim() || '입력 안 됨'}
         </Text>
-        <Chip tone={status.complete ? 'ok' : 'warn'} label={status.complete ? '필수 항목 모두 있음' : `필수 항목 ${status.itemsTotal - status.itemsChecked}개 빠짐`} />
+        <Text type="supporting" color="secondary">
+          수칙에는 운전자 자격요건·동승자의 역할·차량안전수칙·사고 시 조치사항이 들어가야 하고, 수칙이 바뀌면 어르신·보호자에게 다시 제공해야 합니다. 항목 체크와 개정일은 규정·지침 화면에서 고칩니다.
+        </Text>
       </div>
-      <div className={own.chipRow}>
-        {TRANSPORT_RULE_ITEMS.map((item) => (
-          <Chip key={item.key} tone={doc.checks[item.key] === true ? 'ok' : 'warn'} label={`${item.label} ${doc.checks[item.key] === true ? '확인' : '없음'}`} />
-        ))}
-      </div>
-      <Text type="supporting" color="secondary">
-        최근 개정일 {doc.revisedOn ? dotDate(doc.revisedOn) : '입력 안 됨'}
-        {doc.revisedOn && !status.revisedWithin12m ? ' (1년 넘음)' : ''} · 비치 장소 {doc.location?.trim() || '입력 안 됨'}
-      </Text>
-      <Text type="supporting" color="secondary">
-        수칙에는 운전자 자격요건·동승자의 역할·차량안전수칙·사고 시 조치사항이 들어가야 하고, 수칙이 바뀌면 어르신·보호자에게 다시 제공해야 합니다. 항목 체크와 개정일은 규정·지침 화면에서 고칩니다.
-      </Text>
     </Card>
   );
 }

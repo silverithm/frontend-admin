@@ -46,7 +46,7 @@ export default function VaccinationEval({ reloadKey }: { reloadKey: number }) {
     <Card padding={4}>
       <div className={styles.stack}>
         <div className={styles.toolbar}>
-          <div>
+          <div className={styles.stackTight}>
             <Text type="large" weight="semibold">
               평가 환산 (수급자 인플루엔자 접종률)
             </Text>

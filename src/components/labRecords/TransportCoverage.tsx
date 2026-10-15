@@ -75,7 +75,7 @@ export default function TransportCoverage({ initialMonth, reloadKey, onPickDate 
     <Card padding={4}>
       <div className={styles.stack}>
         <div className={styles.toolbar}>
-          <div>
+          <div className={styles.stackTight}>
             <Text type="large" weight="semibold">
               달 운행 현황
             </Text>

@@ -47,6 +47,8 @@ export default function PolicyDocList({ docs, today, loading, error, activeId, a
   const byKey = new Map<string, PolicyDoc>();
   for (const d of docs) if (d.kind !== 'OTHER' && !byKey.has(slotKeyOf(d))) byKey.set(slotKeyOf(d), d);
   const others = docs.filter((d) => d.kind === 'OTHER');
+  // 급여제공지침 ①~⑫ 중 아직 없는 것은 한 줄의 번호 단추로 모은다(열두 줄이 대장을 다 차지하지 않게)
+  const missingGuides = SLOTS.filter((s) => s.kind === 'CARE_GUIDE' && !byKey.has(s.key));
   let ready = 0;
   let partial = 0;
   let missing = 0;
@@ -79,6 +81,7 @@ export default function PolicyDocList({ docs, today, loading, error, activeId, a
             <div className={styles.listStack}>
               {SLOTS.map((s) => {
                 const d = byKey.get(s.key);
+                if (!d && s.kind === 'CARE_GUIDE') return null;
                 return d ? (
                   <DocRow key={s.key} doc={d} today={today} active={d.id === activeId} onOpen={() => onOpenDoc(d)} />
                 ) : (
@@ -89,6 +92,20 @@ export default function PolicyDocList({ docs, today, loading, error, activeId, a
                   </button>
                 );
               })}
+              {missingGuides.length > 0 && (
+                <div className={styles.listRow} data-empty="true" data-static="true">
+                  <Text type="label">급여제공지침</Text>
+                  <Chip tone="danger" label={`등록 전 ${missingGuides.length}개`} />
+                  <div className={styles.guideNos}>
+                    {missingGuides.map((s) => (
+                      <button key={s.key} type="button" className={styles.guideNo} data-active={activeSlot === s.key} onClick={() => onOpenSlot(s)} aria-label={`${s.name} 등록하기`} title={`${s.name} 등록하기`}>
+                        {s.name.replace('급여제공지침 ', '').replace(' 개인정보보호지침', '')}
+                      </button>
+                    ))}
+                  </div>
+                  <Text type="supporting" color="secondary">번호를 눌러 등록하기 · ⑩은 개인정보보호지침</Text>
+                </div>
+              )}
               <Text type="label">기타 문서</Text>
               {others.length === 0 && <Text type="supporting" color="secondary">등록한 기타 문서가 없습니다.</Text>}
               {others.map((d) => (

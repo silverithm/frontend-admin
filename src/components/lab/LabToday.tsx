@@ -149,9 +149,11 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
                   </Text>
                 )}
               </VStack>
-              <Text type="supporting" color="secondary">
-                열기
-              </Text>
+              <span className={styles.todayOpen}>
+                <Text type="supporting" color="secondary">
+                  열기
+                </Text>
+              </span>
             </button>
           );
         })}

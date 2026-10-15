@@ -79,12 +79,13 @@
   min-width: 0;
 }
 
-.rowWarn td {
-  background: var(--color-background-yellow);
+/* 줄 전체를 칠하면 같은 색 칩이 묻히므로, 첫 칸 왼쪽에 색 막대만 둔다 */
+.rowWarn td:first-child {
+  box-shadow: inset 4px 0 0 var(--color-border-yellow);
 }
 
-.rowDanger td {
-  background: var(--color-background-red);
+.rowDanger td:first-child {
+  box-shadow: inset 4px 0 0 var(--color-border-red);
 }
 
 .rowBtns {
