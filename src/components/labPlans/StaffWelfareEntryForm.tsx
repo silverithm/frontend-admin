@@ -150,7 +150,8 @@ export default function StaffWelfareEntryForm({ editing, staff, staffLoading, st
             ))}
           </VStack>
         )}
-        {blockers.length > 0 && (
+        {/* 아무것도 쓰기 전에는 빈 칸 경고를 늘어놓지 않는다 — 쓰기 시작했거나 기록을 고칠 때만 */}
+        {(dirty || editing !== null) && blockers.length > 0 && (
           <VStack gap={1}>
             <Text type="label">저장하기 전에 확인해 주세요</Text>
             {blockers.map((m) => (

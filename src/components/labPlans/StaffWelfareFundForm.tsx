@@ -128,7 +128,8 @@ export default function StaffWelfareFundForm({ editing, staff, staffLoading, yea
         {spent && draft.ownerUse && <SupportText tone="warn">대표자 겸 시설장·직원에게 쓴 금액은 사용 비율에서 뺍니다.</SupportText>}
         <StaffWelfareEvidence year={evidenceYear} direction={spent ? 'EXPENSE' : 'INCOME'} value={draft.evidenceLedgerId} onChange={(id) => set({ evidenceLedgerId: id })} isDisabled={disabled} />
         <TextInput label="메모 (선택)" placeholder="예: 영수증은 서류함 3번 칸" value={draft.note} onChange={(v) => set({ note: v.slice(0, MAX_NOTE) })} isDisabled={disabled} />
-        {blockers.length > 0 && (
+        {/* 아무것도 쓰기 전에는 빈 칸 경고를 늘어놓지 않는다 — 쓰기 시작했거나 기록을 고칠 때만 */}
+        {(dirty || editing !== null) && blockers.length > 0 && (
           <VStack gap={1}>
             <Text type="label">저장하기 전에 확인해 주세요</Text>
             {blockers.map((m) => (
