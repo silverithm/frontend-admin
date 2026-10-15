@@ -15,6 +15,7 @@ import type { Program } from '@/lib/lab/labTypes';
 import { ErrorBanner, MonthStepper, useNotify } from '@/components/lab/LabUi';
 import { currentMonth, dateLabel, errorText, monthLabel, todayString } from '@/components/lab/labFormat';
 import { useLabElders } from '@/components/lab/useLabElders';
+import ProgramLogCognitiveGaps from './ProgramLogCognitiveGaps';
 import ProgramLogCalendar from './ProgramLogCalendar';
 import ProgramLogEditor from './ProgramLogEditor';
 import ProgramLogList from './ProgramLogList';
@@ -127,10 +128,12 @@ export default function ProgramLogLab() {
         <ProgramLogCalendar month={month} programs={programs} selectedDate={selectedDate} onSelect={setSelectedDate} />
         <div style={{ marginTop: 'var(--spacing-2)' }}>
           <Text type="supporting" color="secondary">
-            파란 점은 인지 프로그램입니다. 날짜를 누르면 그날 프로그램만 보여요.
+            파란 점은 인지 프로그램, 테두리가 있는 점은 인지활동형(60분 이상) 프로그램입니다. 날짜를 누르면 그날 프로그램만 보여요.
           </Text>
         </div>
       </Card>
+
+      <ProgramLogCognitiveGaps month={month} programs={programs} programsLoading={loading} programsFailed={error !== null} elders={elders} eldersLoading={eldersLoading} eldersFailed={eldersError !== null} />
 
       {loading && programs.length === 0 ? (
         <Loading size="inline" label="프로그램을 불러오는 중..." />

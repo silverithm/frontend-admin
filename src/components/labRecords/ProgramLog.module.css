@@ -1,0 +1,24 @@
+/* 프로그램 일지 12차 — 인지활동형 표시와 달 누락 목록. 색은 토큰만 쓴다. */
+
+.dotActivity {
+  box-shadow: 0 0 0 2px var(--color-border-emphasized);
+}
+
+.gapRow {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: inset 4px 0 0 var(--color-border-yellow);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.gapRow:last-child {
+  border-bottom: 0;
+}
+
+.gapList {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  overflow: hidden;
+}

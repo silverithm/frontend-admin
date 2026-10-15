@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 프로그램 일지 작성·수정 — 날짜·시각·분류·제목·목표·내용·반응·진행자·참여 어르신.
+ * 프로그램 일지 작성·수정 — 날짜·시각·시간(분)·인지활동형·제공자 유형·분류·제목·목표·내용·반응·진행자·참여 어르신.
  * "메모로 AI 작성"은 메모만 보내 제목·목표·내용·반응 제안을 받는다. 직접 쓴 칸은 덮어쓰지 않고, 저장은 직원이 누를 때만 한다.
  */
 import { useMemo, useState } from 'react';
@@ -20,6 +20,7 @@ import type { LabElder } from '@/components/lab/useLabElders';
 import PersonPicker from './PersonPicker';
 import { MAX_PARTICIPANTS, PROGRAM_CATEGORIES, PROGRAM_TEXT_MAX, categoryLabel, draftFromProgram, newDraft, snapshotOf, toInput, validate } from './ProgramLogDraft';
 import type { ProgramDraft, ProgramPreset, ProgramTextKey } from './ProgramLogDraft';
+import ProgramLogCognitiveFields from './ProgramLogCognitiveFields';
 import { AiMemoBox, TimeField } from './RecordsUi';
 import { mergeAiSuggestions, useAlive, useLatest } from './recordsFormat';
 import { useElderAttendance } from './useElderAttendance';
@@ -149,6 +150,8 @@ export default function ProgramLogEditor({ elders, program, preset, onSaved, onD
           />
           <TextInput label="진행자" value={draft.instructor} onChange={(v) => setDraft((d) => ({ ...d, instructor: v.slice(0, 50) }))} />
         </div>
+
+        <ProgramLogCognitiveFields draft={draft} onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))} isDisabled={saving} />
 
         <AiMemoBox
           description="오늘 한 활동을 편하게 적어 주세요. 아래 제목·목표·내용·반응 칸을 AI가 나눠 정리해 줍니다."

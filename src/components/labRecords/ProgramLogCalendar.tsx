@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import type { Program } from '@/lib/lab/labTypes';
 import { monthDates, todayString, weekdayIndex } from '@/components/lab/labFormat';
 import styles from './labRecords.module.css';
+import logStyles from './ProgramLog.module.css';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -41,6 +42,7 @@ export default function ProgramLogCalendar({ month, programs, selectedDate, onSe
       {dates.map((date) => {
         const list = byDate.get(date) ?? [];
         const cognitive = list.filter((p) => p.category === 'COGNITIVE').length;
+        const activity = list.filter((p) => p.cognitiveActivity).length;
         return (
           <button
             key={date}
@@ -48,13 +50,13 @@ export default function ProgramLogCalendar({ month, programs, selectedDate, onSe
             className={styles.calendarCell}
             aria-pressed={selectedDate === date}
             data-today={date === today ? 'true' : 'false'}
-            aria-label={`${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일, 프로그램 ${list.length}개${cognitive > 0 ? `, 인지 ${cognitive}개` : ''}`}
+            aria-label={`${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일, 프로그램 ${list.length}개${cognitive > 0 ? `, 인지 ${cognitive}개` : ''}${activity > 0 ? `, 인지활동형 ${activity}개` : ''}`}
             onClick={() => onSelect(selectedDate === date ? null : date)}
           >
             <span className={styles.dayNum}>{Number(date.slice(8, 10))}</span>
             <span className={styles.dayDots}>
               {list.slice(0, 4).map((p) => (
-                <span key={p.id} className={`${styles.dot} ${p.category === 'COGNITIVE' ? styles.dotCognitive : ''}`} />
+                <span key={p.id} className={`${styles.dot} ${p.category === 'COGNITIVE' ? styles.dotCognitive : ''} ${p.cognitiveActivity ? logStyles.dotActivity : ''}`} />
               ))}
             </span>
           </button>
