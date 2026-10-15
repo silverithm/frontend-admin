@@ -1,7 +1,7 @@
 /** 통장 한 건 입력 초안·검증. 계좌번호는 끝 4자리만 받는다. */
 import { isValidYmd } from '@/lib/lab/labDate';
 import type { BankAccount, BankAccountInput, BankAccountPurpose } from '@/lib/lab/labTypes';
-import { parseWonText } from './BankReconFormat';
+import { parseWonText, wonInputText } from './BankReconFormat';
 
 export const MAX_ACCOUNT_NAME = 50;
 export const MAX_BANK_NAME = 30;
@@ -24,7 +24,7 @@ export function emptyAccountDraft(today: string): AccountDraft {
 }
 
 export function draftOfAccount(a: BankAccount): AccountDraft {
-  return { id: a.id, name: a.name, purpose: a.purpose, bankName: a.bankName, tail: a.accountTail ?? '', openingText: String(a.openingBalance), openingDate: a.openingDate, active: a.active };
+  return { id: a.id, name: a.name, purpose: a.purpose, bankName: a.bankName, tail: a.accountTail ?? '', openingText: wonInputText(a.openingBalance), openingDate: a.openingDate, active: a.active };
 }
 
 export function accountIssues(d: AccountDraft): string[] {

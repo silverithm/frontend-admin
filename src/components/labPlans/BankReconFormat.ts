@@ -34,11 +34,16 @@ export function parseWonText(text: string): number | null {
   return Number.isSafeInteger(n) && Math.abs(n) <= MAX_BANK_AMOUNT ? n : null;
 }
 
-/** 입력 중인 금액 글에서 허용하지 않는 글자를 뺀다(숫자·쉼표·맨 앞 마이너스만) */
+/** 입력 중인 금액 글을 숫자·맨 앞 마이너스만 남기고 세 자리마다 쉼표를 넣는다('-1250000' → '-1,250,000') */
 export function cleanWonText(text: string): string {
   const neg = /^\s*[-−–]/.test(text);
-  const digits = text.replace(/[^0-9,]/g, '').slice(0, 16);
-  return `${neg ? '-' : ''}${digits}`;
+  const digits = text.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 13);
+  return `${neg ? '-' : ''}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+}
+
+/** 저장된 금액을 입력칸 글로 — 1250000 → '1,250,000' */
+export function wonInputText(value: number): string {
+  return Math.trunc(value).toLocaleString('ko-KR');
 }
 
 /** 끝 4자리 표시 — 없으면 '-' */

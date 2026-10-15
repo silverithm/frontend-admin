@@ -30,7 +30,9 @@ export default function StaffHrEdu({ people, certs, today, onEditProfile, onAddC
     [caregivers, hrCerts, year, today],
   );
   const rate = useMemo(() => continuingEduRate(caregivers.map((p) => toHrProfile(p.profile!)), hrCerts, year, today), [caregivers, hrCerts, year, today]);
-  const scoreNote = rate.score === 0 ? ' (75% 미만 점수는 매뉴얼에 없음 — 대조 필요)' : '';
+  const scoreNote = rate.score === 0 ? '75% 미만 점수는 매뉴얼에 없음 — 대조 필요' : undefined;
+  // 올해는 아직 기한(연말) 전인 대상자가 있다 — 지금 이수율이 낮아도 미이수가 아니다
+  const dueCount = rows.filter((r) => r.result.status === 'DUE').length;
 
   return (
     <div className={styles.stack}>
@@ -46,8 +48,8 @@ export default function StaffHrEdu({ people, certs, today, onEditProfile, onAddC
         </div>
       </div>
       <div className={own.summaryBox}>
-        <SummaryItem label={`${year}년 이수율`} value={percentText(rate.rate)} hint={rate.rate === null ? '대상 요양보호사 없음' : `${rate.done}명 / 대상 ${rate.required}명`} />
-        <SummaryItem label="평가 5 점수 (추정)" value={`${scoreText(rate.score)}${scoreNote}`} />
+        <SummaryItem label={`${year}년 이수율`} value={percentText(rate.rate)} hint={rate.rate === null ? '대상 요양보호사 없음' : `${rate.done}명 / 대상 ${rate.required}명${dueCount > 0 ? ` · 진행 중 ${dueCount}명은 연말까지 이수하면 됩니다` : ''}`} />
+        <SummaryItem label="평가 5 점수 (추정)" value={scoreText(rate.score)} hint={scoreNote} />
       </div>
 
       {rows.length === 0 ? (
@@ -79,7 +81,7 @@ export default function StaffHrEdu({ people, certs, today, onEditProfile, onAddC
                         <Chip tone={EDU_STATUS_TONE[result.status]} label={EDU_STATUS_LABEL[result.status]} />
                       </td>
                       <td className={styles.num}>
-                        {result.hours}시간 / {CONTINUING_EDU_MIN_HOURS}시간
+                        {result.status === 'DONE' || result.status === 'DUE' || result.status === 'MISSED' ? `${result.hours}시간 / ${CONTINUING_EDU_MIN_HOURS}시간` : `${result.hours}시간`}
                       </td>
                       <td>{birth === null ? '출생연도를 등록해 주세요' : birth % 2 === 1 ? '홀수년생(홀수 해)' : '짝수년생(짝수 해)'}</td>
                       <td>

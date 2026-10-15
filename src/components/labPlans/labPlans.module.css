@@ -245,6 +245,8 @@
     display: block;
     color: var(--color-text-primary);
     background: var(--color-background-card);
+    /* 포털은 body 바로 아래라 body의 글꼴 변수가 비어 바탕체로 나온다 — 테마 속성이 달린 여기서 다시 준다 */
+    font-family: var(--font-family-body);
     font-size: 10pt;
     line-height: 1.5;
   }

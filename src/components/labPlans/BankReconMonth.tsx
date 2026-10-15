@@ -11,12 +11,12 @@ import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Chip, ErrorBanner, SupportText, useNotify } from '@/components/lab/LabUi';
-import { errorText, monthLabel } from '@/components/lab/labFormat';
+import { dotDate, errorText, monthLabel } from '@/components/lab/labFormat';
 import { useAlive } from '@/components/labRecords/recordsFormat';
 import { deleteBankStatement, saveBankStatement } from '@/lib/lab/labApi';
 import type { BankStatement } from '@/lib/lab/labTypes';
 import type { ReconView } from './BankReconBook';
-import { cleanWonText, parseWonText, purposeName, signedWonText, tailText, wonText } from './BankReconFormat';
+import { cleanWonText, parseWonText, purposeName, signedWonText, tailText, wonInputText, wonText } from './BankReconFormat';
 import styles from './labPlans.module.css';
 import bank from './bankRecon.module.css';
 
@@ -47,7 +47,7 @@ export default function BankReconMonth({ month, view, statements, ledgerReady, p
     const next: Record<number, string> = {};
     for (const a of view.included) {
       const s = statements.find((x) => x.accountId === a.id && x.statementMonth === month);
-      next[a.id] = s ? String(s.closingBalance) : '';
+      next[a.id] = s ? wonInputText(s.closingBalance) : '';
     }
     setTexts(next);
     setErrors({});
@@ -198,7 +198,7 @@ export default function BankReconMonth({ month, view, statements, ledgerReady, p
 
         {view.included.length > 0 && ledgerReady && (
           <SupportText>
-            장부 월말 잔액 = 통장 시작 잔액 합 {wonText(view.openingSum)} + {view.startDate ?? ''} 이후 장부의 수입 − 지출(그 달 1일 이월 {wonText(view.monthOpening)}). 장부에는 통장 구분이 없어 사용 중인 통장 전체의 합과 견줍니다. 현금 거래나 통장을 거치지 않은 기록이 있으면 차이가 날 수 있습니다.
+            장부 월말 잔액 = 통장 시작 잔액 합 {wonText(view.openingSum)} + {view.startDate ? dotDate(view.startDate) : ''} 이후 장부의 수입 − 지출(그 달 1일 이월 {wonText(view.monthOpening)}). 장부에는 통장 구분이 없어 사용 중인 통장 전체의 합과 견줍니다. 현금 거래나 통장을 거치지 않은 기록이 있으면 차이가 날 수 있습니다.
           </SupportText>
         )}
       </VStack>

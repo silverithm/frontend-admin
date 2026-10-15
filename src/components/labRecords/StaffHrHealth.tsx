@@ -32,7 +32,7 @@ export default function StaffHrHealth({ people, certs, today, onEditProfile, onA
   );
   const rate = useMemo(() => healthCheckRate(withProfile.map((p) => toHrProfile(p.profile!)), hrCerts, today), [withProfile, hrCerts, today]);
   const urgent = rows.filter((r) => r.result.status !== 'OK').length;
-  const scoreNote = rate.score === 0 ? ' (75% 미만 점수는 매뉴얼에 없음 — 대조 필요)' : '';
+  const scoreNote = rate.score === 0 ? '75% 미만 점수는 매뉴얼에 없음 — 대조 필요' : undefined;
 
   return (
     <div className={styles.stack}>
@@ -51,7 +51,7 @@ export default function StaffHrHealth({ people, certs, today, onEditProfile, onA
       </div>
       <div className={own.summaryBox}>
         <SummaryItem label="검진률" value={percentText(rate.rate)} hint={rate.rate === null ? '근무 중인 직원 없음' : `${rate.ok}명 / 근무 중 ${rate.total}명`} />
-        <SummaryItem label="평가 15 점수 (추정)" value={`${scoreText(rate.score)}${scoreNote}`} />
+        <SummaryItem label="평가 15 점수 (추정)" value={scoreText(rate.score)} hint={scoreNote} />
       </div>
 
       {rows.length === 0 ? (
@@ -77,7 +77,7 @@ export default function StaffHrHealth({ people, certs, today, onEditProfile, onA
                   return (
                     <tr key={person.memberId} className={result.status === 'OVERDUE' || result.status === 'MISSING' ? own.rowDanger : result.status === 'DUE_SOON' ? own.rowWarn : undefined}>
                       <td className={styles.stickyName}>
-                        <Text type="label">{person.name}</Text>
+                        <Text type="label">{person.name}</Text>{' '}
                         {person.profile!.officeWorker && (
                           <Text type="supporting" color="secondary">
                             사무직(2년)

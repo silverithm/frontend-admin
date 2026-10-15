@@ -34,8 +34,8 @@ export default function StaffHrExperienced({ people, today, onEditProfile }: HrV
   const withProfile = useMemo(() => people.filter((p) => p.profile !== null), [people]);
   const result = useMemo(() => experiencedRatio(withProfile.map((p) => toHrProfile(p.profile!)), today, openedOn || null), [withProfile, today, openedOn]);
 
-  const score =
-    result.score === null ? '해당없음' : result.score === 0 ? '0점 (30% 미만 점수는 매뉴얼 표에 없음 — 대조 필요)' : scoreText(result.score);
+  const score = result.score === null ? '해당없음' : scoreText(result.score);
+  const scoreNote = result.score === 0 ? '30% 미만 점수는 매뉴얼 표에 없음 — 대조 필요' : undefined;
 
   return (
     <div className={styles.stack}>
@@ -47,7 +47,7 @@ export default function StaffHrExperienced({ people, today, onEditProfile }: HrV
       <PendingPeople people={people} onRegister={onEditProfile} />
       <div className={own.summaryBox}>
         <SummaryItem label="경력직 비율" value={percentText(result.ratio)} hint={`${result.eligible}명 / 근무 중 ${result.total}명`} />
-        <SummaryItem label="평가 4 점수 (추정)" value={score} />
+        <SummaryItem label="평가 4 점수 (추정)" value={score} hint={scoreNote} />
         <SummaryItem label="근속 기준" value={`${result.threshold}개월 이상`} hint={openedOn ? '기관 개설일 기준' : '개설일을 넣지 않아 24개월'} />
       </div>
       <div className={styles.fieldGridWide}>
