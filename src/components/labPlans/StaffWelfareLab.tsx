@@ -4,7 +4,8 @@
  * 직원 복지·권익 — 다섯 기준 요약, 복지(포상) 제공대장, 가산금 받음·사용, A4 인쇄.
  * 고충은 건수만 읽는다(내용·작성자는 가져오지 않는다).
  */
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { LabConfirm } from '@/components/lab/LabUi';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Selector } from '@astryxdesign/core/Selector';
@@ -40,6 +41,16 @@ export default function StaffWelfareLab() {
   const [fundEdit, setFundEdit] = useState<BonusFund | null>(null);
   const [fundKey, setFundKey] = useState(0);
   const [printKey, setPrintKey] = useState(0);
+  // 쓰던 내용이 있으면 다른 기록을 열기 전에 묻는다(사례관리 회의와 같은 방식)
+  const entryDirty = useRef(false);
+  const fundDirty = useRef(false);
+  const [pending, setPending] = useState<(() => void) | null>(null);
+  const onEntryDirty = useCallback((d: boolean) => {
+    entryDirty.current = d;
+  }, []);
+  const onFundDirty = useCallback((d: boolean) => {
+    fundDirty.current = d;
+  }, []);
   const entryBox = useRef<HTMLDivElement>(null);
   const fundBox = useRef<HTMLDivElement>(null);
   const entries = useWelfareEntries(thisYear);
@@ -57,12 +68,26 @@ export default function StaffWelfareLab() {
     void docs.reload();
   };
   const openEntry = (e: StaffWelfare | null) => {
+    if (entryDirty.current) {
+      setPending(() => () => {
+        entryDirty.current = false;
+        openEntry(e);
+      });
+      return;
+    }
     setEntryEdit(e);
     setEntryKey((k) => k + 1);
     // 목록에서 고치기를 누르면 위의 입력 칸으로 올라가 보여 준다
     if (e) setTimeout(() => entryBox.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
   const openFund = (f: BonusFund | null) => {
+    if (fundDirty.current) {
+      setPending(() => () => {
+        fundDirty.current = false;
+        openFund(f);
+      });
+      return;
+    }
     setFundEdit(f);
     setFundKey((k) => k + 1);
     if (f) setTimeout(() => fundBox.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
@@ -98,6 +123,7 @@ export default function StaffWelfareLab() {
           <WelfareLedgerNotes />
           <div ref={entryBox}>
           <StaffWelfareEntryForm
+            onDirtyChange={onEntryDirty}
             key={`entry${entryKey}`}
             editing={entryEdit}
             staff={staff.data}
@@ -122,13 +148,25 @@ export default function StaffWelfareLab() {
           <Text type="label">가산금 받음·사용</Text>
           <BonusFundNotes />
           <div ref={fundBox}>
-          <StaffWelfareFundForm key={`fund${fundKey}`} editing={fundEdit} staff={staff.data} staffLoading={staff.loading} year={year} today={today} onChanged={funds.reload} onClear={() => openFund(null)} />
+          <StaffWelfareFundForm key={`fund${fundKey}`} onDirtyChange={onFundDirty} editing={fundEdit} staff={staff.data} staffLoading={staff.loading} year={year} today={today} onChanged={funds.reload} onClear={() => openFund(null)} />
           </div>
           <StaffWelfareFundList year={year} all={funds.data} loading={funds.loading} error={funds.error} activeId={fundEdit?.id ?? null} isDisabled={false} onRetry={() => void funds.reload()} onOpen={openFund} />
         </VStack>
       </Card>
 
       <StaffWelfarePrint year={year} scope={scope === 'ALL' ? '' : scope} entries={printable ? entries.data : null} today={today} printKey={printKey} onReady={() => window.print()} />
+      <LabConfirm
+        isOpen={pending !== null}
+        title="저장하지 않은 변경이 있습니다"
+        description="저장하지 않고 넘어가면 지금 적은 내용이 사라집니다."
+        actionLabel="버리고 이동"
+        onConfirm={() => {
+          const go = pending;
+          setPending(null);
+          go?.();
+        }}
+        onClose={() => setPending(null)}
+      />
     </div>
   );
 }

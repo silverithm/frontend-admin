@@ -1,7 +1,7 @@
 'use client';
 
 /** 복지 제공 한 건 쓰기·고치기 — 종류에 따라 불인정 경고를 바로 보여 주고, 저장은 두 번 눌러도 한 번만 된다. */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
@@ -31,13 +31,26 @@ interface Props {
   today: string;
   onChanged: () => Promise<void>;
   onClear: () => void;
+  /** 처음 값과 달라졌는지 — 다른 기록을 열 때 버릴지 묻는 데 쓴다 */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export default function StaffWelfareEntryForm({ editing, staff, staffLoading, staffError, year, today, onChanged, onClear }: Props) {
+export default function StaffWelfareEntryForm({ editing, staff, staffLoading, staffError, year, today, onChanged, onClear, onDirtyChange }: Props) {
   const alive = useAlive();
   const notify = useNotify();
   const busy = useRef(false);
   const [draft, setDraft] = useState<EntryDraft>(() => (editing ? entryToDraft(editing) : emptyEntry()));
+  const initial = useRef(JSON.stringify(draft));
+  const dirty = JSON.stringify(draft) !== initial.current;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+  // 저장·삭제·비우기처럼 일부러 비울 때는 '쓰던 내용'으로 보지 않는다
+  const clear = () => {
+    onDirtyChange?.(false);
+    onClear();
+  };
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toDelete, setToDelete] = useState(false);
@@ -67,7 +80,7 @@ export default function StaffWelfareEntryForm({ editing, staff, staffLoading, st
       await onChanged();
       if (alive.current) {
         setDraft(emptyEntry());
-        onClear();
+        clear();
       }
     } catch (err) {
       if (alive.current) setError(errorText(err, '직원 복지 제공 기록을 저장하지 못했습니다'));
@@ -86,7 +99,7 @@ export default function StaffWelfareEntryForm({ editing, staff, staffLoading, st
       notify('복지 제공 기록을 지웠습니다', 'success');
       setToDelete(false);
       await onChanged();
-      if (alive.current) onClear();
+      if (alive.current) clear();
     } catch (err) {
       if (alive.current) {
         notify(errorText(err, '복지 제공 기록을 지우지 못했습니다'), 'error');
@@ -148,7 +161,7 @@ export default function StaffWelfareEntryForm({ editing, staff, staffLoading, st
         {error && <ErrorBanner message={error} />}
         <HStack gap={2} hAlign="end" wrap="wrap">
           {draft.id !== null && <Button label="이 기록 삭제" variant="ghost" isLoading={deleting} isDisabled={disabled} onClick={() => setToDelete(true)} />}
-          {(draft.id !== null || draft.kind !== '' || draft.item !== '') && <Button label={draft.id === null ? '비우기' : '고치기 취소'} variant="ghost" isDisabled={disabled} onClick={() => { setDraft(emptyEntry()); setError(null); onClear(); }} />}
+          {(draft.id !== null || draft.kind !== '' || draft.item !== '') && <Button label={draft.id === null ? '비우기' : '고치기 취소'} variant="ghost" isDisabled={disabled} onClick={() => { setDraft(emptyEntry()); setError(null); clear(); }} />}
           <Button label={draft.id === null ? '제공 기록 저장' : '고친 내용 저장'} variant="primary" isLoading={saving} isDisabled={disabled || blockers.length > 0} onClick={() => void save()} />
         </HStack>
       </VStack>

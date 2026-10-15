@@ -1,7 +1,7 @@
 'use client';
 
 /** 가산금 받음·사용 한 건 쓰기·고치기 — 저장은 두 번 눌러도 한 번만 된다. */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
@@ -33,13 +33,26 @@ interface Props {
   today: string;
   onChanged: () => Promise<void>;
   onClear: () => void;
+  /** 처음 값과 달라졌는지 — 다른 기록을 열 때 버릴지 묻는 데 쓴다 */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export default function StaffWelfareFundForm({ editing, staff, staffLoading, year, today, onChanged, onClear }: Props) {
+export default function StaffWelfareFundForm({ editing, staff, staffLoading, year, today, onChanged, onClear, onDirtyChange }: Props) {
   const alive = useAlive();
   const notify = useNotify();
   const busy = useRef(false);
   const [draft, setDraft] = useState<FundDraft>(() => (editing ? fundToDraft(editing) : emptyFund()));
+  const initial = useRef(JSON.stringify(draft));
+  const dirty = JSON.stringify(draft) !== initial.current;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+  // 저장·삭제·비우기처럼 일부러 비울 때는 '쓰던 내용'으로 보지 않는다
+  const clear = () => {
+    onDirtyChange?.(false);
+    onClear();
+  };
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toDelete, setToDelete] = useState(false);
@@ -55,7 +68,7 @@ export default function StaffWelfareFundForm({ editing, staff, staffLoading, yea
   const reset = () => {
     setDraft(emptyFund());
     setError(null);
-    onClear();
+    clear();
   };
 
   const save = async () => {
@@ -88,7 +101,7 @@ export default function StaffWelfareFundForm({ editing, staff, staffLoading, yea
       notify('가산금 기록을 지웠습니다', 'success');
       setToDelete(false);
       await onChanged();
-      if (alive.current) onClear();
+      if (alive.current) clear();
     } catch (err) {
       if (alive.current) {
         notify(errorText(err, '가산금 기록을 지우지 못했습니다'), 'error');
