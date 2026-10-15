@@ -14,6 +14,7 @@ import {
   buildRiskPrompt,
   isLabAiTask,
   normalizeCareRecordResult,
+  normalizeCareNoteForm,
   normalizeEvalReviewResult,
   normalizeRiskSuggestion,
   prepareLabAiTask,
@@ -265,7 +266,10 @@ test('위험도 스키마 — 도구별 항목을 모두 필수로 두고, 근�
 test('급여기록·평가 스키마 모양', () => {
   assert.equal(CARE_RECORD_SCHEMA.type, 'OBJECT');
   assert.ok(CARE_RECORD_SCHEMA.required.includes('warnings'));
-  assert.equal(Object.keys(CARE_RECORD_SCHEMA.properties).length, 9);
+  assert.ok(CARE_RECORD_SCHEMA.required.includes('form'));
+  assert.equal(Object.keys(CARE_RECORD_SCHEMA.properties).length, 10);
+  assert.equal(Object.keys(CARE_RECORD_SCHEMA.properties.form.properties).length, 12);
+  assert.deepEqual(CARE_RECORD_SCHEMA.properties.form.properties.mealIntake.enum, ['FULL', 'HALF_OR_MORE', 'LESS_THAN_HALF']);
   assert.deepEqual(EVAL_REVIEW_SCHEMA.properties.suggestedStatus.enum, ['READY', 'PARTIAL', 'MISSING']);
 });
 
@@ -2121,4 +2125,49 @@ test('care-plan — 새 칸만 있어도 욕구사정이 있는 것으로 받고
   assert.equal(prepareLabAiTask('care-plan', { needs: { avoidFoods: '우유' } }).ok, true);
   assert.equal(prepareLabAiTask('care-plan', { needs: { oral: 3 } }).ok, false);
   assert.equal(prepareLabAiTask('care-plan', { needs: { oral: '  ', summary: '' } }).ok, false);
+});
+
+test('12차 급여기록 form 정규화 — 범위 밖 숫자·허용 밖 열거는 null, 맞는 값은 그대로', () => {
+  const f = normalizeCareNoteForm({ washHelp: true, bathMinutes: 25, bathMethod: 'SHOWER', mealKind: 'PORRIDGE', mealIntake: 'HALF_OR_MORE', toiletCount: 3, mobilityHelp: 'yes', cogSupport: false, commHelp: true, bpSystolic: 135, bpDiastolic: 85, temperature: 36.84 });
+  assert.deepEqual(f, { washHelp: true, bathMinutes: 25, bathMethod: 'SHOWER', mealKind: 'PORRIDGE', mealIntake: 'HALF_OR_MORE', toiletCount: 3, mobilityHelp: false, cogSupport: false, commHelp: true, bpSystolic: 135, bpDiastolic: 85, temperature: 36.8 });
+  const bad = normalizeCareNoteForm({ bathMinutes: 181, bathMethod: 'TUB', mealKind: 'rice', mealIntake: 'ALL', toiletCount: 31, temperature: 42.5 });
+  assert.deepEqual([bad.bathMinutes, bad.bathMethod, bad.mealKind, bad.mealIntake, bad.toiletCount, bad.temperature], [null, null, null, null, null, null]);
+});
+
+test('12차 급여기록 form 정규화 — 경계값(180분·30회·34.0·42.0)은 남기고, 0·소수 분·문자열 숫자는 비운다', () => {
+  const edge = normalizeCareNoteForm({ bathMinutes: 180, toiletCount: 30, temperature: 34 });
+  assert.deepEqual([edge.bathMinutes, edge.toiletCount, edge.temperature], [180, 30, 34]);
+  assert.equal(normalizeCareNoteForm({ temperature: 42 }).temperature, 42);
+  const zero = normalizeCareNoteForm({ bathMinutes: 0, toiletCount: 0 });
+  assert.deepEqual([zero.bathMinutes, zero.toiletCount], [null, null]);
+  const odd = normalizeCareNoteForm({ bathMinutes: 12.5, toiletCount: '3' });
+  assert.deepEqual([odd.bathMinutes, odd.toiletCount], [null, null]);
+});
+
+test('12차 급여기록 form 정규화 — 혈압은 둘 다 범위 안일 때만, 한쪽·뒤바뀜·범위 밖이면 둘 다 비운다', () => {
+  const bp = (a: unknown, b: unknown) => { const f = normalizeCareNoteForm({ bpSystolic: a, bpDiastolic: b }); return [f.bpSystolic, f.bpDiastolic]; };
+  assert.deepEqual(bp(120, 80), [120, 80]);
+  assert.deepEqual(bp(120, null), [null, null]);
+  assert.deepEqual(bp(null, 80), [null, null]);
+  assert.deepEqual(bp(80, 120), [null, null]);
+  assert.deepEqual(bp(300, 80), [null, null]);
+  assert.deepEqual(bp(120, 20), [null, null]);
+  assert.deepEqual(bp(260, 160), [260, 160]);
+});
+
+test('12차 급여기록 form 정규화 — form이 없거나 이상한 모양이면 빈 칸이고 서술 결과는 그대로다', () => {
+  const out = normalizeCareRecordResult({ physical: '보행기로 이동 보조', form: 'oops' });
+  assert.equal(out.physical, '보행기로 이동 보조');
+  assert.deepEqual(out.form, { washHelp: false, bathMinutes: null, bathMethod: null, mealKind: null, mealIntake: null, toiletCount: null, mobilityHelp: false, cogSupport: false, commHelp: false, bpSystolic: null, bpDiastolic: null, temperature: null });
+  assert.deepEqual(normalizeCareRecordResult({}).form, out.form);
+});
+
+test('12차 급여기록 프롬프트 — 서식 칸은 적힌 값만, 추정 금지, 이름은 쓰지 않는다', () => {
+  const r = validateCareRecordInput({ note: '점심 죽 반 정도 드심' });
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  const prompt = buildCareRecordPrompt(r.value);
+  assert.match(prompt, /\[form\]/);
+  assert.match(prompt, /추정하지 않습니다/);
+  assert.match(prompt, /둘 다 적혀 있을 때만/);
 });

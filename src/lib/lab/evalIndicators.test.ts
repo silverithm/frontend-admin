@@ -95,7 +95,7 @@ test('2차 자동 근거 — 인지 프로그램 주 3회·법정 교육 이수�
 
 test('자동 근거 이름표 — 모든 자동 근거에 화면용 문구가 있다', () => {
   for (const i of EVAL_INDICATORS) if (i.autoSource) assert.ok(EVAL_AUTO_SOURCE_LABEL[i.autoSource].length > 3, i.code);
-  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 41);
+  assert.equal(Object.keys(EVAL_AUTO_SOURCE_LABEL).length, 42);
 });
 
 test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요건에 적는다', () => {
@@ -109,11 +109,13 @@ test('위험도평가 지표 — 욕창·낙상·인지기능 세 기준을 요�
 
 test('3차 자동 근거 — 점검 주기 이행은 위생·식품·감염·안전환경 지표에, 재난훈련 연 2회는 재난 지표에 붙어 있다', () => {
   const by = (src: string) => EVAL_INDICATORS.filter((i) => i.autoSource === src).map((i) => i.code);
-  assert.deepEqual(by('SAFETY_CHECKS'), ['SAFE-02', 'SAFE-03', 'SAFE-04', 'SAFE-06']);
+  // [12차] 감염 지표(SAFE-04)는 일상 점검 + 분기 전문소독을 함께 보는 INFECTION_CONTROL로 옮겼다
+  assert.deepEqual(by('SAFETY_CHECKS'), ['SAFE-02', 'SAFE-03', 'SAFE-06']);
+  assert.deepEqual(by('INFECTION_CONTROL'), ['SAFE-04']);
   assert.deepEqual(by('DRILL_TWICE'), ['SAFE-07']);
   assert.match(indicatorByCode('SAFE-07')!.requirements.join(' '), /연 2회/);
   // 안전·위생 묶음 안에서만 붙는다
-  for (const code of [...by('SAFETY_CHECKS'), ...by('DRILL_TWICE')]) assert.equal(indicatorByCode(code)!.group, 'SAFETY');
+  for (const code of [...by('SAFETY_CHECKS'), ...by('INFECTION_CONTROL'), ...by('DRILL_TWICE')]) assert.equal(indicatorByCode(code)!.group, 'SAFETY');
 });
 
 test('5차 자동 근거 — 사고 후속은 응급상황 대응, 보호자 월간 안내는 소통, 연계 건수는 외부기관 연계 지표에 붙어 있다', () => {
@@ -289,4 +291,15 @@ test('11차 자동 근거 — 욕구사정·계획 변경·직원권익이 붙�
   assert.equal(active.length, 44);
   assert.deepEqual(active.filter((i) => !i.autoSource).map((i) => i.code), []);
   assert.match(indicatorByCode('SAFE-05')!.requirements.join(' '), /유행·발생 때 한 조치\(보호자 안내·보건소 신고·공단 보고\)를 기록/);
+});
+
+test('12차 평가 근거 보강 — 전문소독·법정 소방 자체점검·영역별 서명 요건 문장이 있고 지표 수와 자동 근거는 그대로다', () => {
+  const active = EVAL_INDICATORS.filter((i) => !i.deletedIn2026);
+  assert.equal(active.length, 44);
+  assert.deepEqual(active.filter((i) => !i.autoSource).map((i) => i.code), []);
+  const text = (code: string) => indicatorByCode(code)!.requirements.join(' ');
+  assert.match(text('SAFE-04'), /전문소독.*소독증명서/);
+  assert.match(text('SAFE-07'), /작동·종합.*15일.*2년/);
+  assert.match(text('SVC-06'), /별지 제15호 유의사항 7/);
+  assert.equal(indicatorByCode('SVC-06')!.autoSource, 'CARE_RECORD_DELIVERY');
 });

@@ -45,11 +45,16 @@ export interface CareRecord {
   rawNote: string | null;
   providerName: string | null;
   aiAssisted: boolean;
+  /** [12차] 별지 제15호서식 칸. 옛 기록·옛 서버 응답은 null(labApi가 채운다) */
+  form: CareRecordFormView | null;
   updatedAt: string | null;
 }
 
-/** 본문 글자 수 한도는 서버와 같다: 서술 2000자, 식사·배설·목욕 200자, 제공자 50자. */
-export type CareRecordInput = Omit<CareRecord, 'id' | 'elderlyName' | 'updatedAt'>;
+/**
+ * 본문 글자 수 한도는 서버와 같다: 서술 2000자, 식사·배설·목욕 200자, 제공자 50자.
+ * [12차] form은 선택이다 — 빠지면 labApi가 null로 보낸다(서버는 null을 "비움"으로 저장하므로 화면은 늘 현재 값을 보낸다).
+ */
+export type CareRecordInput = Omit<CareRecord, 'id' | 'elderlyName' | 'updatedAt' | 'form'> & { form?: CareRecordForm | null };
 
 export interface CareDelivery {
   id: number;
@@ -236,6 +241,8 @@ export interface CareNoteStructured {
   training: string;
   specialNote: string;
   warnings: CareRecordWarning[];
+  /** [12차] 메모에 분명히 적힌 서식 칸 열두 개(없으면 null·false) */
+  form: CareNoteForm;
 }
 
 export interface RiskScoreSuggestion {
@@ -315,10 +322,21 @@ export interface Program {
   participantIds: number[];
   participantNames: string[];
   aiAssisted: boolean;
+  /** [12차] 진행 시간(분, 10~480). 옛 일지는 null */
+  durationMinutes: number | null;
+  /** [12차] 인지활동형 프로그램 여부(5등급·인지지원 급여비용 산정 조건, 고시 제32조⑩) */
+  cognitiveActivity: boolean;
+  /** [12차] 제공자 유형. cognitiveActivity가 true이면 필수 */
+  providerKind: CognitiveProviderKind | null;
   updatedAt: string | null;
 }
 
-export type ProgramInput = Omit<Program, 'id' | 'participantNames' | 'updatedAt'>;
+/** [12차] 새 필드 셋은 선택이다 — 빠지면 labApi가 null·false·null로 채워 보낸다. */
+export type ProgramInput = Omit<Program, 'id' | 'participantNames' | 'updatedAt' | 'durationMinutes' | 'cognitiveActivity' | 'providerKind'> & {
+  durationMinutes?: number | null;
+  cognitiveActivity?: boolean;
+  providerKind?: CognitiveProviderKind | null;
+};
 
 // ---------- 직원 교육·회의 ----------
 
@@ -2334,3 +2352,173 @@ export interface Outbreak {
 }
 
 export type OutbreakInput = Omit<Outbreak, 'id' | 'writerName' | 'updatedAt'>;
+
+// =====================================================================
+// 12차 — 급여제공기록지 법정 서식 칸 · 인지활동형 프로그램 · 시설 관리 대장
+// =====================================================================
+
+// ---------- 급여제공기록지 서식 칸 (별지 제15호서식) ----------
+
+export type CareFormSectionKey = 'PHYSICAL' | 'COGNITIVE' | 'HEALTH' | 'REHAB';
+export type CareFormBathMethod = 'FULL' | 'SHOWER';
+export type CareFormMealKind = 'NORMAL' | 'PORRIDGE' | 'LIQUID';
+export type CareFormMealIntake = 'FULL' | 'HALF_OR_MORE' | 'LESS_THAN_HALF';
+/** 고시가 기록지에 적으라고 정한 사유: 자정 넘김(제30조④) · 13시간 초과(제30조⑧) · 미이용일(제32조③) · 인지활동형 누락(제32조⑩⑪) */
+export type CareFormReasonKind = 'AFTER_MIDNIGHT' | 'OVER_13H' | 'UNUSED_DAY' | 'COG_PROGRAM_MISSED';
+
+export interface CareFormReason {
+  kind: CareFormReasonKind;
+  /** 1~300자 */
+  text: string;
+}
+
+/** 서버·웹 같은 모양. 비우거나 없는 칸은 null 또는 false다. */
+export interface CareRecordForm {
+  /** 'HH:mm' */
+  startTime: string | null;
+  endTime: string | null;
+  transport: boolean;
+  /** 20자 이내 */
+  vehicleNo: string | null;
+  washHelp: boolean;
+  /** 0~180 */
+  bathMinutes: number | null;
+  bathMethod: CareFormBathMethod | null;
+  mealKind: CareFormMealKind | null;
+  mealIntake: CareFormMealIntake | null;
+  /** 0~30 */
+  toiletCount: number | null;
+  mobilityHelp: boolean;
+  cogSupport: boolean;
+  commHelp: boolean;
+  /** 50~260 — 이완기와 둘 다 있거나 둘 다 null */
+  bpSystolic: number | null;
+  /** 30~160 */
+  bpDiastolic: number | null;
+  /** 34.0~42.0, 소수 첫째 자리 */
+  temperature: number | null;
+  /** 0~600 */
+  healthCareMinutes: number | null;
+  nursingCareMinutes: number | null;
+  emergency: boolean;
+  /** 200자 이내 */
+  programNames: string | null;
+  rehabPhysical: boolean;
+  rehabCogActivity: boolean;
+  rehabCogTraining: boolean;
+  rehabPtOt: boolean;
+  /** 영역별 실제 제공 직원의 member id(같은 기관 직원만) */
+  writers: Record<CareFormSectionKey, number | null>;
+  reasons: CareFormReason[];
+}
+
+/** 서버 응답의 form — 영역별 제공 직원 이름이 더해진다. 저장할 때 writerNames는 서버가 무시한다. */
+export type CareRecordFormView = CareRecordForm & {
+  writerNames?: Record<CareFormSectionKey, string | null>;
+};
+
+/** care-record AI가 메모에서 채우는 서식 칸 열두 개 */
+export interface CareNoteForm {
+  washHelp: boolean;
+  bathMinutes: number | null;
+  bathMethod: CareFormBathMethod | null;
+  mealKind: CareFormMealKind | null;
+  mealIntake: CareFormMealIntake | null;
+  toiletCount: number | null;
+  mobilityHelp: boolean;
+  cogSupport: boolean;
+  commHelp: boolean;
+  bpSystolic: number | null;
+  bpDiastolic: number | null;
+  temperature: number | null;
+}
+
+// ---------- 인지활동형 프로그램 ----------
+
+export type CognitiveProviderKind = 'PROGRAM_MANAGER' | 'DEMENTIA_CAREGIVER' | 'EXTERNAL_INSTRUCTOR' | 'OTHER';
+
+// ---------- 시설 관리 대장 ----------
+
+export const FACILITY_ITEM_CODES = [
+  'FIRE_OPERATION',
+  'FIRE_COMPREHENSIVE',
+  'FIRE_DRILL_LEGAL',
+  'FIRE_MANAGER_TRAINING',
+  'ELEC_GENERAL',
+  'ELEC_SELF_USE',
+  'GAS_CITY_REGULATOR',
+  'GAS_CITY_SPECIAL',
+  'GAS_LPG_INSPECT',
+  'ELEV_SELF_MONTHLY',
+  'ELEV_ANNUAL',
+  'TANK_CLEAN',
+  'TANK_HYGIENE',
+  'TANK_WATER_QUALITY',
+  'SEPTIC_CLEAN',
+  'DISINFECT_QUARTERLY',
+  'SOCIAL_SAFETY_HALF',
+  'INSURANCE_FACILITY',
+  'INSURANCE_PROFESSIONAL',
+] as const;
+/** 서버 FACILITY_ITEM_CODES와 같은 19개 */
+export type FacilityItemCode = (typeof FACILITY_ITEM_CODES)[number];
+
+export type FacilitySprinkler = 'NONE' | 'SIMPLE' | 'FULL' | 'UNKNOWN';
+/** GENERAL = 일반용(저압 75kW 미만) */
+export type FacilityPowerKind = 'GENERAL' | 'SELF_USE' | 'UNKNOWN';
+export type FacilityGasKind = 'NONE' | 'CITY' | 'LPG' | 'UNKNOWN';
+/** CENTER = 센터가 관리주체, BUILDING = 건물 관리주체 */
+export type FacilityElevator = 'NONE' | 'CENTER' | 'BUILDING' | 'UNKNOWN';
+/** LARGE = 수도법 대형건축물등 */
+export type FacilityWaterTank = 'NONE' | 'LARGE' | 'SMALL' | 'UNKNOWN';
+export type FacilitySeptic = 'NONE' | 'YES' | 'UNKNOWN';
+export type FacilityApplies = 'YES' | 'NO';
+export type FacilityDoneBy = 'SELF' | 'VENDOR' | 'AGENCY';
+export type FacilityLogResult = 'PASS' | 'FIX_NEEDED' | 'FAIL';
+
+/** 기관당 한 줄. 아직 저장한 적이 없으면 id가 null이고 모든 칸이 기본값(UNKNOWN·null)이다. */
+export interface FacilityProfile {
+  id: number | null;
+  /** 사용승인일 */
+  approvedOn: string | null;
+  /** 1~1,000,000 */
+  grossAreaM2: number | null;
+  sprinkler: FacilitySprinkler;
+  powerKind: FacilityPowerKind;
+  gasKind: FacilityGasKind;
+  /** 0~100,000. LPG가 아니면 비운다 */
+  lpgCapacityKg: number | null;
+  elevator: FacilityElevator;
+  waterTank: FacilityWaterTank;
+  septic: FacilitySeptic;
+  /** 항목 코드별 직접 지정(적용 판정보다 우선) */
+  appliesOverride: Partial<Record<FacilityItemCode, FacilityApplies>>;
+  fireManagerName: string | null;
+  note: string | null;
+  writerName: string | null;
+  updatedAt: string | null;
+}
+
+export type FacilityProfileInput = Omit<FacilityProfile, 'id' | 'writerName' | 'updatedAt'>;
+
+export interface FacilityLog {
+  id: number;
+  itemCode: FacilityItemCode;
+  /** 미래면 서버가 400 */
+  doneOn: string;
+  doneBy: FacilityDoneBy;
+  vendorName: string | null;
+  result: FacilityLogResult;
+  /** 조치 내용 */
+  actionNote: string | null;
+  /** 소방 자체점검 결과 보고일 — FIRE_OPERATION·FIRE_COMPREHENSIVE에서만 저장 */
+  reportedOn: string | null;
+  /** 보험 만기 — INSURANCE_*에서 필수(실시일보다 뒤) */
+  validUntil: string | null;
+  /** 결과서·증명서 보관 위치 */
+  docLocation: string | null;
+  writerName: string | null;
+  updatedAt: string | null;
+}
+
+export type FacilityLogInput = Omit<FacilityLog, 'id' | 'writerName' | 'updatedAt'>;

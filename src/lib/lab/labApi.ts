@@ -7,6 +7,13 @@
 import { authorizedFetch } from '../apiService';
 import { redactDeep, rememberElderNames, rememberStaffNames, replaceNames } from './nameRedaction.ts';
 import type {
+  CareRecordForm,
+  CareRecordFormView,
+  FacilityItemCode,
+  FacilityLog,
+  FacilityLogInput,
+  FacilityProfile,
+  FacilityProfileInput,
   BankAccount,
   BankAccountInput,
   BankStatement,
@@ -229,16 +236,31 @@ export function getLabAccess(): Promise<LabAccess> {
 
 // ---------- 급여제공기록 ----------
 
-export function listCareRecordsByDate(date: string): Promise<CareRecord[]> {
-  return request<CareRecord[]>(`${LAB}/care-records?date=${q(date)}`, undefined, '급여제공기록을 불러오지 못했습니다');
+/** 옛 서버·옛 기록은 form이 없다 — 화면이 `record.form`을 믿고 쓰도록 null로 맞춘다. */
+function withForm(record: CareRecord): CareRecord {
+  return { ...record, form: record.form ?? null };
 }
 
-export function listCareRecordsByElder(elderlyId: number, month: string): Promise<CareRecord[]> {
-  return request<CareRecord[]>(`${LAB}/care-records?elderlyId=${q(String(elderlyId))}&month=${q(month)}`, undefined, '월간 급여제공기록을 불러오지 못했습니다');
+export async function listCareRecordsByDate(date: string): Promise<CareRecord[]> {
+  const list = await request<CareRecord[]>(`${LAB}/care-records?date=${q(date)}`, undefined, '급여제공기록을 불러오지 못했습니다');
+  return list.map(withForm);
 }
 
-export function saveCareRecord(input: CareRecordInput): Promise<CareRecord> {
-  return request<CareRecord>(`${LAB}/care-records`, json('PUT', input), '급여제공기록을 저장하지 못했습니다');
+export async function listCareRecordsByElder(elderlyId: number, month: string): Promise<CareRecord[]> {
+  const list = await request<CareRecord[]>(`${LAB}/care-records?elderlyId=${q(String(elderlyId))}&month=${q(month)}`, undefined, '월간 급여제공기록을 불러오지 못했습니다');
+  return list.map(withForm);
+}
+
+/** 서식 칸(form)은 비워 보내면 서버가 null로 저장한다(기존 값을 유지하지 않는다). 응답용 writerNames는 보내지 않는다. */
+export async function saveCareRecord(input: CareRecordInput): Promise<CareRecord> {
+  const view = (input.form ?? null) as CareRecordFormView | null;
+  let form: CareRecordForm | null = null;
+  if (view) {
+    const { writerNames: _writerNames, ...rest } = view;
+    void _writerNames;
+    form = rest;
+  }
+  return withForm(await request<CareRecord>(`${LAB}/care-records`, json('PUT', { ...input, form }), '급여제공기록을 저장하지 못했습니다'));
 }
 
 export async function deleteCareRecord(id: number): Promise<void> {
@@ -335,16 +357,26 @@ export async function deleteNursingLog(id: number): Promise<void> {
 
 // ---------- 프로그램 일지 ----------
 
-export function listPrograms(month: string): Promise<Program[]> {
-  return request<Program[]>(`${LAB}/programs?month=${q(month)}`, undefined, '프로그램 일지를 불러오지 못했습니다');
+/** 12차 새 필드(시간·인지활동형·제공자)가 없는 옛 응답은 null·false·null로 맞춘다. */
+function withProgramDefaults(p: Program): Program {
+  return { ...p, durationMinutes: p.durationMinutes ?? null, cognitiveActivity: p.cognitiveActivity ?? false, providerKind: p.providerKind ?? null };
 }
 
-export function createProgram(input: ProgramInput): Promise<Program> {
-  return request<Program>(`${LAB}/programs`, json('POST', input), '프로그램 일지를 저장하지 못했습니다');
+function programBody(input: ProgramInput): ProgramInput {
+  return { ...input, durationMinutes: input.durationMinutes ?? null, cognitiveActivity: input.cognitiveActivity ?? false, providerKind: input.providerKind ?? null };
 }
 
-export function updateProgram(id: number, input: ProgramInput): Promise<Program> {
-  return request<Program>(`${LAB}/programs/${q(String(id))}`, json('PUT', input), '프로그램 일지를 수정하지 못했습니다');
+export async function listPrograms(month: string): Promise<Program[]> {
+  const list = await request<Program[]>(`${LAB}/programs?month=${q(month)}`, undefined, '프로그램 일지를 불러오지 못했습니다');
+  return list.map(withProgramDefaults);
+}
+
+export async function createProgram(input: ProgramInput): Promise<Program> {
+  return withProgramDefaults(await request<Program>(`${LAB}/programs`, json('POST', programBody(input)), '프로그램 일지를 저장하지 못했습니다'));
+}
+
+export async function updateProgram(id: number, input: ProgramInput): Promise<Program> {
+  return withProgramDefaults(await request<Program>(`${LAB}/programs/${q(String(id))}`, json('PUT', programBody(input)), '프로그램 일지를 수정하지 못했습니다'));
 }
 
 export async function deleteProgram(id: number): Promise<void> {
@@ -1532,4 +1564,56 @@ export async function deleteCarePlanChange(id: number): Promise<void> {
 
 export function getGrievanceSummary(year: number): Promise<GrievanceSummary> {
   return request<GrievanceSummary>(`${LAB}/grievance-summary?year=${q(String(year))}`, undefined, '고충 처리 현황을 불러오지 못했습니다');
+}
+
+// ---------- 시설 관리 대장 ----------
+
+/** 서버가 id:null·기본값으로 주지만, 칸이 빠진 응답도 UNKNOWN·null로 맞춰 화면이 undefined를 만나지 않게 한다. */
+function withProfileDefaults(p: Partial<FacilityProfile> | null | undefined): FacilityProfile {
+  return {
+    id: p?.id ?? null,
+    approvedOn: p?.approvedOn ?? null,
+    grossAreaM2: p?.grossAreaM2 ?? null,
+    sprinkler: p?.sprinkler ?? 'UNKNOWN',
+    powerKind: p?.powerKind ?? 'UNKNOWN',
+    gasKind: p?.gasKind ?? 'UNKNOWN',
+    lpgCapacityKg: p?.lpgCapacityKg ?? null,
+    elevator: p?.elevator ?? 'UNKNOWN',
+    waterTank: p?.waterTank ?? 'UNKNOWN',
+    septic: p?.septic ?? 'UNKNOWN',
+    appliesOverride: p?.appliesOverride ?? {},
+    fireManagerName: p?.fireManagerName ?? null,
+    note: p?.note ?? null,
+    writerName: p?.writerName ?? null,
+    updatedAt: p?.updatedAt ?? null,
+  };
+}
+
+/** 시설 정보. 저장한 적이 없으면 id가 null이고 모든 칸이 기본값이다. */
+export async function getFacilityProfile(): Promise<FacilityProfile> {
+  return withProfileDefaults(await request<FacilityProfile>(`${LAB}/facility/profile`, undefined, '시설 정보를 불러오지 못했습니다'));
+}
+
+/** 기관당 한 줄을 만들거나 고친다. LPG가 아니면 저장 능력은 비워 보낸다(서버도 비운다). */
+export async function saveFacilityProfile(input: FacilityProfileInput): Promise<FacilityProfile> {
+  const body: FacilityProfileInput = { ...input, lpgCapacityKg: input.gasKind === 'LPG' ? input.lpgCapacityKg : null };
+  return withProfileDefaults(await request<FacilityProfile>(`${LAB}/facility/profile`, json('PUT', body), '시설 정보를 저장하지 못했습니다'));
+}
+
+/** 그 해(year) 또는 한 항목(itemCode)의 실시 기록, 실시일 최신순. 하나는 꼭 줘야 한다 */
+export function listFacilityLogs(filter: { year: number } | { itemCode: FacilityItemCode }): Promise<FacilityLog[]> {
+  const query = 'year' in filter ? `year=${q(String(filter.year))}` : `itemCode=${q(filter.itemCode)}`;
+  return request<FacilityLog[]>(`${LAB}/facility/logs?${query}`, undefined, '시설 점검 기록을 불러오지 못했습니다');
+}
+
+export function createFacilityLog(input: FacilityLogInput): Promise<FacilityLog> {
+  return request<FacilityLog>(`${LAB}/facility/logs`, json('POST', input), '시설 점검 기록을 저장하지 못했습니다');
+}
+
+export function updateFacilityLog(id: number, input: FacilityLogInput): Promise<FacilityLog> {
+  return request<FacilityLog>(`${LAB}/facility/logs/${q(String(id))}`, json('PUT', input), '시설 점검 기록을 고치지 못했습니다');
+}
+
+export async function deleteFacilityLog(id: number): Promise<void> {
+  await request<null>(`${LAB}/facility/logs/${q(String(id))}`, { method: 'DELETE' }, '시설 점검 기록을 삭제하지 못했습니다');
 }

@@ -85,3 +85,23 @@ export function timeToMinutes(value: unknown): number | null {
   const min = Number(m[2]);
   return h <= 23 && min <= 59 ? h * 60 + min : null;
 }
+
+/** 달 단위 이동: (year, month 1~12)에 delta개월을 더한 (year, month). 해가 넘어가도 맞는다. */
+export function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+  const total = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(total / 12), month: (((total % 12) + 12) % 12) + 1 };
+}
+
+/** (year, month)의 말일 'YYYY-MM-DD'. month가 1~12 밖이어도 달력대로 넘겨 계산한다. */
+export function monthEndYmd(year: number, month: number): string {
+  const m = shiftMonth(year, month, 0);
+  return formatYmd(m.year, m.month, daysInMonth(m.year, m.month));
+}
+
+/** 'YYYY-MM-DD'에 해를 더한다. 2/29가 없는 해는 2/28로 둔다(윤일 기념일은 앞당긴다). 날짜가 올바르지 않으면 null. */
+export function addYears(ymd: string, years: number): string | null {
+  const p = parseYmd(ymd);
+  if (!p || !Number.isInteger(years)) return null;
+  const year = p.year + years;
+  return formatYmd(year, p.month, Math.min(p.day, daysInMonth(year, p.month)));
+}

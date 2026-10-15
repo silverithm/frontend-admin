@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { addDays, daysBetween, daysInMonth, formatYmd, isValidMonth, isValidYmd, parseYmd, seoulDateString, timeToMinutes } from './labDate.ts';
+import { addDays, addYears, monthEndYmd, shiftMonth, daysBetween, daysInMonth, formatYmd, isValidMonth, isValidYmd, parseYmd, seoulDateString, timeToMinutes } from './labDate.ts';
 
 test('seoulDateString — UTC 15시 이후는 한국 날짜로 하루 뒤', () => {
   assert.equal(seoulDateString(new Date('2026-06-30T14:59:59Z')), '2026-06-30');
@@ -60,4 +60,26 @@ test('daysBetween·isValidYmd·timeToMinutes', () => {
   assert.equal(timeToMinutes('23:59'), 1439);
   assert.equal(timeToMinutes('24:00'), null);
   assert.equal(timeToMinutes('9:00'), null);
+});
+
+test('shiftMonth — 해를 넘기는 달 이동(앞·뒤)', () => {
+  assert.deepEqual(shiftMonth(2026, 11, 2), { year: 2027, month: 1 });
+  assert.deepEqual(shiftMonth(2026, 1, -1), { year: 2025, month: 12 });
+  assert.deepEqual(shiftMonth(2026, 3, 12), { year: 2027, month: 3 });
+  assert.deepEqual(shiftMonth(2026, 12, 0), { year: 2026, month: 12 });
+  assert.deepEqual(shiftMonth(2026, 1, -13), { year: 2024, month: 12 });
+});
+
+test('monthEndYmd — 윤년 2월·월 넘침을 달력대로', () => {
+  assert.equal(monthEndYmd(2028, 2), '2028-02-29');
+  assert.equal(monthEndYmd(2027, 2), '2027-02-28');
+  assert.equal(monthEndYmd(2026, 14), '2027-02-28');
+  assert.equal(monthEndYmd(2026, 0), '2025-12-31');
+});
+
+test('addYears — 2/29는 평년에 2/28, 올바르지 않은 날짜는 null', () => {
+  assert.equal(addYears('2024-02-29', 2), '2026-02-28');
+  assert.equal(addYears('2024-02-29', 4), '2028-02-29');
+  assert.equal(addYears('2026-10-15', 1), '2027-10-15');
+  assert.equal(addYears('2026-02-30', 1), null);
 });

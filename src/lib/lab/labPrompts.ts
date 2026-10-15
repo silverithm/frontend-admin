@@ -8,7 +8,9 @@
  * 2) 모델 답은 믿지 않는다. 점수는 허용값으로 맞추고, 모르는 항목은 버리고, 글자 수를 자르고, 형식적 문구는 비운다.
  * 3) 어르신 이름은 입력에 들어가지 않는다 — 메모에 이름이 적혀 있어도 출력에 쓰지 말라고 지시한다.
  */
+import { BATH_METHODS as CARE_FORM_BATH_METHODS, MEAL_INTAKES, MEAL_KINDS } from './careRecordFormRules.ts';
 import type {
+  CareNoteForm,
   CommitteeMeetingKind,
   MedicalVisitAiInput,
   MedicalVisitAiResult,
@@ -282,6 +284,19 @@ export function buildCareRecordPrompt(input: CareRecordAiInput): string {
 - training: 기능회복훈련 (운동·재활 프로그램 이름과 수행 정도)
 - specialNote: 특이사항 (평소와 다른 상태 변화, 사고, 거부·불편 호소, 보호자 전달 사항)
 
+[form] 법정 서식(별지 제15호) 칸 — 메모에 분명히 적힌 값만 채우고, 적혀 있지 않으면 null(체크 칸은 false)로 둡니다. 추정하지 않습니다.
+- washHelp: 세면·구강·옷 갈아입기 등 신체 청결을 도왔다고 적혀 있으면 true
+- bathMinutes: 목욕 소요 시간(분, 숫자). 시간이 적혀 있지 않으면 null
+- bathMethod: 목욕 방법. FULL(전신입욕: 욕조·입욕·통목욕) 또는 SHOWER(샤워식·샤워). 방법이 적혀 있지 않으면 null
+- mealKind: 식사 종류. NORMAL(일반식·밥) · PORRIDGE(죽) · LIQUID(유동식·미음). 종류가 적혀 있지 않으면 null (섭취량만 있으면 null)
+- mealIntake: 식사 섭취량. FULL(전부·다 드심) · HALF_OR_MORE(반 이상·반 정도·2/3 정도) · LESS_THAN_HALF(반 미만·조금·1/3 정도). 적혀 있지 않으면 null
+- toiletCount: 화장실 소변·대변 총 횟수(숫자). 횟수가 적혀 있지 않으면 null
+- mobilityHelp: 이동·보행·휠체어·체위 변경 등 이동을 도왔다고 적혀 있으면 true
+- cogSupport: 인지 자극·회상·현실 인식 등 인지관리를 지원했다고 적혀 있으면 true
+- commHelp: 말벗·격려·대화 등 의사소통을 도왔다고 적혀 있으면 true
+- bpSystolic·bpDiastolic: 혈압 수축기·이완기(숫자). 둘 다 적혀 있을 때만 채우고 하나라도 없으면 둘 다 null
+- temperature: 체온(℃, 소수 첫째 자리). 적혀 있지 않으면 null
+
 [warnings]
 메모 자체에 형식적이거나 모호한 표현이 있으면 하나씩 찾아 알려 줍니다.
 - field: 해당하는 칸 이름(위 칸 이름 중 하나), 어느 칸인지 모르면 "note"
@@ -304,6 +319,25 @@ export const CARE_RECORD_SCHEMA = {
     nursing: STR('간호·처치'),
     training: STR('기능회복훈련'),
     specialNote: STR('특이사항'),
+    form: {
+      type: 'OBJECT',
+      description: '법정 서식 칸 — 메모에 분명히 적힌 값만, 없으면 null(체크 칸은 false)',
+      properties: {
+        washHelp: { type: 'BOOLEAN', description: '세면·청결 도움이 적혀 있으면 true' },
+        bathMinutes: { type: 'INTEGER', nullable: true, description: '목욕 소요 분(0~180). 적혀 있지 않으면 null' },
+        bathMethod: { type: 'STRING', nullable: true, enum: CARE_FORM_BATH_METHODS.map((o) => o.key), description: 'FULL 전신입욕 / SHOWER 샤워식. 적혀 있지 않으면 null' },
+        mealKind: { type: 'STRING', nullable: true, enum: MEAL_KINDS.map((o) => o.key), description: 'NORMAL 일반식 / PORRIDGE 죽 / LIQUID 유동식. 종류가 적혀 있지 않으면 null' },
+        mealIntake: { type: 'STRING', nullable: true, enum: MEAL_INTAKES.map((o) => o.key), description: 'FULL 전부 / HALF_OR_MORE 반 이상 / LESS_THAN_HALF 반 미만. 적혀 있지 않으면 null' },
+        toiletCount: { type: 'INTEGER', nullable: true, description: '화장실 총 횟수(0~30). 적혀 있지 않으면 null' },
+        mobilityHelp: { type: 'BOOLEAN', description: '이동 도움이 적혀 있으면 true' },
+        cogSupport: { type: 'BOOLEAN', description: '인지관리 지원이 적혀 있으면 true' },
+        commHelp: { type: 'BOOLEAN', description: '말벗·격려 등 의사소통 도움이 적혀 있으면 true' },
+        bpSystolic: { type: 'INTEGER', nullable: true, description: '수축기 혈압. 이완기와 함께 적혀 있을 때만, 아니면 null' },
+        bpDiastolic: { type: 'INTEGER', nullable: true, description: '이완기 혈압. 수축기와 함께 적혀 있을 때만, 아니면 null' },
+        temperature: { type: 'NUMBER', nullable: true, description: '체온(℃). 적혀 있지 않으면 null' },
+      },
+      required: ['washHelp', 'bathMinutes', 'bathMethod', 'mealKind', 'mealIntake', 'toiletCount', 'mobilityHelp', 'cogSupport', 'commHelp', 'bpSystolic', 'bpDiastolic', 'temperature'],
+    },
     warnings: {
       type: 'ARRAY',
       description: '메모에 있는 형식적·모호한 표현',
@@ -318,8 +352,44 @@ export const CARE_RECORD_SCHEMA = {
       },
     },
   },
-  required: [...CARE_TEXT_FIELD_LIST, 'warnings'],
+  required: [...CARE_TEXT_FIELD_LIST, 'form', 'warnings'],
 } as const;
+
+function intInRange(value: unknown, min: number, max: number): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max ? value : null;
+}
+
+function enumOf<T extends string>(value: unknown, options: ReadonlyArray<{ key: T }>): T | null {
+  return typeof value === 'string' ? (options.find((o) => o.key === value)?.key ?? null) : null;
+}
+
+/**
+ * 서식 칸 열두 개를 믿을 수 있는 값만 남긴다. 범위 밖 숫자·허용 밖 열거는 null, 체크 칸은 true일 때만 true.
+ * 목욕 분·화장실 횟수의 0은 "적혀 있지 않음"과 구분되지 않아(모델이 0으로 채우는 경향) null로 둔다.
+ * 혈압은 둘 다 범위 안이고 수축기가 이완기보다 높을 때만 남긴다(뒤바뀐 값·한쪽만 있는 값은 둘 다 비운다).
+ */
+export function normalizeCareNoteForm(raw: unknown): CareNoteForm {
+  const src = isRecord(raw) ? raw : {};
+  const systolic = intInRange(src.bpSystolic, 50, 260);
+  const diastolic = intInRange(src.bpDiastolic, 30, 160);
+  const bpOk = systolic !== null && diastolic !== null && systolic > diastolic;
+  const temp = typeof src.temperature === 'number' && Number.isFinite(src.temperature) ? Math.round(src.temperature * 10) / 10 : null;
+  const positiveOrNull = (n: number | null) => (n === 0 ? null : n);
+  return {
+    washHelp: src.washHelp === true,
+    bathMinutes: positiveOrNull(intInRange(src.bathMinutes, 0, 180)),
+    bathMethod: enumOf(src.bathMethod, CARE_FORM_BATH_METHODS),
+    mealKind: enumOf(src.mealKind, MEAL_KINDS),
+    mealIntake: enumOf(src.mealIntake, MEAL_INTAKES),
+    toiletCount: positiveOrNull(intInRange(src.toiletCount, 0, 30)),
+    mobilityHelp: src.mobilityHelp === true,
+    cogSupport: src.cogSupport === true,
+    commHelp: src.commHelp === true,
+    bpSystolic: bpOk ? systolic : null,
+    bpDiastolic: bpOk ? diastolic : null,
+    temperature: temp !== null && temp >= 34 && temp <= 42 ? temp : null,
+  };
+}
 
 /**
  * 모델 답을 기록지 칸으로 다듬는다. 형식적 문구뿐인 칸은 비우고,
@@ -327,7 +397,7 @@ export const CARE_RECORD_SCHEMA = {
  */
 export function normalizeCareRecordResult(raw: unknown, note?: string): CareNoteStructured {
   if (!isRecord(raw)) throw new Error('AI 응답 형식이 올바르지 않습니다');
-  const out = { warnings: [] as CareRecordWarning[] } as CareNoteStructured;
+  const out = { warnings: [] as CareRecordWarning[], form: normalizeCareNoteForm(raw.form) } as CareNoteStructured;
   for (const field of CARE_TEXT_FIELD_LIST) {
     const text = cleanOutput(raw[field], CARE_FIELD_LIMIT[field]);
     out[field] = isVagueOnly(text) ? '' : text;
