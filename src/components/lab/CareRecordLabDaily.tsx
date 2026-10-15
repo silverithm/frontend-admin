@@ -10,13 +10,17 @@ import { Text } from '@astryxdesign/core/Text';
 import { Loading } from '@/components/Loading';
 import { listCareRecordsByDate } from '@/lib/lab/labApi';
 import { findVaguePhrases } from '@/lib/lab/careRecordQuality';
+import { COGNITIVE_STATE_LABEL, cognitiveCoverage, isCognitiveRequiredGrade } from '@/lib/lab/cognitiveProgramRules';
+import type { CognitiveState } from '@/lib/lab/cognitiveProgramRules';
 import type { CareRecord } from '@/lib/lab/labTypes';
 import { useDayAttendance } from './CareRecordLabAttendance';
 import CareRecordLabEditor from './CareRecordLabEditor';
+import { useCareStaff, useDayPrograms } from './CareRecordLabSources';
 import { Chip, ErrorBanner, LabConfirm, LabDateInput, SupportText } from './LabUi';
 import { careFieldsOf, dateLabel, errorText, todayString } from './labFormat';
 import type { LabElder } from './useLabElders';
 import styles from './lab.module.css';
+import formStyles from './labForm.module.css';
 
 interface CareDailyViewProps {
   elders: LabElder[];
@@ -34,6 +38,8 @@ export default function CareRecordLabDaily({ elders, eldersLoading }: CareDailyV
   // 출석한 어르신만 보기(기본 켬). 출석 정보가 없거나 불러오지 못하면 거르지 않는다.
   const [onlyPresent, setOnlyPresent] = useState(true);
   const attendance = useDayAttendance(date);
+  const { staff, error: staffError } = useCareStaff();
+  const { programs, error: programsError } = useDayPrograms(date);
   const seq = useRef(0);
 
   const load = useCallback(async (target: string) => {
@@ -58,6 +64,16 @@ export default function CareRecordLabDaily({ elders, eldersLoading }: CareDailyV
   }, [date, load]);
 
   const byElder = useMemo(() => new Map(records.map((r) => [r.elderlyId, r])), [records]);
+  // 5등급·인지지원 어르신의 인지활동형 제공 상태 — 그날 출석한 분(출결 기록이 없는 날은 기록을 남긴 분)만 본다. 프로그램 일지를 못 읽었으면 표시하지 않는다.
+  const cognitive = useMemo(() => {
+    const map = new Map<number, CognitiveState>();
+    if (!programs || attendance.isLoading) return map;
+    const attendees = elders
+      .filter((e) => isCognitiveRequiredGrade(e.careGrade) && (attendance.hasData ? attendance.statuses.get(e.id) === 'PRESENT' : byElder.has(e.id)))
+      .map((e) => ({ elderlyId: e.id, careGrade: e.careGrade }));
+    for (const row of cognitiveCoverage(date, attendees, programs)) map.set(row.elderlyId, row.state);
+    return map;
+  }, [programs, attendance.isLoading, attendance.hasData, attendance.statuses, elders, byElder, date]);
   const warnCount = useCallback((r: CareRecord | undefined) => (r ? findVaguePhrases(careFieldsOf(r)).length : 0), []);
 
   // 저장하지 않은 내용이 있으면 이동 전에 한 번 묻는다
@@ -130,6 +146,10 @@ export default function CareRecordLabDaily({ elders, eldersLoading }: CareDailyV
         ) : null}
       </div>
 
+      {programsError && elders.some((e) => isCognitiveRequiredGrade(e.careGrade)) && (
+        <SupportText tone="warn">프로그램 일지를 불러오지 못해 5등급·인지지원 어르신의 인지활동형 상태를 표시하지 못했습니다. {programsError}</SupportText>
+      )}
+
       {error && <ErrorBanner message={error} onRetry={() => void load(date)} />}
 
       {eldersLoading ? (
@@ -149,6 +169,7 @@ export default function CareRecordLabDaily({ elders, eldersLoading }: CareDailyV
                   {visibleElders.map((elder) => {
                     const record = byElder.get(elder.id);
                     const warns = warnCount(record);
+                    const cogState = cognitive.get(elder.id);
                     return (
                       <button
                         key={elder.id}
@@ -158,14 +179,31 @@ export default function CareRecordLabDaily({ elders, eldersLoading }: CareDailyV
                         disabled={loading}
                         onClick={() => selectElder(elder.id)}
                       >
-                        <Text type="body" weight="medium">
-                          {elder.name}
-                        </Text>
-                        <span className={styles.chips}>
-                          {attendance.statuses.get(elder.id) === 'PRESENT' && <Chip tone="info" label="출석" />}
-                          {attendance.statuses.get(elder.id) === 'ABSENT' && <Chip tone="neutral" label="결석" />}
-                          {warns > 0 && <Chip tone="warn" label={`문구 주의 ${warns}`} />}
-                          <Chip tone={record ? 'ok' : 'neutral'} label={record ? '기록 있음' : '기록 없음'} />
+                        <span className={formStyles.elderStack}>
+                          <span className={formStyles.elderRow}>
+                            <Text type="body" weight="medium">
+                              {elder.name}
+                            </Text>
+                            <span className={styles.chips}>
+                              {attendance.statuses.get(elder.id) === 'PRESENT' && <Chip tone="info" label="출석" />}
+                              {attendance.statuses.get(elder.id) === 'ABSENT' && <Chip tone="neutral" label="결석" />}
+                              {cogState === 'OK' && <Chip tone="ok" label="인지활동형 제공됨" />}
+                              {cogState && cogState !== 'OK' && <Chip tone="warn" label="인지활동형 누락" />}
+                              {warns > 0 && <Chip tone="warn" label={`문구 주의 ${warns}`} />}
+                              <Chip tone={record ? 'ok' : 'neutral'} label={record ? '기록 있음' : '기록 없음'} />
+                            </span>
+                          </span>
+                          {cogState && cogState !== 'OK' && (
+                            <span className={formStyles.cogNote}>
+                              <Text type="supporting" weight="medium">
+                                인지활동형 누락 — 그날 급여비용 산정 불가(고시 제32조⑩), 예외는 사유 기재
+                              </Text>
+                              <br />
+                              <Text type="supporting" color="secondary">
+                                {COGNITIVE_STATE_LABEL[cogState]}
+                              </Text>
+                            </span>
+                          )}
                         </span>
                       </button>
                     );
@@ -182,6 +220,12 @@ export default function CareRecordLabDaily({ elders, eldersLoading }: CareDailyV
                 elderName={selected.name}
                 date={date}
                 record={byElder.get(selected.id) ?? null}
+                careGrade={selected.careGrade}
+                absent={attendance.statuses.get(selected.id) === 'ABSENT'}
+                programs={programs}
+                programsError={programsError}
+                staff={staff}
+                staffError={staffError}
                 onSaved={handleSaved}
                 onDeleted={handleDeleted}
                 onDirtyChange={setDirty}

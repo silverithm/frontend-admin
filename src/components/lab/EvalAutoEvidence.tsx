@@ -29,6 +29,7 @@ import { collectGapsEvidence, isGapsEvidenceSource } from './EvalAutoEvidenceGap
 import { collectRightsEvidence, isRightsEvidenceSource } from './EvalAutoEvidenceRights';
 import { collectTransportEvidence, isTransportEvidenceSource } from './EvalAutoEvidenceTransport';
 import { collectStaffingEvidence, isStaffingEvidenceSource } from './EvalAutoEvidenceStaffing';
+import { careWriterLines, fireOperationLines, infectionDisinfectLines } from './EvalAutoEvidenceForm';
 import { recallEvidence, rememberEvidence } from './evalEvidenceCache';
 import { ErrorBanner } from './LabUi';
 import { careFieldsOf, currentMonth, dotDate, errorText, monthLabel, operatingDaysOf, readClosedDates, readNoVehicle, recentDates, shiftMonth, todayString } from './labFormat';
@@ -50,6 +51,11 @@ export async function collect(source: EvalAutoSource, indicatorCode?: string): P
   if (isGapsEvidenceSource(source)) return collectGapsEvidence(source, asOf);
   if (isTransportEvidenceSource(source)) return collectTransportEvidence(source, asOf);
   if (isRightsEvidenceSource(source)) return collectRightsEvidence(source, asOf);
+  // [12차] 감염 일상 점검(SAFE-04의 점검 종류) 줄에 분기별 전문소독 줄을 이어 붙인다 — 모르는 source가 마지막 기본 분기로 새지 않게 따로 받는다
+  if (source === 'INFECTION_CONTROL') {
+    const base = await collect('SAFETY_CHECKS', indicatorCode ?? 'SAFE-04');
+    return { lines: [...base.lines, ...(await infectionDisinfectLines(asOf))] };
+  }
   if (source === 'SAFETY_CHECKS') {
     const month = currentMonth();
     const noVehicle = readNoVehicle();
@@ -79,6 +85,7 @@ export async function collect(source: EvalAutoSource, indicatorCode?: string): P
       lines: [
         `${year}년 재난 대응 훈련: 상반기(1~6월) ${half(1)} · 하반기(7~12월) ${half(2)}`,
         `반기별 실시 ${cov.done}/${cov.required}회 (${asOf} 기준)`,
+        ...(await fireOperationLines(asOf)),
       ],
     };
   }
@@ -210,11 +217,13 @@ export async function collect(source: EvalAutoSource, indicatorCode?: string): P
   const summary = summarizeQuality(
     records.map(careFieldsOf),
   );
-  if (summary.total === 0) return { lines: [`최근 7일(${dates[0]} ~ ${dates[dates.length - 1]}) 저장된 급여제공기록이 없습니다`] };
+  const writerLines = await careWriterLines(asOf);
+  if (summary.total === 0) return { lines: [`최근 7일(${dates[0]} ~ ${dates[dates.length - 1]}) 저장된 급여제공기록이 없습니다`, ...writerLines] };
   return {
     lines: [
       `최근 7일 급여제공기록 ${summary.total}건 중 형식적 문구가 있는 기록 ${summary.vague}건, 빈 기록 ${summary.empty}건`,
       `형식적 문구가 없는 기록 비율: ${summary.goodPercent === null ? '-' : `${summary.goodPercent}%`} (${asOf} 기준)`,
+      ...writerLines,
     ],
   };
 }

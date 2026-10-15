@@ -13,8 +13,12 @@ import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { aiStructureCareNote, deleteCareRecord, saveCareRecord } from '@/lib/lab/labApi';
+import { CARE_FORM_PROBLEM_LABEL, isCareFormEmpty, validateCareForm } from '@/lib/lab/careRecordFormRules';
 import { findVaguePhrases } from '@/lib/lab/careRecordQuality';
-import type { CareRecord, CareRecordInput, CareRecordTextField, CareRecordWarning } from '@/lib/lab/labTypes';
+import type { CareRecord, CareRecordForm, CareRecordInput, CareRecordTextField, CareRecordWarning, LabStaff, Program } from '@/lib/lab/labTypes';
+import CareRecordLabFormCard from './CareRecordLabFormCard';
+import { cogSuggestionOf, formDraftFrom, formSnapshot, withAiForm, withCogSuggestion } from './CareRecordLabFormDraft';
+import type { FormDraft } from './CareRecordLabFormDraft';
 import CareRecordLabImport from './CareRecordLabImport';
 import { AiChip, Chip, ErrorBanner, LabConfirm, SupportText, useNotify } from './LabUi';
 import { PROVIDER_KEY, dateLabel, defaultPersonName, errorText, writeStored } from './labFormat';
@@ -50,6 +54,12 @@ interface Draft {
   aiUsed: boolean;
   aiWarnings: CareRecordWarning[];
   aiKept: number;
+  /** 법정 서식 칸(별지 제15호) */
+  formDraft: FormDraft;
+  /** AI가 채운 서식 칸 수(이번 정리에서) */
+  aiFormFilled: number;
+  /** AI로 정리한 횟수 — 서식 칸을 펼치라는 신호로 쓴다 */
+  aiRuns: number;
 }
 
 function emptyFields(): Fields {
@@ -67,11 +77,14 @@ function draftFromRecord(record: CareRecord | null): Draft {
     aiUsed: false,
     aiWarnings: [],
     aiKept: 0,
+    formDraft: formDraftFrom(record?.form ?? null),
+    aiFormFilled: 0,
+    aiRuns: 0,
   };
 }
 
 function snapshot(d: Draft): string {
-  return JSON.stringify([d.fields, d.memo, d.provider]);
+  return JSON.stringify([d.fields, d.memo, d.provider, formSnapshot(d.formDraft)]);
 }
 
 const orNull = (text: string): string | null => (text.trim() === '' ? null : text.trim());
@@ -81,13 +94,22 @@ interface CareRecordEditorProps {
   elderName: string;
   date: string;
   record: CareRecord | null;
+  /** 이 어르신의 장기요양등급 코드(GRADE_5·COGNITIVE_SUPPORT 등) — 인지활동형 점검에 쓴다 */
+  careGrade: string | null;
+  /** 그날 결석으로 찍힌 어르신인가 */
+  absent: boolean;
+  /** 그 달 프로그램 일지(불러오는 중이거나 실패하면 null) */
+  programs: Program[] | null;
+  programsError: string | null;
+  staff: LabStaff[];
+  staffError: string | null;
   onSaved: (record: CareRecord) => void;
   onDeleted: (recordId: number) => void;
   onDirtyChange: (dirty: boolean) => void;
   onBack: () => void;
 }
 
-export default function CareRecordLabEditor({ elderId, elderName, date, record, onSaved, onDeleted, onDirtyChange, onBack }: CareRecordEditorProps) {
+export default function CareRecordLabEditor({ elderId, elderName, date, record, careGrade, absent, programs, programsError, staff, staffError, onSaved, onDeleted, onDirtyChange, onBack }: CareRecordEditorProps) {
   const notify = useNotify();
   const [draft, setDraft] = useState<Draft>(() => draftFromRecord(record));
   const [baseline, setBaseline] = useState(() => snapshot(draftFromRecord(record)));
@@ -98,6 +120,7 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const alive = useRef(true);
+  const suggestTried = useRef(false);
 
   useEffect(() => {
     alive.current = true;
@@ -105,6 +128,14 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
       alive.current = false;
     };
   }, []);
+
+  // 새 기록이면 그날 참여한 인지활동형 프로그램을 서식 칸에 제안으로 넣는다(저장 전 변경으로 세지 않는다). 이미 저장된 기록에는 단추로만 넣는다.
+  const cogSuggestion = useMemo(() => (programs ? cogSuggestionOf(date, elderId, programs) : null), [programs, date, elderId]);
+  useEffect(() => {
+    if (suggestTried.current || !cogSuggestion || record !== null) return;
+    suggestTried.current = true;
+    setDraft((d) => ({ ...d, formDraft: withCogSuggestion(d.formDraft, cogSuggestion) }));
+  }, [cogSuggestion, record]);
 
   const dirty = snapshot(draft) !== baseline;
   useEffect(() => {
@@ -165,7 +196,9 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
             kept += 1;
           }
         }
-        return { ...d, fields, ai, aiUsed: true, aiWarnings: result.warnings ?? [], aiKept: kept };
+        // 서식 칸 열두 개는 빈 칸에만 제안으로 넣는다(직접 고른 칸은 덮지 않는다)
+        const merged = result.form ? withAiForm(d.formDraft, result.form) : { draft: d.formDraft, filled: 0 };
+        return { ...d, fields, ai, aiUsed: true, aiWarnings: result.warnings ?? [], aiKept: kept, formDraft: merged.draft, aiFormFilled: merged.filled, aiRuns: d.aiRuns + 1 };
       });
     } catch (e) {
       if (alive.current) setAiError(errorText(e, 'AI가 메모를 정리하지 못했습니다. 잠시 후 다시 시도해 주세요'));
@@ -187,7 +220,16 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
 
   const save = async () => {
     if (saving) return;
-    const hasContent = CARE_FIELDS.some((f) => draft.fields[f.key].trim() !== '') || draft.memo.trim() !== '';
+    const { writerNames: _names, ...formBase } = draft.formDraft.form;
+    void _names;
+    // 글이 빈 사유는 보내지 않는다(서버가 400으로 거절한다)
+    const cleanForm: CareRecordForm = { ...formBase, reasons: formBase.reasons.filter((r) => r.text.trim() !== '').map((r) => ({ ...r, text: r.text.trim() })) };
+    const hasContent = CARE_FIELDS.some((f) => draft.fields[f.key].trim() !== '') || draft.memo.trim() !== '' || !isCareFormEmpty(cleanForm);
+    // 혈압은 서버가 짝이 아니면 받지 않는다 — 다른 서식 점검은 경고만 하고 막지 않는다
+    if (validateCareForm(cleanForm).includes('BP_PAIR_MISSING')) {
+      setSaveError(CARE_FORM_PROBLEM_LABEL.BP_PAIR_MISSING);
+      return;
+    }
     if (!hasContent) {
       setSaveError('기록할 내용을 한 칸 이상 적어 주세요');
       return;
@@ -210,6 +252,7 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
       rawNote: orNull(draft.memo),
       providerName: orNull(draft.provider),
       aiAssisted: draft.aiUsed || (record?.aiAssisted ?? false),
+      form: isCareFormEmpty(cleanForm) ? null : cleanForm,
     };
     setSaving(true);
     setSaveError(null);
@@ -220,7 +263,10 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
         return;
       }
       writeStored(PROVIDER_KEY, draft.provider.trim());
-      setBaseline(snapshot(draft));
+      // 저장한 뒤에는 프로그램 일지 제안도 내 기록의 일부다
+      const savedDraft: Draft = { ...draft, formDraft: { ...draft.formDraft, cogSuggested: false } };
+      setDraft(savedDraft);
+      setBaseline(snapshot(savedDraft));
       onSaved(saved);
       const warnCount = findVaguePhrases(draft.fields).length;
       notify(warnCount > 0 ? `저장했습니다. 형식적인 문구가 ${warnCount}곳 있어요` : '저장했습니다', 'success');
@@ -303,6 +349,9 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
                     아래 칸에 제안을 채웠습니다. 읽어 보고 고친 뒤 저장해 주세요.
                   </Text>
                 </HStack>
+                {draft.aiFormFilled > 0 && (
+                  <SupportText>법정 서식 칸 {draft.aiFormFilled}칸에도 AI 제안을 넣었습니다. ‘법정 서식 칸’에서 확인해 주세요.</SupportText>
+                )}
                 {draft.aiKept > 0 && (
                   <SupportText>직접 쓰신 {draft.aiKept}칸은 그대로 두었습니다.</SupportText>
                 )}
@@ -348,6 +397,20 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
           })}
         </div>
 
+        <CareRecordLabFormCard
+          draft={draft.formDraft}
+          onDraft={(update) => setDraft((d) => ({ ...d, formDraft: update(d.formDraft) }))}
+          texts={draft.fields}
+          context={{ careGrade, date, elderId, absent, programs }}
+          staff={staff}
+          staffError={staffError}
+          cogSuggestion={cogSuggestion}
+          programsError={programsError}
+          defaultOpen={record?.form != null}
+          openSignal={draft.aiFormFilled > 0 ? draft.aiRuns : 0}
+          isDisabled={saving}
+        />
+
         <div className={styles.fieldGrid}>
           <TextInput
             label="제공자 이름"
@@ -364,7 +427,7 @@ export default function CareRecordLabEditor({ elderId, elderName, date, record, 
               <Button label="기록 삭제" variant="ghost" isDisabled={saving || deleting} onClick={() => setConfirmDelete(true)} />
             )}
           </div>
-          <Button label="저장" variant="primary" isLoading={saving} isDisabled={saving || !dirty} onClick={() => void save()} />
+          <Button label="저장" variant="primary" isLoading={saving} isDisabled={saving || !(dirty || draft.formDraft.cogSuggested)} onClick={() => void save()} />
         </HStack>
       </VStack>
 

@@ -1,0 +1,211 @@
+/* 급여제공기록 법정 서식 칸(편집기)과 별지 제15호 인쇄본 — 색은 토큰만 쓴다 */
+.formBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-card);
+}
+
+.formHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.formHeadChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+}
+
+/* 영역 하나 — 점검에 걸리면 왼쪽 막대가 노랗게 바뀐다 */
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border-inline-start: 3px solid var(--color-border-emphasized);
+}
+
+.formSectionWarn {
+  border-inline-start-color: var(--color-warning);
+}
+
+.formSectionTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* 체크 칸은 한 줄에 하나씩, 폭이 넉넉하면 두 줄로 */
+.formChecks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: var(--spacing-2) var(--spacing-3);
+  align-items: start;
+}
+
+.formFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  gap: var(--spacing-3);
+  align-items: end;
+}
+
+.formReason {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-inner);
+  border-inline-start: 3px solid var(--color-warning);
+  background: var(--color-background-muted);
+}
+
+.formBox,
+.formSection,
+.formReason {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 하루 목록의 인지활동형 상태 줄 */
+.cogNote {
+  display: block;
+  margin-top: var(--spacing-1);
+  padding-inline-start: var(--spacing-2);
+  border-inline-start: 3px solid var(--color-warning);
+  text-align: start;
+}
+
+.cogNoteOk {
+  border-inline-start-color: var(--color-success);
+}
+
+.elderStack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.elderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+/* ---------- 별지 제15호 인쇄 ---------- */
+.formPrintOptions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+@media print {
+  .formSheet {
+    break-after: page;
+    page-break-after: always;
+    color: var(--color-text-primary);
+  }
+  .formSheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .formTitle {
+    margin: 0 0 var(--spacing-2);
+    font-size: 13pt;
+    text-align: center;
+  }
+  .formHeadTable,
+  .formTable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 8pt;
+  }
+  .formHeadTable {
+    margin-bottom: var(--spacing-2);
+  }
+  .formHeadTable th,
+  .formHeadTable td,
+  .formTable th,
+  .formTable td {
+    padding: 2px 4px;
+    border: 1px solid var(--color-border-emphasized);
+    vertical-align: middle;
+    text-align: start;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .formHeadTable th,
+  .formTable th {
+    background: var(--color-background-muted);
+    font-weight: var(--font-weight-medium);
+  }
+  .formTable .formArea {
+    width: 9%;
+    text-align: center;
+  }
+  .formTable .formItem {
+    width: 21%;
+  }
+  .formTable .formNote td {
+    height: 18mm;
+    vertical-align: top;
+  }
+  .formTable .formSign td {
+    height: 11mm;
+    vertical-align: bottom;
+  }
+  .formNoticeTitle {
+    margin: 0 0 var(--spacing-3);
+    font-size: 12pt;
+  }
+  .formNoticeList {
+    margin: 0;
+    padding-inline-start: var(--spacing-5);
+    font-size: 9.5pt;
+    line-height: 1.6;
+  }
+  .formNoticeList li {
+    margin-bottom: var(--spacing-2);
+  }
+}
+
+/* 줄바꿈이 되는 점검 칩 — Astryx Badge는 한 줄로만 놓여 좁은 화면에서 긴 문구가 넘친다 */
+.wrapChip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px var(--spacing-2);
+  border-radius: var(--radius-inner);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: start;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.wrapChipWarn {
+  color: var(--color-text-yellow);
+  background: var(--color-background-yellow);
+}
+
+.wrapChipDanger {
+  color: var(--color-text-red);
+  background: var(--color-background-red);
+}

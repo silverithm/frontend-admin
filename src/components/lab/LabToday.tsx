@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 실험실 첫 화면의 "오늘 확인할 것" 카드 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한, 사례관리 기한, 차량 보험, 감염병 대응을 한눈에 보고 누르면 그 도구로 간다.
+ * 실험실 첫 화면의 "오늘 확인할 것" 카드 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한, 사례관리 기한, 차량 보험, 감염병 대응, 시설 관리 기한, 인지활동형 누락을 한눈에 보고 누르면 그 도구로 간다.
  * 줄마다 따로 불러오고, 실패한 줄만 숨긴다(전부 실패하면 카드를 그리지 않는다).
  * 기본은 한 줄 요약(묶음 메뉴 위에서 도구 내용을 아래로 밀어내지 않게)이고, '자세히'를 누르면 줄마다 미리보기가 펼쳐진다. 펼침 상태는 이 브라우저에 기억한다.
  * 투약 대기는 의뢰서와 투약 기록만 보고 센 것이라 오늘 출결은 반영하지 않는다.
@@ -13,6 +13,7 @@ import { Spinner } from '@astryxdesign/core/Spinner';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Chip } from './LabUi';
+import { loadCognitiveLine, loadFacilityLine } from './LabTodayFacility';
 import { NOTHING_TO_CHECK, loadContractLine, loadDoseLine, loadIntakeLine, loadHealthLine, loadStockLine, loadVisitLine, loadCaseMeetingLine, loadVehicleLine, loadOutbreakLine } from './LabTodayData';
 import type { TodayLine, TodayLineId, TodayTarget } from './LabTodayData';
 import { readStored, todayString, writeStored } from './labFormat';
@@ -33,6 +34,8 @@ const LINES: ReadonlyArray<{ id: TodayLineId; title: string; note: string | null
   { id: 'health', title: '건강검진 기한', note: '마지막 검진 후 1년(사무직 2년)이 지났거나 30일 안에 닿는 직원 · 검진 기록이 아직 없는 직원은 직원 인사에서 확인', target: 'staffHr', actionLabel: '직원 인사 열기', load: loadHealthLine },
   { id: 'caseMeeting', title: '사례관리 기한', note: '회의 다음날부터 30일 안에 반영·평가해야 하는 사례관리 대상 · 올해·작년 회의 기준', target: 'caseMeeting', actionLabel: '사례관리 회의 열기', load: loadCaseMeetingLine },
   { id: 'outbreak', title: '감염병 대응', note: '올해·작년 기록 중 종료되지 않은 유행·발생 · 보건소 신고나 보호자 안내가 빠진 것은 위험', target: 'outbreak', actionLabel: '감염병 대응 열기', load: loadOutbreakLine },
+  { id: 'facility', title: '시설 관리', note: '법정 점검·검사 중 기한이 지났거나 30일 안에 닿는 항목 · 시설 정보를 입력해야 적용 여부가 정확해집니다', target: 'facilityLedger', actionLabel: '시설 관리 대장 열기', load: loadFacilityLine },
+  { id: 'cognitive', title: '인지활동형', note: '오늘 출석한 5등급·인지지원 중 1회 60분 이상 인지활동형 프로그램(고시 제32조⑩)을 못 채운 분', target: 'program', actionLabel: '프로그램 일지 열기', load: loadCognitiveLine },
   { id: 'vehicle', title: '차량 보험', note: '쓰는 차량 중 보험 만기가 지났거나 30일 안이거나 종합보험이 아닌 차량', target: 'transport', actionLabel: '송영 일지 열기', load: loadVehicleLine },
 ];
 
@@ -45,7 +48,7 @@ interface LabTodayProps {
 
 export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
   const [expanded, setExpanded] = useState(false);
-  const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' }, intake: { status: 'loading' }, visit: { status: 'loading' }, health: { status: 'loading' }, caseMeeting: { status: 'loading' }, vehicle: { status: 'loading' }, outbreak: { status: 'loading' } });
+  const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' }, intake: { status: 'loading' }, visit: { status: 'loading' }, health: { status: 'loading' }, caseMeeting: { status: 'loading' }, vehicle: { status: 'loading' }, outbreak: { status: 'loading' }, facility: { status: 'loading' }, cognitive: { status: 'loading' } });
   const seq = useRef(0);
 
   // 저장된 값은 브라우저에서만 읽을 수 있으므로 첫 그림 뒤에 반영한다

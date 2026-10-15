@@ -13,10 +13,10 @@ import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medica
 import { healthCheckStatus } from '@/lib/lab/staffHrRules';
 import { dotDate } from './labFormat';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle' | 'outbreak';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle' | 'outbreak' | 'facility' | 'cognitive';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport' | 'outbreak';
+export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport' | 'outbreak' | 'facilityLedger' | 'program';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */

@@ -9,6 +9,7 @@
  * 9차 도구(직원 인사, 통장 대사)는 '운영'·'재무' 묶음에 들어 있고, 오늘 확인할 것의 '건강검진 기한' 줄은 '직원 인사'를 연다.
  * 10차 도구(예방접종, 송영 일지, 규정·지침, 사례관리 회의)는 '기록'·'운영'·'소통·연계' 묶음에 들어 있고, 오늘 확인할 것의 '사례관리 기한' 줄은 '사례관리 회의'를, '차량 보험' 줄은 '송영 일지'를 연다.
  * 11차 도구(감염병 대응, 직원 복지)는 '운영' 묶음에 들어 있고, 오늘 확인할 것의 '감염병 대응' 줄은 '감염병 대응'을 연다.
+ * 12차 도구(시설 관리 대장)는 '운영' 묶음에 들어 있고, 오늘 확인할 것의 '시설 관리' 줄은 '시설 관리 대장'을, '인지활동형' 줄은 '프로그램 일지'를 연다.
  * 상담일지와 욕구사정·급여계획은 같은 화면(ConsultationCarePlanLab)의 두 보기다. 메뉴 항목이 둘이고, 각자 그 보기로 바로 연다.
  */
 import { useEffect, useState } from 'react';
@@ -37,6 +38,7 @@ import MedicalVisitLab from '@/components/labRecords/MedicalVisitLab';
 import TransportLab from '@/components/labRecords/TransportLab';
 import VaccinationLab from '@/components/labRecords/VaccinationLab';
 import OutbreakLab from '@/components/labRecords/OutbreakLab';
+import FacilityLedgerLab from '@/components/labPlans/FacilityLedgerLab';
 import CaseMeetingLab from '@/components/labPlans/CaseMeetingLab';
 import CommitteeLab from '@/components/labPlans/CommitteeLab';
 import PolicyDocsLab from '@/components/labPlans/PolicyDocsLab';
@@ -58,7 +60,7 @@ import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance' | 'elderDocs' | 'medicalVisit' | 'staffing' | 'committee' | 'staffHr' | 'bankRecon' | 'vaccination' | 'transport' | 'policyDocs' | 'caseMeeting' | 'outbreak' | 'staffWelfare';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance' | 'elderDocs' | 'medicalVisit' | 'staffing' | 'committee' | 'staffHr' | 'bankRecon' | 'vaccination' | 'transport' | 'policyDocs' | 'caseMeeting' | 'outbreak' | 'staffWelfare' | 'facilityLedger';
 
 interface ToolGroup {
   id: string;
@@ -103,6 +105,7 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'policyDocs', label: '규정·지침' },
       { id: 'outbreak', label: '감염병 대응' },
       { id: 'staffWelfare', label: '직원 복지' },
+      { id: 'facilityLedger', label: '시설 관리 대장' },
     ],
   },
   {
@@ -243,6 +246,7 @@ export default function LabHome() {
       {tool === 'caseMeeting' && <CaseMeetingLab />}
       {tool === 'outbreak' && <OutbreakLab />}
       {tool === 'staffWelfare' && <StaffWelfareLab />}
+      {tool === 'facilityLedger' && <FacilityLedgerLab />}
       {tool === 'medication' && <MedicationLab />}
       {tool === 'bath' && <BathLab />}
       {tool === 'claimCheck' && <ClaimCheckLab />}
