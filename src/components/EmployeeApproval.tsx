@@ -717,6 +717,33 @@ export default function EmployeeApproval() {
     [approvals],
   );
 
+  /**
+   * 새 기안을 쓸 때 이전에 올린 기안을 바탕으로 시작한다 — 같은 양식·제목·내용을 복사해 새 기안으로 연다.
+   * 반려 기안 고쳐 올리기와 달리 원본과 이어지지 않는다(revisedFrom 없음). 첨부파일은 복사하지 않고,
+   * 결재선은 그 양식의 지금 기본 결재선을 따른다(양식을 고친 뒤에도 옛 결재선이 되살아나지 않게).
+   * 지금 열려 있는 양식 목록에 없는(사라진) 양식의 기안은 고를 수 없다.
+   */
+  const reusableApprovals = useMemo(() => {
+    const live = new Set(templates.map((t) => String(t.id)));
+    return approvals
+      .filter((a) => a.status !== 'DRAFT' && a.templateId != null && live.has(String(a.templateId)))
+      .slice(0, 30);
+  }, [approvals, templates]);
+
+  const copyFromPrevious = (approvalId: string) => {
+    const source = approvals.find((a) => String(a.id) === approvalId);
+    if (!source) return;
+    const picked = templates.find((t) => String(t.id) === String(source.templateId));
+    setApprovalForm({ templateId: String(source.templateId ?? ''), title: source.title ?? '', file: null });
+    setFormData(parseFormData(source.formData));
+    try {
+      const line = picked?.defaultApprovalLine ? JSON.parse(picked.defaultApprovalLine) : [];
+      setApprovalLine(Array.isArray(line) ? line : []);
+    } catch {
+      setApprovalLine([]);
+    }
+  };
+
   /** 임시저장 문서를 작성 모달로 다시 불러온다 */
   const openDraft = (approval: ApprovalRequest) => {
     setEditingDraftId(String(approval.id));
@@ -1293,6 +1320,24 @@ export default function EmployeeApproval() {
                     : '양식을 선택하고 작성한 파일을 첨부하세요'}
                 </Text>
 
+                {/* 이전 기안에서 불러오기 — 새 기안을 처음 열었을 때만(양식을 고르면 사라진다) */}
+                {!editingDraftId && !revisedFrom && !approvalForm.templateId && reusableApprovals.length > 0 && (
+                  <Selector
+                    label="이전 기안에서 불러오기"
+                    hasClear
+                    placeholder="지난번에 올린 기안으로 시작 (선택)"
+                    description="양식·제목·내용을 복사해 새 기안으로 씁니다. 첨부파일은 다시 올려 주세요."
+                    value={null}
+                    hasSearch={reusableApprovals.length > 8}
+                    searchPlaceholder="기안 제목 검색"
+                    options={reusableApprovals.map((a) => ({
+                      value: String(a.id),
+                      label: `${a.title || '(제목 없음)'} · ${a.templateName ?? ''} · ${(a.createdAt || '').slice(0, 10)}`,
+                    }))}
+                    onChange={(value) => { if (value) copyFromPrevious(String(value)); }}
+                  />
+                )}
+
                 {/* 양식 선택 */}
                 <Selector
                   label="양식 선택"
@@ -1326,7 +1371,7 @@ export default function EmployeeApproval() {
                       });
                     }
                   }}
-                  description={selectedTemplateInfo?.description}
+                  description={selectedTemplateInfo?.description || '찾는 양식이 없으면 관리자에게 양식 등록(양식 관리 → 새 양식 등록·대량 양식 업로드)을 요청해 주세요.'}
                 />
 
                 {/* 제목 */}
