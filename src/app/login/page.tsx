@@ -15,7 +15,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { signin, memberSignin, findPassword, startDemo } from '@/lib/apiService';
+import { signin, memberSignin, findPassword, findMemberPassword, startDemo } from '@/lib/apiService';
 import { subscriptionService } from '@/services/subscription';
 import { useAlert } from '@/components/Alert';
 import { LoginType } from '@/types/auth';
@@ -231,7 +231,13 @@ export default function LoginPage() {
     setFindPasswordMessage('');
 
     try {
-      await findPassword(findPasswordEmail);
+      // 직원과 관리자는 계정이 다른 표에 있다 — 고른 탭의 주소로 찾아야 한다.
+      // (전에는 직원 탭에서도 관리자 주소만 불러, 직원은 웹에서 비밀번호를 찾을 수 없었다)
+      if (loginType === 'employee') {
+        await findMemberPassword(findPasswordEmail);
+      } else {
+        await findPassword(findPasswordEmail);
+      }
       setFindPasswordMessage('임시 비밀번호가 이메일로 전송되었습니다.');
       setTimeout(() => {
         setShowFindPassword(false);
@@ -239,7 +245,15 @@ export default function LoginPage() {
         setFindPasswordMessage('');
       }, 3000);
     } catch (error) {
-      setFindPasswordError('이메일 전송에 실패했습니다. 다시 시도해주세요.');
+      // 가입된 계정이 없으면 직원은 404, 관리자는 422가 온다. 문구가 아니라 상태 코드로 가른다.
+      const status = (error as { status?: number }).status;
+      if (status === 404 || status === 422) {
+        setFindPasswordError(loginType === 'employee'
+          ? '이 이메일로 등록된 직원 계정이 없습니다. 관리자 계정이면 관리자 탭에서 찾아 주세요.'
+          : '이 이메일로 가입된 관리자 계정이 없습니다. 직원 계정이면 직원 탭에서 찾아 주세요.');
+      } else {
+        setFindPasswordError('이메일 전송에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      }
     } finally {
       setFindPasswordLoading(false);
     }
@@ -328,7 +342,11 @@ export default function LoginPage() {
                           label="비밀번호 찾기"
                           variant="ghost"
                           size="sm"
-                          onClick={() => setShowFindPassword(true)}
+                          onClick={() => {
+                            // 로그인 칸에 적어 둔 이메일을 그대로 옮겨 다시 치지 않게 한다
+                            if (!findPasswordEmail) setFindPasswordEmail(formData.email);
+                            setShowFindPassword(true);
+                          }}
                         />
                       </HStack>
 
@@ -400,7 +418,9 @@ export default function LoginPage() {
               <LayoutContent>
                 <VStack gap={4}>
                   <Text type="supporting">
-                    가입 시 사용한 이메일 주소를 입력하시면 임시 비밀번호를 보내드립니다.
+                    {loginType === 'employee'
+                      ? '직원 계정의 이메일 주소를 입력하시면 임시 비밀번호를 보내드립니다.'
+                      : '관리자 계정의 이메일 주소를 입력하시면 임시 비밀번호를 보내드립니다.'}
                   </Text>
                   <TextInput
                     label="이메일"

@@ -4,6 +4,7 @@ import {VacationRequest, VacationLimit} from '@/types/vacation';
 import type { ElderCareProfileInput } from '@/types/elderly';
 import { ALL_ROLE_FILTER, getStoredUserRole } from '@/lib/roleUtils';
 import { getMyChatUserId } from '@/lib/chatIdentity';
+import { createChatReadQueue } from '@/lib/chatReadQueue';
 import {
     SigninResponseDTO,
     MemberSigninResponseDTO,
@@ -179,18 +180,9 @@ async function fetchWithoutAuth(url: string, options: RequestInit = {}) {
         headers,
     });
 
-    // 응답이 OK가 아닌 경우 에러 처리
+    // 응답이 OK가 아닌 경우 에러 처리 — 문구는 그대로, 상태 코드(status)도 함께 실어 보낸다
     if (!response.ok) {
-        // HTML 응답인지 확인
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('text/html')) {
-            const htmlText = await response.text();
-            console.error(`[API Error] HTML 응답 받음:`, htmlText.substring(0, 200));
-            throw new Error(`서버에서 HTML 페이지를 반환했습니다. API 엔드포인트를 확인해주세요. (${response.status})`);
-        }
-
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || errorData?.message || `API 오류: ${response.status} ${response.statusText}`);
+        throw await toApiError(response);
     }
 
     // JSON 응답인지 확인
@@ -1054,12 +1046,26 @@ export async function signup(userData: {
     return response;
 }
 
-// 비밀번호 찾기
+// 비밀번호 찾기 (관리자 계정)
 export async function findPassword(email: string): Promise<FindPasswordResponse> {
     const params = new URLSearchParams();
     params.append('email', email);
 
     return fetchWithoutAuth('/api/v1/find/password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+    });
+}
+
+// 비밀번호 찾기 (직원 계정) — 직원은 관리자와 다른 표에 있어 위 주소로는 찾지 못한다
+export async function findMemberPassword(email: string): Promise<{ message: string }> {
+    const params = new URLSearchParams();
+    params.append('email', email);
+
+    return fetchWithoutAuth('/api/v1/members/find/password', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -2755,14 +2761,19 @@ export async function fetchFirstMessageOnDate(roomId: number, date: string) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/first-on-date?${params.toString()}`);
 }
 
-// 채팅 읽음 처리
-export async function markChatAsRead(roomId: number, lastMessageId: number) {
+// 채팅 읽음 처리 — 메시지가 몰려 와도 방마다 묶어서 한 번에 하나씩 보낸다 (chatReadQueue 참고).
+// 채팅 관리·플로팅 채팅·채팅 도크가 모두 이 함수를 거치므로 한 탭 안에서는 같은 방 요청이 겹치지 않는다.
+const chatReadQueue = createChatReadQueue((roomId, lastMessageId) => {
     const userId = getMyChatUserId() || '';
     const userName = typeof window !== 'undefined' ? localStorage.getItem('userName') || '' : '';
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/read`, {
         method: 'POST',
         body: JSON.stringify({ userId, userName, lastMessageId }),
     });
+});
+
+export function markChatAsRead(roomId: number, lastMessageId: number): Promise<void> {
+    return chatReadQueue.mark(roomId, lastMessageId);
 }
 
 // 채팅 메시지 전송
