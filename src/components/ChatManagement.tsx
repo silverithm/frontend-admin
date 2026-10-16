@@ -18,6 +18,7 @@ import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { useMessageMenuPosition } from '@/hooks/useMessageMenuPosition';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
+import { describeUploadFailures, type ChatUploadFailure } from '@/lib/chatUploadFailures';
 import { buildChatRenderItems, formatDateSeparator, chatAttachmentLabel, lastMessagePreview } from '@/lib/chatMessageGrouping';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
@@ -1085,11 +1086,11 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
      * 열람 가능한 절대 URL 변환까지 한 번에 처리해서 웹·앱이 같은 형식을 갖는다.
      * (일반 파일 업로드 API는 상대 경로를 돌려줘 이미지가 그대로 뜨지 않는다)
      */
-    const sendFileMessage = async (file: File, batch?: { id: string; size: number }) => {
-        if (!selectedRoom || !userId || !userName) return;
+    const sendFileMessage = async (file: File, batch?: { id: string; size: number }): Promise<ChatUploadFailure | null> => {
+        if (!selectedRoom || !userId || !userName) return null;
+        // 실패는 여기서 알리지 않고 돌려준다 — 여러 개를 보낼 때 어느 파일이 안 갔는지 모아 한 번에 알린다(sendFiles)
         if (file.size > MAX_CHAT_FILE_SIZE) {
-            onNotification(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`, "error");
-            return;
+            return { name: file.name, reason: "tooLarge" };
         }
 
         // 텍스트 전송과 같은 이유로, 옛 대화 구간에서 파일을 보내도 최신 대화로 돌아간다
@@ -1105,9 +1106,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             setReplyTo(null);
             setTimeout(scrollToBottom, 100);
             fetchRooms();
+            return null;
         } catch (error) {
             console.error("파일 전송 실패:", error);
-            onNotification("파일 전송에 실패했습니다. 파일을 다시 첨부해주세요", "error");
+            return { name: file.name, reason: "failed" };
         } finally {
             setIsUploadingFile(false);
         }
@@ -1388,9 +1390,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         const batch = files.length > 1
             ? { id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, size: files.length }
             : undefined;
+        const failures: ChatUploadFailure[] = [];
         for (const file of files) {
-            await sendFileMessage(file, batch);
+            const failure = await sendFileMessage(file, batch);
+            if (failure) failures.push(failure);
         }
+        const message = describeUploadFailures(failures, MAX_CHAT_FILE_SIZE / (1024 * 1024));
+        if (message) onNotification(message, "error");
     };
 
     /** 대화 영역에 파일을 떨어뜨려 보내기 */
