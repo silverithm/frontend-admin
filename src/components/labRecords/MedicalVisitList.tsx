@@ -60,7 +60,7 @@ export default function MedicalVisitList({ month, visits, isLoading, canCreate, 
           </div>
           <Text type="supporting" color="secondary">
             {v.hospital}
-            {v.department ? ` · ${v.department}` : ''} · 동행 직원 {v.escortName || '미기재'}
+            {v.department && !v.hospital.includes(v.department) ? ` · ${v.department}` : ''} · 동행 직원 {v.escortName || '미기재'}
           </Text>
           <span className={styles.chips} style={{ justifyContent: 'flex-start' }}>
             <Chip tone={v.guardianNotified ? 'ok' : 'neutral'} label={v.guardianNotified ? '보호자 알림' : '보호자 알림 안 함'} />

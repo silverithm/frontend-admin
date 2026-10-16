@@ -120,7 +120,8 @@ export function NumField({ label, value, onChange, max, grouped = true, descript
       label={label}
       isLabelHidden={isLabelHidden}
       value={value === null ? '' : grouped ? groupDigits(value) : String(value)}
-      onChange={(text) => onChange(parseDigits(text, max))}
+      // 음수 기호는 조용히 떼어 양수로 바꾸지 않고 칸을 비운다 — 저장할 때 "1 이상으로 적어 주세요" 안내가 나온다
+      onChange={(text) => onChange(text.trim().startsWith('-') ? null : parseDigits(text, max))}
       description={description}
       placeholder={placeholder}
       isDisabled={isDisabled}

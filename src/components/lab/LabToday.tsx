@@ -16,6 +16,7 @@ import { Chip } from './LabUi';
 import { loadCognitiveLine, loadFacilityLine } from './LabTodayFacility';
 import { NOTHING_TO_CHECK, loadContractLine, loadDoseLine, loadIntakeLine, loadHealthLine, loadStockLine, loadVisitLine, loadCaseMeetingLine, loadVehicleLine, loadOutbreakLine } from './LabTodayData';
 import type { TodayLine, TodayLineId, TodayTarget } from './LabTodayData';
+import { LAB_CHANGED_EVENT } from '@/lib/lab/labApi';
 import { readStored, todayString, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
@@ -25,10 +26,10 @@ const EXPANDED_KEY = 'carev.lab.todayExpanded';
 
 type LineState = { status: 'loading' } | { status: 'failed' } | { status: 'ok'; line: TodayLine };
 
-const LINES: ReadonlyArray<{ id: TodayLineId; title: string; note: string | null; target: TodayTarget; actionLabel: string; load: (today: string) => Promise<TodayLine> }> = [
+const LINES: ReadonlyArray<{ id: TodayLineId; title: string; note: string | null; target: TodayTarget; view?: string; actionLabel: string; load: (today: string) => Promise<TodayLine> }> = [
   { id: 'contract', title: '계약 알림', note: null, target: 'contract', actionLabel: '계약·인정 열기', load: loadContractLine },
-  { id: 'dose', title: '오늘 투약 대기', note: '의뢰 기준 · 출결은 반영하지 않음', target: 'medication', actionLabel: '투약 관리 열기', load: loadDoseLine },
-  { id: 'stock', title: '약품 사용기한', note: null, target: 'medication', actionLabel: '투약 관리 열기', load: loadStockLine },
+  { id: 'dose', title: '오늘 투약 대기', note: '의뢰 기준 · 출결은 반영하지 않음', target: 'medication', view: 'TODAY', actionLabel: '투약 관리 열기', load: loadDoseLine },
+  { id: 'stock', title: '약품 사용기한', note: null, target: 'medication', view: 'STORAGE', actionLabel: '투약 관리 열기', load: loadStockLine },
   { id: 'intake', title: '입소 상담 연락', note: '연락 예정일이 오늘이거나 지난 상담', target: 'intake', actionLabel: '입소 상담·대기 열기', load: loadIntakeLine },
   { id: 'visit', title: '진료 후속 확인', note: '후속 확인일이 오늘이거나 지났는데 확인 전인 진료 동행', target: 'medicalVisit', actionLabel: '진료 동행 열기', load: loadVisitLine },
   { id: 'health', title: '건강검진 기한', note: '마지막 검진 후 1년(사무직 2년)이 지났거나 30일 안에 닿는 직원 · 검진 기록이 아직 없는 직원은 직원 인사에서 확인', target: 'staffHr', actionLabel: '직원 인사 열기', load: loadHealthLine },
@@ -41,7 +42,7 @@ const LINES: ReadonlyArray<{ id: TodayLineId; title: string; note: string | null
 
 interface LabTodayProps {
   /** 줄을 눌렀을 때 도구를 연다 — LabHome의 도구 고르기 함수 */
-  onOpenTool: (tool: TodayTarget) => void;
+  onOpenTool: (tool: TodayTarget, view?: string) => void;
   /** 값이 바뀌면(도구를 옮기면) 다시 불러온다. 투약·계약을 고치고 돌아왔을 때 숫자가 낡지 않게 한다 */
   refreshKey: string;
 }
@@ -78,6 +79,20 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
       seq.current += 1;
     };
   }, [load, refreshKey]);
+
+  // 같은 도구 안에서 저장·삭제해도 카드 숫자가 따라오게 한다 — 연달아 저장하면 마지막 한 번만 다시 불러온다
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onChanged = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(load, 500);
+    };
+    window.addEventListener(LAB_CHANGED_EVENT, onChanged);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener(LAB_CHANGED_EVENT, onChanged);
+    };
+  }, [load]);
 
   const toggle = () => {
     const next = !expanded;
@@ -119,7 +134,7 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
             const st = states[l.id];
             if (st.status !== 'ok') return null;
             return (
-              <button key={l.id} type="button" className={styles.todayPill} aria-label={`${l.title}: ${st.line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target)}>
+              <button key={l.id} type="button" className={styles.todayPill} aria-label={`${l.title}: ${st.line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target, l.view)}>
                 <span className={styles.todayPillTitle}>
                   <Text type="supporting">{l.title}</Text>
                 </span>
@@ -151,7 +166,7 @@ export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
           if (s.status !== 'ok') return null;
           const { line } = s;
           return (
-            <button key={l.id} type="button" className={styles.todayRow} aria-label={`${l.title}: ${line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target)}>
+            <button key={l.id} type="button" className={styles.todayRow} aria-label={`${l.title}: ${line.text}. ${l.actionLabel}`} onClick={() => onOpenTool(l.target, l.view)}>
               <VStack gap={0.5}>
                 <HStack gap={2} vAlign="center" wrap="wrap">
                   <Text type="body" weight="medium">

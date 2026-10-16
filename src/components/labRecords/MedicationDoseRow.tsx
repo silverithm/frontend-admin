@@ -35,6 +35,11 @@ interface Props {
 const STATUS_LABEL: Record<MedicationDoseStatus, string> = { GIVEN: '투약함', SKIPPED: '건너뜀', REFUSED: '거부' };
 const STATE_TONE: Record<DoseState, Tone> = { DONE: 'ok', SKIPPED: 'warn', REFUSED: 'danger', PENDING: 'neutral' };
 
+/** 투약함은 '투약 후 상태', 건너뜀·거부는 '사유' — 같은 쪽끼리만 글을 이어 쓴다 */
+function sameKind(a: MedicationDoseStatus, b: MedicationDoseStatus): boolean {
+  return (a === 'GIVEN') === (b === 'GIVEN');
+}
+
 export default function MedicationDoseRow({ row, isPast, onSaved, onDeleted }: Props) {
   const notify = useNotify();
   const alive = useAlive();
@@ -48,13 +53,19 @@ export default function MedicationDoseRow({ row, isPast, onSaved, onDeleted }: P
   const open = (status: MedicationDoseStatus) => {
     setError(null);
     if (dose) {
-      setDraft({ status, givenAt: status === 'GIVEN' ? dose.givenAt ?? nowHm() : '', giver: dose.giverName, observation: dose.observation ?? '' });
+      setDraft({ status, givenAt: status === 'GIVEN' ? dose.givenAt ?? nowHm() : '', giver: dose.giverName, observation: sameKind(status, dose.status) ? dose.observation ?? '' : '' });
     } else {
       setDraft(newDoseDraft(status));
     }
   };
 
-  const setStatus = (status: MedicationDoseStatus) => setDraft((d) => (d ? { ...d, status, givenAt: status === 'GIVEN' ? d.givenAt || nowHm() : d.givenAt } : d));
+  // 칸 이름이 '투약 후 상태'와 '사유'로 갈리므로, 종류가 바뀌면 고치지 않은 이전 글은 비운다
+  const setStatus = (status: MedicationDoseStatus) =>
+    setDraft((d) => {
+      if (!d) return d;
+      const untouched = d.observation === (dose?.observation ?? '');
+      return { ...d, status, givenAt: status === 'GIVEN' ? d.givenAt || nowHm() : d.givenAt, observation: !sameKind(status, d.status) && untouched ? '' : d.observation };
+    });
 
   const save = async () => {
     if (!draft || saving) return;

@@ -27,7 +27,7 @@ import own from './Vaccination.module.css';
 
 type FormState = { key: number; initial: { elderId: number; record: Vaccination | null } | null };
 
-export default function VaccinationLab() {
+export default function VaccinationLab({ onOpenContracts }: { onOpenContracts?: () => void }) {
   const today = todayString();
   const thisYear = Number(today.slice(0, 4));
   const [year, setYear] = useState(thisYear);
@@ -152,7 +152,7 @@ export default function VaccinationLab() {
               </Text>
             </div>
           </div>
-          <VaccinationStatusTable year={year} elders={elders} records={influenza} onEdit={(elderId, record) => openForm({ elderId, record })} onChanged={changed} />
+          <VaccinationStatusTable year={year} elders={elders} records={influenza} onEdit={(elderId, record) => openForm({ elderId, record })} onChanged={changed} onOpenContracts={onOpenContracts} />
         </>
       ) : null}
 

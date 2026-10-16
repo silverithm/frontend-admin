@@ -212,9 +212,15 @@ export class LabApiError extends Error {
 // authorizedFetch는 서버 메시지가 없을 때 "API 오류: 500 ..." 같은 영어 섞인 문구를 만든다. 그건 화면에 못 보여 주므로 기본 문구로 바꾼다.
 const GENERIC_ERROR = /^API 오류:/;
 
+/** 실험실 기록이 저장·삭제되면 이 이름의 이벤트를 보낸다 — "오늘 확인할 것" 카드가 낡은 숫자를 남기지 않게 다시 불러오는 신호다. */
+export const LAB_CHANGED_EVENT = 'carev:lab-changed';
+
 async function request<T>(path: string, init: RequestInit | undefined, fallback: string): Promise<T> {
   try {
-    return (await authorizedFetch(path, init)) as T;
+    const result = (await authorizedFetch(path, init)) as T;
+    const method = (init?.method ?? 'GET').toUpperCase();
+    if (method !== 'GET' && typeof window !== 'undefined') window.dispatchEvent(new Event(LAB_CHANGED_EVENT));
+    return result;
   } catch (error) {
     const raw = error instanceof Error ? error.message : '';
     const status = (error as { status?: number } | null)?.status;

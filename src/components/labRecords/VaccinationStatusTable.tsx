@@ -21,9 +21,11 @@ interface Props {
   records: Vaccination[];
   onEdit: (elderId: number, record: Vaccination | null) => void;
   onChanged: () => void;
+  /** 계약이 없을 때 계약·인정 도구로 가는 길 */
+  onOpenContracts?: () => void;
 }
 
-export default function VaccinationStatusTable({ year, elders, records, onEdit, onChanged }: Props) {
+export default function VaccinationStatusTable({ year, elders, records, onEdit, onChanged, onOpenContracts }: Props) {
   const notify = useNotify();
   const [confirm, setConfirm] = useState<Vaccination | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -56,7 +58,7 @@ export default function VaccinationStatusTable({ year, elders, records, onEdit, 
   if (elders.length === 0) {
     return (
       <Card padding={6}>
-        <EmptyState isCompact title="진행 중인 어르신이 없습니다" description="급여 계약이 진행 중인 어르신이 있어야 접종 현황을 볼 수 있습니다. 계약은 수급자 계약 화면에서 등록합니다." />
+        <EmptyState isCompact title="진행 중인 어르신이 없습니다" description="급여 계약이 진행 중인 어르신이 있어야 접종 현황을 볼 수 있습니다. 계약은 수급자 계약 화면에서 등록합니다." actions={onOpenContracts ? <Button label="계약·인정 열기" variant="secondary" onClick={onOpenContracts} /> : undefined} />
       </Card>
     );
   }

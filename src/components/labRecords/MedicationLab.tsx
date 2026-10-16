@@ -16,10 +16,10 @@ import styles from './labRecords.module.css';
 
 type View = 'TODAY' | 'REQUESTS' | 'STORAGE';
 
-export default function MedicationLab() {
+export default function MedicationLab({ initialView }: { initialView?: string }) {
   const { elders, isLoading: eldersLoading, error: eldersError, reload: reloadElders } = useLabElders();
   const requestData = useMedicationRequests();
-  const [view, setView] = useState<View>('TODAY');
+  const [view, setView] = useState<View>(initialView === 'STORAGE' || initialView === 'REQUESTS' ? initialView : 'TODAY');
 
   return (
     <div className={styles.stack}>

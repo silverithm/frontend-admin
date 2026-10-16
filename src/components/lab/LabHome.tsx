@@ -168,8 +168,12 @@ export default function LabHome() {
     if (isTool(stored)) setTool(stored);
   }, []);
 
-  const choose = (value: LabTool) => {
+  // "오늘 확인할 것" 줄에서 들어올 때만 도구 안의 보기(예: 투약 관리의 약품 관리)를 정한다. 도구 단추로 들어오면 비운다.
+  const [toolView, setToolView] = useState<{ view: string; nonce: number } | null>(null);
+
+  const choose = (value: LabTool, view?: string) => {
     setTool(value);
+    setToolView(view ? { view, nonce: Date.now() } : null);
     writeStored(TOOL_KEY, value);
   };
 
@@ -181,7 +185,7 @@ export default function LabHome() {
         description="기관 업무를 AI와 함께 새로 만들어 보는 곳입니다. 지금은 이 기관에만 열려 있어요."
       />
 
-      <LabToday onOpenTool={choose} refreshKey={tool} />
+      <LabToday onOpenTool={(target, view) => choose(target, view)} refreshKey={tool} />
 
       {/* 휴대폰 폭에서는 묶음 일곱 줄이 첫 화면을 다 차지해 도구 내용이 안 보인다 — 묶음별 선택 상자 하나로 바꾼다 */}
       <label className={styles.toolPicker}>
@@ -240,14 +244,14 @@ export default function LabHome() {
       {tool === 'committee' && <CommitteeLab />}
       {tool === 'staffHr' && <StaffHrLab />}
       {tool === 'bankRecon' && <BankReconLab />}
-      {tool === 'vaccination' && <VaccinationLab />}
+      {tool === 'vaccination' && <VaccinationLab onOpenContracts={() => choose('contract')} />}
       {tool === 'transport' && <TransportLab />}
       {tool === 'policyDocs' && <PolicyDocsLab />}
       {tool === 'caseMeeting' && <CaseMeetingLab />}
       {tool === 'outbreak' && <OutbreakLab />}
       {tool === 'staffWelfare' && <StaffWelfareLab />}
       {tool === 'facilityLedger' && <FacilityLedgerLab />}
-      {tool === 'medication' && <MedicationLab />}
+      {tool === 'medication' && <MedicationLab key={toolView?.nonce ?? 'plain'} initialView={toolView?.view} />}
       {tool === 'bath' && <BathLab />}
       {tool === 'claimCheck' && <ClaimCheckLab />}
       {tool === 'nursing' && <NursingLogLab />}
