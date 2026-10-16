@@ -32,7 +32,10 @@ import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList'
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
-import { getSchedules, createSchedule, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getScheduleManagerCandidates, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting, getDispatchOverrides, saveDispatchOverrides, getCompanyElders } from '@/lib/apiService';
+import { getSchedules, updateSchedule, deleteSchedule, updateScheduleCompletion, getAllMembers, getScheduleManagerCandidates, getAllVacationRequests, createScheduleTask, updateScheduleTask, updateScheduleTaskCompletion, deleteScheduleTask, getScheduleLabels, createScheduleLabel, updateScheduleLabel, deleteScheduleLabel, getScheduleCategorySettings, updateScheduleCategorySetting, resetScheduleCategorySetting, getDispatchOverrides, saveDispatchOverrides, getCompanyElders } from '@/lib/apiService';
+import { createRepeatedSchedules } from '@/lib/scheduleRepeatCreate';
+import ScheduleRepeatFields, { EMPTY_REPEAT } from '@/components/ScheduleRepeatFields';
+import type { RepeatRule } from '@/lib/scheduleRepeat';
 import { Schedule, ScheduleLabel, ScheduleTask, ScheduleCategory, ScheduleCategorySetting, DEFAULT_CATEGORY_SETTINGS, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_COLORS, SCHEDULE_COLORS, getScheduleColor, withAlpha, getScheduleTextColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
@@ -208,6 +211,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [repeat, setRepeat] = useState<RepeatRule>(EMPTY_REPEAT);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -905,6 +909,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   // 일정 생성 모달 열기
   const openCreateModal = (date?: Date) => {
     const targetDate = date || selectedDate || new Date();
+    setRepeat(EMPTY_REPEAT);
     setFormData({
       title: '',
       category: 'MEETING',
@@ -1018,9 +1023,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     // (members.id와 app_user.id) 종류 없이 숫자만 보내면 엉뚱한 사람이 저장될 수 있다.
     const [createManagerType, createManagerIdRaw] = formData.managerId ? formData.managerId.split(':') : [undefined, undefined];
 
+    if (repeat.kind !== 'NONE' && (!repeat.until || repeat.until < formData.startDate)) {
+      showAlert({ type: 'error', title: '입력 오류', message: '반복이 끝나는 날을 시작일 뒤로 골라주세요.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await createSchedule({
+      const result = await createRepeatedSchedules({
         title: formData.title,
         category: formData.category,
         labelId: formData.labelId ? formData.labelId : null,
@@ -1035,14 +1045,19 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         participantIds: formData.participantIds.length > 0 ? formData.participantIds : undefined,
         managerId: createManagerIdRaw ? Number(createManagerIdRaw) : null,
         managerType: createManagerType || null,
-      });
+      }, repeat);
+      if (result.error) {
+        if (result.created > 0) loadSchedules();
+        throw new Error(`${result.total}건 중 ${result.created}건만 등록했습니다`);
+      }
 
-      showAlert({ type: 'success', title: '생성 완료', message: '일정이 등록되었습니다.' });
+
+      showAlert({ type: 'success', title: '생성 완료', message: result.total > 1 ? `반복 일정 ${result.total}건이 등록되었습니다.` : '일정이 등록되었습니다.' });
       setShowCreateModal(false);
       loadSchedules();
     } catch (error) {
       console.error('일정 생성 실패:', error);
-      showAlert({ type: 'error', title: '생성 실패', message: '일정 생성에 실패했습니다.' });
+      showAlert({ type: 'error', title: '생성 실패', message: error instanceof Error && /건 중 \d+건만/.test(error.message) ? `${error.message}. 나머지는 다시 등록해 주세요.` : '일정 생성에 실패했습니다.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -2114,6 +2129,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     )}
                   </div>
                 </VStack>
+
+                {!selectedSchedule && <ScheduleRepeatFields startDate={formData.startDate} value={repeat} onChange={setRepeat} />}
 
                 {/* 알림 */}
                 <CheckboxInput

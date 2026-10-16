@@ -21,13 +21,15 @@ import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import MemberItem from '@/components/MemberItem';
 import { useAlert } from '@/components/Alert';
 import {
-  createSchedule,
   getAllMembers,
   getScheduleCategorySettings,
   getScheduleLabels,
   getScheduleManagerCandidates,
 } from '@/lib/apiService';
 import { getMemberRoleName, getRoleDisplayName } from '@/lib/roleUtils';
+import { createRepeatedSchedules } from '@/lib/scheduleRepeatCreate';
+import ScheduleRepeatFields, { EMPTY_REPEAT } from '@/components/ScheduleRepeatFields';
+import type { RepeatRule } from '@/lib/scheduleRepeat';
 import {
   DEFAULT_CATEGORY_SETTINGS,
   SCHEDULE_COLORS,
@@ -98,6 +100,7 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
   const [baseCategories, setBaseCategories] = useState<ScheduleCategorySetting[]>(DEFAULT_CATEGORY_SETTINGS);
   const [participantRoleFilter, setParticipantRoleFilter] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [repeat, setRepeat] = useState<RepeatRule>(EMPTY_REPEAT);
 
   const dateStr = format(initialDate, 'yyyy-MM-dd');
   const [formData, setFormData] = useState({
@@ -126,6 +129,7 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
       isAllDay: false, sendNotification: true, participantIds: [], managerId: '', labelId: '',
     });
     setParticipantRoleFilter([]);
+    setRepeat(EMPTY_REPEAT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialDate]);
 
@@ -223,9 +227,14 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
     // (members.id와 app_user.id) 종류 없이 숫자만 보내면 엉뚱한 사람이 저장될 수 있다.
     const [managerType, managerIdRaw] = formData.managerId ? formData.managerId.split(':') : [undefined, undefined];
 
+    if (repeat.kind !== 'NONE' && (!repeat.until || repeat.until < formData.startDate)) {
+      showAlert({ type: 'error', title: '입력 오류', message: '반복이 끝나는 날을 시작일 뒤로 골라주세요.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await createSchedule({
+      const result = await createRepeatedSchedules({
         title: formData.title,
         category: formData.category,
         labelId: formData.labelId ? formData.labelId : null,
@@ -240,14 +249,18 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
         participantIds: formData.participantIds.length > 0 ? formData.participantIds : undefined,
         managerId: managerIdRaw ? Number(managerIdRaw) : null,
         managerType: managerType || null,
-      });
+      }, repeat);
+      if (result.error) {
+        if (result.created > 0) onCreated?.();
+        throw new Error(`${result.total}건 중 ${result.created}건만 등록했습니다`);
+      }
 
-      showAlert({ type: 'success', title: '생성 완료', message: '일정이 등록되었습니다.' });
+      showAlert({ type: 'success', title: '생성 완료', message: result.total > 1 ? `반복 일정 ${result.total}건이 등록되었습니다.` : '일정이 등록되었습니다.' });
       onCreated?.();
       onClose();
     } catch (error) {
       console.error('일정 생성 실패:', error);
-      showAlert({ type: 'error', title: '생성 실패', message: '일정 생성에 실패했습니다.' });
+      showAlert({ type: 'error', title: '생성 실패', message: error instanceof Error && /건 중 \d+건만/.test(error.message) ? `${error.message}. 나머지는 다시 등록해 주세요.` : '일정 생성에 실패했습니다.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -393,6 +406,8 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                     )}
                   </div>
                 </VStack>
+
+                <ScheduleRepeatFields startDate={formData.startDate} value={repeat} onChange={setRepeat} />
 
                 <CheckboxInput
                   label="참석자에게 알림 전송"
