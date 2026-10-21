@@ -12,7 +12,7 @@ import { FloatingChatMessages } from "./FloatingChatMessages";
 import { fetchChatRooms, fetchChatMessages, markChatAsRead } from '@/lib/apiService';
 import { CHAT_PAGE_SIZE, prependUniqueMessages } from '@/lib/useOlderChatMessages';
 import { mergeMissedMessages, readAscendingMessages, isConnectionStale } from '@/lib/chatReconnect';
-import { DirectChatMember, openOrCreateDirectRoom } from '@/lib/directChat';
+import { DirectChatMember, OPEN_DIRECT_CHAT_EVENT, openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
 import { createChatClient } from '@/lib/chatSocket';
 import { applyIncoming } from '@/lib/chatSend';
@@ -469,6 +469,21 @@ export function FloatingChat() {
             setIsOpeningDirect(false);
         }
     };
+
+    // 오른쪽 패널에서 직원을 누르면 이 창을 열고 그 사람과의 1:1 대화로 간다 ([[requestDirectChat]]).
+    // 리스너는 한 번만 달고, 최신 방 목록을 쥔 함수는 ref로 넘긴다.
+    const openDirectChatRef = useRef(openDirectChat);
+    openDirectChatRef.current = openDirectChat;
+    useEffect(() => {
+        const onOpenDirect = (event: Event) => {
+            const member = (event as CustomEvent<DirectChatMember>).detail;
+            if (!member) return;
+            setIsOpen(true);
+            void openDirectChatRef.current(member);
+        };
+        window.addEventListener(OPEN_DIRECT_CHAT_EVENT, onOpenDirect);
+        return () => window.removeEventListener(OPEN_DIRECT_CHAT_EVENT, onOpenDirect);
+    }, []);
 
     const handleToggle = () => {
         setIsOpen(prev => !prev);

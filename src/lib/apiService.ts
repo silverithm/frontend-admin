@@ -15,6 +15,7 @@ import {
     UserRole
 } from '@/types/auth';
 import { buildApproveBody } from '@/lib/approvalComment';
+import type { WorkTask, WorkTaskInput } from '@/lib/workTasks';
 import { ApprovalImportPreview, ApprovalImportRow, ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
@@ -3286,4 +3287,69 @@ export async function deleteMeetingMinutesTemplate(templateId: number): Promise<
     await fetchWithAuth(`/api/v1/meeting-minutes/templates/${templateId}?companyId=${companyId}`, {
         method: 'DELETE',
     });
+}
+
+// ================== 업무진행도 API ==================
+// 기관은 서버가 토큰으로 정한다 — companyId를 보내지 않는다.
+
+/** 기관 업무 목록 — 진행 중 전부 + 최근 7일 안에 끝낸 것 */
+export async function fetchWorkTasks(): Promise<WorkTask[]> {
+    const response = await fetchWithAuth(`/api/v1/work-tasks`);
+    return Array.isArray(response?.tasks) ? response.tasks : [];
+}
+
+export async function createWorkTask(input: WorkTaskInput): Promise<WorkTask> {
+    return fetchWithAuth(`/api/v1/work-tasks`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+    });
+}
+
+export async function updateWorkTask(id: number, input: WorkTaskInput): Promise<WorkTask> {
+    return fetchWithAuth(`/api/v1/work-tasks/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(input),
+    });
+}
+
+/** 목록에서 수행도만 바꿀 때 */
+export async function updateWorkTaskProgress(id: number, progress: number): Promise<WorkTask> {
+    return fetchWithAuth(`/api/v1/work-tasks/${id}/progress`, {
+        method: 'PATCH',
+        body: JSON.stringify({ progress }),
+    });
+}
+
+export async function deleteWorkTask(id: number): Promise<void> {
+    await fetchWithAuth(`/api/v1/work-tasks/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// ================== 내 알림함 API ==================
+// 받는 사람은 서버가 토큰으로 정한다 — 남의 알림은 읽거나 확인할 수 없다.
+
+export interface MyNotification {
+    id: number;
+    title: string;
+    message: string;
+    /** WORK_TASK, APPROVAL, NOTICE, VACATION_APPROVED … (채팅은 빠져 있다) */
+    type: string | null;
+    relatedEntityId: number | null;
+    relatedEntityType: string | null;
+    createdAt: string;
+}
+
+/** 확인하지 않은 알림 (최근 며칠, 새것부터) */
+export async function fetchMyUnreadNotifications(days = 3): Promise<MyNotification[]> {
+    const response = await fetchWithAuth(`/api/v1/notifications/mine?days=${days}`);
+    return Array.isArray(response?.notifications) ? response.notifications : [];
+}
+
+export async function markMyNotificationsRead(ids: number[]): Promise<number> {
+    const response = await fetchWithAuth(`/api/v1/notifications/mine/read`, {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+    });
+    return typeof response?.updated === 'number' ? response.updated : 0;
 }

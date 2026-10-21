@@ -45,6 +45,8 @@ import ExternalLinksNav from "@/components/ExternalLinksNav";
 import { ChatManagement } from "@/components/ChatManagement";
 import NoticeRollingBanner from "@/components/NoticeRollingBanner";
 import { ChatRail } from "@/components/ChatRail/ChatRail";
+import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
+import NotificationPopups from "@/components/NotificationPopups";
 import AdminDashboard from "@/components/AdminDashboard";
 import Image from "next/image";
 import type { Position } from "@/types/position";
@@ -137,6 +139,12 @@ const roleBadgeVariant = (classes: string): BadgeVariant => {
 };
 
 type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library" | "lab";
+
+/** 알림 팝업에서 '열기'로 화면을 옮길 수 있는 알림 종류 (업무진행도는 늘 열 수 있다) */
+const ADMIN_OPENABLE_NOTIFICATIONS = [
+    "APPROVAL", "NOTICE", "VACATION_APPROVED", "VACATION_REJECTED", "VACATION_SUBMITTED", "VACATION_REMINDER",
+    "MEMBER_JOIN_REQUESTED",
+];
 type ApprovalSubTab = "management" | "templates" | "submit";
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 type ScheduleMode = "schedule" | "annual";
@@ -149,6 +157,20 @@ export default function AdminPage() {
     const [railRoomId, setRailRoomId] = useState<number | null>(null);
     /** 같은 방을 다시 지목해도 채팅 화면이 반응하도록 지목할 때마다 올린다 */
     const [railRoomNonce, setRailRoomNonce] = useState(0);
+    /** 알림 팝업의 '열기' — 알림 종류에 맞는 화면으로 옮긴다 */
+    const openFromNotification = (type: string | null): boolean => {
+        if (type === "WORK_TASK") {
+            // 업무 창은 오른쪽 패널이 연다 — 채팅 탭에서는 패널이 숨어 있으니 대시보드로 돌아간다
+            if (activeMainTab === "chat") setActiveMainTab("dashboard");
+            return true;
+        }
+        if (type === "APPROVAL") { setActiveMainTab("approval"); return true; }
+        if (type === "NOTICE") { setActiveMainTab("notice"); return true; }
+        if (type?.startsWith("VACATION")) { setActiveMainTab("work"); return true; }
+        if (type?.startsWith("MEMBER_JOIN")) { setActiveMainTab("members"); return true; }
+        return false;
+    };
+
     const openChatRoom = (roomId: number) => {
         setRailRoomId(roomId);
         setRailRoomNonce((n) => n + 1);
@@ -2012,19 +2034,27 @@ export default function AdminPage() {
 
             </main>
 
-            {/* 채팅 탭에서는 레일을 그리지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다.
-                다만 언마운트는 하지 않는다 — 폴링(새 메시지 토스트 감지)이 다른 탭에서도 계속 돌아야 한다. */}
+            {/* 채팅 탭에서는 패널을 그리지 않는다 — 다만 언마운트는 하지 않는다. 안 읽은 수 폴링이
+                사이드바 채팅 배지와 채팅 탭 안의 '다른 방' 새 메시지 알림에 계속 필요하다.
+                다른 탭의 새 메시지는 오른쪽 아래 말풍선(FloatingChat)이 직접 알린다. */}
             <ChatRail
                 hidden={activeMainTab === "chat"}
                 currentRoomId={activeMainTab === "chat" ? activeChatRoomId : null}
-                onOpenRoom={openChatRoom}
-                onOpenChatTab={() => setActiveMainTab("chat")}
                 onUnreadChange={setChatUnread}
-                onNewMessage={(room) => {
+                onNewMessage={activeMainTab === "chat" ? (room) => {
                     showActionToast(`${room.name} — 새로운 메시지가 왔습니다`, () => openChatRoom(room.id));
-                }}
+                } : undefined}
             />
             </div>
+
+            {/* 대화는 오른쪽 아래 말풍선에서 — 채팅 탭에서는 화면 안에 같은 대화가 있어 띄우지 않는다 */}
+            {activeMainTab !== "chat" && <FloatingChat />}
+
+            {/* 확인할 때까지 떠 있는 알림 — 오른쪽 위 */}
+            <NotificationPopups
+                openableTypes={ADMIN_OPENABLE_NOTIFICATIONS}
+                onOpen={(n) => openFromNotification(n.type)}
+            />
 
             {/* 모달 컴포넌트들 - 근무관리 탭에서만 표시 */}
             {activeMainTab === "work" && (

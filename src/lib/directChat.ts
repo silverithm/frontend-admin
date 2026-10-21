@@ -56,3 +56,14 @@ export async function openOrCreateDirectRoom<T extends DirectRoomCandidate>(para
     const created = response.room || response;
     return { roomId: created?.id ?? null, isNew: true };
 }
+
+/**
+ * 오른쪽 패널에서 직원을 누르면 오른쪽 아래 말풍선 채팅창(FloatingChat)에서 그 사람과의 1:1 대화를 연다.
+ * 패널은 업무진행도 자리라 대화를 담지 않는다(2026-10-22 원장 그림).
+ */
+export const OPEN_DIRECT_CHAT_EVENT = 'carev:open-direct-chat';
+
+export function requestDirectChat(member: DirectChatMember): void {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent<DirectChatMember>(OPEN_DIRECT_CHAT_EVENT, { detail: member }));
+}
