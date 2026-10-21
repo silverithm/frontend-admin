@@ -71,12 +71,12 @@ export interface ItemDraft extends MedicationItem {
 
 export function blankItem(): ItemDraft {
   itemKey += 1;
-  return { key: itemKey, name: '', dose: '', route: 'ORAL', slots: [], timing: 'AFTER_MEAL', note: '', ai: false };
+  return { key: itemKey, name: '', dose: '', route: 'ORAL', slots: [], timing: 'AFTER_MEAL', note: '', weekdays: [], ai: false };
 }
 
 export function itemFrom(item: MedicationItem, ai = false): ItemDraft {
   itemKey += 1;
-  return { key: itemKey, name: item.name, dose: item.dose ?? '', route: item.route, slots: [...item.slots], timing: item.timing, note: item.note ?? '', ai };
+  return { key: itemKey, name: item.name, dose: item.dose ?? '', route: item.route, slots: [...item.slots], timing: item.timing, note: item.note ?? '', weekdays: [...(item.weekdays ?? [])], ai };
 }
 
 export interface RequestDraft {
@@ -162,6 +162,7 @@ export function requestInput(d: RequestDraft, status: MedicationRequest['status'
       slots: m.slots,
       timing: m.timing,
       note: m.note.trim().slice(0, MAX_MEDICINE_NOTE),
+      weekdays: m.weekdays && m.weekdays.length < 7 ? [...m.weekdays].sort((a, b) => a - b) : [],
     })),
     startDate: d.startDate,
     endDate: d.endDate === '' ? null : d.endDate,

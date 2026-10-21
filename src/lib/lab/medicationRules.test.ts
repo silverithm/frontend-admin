@@ -11,6 +11,11 @@ import {
   SIX_RIGHTS,
   SLOTS,
   TIMINGS,
+  WEEKDAYS,
+  describeWeekdays,
+  givenOnDate,
+  isoWeekday,
+  weekdaysFromNote,
   doseStatus,
   dosesDue,
   expiringStock,
@@ -175,4 +180,52 @@ test('missedQuarters — 이미 지난 분기 중 점검 없는 분기만(진행
   assert.deepEqual(missedQuarters(checks, '2026-04-01'), []); // 2분기는 막 시작했다
   assert.deepEqual(missedQuarters([], '2026-07-01'), [1, 2]);
   assert.deepEqual(missedQuarters(checks, 'x'), []);
+});
+
+// ---------- 먹는 요일 ----------
+
+test('요일 번호는 ISO(월=1…일=7)로 센다', () => {
+  assert.equal(isoWeekday('2026-10-16'), 5); // 금
+  assert.equal(isoWeekday('2026-10-18'), 7); // 일
+  assert.equal(isoWeekday('2026-10-19'), 1); // 월
+  assert.equal(isoWeekday('2026-13-40'), null);
+  assert.equal(WEEKDAYS.length, 7);
+});
+
+test('요일을 말로 풀어 쓴다 — 비었거나 일곱 요일이면 매일', () => {
+  assert.equal(describeWeekdays(undefined), '매일');
+  assert.equal(describeWeekdays([]), '매일');
+  assert.equal(describeWeekdays([1, 2, 3, 4, 5, 6, 7]), '매일');
+  assert.equal(describeWeekdays([3, 1, 1]), '월·수만');
+});
+
+test('요일이 없는 옛 약은 매일, 요일이 있으면 그 요일만 먹인다', () => {
+  assert.equal(givenOnDate({}, '2026-10-16'), true);
+  assert.equal(givenOnDate({ weekdays: [] }, '2026-10-16'), true);
+  assert.equal(givenOnDate({ weekdays: [1, 3] }, '2026-10-19'), true); // 월
+  assert.equal(givenOnDate({ weekdays: [1, 3] }, '2026-10-16'), false); // 금
+  // 날짜를 못 읽으면 빠뜨리지 않는 쪽으로
+  assert.equal(givenOnDate({ weekdays: [1] }, 'x'), true);
+});
+
+test('오늘 투약 목록은 그 요일에 먹이는 약만 센다', () => {
+  const everyDay = med('혈압약', ['MORNING']);
+  const mondayWed: MedicationItem = { ...med('변비약', ['EVENING']), weekdays: [1, 3] };
+  const requests = [req(1, 7, { startDate: '2026-10-01', medicines: [everyDay, mondayWed] })];
+
+  const friday = dosesDue(requests, '2026-10-16'); // 금
+  assert.deepEqual(friday.map((d) => d.slot), ['MORNING']);
+
+  const monday = dosesDue(requests, '2026-10-19'); // 월
+  assert.deepEqual(monday.map((d) => d.slot), ['MORNING', 'EVENING']);
+});
+
+test('메모의 "월·수만"을 요일로 읽고 메모에서는 뺀다', () => {
+  assert.deepEqual(weekdaysFromNote('월·수만'), { weekdays: [1, 3], rest: '' });
+  assert.deepEqual(weekdaysFromNote('(월·수만) 물과 함께'), { weekdays: [1, 3], rest: '물과 함께' });
+  assert.deepEqual(weekdaysFromNote('화/목마다'), { weekdays: [2, 4], rest: '' });
+  assert.deepEqual(weekdaysFromNote('월수금 요일'), { weekdays: [1, 3, 5], rest: '' });
+  // 요일이 아닌 말은 건드리지 않는다
+  assert.deepEqual(weekdaysFromNote('월 1회 병원 방문'), { weekdays: [], rest: '월 1회 병원 방문' });
+  assert.deepEqual(weekdaysFromNote('갈아서'), { weekdays: [], rest: '갈아서' });
 });

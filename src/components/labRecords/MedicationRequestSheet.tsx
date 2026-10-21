@@ -2,7 +2,7 @@
 
 /** 투약의뢰서 한 장 인쇄본 — 화면에서는 보이지 않고 인쇄할 때만 나온다. */
 import type { MedicationRequest } from '@/lib/lab/labTypes';
-import { relationLabel, routeLabel, slotLabel, timingLabel } from '@/lib/lab/medicationRules';
+import { describeWeekdays, relationLabel, routeLabel, slotLabel, timingLabel } from '@/lib/lab/medicationRules';
 import { companyNameStored, dotDate, todayString } from '@/components/lab/labFormat';
 import RecordsPrintPortal from './RecordsPrint';
 import styles from './labRecords.module.css';
@@ -64,7 +64,7 @@ export default function MedicationRequestSheet({ request }: { request: Medicatio
               <td>{m.name}</td>
               <td>{m.dose}</td>
               <td>{routeLabel(m.route)}</td>
-              <td>{m.slots.map(slotLabel).join('·')}</td>
+              <td>{m.slots.map(slotLabel).join('·')}{describeWeekdays(m.weekdays) === '매일' ? '' : ` (${describeWeekdays(m.weekdays)})`}</td>
               <td>{timingLabel(m.timing)}</td>
               <td>{m.note}</td>
             </tr>

@@ -2171,3 +2171,15 @@ test('12차 급여기록 프롬프트 — 서식 칸은 적힌 값만, 추정 �
   assert.match(prompt, /추정하지 않습니다/);
   assert.match(prompt, /둘 다 적혀 있을 때만/);
 });
+
+test('투약의뢰서 AI 결과: 메모의 요일 표현은 요일 칸으로 옮긴다', () => {
+  const out = normalizeMedicationRequest({
+    medicines: [
+      { name: '변비약', dose: '1알', route: 'ORAL', slots: ['EVENING'], timing: 'BEFORE_MEAL', note: '월·수만' },
+      { name: '혈압약', dose: '1알', route: 'ORAL', slots: ['MORNING'], timing: 'AFTER_MEAL', note: '' },
+    ],
+  }, '혈압약 아침 1알 식후, 변비약 저녁 식전 1알 (월·수만)');
+  assert.deepEqual(out.medicines[0].weekdays, [1, 3]);
+  assert.equal(out.medicines[0].note, '');
+  assert.equal(out.medicines[1].weekdays, undefined);
+});

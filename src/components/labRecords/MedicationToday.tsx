@@ -137,7 +137,13 @@ export default function MedicationToday({ requests, requestsLoading }: Props) {
           <EmptyState
             isCompact
             title={`${dateLabel(date)}에 먹일 약이 없습니다`}
-            description={attendanceKnown && !showAbsent ? '출석한 어르신 중 진행 중인 투약의뢰서가 없습니다. "투약의뢰서" 보기에서 보호자가 맡긴 약을 등록해 주세요.' : '진행 중인 투약의뢰서가 없습니다. "투약의뢰서" 보기에서 보호자가 맡긴 약을 등록해 주세요.'}
+            description={
+              requests.length > 0
+                ? '이 날은 의뢰 기간 밖이거나, 약마다 정한 먹는 요일이 아닙니다. "투약의뢰서" 보기에서 기간과 요일을 확인해 보세요.'
+                : attendanceKnown && !showAbsent
+                  ? '출석한 어르신 중 진행 중인 투약의뢰서가 없습니다. "투약의뢰서" 보기에서 보호자가 맡긴 약을 등록해 주세요.'
+                  : '진행 중인 투약의뢰서가 없습니다. "투약의뢰서" 보기에서 보호자가 맡긴 약을 등록해 주세요.'
+            }
           />
         </Card>
       ) : (

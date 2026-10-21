@@ -33,7 +33,7 @@ interface Props {
   onClose: () => void;
 }
 
-const snapshot = (d: RequestDraft) => JSON.stringify({ ...d, memo: '', items: d.items.map((m) => [m.name, m.dose, m.route, m.slots, m.timing, m.note]) });
+const snapshot = (d: RequestDraft) => JSON.stringify({ ...d, memo: '', items: d.items.map((m) => [m.name, m.dose, m.route, m.slots, m.timing, m.note, m.weekdays]) });
 
 export default function MedicationRequestEditor({ elders, request, onSaved, onClose }: Props) {
   const notify = useNotify();

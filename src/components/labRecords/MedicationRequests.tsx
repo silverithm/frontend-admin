@@ -10,7 +10,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { Loading } from '@/components/Loading';
 import { updateMedicationRequest } from '@/lib/lab/labApi';
 import type { MedicationRequest } from '@/lib/lab/labTypes';
-import { relationLabel, requestIssues, slotLabel, timingLabel } from '@/lib/lab/medicationRules';
+import { describeWeekdays, relationLabel, requestIssues, slotLabel, timingLabel } from '@/lib/lab/medicationRules';
 import { Chip, ErrorBanner, LabConfirm, useNotify } from '@/components/lab/LabUi';
 import { dotDate, errorText, todayString } from '@/components/lab/labFormat';
 import type { LabElder } from '@/components/lab/useLabElders';
@@ -139,7 +139,7 @@ export default function MedicationRequests({ elders, eldersLoading, requests, re
                       {r.medicines.map((m, i) => (
                         <li key={`${m.name}-${i}`}>
                           <strong>{m.name}</strong>
-                          {m.dose ? ` ${m.dose}` : ''} · {m.slots.length > 0 ? m.slots.map(slotLabel).join('·') : '시간대 없음'} · {timingLabel(m.timing)}
+                          {m.dose ? ` ${m.dose}` : ''} · {m.slots.length > 0 ? m.slots.map(slotLabel).join('·') : '시간대 없음'} · {timingLabel(m.timing)}{describeWeekdays(m.weekdays) === '매일' ? '' : ` · ${describeWeekdays(m.weekdays)}`}
                         </li>
                       ))}
                     </ul>

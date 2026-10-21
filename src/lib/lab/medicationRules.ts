@@ -69,6 +69,56 @@ export const SIX_RIGHTS: readonly string[] = [
   '정확한 기록 — 투약한 직후 시각·투약자를 적고, 먹은 뒤 상태를 확인해 기록한다',
 ];
 
+/** 요일 칸 — ISO 번호(1=월 … 7=일). 화면은 월요일부터 보인다 */
+export const WEEKDAYS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 1, label: '월' },
+  { value: 2, label: '화' },
+  { value: 3, label: '수' },
+  { value: 4, label: '목' },
+  { value: 5, label: '금' },
+  { value: 6, label: '토' },
+  { value: 7, label: '일' },
+];
+
+/** 요일 목록을 사람이 읽는 말로: 비었거나 일곱 요일이면 '매일', 아니면 '월·수만' */
+export function describeWeekdays(weekdays: ReadonlyArray<number> | null | undefined): string {
+  const days = (weekdays ?? []).filter((d) => Number.isInteger(d) && d >= 1 && d <= 7);
+  const unique = Array.from(new Set(days)).sort((a, b) => a - b);
+  if (unique.length === 0 || unique.length === 7) return '매일';
+  return `${unique.map((d) => WEEKDAYS[d - 1].label).join('·')}만`;
+}
+
+/** yyyy-MM-dd의 ISO 요일(1=월 … 7=일). 올바른 날짜가 아니면 null */
+export function isoWeekday(date: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
+  if (!m || !isValidYmd(date.slice(0, 10))) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+}
+
+/** 이 날 먹이는 약인가 — 요일이 없거나 비면 매일. 날짜를 읽을 수 없으면 먹이는 것으로 본다(빠뜨리는 것보다 낫다) */
+export function givenOnDate(item: Pick<MedicationItem, 'weekdays'>, date: string): boolean {
+  const days = item.weekdays;
+  if (!Array.isArray(days) || days.length === 0) return true;
+  const wd = isoWeekday(date);
+  return wd === null || days.includes(wd);
+}
+
+/**
+ * 메모 속 요일 표현("월·수만", "(화/목마다)", "월수금 요일")을 요일 목록으로 읽고, 그 부분을 뺀 메모를 돌려준다.
+ * "만·마다·요일"이 붙은 때만 읽는다 — "월 1회" 같은 말을 요일로 오해하지 않기 위해서다.
+ */
+export function weekdaysFromNote(note: string): { weekdays: number[]; rest: string } {
+  const re = /[(（]?\s*([월화수목금토일](?:\s*[·,/\s]?\s*[월화수목금토일])*)\s*(?:요일)?\s*(?:만|마다)\s*[)）]?|[(（]?\s*([월화수목금토일](?:\s*[·,/\s]?\s*[월화수목금토일])*)\s*요일\s*[)）]?/u;
+  const m = re.exec(note);
+  if (!m) return { weekdays: [], rest: note };
+  const letters = (m[1] ?? m[2] ?? '').replace(/[^월화수목금토일]/gu, '');
+  const days = Array.from(new Set(Array.from(letters).map((c) => '월화수목금토일'.indexOf(c) + 1))).sort((a, b) => a - b);
+  const rest = (note.slice(0, m.index) + ' ' + note.slice(m.index + m[0].length)).replace(/\s{2,}/g, ' ').trim();
+  return { weekdays: days, rest };
+}
+
 export function slotLabel(slot: string): string {
   return SLOTS.find((s) => s.value === slot)?.label ?? slot;
 }
@@ -142,7 +192,7 @@ export function dosesDue(requests: ReadonlyArray<RequestForDue>, date: string, p
     if (present && !present.has(request.elderlyId)) continue;
     if (!requestCovers(request, day)) continue;
     for (const slot of SLOTS) {
-      const medicines = request.medicines.filter((m) => Array.isArray(m.slots) && m.slots.includes(slot.value));
+      const medicines = request.medicines.filter((m) => Array.isArray(m.slots) && m.slots.includes(slot.value) && givenOnDate(m, day));
       if (medicines.length > 0) out.push({ requestId: request.id, elderlyId: request.elderlyId, date: day, slot: slot.value, medicines });
     }
   }

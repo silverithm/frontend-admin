@@ -1144,6 +1144,8 @@ export interface MedicationItem {
   slots: MedicationSlot[];
   timing: MedicationTiming;
   note: string;
+  /** 먹이는 요일(ISO 1=월 … 7=일). 비었거나 없으면 매일 — 요일 칸이 없던 옛 의뢰서도 매일로 읽는다 */
+  weekdays?: number[];
 }
 
 /** 보호자가 맡긴 약(투약의뢰서). 약은 1~15개 */

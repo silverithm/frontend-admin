@@ -113,7 +113,7 @@ import { isValidMonth, parseYmd } from './labDate.ts';
 import { EVENT_KINDS, EVENT_SEVERITIES, MAX_EVENT_TEXT } from './careEventRules.ts';
 import { MAX_REHAB_ITEMS, MAX_REHAB_ITEM_LENGTH, MAX_REHAB_MINUTES, REHAB_KINDS, isRehabKind, rehabKindLabel } from './rehabRules.ts';
 import { NAME_TOKEN } from './guardianNotice.ts';
-import { MAX_MEDICINES, MAX_MEDICINE_DOSE, MAX_MEDICINE_NAME, MAX_MEDICINE_NOTE, ROUTES, SLOTS, TIMINGS, isRoute, isSlot, isTiming } from './medicationRules.ts';
+import { MAX_MEDICINES, MAX_MEDICINE_DOSE, MAX_MEDICINE_NAME, MAX_MEDICINE_NOTE, ROUTES, SLOTS, TIMINGS, isRoute, isSlot, isTiming, weekdaysFromNote } from './medicationRules.ts';
 import { BATH_METHODS, MAX_BATH_PRE_CHECK, isBathMethod } from './bathRules.ts';
 import { DISCHARGE_REASONS } from './dischargeRules.ts';
 import { RESOURCE_TYPES } from './communityRules.ts';
@@ -1917,13 +1917,19 @@ export function normalizeMedicationRequest(raw: unknown, memo?: string): Medicat
     const route = typeof item.route === 'string' ? item.route.trim() : '';
     const timing = typeof item.timing === 'string' ? item.timing.trim() : '';
     const slots = Array.isArray(item.slots) ? item.slots.filter(isSlot) : [];
+    // 요일은 모델이 따로 주지 않아도 메모에 "월·수만"처럼 적혀 있으면 읽어 요일 칸으로 옮긴다(메모에서는 뺀다)
+    const noteText = substantive(cleanOutput(item.note, MAX_MEDICINE_NOTE));
+    const given = Array.isArray(item.weekdays) ? item.weekdays.filter((d): d is number => Number.isInteger(d) && d >= 1 && d <= 7) : [];
+    const fromNote = given.length === 0 ? weekdaysFromNote(noteText) : { weekdays: [], rest: noteText };
+    const weekdays = given.length > 0 ? Array.from(new Set(given)).sort((a, b) => a - b) : fromNote.weekdays;
     medicines.push({
       name,
       dose,
       route: isRoute(route) ? route : 'OTHER',
       slots: SLOT_VALUES.filter((slot) => slots.includes(slot)),
       timing: isTiming(timing) ? timing : 'ANYTIME',
-      note: substantive(cleanOutput(item.note, MAX_MEDICINE_NOTE)),
+      note: fromNote.rest,
+      ...(weekdays.length > 0 && weekdays.length < 7 ? { weekdays } : {}),
     });
     if (medicines.length >= MAX_MEDICINES) break;
   }

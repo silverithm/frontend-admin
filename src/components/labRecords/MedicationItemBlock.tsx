@@ -8,7 +8,7 @@ import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import type { MedicationRoute, MedicationSlot, MedicationTiming } from '@/lib/lab/labTypes';
-import { MAX_MEDICINE_DOSE, MAX_MEDICINE_NAME, MAX_MEDICINE_NOTE, ROUTES, SLOTS, TIMINGS } from '@/lib/lab/medicationRules';
+import { MAX_MEDICINE_DOSE, MAX_MEDICINE_NAME, MAX_MEDICINE_NOTE, ROUTES, SLOTS, TIMINGS, WEEKDAYS, describeWeekdays } from '@/lib/lab/medicationRules';
 import { AiChip } from '@/components/lab/LabUi';
 import type { ItemDraft } from './MedicationDraft';
 import styles from './labRecords.module.css';
@@ -27,6 +27,11 @@ export default function MedicationItemBlock({ item, index, onChange, onRemove, c
   const toggleSlot = (slot: MedicationSlot, on: boolean) => {
     const next = on ? [...item.slots, slot] : item.slots.filter((s) => s !== slot);
     onChange({ slots: SLOTS.map((s) => s.value).filter((v) => next.includes(v)), ai: false });
+  };
+  const toggleWeekday = (day: number, on: boolean) => {
+    const current = item.weekdays ?? [];
+    const next = on ? [...current, day] : current.filter((d) => d !== day);
+    onChange({ weekdays: Array.from(new Set(next)).sort((a, b) => a - b), ai: false });
   };
   return (
     <div className={`${own.itemBlock} ${item.ai ? own.itemBlockAi : ''}`} role="group" aria-label={`${index + 1}번째 약`}>
@@ -69,6 +74,19 @@ export default function MedicationItemBlock({ item, index, onChange, onRemove, c
             시간대를 고르지 않으면 오늘 투약에 나타나지 않습니다.
           </Text>
         )}
+      </div>
+      <div role="group" aria-label={`${index + 1}번째 약 먹는 요일`}>
+        <Text type="label">먹는 요일</Text>
+        <div className={own.slotChecks}>
+          {WEEKDAYS.map((d) => (
+            <CheckboxInput key={d.value} label={d.label} value={(item.weekdays ?? []).includes(d.value)} isDisabled={isDisabled} onChange={(on) => toggleWeekday(d.value, on)} />
+          ))}
+        </div>
+        <Text type="supporting" color="secondary">
+          {(item.weekdays ?? []).length === 0 || (item.weekdays ?? []).length === 7
+            ? '요일을 고르지 않으면 매일 먹입니다.'
+            : `${describeWeekdays(item.weekdays)} 먹입니다. 다른 요일에는 오늘 투약에 나타나지 않습니다.`}
+        </Text>
       </div>
       <TextInput label="메모 (선택)" placeholder="예: 갈아서, 물 많이" value={item.note} onChange={(v) => onChange({ note: v.slice(0, MAX_MEDICINE_NOTE), ai: false })} isDisabled={isDisabled} />
     </div>
