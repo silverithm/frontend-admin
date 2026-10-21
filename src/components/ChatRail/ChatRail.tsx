@@ -266,7 +266,7 @@ export function ChatRail({ onUnreadChange, hidden, currentRoomId, onNewMessage }
     }, [update]);
     const clearPendingTask = useCallback(() => setPendingTaskId(null), []);
 
-    // 말풍선 채팅·알림 카드가 패널을 덮지 않고 그 왼쪽 옆에 서도록, 패널이 지금 차지한 폭을 알려 준다
+    // 말풍선 채팅이 패널을 덮지 않고 그 왼쪽 옆에 서도록, 패널이 지금 차지한 폭을 알려 준다
     // (원장 그림 2026-10-22). 좁은 화면에서는 패널이 숨으므로 CSS가 0으로 본다.
     const railIsOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
     const railShown = !!companyId && !!userId && !!userName && !hidden;
