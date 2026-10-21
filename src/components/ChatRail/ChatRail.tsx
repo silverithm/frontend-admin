@@ -29,6 +29,8 @@ import { useVisiblePolling } from "@/lib/useVisiblePolling";
 import { duration } from "@/theme/motion";
 
 const RAIL_WIDTH = 264;
+/** 접힌 패널(펼치기 막대) 폭 — globals.css .carev-chat-rail-strip과 같은 값 */
+const STRIP_WIDTH = 44;
 
 
 /** 접힘 상태는 화면을 옮겨도 유지된다 — 매번 다시 접게 하면 상시 레일의 의미가 없다 */
@@ -264,13 +266,25 @@ export function ChatRail({ onUnreadChange, hidden, currentRoomId, onNewMessage }
     }, [update]);
     const clearPendingTask = useCallback(() => setPendingTaskId(null), []);
 
+    // 말풍선 채팅·알림 카드가 패널을 덮지 않고 그 왼쪽 옆에 서도록, 패널이 지금 차지한 폭을 알려 준다
+    // (원장 그림 2026-10-22). 좁은 화면에서는 패널이 숨으므로 CSS가 0으로 본다.
+    const railIsOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
+    const railShown = !!companyId && !!userId && !!userName && !hidden;
+    useEffect(() => {
+        const offset = railShown ? (railIsOpen ? RAIL_WIDTH : STRIP_WIDTH) : 0;
+        document.documentElement.style.setProperty("--carev-rail-offset", `${offset}px`);
+    }, [railShown, railIsOpen]);
+    useEffect(() => () => {
+        document.documentElement.style.setProperty("--carev-rail-offset", "0px");
+    }, []);
+
     if (!companyId || !userId || !userName) return null;
     // 채팅 탭 안에서는 화면을 그리지 않는다 — 위의 훅들(폴링·STOMP)은 계속 살아 있어야 하므로
     // 컴포넌트를 언마운트하지 않고 여기서만 렌더를 건너뛴다.
     if (hidden) return null;
 
     // 하이드레이션 전에는 저장된 접힘 상태를 모르므로 펼친 모습으로 그린다 (기본값과 동일)
-    const isOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
+    const isOpen = railIsOpen;
 
     const peopleGroupClass = `carev-chat-rail-group${state.showPeople ? "" : " carev-chat-rail-group-closed"}`;
     const tasksGroupClass = `carev-chat-rail-group${state.showTasks ? "" : " carev-chat-rail-group-closed"}`;

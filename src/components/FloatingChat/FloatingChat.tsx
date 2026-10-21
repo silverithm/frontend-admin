@@ -501,7 +501,9 @@ export function FloatingChat() {
     const selectedRoom = rooms.find(r => r.id === selectedRoomId);
 
     return (
-        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 40 }}>
+        // 자리는 carev-fchat-root가 정한다 — 오른쪽 패널이 떠 있으면 그 왼쪽 옆으로 비켜 선다
+        // (원장 그림 2026-10-22: 채팅 말풍선은 패널과 안 겹치게 옆에)
+        <div className="carev-fchat-root">
             {/* 새 메시지 토스트 — 패널이 열려 있으면 패널 위로 올린다 */}
             <div
                 style={{

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -14,6 +14,8 @@ import { duration } from '@/theme/motion';
 
 /** 한 번에 띄우는 카드 수 — 나머지는 "외 n건"으로 접는다 */
 const MAX_VISIBLE = 3;
+/** 탭 제목 앞에 붙인 확인 안 한 수 "(2) " */
+const TITLE_COUNT = /^\(\d+\+?\)\s/;
 
 interface Props {
   /**
@@ -87,6 +89,15 @@ export default function NotificationPopups({ onOpen, openableTypes = [] }: Props
       void load();
     }
   }, [load]);
+
+  // 다른 탭을 보고 있어도 알 수 있게 탭 제목 앞에 확인 안 한 수를 붙인다 — "(2) 케어브이 …"
+  useEffect(() => {
+    const base = document.title.replace(TITLE_COUNT, '');
+    document.title = items.length > 0 ? `(${items.length > 99 ? '99+' : items.length}) ${base}` : base;
+  }, [items.length]);
+  useEffect(() => () => {
+    document.title = document.title.replace(TITLE_COUNT, '');
+  }, []);
 
   const open = (n: MyNotification) => {
     // 셸이 먼저 화면을 옮기고(채팅 탭이면 대시보드로), 업무는 오른쪽 패널이 그 업무 창을 연다
