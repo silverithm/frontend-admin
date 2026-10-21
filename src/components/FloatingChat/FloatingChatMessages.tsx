@@ -20,6 +20,7 @@ import { ChatMessage, ReactionSummary } from "./floatingChatTypes";
 import { isLocalOnly } from "@/lib/chatSend";
 import { fetchChatParticipants, toggleChatReaction, uploadChatFile, deleteChatMessage, editChatMessage } from '@/lib/apiService';
 import { MAX_CHAT_FILE_SIZE, isViewableDocument, chatListImageUrl, chatMediaType } from '@/lib/chatAttachments';
+import { describeUploadFailures, type ChatUploadFailure } from '@/lib/chatUploadFailures';
 import { buildChatRenderItems, formatDateSeparator } from '@/lib/chatMessageGrouping';
 import { ChatMessageText } from "@/components/chat/ChatMessageText";
 import { ChatScrollDateBadge, chatDateMarkerProps, useChatScrollDateBadge } from '@/components/chat/ChatScrollDateBadge';
@@ -353,15 +354,15 @@ export function FloatingChatMessages({
      * 관리자 채팅 탭과 같은 채팅 전용 업로드 엔드포인트를 쓴다 — 서버가 S3 저장부터
      * 메시지 생성, 열람 가능한 절대 URL 변환까지 처리해 웹·앱이 같은 형식을 갖는다.
      */
-    const sendFileMessage = async (file: File, batch?: { id: string; size: number }) => {
-        if (!roomId || !userId) return;
+    const sendFileMessage = async (file: File, batch?: { id: string; size: number }): Promise<ChatUploadFailure | null> => {
+        if (!roomId || !userId) return null;
+        // 실패는 돌려준다 — 여러 개를 보낼 때 어느 파일이 안 갔는지 모아 한 번에 알린다(sendFiles).
+        // 전에는 파일마다 오류 문구를 지우고 시작해 앞 파일의 실패가 사라졌다.
         if (file.size > MAX_CHAT_FILE_SIZE) {
-            setUploadError(`파일은 ${MAX_CHAT_FILE_SIZE / (1024 * 1024)}MB까지 보낼 수 있습니다`);
-            return;
+            return { name: file.name, reason: "tooLarge" };
         }
 
         const userName = (typeof window !== "undefined" ? localStorage.getItem("userName") : null) || "";
-        setUploadError(null);
         setIsUploadingFile(true);
         try {
             const response = await uploadChatFile(roomId, file, userId, userName, batch);
@@ -374,9 +375,10 @@ export function FloatingChatMessages({
             }
             setReplyTo(null);
             setTimeout(scrollToBottom, 100);
+            return null;
         } catch (error) {
             console.error("[FloatingChat] 파일 전송 실패:", error);
-            setUploadError("파일 전송에 실패했습니다. 다시 시도해주세요");
+            return { name: file.name, reason: "failed" };
         } finally {
             setIsUploadingFile(false);
         }
@@ -390,9 +392,13 @@ export function FloatingChatMessages({
         const batch = files.length > 1
             ? { id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, size: files.length }
             : undefined;
+        setUploadError(null);
+        const failures: ChatUploadFailure[] = [];
         for (const file of files) {
-            await sendFileMessage(file, batch);
+            const failure = await sendFileMessage(file, batch);
+            if (failure) failures.push(failure);
         }
+        setUploadError(describeUploadFailures(failures, MAX_CHAT_FILE_SIZE / (1024 * 1024)));
     };
 
     /**
