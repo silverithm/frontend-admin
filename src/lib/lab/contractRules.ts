@@ -155,3 +155,86 @@ export function missedDayEligible(contract: Pick<ElderContract, 'plannedDaysPerM
   const days = contract.plannedDaysPerMonth;
   return typeof days === 'number' && days >= MISSED_DAY_MIN_DAYS;
 }
+
+// ---------- 등급 현황·변동 리포트 ----------
+
+export interface GradeCount {
+  grade: LtcCareGrade;
+  label: string;
+  count: number;
+}
+
+export interface GradeChange {
+  elderlyId: number;
+  elderlyName: string;
+  from: LtcCareGrade;
+  to: LtcCareGrade;
+  /** 새 등급이 시작된 인정 유효기간 시작일 */
+  on: string;
+  /** 숫자 등급끼리만 방향을 말한다(1등급이 가장 무겁다). 인지지원등급이 끼면 null */
+  direction: 'UP' | 'DOWN' | null;
+}
+
+export interface GradeReport {
+  /** 진행 중 계약이 있는 수급자 수 */
+  activeElders: number;
+  byGrade: GradeCount[];
+  /** 그 해에 일어난 등급 변동(시작일순) */
+  changes: GradeChange[];
+  /** 그 해에 끝난 계약 수 */
+  endedInYear: number;
+}
+
+type ContractForGrade = Pick<ElderContract, 'elderlyId' | 'elderlyName' | 'careGrade' | 'validFrom' | 'contractStart' | 'contractEnd' | 'status'>;
+
+const GRADE_ORDER: ReadonlyArray<LtcCareGrade> = ['1', '2', '3', '4', '5', 'cognitive'];
+const GRADE_LABEL: Record<LtcCareGrade, string> = { '1': '1등급', '2': '2등급', '3': '3등급', '4': '4등급', '5': '5등급', cognitive: '인지지원등급' };
+
+function gradeDirection(from: LtcCareGrade, to: LtcCareGrade): 'UP' | 'DOWN' | null {
+  if (from === 'cognitive' || to === 'cognitive') return null;
+  const a = Number(from);
+  const b = Number(to);
+  // 번호가 작을수록 무거운 등급이다
+  return b < a ? 'UP' : b > a ? 'DOWN' : null;
+}
+
+/**
+ * 수급자 등급 현황과 그 해의 등급 변동.
+ * 현황은 진행 중(ACTIVE) 계약을 수급자마다 가장 최근 것 하나로 센다. 변동은 같은 수급자의 계약을 인정 유효기간 시작일순으로 놓고
+ * 앞뒤 등급이 다른 지점이다(같은 등급 갱신은 변동이 아니다).
+ */
+export function gradeReport(contracts: ReadonlyArray<ContractForGrade>, year: number): GradeReport {
+  const byElder = new Map<number, ContractForGrade[]>();
+  for (const c of contracts) {
+    const list = byElder.get(c.elderlyId) ?? [];
+    list.push(c);
+    byElder.set(c.elderlyId, list);
+  }
+  const counts = new Map<LtcCareGrade, number>();
+  const changes: GradeChange[] = [];
+  let activeElders = 0;
+  for (const list of byElder.values()) {
+    const sorted = [...list].sort((a, b) => a.validFrom.localeCompare(b.validFrom) || a.contractStart.localeCompare(b.contractStart));
+    const active = sorted.filter((c) => c.status === 'ACTIVE');
+    if (active.length > 0) {
+      activeElders += 1;
+      const latest = active[active.length - 1];
+      counts.set(latest.careGrade, (counts.get(latest.careGrade) ?? 0) + 1);
+    }
+    for (let i = 1; i < sorted.length; i += 1) {
+      const prev = sorted[i - 1];
+      const cur = sorted[i];
+      if (prev.careGrade !== cur.careGrade && Number(cur.validFrom.slice(0, 4)) === year) {
+        changes.push({ elderlyId: cur.elderlyId, elderlyName: cur.elderlyName, from: prev.careGrade, to: cur.careGrade, on: cur.validFrom.slice(0, 10), direction: gradeDirection(prev.careGrade, cur.careGrade) });
+      }
+    }
+  }
+  changes.sort((a, b) => a.on.localeCompare(b.on) || a.elderlyName.localeCompare(b.elderlyName, 'ko'));
+  const endedInYear = contracts.filter((c) => c.status === 'ENDED' && c.contractEnd !== null && Number(c.contractEnd.slice(0, 4)) === year).length;
+  return {
+    activeElders,
+    byGrade: GRADE_ORDER.map((grade) => ({ grade, label: GRADE_LABEL[grade], count: counts.get(grade) ?? 0 })),
+    changes,
+    endedInYear,
+  };
+}

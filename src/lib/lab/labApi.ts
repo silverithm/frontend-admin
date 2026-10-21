@@ -29,6 +29,9 @@ import type {
   ElderDocument,
   ElderDocumentInput,
   MedicalVisit,
+  RecordLog,
+  RecordLogInput,
+  RecordLogKind,
   MedicalVisitAiResult,
   MedicalVisitInput,
   MeetingMinutesAiInput,
@@ -1202,6 +1205,30 @@ export function updateMedicalVisit(id: number, input: MedicalVisitInput): Promis
 
 export async function deleteMedicalVisit(id: number): Promise<void> {
   await request<null>(`${LAB}/medical-visits/${q(String(id))}`, { method: 'DELETE' }, '진료 동행 기록을 삭제하지 못했습니다');
+}
+
+// ---------- 종류별 기록 ----------
+
+/** 종류와 함께 month('YYYY-MM') · year · elderlyId 중 하나는 꼭 보낸다. 기록일 최신순 */
+export function listRecordLogs(kind: RecordLogKind, params: { month?: string; year?: number; elderlyId?: number }): Promise<RecordLog[]> {
+  const parts = [`kind=${q(kind)}`];
+  if (params.month) parts.push(`month=${q(params.month)}`);
+  if (params.year !== undefined) parts.push(`year=${q(String(params.year))}`);
+  if (params.elderlyId !== undefined) parts.push(`elderlyId=${q(String(params.elderlyId))}`);
+  return request<RecordLog[]>(`${LAB}/record-logs?${parts.join('&')}`, undefined, '기록을 불러오지 못했습니다');
+}
+
+/** 기록일이 오늘 이후이거나 종류마다 정한 필수 칸이 비면 서버가 400을 준다 */
+export function createRecordLog(input: RecordLogInput): Promise<RecordLog> {
+  return request<RecordLog>(`${LAB}/record-logs`, json('POST', input), '기록을 저장하지 못했습니다');
+}
+
+export function updateRecordLog(id: number, input: RecordLogInput): Promise<RecordLog> {
+  return request<RecordLog>(`${LAB}/record-logs/${q(String(id))}`, json('PUT', input), '기록을 고치지 못했습니다');
+}
+
+export async function deleteRecordLog(id: number): Promise<void> {
+  await request<null>(`${LAB}/record-logs/${q(String(id))}`, { method: 'DELETE' }, '기록을 삭제하지 못했습니다');
 }
 
 // ---------- 운영위원 ----------

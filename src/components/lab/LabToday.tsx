@@ -14,7 +14,7 @@ import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Chip } from './LabUi';
 import { loadCognitiveLine, loadFacilityLine } from './LabTodayFacility';
-import { NOTHING_TO_CHECK, loadContractLine, loadDoseLine, loadIntakeLine, loadHealthLine, loadStockLine, loadVisitLine, loadCaseMeetingLine, loadVehicleLine, loadOutbreakLine } from './LabTodayData';
+import { NOTHING_TO_CHECK, loadBriefingLine, loadContractLine, loadDoseLine, loadIntakeLine, loadHealthLine, loadStockLine, loadVisitLine, loadCaseMeetingLine, loadVehicleLine, loadOutbreakLine } from './LabTodayData';
 import type { TodayLine, TodayLineId, TodayTarget } from './LabTodayData';
 import { LAB_CHANGED_EVENT } from '@/lib/lab/labApi';
 import { readStored, todayString, writeStored } from './labFormat';
@@ -37,6 +37,7 @@ const LINES: ReadonlyArray<{ id: TodayLineId; title: string; note: string | null
   { id: 'outbreak', title: '감염병 대응', note: '올해·작년 기록 중 종료되지 않은 유행·발생 · 보건소 신고나 보호자 안내가 빠진 것은 위험', target: 'outbreak', actionLabel: '감염병 대응 열기', load: loadOutbreakLine },
   { id: 'facility', title: '시설 관리', note: '법정 점검·검사 중 기한이 지났거나 30일 안에 닿는 항목 · 시설 정보를 입력해야 적용 여부가 정확해집니다', target: 'facilityLedger', actionLabel: '시설 관리 대장 열기', load: loadFacilityLine },
   { id: 'cognitive', title: '인지활동형', note: '오늘 출석한 5등급·인지지원 중 1회 60분 이상 인지활동형 프로그램(고시 제32조⑩)을 못 채운 분', target: 'program', actionLabel: '프로그램 일지 열기', load: loadCognitiveLine },
+  { id: 'briefing', title: '안전관리 설명', note: '올해 안전관리 설명(연 1회, 공개 안내 기준 · 고시 대조 필요) 기록이 없는 어르신', target: 'safetyBriefing', actionLabel: '안전관리 설명 열기', load: loadBriefingLine },
   { id: 'vehicle', title: '차량 보험', note: '쓰는 차량 중 보험 만기가 지났거나 30일 안이거나 종합보험이 아닌 차량', target: 'transport', actionLabel: '송영 일지 열기', load: loadVehicleLine },
 ];
 
@@ -49,7 +50,7 @@ interface LabTodayProps {
 
 export default function LabToday({ onOpenTool, refreshKey }: LabTodayProps) {
   const [expanded, setExpanded] = useState(false);
-  const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' }, intake: { status: 'loading' }, visit: { status: 'loading' }, health: { status: 'loading' }, caseMeeting: { status: 'loading' }, vehicle: { status: 'loading' }, outbreak: { status: 'loading' }, facility: { status: 'loading' }, cognitive: { status: 'loading' } });
+  const [states, setStates] = useState<Record<TodayLineId, LineState>>({ contract: { status: 'loading' }, dose: { status: 'loading' }, stock: { status: 'loading' }, intake: { status: 'loading' }, visit: { status: 'loading' }, health: { status: 'loading' }, caseMeeting: { status: 'loading' }, vehicle: { status: 'loading' }, outbreak: { status: 'loading' }, facility: { status: 'loading' }, cognitive: { status: 'loading' }, briefing: { status: 'loading' } });
   const seq = useRef(0);
 
   // 저장된 값은 브라우저에서만 읽을 수 있으므로 첫 그림 뒤에 반영한다

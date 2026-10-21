@@ -9,11 +9,12 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { SupportText } from '@/components/lab/LabUi';
 import { useLabElders } from '@/components/lab/useLabElders';
 import ContractRecordsLab from './ContractRecordsLab';
+import ContractGradeReport from './ContractGradeReport';
 import ContractReferralLab from './ContractReferralLab';
 import type { ReferralSeed } from './ContractReferralDraft';
 import styles from './labPlans.module.css';
 
-type View = 'contract' | 'referral';
+type View = 'contract' | 'referral' | 'grades';
 
 export default function ContractLab() {
   const [view, setView] = useState<View>('contract');
@@ -27,8 +28,9 @@ export default function ContractLab() {
       <SegmentedControl label="보기" value={view} onChange={(v) => setView(v as View)}>
         <SegmentedControlItem value="contract" label="계약·인정" />
         <SegmentedControlItem value="referral" label="퇴소 연계기록지" />
+        <SegmentedControlItem value="grades" label="등급 현황" />
       </SegmentedControl>
-      <SupportText>계약·인정은 수급자 계약서와 장기요양 인정 유효기간, 갱신 신청 기간, 공단 통보를 관리합니다. 퇴소 연계기록지는 계약이 끝나는 수급자에게 써서 드리는 기록입니다.</SupportText>
+      <SupportText>계약·인정은 수급자 계약서와 장기요양 인정 유효기간, 갱신 신청 기간, 공단 통보를 관리합니다. 퇴소 연계기록지는 계약이 끝나는 수급자에게 써서 드리는 기록입니다. 등급 현황은 계약에 적힌 등급으로 등급별 인원과 올해 등급 변동을 모아 보여 줍니다.</SupportText>
       <div hidden={view !== 'contract'}>
         <ContractRecordsLab
           elders={elders}
@@ -41,6 +43,7 @@ export default function ContractLab() {
           }}
         />
       </div>
+      <div hidden={view !== 'grades'}>{view === 'grades' && <ContractGradeReport contractsVersion={contractsVersion} />}</div>
       <div hidden={view !== 'referral'}>
         <ContractReferralLab elders={elders} eldersLoading={isLoading} eldersError={error} seed={seed} contractsVersion={contractsVersion} />
       </div>

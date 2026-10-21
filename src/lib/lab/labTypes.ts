@@ -2524,3 +2524,28 @@ export interface FacilityLog {
 }
 
 export type FacilityLogInput = Omit<FacilityLog, 'id' | 'writerName' | 'updatedAt'>;
+
+
+// ---------- 종류별 기록(업무수행일지·시설운영일지·안전관리 설명·현금영수증) ----------
+
+export type RecordLogKind = 'PROGRAM_MANAGER_LOG' | 'SENIOR_CAREGIVER_LOG' | 'FACILITY_DIARY' | 'SAFETY_BRIEFING' | 'CASH_RECEIPT';
+
+/** 종류별 기록 한 줄. checks는 종류마다 허용 값이 다른 확인 항목 코드(recordLogRules의 RECORD_LOG_KINDS) */
+export interface RecordLog {
+  id: number;
+  kind: RecordLogKind;
+  entryDate: string;
+  elderlyId: number | null;
+  elderlyName: string;
+  authorName: string;
+  checks: string[];
+  body: string | null;
+  action: string | null;
+  /** 현금영수증 승인번호 */
+  extra: string | null;
+  /** 현금영수증 금액(원) */
+  amount: number | null;
+  updatedAt: string;
+}
+
+export type RecordLogInput = Omit<RecordLog, 'id' | 'elderlyName' | 'updatedAt'>;

@@ -39,6 +39,7 @@ import TransportLab from '@/components/labRecords/TransportLab';
 import VaccinationLab from '@/components/labRecords/VaccinationLab';
 import OutbreakLab from '@/components/labRecords/OutbreakLab';
 import FacilityLedgerLab from '@/components/labPlans/FacilityLedgerLab';
+import RecordLogLab from '@/components/labRecords/RecordLogLab';
 import CaseMeetingLab from '@/components/labPlans/CaseMeetingLab';
 import CommitteeLab from '@/components/labPlans/CommitteeLab';
 import PolicyDocsLab from '@/components/labPlans/PolicyDocsLab';
@@ -60,7 +61,7 @@ import RiskAssessmentLab from './RiskAssessmentLab';
 import { readStored, writeStored } from './labFormat';
 import styles from './lab.module.css';
 
-type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance' | 'elderDocs' | 'medicalVisit' | 'staffing' | 'committee' | 'staffHr' | 'bankRecon' | 'vaccination' | 'transport' | 'policyDocs' | 'caseMeeting' | 'outbreak' | 'staffWelfare' | 'facilityLedger';
+type LabTool = 'care' | 'nursing' | 'program' | 'consult' | 'copay' | 'risk' | 'carePlan' | 'training' | 'eval' | 'meal' | 'safety' | 'payroll' | 'ledger' | 'donation' | 'careEvent' | 'rehab' | 'guardian' | 'community' | 'budget' | 'medication' | 'bath' | 'contract' | 'claimCheck' | 'intake' | 'programPlan' | 'businessPlan' | 'satisfaction' | 'severance' | 'elderDocs' | 'medicalVisit' | 'staffing' | 'committee' | 'staffHr' | 'bankRecon' | 'vaccination' | 'transport' | 'policyDocs' | 'caseMeeting' | 'outbreak' | 'staffWelfare' | 'facilityLedger' | 'dutyLog' | 'facilityDiary' | 'safetyBriefing' | 'cashReceipt';
 
 interface ToolGroup {
   id: string;
@@ -72,6 +73,7 @@ const GROUPS: readonly ToolGroup[] = [
   { id: 'recipient', label: '수급자', tools: [
       { id: 'intake', label: '입소 상담·대기' },
       { id: 'contract', label: '계약·인정' },
+      { id: 'safetyBriefing', label: '안전관리 설명' },
       { id: 'elderDocs', label: '서류함' },
     ],
   },
@@ -106,6 +108,8 @@ const GROUPS: readonly ToolGroup[] = [
       { id: 'outbreak', label: '감염병 대응' },
       { id: 'staffWelfare', label: '직원 복지' },
       { id: 'facilityLedger', label: '시설 관리 대장' },
+      { id: 'dutyLog', label: '업무수행일지' },
+      { id: 'facilityDiary', label: '시설운영일지' },
     ],
   },
   {
@@ -123,6 +127,7 @@ const GROUPS: readonly ToolGroup[] = [
     tools: [
       { id: 'copay', label: '본인부담금' },
       { id: 'claimCheck', label: '공단 청구 대조' },
+      { id: 'cashReceipt', label: '현금영수증 대장' },
     ],
   },
   {
@@ -251,6 +256,42 @@ export default function LabHome() {
       {tool === 'outbreak' && <OutbreakLab />}
       {tool === 'staffWelfare' && <StaffWelfareLab />}
       {tool === 'facilityLedger' && <FacilityLedgerLab />}
+      {tool === 'dutyLog' && (
+        <RecordLogLab
+          kinds={['PROGRAM_MANAGER_LOG', 'SENIOR_CAREGIVER_LOG']}
+          guide={[
+            '케어포 주야간보호 메뉴에는 프로그램 관리자 업무수행일지와 선임 요양보호사 업무수행일지가 있습니다. 이 화면은 그 구성을 참고한 기관 자체 서식입니다.',
+            '프로그램 관리자는 5등급·인지지원등급과 1~4등급 치매 수급자의 인지활동형 프로그램 제공을 관리하는 업무를 적습니다(고시 제32조 대조 필요). 선임 요양보호사 일지의 법적 요건은 확인하지 못했습니다.',
+          ]}
+        />
+      )}
+      {tool === 'facilityDiary' && (
+        <RecordLogLab
+          kinds={['FACILITY_DIARY']}
+          guide={[
+            '시설운영일지는 시·군·구 점검 때 보는 운영 기록입니다(케어포 사용안내의 "시설운영일지(시군구 점검시)"). 하루 한 건씩 개소·소독·소방·급식·방문·송영 확인 여부와 특이사항을 적습니다.',
+            '서식과 필수 항목은 지자체마다 다를 수 있어 규정에 정해진 것은 확인하지 못했습니다(대조 필요).',
+          ]}
+        />
+      )}
+      {tool === 'cashReceipt' && (
+        <RecordLogLab
+          kinds={['CASH_RECEIPT']}
+          guide={[
+            '본인부담금을 낸 수급자(보호자)에게 현금영수증을 발행한 내역을 남기는 대장입니다. 케어포 본인부담금 메뉴의 "현금영수증 발행" 기능을 참고했습니다.',
+            '이 화면은 발행 사실(발행일·금액·소득공제용/지출증빙용·승인번호)을 적어 두는 곳이며 국세청에 발행하지는 않습니다. 발행은 홈택스·단말기 등에서 하고 승인번호를 옮겨 적으세요. 승인번호는 암호화해 저장합니다.',
+          ]}
+        />
+      )}
+      {tool === 'safetyBriefing' && (
+        <RecordLogLab
+          kinds={['SAFETY_BRIEFING']}
+          guide={[
+            '케어포 사용안내에는 "수급자 안전관리 설명(연 1회)"이 업무 주기로 나옵니다. 낙상·욕창·감염·응급상황·이동서비스 수칙·투약 안전 가운데 설명한 항목과 설명한 대상(수급자·보호자)을 기록합니다.',
+            '연 1회라는 주기와 필수 항목은 공개 안내 기준이며 고시·평가 매뉴얼과 대조가 필요합니다. 위 현황에서 올해 설명 전인 수급자를 바로 기록할 수 있습니다.',
+          ]}
+        />
+      )}
       {tool === 'medication' && <MedicationLab key={toolView?.nonce ?? 'plain'} initialView={toolView?.view} />}
       {tool === 'bath' && <BathLab />}
       {tool === 'claimCheck' && <ClaimCheckLab />}

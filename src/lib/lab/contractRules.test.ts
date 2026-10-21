@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { VALIDITY_RULE, contractAlerts, expectedValidYears, missedDayEligible, renewalWindow } from './contractRules.ts';
+import { VALIDITY_RULE, contractAlerts, expectedValidYears, missedDayEligible, renewalWindow, gradeReport } from './contractRules.ts';
 import type { LtcCareGrade } from './labTypes.ts';
 
 const base = {
@@ -123,4 +123,63 @@ test('missedDayEligible — 월 15일 이상만', () => {
   assert.equal(missedDayEligible({ plannedDaysPerMonth: 31 }), true);
   assert.equal(missedDayEligible({ plannedDaysPerMonth: 14 }), false);
   assert.equal(missedDayEligible({ plannedDaysPerMonth: null }), false);
+});
+
+// ---------- 등급 현황·변동 ----------
+
+const gc = (elderlyId: number, name: string, grade: '1' | '2' | '3' | '4' | '5' | 'cognitive', validFrom: string, o: Partial<{ status: 'ACTIVE' | 'ENDED'; contractEnd: string | null }> = {}) => ({
+  elderlyId,
+  elderlyName: name,
+  careGrade: grade,
+  validFrom,
+  contractStart: validFrom,
+  contractEnd: o.contractEnd ?? null,
+  status: o.status ?? 'ACTIVE',
+});
+
+test('등급 현황은 진행 중인 수급자를 가장 최근 계약의 등급으로 센다', () => {
+  const r = gradeReport(
+    [
+      gc(1, '김말순', '4', '2025-01-01', { status: 'ENDED', contractEnd: '2025-12-31' }),
+      gc(1, '김말순', '3', '2026-01-01'),
+      gc(2, '박봉례', '5', '2026-02-01'),
+      gc(3, '이순남', '3', '2026-03-01'),
+      gc(4, '최점례', '2', '2026-01-01', { status: 'ENDED', contractEnd: '2026-06-30' }),
+    ],
+    2026,
+  );
+  assert.equal(r.activeElders, 3);
+  assert.deepEqual(r.byGrade.filter((g) => g.count > 0).map((g) => [g.grade, g.count]), [['3', 2], ['5', 1]]);
+  assert.equal(r.endedInYear, 1); // 최점례 — 김말순의 2025 종료는 올해가 아니다
+});
+
+test('등급 변동은 같은 수급자의 앞뒤 등급이 다른 지점이고, 그 해 것만 센다', () => {
+  const r = gradeReport(
+    [
+      gc(1, '김말순', '4', '2024-01-01', { status: 'ENDED', contractEnd: '2024-12-31' }),
+      gc(1, '김말순', '3', '2026-01-01'), // 4→3: 등급이 무거워짐(UP)
+      gc(2, '박봉례', '3', '2025-01-01', { status: 'ENDED', contractEnd: '2025-12-31' }),
+      gc(2, '박봉례', '3', '2026-02-01'), // 같은 등급 갱신은 변동이 아니다
+      gc(3, '이순남', '2', '2025-03-01', { status: 'ENDED', contractEnd: '2026-03-31' }),
+      gc(3, '이순남', '4', '2026-04-01'), // 2→4: DOWN
+      gc(4, '최점례', '5', '2025-05-01', { status: 'ENDED', contractEnd: '2026-04-30' }),
+      gc(4, '최점례', 'cognitive', '2026-05-01'), // 인지지원등급이 끼면 방향 없음
+      gc(5, '한갑수', '4', '2025-02-01', { status: 'ENDED', contractEnd: '2025-12-31' }),
+      gc(5, '한갑수', '2', '2025-06-01'), // 작년 변동
+    ],
+    2026,
+  );
+  assert.deepEqual(r.changes.map((c) => [c.elderlyName, c.from, c.to, c.direction]), [
+    ['김말순', '4', '3', 'UP'],
+    ['이순남', '2', '4', 'DOWN'],
+    ['최점례', '5', 'cognitive', null],
+  ]);
+  assert.equal(r.changes[0].on, '2026-01-01');
+});
+
+test('계약이 없으면 모두 0', () => {
+  const r = gradeReport([], 2026);
+  assert.equal(r.activeElders, 0);
+  assert.equal(r.byGrade.every((g) => g.count === 0), true);
+  assert.deepEqual(r.changes, []);
 });

@@ -2,21 +2,23 @@
  * 실험실 첫 화면 "오늘 확인할 것" 카드의 아홉 줄 계산 — 계약 알림, 오늘 투약 대기, 약품 사용기한, 입소 상담 연락, 진료 후속 확인, 건강검진 기한, 사례관리 기한, 차량 보험, 감염병 대응.
  * 줄마다 따로 불러온다(한 줄이 실패해도 나머지는 보인다). 규칙은 lib/lab의 contractAlerts·dosesDue·doseStatus·expiringStock을 그대로 쓴다.
  */
-import { listCaseMeetings, listOutbreaks, listElderContracts, listIntake, listMedicalVisits, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles, listTransportVehicles } from '@/lib/lab/labApi';
+import { listCaseMeetings, listOutbreaks, listElderContracts, listIntake, listMedicalVisits, listRecordLogs, listMedicationDoses, listMedicationRequests, listMedicineStock, listStaffCerts, listStaffProfiles, listTransportVehicles } from '@/lib/lab/labApi';
 import { OUTBREAK_GAP_LABEL, outbreakCheck } from '@/lib/lab/outbreakRules';
 import { followUpAlerts } from '@/lib/lab/caseMeetingRules';
 import { insuranceStatus } from '@/lib/lab/transportRules';
 import { contractAlerts } from '@/lib/lab/contractRules';
+import { briefingStatus } from '@/lib/lab/recordLogRules';
 import { followUpsDue } from '@/lib/lab/medicalVisitRules';
 import { inquiryAlerts } from '@/lib/lab/intakeRules';
 import { doseStatus, dosesDue, expiringStock, slotLabel } from '@/lib/lab/medicationRules';
 import { healthCheckStatus } from '@/lib/lab/staffHrRules';
 import { dotDate } from './labFormat';
+import { fetchLabElders } from './useLabElders';
 
-export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle' | 'outbreak' | 'facility' | 'cognitive';
+export type TodayLineId = 'contract' | 'dose' | 'stock' | 'intake' | 'visit' | 'health' | 'caseMeeting' | 'vehicle' | 'outbreak' | 'facility' | 'cognitive' | 'briefing';
 
 /** 줄을 눌렀을 때 여는 도구 */
-export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport' | 'outbreak' | 'facilityLedger' | 'program';
+export type TodayTarget = 'contract' | 'medication' | 'intake' | 'medicalVisit' | 'staffHr' | 'caseMeeting' | 'transport' | 'outbreak' | 'facilityLedger' | 'program' | 'safetyBriefing';
 
 export interface TodayLine {
   /** 확인이 필요한 건수(0이면 "확인할 것 없음") */
@@ -190,5 +192,19 @@ export async function loadOutbreakLine(today: string): Promise<TodayLine> {
     text: [`진행 중 ${rows.length}건`, gapped.length > 0 ? `신고·안내 빠짐 ${gapped.length}건` : ''].filter(Boolean).join(' · '),
     preview: `${first.o.disease} — ${detail} (시작 ${dotDate(first.o.startedOn)})`,
     danger: gapped.length > 0,
+  };
+}
+
+/** 올해 안전관리 설명(연 1회) 기록이 없는 어르신 — 도구 화면의 현황과 같은 어르신 목록(기관의 모든 어르신)을 쓴다 */
+export async function loadBriefingLine(today: string): Promise<TodayLine> {
+  const year = Number(today.slice(0, 4));
+  const [elders, logs] = await Promise.all([fetchLabElders(), listRecordLogs('SAFETY_BRIEFING', { year })]);
+  const missing = briefingStatus(elders, logs, year).filter((r) => r.lastOn === null);
+  if (missing.length === 0) return none();
+  return {
+    count: missing.length,
+    text: `올해 설명 전 ${missing.length}명`,
+    preview: `${missing[0].elderlyName}${missing.length > 1 ? ` 외 ${missing.length - 1}명` : ''} — 안전관리 설명(연 1회) 기록이 없습니다`,
+    danger: false,
   };
 }

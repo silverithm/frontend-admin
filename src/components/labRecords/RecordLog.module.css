@@ -1,0 +1,60 @@
+/* 종류별 기록 화면 전용 스타일 — 공용 모양은 labRecords.module.css. 색은 토큰만. */
+
+.logRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.logRow:last-child {
+  border-bottom: 0;
+}
+
+.logBody {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.checkGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-4);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  word-break: keep-all;
+}
+
+.statusRow:last-child {
+  border-bottom: 0;
+}
+
+.guide {
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-background-subtle);
+  word-break: keep-all;
+}
+
+.guide summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+}
+
+.guide p {
+  margin: var(--spacing-2) 0 0;
+  color: var(--color-text-secondary);
+}
