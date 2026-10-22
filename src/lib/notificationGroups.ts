@@ -18,8 +18,9 @@ export function notificationTarget(n: Pick<MyNotification, 'type' | 'relatedEnti
   if (type.startsWith('VACATION')) return 'vacation';
   if (type.startsWith('MEMBER_JOIN')) return 'members';
   if (type === 'MEETING_MINUTES') return 'meeting_minutes';
-  // 일정은 알림 종류 칸에 따로 없어 GENERAL로 오고, 무엇인지는 relatedEntityType이 말한다
-  if (n.relatedEntityType === 'schedule') return 'schedule';
+  // 일정은 알림 종류 칸에 따로 없어 GENERAL로 오고, 무엇인지는 relatedEntityType이 말한다 —
+  // 등록·배정은 'schedule', 매일 아침 리마인더는 'schedule_start_reminder'·'schedule_task_reminder'
+  if (n.relatedEntityType?.startsWith('schedule')) return 'schedule';
   return null;
 }
 

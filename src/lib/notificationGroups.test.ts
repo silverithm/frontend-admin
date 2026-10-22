@@ -40,3 +40,22 @@ test('열기가 가는 곳 — 일정은 GENERAL + relatedEntityType schedule', 
   assert.equal(notificationTarget({ type: 'GENERAL', relatedEntityType: 'schedule' }), 'schedule');
   assert.equal(notificationTarget({ type: 'GENERAL', relatedEntityType: null }), null);
 });
+
+test('매일 아침 리마인더도 같은 곳으로 — 일정 당일·미완료 할 일, 휴무 마감·조정, 업무 요약', () => {
+  assert.equal(notificationTarget({ type: 'GENERAL', relatedEntityType: 'schedule_start_reminder' }), 'schedule');
+  assert.equal(notificationTarget({ type: 'GENERAL', relatedEntityType: 'schedule_task_reminder' }), 'schedule');
+  assert.equal(notificationTarget({ type: 'VACATION_REMINDER', relatedEntityType: 'vacation_adjustment' }), 'vacation');
+  assert.equal(notificationTarget({ type: 'VACATION_REMINDER', relatedEntityType: 'vacation_deadline_reminder' }), 'vacation');
+  assert.equal(notificationTarget({ type: 'WORK_TASK', relatedEntityType: 'work_task_daily' }), 'work_task');
+  // 종류가 정해진 알림은 relatedEntityType에 흔들리지 않는다
+  assert.equal(notificationTarget({ type: 'CHAT', relatedEntityType: 'schedule' }), 'chat');
+  assert.equal(notificationTarget({ type: 'GENERAL', relatedEntityType: 'notice' }), null);
+});
+
+test('리마인더는 채팅처럼 묶지 않고 한 건씩 카드가 된다', () => {
+  const cards = buildNotificationCards([
+    n(3, 'GENERAL', { relatedEntityId: 99, relatedEntityType: 'schedule_start_reminder' }),
+    n(2, 'WORK_TASK', { relatedEntityId: 41, relatedEntityType: 'work_task_daily' }),
+  ], new Set());
+  assert.deepEqual(cards.map((c) => [c.key, c.target]), [['n:3', 'schedule'], ['n:2', 'work_task']]);
+});
