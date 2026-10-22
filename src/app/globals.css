@@ -869,7 +869,8 @@ html {
   position: fixed;
   bottom: var(--spacing-6);
   right: var(--spacing-6);
-  z-index: 40;
+  /* 알림 카드(.carev-npop, 45)보다 위 — 말풍선을 오른쪽 위로 옮겨도 카드에 깔려 못 누르는 일이 없게 */
+  z-index: 46;
   transition: right var(--duration-fast) var(--ease-standard);
 }
 @media (min-width: 1280px) {
@@ -1013,7 +1014,8 @@ html {
    오른쪽 패널과 겹쳐도 된다(원장 2026-10-22 "알림은 겹쳐도 상관없다, 우측 상단에") — 비켜 서는 건 말풍선 채팅만. */
 .carev-npop {
   position: fixed;
-  top: var(--spacing-3);
+  /* 패널 머리줄(약 44px) 바로 아래 — 겹쳐도 되지만 패널 '접기' 단추까지 덮으면 카드가 떠 있는 동안 접을 수 없다 */
+  top: calc(44px + var(--spacing-2));
   right: var(--spacing-4);
   z-index: 45;
   width: min(340px, calc(100vw - var(--spacing-8)));
@@ -1042,8 +1044,21 @@ html {
   background: var(--color-background-teal);
   color: var(--color-text-teal);
 }
-.carev-npop-icon-task { background: var(--color-background-yellow); color: var(--color-text-yellow); }
+/* 알림 종류마다 머리 동그라미 색 — 글자(제목)로도 무엇인지 말하므로 색만으로 구분하지 않는다 */
+.carev-npop-icon-work_task { background: var(--color-background-yellow); color: var(--color-text-yellow); }
+.carev-npop-icon-approval { background: var(--color-background-purple); color: var(--color-text-purple); }
+.carev-npop-icon-vacation,
+.carev-npop-icon-schedule { background: var(--color-background-blue); color: var(--color-text-blue); }
+.carev-npop-icon-members { background: var(--color-background-green); color: var(--color-text-green); }
 .carev-npop-titles { display: flex; flex-direction: column; min-width: 0; }
+.carev-npop-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .carev-npop-body {
   margin: 0;
   white-space: pre-line;

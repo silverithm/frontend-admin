@@ -397,22 +397,23 @@ export function ChatRail({ onUnreadChange, hidden, currentRoomId, onNewMessage }
                     <motion.aside
                         key="strip"
                         className="carev-chat-rail-strip"
-                        aria-label="직원·업무진행도 (접힘)"
+                        aria-label="상태표시바 (접힘)"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: duration.fast, ease: "easeOut" }}
                     >
                         <IconButton
-                            label="직원·업무진행도 펼치기"
+                            label="상태표시바 펼치기"
                             tooltip="펼치기"
                             variant="ghost"
                             size="sm"
                             icon={<Icon icon={FiChevronsLeft} size="sm" />}
                             onClick={() => update({ isOpen: true })}
                         />
+                        {/* 원장 요청(2026-10-22): 접었을 때 이름은 '상태표시바' */}
                         <button type="button" className="carev-chat-rail-strip-label" onClick={() => update({ isOpen: true })}>
-                            업무진행도
+                            상태표시바
                         </button>
                         {myTaskCount > 0 && (
                             <span className="carev-chat-rail-strip-badge">

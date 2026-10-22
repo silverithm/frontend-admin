@@ -19,21 +19,59 @@ import { applyIncoming } from '@/lib/chatSend';
 import { useReliableChatSend } from '@/lib/useReliableChatSend';
 import { useOrgPresenceStore, sortMembersByPresence } from '@/lib/orgPresenceStore';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
+import { OPEN_CHAT_ROOM_EVENT, requestNotificationsRefresh, setViewingChatRoom } from '@/lib/alertBus';
 import { duration } from '@/theme/motion';
 
 
 type ChatView = "rooms" | "messages";
 
-interface ChatToast {
-    key: number;
-    roomId: number;
-    roomName: string;
-    senderName: string;
-    content: string;
+/** 말풍선 단추 지름 — 자리 계산에 쓴다 */
+const FAB_SIZE = 56;
+/** 화면 가장자리에서 띄울 최소 거리 */
+const FAB_EDGE = 8;
+/** 이만큼 움직여야 '끌기'로 본다 — 손이 살짝 떨린 클릭이 끌기로 바뀌지 않게 */
+const FAB_DRAG_THRESHOLD = 6;
+const FAB_POS_KEY = "carev-fchat-pos";
+
+type FabPos = { right: number; bottom: number };
+
+function clampFabPos(pos: FabPos): FabPos {
+    if (typeof window === "undefined") return pos;
+    const maxRight = Math.max(FAB_EDGE, window.innerWidth - FAB_SIZE - FAB_EDGE);
+    const maxBottom = Math.max(FAB_EDGE, window.innerHeight - FAB_SIZE - FAB_EDGE);
+    return {
+        right: Math.min(Math.max(pos.right, FAB_EDGE), maxRight),
+        bottom: Math.min(Math.max(pos.bottom, FAB_EDGE), maxBottom),
+    };
+}
+
+function loadFabPos(): FabPos | null {
+    try {
+        const raw = window.localStorage.getItem(FAB_POS_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Partial<FabPos>;
+        return typeof parsed.right === "number" && typeof parsed.bottom === "number"
+            ? { right: parsed.right, bottom: parsed.bottom }
+            : null;
+    } catch {
+        return null;
+    }
+}
+
+function saveFabPos(pos: FabPos): void {
+    try {
+        window.localStorage.setItem(FAB_POS_KEY, JSON.stringify(pos));
+    } catch {
+        // 저장할 수 없는 환경이어도 이번 화면에서는 옮긴 자리에 있다
+    }
 }
 
 export function FloatingChat() {
     const [isOpen, setIsOpen] = useState(false);
+    /** 끌어서 옮긴 자리(오른쪽·아래에서 떨어진 px). null이면 CSS 기본 자리 */
+    const [fabPos, setFabPos] = useState<FabPos | null>(null);
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    const suppressClickRef = useRef(false);
     const [currentView, setCurrentView] = useState<ChatView>("rooms");
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -53,7 +91,6 @@ export function FloatingChat() {
     /** 끊긴 시각 — 오래(30초+) 끊겨 있으면 새로고침을 안내한다. 붙어 있으면 null. */
     const [disconnectedAt, setDisconnectedAt] = useState<number | null>(null);
     const [connectionIsStale, setConnectionIsStale] = useState(false);
-    const [toasts, setToasts] = useState<ChatToast[]>([]);
 
     // 직원 목록 — 채팅 페이지와 같은 '대화 / 직원' 구성.
     // 명단·접속 상태는 채팅 페이지와 스토어를 함께 쓴다 (같은 화면에 둘 다 떠 있을 수 있다)
@@ -73,7 +110,6 @@ export function FloatingChat() {
     const selectedRoomIdRef = useRef<number | null>(null);
     const isOpenRef = useRef(false);
     const roomsRef = useRef<ChatRoom[]>([]);
-    const toastKeyRef = useRef(0);
 
     useEffect(() => { selectedRoomIdRef.current = selectedRoomId; }, [selectedRoomId]);
     useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
@@ -360,19 +396,10 @@ export function FloatingChat() {
                         return [updatedRoom, ...prevRooms.slice(0, idx), ...prevRooms.slice(idx + 1)];
                     });
 
+                    // 새 메시지 알림은 오른쪽 위 알림 카드가 맡는다(채팅·결재·일정 … 한 줄기, 2026-10-22 원장).
+                    // 서버가 알림함에 쓰는 일이 방송 직후 뒤에서 돌아가므로 잠깐 기다렸다가 다시 받게 한다.
                     if (!isViewing && !isMine) {
-                        const roomName = roomsRef.current.find(r => r.id === roomId)?.name || "채팅";
-                        const key = ++toastKeyRef.current;
-                        setToasts(prev => [...prev.slice(-2), {
-                            key,
-                            roomId,
-                            roomName,
-                            senderName: msg.senderName,
-                            content: msg.type === "TEXT" ? msg.content : (msg.fileName || "파일"),
-                        }]);
-                        setTimeout(() => {
-                            setToasts(prev => prev.filter(t => t.key !== key));
-                        }, 5000);
+                        window.setTimeout(requestNotificationsRefresh, 1500);
                     }
                 } catch (e) {
                     console.error("[FloatingChat WebSocket] 메시지 파싱 오류:", e);
@@ -470,6 +497,26 @@ export function FloatingChat() {
         }
     };
 
+    // 지금 펼쳐 보고 있는 방 — 알림 카드가 이 방의 새 메시지는 띄우지 않는다
+    useEffect(() => {
+        setViewingChatRoom("floating", isOpen && currentView === "messages" ? selectedRoomId : null);
+    }, [isOpen, currentView, selectedRoomId]);
+    useEffect(() => () => setViewingChatRoom("floating", null), []);
+
+    // 채팅 알림 카드의 '열기' — 이 창을 열고 그 방으로 간다
+    useEffect(() => {
+        const onOpenRoom = (event: Event) => {
+            const roomId = (event as CustomEvent<{ roomId: number }>).detail?.roomId;
+            if (!roomId) return;
+            setIsOpen(true);
+            setListTab("rooms");
+            setSelectedRoomId(roomId);
+            setCurrentView("messages");
+        };
+        window.addEventListener(OPEN_CHAT_ROOM_EVENT, onOpenRoom);
+        return () => window.removeEventListener(OPEN_CHAT_ROOM_EVENT, onOpenRoom);
+    }, []);
+
     // 오른쪽 패널에서 직원을 누르면 이 창을 열고 그 사람과의 1:1 대화로 간다 ([[requestDirectChat]]).
     // 리스너는 한 번만 달고, 최신 방 목록을 쥔 함수는 ref로 넘긴다.
     const openDirectChatRef = useRef(openDirectChat);
@@ -485,14 +532,104 @@ export function FloatingChat() {
         return () => window.removeEventListener(OPEN_DIRECT_CHAT_EVENT, onOpenDirect);
     }, []);
 
+    // 저장된 자리는 마운트 뒤에 읽는다(서버 렌더와 다를 수 있다). 창 크기가 바뀌면 화면 안으로 당긴다.
+    useEffect(() => {
+        const saved = loadFabPos();
+        if (saved) setFabPos(clampFabPos(saved));
+        const onResize = () => setFabPos((current) => (current ? clampFabPos(current) : current));
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+
+    /**
+     * 옮긴 말풍선에서 창을 펼칠 자리 — 위·아래 중 넓은 쪽으로 펼치되, 어느 자리든 창 전체가 화면 안에 들어오게 민다.
+     * 창 크기는 globals.css(.carev-fchat-panel)와 같은 식으로 센다. 옮기지 않았으면 예전처럼 단추 위, 오른쪽 맞춤.
+     */
+    const panelStyle = useMemo((): React.CSSProperties => {
+        if (!fabPos || typeof window === "undefined") return { bottom: 64, right: 0 };
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const panelW = Math.min(380, vw - 48);
+        const panelH = Math.min(550, vh - 140);
+        const fabLeft = vw - fabPos.right - FAB_SIZE;
+        const fabTop = vh - fabPos.bottom - FAB_SIZE;
+        const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+        // 가로: 화면 오른쪽 절반이면 단추 오른쪽 끝에, 왼쪽 절반이면 왼쪽 끝에 맞추고 화면 밖으로는 안 나가게
+        const wantLeft = fabLeft + FAB_SIZE / 2 > vw / 2 ? FAB_SIZE - panelW : 0;
+        const left = clamp(wantLeft, FAB_EDGE - fabLeft, vw - FAB_EDGE - panelW - fabLeft);
+        const spaceAbove = fabTop - FAB_EDGE;
+        const spaceBelow = fabPos.bottom - FAB_EDGE;
+        const need = panelH + 8;
+        if (spaceAbove >= need && spaceAbove >= spaceBelow) {
+            // 위로 — 창 아래 끝을 단추 위에 둔다
+            const bottom = clamp(64, FAB_EDGE - fabPos.bottom, fabTop + FAB_SIZE - FAB_EDGE - panelH);
+            return { left, bottom };
+        }
+        if (spaceBelow >= need) {
+            // 아래로 — 창 위 끝을 단추 아래에 둔다
+            const top = clamp(64, FAB_EDGE - fabTop, vh - FAB_EDGE - panelH - fabTop);
+            return { left, top };
+        }
+        // 위아래 어느 쪽에도 다 안 들어간다(화면 한가운데 등) — 단추를 덮지 않게 옆으로 펼친다
+        const besideLeft = fabLeft + FAB_SIZE / 2 > vw / 2 ? -(panelW + 8) : FAB_SIZE + 8;
+        const sideLeft = clamp(besideLeft, FAB_EDGE - fabLeft, vw - FAB_EDGE - panelW - fabLeft);
+        const sideTop = clamp(FAB_SIZE / 2 - panelH / 2, FAB_EDGE - fabTop, vh - FAB_EDGE - panelH - fabTop);
+        return { left: sideLeft, top: sideTop };
+    }, [fabPos]);
+
     const handleToggle = () => {
+        // 끌어서 옮긴 직후의 '놓기'는 누른 것이 아니다 — 창을 여닫지 않는다
+        if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            return;
+        }
         setIsOpen(prev => !prev);
     };
 
-    const handleToastClick = (toast: ChatToast) => {
-        setToasts([]);
-        setIsOpen(true);
-        handleSelectRoom(toast.roomId);
+    /**
+     * 말풍선을 끌어 화면 어디로든 옮긴다(2026-10-22 원장 "채팅 문양을 끌고 다니면서 원하는 위치에").
+     * 자리는 오른쪽·아래에서 떨어진 거리로 이 브라우저에 기억한다 — 창 크기가 바뀌어도 모서리 기준으로 남는다.
+     * 한 번도 옮기지 않았으면 CSS 기본 자리(오른쪽 패널 왼쪽 옆)를 따른다.
+     */
+    const onFabPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (e.button !== 0) return;
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const pointerId = e.pointerId;
+        const start = {
+            x: e.clientX,
+            y: e.clientY,
+            right: window.innerWidth - rect.right,
+            bottom: window.innerHeight - rect.bottom,
+        };
+        let moved = false;
+        let last: FabPos | null = null;
+
+        // 움직임은 화면 전체에서 받는다 — 빠르게 끌면 첫 움직임부터 단추 밖이라 단추에 붙인 처리로는 놓친다.
+        // 포인터를 붙잡지(capture) 않는 것은, 붙잡으면 끌지 않고 누르기만 해도 단추의 클릭이 오지 않아서다.
+        const onMove = (ev: PointerEvent) => {
+            if (ev.pointerId !== pointerId) return;
+            const dx = ev.clientX - start.x;
+            const dy = ev.clientY - start.y;
+            if (!moved && Math.hypot(dx, dy) < FAB_DRAG_THRESHOLD) return;
+            moved = true;
+            last = clampFabPos({ right: start.right - dx, bottom: start.bottom - dy });
+            setFabPos(last);
+        };
+        const onUp = (ev: PointerEvent) => {
+            if (ev.pointerId !== pointerId) return;
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+            window.removeEventListener("pointercancel", onUp);
+            if (!moved || !last) return;
+            saveFabPos(last);
+            // 놓은 자리가 단추 위면 곧이어 클릭이 온다 — 그 한 번만 무시하고, 안 오면 다음 차례에 풀어 준다
+            suppressClickRef.current = true;
+            window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+        };
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
     };
 
     // Don't render if no auth
@@ -503,71 +640,11 @@ export function FloatingChat() {
     return (
         // 자리는 carev-fchat-root가 정한다 — 오른쪽 패널이 떠 있으면 그 왼쪽 옆으로 비켜 선다
         // (원장 그림 2026-10-22: 채팅 말풍선은 패널과 안 겹치게 옆에)
-        <div className="carev-fchat-root">
-            {/* 새 메시지 토스트 — 패널이 열려 있으면 패널 위로 올린다 */}
-            <div
-                style={{
-                    position: "absolute",
-                    // 패널 높이는 globals.css가 정한다 (좁은 화면에선 550보다 작아진다)
-                    bottom: isOpen ? "calc(64px + var(--carev-fchat-panel-h) + var(--spacing-3))" : 64,
-                    right: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 'var(--spacing-2)',
-                    alignItems: "flex-end",
-                }}
-            >
-                <AnimatePresence>
-                    {toasts.map(toast => (
-                        <motion.button
-                            key={toast.key}
-                            initial={{ opacity: 0, x: 24 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 24 }}
-                            transition={{ duration: duration.fast }}
-                            onClick={() => handleToastClick(toast)}
-                            style={{
-                                width: 300,
-                                textAlign: "left",
-                                cursor: "pointer",
-                                border: "1px solid var(--color-border)",
-                                borderRadius: "var(--radius-container)",
-                                background: "var(--color-background-card)",
-                                boxShadow: "var(--shadow-high)",
-                                padding: "var(--spacing-3) var(--spacing-4)",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    gap: 'var(--spacing-2)',
-                                    marginBottom: 'var(--spacing-0-5)',
-                                    fontSize: "var(--font-size-xs)",
-                                    color: "var(--color-text-secondary)",
-                                }}
-                            >
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {toast.roomName}
-                                </span>
-                                <span style={{ flexShrink: 0, color: "var(--color-text-accent)" }}>새 메시지</span>
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: "var(--font-size-sm)",
-                                    color: "var(--color-text-primary)",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
-                                <strong>{toast.senderName}</strong>: {toast.content}
-                            </div>
-                        </motion.button>
-                    ))}
-                </AnimatePresence>
-            </div>
-
+        <div
+            ref={rootRef}
+            className="carev-fchat-root"
+            style={fabPos ? { right: fabPos.right, bottom: fabPos.bottom } : undefined}
+        >
             {/* Panel */}
             <AnimatePresence>
                 {isOpen && (
@@ -576,7 +653,8 @@ export function FloatingChat() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.95 }}
                         transition={{ duration: duration.fast, ease: "easeOut" }}
-                        style={{ position: "absolute", bottom: 64, right: 0 }}
+                        // 말풍선이 화면 어디에 있든 창이 화면 안에 펼쳐지게 — 위아래·좌우 중 넓은 쪽으로
+                        style={{ position: "absolute", ...panelStyle }}
                     >
                         <Card
                             padding={0}
@@ -656,8 +734,11 @@ export function FloatingChat() {
                 )}
             </AnimatePresence>
 
-            {/* FAB Button */}
-            <div style={{ position: "relative" }}>
+            {/* FAB Button — 끌어서 옮길 수 있다 */}
+            <div
+                style={{ position: "relative", touchAction: "none", userSelect: "none", cursor: "grab" }}
+                onPointerDown={onFabPointerDown}
+            >
                 <IconButton
                     label={isOpen ? "채팅 닫기" : "채팅 열기"}
                     className="carev-fchat-fab"

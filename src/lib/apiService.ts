@@ -16,6 +16,7 @@ import {
 } from '@/types/auth';
 import { buildApproveBody } from '@/lib/approvalComment';
 import type { WorkTask, WorkTaskInput } from '@/lib/workTasks';
+import { requestNotificationsRefresh } from '@/lib/alertBus';
 import { ApprovalImportPreview, ApprovalImportRow, ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
@@ -2774,7 +2775,8 @@ const chatReadQueue = createChatReadQueue((roomId, lastMessageId) => {
 });
 
 export function markChatAsRead(roomId: number, lastMessageId: number): Promise<void> {
-    return chatReadQueue.mark(roomId, lastMessageId);
+    // 방을 읽으면 서버가 그 방 알림을 읽음으로 바꾼다 — 오른쪽 위 채팅 카드도 바로 내려가게 다시 받게 한다
+    return chatReadQueue.mark(roomId, lastMessageId).then(() => requestNotificationsRefresh());
 }
 
 // 채팅 메시지 전송
