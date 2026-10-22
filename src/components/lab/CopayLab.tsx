@@ -26,7 +26,9 @@ import CopayDepositPanel from './CopayDepositPanel';
 import CopayPaymentDialog from './CopayPaymentDialog';
 import CopayReceiptDialog from './CopayReceipt';
 import CopayRow from './CopayRow';
-import { useCopayContracts } from './copayContracts';
+import { applyContractFill, useCopayContracts } from './copayContracts';
+import CopayLedgerSheet from './CopayLedgerSheet';
+import { batchSummary, planBatchFill } from '@/lib/lab/copayBatch';
 import { ErrorBanner, LabConfirm, MonthStepper, NumField, SupportText, useNotify } from './LabUi';
 import { applyMealCost, buildFromDraft, defaultDraft, draftFromBill, draftKey, isBuildError, withoutMealCost } from './copayDraft';
 import type { CopayDraft } from './copayDraft';
@@ -78,6 +80,7 @@ export default function CopayLab() {
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const [receiptBill, setReceiptBill] = useState<CopayBill | null>(null);
   const [annualOpen, setAnnualOpen] = useState(false);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [mealPrice, setMealPrice] = useState<number | null>(storedMealPrice);
   // 청구서를 불러오는 중에도 가장 최근 단가를 쓰도록, 불러오기 함수는 단가가 바뀌어도 다시 만들지 않는다
   const mealPriceRef = useRef(mealPrice);
@@ -189,6 +192,37 @@ export default function CopayLab() {
     notify(failed === 0 ? `${ok}건을 저장했습니다` : `${ok}건 저장, ${failed}건은 저장하지 못했습니다`, failed === 0 ? 'success' : 'error');
   };
 
+  /**
+   * 계약으로 전체 채우기 — 계약이 있는 어르신의 등급·감경 구분과 출석일수를 한꺼번에 넣는다.
+   * 이미 저장된 청구서와 직접 고친 칸은 건드리지 않는다(planBatchFill).
+   */
+  const fillAllFromContracts = () => {
+    const byElder = contracts.byElder;
+    if (!byElder) {
+      notify('계약 정보를 아직 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요', 'error');
+      return;
+    }
+    const plan = planBatchFill({
+      elders,
+      contracts: byElder,
+      billed: new Set(bills.map((b) => b.elderlyId)),
+      edited: new Set(elders.filter((e) => isEdited(e.id)).map((e) => e.id)),
+      presentDays: attendance,
+    });
+    setDrafts((prev) => {
+      const next = { ...prev };
+      for (const row of plan.rows) {
+        const cur = next[row.elderId];
+        if (row.action !== 'FILL' || !cur || row.grade === null || row.copayClass === null) continue;
+        let d = applyContractFill(cur, { careGrade: row.grade, copayClass: row.copayClass });
+        if (row.days !== null) d = { ...d, days: row.days };
+        next[row.elderId] = applyMealCost(d, mealPriceRef.current);
+      }
+      return next;
+    });
+    notify(batchSummary(plan), plan.fillCount > 0 ? 'success' : 'error');
+  };
+
   const replaceBill = (saved: CopayBill) => setBills((prev) => prev.map((b) => (b.id === saved.id ? saved : b)));
 
   const copyNotice = async (bill: CopayBill) => {
@@ -274,6 +308,8 @@ export default function CopayLab() {
         <Button label="새로 불러오기" variant="ghost" isDisabled={busy} onClick={() => (anyEdited ? setPendingMonth(month) : void load(month))} />
         <div style={{ marginInlineStart: 'auto', display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
           <Button label="연간 납부 내역" variant="secondary" onClick={() => setAnnualOpen(true)} />
+          <Button label="월 대장 인쇄" variant="secondary" isDisabled={busy || bills.length === 0} onClick={() => setLedgerOpen(true)} />
+          <Button label="계약으로 전체 채우기" variant="secondary" isDisabled={busy || bulkSaving || contracts.isLoading} onClick={fillAllFromContracts} />
           <Button
             label={`전체 저장 (${savableIds.length}건)`}
             variant="primary"
@@ -357,6 +393,7 @@ export default function CopayLab() {
       )}
 
       {receiptBill && <CopayReceiptDialog key={receiptBill.id} bill={receiptBill} onClose={() => setReceiptBill(null)} />}
+      {ledgerOpen && <CopayLedgerSheet month={month} bills={bills} onDone={() => setLedgerOpen(false)} />}
       {annualOpen && <CopayAnnualDialog initialYear={Number(month.slice(0, 4))} onClose={() => setAnnualOpen(false)} />}
 
       <LabConfirm
