@@ -238,12 +238,12 @@ export default function LoginPage() {
       } else {
         await findPassword(findPasswordEmail);
       }
-      setFindPasswordMessage('임시 비밀번호가 이메일로 전송되었습니다.');
+      setFindPasswordMessage('가입된 이메일이라면 재설정 링크를 보냈습니다. 메일의 링크로 30분 안에 새 비밀번호를 정해 주세요.');
       setTimeout(() => {
         setShowFindPassword(false);
         setFindPasswordEmail('');
         setFindPasswordMessage('');
-      }, 3000);
+      }, 6000);
     } catch (error) {
       // 가입된 계정이 없으면 직원은 404, 관리자는 422가 온다. 문구가 아니라 상태 코드로 가른다.
       const status = (error as { status?: number }).status;
@@ -419,8 +419,8 @@ export default function LoginPage() {
                 <VStack gap={4}>
                   <Text type="supporting">
                     {loginType === 'employee'
-                      ? '직원 계정의 이메일 주소를 입력하시면 임시 비밀번호를 보내드립니다.'
-                      : '관리자 계정의 이메일 주소를 입력하시면 임시 비밀번호를 보내드립니다.'}
+                      ? '직원 계정의 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.'
+                      : '관리자 계정의 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.'}
                   </Text>
                   <TextInput
                     label="이메일"
