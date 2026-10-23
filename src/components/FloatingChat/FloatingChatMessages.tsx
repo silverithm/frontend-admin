@@ -83,6 +83,9 @@ interface FloatingChatMessagesProps {
     headerAction?: ReactNode;
 }
 
+/** 말풍선 옆 시간 — 좁은 창에서도 "오전 / 8:04"로 두 줄이 되지 않게 */
+const MESSAGE_TIME_STYLE: React.CSSProperties = { whiteSpace: "nowrap", flexShrink: 0 };
+
 function formatMessageTime(timestamp: string) {
     const date = new Date(timestamp);
     const hours = date.getHours();
@@ -148,6 +151,7 @@ export function FloatingChatMessages({
             const offset = container.scrollTop
                 + (target.getBoundingClientRect().top - container.getBoundingClientRect().top)
                 - container.clientHeight / 2;
+            stickToBottomRef.current = false;
             container.scrollTop = Math.max(0, offset);
         } else {
             target.scrollIntoView({ block: "center" });
@@ -273,11 +277,39 @@ export function FloatingChatMessages({
     /** 위쪽 대화를 읽는 중인지 — '맨 아래로' 버튼을 띄운다 */
     const [isAwayFromBottom, setIsAwayFromBottom] = useState(false);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    /**
+     * 맨 아래에 붙어 있는가 — 사진·동영상은 말풍선이 붙은 뒤에 늦게 받아져 키가 커진다.
+     * 붙어 있을 때는 그만큼 다시 내려 최신 메시지가 가려지지 않게 한다(2026-10-23 "플로팅에서 사진이 안 나온다":
+     * 방을 열면 늦게 뜬 사진·동영상에 밀려 맨 아래 것이 창 밖에 남았다).
+     */
+    const stickToBottomRef = useRef(true);
+    /** 코드가 내리는 동안에는 스크롤 위치로 '붙어 있음'을 다시 판단하지 않는다(부드럽게 내려가는 중간값에 속는다) */
+    const autoScrollUntilRef = useRef(0);
+
+    /** @param smooth 사람이 '맨 아래로'를 눌렀을 때만 부드럽게 — 자동으로 따라갈 때는 바로 붙인다 */
+    const scrollToBottom = (smooth = true) => {
+        stickToBottomRef.current = true;
+        autoScrollUntilRef.current = Date.now() + (smooth ? 800 : 0);
+        messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
         setShowNewMessageBadge(false);
         setIsAwayFromBottom(false);
     };
+
+    // 사진·동영상이 받아져 키가 커지면, 맨 아래에 붙어 있던 경우에만 다시 내린다.
+    // load·loadedmetadata는 위로 퍼지지 않지만 잡기(capture) 단계로는 목록에서 받을 수 있다.
+    useEffect(() => {
+        const el = messagesContainerRef.current;
+        if (!el) return;
+        const onMediaSized = () => {
+            if (stickToBottomRef.current) el.scrollTop = el.scrollHeight;
+        };
+        el.addEventListener("load", onMediaSized, true);
+        el.addEventListener("loadedmetadata", onMediaSized, true);
+        return () => {
+            el.removeEventListener("load", onMediaSized, true);
+            el.removeEventListener("loadedmetadata", onMediaSized, true);
+        };
+    }, [roomId]);
 
     // 맨 아래로 따라가는 것은 '새 메시지가 끝에 붙었을 때'만이다.
     // messages 전체를 보면 위에 옛 대화를 이어 붙일 때도 끝으로 튕겨 나간다.
@@ -289,11 +321,17 @@ export function FloatingChatMessages({
     const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
     const lastMessageId = lastMessage?.id ?? null;
     const lastMessageIsMine = lastMessage?.senderId === userId;
+    /** 이 방에서 처음 목록이 그려졌는지 — 처음에는 부드럽게 내리지 않고 맨 아래에서 시작한다 */
+    const scrolledRoomRef = useRef<number | null>(null);
     useEffect(() => {
         const el = messagesContainerRef.current;
         const distanceFromBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight : 0;
-        if (lastMessageIsMine || distanceFromBottom < 300) {
-            scrollToBottom();
+        const firstForRoom = lastMessageId !== null && scrolledRoomRef.current !== roomId;
+        if (firstForRoom) {
+            scrolledRoomRef.current = roomId;
+            scrollToBottom(false);
+        } else if (lastMessageIsMine || distanceFromBottom < 300) {
+            scrollToBottom(false);
         } else if (lastMessageId !== null) {
             setShowNewMessageBadge(true);
         }
@@ -374,7 +412,7 @@ export function FloatingChatMessages({
                 }
             }
             setReplyTo(null);
-            setTimeout(scrollToBottom, 100);
+            setTimeout(() => scrollToBottom(false), 100);
             return null;
         } catch (error) {
             console.error("[FloatingChat] 파일 전송 실패:", error);
@@ -797,7 +835,7 @@ export function FloatingChatMessages({
             {(showNewMessageBadge || isAwayFromBottom) && (
                 <div style={{ position: "relative", height: 0, zIndex: 3 }}>
                     <div style={{ position: "absolute", left: 0, right: 0, top: "var(--spacing-2)", display: "flex", justifyContent: "center" }}>
-                        <Button size="sm" variant={showNewMessageBadge ? "primary" : "secondary"} label={showNewMessageBadge ? "새 메시지 보기 ↓" : "맨 아래로 ↓"} onClick={scrollToBottom} />
+                        <Button size="sm" variant={showNewMessageBadge ? "primary" : "secondary"} label={showNewMessageBadge ? "새 메시지 보기 ↓" : "맨 아래로 ↓"} onClick={() => scrollToBottom()} />
                     </div>
                 </div>
             )}
@@ -812,6 +850,8 @@ export function FloatingChatMessages({
                     const el = messagesContainerRef.current;
                     if (!el) return;
                     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                    // 사람이 올려 읽으면 떨어지고, 다시 맨 아래로 내리면 붙는다
+                    if (Date.now() > autoScrollUntilRef.current) stickToBottomRef.current = fromBottom < 80;
                     if (fromBottom < 40) setShowNewMessageBadge(false);
                     const away = fromBottom > Math.max(200, el.clientHeight * 0.5);
                     setIsAwayFromBottom(prev => (prev === away ? prev : away));
@@ -860,6 +900,9 @@ export function FloatingChatMessages({
                         // 아바타와 이름줄은 보낸 사람이 바뀌는 지점에만 그린다(앱·관리자 채팅탭과 같은 규칙).
                         const isGroupStart = item.showSenderHeader;
                         const mediaType = chatMediaType(message);
+                        /** 사진 묶음·사진·동영상 말풍선(답글 인용이 붙은 것은 글 말풍선처럼 둔다) */
+                        const isMediaBubble = !message.isDeleted && !message.replyToId && !!message.fileUrl
+                            && (photoGroup != null || mediaType === "IMAGE" || mediaType === "VIDEO");
 
                         // 구분선에 문구를 표시로 달아 둔다 — 떠 있는 날짜 배지가 이걸 읽는다
                         const separatorLabel = showDateSeparator ? formatDateSeparator(message.createdAt) : null;
@@ -939,7 +982,8 @@ export function FloatingChatMessages({
                                     )}
                                     <div
                                         style={{
-                                            maxWidth: "75%",
+                                            // 사진·동영상은 좁은 창에서 글보다 넓게 — 시간·옵션 자리를 빼고 나면 75%로는 사진 칸이 손톱만 해진다
+                                            maxWidth: isMediaBubble ? "92%" : "75%",
                                             display: "flex",
                                             flexDirection: "column",
                                             alignItems: isMyMessage ? "flex-end" : "flex-start",
@@ -958,6 +1002,8 @@ export function FloatingChatMessages({
                                         <div
                                             // 메뉴는 말풍선이 아니라 이 줄(말풍선+시간) 옆에 붙인다 — 시간을 덮지 않게
                                             ref={(el) => { if (message.id === longPressMenuMessageId) longPressMenuAnchorRef.current = el; }}
+                                            // 관리자 채팅 탭과 같은 줄 — '…' 옵션은 마우스를 올리거나 포커스가 올 때만 보인다(globals.css)
+                                            className="carev-chat-msgrow"
                                             style={{ display: "flex", alignItems: "flex-end", gap: 'var(--spacing-1)', maxWidth: "100%" }}
                                         >
                                             {isMyMessage && isLocalOnly(message) ? (
@@ -976,18 +1022,23 @@ export function FloatingChatMessages({
                                                 )
                                             ) : isMyMessage && (
                                                 <>
-                                                    {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/반응 메뉴에 닿을 수 있어야 한다 */}
-                                                    <Button
-                                                        label="메시지 옵션"
-                                                        isIconOnly
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        icon={<Icon icon="moreHorizontal" size="sm" />}
-                                                        onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
-                                                    />
-                                                    <Text type="supporting" color="secondary">
-                                                        {formatMessageTime(message.createdAt)}
-                                                    </Text>
+                                                    {/* 롱프레스·우클릭의 유일한 대안 — 키보드로 답장/반응 메뉴에 닿을 수 있어야 한다.
+                                                        평소엔 숨어 있다가 마우스를 올리거나 키보드 포커스가 오면 나타난다(관리자 채팅 탭과 같다). */}
+                                                    <span className="carev-chat-msgactions">
+                                                        <Button
+                                                            label="메시지 옵션"
+                                                            isIconOnly
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                            onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
+                                                        />
+                                                    </span>
+                                                    <span style={MESSAGE_TIME_STYLE}>
+                                                        <Text type="supporting" color="secondary">
+                                                            {formatMessageTime(message.createdAt)}
+                                                        </Text>
+                                                    </span>
                                                 </>
                                             )}
                                             <div
@@ -998,7 +1049,8 @@ export function FloatingChatMessages({
                                                     // 그 줄 길이만큼 말풍선이 75% 상한을 뚫고 늘어난다 — 0으로 풀어야 줄임표가 걸린다.
                                                     minWidth: 0,
                                                     maxWidth: "100%",
-                                                    padding: "var(--spacing-1-5) var(--spacing-3)",
+                                                    // 사진·동영상은 테두리 안 여백을 줄여 그만큼 크게 보인다
+                                                    padding: isMediaBubble ? "var(--spacing-1)" : "var(--spacing-1-5) var(--spacing-3)",
                                                     borderRadius: 'var(--radius-element)',
                                                     borderBottomRightRadius: isMyMessage ? 2 : 12,
                                                     borderBottomLeftRadius: isMyMessage ? 12 : 2,
@@ -1026,7 +1078,7 @@ export function FloatingChatMessages({
                                                     // 연달아 온 사진 묶음 — 격자로 그리고, 누르면 그 묶음 안에서 좌우로 넘길 수 있다
                                                     <ChatPhotoGroup
                                                         messages={photoGroup}
-                                                        maxWidth={240}
+                                                        maxWidth={252}
                                                         onOpen={(openIndex) => setImagePreview({
                                                             items: photoGroup.map(m => ({ fileUrl: m.fileUrl!, fileName: m.fileName || "이미지" })),
                                                             index: openIndex,
@@ -1044,7 +1096,8 @@ export function FloatingChatMessages({
                                                             className="carev-chat-image"
                                                             src={chatListImageUrl(message)}
                                                             alt={message.fileName || "이미지"}
-                                                            style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 'var(--radius-none)', display: "block" }}
+                                                            // 좁은 창이라도 사진이 무엇인지 보일 만큼 — 관리자 채팅 탭(240)에 가깝게
+                                                            style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 'var(--radius-none)', display: "block" }}
                                                         />
                                                     </button>
                                                 ) : mediaType === "VIDEO" && message.fileUrl ? (
@@ -1052,7 +1105,7 @@ export function FloatingChatMessages({
                                                         fileUrl={message.fileUrl}
                                                         fileName={message.fileName || message.content}
                                                         posterUrl={message.thumbnailUrl}
-                                                        maxHeight={160}
+                                                        maxHeight={200}
                                                     />
                                                 ) : message.type === "FILE" && message.fileUrl ? (
                                                     <button
@@ -1092,17 +1145,21 @@ export function FloatingChatMessages({
                                             </div>
                                             {!isMyMessage && (
                                                 <>
-                                                    <Text type="supporting" color="secondary">
-                                                        {formatMessageTime(message.createdAt)}
-                                                    </Text>
-                                                    <Button
-                                                        label="메시지 옵션"
-                                                        isIconOnly
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        icon={<Icon icon="moreHorizontal" size="sm" />}
-                                                        onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
-                                                    />
+                                                    <span style={MESSAGE_TIME_STYLE}>
+                                                        <Text type="supporting" color="secondary">
+                                                            {formatMessageTime(message.createdAt)}
+                                                        </Text>
+                                                    </span>
+                                                    <span className="carev-chat-msgactions">
+                                                        <Button
+                                                            label="메시지 옵션"
+                                                            isIconOnly
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            icon={<Icon icon="moreHorizontal" size="sm" />}
+                                                            onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
+                                                        />
+                                                    </span>
                                                 </>
                                             )}
                                         </div>
