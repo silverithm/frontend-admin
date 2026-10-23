@@ -876,6 +876,14 @@ html {
 @media (min-width: 1280px) {
   .carev-fchat-root { right: calc(var(--spacing-6) + var(--carev-rail-offset, 0px)); }
 }
+/* 끄는 동안 — 자리 전환 효과를 끄고(손가락을 바로 따라오게) 살짝 들어 올린다 */
+.carev-fchat-root[data-dragging] { transition: none; }
+.carev-fchat-handle { transition: transform var(--duration-fast) var(--ease-standard); }
+.carev-fchat-root[data-dragging] .carev-fchat-handle { transform: scale(1.06); cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) {
+  .carev-fchat-handle { transition: none; }
+  .carev-fchat-root[data-dragging] .carev-fchat-handle { transform: none; }
+}
 
 /* 접힌 패널 — 오른쪽 끝 펼치기 막대. 업무진행도도 이 안에 있어 함께 접힌다 */
 .carev-chat-rail-strip { display: none; }

@@ -590,11 +590,16 @@ export function FloatingChat() {
      * 말풍선을 끌어 화면 어디로든 옮긴다(2026-10-22 원장 "채팅 문양을 끌고 다니면서 원하는 위치에").
      * 자리는 오른쪽·아래에서 떨어진 거리로 이 브라우저에 기억한다 — 창 크기가 바뀌어도 모서리 기준으로 남는다.
      * 한 번도 옮기지 않았으면 CSS 기본 자리(오른쪽 패널 왼쪽 옆)를 따른다.
+     *
+     * 끄는 동안에는 React 상태를 건드리지 않고 단추 자리만 화면 그리기 주기(requestAnimationFrame)에 맞춰 직접 옮긴다.
+     * 예전에는 움직일 때마다 상태를 바꿔 채팅 창 전체를 다시 그렸고, 가로 자리에 걸린 CSS 전환(transition: right)까지
+     * 겹쳐 가로만 미끄러지듯 늦게 따라와 "이상하게 움직인다"는 말을 들었다(2026-10-23). 놓을 때 한 번만 상태에 남긴다.
      */
     const onFabPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button !== 0) return;
-        const rect = rootRef.current?.getBoundingClientRect();
-        if (!rect) return;
+        const root = rootRef.current;
+        const rect = root?.getBoundingClientRect();
+        if (!root || !rect) return;
         const pointerId = e.pointerId;
         const start = {
             x: e.clientX,
@@ -604,6 +609,14 @@ export function FloatingChat() {
         };
         let moved = false;
         let last: FabPos | null = null;
+        let frame = 0;
+
+        const paint = () => {
+            frame = 0;
+            if (!last) return;
+            root.style.right = `${last.right}px`;
+            root.style.bottom = `${last.bottom}px`;
+        };
 
         // 움직임은 화면 전체에서 받는다 — 빠르게 끌면 첫 움직임부터 단추 밖이라 단추에 붙인 처리로는 놓친다.
         // 포인터를 붙잡지(capture) 않는 것은, 붙잡으면 끌지 않고 누르기만 해도 단추의 클릭이 오지 않아서다.
@@ -611,10 +624,15 @@ export function FloatingChat() {
             if (ev.pointerId !== pointerId) return;
             const dx = ev.clientX - start.x;
             const dy = ev.clientY - start.y;
-            if (!moved && Math.hypot(dx, dy) < FAB_DRAG_THRESHOLD) return;
-            moved = true;
+            if (!moved) {
+                if (Math.hypot(dx, dy) < FAB_DRAG_THRESHOLD) return;
+                moved = true;
+                // 끄는 동안 자리 전환 효과를 끄고 '들어 올린' 모양으로 — CSS [data-dragging]
+                root.dataset.dragging = "true";
+                document.body.style.cursor = "grabbing";
+            }
             last = clampFabPos({ right: start.right - dx, bottom: start.bottom - dy });
-            setFabPos(last);
+            if (!frame) frame = window.requestAnimationFrame(paint);
         };
         const onUp = (ev: PointerEvent) => {
             if (ev.pointerId !== pointerId) return;
@@ -622,6 +640,11 @@ export function FloatingChat() {
             window.removeEventListener("pointerup", onUp);
             window.removeEventListener("pointercancel", onUp);
             if (!moved || !last) return;
+            if (frame) window.cancelAnimationFrame(frame);
+            paint();
+            delete root.dataset.dragging;
+            document.body.style.cursor = "";
+            setFabPos(last);
             saveFabPos(last);
             // 놓은 자리가 단추 위면 곧이어 클릭이 온다 — 그 한 번만 무시하고, 안 오면 다음 차례에 풀어 준다
             suppressClickRef.current = true;
@@ -736,6 +759,7 @@ export function FloatingChat() {
 
             {/* FAB Button — 끌어서 옮길 수 있다 */}
             <div
+                className="carev-fchat-handle"
                 style={{ position: "relative", touchAction: "none", userSelect: "none", cursor: "grab" }}
                 onPointerDown={onFabPointerDown}
             >
