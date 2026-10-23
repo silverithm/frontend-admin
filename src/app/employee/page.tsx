@@ -15,6 +15,11 @@ import ScheduleCalendar from '@/components/ScheduleCalendar';
 import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { Badge } from '@astryxdesign/core/Badge';
 import { ChatRail } from '@/components/ChatRail/ChatRail';
+import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
+import NotificationPopups from '@/components/NotificationPopups';
+import { requestNotificationsRefresh, setViewingChatRoom } from '@/lib/alertBus';
+import type { NotificationTarget } from '@/lib/notificationGroups';
+import type { MyNotification } from '@/lib/apiService';
 import TodayTaskReminder from '@/components/TodayTaskReminder';
 import AdminDashboard from '@/components/AdminDashboard';
 import PlazaManagement from '@/components/plaza/PlazaManagement';
@@ -58,6 +63,9 @@ import { BUSINESS_INFO } from '@/lib/businessInfo';
 // 탭 구성은 관리자 화면(src/app/admin/page.tsx)과 같은 순서·라벨·아이콘을 따른다.
 // 관리자 전용 기능(회원관리·편의기능 등)만 권한으로 항목을 숨긴다.
 type MainTab = 'dashboard' | 'notice' | 'chat' | 'schedule' | 'approval' | 'work' | 'members' | 'plaza' | 'voice' | 'tools' | 'library';
+
+/** 알림 카드의 '열기'로 이 화면에서 갈 수 있는 곳 (업무진행도·채팅은 늘 열 수 있다) */
+const EMPLOYEE_NOTIFICATION_TARGETS: NotificationTarget[] = ['approval', 'notice', 'vacation', 'schedule'];
 type ApprovalSubTab = 'submit' | 'management' | 'templates';
 // 배차관리는 편의기능 탭으로 옮겨져 더 이상 일정 서브탭이 아니다.
 // 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
@@ -86,6 +94,10 @@ export default function EmployeePage() {
      어느 탭을 보고 있든 누가 접속해 있는지가 보여야 한다는 이유는 두 화면이 같다. */
   const [railRoomId, setRailRoomId] = useState<number | null>(null);
   const [activeChatRoomId, setActiveChatRoomId] = useState<number | null>(null);
+  // 채팅 탭에서 지금 펼쳐 보고 있는 방 — 알림 카드가 이 방의 새 메시지는 띄우지 않는다
+  useEffect(() => {
+    setViewingChatRoom('tab', activeMainTab === 'chat' ? activeChatRoomId : null);
+  }, [activeMainTab, activeChatRoomId]);
   const [chatUnread, setChatUnread] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const toast = useToast();
@@ -163,6 +175,25 @@ export default function EmployeePage() {
 
   /** 같은 방을 다시 지목해도 채팅 화면이 반응하도록 지목할 때마다 올린다 */
   const [railRoomNonce, setRailRoomNonce] = useState(0);
+  /** 알림 카드의 '열기' — 알림 종류에 맞는 화면으로 옮긴다 (업무·채팅 창은 그 뒤 패널·말풍선이 연다) */
+  const openFromNotification = (target: NotificationTarget, n: MyNotification) => {
+    switch (target) {
+      case 'work_task':
+        // 업무 창은 오른쪽 패널이 연다 — 채팅 탭에서는 패널이 숨어 있으니 대시보드로 돌아간다
+        if (activeMainTab === 'chat') setActiveMainTab('dashboard');
+        return;
+      case 'chat':
+        // 채팅 탭에서는 그 화면에서 방을 연다(말풍선은 채팅 탭에 없다). 다른 탭이면 말풍선이 연다
+        if (activeMainTab === 'chat' && n.relatedEntityId != null) openChatRoom(n.relatedEntityId);
+        return;
+      case 'approval': setActiveMainTab('approval'); return;
+      case 'notice': setActiveMainTab('notice'); return;
+      case 'vacation': setActiveMainTab('work'); return;
+      case 'schedule': setActiveMainTab('schedule'); return;
+      default: return;
+    }
+  };
+
   const openChatRoom = (roomId: number) => {
     setRailRoomId(roomId);
     setRailRoomNonce((n) => n + 1);
@@ -170,13 +201,6 @@ export default function EmployeePage() {
   };
 
   /** 새 메시지 토스트 — 관리자 화면과 같이 '이동' 버튼으로 그 방까지 데려간다 (전엔 알림만 뜨고 갈 곳이 없었다) */
-  const showActionToast = (message: string, onGo: () => void) => {
-    toast({
-      body: message,
-      type: 'info',
-      endContent: <Button label="이동" size="sm" variant="ghost" onClick={onGo} />,
-    });
-  };
 
   if (!isClient) {
     return (
@@ -549,19 +573,23 @@ export default function EmployeePage() {
             </AnimatePresence>
           </main>
 
-          {/* 채팅 탭에서는 레일을 그리지 않는다 — 같은 목록이 화면 안에 이미 있어 중복이다.
-              다만 언마운트는 하지 않는다 — 폴링(새 메시지 감지)이 다른 탭에서도 계속 돌아야 한다. */}
+          {/* 채팅 탭에서는 패널을 그리지 않는다 — 다만 언마운트는 하지 않는다. 안 읽은 수 폴링이
+              사이드바 채팅 배지와 채팅 탭 안의 '다른 방' 새 메시지 알림에 계속 필요하다.
+              다른 탭의 새 메시지는 오른쪽 아래 말풍선(FloatingChat)이 직접 알린다. */}
           <ChatRail
             hidden={activeMainTab === 'chat'}
             currentRoomId={activeMainTab === 'chat' ? activeChatRoomId : null}
-            onOpenRoom={openChatRoom}
-            onOpenChatTab={() => setActiveMainTab('chat')}
             onUnreadChange={setChatUnread}
-            onNewMessage={(room) => {
-              showActionToast(`${room.name} — 새로운 메시지가 왔습니다`, () => openChatRoom(room.id));
-            }}
+            // 다른 방에 새 메시지가 오면 알림 카드가 바로 다시 받는다(검은 토스트 대신)
+      onNewMessage={() => requestNotificationsRefresh()}
           />
           </div>
+
+          {/* 대화는 오른쪽 아래 말풍선에서 — 채팅 탭에서는 화면 안에 같은 대화가 있어 띄우지 않는다 */}
+          {activeMainTab !== 'chat' && <FloatingChat />}
+
+          {/* 확인할 때까지 떠 있는 알림 — 오른쪽 위 */}
+          <NotificationPopups targets={EMPLOYEE_NOTIFICATION_TARGETS} onOpen={openFromNotification} />
 
           {/* 푸터 */}
           <footer style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>

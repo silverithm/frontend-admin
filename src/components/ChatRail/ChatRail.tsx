@@ -6,24 +6,21 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
-import { Item } from "@astryxdesign/core/Item";
-import { lastMessagePreview } from "@/lib/chatMessageGrouping";
-import { Avatar } from "@astryxdesign/core/Avatar";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 
-import { FiMessageCircle, FiUsers, FiChevronDown, FiChevronRight, FiChevronsRight } from "react-icons/fi";
+import { FiUsers, FiChevronDown, FiChevronRight, FiChevronsLeft, FiChevronsRight } from "react-icons/fi";
 
 import MemberItem from "@/components/MemberItem";
-import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from "@/components/chat/ChatRoomAvatarStack";
-import { chatRoomLabel } from "@/components/chat/ChatRoomName";
-import ChatDock from "@/components/ChatRail/ChatDock";
+import { type ChatRoomAvatarPerson } from "@/components/chat/ChatRoomAvatarStack";
 import { Loading } from "@/components/Loading";
+import WorkTaskSection from "@/components/WorkTask/WorkTaskSection";
+import { OPEN_WORK_TASK_EVENT } from "@/lib/workTasks";
 import { fetchChatRooms } from "@/lib/apiService";
-import { DirectChatMember, openOrCreateDirectRoom } from "@/lib/directChat";
+import { requestDirectChat } from "@/lib/directChat";
 import { getMyChatUserId } from "@/lib/chatIdentity";
 import { CHAT_ROOM_PIN_EVENT, keepLocalPins, setRoomPinned, sortRoomsPinnedFirst, type ChatRoomPinChange } from "@/lib/chatRoomPin";
 import { createChatClient } from "@/lib/chatSocket";
@@ -31,9 +28,9 @@ import { useOrgPresenceStore, sortMembersByPresence } from "@/lib/orgPresenceSto
 import { useVisiblePolling } from "@/lib/useVisiblePolling";
 import { duration } from "@/theme/motion";
 
-/** 레일이 실제로 들어가는 최소 폭 — globals.css의 미디어쿼리와 같은 값이어야 한다 */
-const RAIL_BREAKPOINT = 1280;
 const RAIL_WIDTH = 264;
+/** 접힌 패널(펼치기 막대) 폭 — globals.css .carev-chat-rail-strip과 같은 값 */
+const STRIP_WIDTH = 44;
 
 
 /** 접힘 상태는 화면을 옮겨도 유지된다 — 매번 다시 접게 하면 상시 레일의 의미가 없다 */
@@ -53,13 +50,6 @@ interface RailRoom {
 }
 
 interface ChatRailProps {
-    /**
-     * 방을 채팅 화면으로 넘긴다 — 작은 대화창의 '크게 보기'에서만 쓴다.
-     * 방을 누르는 것만으로 탭이 바뀌면, 하려던 일과 대화가 번갈아 끊긴다.
-     */
-    onOpenRoom: (roomId: number) => void;
-    /** 레일이 들어갈 폭이 안 되는 화면에서 플로팅 버튼을 누른 경우 — 채팅 탭으로 보낸다 */
-    onOpenChatTab: () => void;
     /** 전체 안 읽은 메시지 수를 셸에 알린다 — 사이드바 채팅 탭 배지가 이 값을 쓴다 */
     onUnreadChange?: (total: number) => void;
     /**
@@ -73,9 +63,9 @@ interface ChatRailProps {
     onNewMessage?: (room: RailRoom) => void;
 }
 
-type RailState = { isOpen: boolean; showPeople: boolean; showRooms: boolean };
+type RailState = { isOpen: boolean; showPeople: boolean; showTasks: boolean };
 
-const DEFAULT_STATE: RailState = { isOpen: true, showPeople: true, showRooms: true };
+const DEFAULT_STATE: RailState = { isOpen: true, showPeople: true, showTasks: true };
 
 function readStoredState(): RailState {
     if (typeof window === "undefined") return DEFAULT_STATE;
@@ -89,22 +79,23 @@ function readStoredState(): RailState {
 }
 
 /**
- * 관리자 셸 우측 상시 레일 — 위는 직원, 아래는 대화방.
+ * 셸 우측 상시 패널 — 위는 직원(접속 상태), 아래는 업무진행도.
  *
- * 어느 탭을 보고 있든 누가 지금 접속해 있는지가 보여야 해서 셸에 붙인다.
- * 레일 자체와 두 구역을 각각 접을 수 있고, 접힌 상태는 기억한다.
- * 대화 내용은 여기 담지 않는다 — 폭이 좁아 읽기 어렵고, 이미 채팅 화면이 그 일을 한다.
+ * 원장 그림(2026-10-22): 대화방 목록 자리에 '업무진행도'가 들어가고, 대화는 예전처럼 오른쪽 아래
+ * 말풍선(FloatingChat)에서 연다. 직원을 누르면 그 말풍선 창에서 1:1 대화가 열린다.
+ * 패널을 접으면 업무진행도까지 함께 접히고, 오른쪽 끝에 펼치기 막대만 남는다.
+ *
+ * 대화방 목록을 그리지 않아도 안 읽은 수 폴링은 여기서 계속 돈다 — 사이드바 채팅 탭 배지와
+ * 채팅 탭 안의 '다른 방' 새 메시지 알림이 이 값을 쓴다.
  */
-export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, currentRoomId, onNewMessage }: ChatRailProps) {
+export function ChatRail({ onUnreadChange, hidden, currentRoomId, onNewMessage }: ChatRailProps) {
     const [state, setState] = useState<RailState>(DEFAULT_STATE);
     const [hydrated, setHydrated] = useState(false);
 
     const [rooms, setRooms] = useState<RailRoom[]>([]);
-    /** 지금 작은 창으로 열어 둔 방. 탭은 그대로 두고 대화만 얹는다. */
-    const [dockRoomId, setDockRoomId] = useState<number | null>(null);
-    const [isLoadingRooms, setIsLoadingRooms] = useState(true);
-    const [isOpeningDirect, setIsOpeningDirect] = useState(false);
-    const [directError, setDirectError] = useState<string | null>(null);
+    const [myTaskCount, setMyTaskCount] = useState(0);
+    /** 알림 팝업의 '열기'로 열어 달라는 업무 — 패널을 편 뒤 업무 칸이 받아서 연다 */
+    const [pendingTaskId, setPendingTaskId] = useState<number | null>(null);
 
     const stompClientRef = useRef<Client | null>(null);
 
@@ -142,13 +133,11 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
     const hasLoadedRoomsRef = useRef(false);
     /** 직전 폴링 결과 — 안읽음 수 증가를 비교하려면 setRooms로 인한 재렌더를 기다리지 않고 바로 필요하다 */
     const prevRoomsRef = useRef<RailRoom[]>([]);
-    /** 최신 currentRoomId/onNewMessage/dockRoomId를 ref로 들고 있는다 — loadRooms를 매번 새로 만들지 않기 위해서다 */
+    /** 최신 currentRoomId/onNewMessage를 ref로 들고 있는다 — loadRooms를 매번 새로 만들지 않기 위해서다 */
     const currentRoomIdRef = useRef(currentRoomId);
     currentRoomIdRef.current = currentRoomId;
     const onNewMessageRef = useRef(onNewMessage);
     onNewMessageRef.current = onNewMessage;
-    const dockRoomIdRef = useRef<number | null>(null);
-    dockRoomIdRef.current = dockRoomId;
     /**
      * 채팅 화면에서 고정을 바꿀 때마다 올린다. 그보다 먼저 출발한 목록 응답이 도착해도
      * 고정 여부만은 화면 값을 지킨다 — 채팅 화면과 같은 규칙이다 [[chatRoomPin]]
@@ -162,17 +151,13 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
             const data = await fetchChatRooms();
             const list: RailRoom[] = Array.isArray(data) ? data : (data.rooms || data.content || data.data || []);
 
-            // 새 메시지 감지 — 안읽음 수가 늘어난 방(내가 지금 보고 있는 방/작은 창으로 띄운 방은 제외)만 알린다.
+            // 새 메시지 감지 — 안읽음 수가 늘어난 방(내가 지금 보고 있는 방은 제외)만 알린다.
             // 첫 로드는 '증가'가 아니라 '처음 안다'이므로 여기서 토스트를 띄우지 않는다.
             if (hasLoadedRoomsRef.current) {
                 const prevMap = new Map(prevRoomsRef.current.map((r) => [r.id, r]));
                 for (const room of list as RailRoom[]) {
                     const prevUnread = prevMap.get(room.id)?.unreadCount ?? 0;
-                    if (
-                        room.unreadCount > prevUnread &&
-                        room.id !== currentRoomIdRef.current &&
-                        room.id !== dockRoomIdRef.current
-                    ) {
+                    if (room.unreadCount > prevUnread && room.id !== currentRoomIdRef.current) {
                         onNewMessageRef.current?.(room);
                     }
                 }
@@ -187,15 +172,12 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
             }
         } catch (error) {
             console.error("[ChatRail] 대화방 목록 로드 실패:", error);
-        } finally {
-            setIsLoadingRooms(false);
         }
     }, [companyId, userId]);
 
     useVisiblePolling(loadRooms, 30000);
 
-    // 채팅 화면에서 고정/해제하면 바로 따라간다 — 레일은 채팅 탭에서 숨어 있을 뿐 살아 있어서,
-    // 알려주지 않으면 다른 탭으로 나갔을 때 다음 갱신까지 옛 순서가 보인다
+    // 채팅 화면에서 고정/해제하면 바로 따라간다 — 다음 갱신까지 옛 순서를 들고 있지 않게
     useEffect(() => {
         const onPinChanged = (event: Event) => {
             const change = (event as CustomEvent<ChatRoomPinChange>).detail;
@@ -262,11 +244,6 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
         [sortedMembers, onlineUserIds],
     );
 
-    const totalUnread = useMemo(
-        () => rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0),
-        [rooms],
-    );
-
     // 셸의 채팅 탭 배지도 같은 숫자를 보게 한다 (레일이 접혀 있어도 값은 올라간다).
     // 첫 목록을 받기 전의 빈 배열은 '아직 모른다'이지 '0건'이 아니므로 보고하지 않고,
     // 의존성도 합계(숫자)가 아니라 rooms 자체로 둔다 — 마운트 때 0으로 계산된 합계가
@@ -276,22 +253,30 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
         onUnreadChange?.(rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0));
     }, [rooms, onUnreadChange]);
 
-    const openDirect = async (member: DirectChatMember) => {
-        if (!userId || !userName || isOpeningDirect) return;
-        setIsOpeningDirect(true);
-        setDirectError(null);
-        try {
-            const { roomId, isNew } = await openOrCreateDirectRoom({ rooms, member, userId, userName });
-            if (isNew) await loadRooms();
-            if (roomId) setDockRoomId(roomId);
-            else setDirectError(`${member.name} 님과의 대화를 열지 못했습니다`);
-        } catch (error) {
-            console.error("[ChatRail] 1:1 대화 열기 실패:", error);
-            setDirectError(`${member.name} 님과의 대화를 열지 못했습니다`);
-        } finally {
-            setIsOpeningDirect(false);
-        }
-    };
+    // 알림의 '열기'로 업무를 열 때 — 패널·업무 칸이 접혀 있으면 펴고, 편 뒤의 업무 칸에 번호를 넘긴다.
+    // 신호를 업무 칸이 직접 받으면, 접힌 상태에서는 받은 칸이 펼치면서 사라져 창이 안 열린다.
+    useEffect(() => {
+        const onOpen = (event: Event) => {
+            const taskId = (event as CustomEvent<{ taskId: number | null }>).detail?.taskId ?? null;
+            update({ isOpen: true, showTasks: true });
+            setPendingTaskId(taskId);
+        };
+        window.addEventListener(OPEN_WORK_TASK_EVENT, onOpen);
+        return () => window.removeEventListener(OPEN_WORK_TASK_EVENT, onOpen);
+    }, [update]);
+    const clearPendingTask = useCallback(() => setPendingTaskId(null), []);
+
+    // 말풍선 채팅이 패널을 덮지 않고 그 왼쪽 옆에 서도록, 패널이 지금 차지한 폭을 알려 준다
+    // (원장 그림 2026-10-22). 좁은 화면에서는 패널이 숨으므로 CSS가 0으로 본다.
+    const railIsOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
+    const railShown = !!companyId && !!userId && !!userName && !hidden;
+    useEffect(() => {
+        const offset = railShown ? (railIsOpen ? RAIL_WIDTH : STRIP_WIDTH) : 0;
+        document.documentElement.style.setProperty("--carev-rail-offset", `${offset}px`);
+    }, [railShown, railIsOpen]);
+    useEffect(() => () => {
+        document.documentElement.style.setProperty("--carev-rail-offset", "0px");
+    }, []);
 
     if (!companyId || !userId || !userName) return null;
     // 채팅 탭 안에서는 화면을 그리지 않는다 — 위의 훅들(폴링·STOMP)은 계속 살아 있어야 하므로
@@ -299,33 +284,21 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
     if (hidden) return null;
 
     // 하이드레이션 전에는 저장된 접힘 상태를 모르므로 펼친 모습으로 그린다 (기본값과 동일)
-    const isOpen = hydrated ? state.isOpen : DEFAULT_STATE.isOpen;
-
-    // 목록이 갱신되며 방이 사라졌다면 창도 닫는다
-    const dockRoom = rooms.find(r => r.id === dockRoomId) ?? null;
-
-    const openRail = () => {
-        // 레일이 들어갈 폭이 아니면 펴 봐야 보이지 않는다 — 그럴 땐 채팅 화면으로 보낸다
-        if (typeof window !== "undefined" && window.innerWidth < RAIL_BREAKPOINT) {
-            onOpenChatTab();
-            return;
-        }
-        update({ isOpen: true });
-    };
+    const isOpen = railIsOpen;
 
     const peopleGroupClass = `carev-chat-rail-group${state.showPeople ? "" : " carev-chat-rail-group-closed"}`;
-    const roomsGroupClass = `carev-chat-rail-group${state.showRooms ? "" : " carev-chat-rail-group-closed"}`;
+    const tasksGroupClass = `carev-chat-rail-group${state.showTasks ? "" : " carev-chat-rail-group-closed"}`;
 
     return (
         <>
-            {/* 레일은 오른쪽에서 밀려 들어오고, 접으면 그 자리에서 플로팅 버튼으로 오므라든다.
-                두 동작이 이어져 보여야 "저 버튼이 이걸 연다"가 설명 없이 전달된다. */}
+            {/* 패널은 오른쪽에서 밀려 들어오고, 접으면 오른쪽 끝의 펼치기 막대로 줄어든다.
+                업무진행도는 접힌 패널 안에 있으므로 함께 접힌다. 막대를 다시 누르면 펼친다. */}
             <AnimatePresence initial={false}>
-                {isOpen && (
+                {isOpen ? (
                     <motion.aside
                         key="rail"
                         className="carev-chat-rail"
-                        aria-label="채팅"
+                        aria-label="직원·업무진행도"
                         initial={{ width: 0, opacity: 0 }}
                         animate={{ width: RAIL_WIDTH, opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
@@ -333,9 +306,9 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                     >
                         <div className="carev-chat-rail-inner">
                             <div className="carev-chat-rail-head">
-                                <Text type="label" weight="semibold">채팅</Text>
+                                <Text type="label" weight="semibold">직원 · 업무</Text>
                                 <IconButton
-                                    label="채팅 접기"
+                                    label="패널 접기"
                                     tooltip="접기"
                                     variant="ghost"
                                     size="sm"
@@ -344,41 +317,7 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                                 />
                             </div>
 
-                            {directError && (
-                                <div className="carev-chat-rail-notice">
-                                    <Banner
-                                        status="error"
-                                        title={directError}
-                                        isDismissable
-                                        onDismiss={() => setDirectError(null)}
-                                    />
-                                </div>
-                            )}
-
-                            {/* 방을 고르면 레일 안이 그대로 대화 화면이 된다.
-                                별도 창으로 띄우면 "새 채팅방이 열렸다"로 읽혀서, 보던 화면을
-                                유지한 채 대화만 얹는다는 의도가 전달되지 않는다. */}
-                            {dockRoom ? (
-                                <ChatDock
-                                    key={dockRoom.id}
-                                    roomId={dockRoom.id}
-                                    roomName={dockRoom.name}
-                                    participantCount={dockRoom.participantCount}
-                                    onClose={() => setDockRoomId(null)}
-                                    onExpand={() => {
-                                        onOpenRoom(dockRoom.id);
-                                        setDockRoomId(null);
-                                    }}
-                                    onRead={(readRoomId) =>
-                                        // 이미 0이면 배열 정체성을 유지해 불필요한 재렌더(→ 도크 재로딩 루프)를 막는다
-                                        // (sortRoomsPinnedFirst도 순서가 이미 맞으면 같은 배열을 돌려준다)
-                                        setRooms(prev => prev.some(r => r.id === readRoomId && r.unreadCount > 0)
-                                            ? sortRoomsPinnedFirst(prev.map(r => (r.id === readRoomId ? { ...r, unreadCount: 0 } : r)))
-                                            : prev)
-                                    }
-                                />
-                            ) : (
-                            /* 직원과 대화방이 높이를 반씩 나눠 갖고 각자 안에서 스크롤한다 */
+                            {/* 직원과 업무진행도가 높이를 반씩 나눠 갖고 각자 안에서 스크롤한다 */}
                             <div className="carev-chat-rail-groups">
                                 <div className={peopleGroupClass}>
                                     <SectionHeader
@@ -389,160 +328,116 @@ export function ChatRail({ onOpenRoom, onOpenChatTab, onUnreadChange, hidden, cu
                                     />
                                     {state.showPeople && (
                                         <div className="carev-chat-rail-section">
-                    <MemberItem
-                        name={userName}
-                        suffix="나"
-                        imageUrl={myProfileImageUrl}
-                        presence="online"
-                        density="compact"
-                    />
-                    {membersStatus === "loading" || membersStatus === "idle" ? (
-                        <Loading size="inline" height={72} label="직원을 불러오는 중..." />
-                    ) : membersStatus === "error" ? (
-                        <div className="carev-chat-rail-notice">
-                            <Banner
-                                status="error"
-                                title="직원 목록을 불러오지 못했습니다"
-                                endContent={
-                                    <Button
-                                        label="다시 시도"
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={() => companyId && loadOrgPresence(companyId, { force: true })}
-                                    />
-                                }
-                            />
-                        </div>
-                    ) : sortedMembers.length === 0 ? (
-                        <div className="carev-chat-rail-empty">
-                            <EmptyState
-                                isCompact
-                                icon={<Icon icon={FiUsers} size="lg" color="tertiary" />}
-                                title="등록된 직원이 없습니다"
-                            />
-                        </div>
-                    ) : (
-                        sortedMembers.map(member => (
-                            <MemberItem
-                                key={member.id}
-                                name={member.name}
-                                role={member.position}
-                                imageUrl={member.profileImageUrl}
-                                presence={onlineUserIds.has(member.id) ? "online" : "offline"}
-                                isDisabled={isOpeningDirect}
-                                density="compact"
-                                onClick={() => openDirect(member)}
-                            />
-                        ))
-                    )}
-                </div>
+                                            <MemberItem
+                                                name={userName}
+                                                suffix="나"
+                                                imageUrl={myProfileImageUrl}
+                                                presence="online"
+                                                density="compact"
+                                            />
+                                            {membersStatus === "loading" || membersStatus === "idle" ? (
+                                                <Loading size="inline" height={72} label="직원을 불러오는 중..." />
+                                            ) : membersStatus === "error" ? (
+                                                <div className="carev-chat-rail-notice">
+                                                    <Banner
+                                                        status="error"
+                                                        title="직원 목록을 불러오지 못했습니다"
+                                                        endContent={
+                                                            <Button
+                                                                label="다시 시도"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => companyId && loadOrgPresence(companyId, { force: true })}
+                                                            />
+                                                        }
+                                                    />
+                                                </div>
+                                            ) : sortedMembers.length === 0 ? (
+                                                <div className="carev-chat-rail-empty">
+                                                    <EmptyState
+                                                        isCompact
+                                                        icon={<Icon icon={FiUsers} size="lg" color="tertiary" />}
+                                                        title="등록된 직원이 없습니다"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                sortedMembers.map(member => (
+                                                    <MemberItem
+                                                        key={member.id}
+                                                        name={member.name}
+                                                        role={member.position}
+                                                        imageUrl={member.profileImageUrl}
+                                                        presence={onlineUserIds.has(member.id) ? "online" : "offline"}
+                                                        density="compact"
+                                                        // 대화는 오른쪽 아래 말풍선 창에서 열린다 — 패널은 업무를 보여 주는 자리다
+                                                        onClick={() => requestDirectChat(member)}
+                                                    />
+                                                ))
+                                            )}
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className={roomsGroupClass}>
-                                    <SectionHeader
-                                        label="대화방"
-                                        count={rooms.length > 0 ? String(rooms.length) : undefined}
-                                        badge={totalUnread > 0 ? (totalUnread > 99 ? "99+" : String(totalUnread)) : undefined}
-                                        isOpen={state.showRooms}
-                                        onToggle={() => update({ showRooms: !state.showRooms })}
+                                <div className={tasksGroupClass}>
+                                    <WorkTaskSection
+                                        meId={userId}
+                                        members={orgMembers}
+                                        isOpen={state.showTasks}
+                                        onToggle={() => update({ showTasks: !state.showTasks })}
+                                        openTaskId={pendingTaskId}
+                                        onOpenedTask={clearPendingTask}
+                                        onMyCountChange={setMyTaskCount}
                                         hasDividerAbove
                                     />
-                                    {state.showRooms && (
-                                        <div className="carev-chat-rail-section">
-                    {isLoadingRooms ? (
-                        <Loading size="inline" height={72} label="대화방을 불러오는 중..." />
-                    ) : rooms.length === 0 ? (
-                        <div className="carev-chat-rail-empty">
-                            <EmptyState
-                                isCompact
-                                icon={<Icon icon={FiMessageCircle} size="lg" color="tertiary" />}
-                                title="대화방이 없습니다"
-                                description="위에서 직원을 누르면 1:1 대화가 열립니다."
-                            />
-                        </div>
-                    ) : (
-                        rooms.map(room => (
-                            <Item
-                                key={room.id}
-                                label={chatRoomLabel(room.name, room.pinned)}
-                                description={
-                                    room.lastMessage
-                                        ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
-                                        : undefined
-                                }
-                                startContent={
-                                    <ChatRoomAvatarStack
-                                        roomName={room.name}
-                                        people={room.avatars || []}
-                                        size={28}
-                                    />
-                                }
-                                endContent={
-                                    room.unreadCount > 0 ? (
-                                        /* 채팅 화면 자체의 방별 안읽음 배지(ChatManagement), 이 레일의
-                                           합계·독(dock) 배지, 셸 탭 카운트(admin/page.tsx)가 모두
-                                           error(빨강)를 쓰는데 이 자리만 teal이라 같은 뜻이 다른 색으로
-                                           보였다. 앱 전체 기준(빨강)에 맞춘다 */
-                                        <Badge
-                                            variant="error"
-                                            label={room.unreadCount > 99 ? "99+" : room.unreadCount}
-                                        />
-                                    ) : undefined
-                                }
-                                onClick={() => setDockRoomId(room.id)}
-                                density="compact"
-                                labelLines={1}
-                                descriptionLines={1}
-                            />
-                        ))
-                    )}
-                </div>
-                                    )}
                                 </div>
                             </div>
-                            )}
                         </div>
+                    </motion.aside>
+                ) : (
+                    <motion.aside
+                        key="strip"
+                        className="carev-chat-rail-strip"
+                        aria-label="상태표시바 (접힘)"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: duration.fast, ease: "easeOut" }}
+                    >
+                        <IconButton
+                            label="상태표시바 펼치기"
+                            tooltip="펼치기"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={FiChevronsLeft} size="sm" />}
+                            onClick={() => update({ isOpen: true })}
+                        />
+                        {/* 원장 요청(2026-10-22): 접었을 때 이름은 '상태표시바' */}
+                        <button type="button" className="carev-chat-rail-strip-label" onClick={() => update({ isOpen: true })}>
+                            상태표시바
+                        </button>
+                        {myTaskCount > 0 && (
+                            <span className="carev-chat-rail-strip-badge">
+                                <Badge variant="neutral" label={myTaskCount > 99 ? "99+" : myTaskCount} />
+                            </span>
+                        )}
                     </motion.aside>
                 )}
             </AnimatePresence>
 
-            <AnimatePresence initial={false}>
-                {!isOpen && (
-                    <motion.div
-                        key="fab"
-                        className="carev-chat-rail-fab"
-                        initial={{ scale: 0.4, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.4, opacity: 0 }}
-                        transition={{ duration: duration.fast, ease: "easeOut" }}
-                    >
-                        <IconButton
-                            label="채팅 열기"
-                            tooltip="채팅 열기"
-                            className="carev-fchat-fab"
-                            icon={<Icon icon={FiMessageCircle} size="md" />}
-                            onClick={openRail}
-                            style={{
-                                width: 56,
-                                height: 56,
-                                minWidth: 56,
-                                padding: "var(--spacing-0)",
-                                borderRadius: "var(--radius-full)",
-                                background: "var(--color-accent)",
-                                color: "var(--color-on-accent)",
-                                boxShadow: "var(--shadow-med)",
-                            }}
-                        />
-                        {totalUnread > 0 && (
-                            <div className="carev-chat-rail-fab-badge">
-                                <Badge variant="error" label={totalUnread > 99 ? "99+" : totalUnread} />
-                            </div>
-                        )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
+            {/* 접혀 있는 동안에도 막대의 '내 업무' 배지가 맞으려면 목록은 계속 받아야 한다 — 화면 밖에서 조용히 */}
+            {!isOpen && (
+                <div hidden>
+                    <WorkTaskSection
+                        meId={userId}
+                        members={orgMembers}
+                        isOpen={false}
+                        onToggle={() => {}}
+                        openTaskId={null}
+                        onOpenedTask={clearPendingTask}
+                        onMyCountChange={setMyTaskCount}
+                    />
+                </div>
+            )}
         </>
     );
 }
