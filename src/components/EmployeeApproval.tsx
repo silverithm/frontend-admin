@@ -26,10 +26,11 @@ import ClickableRow from './ClickableRow';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Text } from '@astryxdesign/core/Text';
 import PageHeader from './PageHeader';
+import { parseDefaultApprovalLine } from '@/lib/approvalLine';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, updateApprovalDraft, submitApprovalDraft, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId, type ApprovalRequestPayload } from '@/lib/apiService';
+import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, updateApprovalDraft, submitApprovalDraft, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId, uploadFileToServer, type ApprovalRequestPayload } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus, ApproverCandidate } from '@/types/approval';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
@@ -447,33 +448,6 @@ export default function EmployeeApproval() {
     }));
   };
 
-  // 파일 업로드 API 호출
-  const uploadFileToServer = async (file: File): Promise<{ filePath: string; fileName: string; fileSize: number } | null> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    // 토큰 가져오기
-    const token = localStorage.getItem('authToken');
-
-    const response = await fetch('/api/v1/files/upload?category=attachments', {
-      method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || '파일 업로드 실패');
-    }
-
-    const result = await response.json();
-    return {
-      filePath: result.filePath,
-      fileName: result.fileName,
-      fileSize: result.fileSize,
-    };
-  };
-
   // 결재 신청 제출 (file 타입 또는 hybrid의 파일 파트)
   const handleSubmitApproval = async () => {
     if (!approvalForm.templateId) {
@@ -737,8 +711,7 @@ export default function EmployeeApproval() {
     setApprovalForm({ templateId: String(source.templateId ?? ''), title: source.title ?? '', file: null });
     setFormData(parseFormData(source.formData));
     try {
-      const line = picked?.defaultApprovalLine ? JSON.parse(picked.defaultApprovalLine) : [];
-      setApprovalLine(Array.isArray(line) ? line : []);
+      setApprovalLine(parseDefaultApprovalLine<ApproverCandidate>(picked?.defaultApprovalLine, getApprovalRequesterId()));
     } catch {
       setApprovalLine([]);
     }
@@ -1354,9 +1327,8 @@ export default function EmployeeApproval() {
                     // 양식에 없으면 빈 결재선(레거시 단일 승인) — 이전 양식 선택이 남지 않게 리셋.
                     const pickedForLine = templates.find(t => String(t.id) === value);
                     try {
-                      const line = pickedForLine?.defaultApprovalLine
-                        ? JSON.parse(pickedForLine.defaultApprovalLine) : [];
-                      setApprovalLine(Array.isArray(line) ? line : []);
+                      // 기안자 본인이 기본 결재선에 들어 있으면 뺀다 (서버도 같은 규칙으로 뺀다)
+                      setApprovalLine(parseDefaultApprovalLine<ApproverCandidate>(pickedForLine?.defaultApprovalLine, getApprovalRequesterId()));
                     } catch {
                       setApprovalLine([]);
                     }
