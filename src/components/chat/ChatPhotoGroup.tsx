@@ -37,8 +37,10 @@ export function ChatPhotoGroup({
                 display: "grid",
                 gridTemplateColumns: `repeat(${columns}, 1fr)`,
                 gap: 'var(--spacing-1)',
-                width: "100%",
-                maxWidth,
+                // 너비를 정해 둔다 — 100%로 두면 말풍선이 내용만큼 줄어드는 자리에서 격자도 같이 쪼그라들어
+                // 좁은 말풍선 채팅 창에서 사진 칸이 손톱만 해졌다(2026-10-23)
+                width: maxWidth,
+                maxWidth: "100%",
             }}
         >
             {messages.map((message, index) => (
