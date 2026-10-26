@@ -547,7 +547,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
               <VStack gap={2}>
                 <HStack gap={2} vAlign="center" wrap="wrap">
                   {post.isPinned && <Badge variant="neutral" icon={<Icon icon={IconPinned} size="xsm" />} label="고정" />}
-                  {post.isOfficial && <Badge variant="teal" label="운영" />}
+                  {post.isOfficial && <Badge variant="neutral" label="운영" />}
                   <Badge variant={meta.badgeVariant} label={meta.badgeLabel} />
                   {post.category && <Badge variant={getCategoryMeta(post.category).badgeVariant} label={getCategoryMeta(post.category).label} />}
                   <Heading level={3}>{post.title}</Heading>
@@ -780,7 +780,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
                       {post.isPinned && <Icon icon={IconPinned} size="xsm" color="secondary" />}
                       {post.isOfficial && (
                         <div style={{ flexShrink: 0 }}>
-                          <Badge variant="teal" label="운영" />
+                          <Badge variant="neutral" label="운영" />
                         </div>
                       )}
                       {/* 시설 유형 말머리 — 특정 유형으로 필터 중일 때는 중복이라 숨긴다 */}

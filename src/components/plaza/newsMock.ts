@@ -19,12 +19,13 @@ export interface NewsItem {
 export const NEWS_CATEGORIES: {
   value: NewsCategory;
   label: string;
-  badgeVariant: 'red' | 'blue' | 'yellow' | 'teal';
+  /** 분류는 글자로 구분한다 — 색은 상태에만(DESIGN.md) */
+  badgeVariant: 'neutral';
 }[] = [
-  { value: 'abuse', label: '학대·안전', badgeVariant: 'red' },
-  { value: 'policy', label: '제도·수가', badgeVariant: 'blue' },
-  { value: 'eval', label: '평가', badgeVariant: 'yellow' },
-  { value: 'field', label: '현장소식', badgeVariant: 'teal' },
+  { value: 'abuse', label: '학대·안전', badgeVariant: 'neutral' },
+  { value: 'policy', label: '제도·수가', badgeVariant: 'neutral' },
+  { value: 'eval', label: '평가', badgeVariant: 'neutral' },
+  { value: 'field', label: '현장소식', badgeVariant: 'neutral' },
 ];
 
 export const getNewsCategoryMeta = (category: NewsCategory) =>

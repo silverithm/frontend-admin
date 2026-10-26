@@ -1876,11 +1876,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                 </div>
                                 <div style={{ marginTop: 'var(--spacing-1)' }}>
                                   <HStack gap={1.5} vAlign="center" wrap="wrap">
-                                    <Badge variant="teal" label={schedule.label?.name || getCategoryText(schedule.category)} />
+                                    <Badge variant="neutral" label={schedule.label?.name || getCategoryText(schedule.category)} />
                                     {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
                                     {(schedule.taskTotal || 0) > 0 && !schedule.isCompleted && (
                                       <Badge
-                                        variant="blue"
+                                        variant="neutral"
                                         label={`할 일 ${schedule.taskCompleted || 0}/${schedule.taskTotal}`}
                                       />
                                     )}
@@ -2410,7 +2410,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                     <div style={{ marginTop: 'var(--spacing-1)' }}>
                                       <HStack gap={1.5} vAlign="center" wrap="wrap">
                                         {task.assigneeName ? (
-                                          <Badge variant="blue" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
+                                          <Badge variant="neutral" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
                                         ) : (
                                           <Badge variant="neutral" label="담당자 미지정" />
                                         )}

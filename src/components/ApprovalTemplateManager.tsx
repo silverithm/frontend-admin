@@ -779,7 +779,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       <TableCell>
                         <HStack>
                           {(template.category || '').trim() ? (
-                            <Badge variant="blue" label={(template.category || '').trim()} />
+                            <Badge variant="neutral" label={(template.category || '').trim()} />
                           ) : (
                             <Text type="supporting" color="secondary">{UNCATEGORIZED_LABEL}</Text>
                           )}
@@ -798,15 +798,11 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       </TableCell>
                       <TableCell>
                         <HStack>
-                          {template.templateType === 'form' ? (
-                            <Badge variant="teal" label="온라인 폼" />
-                          ) : template.templateType === 'hybrid' ? (
-                            // teal과 cyan은 둘 다 초록에 가까워 나란히 두면 구분이 안 됐다.
-                            // 이 표에서 purple은 다른 곳에 쓰이지 않아 확실히 갈린다.
-                            <Badge variant="purple" label="혼합" />
-                          ) : (
-                            <Badge variant="neutral" label="파일" />
-                          )}
+                          {/* 유형은 분류라 색 없이 글자로 — 색은 상태(활성화)에만 쓴다 */}
+                          <Badge
+                            variant="neutral"
+                            label={template.templateType === 'form' ? '온라인 폼' : template.templateType === 'hybrid' ? '혼합' : '파일'}
+                          />
                         </HStack>
                       </TableCell>
                       <TableCell>

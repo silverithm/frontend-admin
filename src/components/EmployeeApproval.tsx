@@ -972,7 +972,7 @@ export default function EmployeeApproval() {
                         <HStack gap={2} vAlign="center">
                           <Text weight="semibold" color="primary">{template.name}</Text>
                           {(template.category || '').trim() && (
-                            <Badge variant="blue" label={(template.category || '').trim()} />
+                            <Badge variant="neutral" label={(template.category || '').trim()} />
                           )}
                           {(template.templateType === 'file' || !template.templateType) && (
                             <Badge variant="teal" label="파일 양식" />

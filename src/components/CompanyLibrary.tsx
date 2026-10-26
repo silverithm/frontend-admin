@@ -310,7 +310,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                             {/* 미분류 자료만 배지가 없어서 그 줄만 높이·모양이 달라 보였다.
                                 값이 없어도 중립 톤 '미분류' 배지를 찍어 줄 모양을 맞춘다 */}
                             <Badge
-                              variant={normalizeCategory(item.category) ? 'blue' : 'neutral'}
+                              variant="neutral"
                               label={normalizeCategory(item.category) || UNCATEGORIZED}
                             />
                           </HStack>

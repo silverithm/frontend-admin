@@ -630,7 +630,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                               <Icon icon={FiFileText} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">{approval.templateName}</Text>
                               {approval.isImported && (
-                                <Badge variant="purple" label={approval.externalDocNumber
+                                <Badge variant="neutral" label={approval.externalDocNumber
                                   ? `이관 · ${approval.externalDocNumber}`
                                   : '이관'} />
                               )}

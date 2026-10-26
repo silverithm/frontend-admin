@@ -55,28 +55,29 @@ export interface LibraryItem {
   isSeed: boolean; // 운영자 시딩 자료 (실파일은 API 연동 후 제공)
 }
 
-export const BOARD_META: { value: BoardType; label: string; badgeLabel: string; badgeVariant: 'blue' | 'yellow' | 'teal'; hasCategory: boolean }[] = [
-  { value: 'free', label: '자유게시판', badgeLabel: '자유', badgeVariant: 'teal', hasCategory: false },
-  { value: 'review', label: '평가후기', badgeLabel: '평가후기', badgeVariant: 'yellow', hasCategory: true },
-  { value: 'tip', label: '실무팁', badgeLabel: '실무팁', badgeVariant: 'blue', hasCategory: true },
-  { value: 'job_offer', label: '구인', badgeLabel: '구인', badgeVariant: 'teal', hasCategory: true },
-  { value: 'job_seek', label: '구직', badgeLabel: '구직', badgeVariant: 'yellow', hasCategory: true },
+// 분류 꼬리표는 모두 회색이다 — 색은 상태(승인·대기·반려)에만 쓰고, 분류는 글자로 구분한다(DESIGN.md '색은 상태만').
+export const BOARD_META: { value: BoardType; label: string; badgeLabel: string; badgeVariant: 'neutral'; hasCategory: boolean }[] = [
+  { value: 'free', label: '자유게시판', badgeLabel: '자유', badgeVariant: 'neutral', hasCategory: false },
+  { value: 'review', label: '평가후기', badgeLabel: '평가후기', badgeVariant: 'neutral', hasCategory: true },
+  { value: 'tip', label: '실무팁', badgeLabel: '실무팁', badgeVariant: 'neutral', hasCategory: true },
+  { value: 'job_offer', label: '구인', badgeLabel: '구인', badgeVariant: 'neutral', hasCategory: true },
+  { value: 'job_seek', label: '구직', badgeLabel: '구직', badgeVariant: 'neutral', hasCategory: true },
 ];
 
 /** 구인·구직 게시판 여부 — 연락처 입력·표시 분기 */
 export const isJobBoard = (board: BoardType) => board === 'job_offer' || board === 'job_seek';
 
-export const CATEGORY_META: { value: PostCategory; label: string; badgeVariant: 'green' | 'blue' | 'purple' }[] = [
-  { value: 'daycare', label: '주간보호', badgeVariant: 'green' },
-  { value: 'homecare', label: '방문요양·목욕', badgeVariant: 'blue' },
-  { value: 'nursing', label: '요양원', badgeVariant: 'purple' },
+export const CATEGORY_META: { value: PostCategory; label: string; badgeVariant: 'neutral' }[] = [
+  { value: 'daycare', label: '주간보호', badgeVariant: 'neutral' },
+  { value: 'homecare', label: '방문요양·목욕', badgeVariant: 'neutral' },
+  { value: 'nursing', label: '요양원', badgeVariant: 'neutral' },
 ];
 
-export const LIBRARY_META: { value: LibraryCategory; label: string; badgeVariant: 'blue' | 'yellow' | 'green' | 'purple' }[] = [
-  { value: 'form', label: '서식', badgeVariant: 'blue' },
-  { value: 'eval', label: '평가자료', badgeVariant: 'yellow' },
-  { value: 'program', label: '프로그램', badgeVariant: 'green' },
-  { value: 'etc', label: '기타', badgeVariant: 'purple' },
+export const LIBRARY_META: { value: LibraryCategory; label: string; badgeVariant: 'neutral' }[] = [
+  { value: 'form', label: '서식', badgeVariant: 'neutral' },
+  { value: 'eval', label: '평가자료', badgeVariant: 'neutral' },
+  { value: 'program', label: '프로그램', badgeVariant: 'neutral' },
+  { value: 'etc', label: '기타', badgeVariant: 'neutral' },
 ];
 
 export const REPORT_REASONS = ['광고/홍보', '욕설/비방', '개인정보 노출', '허위 정보', '기타'];

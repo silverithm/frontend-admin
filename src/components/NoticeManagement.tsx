@@ -473,7 +473,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <VStack gap={2} align="start">
                                 <HStack gap={2} vAlign="center" wrap="wrap">
-                                  <Badge variant="teal" label="운영" />
+                                  <Badge variant="neutral" label="운영" />
                                   <Heading level={4} maxLines={1}>{n.title}</Heading>
                                 </HStack>
                                 <HStack gap={3} vAlign="center" wrap="wrap">

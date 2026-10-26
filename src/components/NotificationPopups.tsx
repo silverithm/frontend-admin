@@ -173,7 +173,7 @@ export default function NotificationPopups({ targets, onOpen }: Props) {
               transition={{ duration: duration.fast, ease: 'easeOut' }}
             >
               <div className="carev-npop-head">
-                <span className={`carev-npop-icon carev-npop-icon-${card.target ?? 'general'}`} aria-hidden="true">
+                <span className="carev-npop-icon" aria-hidden="true">
                   <Icon icon={iconOf(card.target)} size="sm" />
                 </span>
                 <div className="carev-npop-titles">

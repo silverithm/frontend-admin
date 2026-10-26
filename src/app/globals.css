@@ -1052,12 +1052,7 @@ html {
   background: var(--color-background-teal);
   color: var(--color-text-teal);
 }
-/* 알림 종류마다 머리 동그라미 색 — 글자(제목)로도 무엇인지 말하므로 색만으로 구분하지 않는다 */
-.carev-npop-icon-work_task { background: var(--color-background-yellow); color: var(--color-text-yellow); }
-.carev-npop-icon-approval { background: var(--color-background-purple); color: var(--color-text-purple); }
-.carev-npop-icon-vacation,
-.carev-npop-icon-schedule { background: var(--color-background-blue); color: var(--color-text-blue); }
-.carev-npop-icon-members { background: var(--color-background-green); color: var(--color-text-green); }
+/* 알림 종류는 아이콘 모양과 제목 글자로 구분한다 — 종류마다 보라·파랑·노랑을 돌려 쓰면 상태색(승인·대기)과 섞인다 */
 .carev-npop-titles { display: flex; flex-direction: column; min-width: 0; }
 .carev-npop-title {
   font-size: var(--font-size-sm);

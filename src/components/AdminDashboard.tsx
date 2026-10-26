@@ -1286,7 +1286,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <HStack gap={2} vAlign="center">
-                          <Badge variant="teal" label="운영" />
+                          <Badge variant="neutral" label="운영" />
                           <Text type="body" weight="medium" color="primary" maxLines={1}>{notice.title}</Text>
                         </HStack>
                         <Text type="supporting" color="secondary">
@@ -1377,7 +1377,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         </Text>
                       </div>
                       <div style={{ flexShrink: 0 }}>
-                        <Badge variant="orange" label="대기" />
+                        <Badge variant="yellow" label="대기" />
                       </div>
                     </ClickableRow>
                   ))}
@@ -1869,7 +1869,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
                           {hasTasks(schedule) && !schedule.isCompleted && (
                             <Badge
-                              variant="blue"
+                              variant="neutral"
                               label={`할 일 ${schedule.taskCompleted || 0}/${schedule.taskTotal}`}
                             />
                           )}
@@ -2109,7 +2109,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                                   <div style={{ marginTop: 'var(--spacing-1)' }}>
                                     <HStack gap={1.5} vAlign="center" wrap="wrap">
                                       {task.assigneeName ? (
-                                        <Badge variant="blue" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
+                                        <Badge variant="neutral" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
                                       ) : (
                                         <Badge variant="neutral" label="담당자 미지정" />
                                       )}

@@ -1290,7 +1290,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               return (
                                 <HStack gap={2} vAlign="center" wrap="wrap">
                                   <Text weight="semibold">{u.name}</Text>
-                                  <Badge variant="purple" label="관리자" />
+                                  <Badge variant="neutral" label="관리자" />
                                   {isMyAdminRow(u) && <Badge variant="green" label="나" />}
                                 </HStack>
                               );
@@ -1323,7 +1323,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                             const canEdit = u.isAdminAccount ? isMyAdminRow(u) : canManage;
                             if (!canEdit) {
                               return u.position ? (
-                                <Badge variant="orange" label={u.position} />
+                                <Badge variant="neutral" label={u.position} />
                               ) : (
                                 <Text type="supporting" color="disabled">-</Text>
                               );

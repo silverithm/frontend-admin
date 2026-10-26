@@ -38,20 +38,12 @@ interface FeedRow {
   url: string;
   date: Date;
   badgeLabel: string;
-  badgeVariant: 'red' | 'blue' | 'yellow' | 'teal' | 'neutral';
+  badgeVariant: 'neutral';
   /** 언론 기사에만 있는 매체명 */
   sourceName?: string;
   /** 같은 사안을 다룬 다른 매체 기사 수 */
   duplicateCount: number;
 }
-
-/** 공단 게시판별 뱃지 색 — 공지/법령/평가/교육을 한눈에 구분한다 */
-const LTC_BADGE_VARIANT: Record<string, FeedRow['badgeVariant']> = {
-  LTC_NOTICE: 'blue',
-  LTC_LAW: 'neutral',
-  LTC_EVAL: 'yellow',
-  LTC_EDU: 'teal',
-};
 
 /** 공단 자료는 초기에 넉넉히 받아 언론 기사와 날짜순으로 섞는다 */
 const LTC_PAGE_SIZE = 50;
@@ -105,7 +97,7 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
       url: notice.url,
       date: new Date(notice.postedDate),
       badgeLabel: notice.sourceLabel || notice.source,
-      badgeVariant: LTC_BADGE_VARIANT[notice.source] ?? 'neutral',
+      badgeVariant: 'neutral',
       duplicateCount: 0,
     }));
 

@@ -76,7 +76,7 @@ function VoiceBoxItemComponent({
         <HStack gap={2} vAlign="center" hAlign="between">
           <HStack gap={2} vAlign="center">
             <Badge
-              variant={item.type === 'GRIEVANCE' ? 'red' : 'blue'}
+              variant="neutral"
               label={item.type === 'GRIEVANCE' ? '고충·신고' : '건의'}
             />
             <Text weight="semibold">{item.title}</Text>
