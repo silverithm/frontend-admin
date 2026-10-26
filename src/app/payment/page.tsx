@@ -714,8 +714,8 @@ function PaymentPageContent() {
                                     </div>
                                 )}
 
-                                {/* 플랜 가격 */}
-                                <div style={{ width: '100%', background: 'var(--color-background-blue)', border: '1px solid var(--color-border-blue)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
+                                {/* 플랜 가격 — 랜딩 요금제의 Basic 카드와 같은 옅은 틸. 파랑은 바로 위 안내 상자(정보)의 색이라 겹쳐 보였다 */}
+                                <div style={{ width: '100%', background: 'var(--color-background-teal)', border: '1px solid var(--color-border-teal)', borderRadius: 'var(--radius-container)', padding: 'var(--spacing-4)' }}>
                                     <VStack gap={1}>
                                         <Text type="large" weight="semibold">{BASIC_PLAN.name}</Text>
                                         <HStack gap={1} vAlign="end">
