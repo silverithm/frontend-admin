@@ -1293,7 +1293,7 @@ export default function AdminPage() {
         {
             title: "커뮤니티",
             items: [
-                { key: "plaza", label: "커뮤니티", icon: IconUsersGroup, isNew: true },
+                { key: "plaza", label: "커뮤니티", icon: IconUsersGroup },
             ],
         },
         {
@@ -1306,7 +1306,7 @@ export default function AdminPage() {
                 { key: "approval", label: "전자결재", icon: IconFileText },
                 { key: "work", label: "근무조정", icon: IconCalendarStats },
                 // 고충·건의함은 기관 관리자 전용 (백엔드도 403으로 강제하지만 탭 자체를 숨긴다)
-                ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox, isNew: true }] : []),
+                ...(isAdmin ? [{ key: "voice", label: "고충·건의함", icon: IconMailbox }] : []),
                 { key: "library", label: "자료실", icon: IconFolder },
                 ...(isAdmin ? [{ key: "members", label: "회원관리", icon: IconUsers }] : []),
                 // 편의기능 — 본 업무 흐름에 속하지 않는 부가 도구를 모으는 자리.
