@@ -1306,7 +1306,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <HStack gap={2} vAlign="center">
-                          {notice.priority === 'HIGH' && <Badge variant="red" label="중요" />}
+                          {notice.priority === 'HIGH' && <Badge variant="red" label="긴급" />}
                           <Text type="body" weight="medium" color="primary" maxLines={1}>{notice.title}</Text>
                         </HStack>
                         <Text type="supporting" color="secondary">
