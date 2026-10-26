@@ -445,7 +445,7 @@ export default function SubscriptionCheckPage() {
                   <Card width="100%" padding={6}>
                     <VStack gap={4} height="100%">
                       <HStack hAlign="center">
-                        <Badge variant="info" label="추천 플랜" />
+                        <Badge variant="teal" label="추천 플랜" />
                       </HStack>
 
                       <HStack hAlign="center">
