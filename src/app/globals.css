@@ -195,7 +195,8 @@ html {
   transition: background var(--duration-fast-min) var(--ease-standard);
 }
 @media (hover: hover) { .carev-dash-today-off:hover { background: var(--color-background-muted); } }
-.carev-dash-panels { grid-template-columns: 1fr; }
+/* 폰에서 한 칸 — 1fr(=minmax(auto,1fr))이면 한 줄로 자르는 긴 제목이 칸을 화면 밖(494px)까지 밀어냈다 */
+.carev-dash-panels { grid-template-columns: minmax(0, 1fr); }
 /* 상단 요약 카드 높이 — 각 카드가 두 줄만 보여주므로 높이를 내용에 맡기고(auto),
    남는 높이는 전부 월간일정(마지막 행)이 가져간다. 고정값을 쓰면 두 줄이 잘리거나
    빈 공간이 남는데, auto면 줄 수만 바꿔도 알아서 맞는다. */
