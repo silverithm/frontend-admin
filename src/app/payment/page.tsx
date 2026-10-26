@@ -283,7 +283,7 @@ function PaymentPageContent() {
 
             showAlert({
               type: 'success',
-              title: '🎉 결제 완료! 🎉',
+              title: '결제 완료',
               message: '축하합니다! 결제가 성공적으로 완료되었습니다.\nBasic 플랜을 이용하실 수 있습니다.'
             });
 

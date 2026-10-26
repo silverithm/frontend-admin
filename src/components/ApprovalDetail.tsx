@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
+import { ApprovalRequest } from '@/types/approval';
+import { approvalStatusBadge } from '@/lib/approvalStatus';
 import { FormSchema } from '@/types/formSchema';
 import { FiCheck, FiXCircle, FiDownload, FiVolume2 } from 'react-icons/fi';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -92,30 +93,6 @@ export default function ApprovalDetail({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFileDocument, approval.attachmentUrl]);
-
-  const getStatusVariant = (
-    status: ApprovalStatus
-  ): 'success' | 'warning' | 'error' | 'neutral' => {
-    switch (status) {
-      case 'APPROVED':
-        return 'success';
-      case 'PENDING':
-        return 'warning';
-      case 'REJECTED':
-        return 'error';
-      default:
-        return 'neutral';
-    }
-  };
-
-  const getStatusText = (status: ApprovalStatus) => {
-    switch (status) {
-      case 'APPROVED': return '승인됨';
-      case 'PENDING': return '진행중';
-      case 'REJECTED': return '반려됨';
-      default: return status;
-    }
-  };
 
   // 결재선 차례 판단: 결재선 없는 legacy 문서는 canManage(관리자 또는 APPROVAL_MANAGE 보유)일 때만 액션 가능
   // — 열람만 가능한 직원에게 승인/반려 버튼이 노출되던 문제 수정
@@ -207,8 +184,7 @@ export default function ApprovalDetail({
               onOpenChange={(open) => { if (!open) onClose(); }}
               endContent={
                 <Badge
-                  variant={getStatusVariant(approval.status)}
-                  label={getStatusText(approval.status)}
+                  {...approvalStatusBadge(approval.status)}
                 />
               }
             />

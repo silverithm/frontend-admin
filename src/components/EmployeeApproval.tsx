@@ -32,6 +32,7 @@ import { Loading } from '@/components/Loading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, updateApprovalDraft, submitApprovalDraft, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId, uploadFileToServer, type ApprovalRequestPayload } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus, ApproverCandidate } from '@/types/approval';
+import { approvalStatusBadge } from '@/lib/approvalStatus';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
@@ -244,35 +245,6 @@ export default function EmployeeApproval() {
     const scoped = categoryFilter ? approvals.filter((a) => categoryOf(a) === categoryFilter) : approvals;
     if (!status) return scoped.length;
     return scoped.filter(a => a.status === status).length;
-  };
-
-  // 상태 배지 variant
-  const getStatusVariant = (status: ApprovalStatus): 'success' | 'warning' | 'error' | 'neutral' => {
-    switch (status) {
-      case 'APPROVED':
-        return 'success';
-      case 'PENDING':
-        return 'warning';
-      case 'REJECTED':
-        return 'error';
-      default:
-        return 'neutral';
-    }
-  };
-
-  const getStatusText = (status: ApprovalStatus) => {
-    switch (status) {
-      case 'APPROVED':
-        return '승인됨';
-      case 'PENDING':
-        return '진행중';
-      case 'REJECTED':
-        return '반려됨';
-      case 'DRAFT':
-        return '임시저장';
-      default:
-        return status;
-    }
   };
 
   // 파일 크기 포맷
@@ -1204,7 +1176,7 @@ export default function EmployeeApproval() {
                         <HStack hAlign="between" vAlign="center" gap={4}>
                           <VStack gap={1}>
                             <HStack gap={2} vAlign="center">
-                              <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                              <Badge {...approvalStatusBadge(approval.status)} />
                               {(approval.revision ?? 1) > 1 && (
                                 <Badge variant="neutral" label={`${approval.revision}차`} />
                               )}
@@ -1559,7 +1531,7 @@ export default function EmployeeApproval() {
                 <VStack gap={4}>
                   {/* 상태 + 양식명 */}
                   <HStack gap={2} vAlign="center">
-                    <Badge variant={getStatusVariant(selectedApproval.status)} label={getStatusText(selectedApproval.status)} />
+                    <Badge {...approvalStatusBadge(selectedApproval.status)} />
                     {(selectedApproval.revision ?? 1) > 1 && (
                       <Badge variant="neutral" label={`${selectedApproval.revision}차`} />
                     )}

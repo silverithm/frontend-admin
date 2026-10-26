@@ -32,7 +32,8 @@ import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
 /** 서버가 "분류가 비어 있는 문서"로 알아듣는 값 (ApprovalRequestService.UNCATEGORIZED_FILTER) */
 const UNCATEGORIZED_QUERY = '__NONE__';
 import { useConfirm } from './ConfirmDialog';
-import { ApprovalRequest, ApprovalStatus } from '@/types/approval';
+import { ApprovalRequest } from '@/types/approval';
+import { approvalStatusBadge } from '@/lib/approvalStatus';
 import { FormSchema } from '@/types/formSchema';
 import ApprovalDetail from './ApprovalDetail';
 import SignatureConfirmDialog from './approval/SignatureConfirmDialog';
@@ -372,33 +373,6 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     }
   };
 
-  const getStatusVariant = (status: ApprovalStatus): 'success' | 'warning' | 'error' | 'neutral' => {
-    switch (status) {
-      case 'APPROVED': return 'success';
-      case 'PENDING': return 'warning';
-      case 'REJECTED': return 'error';
-      default: return 'neutral';
-    }
-  };
-
-  const getStatusIconColor = (status: ApprovalStatus): 'success' | 'warning' | 'error' | 'secondary' => {
-    switch (status) {
-      case 'APPROVED': return 'success';
-      case 'PENDING': return 'warning';
-      case 'REJECTED': return 'error';
-      default: return 'secondary';
-    }
-  };
-
-  const getStatusText = (status: ApprovalStatus) => {
-    switch (status) {
-      case 'APPROVED': return '승인됨';
-      case 'PENDING': return '진행중';
-      case 'REJECTED': return '반려됨';
-      default: return status;
-    }
-  };
-
   // 첫 로딩에만 화면을 로딩으로 덮는다.
   // 검색할 때마다 덮으면 입력창이 통째로 사라졌다 나타나서 글자를 칠 수 없다.
   if (isLoading && isFirstLoad) {
@@ -631,11 +605,11 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             )}
                           </div>
                         )}
-                        <Icon icon={FiFileText} size="md" color={getStatusIconColor(approval.status)} />
+                        <Icon icon={FiFileText} size="md" color="secondary" />
                         <VStack gap={1} style={{ minWidth: 0 }}>
                           <HStack gap={2} vAlign="center">
                             <Text weight="semibold" color="primary">{approval.title}</Text>
-                            <Badge variant={getStatusVariant(approval.status)} label={getStatusText(approval.status)} />
+                            <Badge {...approvalStatusBadge(approval.status)} />
                             {getLineProgress(approval) && (
                               <Badge variant="neutral" label={getLineProgress(approval)!} />
                             )}

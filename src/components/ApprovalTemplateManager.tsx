@@ -836,7 +836,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                             헷갈렸다. 이 칸은 늘 지금 상태만 보여주는 Badge로 고정하고,
                             켜고 끄는 동작은 액션 칸의 토글 아이콘 버튼으로 분리한다. */}
                         <Badge
-                          variant={template.isActive ? 'success' : 'neutral'}
+                          variant={template.isActive ? 'green' : 'neutral'}
                           label={template.isActive ? '활성화' : '비활성화'}
                         />
                       </TableCell>

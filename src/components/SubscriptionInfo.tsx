@@ -160,11 +160,11 @@ export default function SubscriptionInfo() {
 
   const statusVariant =
     subscription?.status === SubscriptionStatus.ACTIVE
-      ? 'success'
+      ? 'green'
       : subscription?.status === SubscriptionStatus.EXPIRED
-        ? 'error'
+        ? 'red'
         : subscription?.status === SubscriptionStatus.CANCELLED
-          ? 'warning'
+          ? 'yellow'
           : 'neutral';
   const statusLabel =
     subscription?.status === SubscriptionStatus.ACTIVE

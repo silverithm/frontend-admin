@@ -125,8 +125,8 @@ export default function VoiceBoxEmployee() {
       <Card>
         <VStack gap={4}>
           <SegmentedControl value={type} onChange={handleTypeChange} label="유형">
-            <SegmentedControlItem value="SUGGESTION" label="💡 건의" />
-            <SegmentedControlItem value="GRIEVANCE" label="🔒 고충·신고" />
+            <SegmentedControlItem value="SUGGESTION" label="건의" />
+            <SegmentedControlItem value="GRIEVANCE" label="고충·신고" />
           </SegmentedControl>
 
           <TextInput

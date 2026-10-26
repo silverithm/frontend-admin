@@ -863,12 +863,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
     }
   };
 
-  const statusVariant = (status: string): 'warning' | 'success' | 'error' | 'neutral' => {
+  const statusVariant = (status: string): 'yellow' | 'green' | 'red' | 'neutral' => {
     switch (status) {
-      case 'pending': return 'warning';
+      case 'pending': return 'yellow';
       case 'approved':
-      case 'active': return 'success';
-      case 'rejected': return 'error';
+      case 'active': return 'green';
+      case 'rejected': return 'red';
       case 'inactive':
       default: return 'neutral';
     }

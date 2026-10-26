@@ -302,15 +302,16 @@ export default function EmployeeCalendar() {
   };
 
   // 휴가 상태에 따른 Badge variant
-  const getVacationBadgeVariant = (status: string): 'success' | 'warning' | 'error' | 'neutral' => {
+  // 옅은 상태 꼬리표(DESIGN.md) — 진한 바탕(success·warning·error)은 하루 칸에 여러 개 겹치면 달력이 얼룩진다
+  const getVacationBadgeVariant = (status: string): 'green' | 'yellow' | 'red' | 'neutral' => {
     const lowerStatus = status?.toLowerCase();
     switch (lowerStatus) {
       case 'approved':
-        return 'success';
+        return 'green';
       case 'pending':
-        return 'warning';
+        return 'yellow';
       case 'rejected':
-        return 'error';
+        return 'red';
       default:
         return 'neutral';
     }
@@ -584,7 +585,7 @@ export default function EmployeeCalendar() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          ★ 마감
+                          마감
                         </div>
                       )}
                       {/* 중요 행사 — 이 날은 휴무를 피해달라는 표시 */}
@@ -596,8 +597,8 @@ export default function EmployeeCalendar() {
                             margin: '1px var(--spacing-0-5) 0',
                             padding: '0 var(--spacing-1)',
                             borderRadius: 'var(--radius-inner)',
-                            background: 'var(--color-background-purple)',
-                            color: 'var(--color-text-purple)',
+                            background: 'var(--color-background-muted)',
+                            color: 'var(--color-text-secondary)',
                             fontSize: 'var(--font-size-xs)',
                             fontWeight: 'var(--font-weight-semibold)',
                             overflow: 'hidden',
@@ -605,7 +606,7 @@ export default function EmployeeCalendar() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          📌 {event.title}
+                          {event.title}
                         </div>
                       ))}
                       {/* 휴무 제한 표시 */}
@@ -820,9 +821,9 @@ export default function EmployeeCalendar() {
               <div style={{ width: 'var(--spacing-4)', height: 'var(--spacing-4)', borderRadius: 'var(--radius-none)', background: 'var(--color-background-teal)' }} />
               <Text type="supporting" color="secondary" weight="medium">내 휴무</Text>
             </HStack>
-            <Badge variant="success" label="승인됨" />
-            <Badge variant="warning" label="대기중" />
-            <Badge variant="error" label="반려됨" />
+            <Badge variant="green" label="승인됨" />
+            <Badge variant="yellow" label="대기중" />
+            <Badge variant="red" label="반려됨" />
           </HStack>
         </div>
       </VStack>

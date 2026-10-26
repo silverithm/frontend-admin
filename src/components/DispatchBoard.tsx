@@ -51,14 +51,14 @@ import {
 } from "@/lib/dispatchBoardText";
 
 /** 배차 상태 -> Badge 색상 */
-function statusBadgeVariant(status: RouteDispatch["status"]): "teal" | "warning" | "error" | "neutral" {
+function statusBadgeVariant(status: RouteDispatch["status"]): "teal" | "yellow" | "red" | "neutral" {
   switch (status) {
     case "정상":
       return "teal";
     case "대체":
-      return "warning";
+      return "yellow";
     case "운행없음":
-      return "error";
+      return "red";
     default:
       return "neutral";
   }
@@ -417,7 +417,7 @@ export default function DispatchBoard({
           <HStack gap={2} vAlign="center" wrap="wrap">
             <Badge variant="teal" label={`탑승 ${boardingCount}명`} />
             <StatBadge
-              variant="error"
+              variant="red"
               label={`결석 ${absentSeniors.length}명`}
               names={absentSeniors.map((s) => s.name)}
             />
@@ -425,7 +425,7 @@ export default function DispatchBoard({
               <Badge variant="neutral" label={`${personalLabel} ${personalSeniors.length}명`} />
             )}
             <StatBadge
-              variant="warning"
+              variant="yellow"
               label={`미배정 ${unassignedElders.length}명`}
               names={unassignedElders.map((e) => e.name)}
             />
@@ -474,7 +474,7 @@ function StatBadge({
   label,
   names,
 }: {
-  variant: "error" | "warning";
+  variant: "red" | "yellow";
   label: string;
   names: string[];
 }) {

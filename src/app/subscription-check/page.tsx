@@ -312,7 +312,7 @@ export default function SubscriptionCheckPage() {
                         </Text>
                         <HStack gap={1} vAlign="center">
                           <Text type="supporting" color="secondary">상태:</Text>
-                          <Badge variant="error" label="만료됨" />
+                          <Badge variant="red" label="만료됨" />
                         </HStack>
                       </VStack>
                       <VStack gap={1}>

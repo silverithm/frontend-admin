@@ -970,7 +970,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           flexShrink: 0,
                         }}
                       >
-                        ★ 마감
+                        마감
                       </span>
                     )}
                     {/* 공휴일 이름 */}
@@ -1008,8 +1008,8 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           display: 'block',
                           padding: '1px var(--spacing-1)',
                           borderRadius: 'var(--radius-inner)',
-                          background: 'var(--color-background-purple)',
-                          color: 'var(--color-text-purple)',
+                          background: 'var(--color-background-muted)',
+                          color: 'var(--color-text-secondary)',
                           fontSize: 'var(--font-size-xs)',
                           fontWeight: 'var(--font-weight-semibold)',
                           overflow: 'hidden',
@@ -1017,7 +1017,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        📌 {event.title}
+                        {event.title}
                       </span>
                     ))}
                   </div>

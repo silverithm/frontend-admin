@@ -147,7 +147,7 @@ export default function EmployeeMeetingMinutes({ onNotification }: EmployeeMeeti
                 <HStack gap={3} vAlign="center" hAlign="between">
                   <VStack gap={0.5}>
                     <HStack gap={2} vAlign="center">
-                      {waiting && <Badge variant="warning" label="서명 필요" />}
+                      {waiting && <Badge variant="yellow" label="서명 필요" />}
                       <Badge
                         variant={minutes.status === 'COMPLETED' ? 'green'
                           : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}

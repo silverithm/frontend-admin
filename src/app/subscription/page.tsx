@@ -113,9 +113,9 @@ export default function SubscriptionPage() {
 
   const statusVariant =
     subscription?.status === SubscriptionStatus.ACTIVE
-      ? 'success'
+      ? 'green'
       : subscription?.status === SubscriptionStatus.EXPIRED
-        ? 'error'
+        ? 'red'
         : 'neutral';
   const statusLabel =
     subscription?.status === SubscriptionStatus.ACTIVE
