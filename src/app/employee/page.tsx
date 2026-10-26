@@ -57,8 +57,6 @@ import {
   IconFolder,
 } from '@tabler/icons-react';
 import { duration } from '@/theme/motion';
-import { Link } from '@astryxdesign/core/Link';
-import { BUSINESS_INFO } from '@/lib/businessInfo';
 
 // 탭 구성은 관리자 화면(src/app/admin/page.tsx)과 같은 순서·라벨·아이콘을 따른다.
 // 관리자 전용 기능(회원관리·편의기능 등)만 권한으로 항목을 숨긴다.
@@ -591,49 +589,6 @@ export default function EmployeePage() {
           {/* 확인할 때까지 떠 있는 알림 — 오른쪽 위 */}
           <NotificationPopups targets={EMPLOYEE_NOTIFICATION_TARGETS} onOpen={openFromNotification} />
 
-          {/* 푸터 */}
-          <footer style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
-            <div style={{ maxWidth: 1600, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
-              <div className="carev-emp-footer-row">
-                <div className="carev-emp-footer-meta">
-                  <Text as="span" type="supporting" color="secondary">&copy; 2025 케어브이 ({BUSINESS_INFO.companyName}) 대표: {BUSINESS_INFO.representative}</Text>
-                  <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <Text as="span" type="supporting" color="secondary">사업자등록번호: {BUSINESS_INFO.registrationNumber}</Text>
-                  {BUSINESS_INFO.mailOrderNumber && (
-                    <>
-                      <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                      <Text as="span" type="supporting" color="secondary">통신판매업 신고번호: {BUSINESS_INFO.mailOrderNumber}</Text>
-                    </>
-                  )}
-                  <span className="carev-emp-footer-sep" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <Text as="span" type="supporting" color="secondary">{BUSINESS_INFO.address}</Text>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-                  <Link
-                    href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}
-                  >
-                    개인정보처리방침
-                  </Link>
-                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <Link
-                    href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}
-                  >
-                    이용약관
-                  </Link>
-                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>|</span>
-                  <Link href="mailto:ggprgrkjh2@gmail.com" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)', textDecoration: 'none' }}>
-                    ggprgrkjh2@gmail.com
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </footer>
         </div>
 
         {/* 오늘 담당 일정을 아직 체크하지 않았으면 우측 아래에 알림 */}

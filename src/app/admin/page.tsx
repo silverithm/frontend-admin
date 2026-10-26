@@ -111,7 +111,6 @@ import {
     IconFlask,
 } from "@tabler/icons-react";
 import { duration } from '@/theme/motion';
-import { Link } from '@astryxdesign/core/Link';
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import OnboardingTour from "@/components/OnboardingTour";
@@ -122,7 +121,6 @@ import { getLabAccess } from "@/lib/lab/labApi";
 import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
 import { useTabBadges } from "@/lib/useTabBadges";
-import { BUSINESS_INFO } from "@/lib/businessInfo";
 
 // 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
 type BadgeVariant =
@@ -2128,49 +2126,6 @@ export default function AdminPage() {
                 onFinish={() => setShowTour(false)}
             />
 
-            {/* 푸터 */}
-            <footer style={{ borderTop: "1px solid var(--color-border)", background: 'var(--color-background-muted)' }}>
-                <div style={{ maxWidth: 1600, margin: "0 auto", padding: "var(--spacing-4) var(--spacing-6)" }}>
-                    <div className="carev-admin-footer-row">
-                        <div className="carev-admin-footer-meta" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-gray)' }}>
-                            <span>&copy; 2025 케어브이 ({BUSINESS_INFO.companyName}) 대표: {BUSINESS_INFO.representative}</span>
-                            <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <span>사업자등록번호: {BUSINESS_INFO.registrationNumber}</span>
-                            {BUSINESS_INFO.mailOrderNumber && (
-                                <>
-                                    <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
-                                    <span>통신판매업 신고번호: {BUSINESS_INFO.mailOrderNumber}</span>
-                                </>
-                            )}
-                            <span className="carev-admin-footer-sep" style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <span>{BUSINESS_INFO.address}</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)' }}>
-                            <Link
-                                href="https://plip.kr/pcc/d9017bf3-00dc-4f8f-b750-f7668e2b7bb7/privacy/1.html"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}
-                            >
-                                개인정보처리방침
-                            </Link>
-                            <span style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <Link
-                                href="https://relic-baboon-412.notion.site/silverithm-13c766a8bb468082b91ddbd2dd6ce45d"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}
-                            >
-                                이용약관
-                            </Link>
-                            <span style={{ color: 'var(--color-text-gray)' }}>|</span>
-                            <Link href="mailto:ggprgrkjh2@gmail.com" style={{ color: 'var(--color-text-gray)', textDecoration: "none", transition: 'color var(--duration-fast-min) var(--ease-standard)' }}>
-                                ggprgrkjh2@gmail.com
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </footer>
             </div>{/* end lg:ml-56 wrapper */}
 
             {/* 오늘 담당 일정을 아직 체크하지 않았으면 우측 아래에 알림 */}

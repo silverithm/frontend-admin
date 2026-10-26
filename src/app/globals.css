@@ -171,13 +171,10 @@ html {
   /* 필터·휴무 목록은 컬럼 안에서만 스크롤한다 (화면 밖으로 나가지 않게) */
   .carev-admin-work-side { width: 22%; min-height: 0; overflow-y: auto; }
 }
+/* 공개 페이지 하단(SiteFooter) 저작권·약관 줄 — 좁으면 세로, 넓으면 양끝 정렬 */
 .carev-admin-footer-row { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-2); }
-.carev-admin-footer-meta { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
-.carev-admin-footer-sep { display: none; }
 @media (min-width: 640px) {
   .carev-admin-footer-row { flex-direction: row; justify-content: space-between; }
-  .carev-admin-footer-meta { flex-direction: row; gap: var(--spacing-3); }
-  .carev-admin-footer-sep { display: inline; }
 }
 
 /* 공지사항 목록: 데이터가 적어도 화면을 채우고 목록만 스크롤 */
@@ -484,14 +481,6 @@ html {
   .carev-emp-mobile-header { display: none; }
   .carev-emp-content { margin-left: 224px; }
   .carev-emp-rolling { margin-top: 0; }
-}
-.carev-emp-footer-row { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-2); }
-.carev-emp-footer-meta { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
-.carev-emp-footer-sep { display: none; }
-@media (min-width: 640px) {
-  .carev-emp-footer-row { flex-direction: row; justify-content: space-between; }
-  .carev-emp-footer-meta { flex-direction: row; gap: var(--spacing-3); }
-  .carev-emp-footer-sep { display: inline; }
 }
 
 /* EmployeeNotice / EmployeeCalendar hover (Tailwind hover: 대체) */
