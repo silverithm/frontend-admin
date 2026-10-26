@@ -1,3 +1,5 @@
+import type { ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
+
 export interface ChatRoom {
     id: number;
     name: string;
@@ -16,6 +18,9 @@ export interface ChatRoom {
     lastMessageAt?: string;
     unreadCount: number;
     participantCount: number;
+    /** 방 아이콘에 겹쳐 그릴 참여자 — 채팅 화면과 같은 목록 응답에 들어 있다 */
+    avatars?: ChatRoomAvatarPerson[];
+    pinned?: boolean;
 }
 
 export interface ReactionSummary {

@@ -4,10 +4,11 @@ import { subheaderStyle } from '@/components/subheaderStyle';
 import { lastMessagePreview } from "@/lib/chatMessageGrouping";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
-import { Avatar } from "@astryxdesign/core/Avatar";
+import { ChatRoomAvatarStack } from "@/components/chat/ChatRoomAvatarStack";
+import { chatRoomLabel } from "@/components/chat/ChatRoomName";
+import { formatRoomTime } from "@/lib/chatRoomTime";
 import { Item } from "@astryxdesign/core/Item";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { Timestamp } from "@astryxdesign/core/Timestamp";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Banner } from "@astryxdesign/core/Banner";
@@ -209,14 +210,15 @@ export function FloatingChatRoomList({
                     ) : (
                         rooms.map((room) => (
                             <div key={room.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                                {/* 채팅 화면의 대화방 목록과 같은 모양 — 참여자 얼굴, 한국어 시간, 빨간 안 읽은 수 */}
                                 <Item
-                                    label={room.name}
+                                    label={chatRoomLabel(room.name, room.pinned)}
                                     description={
                                         room.lastMessage
                                             ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
                                             : "메시지가 없습니다"
                                     }
-                                    startContent={<Avatar name={room.name || "?"} size="small" />}
+                                    startContent={<ChatRoomAvatarStack roomName={room.name} people={room.avatars || []} />}
                                     endContent={
                                         <div
                                             style={{
@@ -226,19 +228,15 @@ export function FloatingChatRoomList({
                                                 flexShrink: 0,
                                             }}
                                         >
-                                            {room.lastMessageAt && (
-                                                <Timestamp
-                                                    value={room.lastMessageAt}
-                                                    format="auto"
-                                                    hasTooltip
-                                                    type="supporting"
-                                                    color="disabled"
-                                                />
+                                            {(room.lastMessageAt || room.lastMessage?.createdAt) && (
+                                                <Text type="supporting" color="secondary">
+                                                    {formatRoomTime((room.lastMessageAt || room.lastMessage?.createdAt)!)}
+                                                </Text>
                                             )}
                                             {room.unreadCount > 0 && (
                                                 <Badge
-                                                    variant="teal"
-                                                    label={room.unreadCount > 99 ? "99+" : room.unreadCount}
+                                                    variant="error"
+                                                    label={room.unreadCount > 99 ? "99+" : String(room.unreadCount)}
                                                 />
                                             )}
                                         </div>
