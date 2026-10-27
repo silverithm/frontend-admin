@@ -1,7 +1,7 @@
 /**
  * 대화방 목록의 마지막 활동 시각 — 채팅 화면과 말풍선 채팅이 같이 쓴다.
  * 앱 목록과 같은 표기: 방금 / N분 전 / N시간 전 / 어제 / N일 전 / M/D.
- * (date-fns formatDistance의 '약 15시간 전'은 '30분 전'·'2일 전'과 섞여 들쭉날쭉해 쓰지 않는다.
+ * (date-fns 상대 시간 함수의 '약 15시간 전'은 '30분 전'·'2일 전'과 섞여 들쭉날쭉해 쓰지 않는다.
  *  Astryx Timestamp(format="auto")는 영어로 고정돼 있어 처음부터 직접 만든다.)
  */
 export function formatRoomTime(value: string, now: number = Date.now()): string {

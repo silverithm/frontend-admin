@@ -57,7 +57,7 @@ export function chatRoomRowLabel(room: RowRoom): ReactNode {
             )}
             <span style={{ flex: 1 }} />
             {time && (
-                <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+                <span className="carev-chat-roomrow-time" style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                     <Text as="span" type="supporting" color="secondary" weight="normal">{formatRoomTime(time)}</Text>
                 </span>
             )}

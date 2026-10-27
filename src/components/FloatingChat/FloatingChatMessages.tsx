@@ -801,7 +801,7 @@ export function FloatingChatMessages({
                     isIconOnly
                     variant="ghost"
                     size="sm"
-                    icon={<Icon icon="menu" size="md" />}
+                    icon={<Icon icon="info" size="md" />}
                     onClick={toggleDrawer}
                 />
             </div>

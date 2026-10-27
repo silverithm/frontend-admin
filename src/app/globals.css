@@ -1743,8 +1743,12 @@ html {
 .carev-chat-roomrow-actions { opacity: 0; transition: opacity var(--duration-fast) var(--ease-standard); }
 .carev-chat-roomrow:hover .carev-chat-roomrow-actions,
 .carev-chat-roomrow:focus-within .carev-chat-roomrow-actions { opacity: 1; }
+/* 시간과 같은 자리(줄 1 오른쪽 끝)에 뜨고, 뜨는 동안 시간은 비켜 준다 — 줄 2 오른쪽 끝은 안 읽은 수 배지가 쓴다.
+   손가락 화면에는 ⋯를 두지 않는다: 시간을 계속 가리게 되므로, 같은 메뉴가 방 안 머리의 ⋯에 있다. */
+.carev-chat-roomrow:hover .carev-chat-roomrow-time,
+.carev-chat-roomrow:focus-within .carev-chat-roomrow-time { visibility: hidden; }
 @media (hover: none) {
-  .carev-chat-roomrow-actions { opacity: 1; }
+  .carev-chat-roomrow-actions { display: none; }
 }
 
 /* ===== 배차표 수정 (DispatchBoard) =====
@@ -1786,7 +1790,7 @@ html {
 @media (max-width: 768px) {
   .carev-chat-listpane { width: 100%; border-right: 0 !important; }
   .carev-chat-convpane { width: 100%; display: none !important; }
-  .carev-chat-split[data-room-open="1"] .carev-chat-listpane { display: none; }
+  .carev-chat-split[data-room-open="1"] .carev-chat-listpane { display: none !important; }
   .carev-chat-split[data-room-open="1"] .carev-chat-convpane { display: flex !important; }
   .carev-chat-back { display: inline-flex; flex-shrink: 0; }
 }

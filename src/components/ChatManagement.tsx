@@ -1878,8 +1878,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 {/* 마우스를 올리면 나타나는 ⋯ — 오른쪽 버튼으로도 같은 메뉴가 열린다 */}
                                 <div
                                     className="carev-chat-roomrow-actions"
-                                    /* 아래쪽 오른편 — 위쪽 오른편은 시간이 이미 쓰고 있어 겹친다 */
-                                    style={{ position: "absolute", bottom: 'var(--spacing-1)', right: 'var(--spacing-2)', zIndex: 10 }}
+                                    /* 줄 1 오른쪽 끝 — 뜨는 동안 시간은 비켜 준다(globals.css). 줄 2 오른쪽 끝은 안 읽은 수 배지 자리 */
+                                    style={{ position: "absolute", top: 'var(--spacing-1)', right: 'var(--spacing-2)', zIndex: 10 }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <IconButton
