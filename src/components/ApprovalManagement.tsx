@@ -426,6 +426,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         />
 
         {/* 탭 네비게이션 */}
+        <div style={{ alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }}>
         <SegmentedControl
           value={activeTab}
           onChange={(value) => setActiveTab(value as TabType)}
@@ -436,6 +437,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
           <SegmentedControlItem value="approved" label={`승인됨 (${stats.approved})`} />
           <SegmentedControlItem value="rejected" label={`반려됨 (${stats.rejected})`} />
         </SegmentedControl>
+        </div>
 
         {/* 필터 영역 — muted는 캔버스와 같은 회색이라 카드 밖에서는 아무것도 구분되지 않았다.
             흰 표면(기본 Card)으로 올려 "회색 바닥 위의 흰 영역"이라는 위계를 만든다. */}

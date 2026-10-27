@@ -1071,6 +1071,7 @@ export default function EmployeeApproval() {
           <>
             {/* 상태 필터 — 위 화면 전환 탭(TabList)과 크기를 다르게 둬 이건 '목록을
                 거르는 도구'이지 화면 전환이 아님을 보이게 한다 */}
+            <div style={{ alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }}>
             <SegmentedControl
               value={approvalFilter}
               onChange={(value) => setApprovalFilter(value as ApprovalFilterType)}
@@ -1081,6 +1082,7 @@ export default function EmployeeApproval() {
               <SegmentedControlItem value="approved" label={`승인됨 (${getStatusCount('APPROVED')})`} />
               <SegmentedControlItem value="rejected" label={`반려됨 (${getStatusCount('REJECTED')})`} />
             </SegmentedControl>
+            </div>
 
             {/* 기간·검색 — 결재 관리에는 있는데 여기만 없어서, 문서가 쌓이면 눈으로 훑는
                 수밖에 없었다. 같은 자리에 같은 손잡이를 둔다. */}

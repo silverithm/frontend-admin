@@ -1688,22 +1688,22 @@ export default function AdminPage() {
                                             {/* 상태 — 2×2 격자는 다른 화면의 한 줄 탭 모양과 달랐고, 목록보다
                                                 필터가 무거워 보이는 원인 중 하나였다(#40). 다른 화면과 같은
                                                 한 줄 SegmentedControl로 바꾸고 건수를 함께 보여준다. */}
+                                            <div style={{ maxWidth: "100%", overflowX: "auto" }}>
                                             <SegmentedControl
                                                 label="상태"
                                                 value={statusFilter}
                                                 onChange={(value) => setStatusFilter(value as typeof statusFilter)}
-                                                size="sm"
-                                                layout="fill"
                                             >
-                                                <SegmentedControlItem value="all" label={`전체 ${statusCounts.all}`} />
-                                                <SegmentedControlItem value="pending" label={`대기 ${statusCounts.pending}`} />
-                                                <SegmentedControlItem value="approved" label={`승인 ${statusCounts.approved}`} />
-                                                <SegmentedControlItem value="rejected" label={`거절 ${statusCounts.rejected}`} />
+                                                <SegmentedControlItem value="all" label={`전체 (${statusCounts.all})`} />
+                                                <SegmentedControlItem value="pending" label={`대기 (${statusCounts.pending})`} />
+                                                <SegmentedControlItem value="approved" label={`승인 (${statusCounts.approved})`} />
+                                                <SegmentedControlItem value="rejected" label={`거절 (${statusCounts.rejected})`} />
                                             </SegmentedControl>
+                                            </div>
 
                                             {/* 역할·정렬은 각각 한 줄을 다 차지할 만큼 무겁지 않아 한 줄에 같이 둔다(#40) */}
-                                            <HStack gap={2} width="100%" vAlign="start">
-                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                            <VStack gap={3} width="100%">
+                                                <div style={{ minWidth: 0 }}>
                                                     <MultiSelector
                                                         label="역할"
                                                         placeholder="전체 역할"
@@ -1715,7 +1715,7 @@ export default function AdminPage() {
                                                         selectAllLabel="전체 역할"
                                                     />
                                                 </div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ minWidth: 0 }}>
                                                     <Selector
                                                         label="정렬"
                                                         width="100%"
@@ -1731,7 +1731,7 @@ export default function AdminPage() {
                                                         onChange={(value) => setSortOrder((value || "latest") as typeof sortOrder)}
                                                     />
                                                 </div>
-                                            </HStack>
+                                            </VStack>
                                         </VStack>
                                     </Card>
 
