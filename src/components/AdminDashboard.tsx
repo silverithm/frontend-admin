@@ -1876,7 +1876,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           )}
                         </div>
                         <div style={{ marginTop: 'var(--spacing-0-5)', textDecoration: schedule.isCompleted ? 'line-through' : 'none', opacity: schedule.isCompleted ? 0.6 : 1 }}>
-                          <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{schedule.title}</Text>
+                          <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>
                         </div>
                         {schedule.location && (
                           <Text as="p" type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
