@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { patchFieldLabel, FIELD_LABEL_PATH } from '../../scripts/patch-astryx-labels.mjs';
+import { tmpdir } from 'node:os';
+import { patchFieldLabel, clearStaleWebpackCache, FIELD_LABEL_PATH } from '../../scripts/patch-astryx-labels.mjs';
 
 const ORIGINAL = "const statusText = isOptional ? 'Optional' : isRequired ? 'Required' : null;";
 
@@ -13,6 +14,21 @@ test('영어 필수·선택 표시를 한국어로 바꾸고, 두 번 돌려도 
   const twice = patchFieldLabel(once.source);
   assert.equal(twice.status, 'already');
   assert.equal(twice.source, once.source);
+});
+
+test('고친 뒤에는 지난 webpack 캐시만 지운다 — 다른 빌드 산출물은 그대로', () => {
+  const root = mkdtempSync(join(tmpdir(), 'astryx-cache-'));
+  try {
+    mkdirSync(join(root, '.next', 'cache', 'webpack', 'client-production'), { recursive: true });
+    writeFileSync(join(root, '.next', 'cache', 'webpack', 'client-production', '0.pack'), 'old');
+    mkdirSync(join(root, '.next', 'cache', 'images'), { recursive: true });
+    assert.equal(clearStaleWebpackCache(root, '.next'), true);
+    assert.equal(existsSync(join(root, '.next', 'cache', 'webpack')), false);
+    assert.equal(existsSync(join(root, '.next', 'cache', 'images')), true);
+    assert.equal(clearStaleWebpackCache(root, '.next'), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('원문이 바뀌었으면 손대지 않고 알린다', () => {
