@@ -1071,7 +1071,7 @@ export default function EmployeeApproval() {
           <>
             {/* 상태 필터 — 위 화면 전환 탭(TabList)과 크기를 다르게 둬 이건 '목록을
                 거르는 도구'이지 화면 전환이 아님을 보이게 한다 */}
-            <div style={{ alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }}>
+            <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
             <SegmentedControl
               value={approvalFilter}
               onChange={(value) => setApprovalFilter(value as ApprovalFilterType)}

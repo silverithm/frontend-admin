@@ -236,11 +236,13 @@ export default function VoiceBoxAdmin() {
         description="직원들이 남긴 고충·신고와 건의를 확인하고 처리합니다."
       />
 
+      <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
       <SegmentedControl value={filter} onChange={(v) => setFilter(v as typeof filter)} label="유형 필터">
         <SegmentedControlItem value="all" label={`전체 (${messages.length})`} />
         <SegmentedControlItem value="GRIEVANCE" label={`고충·신고 (${counts.grievance})`} />
         <SegmentedControlItem value="SUGGESTION" label={`건의 (${counts.suggestion})`} />
       </SegmentedControl>
+      </div>
 
       {/* 검색·상태 필터 — ApprovalManagement 결재 신청 화면과 같은 배치(회색 바닥 위 흰 카드) */}
       <Card padding={3}>

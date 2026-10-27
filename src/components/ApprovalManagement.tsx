@@ -426,7 +426,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         />
 
         {/* 탭 네비게이션 */}
-        <div style={{ alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }}>
+        <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
         <SegmentedControl
           value={activeTab}
           onChange={(value) => setActiveTab(value as TabType)}

@@ -154,7 +154,7 @@ export default function NewNoticePage() {
                   />
 
                   {/* 내용 — 광장 글쓰기와 같은 서식 편집기를 쓴다 (글자 크기·색·정렬·목록) */}
-                  <VStack gap={1} align="start" width="100%">
+                  <VStack gap={1} align="stretch" width="100%">
                     <Text type="label" weight="medium" color="primary">내용</Text>
                     <RichTextEditor
                       value={content}
