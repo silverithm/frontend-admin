@@ -1688,18 +1688,19 @@ export default function AdminPage() {
                                             {/* 상태 — 2×2 격자는 다른 화면의 한 줄 탭 모양과 달랐고, 목록보다
                                                 필터가 무거워 보이는 원인 중 하나였다(#40). 다른 화면과 같은
                                                 한 줄 SegmentedControl로 바꾸고 건수를 함께 보여준다. */}
-                                            <div style={{ maxWidth: "100%", overflowX: "auto" }}>
-                                            <SegmentedControl
+                                            <Selector
                                                 label="상태"
+                                                isLabelHidden
+                                                width="100%"
                                                 value={statusFilter}
-                                                onChange={(value) => setStatusFilter(value as typeof statusFilter)}
-                                            >
-                                                <SegmentedControlItem value="all" label={`전체 (${statusCounts.all})`} />
-                                                <SegmentedControlItem value="pending" label={`대기 (${statusCounts.pending})`} />
-                                                <SegmentedControlItem value="approved" label={`승인 (${statusCounts.approved})`} />
-                                                <SegmentedControlItem value="rejected" label={`거절 (${statusCounts.rejected})`} />
-                                            </SegmentedControl>
-                                            </div>
+                                                onChange={(value) => setStatusFilter((value || "all") as typeof statusFilter)}
+                                                options={[
+                                                    { value: "all", label: `전체 (${statusCounts.all})` },
+                                                    { value: "pending", label: `대기 (${statusCounts.pending})` },
+                                                    { value: "approved", label: `승인 (${statusCounts.approved})` },
+                                                    { value: "rejected", label: `거절 (${statusCounts.rejected})` },
+                                                ]}
+                                            />
 
                                             {/* 역할·정렬은 각각 한 줄을 다 차지할 만큼 무겁지 않아 한 줄에 같이 둔다(#40) */}
                                             <VStack gap={3} width="100%">
