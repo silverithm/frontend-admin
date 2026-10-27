@@ -9,6 +9,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
+import { ChatFileCard } from "@/components/chat/ChatFileCard";
 import { ChatRoomAvatarStack } from "@/components/chat/ChatRoomAvatarStack";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Loading } from "@/components/Loading";
@@ -1130,25 +1131,11 @@ export function FloatingChatMessages({
                                                         maxHeight={200}
                                                     />
                                                 ) : message.type === "FILE" && message.fileUrl ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openAttachment(message)}
-                                                        style={{
-                                                            display: "inline-flex",
-                                                            alignItems: "center",
-                                                            gap: 'var(--spacing-1)',
-                                                            background: "none",
-                                                            border: "none",
-                                                            padding: 0,
-                                                            cursor: "pointer",
-                                                            textAlign: "left",
-                                                            textDecoration: "underline",
-                                                            color: isMyMessage ? 'var(--color-on-accent)' : C.accent,
-                                                        }}
-                                                    >
-                                                        <Icon icon={FiPaperclip} size="xsm" color="inherit" />
-                                                        <Text type="supporting" color="inherit">{message.fileName || message.content}</Text>
-                                                    </button>
+                                                    <ChatFileCard
+                                                        name={message.fileName || message.content || "파일"}
+                                                        isMine={isMyMessage}
+                                                        onOpen={() => openAttachment(message)}
+                                                    />
                                                 ) : (
                                                     <Text color="inherit">
                                                       <span className="carev-keep-all">

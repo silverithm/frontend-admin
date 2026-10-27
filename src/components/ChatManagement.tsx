@@ -27,6 +27,7 @@ import { ChatAttachmentLabel } from '@/components/chat/ChatAttachmentLabel';
 import { ChatImage } from '@/components/chat/ChatImage';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
+import { ChatFileCard } from '@/components/chat/ChatFileCard';
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
 import { chatRoomRowLabel, chatRoomRowDescription } from '@/components/chat/ChatRoomRow';
 import { ChatMessageText } from '@/components/chat/ChatMessageText';
@@ -2621,32 +2622,17 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 />
                                                             ) : message.type === "FILE" && message.fileUrl ? (
                                                                 // 문서는 새 탭으로 내보내지 않고 화면 안에서 바로 연다
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
+                                                                <ChatFileCard
+                                                                    name={message.fileName || message.content || "파일"}
+                                                                    isMine={isMyMessage}
+                                                                    onOpen={() => {
                                                                         if (isViewableDocument(message.fileName)) {
                                                                             setViewerFile({ fileUrl: message.fileUrl!, fileName: message.fileName || "문서" });
                                                                         } else {
                                                                             window.open(message.fileUrl, "_blank", "noopener");
                                                                         }
                                                                     }}
-                                                                    style={{
-                                                                        fontSize: 'var(--font-size-base)',
-                                                                        fontWeight: 'var(--font-weight-normal)',
-                                                                        textDecoration: "underline",
-                                                                        display: "inline-flex",
-                                                                        alignItems: "center",
-                                                                        gap: 'var(--spacing-1)',
-                                                                        color: isMyMessage ? C.onAccent : C.accent,
-                                                                        background: "none",
-                                                                        border: "none",
-                                                                        padding: 0,
-                                                                        cursor: "pointer",
-                                                                        textAlign: "left",
-                                                                    }}
-                                                                >
-                                                                    <ChatAttachmentLabel kind="FILE">{message.fileName || message.content}</ChatAttachmentLabel>
-                                                                </button>
+                                                                />
                                                             ) : (
                                                                 <span className="carev-keep-all" style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", color: "inherit" }}>
                                                                     <ChatMessageText content={message.content} isMyMessage={isMyMessage} />

@@ -1799,3 +1799,55 @@ html {
 .carev-chat-hint { opacity: 0; transition: opacity var(--duration-fast-min) var(--ease-standard); }
 .carev-chat-composer:focus-within .carev-chat-hint { opacity: 1; }
 @media (hover: none) { .carev-chat-hint { display: none; } }
+
+/* 폰 폭 머리 — 롤링 공지 띠는 대시보드 탭에서만, 탭 줄 끝에는 '더 있다' 페이드 */
+@media (max-width: 1023px) { .carev-hide-phone { display: none; } }
+.carev-tabfade { position: relative; }
+.carev-tabfade::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--spacing-8);
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--color-header-background));
+}
+
+/* 레일: 직원 섹션은 내용 높이만, 남는 높이는 업무진행도가 차지한다(R4-17) */
+.carev-chat-rail-group-people:not(.carev-chat-rail-group-closed) { flex: 0 1 auto; max-height: 50%; }
+.carev-chat-rail-group-tasks:not(.carev-chat-rail-group-closed) { flex: 1 1 0; }
+.carev-chat-rail-group-people .carev-chat-rail-section { flex: 0 1 auto; }
+
+/* 채팅 파일 카드 — 카드 전체가 누를 자리, 밑줄 없음 */
+.carev-chat-filecard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--spacing-1) var(--spacing-1);
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-inner);
+  font: inherit;
+}
+.carev-chat-filecard-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-teal);
+  color: var(--color-text-teal);
+}
+.carev-chat-filecard-mine .carev-chat-filecard-icon { background: rgba(255, 255, 255, 0.2); color: var(--color-on-accent); }
+.carev-chat-filecard-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.carev-chat-filecard-name { font-size: var(--font-size-base); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carev-chat-filecard-meta { font-size: var(--font-size-sm); font-weight: 400; opacity: 0.8; }
+@media (hover: hover) { .carev-chat-filecard:hover { background: rgba(0, 0, 0, 0.05); } .carev-chat-filecard-mine:hover { background: rgba(255, 255, 255, 0.12); } }
