@@ -1417,6 +1417,8 @@ export default function AdminPage() {
                         <IconButton label="로그아웃" variant="ghost" size="sm" tooltip="로그아웃" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} />
                     </div>
                 </div>
+                {/* 오른쪽 끝에 페이드를 깔아 '더 있다'를 알린다(globals.css .carev-tabfade) */}
+                <div className="carev-tabfade">
                 <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 var(--spacing-2)", marginBottom: -1 }}>
                     {([
                         { key: "plaza", label: "커뮤니티" },
@@ -1439,6 +1441,7 @@ export default function AdminPage() {
                         />
                     ))}
                 </nav>
+                </div>
             </header>
 
             {/* 메인 콘텐츠 영역 */}
@@ -1460,12 +1463,15 @@ export default function AdminPage() {
                 레이아웃 높이 계산에 계속 쓰이므로 그대로 두고 안쪽 배너만 숨긴다. */}
             <div className="carev-admin-rolling">
             {activeMainTab !== 'notice' && (
+              /* 폰 폭에서는 대시보드 탭에서만 보인다 — 머리 3층이 화면 15%를 먹던 것을 줄인다 */
+              <div className={activeMainTab === 'dashboard' ? undefined : 'carev-hide-phone'}>
               <NoticeRollingBanner
                 onNoticeClick={() => setActiveMainTab('notice')}
                 autoScrollInterval={5000}
                 maxNotices={5}
                 onNoticesLoaded={onNoticesLoaded}
               />
+              </div>
             )}
             </div>
 

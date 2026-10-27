@@ -286,8 +286,8 @@ export function ChatRail({ onUnreadChange, hidden, currentRoomId, onNewMessage }
     // 하이드레이션 전에는 저장된 접힘 상태를 모르므로 펼친 모습으로 그린다 (기본값과 동일)
     const isOpen = railIsOpen;
 
-    const peopleGroupClass = `carev-chat-rail-group${state.showPeople ? "" : " carev-chat-rail-group-closed"}`;
-    const tasksGroupClass = `carev-chat-rail-group${state.showTasks ? "" : " carev-chat-rail-group-closed"}`;
+    const peopleGroupClass = `carev-chat-rail-group carev-chat-rail-group-people${state.showPeople ? "" : " carev-chat-rail-group-closed"}`;
+    const tasksGroupClass = `carev-chat-rail-group carev-chat-rail-group-tasks${state.showTasks ? "" : " carev-chat-rail-group-closed"}`;
 
     return (
         <>

@@ -3,10 +3,8 @@
 import { subheaderStyle } from '@/components/subheaderStyle';
 import { lastMessagePreview } from "@/lib/chatMessageGrouping";
 import { Text } from "@astryxdesign/core/Text";
-import { Badge } from "@astryxdesign/core/Badge";
 import { ChatRoomAvatarStack } from "@/components/chat/ChatRoomAvatarStack";
-import { chatRoomLabel } from "@/components/chat/ChatRoomName";
-import { formatRoomTime } from "@/lib/chatRoomTime";
+import { chatRoomRowLabel, chatRoomRowDescription } from "@/components/chat/ChatRoomRow";
 import { Item } from "@astryxdesign/core/Item";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -212,35 +210,14 @@ export function FloatingChatRoomList({
                             <div key={room.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
                                 {/* 채팅 화면의 대화방 목록과 같은 모양 — 참여자 얼굴, 한국어 시간, 빨간 안 읽은 수 */}
                                 <Item
-                                    label={chatRoomLabel(room.name, room.pinned)}
-                                    description={
+                                    label={chatRoomRowLabel(room)}
+                                    description={chatRoomRowDescription(
+                                        room,
                                         room.lastMessage
                                             ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
-                                            : "메시지가 없습니다"
-                                    }
-                                    startContent={<ChatRoomAvatarStack roomName={room.name} people={room.avatars || []} />}
-                                    endContent={
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "var(--spacing-2)",
-                                                flexShrink: 0,
-                                            }}
-                                        >
-                                            {(room.lastMessageAt || room.lastMessage?.createdAt) && (
-                                                <Text type="supporting" color="secondary">
-                                                    {formatRoomTime((room.lastMessageAt || room.lastMessage?.createdAt)!)}
-                                                </Text>
-                                            )}
-                                            {room.unreadCount > 0 && (
-                                                <Badge
-                                                    variant="error"
-                                                    label={room.unreadCount > 99 ? "99+" : String(room.unreadCount)}
-                                                />
-                                            )}
-                                        </div>
-                                    }
+                                            : "메시지가 없습니다",
+                                    )}
+                                    startContent={<ChatRoomAvatarStack roomName={room.name} people={room.avatars || []} size={36} />}
                                     onClick={() => onSelectRoom(room.id)}
                                     labelLines={1}
                                     descriptionLines={1}

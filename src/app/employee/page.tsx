@@ -321,6 +321,7 @@ export default function EmployeePage() {
               />
             </div>
           </div>
+          <div className="carev-tabfade">
           <nav className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', padding: '0 var(--spacing-2)', marginBottom: -1 }}>
             {TABS.map((tab) => (
               <Button
@@ -333,17 +334,21 @@ export default function EmployeePage() {
               />
             ))}
           </nav>
+          </div>
         </header>
 
         {/* 메인 콘텐츠 영역 */}
         <div className="carev-emp-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100dvh', minHeight: 0 }}>
           {/* 공지사항 롤링 배너 */}
           <div className="carev-emp-rolling">
-            <NoticeRollingBanner
-              onNoticeClick={() => setActiveMainTab('notice')}
-              autoScrollInterval={5000}
-              maxNotices={5}
-            />
+            {/* 폰 폭에서는 대시보드 탭에서만 보인다 */}
+            <div className={activeMainTab === 'dashboard' ? undefined : 'carev-hide-phone'}>
+              <NoticeRollingBanner
+                onNoticeClick={() => setActiveMainTab('notice')}
+                autoScrollInterval={5000}
+                maxNotices={5}
+              />
+            </div>
           </div>
 
           {/* 메인 콘텐츠 */}

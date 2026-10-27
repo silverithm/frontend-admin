@@ -940,8 +940,8 @@ html {
   flex-shrink: 0;
   padding: 1px var(--spacing-1-5);
   border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   line-height: 16px;
 }
 .carev-wt-imp-red { background: var(--color-background-red); color: var(--color-text-red); }
@@ -954,13 +954,14 @@ html {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-sm);
+  /* 제목이 13, 담당자·기한·퍼센트는 11 — 보조가 제목보다 커 보이던 것을 뒤집는다(R4-08) */
+  font-size: var(--font-size-base);
   font-weight: 500;
   color: var(--color-text-primary);
 }
-.carev-wt-due { flex-shrink: 0; font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
-.carev-wt-due-soon { color: var(--color-text-yellow); font-weight: 600; }
-.carev-wt-due-overdue { color: var(--color-text-red); font-weight: 700; }
+.carev-wt-due { flex-shrink: 0; font-size: var(--font-size-sm); font-weight: 400; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.carev-wt-due-soon { color: var(--color-text-yellow); }
+.carev-wt-due-overdue { color: var(--color-text-red); font-weight: 600; }
 
 .carev-wt-who {
   flex-shrink: 0;
@@ -968,7 +969,8 @@ html {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
   color: var(--color-text-secondary);
 }
 /* 게이지 — 담당자 이름 뒤에 진행도가 바로 보이게(원장 요청). 채움 색은 중요도 색 */
@@ -989,7 +991,8 @@ html {
   flex-shrink: 0;
   width: 30px;
   text-align: right;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 }
@@ -1045,7 +1048,7 @@ html {
 /* 알림 종류는 아이콘 모양과 제목 글자로 구분한다 — 종류마다 보라·파랑·노랑을 돌려 쓰면 상태색(승인·대기)과 섞인다 */
 .carev-npop-titles { display: flex; flex-direction: column; min-width: 0; }
 .carev-npop-title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-primary);
   overflow: hidden;
@@ -1055,7 +1058,10 @@ html {
 .carev-npop-body {
   margin: 0;
   white-space: pre-line;
-  font-size: var(--font-size-sm);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-base);
+  font-weight: 400;
   line-height: 1.5;
   color: var(--color-text-primary);
   display: -webkit-box;
@@ -1737,8 +1743,12 @@ html {
 .carev-chat-roomrow-actions { opacity: 0; transition: opacity var(--duration-fast) var(--ease-standard); }
 .carev-chat-roomrow:hover .carev-chat-roomrow-actions,
 .carev-chat-roomrow:focus-within .carev-chat-roomrow-actions { opacity: 1; }
+/* 시간과 같은 자리(줄 1 오른쪽 끝)에 뜨고, 뜨는 동안 시간은 비켜 준다 — 줄 2 오른쪽 끝은 안 읽은 수 배지가 쓴다.
+   손가락 화면에는 ⋯를 두지 않는다: 시간을 계속 가리게 되므로, 같은 메뉴가 방 안 머리의 ⋯에 있다. */
+.carev-chat-roomrow:hover .carev-chat-roomrow-time,
+.carev-chat-roomrow:focus-within .carev-chat-roomrow-time { visibility: hidden; }
 @media (hover: none) {
-  .carev-chat-roomrow-actions { opacity: 1; }
+  .carev-chat-roomrow-actions { display: none; }
 }
 
 /* ===== 배차표 수정 (DispatchBoard) =====
@@ -1770,3 +1780,74 @@ html {
    기본값은 음절마다 끊을 수 있어 '전 / 원 참석', '발송됩니 / 다.'처럼 낱말이 쪼개졌다(2026-10-27).
    아주 긴 낱말(URL 등)은 칸을 넘지 않게 아무 데서나 끊는다. */
 .carev-keep-all { word-break: keep-all; overflow-wrap: anywhere; }
+
+
+/* ── 채팅 2차 다듬기 (R4) ─────────────────────────────────────────── */
+/* 대화방 화면: 넓을 때는 목록 1/3 + 대화 2/3, 폰 폭에서는 한 칸씩 — 방을 고르면 목록이 숨고 대화가 전폭 */
+.carev-chat-listpane { width: 33.3333%; }
+.carev-chat-convpane { width: 66.6667%; min-width: 0; }
+.carev-chat-back { display: none; }
+@media (max-width: 768px) {
+  .carev-chat-listpane { width: 100%; border-right: 0 !important; }
+  .carev-chat-convpane { width: 100%; display: none !important; }
+  .carev-chat-split[data-room-open="1"] .carev-chat-listpane { display: none !important; }
+  .carev-chat-split[data-room-open="1"] .carev-chat-convpane { display: flex !important; }
+  .carev-chat-back { display: inline-flex; flex-shrink: 0; }
+}
+/* 입력창: 크기 조절 손잡이를 없애고(높이는 줄 수만큼 자동), 안내 줄은 입력 중에만 보인다 */
+.carev-chat-composer textarea { resize: none; }
+.carev-chat-hint { opacity: 0; transition: opacity var(--duration-fast-min) var(--ease-standard); }
+.carev-chat-composer:focus-within .carev-chat-hint { opacity: 1; }
+@media (hover: none) { .carev-chat-hint { display: none; } }
+
+/* 폰 폭 머리 — 롤링 공지 띠는 대시보드 탭에서만, 탭 줄 끝에는 '더 있다' 페이드 */
+@media (max-width: 1023px) { .carev-hide-phone { display: none; } }
+.carev-tabfade { position: relative; }
+.carev-tabfade::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--spacing-8);
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--color-header-background));
+}
+
+/* 레일: 직원 섹션은 내용 높이만, 남는 높이는 업무진행도가 차지한다(R4-17) */
+.carev-chat-rail-group-people:not(.carev-chat-rail-group-closed) { flex: 0 1 auto; max-height: 50%; }
+.carev-chat-rail-group-tasks:not(.carev-chat-rail-group-closed) { flex: 1 1 0; }
+.carev-chat-rail-group-people .carev-chat-rail-section { flex: 0 1 auto; }
+
+/* 채팅 파일 카드 — 카드 전체가 누를 자리, 밑줄 없음 */
+.carev-chat-filecard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--spacing-1) var(--spacing-1);
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-inner);
+  font: inherit;
+}
+.carev-chat-filecard-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-teal);
+  color: var(--color-text-teal);
+}
+.carev-chat-filecard-mine .carev-chat-filecard-icon { background: rgba(255, 255, 255, 0.2); color: var(--color-on-accent); }
+.carev-chat-filecard-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.carev-chat-filecard-name { font-size: var(--font-size-base); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carev-chat-filecard-meta { font-size: var(--font-size-sm); font-weight: 400; opacity: 0.8; }
+@media (hover: hover) { .carev-chat-filecard:hover { background: rgba(0, 0, 0, 0.05); } .carev-chat-filecard-mine:hover { background: rgba(255, 255, 255, 0.12); } }
