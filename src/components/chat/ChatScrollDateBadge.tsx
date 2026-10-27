@@ -48,7 +48,13 @@ export function useChatScrollDateBadge(containerRef: RefObject<HTMLDivElement | 
         // 그 구분선 아래의 대화가 지금 보이는 것이므로 그 날짜가 답이다.
         let current: string | null = null;
         for (const marker of markers) {
-            if (marker.getBoundingClientRect().bottom > containerTop) break;
+            const rect = marker.getBoundingClientRect();
+            if (rect.bottom > containerTop) {
+                // 구분선이 막 위쪽 경계에 닿는 중이면 구분선 라벨과 떠 있는 배지가 같은 자리에서
+                // 겹쳐 두 글자가 포개져 보인다 — 구분선이 40px 안에 있는 동안은 배지를 숨긴다
+                if (rect.top < containerTop + 40) current = null;
+                break;
+            }
             current = marker.getAttribute(DATE_MARKER_ATTR);
         }
 

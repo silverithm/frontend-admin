@@ -1,8 +1,8 @@
 "use client";
 
-import { Avatar } from "@astryxdesign/core/Avatar";
+import { FiUsers } from "react-icons/fi";
 
-/** 목록에서 방 아이콘 자리에 겹쳐 그릴 참여자 한 명 */
+/** 목록에서 방 아이콘 자리에 쓰는 참여자 한 명 */
 export interface ChatRoomAvatarPerson {
     userId: string;
     userName: string;
@@ -17,119 +17,84 @@ interface Props {
 }
 
 /**
- * 채팅방 아이콘 — 참여자 얼굴을 모아 하나의 원으로 보여준다 (카카오톡과 같은 방식, 앱과 같은 규칙).
+ * 채팅방 아이콘 — 항상 지름 `size`의 원 하나다 (목록 36 / 대화방·말풍선 채팅 28).
  *
- * 3명 이상은 얼굴 3~4개를 한 원에 욱여넣지 않는다 — 칸이 너무 작아져 이니셜이 안
- * 읽혔다. 대신 첫 사람 얼굴 하나 + 나머지 인원수로 보여준다(최대 2칸이라 항상 읽힌다).
+ * - 1:1 대화(또는 참여자 1명): 상대 얼굴, 사진이 없으면 이름 첫 글자
+ * - 3명 이상·2명 모임방: 틸 원 + 사람들 아이콘. 이니셜 두 개를 나란히 두면
+ *   사람 이름처럼 읽혀서(`김 박`) 글자를 쓰지 않는다.
+ * - 참여자를 못 받았으면 방 이름 첫 글자 — 빈 원을 두지 않는다.
  *
- * ```
- *   1명        2명          3명 이상
- *  ┌────┐    ┌──┬──┐    ┌────┬───┐
- *  │ 얼 │    │얼│얼│    │ 얼 │+2 │
- *  │ 굴 │    │  │  │    │ 굴 │   │
- *  └────┘    └──┴──┘    └────┴───┘
- * ```
- * 참여자를 못 받았으면 방 이름 첫 글자로 그린다 — 빈 원을 두지 않는다.
+ * 글자는 11/600 한 가지였던 것을 Text 역할 표(supporting + semibold)와 같은 토큰으로 맞춘다.
  */
-export function ChatRoomAvatarStack({ roomName, people, size = 32 }: Props) {
+export function ChatRoomAvatarStack({ roomName, people, size = 36 }: Props) {
     const list = people || [];
 
-    if (list.length === 0) {
-        return <Avatar name={roomName || "?"} size="xsmall" />;
-    }
-    if (list.length === 1) {
+    if (list.length >= 2) {
         return (
-            <Avatar
-                name={list[0].userName || roomName || "?"}
-                src={list[0].profileImageUrl || undefined}
-                size="xsmall"
-            />
+            <span aria-hidden style={circleStyle(size)}>
+                <FiUsers size={Math.round(size * 0.5)} />
+            </span>
         );
     }
 
-    /* 얼굴끼리 맞붙으면 한 사람처럼 보인다 — 얇은 선으로 가른다 */
-    const gap = 1.5;
-    const secondCell =
-        list.length === 2 ? (
-            <Face person={list[1]} />
-        ) : (
-            <div
-                style={{
-                    background: "var(--color-background-teal)",
-                    color: "var(--color-text-accent)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    lineHeight: 1,
-                }}
-            >
-                {`+${list.length - 1}`}
-            </div>
-        );
-
-    return (
-        <div
-            aria-hidden
-            style={{
-                width: size,
-                height: size,
-                borderRadius: "50%",
-                overflow: "hidden",
-                flexShrink: 0,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap,
-                background: "var(--color-border)",
-            }}
-        >
-            <Face person={list[0]} />
-            {secondCell}
-        </div>
-    );
+    const person = list[0];
+    const label = (person?.userName || roomName || "?").trim();
+    return <Face name={label} url={person?.profileImageUrl} size={size} />;
 }
 
-function Face({ person }: { person: ChatRoomAvatarPerson }) {
-    const url = (person.profileImageUrl || "").trim();
-    const initial = (person.userName || "").trim().slice(0, 1) || "?";
+function circleStyle(size: number): React.CSSProperties {
+    return {
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        overflow: "hidden",
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--color-background-teal)",
+        color: "var(--color-text-accent)",
+    };
+}
 
-    if (!url) {
+function Face({ name, url, size }: { name: string; url?: string | null; size: number }) {
+    const src = (url || "").trim();
+    const initial = name.slice(0, 1) || "?";
+
+    if (!src) {
         return (
-            <div
+            <span
+                aria-hidden
                 style={{
-                    background: "var(--color-background-teal)",
-                    color: "var(--color-text-accent)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 11,
-                    fontWeight: 600,
+                    ...circleStyle(size),
+                    fontSize: "var(--font-size-base)",
+                    fontWeight: "var(--font-weight-semibold)",
                     lineHeight: 1,
                 }}
             >
                 {initial}
-            </div>
+            </span>
         );
     }
 
     return (
-        <img
-            src={url}
-            alt=""
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            /* 사진이 안 열려도 칸이 비어 보이지 않게 첫 글자로 되돌린다 */
-            onError={(e) => {
-                const img = e.currentTarget;
-                const box = document.createElement("div");
-                box.textContent = initial;
-                box.setAttribute(
-                    "style",
-                    "background:var(--color-background-teal);color:var(--color-text-accent);" +
-                        "display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;line-height:1",
-                );
-                img.replaceWith(box);
-            }}
-        />
+        <span aria-hidden style={circleStyle(size)}>
+            <img
+                src={src}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                /* 사진이 안 열려도 원이 비어 보이지 않게 첫 글자로 되돌린다 */
+                onError={(e) => {
+                    const img = e.currentTarget;
+                    const box = document.createElement("span");
+                    box.textContent = initial;
+                    box.setAttribute(
+                        "style",
+                        "font-size:var(--font-size-base);font-weight:var(--font-weight-semibold);line-height:1",
+                    );
+                    img.replaceWith(box);
+                }}
+            />
+        </span>
     );
 }

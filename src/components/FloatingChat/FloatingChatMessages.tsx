@@ -9,6 +9,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
+import { ChatRoomAvatarStack } from "@/components/chat/ChatRoomAvatarStack";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Loading } from "@/components/Loading";
 import DocumentViewerModal from "@/components/DocumentViewerModal";
@@ -680,9 +681,10 @@ export function FloatingChatMessages({
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 'var(--spacing-0-5)',
+                            minHeight: 24,
                             padding: "2px var(--spacing-2)",
                             borderRadius: 'var(--radius-full)',
-                            fontSize: 'var(--font-size-xs)',
+                            fontSize: 'var(--font-size-base)',
                             cursor: "pointer",
                             transition: 'background-color var(--duration-fast-min) var(--ease-standard)',
                             border: reaction.myReaction ? "1px solid var(--color-accent)" : `1px solid ${C.border}`,
@@ -692,7 +694,7 @@ export function FloatingChatMessages({
                         }}
                     >
                         <span>{reaction.emoji}</span>
-                        <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{reaction.count}</span>
+                        <Text as="span" type="supporting" weight="medium" color="inherit">{reaction.count}</Text>
                     </button>
                 ))}
             </div>
@@ -727,7 +729,7 @@ export function FloatingChatMessages({
                     {message.replyToSenderName}
                 </Text>
                 {/* 한 줄로 잘라 "..."을 붙이지 않는다 — 무슨 말에 답한 건지 읽는 자리다 */}
-                <div style={{ opacity: 0.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                <div className="carev-keep-all" style={{ opacity: 0.8, whiteSpace: "pre-wrap" }}>
                     <Text type="supporting" color="inherit">
                         {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
                         {message.replyToMediaType === "VIDEO" ? <ChatAttachmentLabel kind="VIDEO">동영상</ChatAttachmentLabel>
@@ -862,11 +864,10 @@ export function FloatingChatMessages({
                     padding: "var(--spacing-2) var(--spacing-3)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 'var(--spacing-2)',
                 }}
             >
                 {/* 위로 올리는 동안 "며칠 대화인지" 알려주는 떠 있는 배지 (멈추면 사라진다) */}
-                <ChatScrollDateBadge label={dateBadgeLabel} listGap="var(--spacing-2)" />
+                <ChatScrollDateBadge label={dateBadgeLabel} listGap="0px" />
                 {/* 위로 더 올라갈 대화가 있는지 알려주는 줄 — 불러오는 중이면 로딩, 끝이면 시작 안내 */}
                 {onPrependOlder && !isLoadingMessages && messages.length > 0 && (
                     isLoadingOlder ? (
@@ -887,7 +888,7 @@ export function FloatingChatMessages({
                         <Text type="body" color="secondary">메시지가 없습니다</Text>
                     </div>
                 ) : (
-                    buildChatRenderItems(messages).map((item) => {
+                    buildChatRenderItems(messages).map((item, itemIndex, allItems) => {
                         // 연달아 온 사진은 한 말풍선(격자)으로 접힌다.
                         // 대표 메시지는 묶음의 '마지막(가장 최신)' 장 — 시각 표시가 묶음이 끝난 시각이어야 하고,
                         // 답장·반응 메뉴도 이 메시지를 대상으로 삼는다.
@@ -900,6 +901,20 @@ export function FloatingChatMessages({
                         // 아바타와 이름줄은 보낸 사람이 바뀌는 지점에만 그린다(앱·관리자 채팅탭과 같은 규칙).
                         const isGroupStart = item.showSenderHeader;
                         const mediaType = chatMediaType(message);
+                        // 간격 규칙(관리자 채팅 탭과 같다): 같은 사람 이어 보냄 4px, 사람이 바뀌거나 날짜·시스템 줄이 끼면 16px
+                        const rowGap = itemIndex === 0 || showDateSeparator
+                            ? 0
+                            : (isGroupStart || isSystemMessage || message.isDeleted ? 'var(--spacing-4)' : 'var(--spacing-1)');
+                        // 시각은 같은 사람이 같은 분에 보낸 묶음의 마지막 말풍선에만 붙인다
+                        const nextItem = allItems[itemIndex + 1];
+                        const nextMessage = nextItem ? (nextItem.kind === "photos" ? nextItem.messages[0] : nextItem.message) : null;
+                        const showMeta = !nextItem
+                            || nextItem.showDateSeparator
+                            || nextItem.showSenderHeader
+                            || !nextMessage
+                            || nextMessage.type === "SYSTEM"
+                            || !!nextMessage.isDeleted
+                            || formatMessageTime(nextMessage.createdAt) !== formatMessageTime(message.createdAt);
                         /** 사진 묶음·사진·동영상 말풍선(답글 인용이 붙은 것은 글 말풍선처럼 둔다) */
                         const isMediaBubble = !message.isDeleted && !message.replyToId && !!message.fileUrl
                             && (photoGroup != null || mediaType === "IMAGE" || mediaType === "VIDEO");
@@ -908,7 +923,7 @@ export function FloatingChatMessages({
                         const separatorLabel = showDateSeparator ? formatDateSeparator(message.createdAt) : null;
                         const dateSeparator = separatorLabel ? (
                             <div
-                                style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: "var(--spacing-3) 0" }}
+                                style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-3)', margin: `${itemIndex === 0 ? 0 : 'var(--spacing-4)'} 0 var(--spacing-3)` }}
                                 {...chatDateMarkerProps(separatorLabel)}
                             >
                                 <div style={{ flex: 1, height: 1, background: C.border }} />
@@ -925,7 +940,7 @@ export function FloatingChatMessages({
                             return (
                                 <Fragment key={message.id}>
                                     {dateSeparator}
-                                    <div style={{ display: "flex", justifyContent: "center" }}>
+                                    <div style={{ display: "flex", justifyContent: "center", marginTop: rowGap }}>
                                         <Text type="supporting" color="secondary">{message.content}</Text>
                                     </div>
                                 </Fragment>
@@ -940,6 +955,7 @@ export function FloatingChatMessages({
                                         style={{
                                             display: "flex",
                                             justifyContent: isMyMessage ? "flex-end" : "flex-start",
+                                            marginTop: rowGap,
                                         }}
                                     >
                                         <div style={{ padding: "var(--spacing-1) var(--spacing-2)" }}>
@@ -960,6 +976,7 @@ export function FloatingChatMessages({
                                         justifyContent: isMyMessage ? "flex-end" : "flex-start",
                                         alignItems: "flex-start",
                                         gap: 'var(--spacing-1-5)',
+                                        marginTop: rowGap,
                                         position: "relative",
                                         borderRadius: 'var(--radius-container)',
                                         transition: "background-color 0.3s ease",
@@ -971,19 +988,19 @@ export function FloatingChatMessages({
                                         차지해 말풍선이 세로로 가지런히 선다. */}
                                     {!isMyMessage && (
                                         isGroupStart ? (
-                                            <Avatar
-                                                src={participantAvatarMap.get(message.senderId)}
-                                                name={message.senderName || "?"}
-                                                size="xsmall"
+                                            <ChatRoomAvatarStack
+                                                roomName={message.senderName || "?"}
+                                                people={[{ userId: message.senderId, userName: message.senderName || "?", profileImageUrl: participantAvatarMap.get(message.senderId) }]}
+                                                size={28}
                                             />
                                         ) : (
-                                            <div style={{ width: 24, flexShrink: 0 }} aria-hidden />
+                                            <div style={{ width: 28, flexShrink: 0 }} aria-hidden />
                                         )
                                     )}
                                     <div
                                         style={{
                                             // 사진·동영상은 좁은 창에서 글보다 넓게 — 시간·옵션 자리를 빼고 나면 75%로는 사진 칸이 손톱만 해진다
-                                            maxWidth: isMediaBubble ? "92%" : "75%",
+                                            maxWidth: isMediaBubble ? "92%" : "85%",
                                             display: "flex",
                                             flexDirection: "column",
                                             alignItems: isMyMessage ? "flex-end" : "flex-start",
@@ -993,7 +1010,7 @@ export function FloatingChatMessages({
                                             "주간보호센터장" 같은 긴 직종이 먼저 잘린다. */}
                                         {!isMyMessage && isGroupStart && (
                                             <div style={{ marginBottom: 'var(--spacing-0-5)', marginLeft: 'var(--spacing-1)' }}>
-                                                <Text type="supporting" color="secondary">
+                                                <Text type="supporting" weight="medium" color="secondary">
                                                     {message.senderName}
                                                     {message.senderPosition ? ` (${message.senderPosition})` : ""}
                                                 </Text>
@@ -1034,11 +1051,13 @@ export function FloatingChatMessages({
                                                             onClick={() => setLongPressMenuMessageId(longPressMenuMessageId === message.id ? null : message.id)}
                                                         />
                                                     </span>
-                                                    <span style={MESSAGE_TIME_STYLE}>
-                                                        <Text type="supporting" color="secondary">
-                                                            {formatMessageTime(message.createdAt)}
-                                                        </Text>
-                                                    </span>
+                                                    {showMeta && (
+                                                        <span style={MESSAGE_TIME_STYLE}>
+                                                            <Text type="supporting" color="secondary">
+                                                                {formatMessageTime(message.createdAt)}
+                                                            </Text>
+                                                        </span>
+                                                    )}
                                                 </>
                                             )}
                                             <div
@@ -1050,17 +1069,20 @@ export function FloatingChatMessages({
                                                     minWidth: 0,
                                                     maxWidth: "100%",
                                                     // 사진·동영상은 테두리 안 여백을 줄여 그만큼 크게 보인다
-                                                    padding: isMediaBubble ? "var(--spacing-1)" : "var(--spacing-1-5) var(--spacing-3)",
-                                                    borderRadius: 'var(--radius-element)',
-                                                    borderBottomRightRadius: isMyMessage ? 2 : 12,
-                                                    borderBottomLeftRadius: isMyMessage ? 12 : 2,
+                                                    padding: isMediaBubble ? 0 : "var(--spacing-1-5) var(--spacing-3)",
+                                                    overflow: isMediaBubble ? "hidden" : undefined,
+                                                    borderRadius: isMediaBubble ? 'var(--radius-container)' : 'var(--radius-element)',
+                                                    ...(isMediaBubble ? null : {
+                                                        borderBottomRightRadius: isMyMessage ? 2 : 12,
+                                                        borderBottomLeftRadius: isMyMessage ? 12 : 2,
+                                                    }),
                                                     whiteSpace: "pre-wrap",
-                                                    wordBreak: "break-word",
+                                                    overflowWrap: "anywhere",
                                                     // 전송 중은 옅게 — 서버가 받은 것과 구분된다
                                                     opacity: message.sendingStatus === "sending" ? 0.6 : 1,
-                                                    background: isMyMessage ? C.bubbleMine : C.bubbleOther,
-                                                    // 남의 말풍선은 흰 배경 위에 muted 배경만으로는 경계가 안 보여 한 단계 진한 테두리를 준다
-                                                    border: isMyMessage ? "1px solid transparent" : `1px solid ${C.borderStrong}`,
+                                                    // 사진·동영상은 바탕·테두리 없이 사진만 둥글게 — 사진 자체가 경계다
+                                                    background: isMediaBubble ? "transparent" : (isMyMessage ? C.bubbleMine : C.bubbleOther),
+                                                    border: isMediaBubble || isMyMessage ? "1px solid transparent" : `1px solid ${C.border}`,
                                                     color: isMyMessage ? 'var(--color-on-accent)' : 'var(--color-text-primary)',
                                                 }}
                                                 onTouchStart={() => handleTouchStart(message.id)}
@@ -1097,7 +1119,7 @@ export function FloatingChatMessages({
                                                             src={chatListImageUrl(message)}
                                                             alt={message.fileName || "이미지"}
                                                             // 좁은 창이라도 사진이 무엇인지 보일 만큼 — 관리자 채팅 탭(240)에 가깝게
-                                                            style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 'var(--radius-none)', display: "block" }}
+                                                            style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 'var(--radius-container)', display: "block" }}
                                                         />
                                                     </button>
                                                 ) : mediaType === "VIDEO" && message.fileUrl ? (
@@ -1129,6 +1151,7 @@ export function FloatingChatMessages({
                                                     </button>
                                                 ) : (
                                                     <Text color="inherit">
+                                                      <span className="carev-keep-all">
                                                         <ChatMessageText
                                                             content={message.content ?? ""}
                                                             isMyMessage={isMyMessage}
@@ -1136,20 +1159,23 @@ export function FloatingChatMessages({
                                                         {/* 고쳐진 대화라는 사실은 기록으로 남아야 한다 — 말풍선 색이 달라도 읽히도록
                                                             글자색은 말풍선 글자색을 물려받고 흐리기만 한다 */}
                                                         {message.editedAt && (
-                                                            <span style={{ marginLeft: 'var(--spacing-1)', fontSize: 'var(--font-size-sm)', opacity: 0.7 }}>
+                                                            <span style={{ marginLeft: 'var(--spacing-1)', fontSize: 'var(--font-size-sm)', opacity: 0.8 }}>
                                                                 수정됨
                                                             </span>
                                                         )}
+                                                      </span>
                                                     </Text>
                                                 )}
                                             </div>
                                             {!isMyMessage && (
                                                 <>
-                                                    <span style={MESSAGE_TIME_STYLE}>
-                                                        <Text type="supporting" color="secondary">
-                                                            {formatMessageTime(message.createdAt)}
-                                                        </Text>
-                                                    </span>
+                                                    {showMeta && (
+                                                        <span style={MESSAGE_TIME_STYLE}>
+                                                            <Text type="supporting" color="secondary">
+                                                                {formatMessageTime(message.createdAt)}
+                                                            </Text>
+                                                        </span>
+                                                    )}
                                                     <span className="carev-chat-msgactions">
                                                         <Button
                                                             label="메시지 옵션"

@@ -28,7 +28,7 @@ import { ChatImage } from '@/components/chat/ChatImage';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
-import { chatRoomLabel } from '@/components/chat/ChatRoomName';
+import { chatRoomRowLabel, chatRoomRowDescription } from '@/components/chat/ChatRoomRow';
 import { ChatMessageText } from '@/components/chat/ChatMessageText';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
 import { Button } from '@astryxdesign/core/Button';
@@ -52,7 +52,6 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { formatRoomTime } from '@/lib/chatRoomTime';
 import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLogOut, FiCalendar, FiEdit2, FiVideo } from 'react-icons/fi';
 import { IconPin, IconPinnedOff } from '@tabler/icons-react';
 
@@ -184,9 +183,22 @@ function UnreadCount({ count }: { count: number | null }) {
     // null = 참가자를 아직 못 받아온 상태(모른다) — '다 읽음'과 구분해 아무것도 그리지 않는다
     if (count === null || count <= 0) return null;
     return (
-        <Text type="supporting" color="accent" aria-label={`${count}명이 아직 읽지 않음`}>
+        <Text type="supporting" weight="medium" color="accent" aria-label={`${count}명이 아직 읽지 않음`}>
             {count}
         </Text>
+    );
+}
+
+/**
+ * 말풍선 옆 시각·안 읽은 수 — 한 줄 고정(줄바꿈 금지, 줄어들지 않음). 말풍선 쪽이 줄어든다.
+ * '오전 8:13'이 두 줄로 꺾이던 것을 막는다. 안 읽은 수가 위, 시각이 아래(앱과 같다).
+ */
+function MessageMeta({ unread, time, align }: { unread: number | null; time: string; align: "start" | "end" }) {
+    return (
+        <span style={{ display: "flex", flexDirection: "column", alignItems: align === "end" ? "flex-end" : "flex-start", flexShrink: 0, whiteSpace: "nowrap" }}>
+            <UnreadCount count={unread} />
+            <Text type="supporting">{time}</Text>
+        </span>
     );
 }
 
@@ -1728,6 +1740,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
     return (
         <div
+            className="carev-chat-split"
+            data-room-open={selectedRoom ? "1" : "0"}
             style={{
                 display: "flex",
                 flex: 1,
@@ -1739,8 +1753,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 overflow: "hidden",
             }}
         >
-            {/* Left Panel - Room List */}
-            <div style={{ width: "33.3333%", borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column" }}>
+            {/* Left Panel - Room List (폰 폭에서는 방을 열기 전까지 전폭, 연 뒤에는 숨는다) */}
+            <div className="carev-chat-listpane" style={{ borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column" }}>
                 {/* Header */}
                 <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <HStack gap={2} vAlign="center">
@@ -1851,31 +1865,15 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                             size={36}
                                         />
                                     }
-                                    label={chatRoomLabel(room.name, room.pinned)}
+                                    label={chatRoomRowLabel(room)}
                                     labelLines={1}
-                                    description={
-                                        <VStack gap={0.5}>
-                                            <Text type="supporting" maxLines={1}>
-                                                {room.lastMessage
-                                                    ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
-                                                    : "메시지가 없습니다"}
-                                            </Text>
-                                            <Text type="supporting">참여자 {room.participantCount}명</Text>
-                                        </VStack>
-                                    }
-                                    endContent={
-                                        <VStack gap={1} hAlign="end">
-                                            {roomTime && (
-                                                <Text type="supporting">{formatRoomTime(roomTime)}</Text>
-                                            )}
-                                            {room.unreadCount > 0 && (
-                                                <Badge
-                                                    variant="error"
-                                                    label={room.unreadCount > 99 ? "99+" : String(room.unreadCount)}
-                                                />
-                                            )}
-                                        </VStack>
-                                    }
+                                    description={chatRoomRowDescription(
+                                        room,
+                                        room.lastMessage
+                                            ? `${room.lastMessage.senderName}: ${lastMessagePreview(room.lastMessage)}`
+                                            : "메시지가 없습니다",
+                                    )}
+                                    descriptionLines={1}
                                 />
                                 {/* 마우스를 올리면 나타나는 ⋯ — 오른쪽 버튼으로도 같은 메뉴가 열린다 */}
                                 <div
@@ -1969,7 +1967,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
             </div>
 
             {/* Right Panel - Messages (채팅방 정보 서랍은 넓을 때 오른쪽에 나란히, 좁으면 대화를 덮는다) */}
-            <div className="carev-chat-panel" style={{ width: "66.6667%", display: "flex", position: "relative" }}>
+            <div className="carev-chat-panel carev-chat-convpane" style={{ display: "flex", position: "relative" }}>
             <div
                 style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative" }}
                 onDragEnter={handleDragEnter}
@@ -2005,7 +2003,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 {selectedRoom ? (
                     <>
                         {/* Header */}
-                        <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ ...subheaderStyle, padding: 'var(--spacing-4)', display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-2)' }}>
+                            {/* 폰 폭에서만 보이는 뒤로가기 — 한 칸씩 보여 주므로 목록으로 돌아갈 길이 필요하다 */}
+                            <span className="carev-chat-back">
+                                <IconButton
+                                    label="대화 목록으로"
+                                    variant="ghost"
+                                    icon={<Icon icon="chevronLeft" />}
+                                    onClick={() => { setSelectedRoom(null); setShowDrawer(false); setSidePanel(null); }}
+                                />
+                            </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <Text type="large" weight="semibold" maxLines={1}>
                                     {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
@@ -2034,7 +2041,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                 <IconButton
                                     label="채팅방 정보"
                                     variant="ghost"
-                                    icon={<Icon icon="menu" />}
+                                    icon={<Icon icon="info" />}
                                     onClick={toggleDrawer}
                                 />
                                 {/*
@@ -2239,24 +2246,30 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             return (
                                 <div style={{
                                     display: "flex",
-                                    alignItems: "flex-start",
+                                    alignItems: isNoticeExpanded ? "flex-start" : "center",
                                     gap: 'var(--spacing-2)',
-                                    padding: "var(--spacing-2) var(--spacing-4)",
-                                    background: 'var(--color-background-yellow)',
+                                    padding: "var(--spacing-1-5) var(--spacing-2) var(--spacing-1-5) var(--spacing-4)",
+                                    background: C.card,
                                     borderBottom: `1px solid ${C.border}`,
+                                    borderLeft: `2px solid ${C.accent}`,
                                 }}>
-                                    <span style={{ flexShrink: 0, marginTop: 'var(--spacing-0-5)', display: 'inline-flex' }}><ChatAttachmentLabel kind="NOTICE" /></span>
+                                    <span style={{ flexShrink: 0, display: 'inline-flex', alignSelf: isNoticeExpanded ? "flex-start" : "center", marginTop: isNoticeExpanded ? 'var(--spacing-1)' : 0 }}><ChatAttachmentLabel kind="NOTICE" /></span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <Text type="supporting" weight="semibold" color="primary">공지</Text>
-                                        <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                                            <Text type="supporting" color="primary" maxLines={isNoticeExpanded ? undefined : 2}>
-                                                {room.noticeContent}
-                                            </Text>
+                                        {/* 접힘: 공지 · 본문 한 줄(13/400). 등록자·첨부·내리기는 펼쳤을 때만 */}
+                                        <div className="carev-keep-all" style={{ display: "flex", alignItems: "baseline", gap: 'var(--spacing-2)', whiteSpace: isNoticeExpanded ? "pre-wrap" : undefined, minWidth: 0 }}>
+                                            <span style={{ flexShrink: 0 }}>
+                                                <Text type="body" weight="semibold" color="primary">공지</Text>
+                                            </span>
+                                            <span style={{ flex: 1, minWidth: 0 }}>
+                                                <Text type="body" color="primary" maxLines={isNoticeExpanded ? undefined : 1}>
+                                                    {room.noticeContent}
+                                                </Text>
+                                            </span>
                                         </div>
-                                        {room.noticeByName && (
+                                        {isNoticeExpanded && room.noticeByName && (
                                             <Text type="supporting" color="secondary">{room.noticeByName} 등록</Text>
                                         )}
-                                        {room.noticeFileUrl && (
+                                        {isNoticeExpanded && room.noticeFileUrl && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -2285,18 +2298,20 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         )}
                                     </div>
                                     <HStack gap={1}>
+                                        {isNoticeExpanded && (
+                                            <Button
+                                                label="내리기"
+                                                variant="ghost"
+                                                size="sm"
+                                                isLoading={isUpdatingNotice}
+                                                onClick={() => changeNotice(null)}
+                                            />
+                                        )}
                                         <Button
                                             label={isNoticeExpanded ? "접기" : "펼치기"}
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setIsNoticeExpanded(v => !v)}
-                                        />
-                                        <Button
-                                            label="내리기"
-                                            variant="ghost"
-                                            size="sm"
-                                            isLoading={isUpdatingNotice}
-                                            onClick={() => changeNotice(null)}
                                         />
                                     </HStack>
                                 </div>
@@ -2313,12 +2328,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                             ref={messagesContainerRef}
                             {...olderScrollProps}
                             onScroll={() => { handleMessagesScroll(); olderScrollProps.onScroll(); }}
-                            style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", gap: 'var(--spacing-3)', background: C.bgGray, position: "relative" }}
+                            style={{ flex: 1, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column", background: C.bgGray, position: "relative" }}
                         >
                             {/* 위로 올리는 동안 "며칠 대화인지" 알려주는 떠 있는 배지 (멈추면 사라진다) */}
                             <ChatScrollDateBadge
                                 label={dateBadgeLabel}
                                 offsetTop={isJumpedToOlder ? "var(--spacing-10)" : "0px"}
+                                listGap="0px"
                             />
                             {/* 검색으로 오래된 구간에 점프해 있는 동안의 안내 — 스크롤 맨 위에 붙어(sticky) 계속 보인다 */}
                             {isJumpedToOlder && (
@@ -2352,7 +2368,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     />
                                 </div>
                             ) : (
-                                buildChatRenderItems(messages).map((item) => {
+                                buildChatRenderItems(messages).map((item, itemIndex, allItems) => {
                                     // 연달아 온 사진은 한 말풍선(격자)으로 접힌다.
                                     // 대표 메시지는 묶음의 '마지막(가장 최신)' 장 — 시각 표시가 묶음이 끝난 시각이어야 하고,
                                     // 답장·반응·공지 등 메뉴도 이 메시지를 대상으로 삼는다.
@@ -2374,10 +2390,30 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         : countUnreadReaders(message);
                                     const mediaType = chatMediaType(message);
 
+                                    // 간격 규칙: 같은 사람이 이어 보낸 말풍선 사이 4px, 사람이 바뀌거나 날짜·시스템 줄이 끼면 16px.
+                                    // 목록 flex gap 하나(12px)로는 묶음이 안 보여서 줄마다 margin-top으로 정한다.
+                                    const rowGap = itemIndex === 0 || showDateSeparator
+                                        ? 0
+                                        : (isGroupStart || isSystemMessage || message.isDeleted ? 'var(--spacing-4)' : 'var(--spacing-1)');
+                                    // 시각·읽음 수는 같은 사람이 같은 분에 보낸 묶음의 '마지막' 말풍선에만 붙인다(앱과 같은 규칙)
+                                    const nextItem = allItems[itemIndex + 1];
+                                    const nextMessage = nextItem ? (nextItem.kind === "photos" ? nextItem.messages[0] : nextItem.message) : null;
+                                    const showMeta = !nextItem
+                                        || nextItem.showDateSeparator
+                                        || nextItem.showSenderHeader
+                                        || !nextMessage
+                                        || nextMessage.type === "SYSTEM"
+                                        || !!nextMessage.isDeleted
+                                        || formatMessageTime(nextMessage.createdAt) !== formatMessageTime(message.createdAt);
+                                    // 사진·동영상은 말풍선 칸 없이 사진만 둥글게 — 답장 인용이 붙은 건 일반 말풍선 모양을 쓴다
+                                    const isMediaOnly = !message.replyToId && (!!photoGroup
+                                        || (mediaType === "IMAGE" && !!message.fileUrl)
+                                        || (mediaType === "VIDEO" && !!message.fileUrl));
+
                                     // 구분선에 문구를 표시로 달아 둔다 — 떠 있는 날짜 배지가 이걸 읽는다
                                     const separatorLabel = showDateSeparator ? formatDateSeparator(message.createdAt) : null;
                                     const dateSeparator = separatorLabel ? (
-                                        <div style={{ margin: "var(--spacing-3) 0" }} {...chatDateMarkerProps(separatorLabel)}>
+                                        <div style={{ margin: `${itemIndex === 0 ? 0 : 'var(--spacing-4)'} 0 var(--spacing-3)` }} {...chatDateMarkerProps(separatorLabel)}>
                                             <Divider label={separatorLabel} />
                                         </div>
                                     ) : null;
@@ -2386,8 +2422,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         return (
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
-                                                <div style={{ display: "flex", justifyContent: "center" }}>
-                                                    <Text type="supporting" color="disabled">{message.content}</Text>
+                                                <div style={{ display: "flex", justifyContent: "center", marginTop: rowGap }}>
+                                                    <Text type="supporting" color="secondary">{message.content}</Text>
                                                 </div>
                                             </Fragment>
                                         );
@@ -2397,8 +2433,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         return (
                                             <Fragment key={message.id}>
                                                 {dateSeparator}
-                                                <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start", padding: "var(--spacing-2) var(--spacing-3)" }}>
-                                                    <Text type="supporting" color="disabled">
+                                                <div style={{ display: "flex", justifyContent: isMyMessage ? "flex-end" : "flex-start", padding: "var(--spacing-2) var(--spacing-3)", marginTop: rowGap }}>
+                                                    <Text type="supporting" color="secondary">
                                                         삭제된 메시지입니다
                                                     </Text>
                                                 </div>
@@ -2413,6 +2449,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                 id={`chat-message-${message.id}`}
                                                 style={{
                                                     display: "flex", position: "relative", justifyContent: isMyMessage ? "flex-end" : "flex-start", alignItems: "flex-start", gap: 'var(--spacing-2)',
+                                                    marginTop: rowGap,
                                                     borderRadius: 'var(--radius-container)',
                                                     transition: "background-color 0.3s ease",
                                                     // 검색 결과에서 찾아온 메시지를 잠깐 배경으로 알려준다
@@ -2423,13 +2460,13 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                     빈 자리로 차지해 말풍선이 세로로 가지런히 선다. */}
                                                 {!isMyMessage && (
                                                     isGroupStart ? (
-                                                        <Avatar
-                                                            src={participantAvatarMap.get(message.senderId || '') || undefined}
-                                                            name={message.senderName || "?"}
-                                                            size="small"
+                                                        <ChatRoomAvatarStack
+                                                            roomName={message.senderName || "?"}
+                                                            people={[{ userId: message.senderId || '', userName: message.senderName || "?", profileImageUrl: participantAvatarMap.get(message.senderId || '') || undefined }]}
+                                                            size={28}
                                                         />
                                                     ) : (
-                                                        <div style={{ width: 32, flexShrink: 0 }} aria-hidden />
+                                                        <div style={{ width: 28, flexShrink: 0 }} aria-hidden />
                                                     )
                                                 )}
                                                 {/* 넓은 화면에서 말풍선이 채팅 영역의 70%까지 늘어나면 한 줄이 1000px를 넘어
@@ -2441,7 +2478,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         나눠 갖느라 "주간보호센터장" 같은 긴 직종이 먼저 잘린다. */}
                                                     {!isMyMessage && isGroupStart && (
                                                         <div style={{ marginBottom: 'var(--spacing-1)' }}>
-                                                            <Text type="supporting" weight="medium" color="primary">
+                                                            <Text type="supporting" weight="medium" color="secondary">
                                                                 {message.senderName}
                                                                 {message.senderPosition ? ` (${message.senderPosition})` : ""}
                                                             </Text>
@@ -2482,10 +2519,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         onClick={() => setContextMenuMessageId(contextMenuMessageId === message.id ? null : message.id)}
                                                                     />
                                                                 </span>
-                                                                <UnreadCount count={groupUnread} />
-                                                                <Text type="supporting">
-                                                                    {formatMessageTime(message.createdAt)}
-                                                                </Text>
+                                                                {showMeta && <MessageMeta unread={groupUnread} time={formatMessageTime(message.createdAt)} align="end" />}
                                                             </>
                                                         )}
                                                         <div
@@ -2497,13 +2531,16 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                 // 0으로 풀어야 인용문이 줄임표로 잘리고 말풍선은 상한 안에 머문다.
                                                                 minWidth: 0,
                                                                 maxWidth: "100%",
-                                                                padding: "var(--spacing-2) var(--spacing-3)",
+                                                                padding: isMediaOnly ? 0 : "var(--spacing-2) var(--spacing-3)",
                                                                 // 전송 중은 옅게 — 서버가 받은 것과 구분된다
                                                                 opacity: message.sendingStatus === "sending" ? 0.6 : 1,
-                                                                ...(isMyMessage
+                                                                ...(isMediaOnly
+                                                                    // 사진·동영상: padding 0, 테두리·바탕 없음, 모서리 16 — 사진 자체가 경계다
+                                                                    ? { background: "transparent", overflow: "hidden", borderRadius: 'var(--radius-container)' }
+                                                                    : isMyMessage
                                                                     // 저대비로 기각된 하드코딩 색 대신 테마 accent 토큰 사용 (AA 대비 확보)
                                                                     ? { background: C.accent, color: 'var(--color-on-accent)', borderRadius: 'var(--radius-container) var(--radius-inner) var(--radius-container) var(--radius-container)' }
-                                                                    : { background: C.card, border: `1px solid ${C.borderStrong}`, color: C.gray900, borderRadius: 'var(--radius-inner) var(--radius-container) var(--radius-container) var(--radius-container)' }),
+                                                                    : { background: C.card, border: `1px solid ${C.border}`, color: C.gray900, borderRadius: 'var(--radius-inner) var(--radius-container) var(--radius-container) var(--radius-container)' }),
                                                             }}
                                                             onTouchStart={() => {
                                                                 longPressTimerRef2.current = setTimeout(() => setContextMenuMessageId(message.id), 500);
@@ -2541,7 +2578,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     }}
                                                                 >
                                                                     <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{message.replyToSenderName}</div>
-                                                                    <div style={{ opacity: 0.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                                                    <div className="carev-keep-all" style={{ opacity: 0.8, whiteSpace: "pre-wrap" }}>
                                                                         {/* 동영상은 저장된 type이 FILE이라 파생 필드(replyToMediaType)로만 구분된다 */}
                                                                         {message.replyToMediaType === "VIDEO" ? <ChatAttachmentLabel kind="VIDEO">동영상</ChatAttachmentLabel>
                                                                             : message.replyToType === "IMAGE" || message.replyToMediaType === "IMAGE" ? <ChatAttachmentLabel kind="IMAGE">사진</ChatAttachmentLabel>
@@ -2572,7 +2609,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         className="carev-chat-image"
                                                                         src={chatListImageUrl(message)}
                                                                         alt={message.fileName || "이미지"}
-                                                                        style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-none)' }}
+                                                                        style={{ display: "block", maxWidth: "100%", maxHeight: 240, borderRadius: 'var(--radius-container)' }}
                                                                     />
                                                                 </button>
                                                             ) : mediaType === "VIDEO" && message.fileUrl ? (
@@ -2595,6 +2632,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     }}
                                                                     style={{
                                                                         fontSize: 'var(--font-size-base)',
+                                                                        fontWeight: 'var(--font-weight-normal)',
                                                                         textDecoration: "underline",
                                                                         display: "inline-flex",
                                                                         alignItems: "center",
@@ -2610,12 +2648,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     <ChatAttachmentLabel kind="FILE">{message.fileName || message.content}</ChatAttachmentLabel>
                                                                 </button>
                                                             ) : (
-                                                                <span style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", wordBreak: "break-word", color: "inherit" }}>
+                                                                <span className="carev-keep-all" style={{ fontSize: 'var(--font-size-base)', lineHeight: 'var(--text-body-leading)', whiteSpace: "pre-wrap", color: "inherit" }}>
                                                                     <ChatMessageText content={message.content} isMyMessage={isMyMessage} />
                                                                     {/* 고쳐진 대화라는 사실은 기록으로 남아야 한다 — 말풍선 색이 달라도 읽히도록
                                                                         글자색은 말풍선 글자색을 물려받고 흐리기만 한다 */}
                                                                     {message.editedAt && (
-                                                                        <span style={{ marginLeft: 'var(--spacing-1)', fontSize: 'var(--font-size-sm)', opacity: 0.7, color: "inherit" }}>
+                                                                        <span style={{ marginLeft: 'var(--spacing-1)', fontSize: 'var(--font-size-sm)', opacity: 0.8, color: "inherit" }}>
                                                                             수정됨
                                                                         </span>
                                                                     )}
@@ -2624,10 +2662,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                         </div>
                                                         {!isMyMessage && (
                                                             <>
-                                                                <UnreadCount count={groupUnread} />
-                                                                <Text type="supporting">
-                                                                    {formatMessageTime(message.createdAt)}
-                                                                </Text>
+                                                                {showMeta && <MessageMeta unread={groupUnread} time={formatMessageTime(message.createdAt)} align="start" />}
                                                                 {/* 평소엔 숨어 있다가 마우스를 올리거나 키보드 포커스가 오면 나타난다.
                                                                     아주 지워버리면 꾹 누르기·우클릭을 못 하는 키보드 사용자가
                                                                     답장·리액션·공지등록에 닿을 방법이 없어진다. */}
@@ -2659,9 +2694,10 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                         display: "inline-flex",
                                                                         alignItems: "center",
                                                                         gap: 'var(--spacing-1)',
+                                                                        minHeight: 24,
                                                                         padding: "2px var(--spacing-2)",
                                                                         borderRadius: 'var(--radius-full)',
-                                                                        fontSize: 'var(--font-size-xs)',
+                                                                        fontSize: 'var(--font-size-base)',
                                                                         lineHeight: 1.4,
                                                                         cursor: "pointer",
                                                                         background: reaction.myReaction ? 'var(--color-accent-muted)' : 'var(--color-background-surface)',
@@ -2671,7 +2707,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                                     }}
                                                                 >
                                                                     <span>{reaction.emoji}</span>
-                                                                    <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{reaction.count}</span>
+                                                                    <Text as="span" type="supporting" weight="medium" color="inherit">{reaction.count}</Text>
                                                                 </button>
                                                             ))}
                                                         </div>
@@ -2844,7 +2880,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                         )}
 
                         {/* Input Area */}
-                        <div style={{ padding: 'var(--spacing-4)', borderTop: `1px solid ${C.border}`, position: "relative" }}>
+                        <div className="carev-chat-composer" style={{ padding: 'var(--spacing-4)', borderTop: `1px solid ${C.border}`, position: "relative" }}>
                             {/* @호출 추천 — 입력창 바로 위에 띄운다 */}
                             {mentionCandidates.length > 0 && (
                                 <div style={{
@@ -2918,7 +2954,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     isLoading={isSavingEdit}
                                 />
                             </div>
-                            <div style={{ paddingTop: 'var(--spacing-1)' }}>
+                            <div className="carev-chat-hint" style={{ paddingTop: 'var(--spacing-1)' }}>
                                 <Text type="supporting" color="secondary">
                                     Shift+Enter로 줄바꿈 · 사진은 붙여넣기·끌어놓기로도 보낼 수 있어요
                                 </Text>
