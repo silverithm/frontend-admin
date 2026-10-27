@@ -15,7 +15,7 @@ import {
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
-import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload } from 'react-icons/fi';
+import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload, FiSliders, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
@@ -772,6 +772,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             />
             <Button
               label="이번 달로 돌아가기"
+              tooltip="이번 달로"
               variant="ghost"
               size="sm"
               isIconOnly
@@ -794,6 +795,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   data-tour="action-vacation-limit"
                   variant="ghost"
                   size="sm"
+                  icon={<Icon icon={FiSliders} size="sm" />}
                   onClick={onShowLimitPanel}
                 />
                 {onExportExcel && (
@@ -846,6 +848,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               label={isExpanded ? '접기' : '펼치기'}
               variant={isExpanded ? 'secondary' : 'ghost'}
               size="sm"
+              icon={<Icon icon={isExpanded ? FiMinimize2 : FiMaximize2} size="sm" />}
               isDisabled={isLoading}
               onClick={() => setIsExpanded(!isExpanded)}
             />

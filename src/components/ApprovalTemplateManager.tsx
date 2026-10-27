@@ -356,7 +356,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
 
   // 표 안 파일명 줄임 — 확장자를 지우지 않고 가운데만 줄인다("휴가신청서.h"처럼
   // 확장자 중간에서 잘리던 문제). 전체 이름은 버튼 tooltip으로 여전히 볼 수 있다.
-  const truncateFileName = (name: string, max = 16) => {
+  const truncateFileName = (name: string, max = 12) => {
     if (name.length <= max) return name;
     const dotIndex = name.lastIndexOf('.');
     const ext = dotIndex > 0 ? name.slice(dotIndex) : '';

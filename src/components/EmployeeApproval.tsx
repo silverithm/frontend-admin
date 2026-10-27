@@ -1171,6 +1171,7 @@ export default function EmployeeApproval() {
                         <HStack hAlign="between" vAlign="center" gap={4}>
                           <VStack gap={1}>
                             <HStack gap={2} vAlign="center">
+                              <Text type="body" weight="semibold" color="primary">{approval.title}</Text>
                               <Badge {...approvalStatusBadge(approval.status)} />
                               {(approval.revision ?? 1) > 1 && (
                                 <Badge variant="neutral" label={`${approval.revision}차`} />
@@ -1180,11 +1181,9 @@ export default function EmployeeApproval() {
                               {revisedAwayIds.has(String(approval.id)) && (
                                 <Text type="supporting" color="secondary">다시 올림</Text>
                               )}
-                              <Text type="supporting" color="disabled">{approval.templateName}</Text>
                             </HStack>
-                            <Text weight="semibold" color="primary">{approval.title}</Text>
                             <Text type="supporting" color="secondary">
-                              {formatListDateTime(approval.createdAt)}
+                              {[approval.templateName, formatListDateTime(approval.createdAt)].filter(Boolean).join(' · ')}
                             </Text>
                           </VStack>
                           <Icon icon={FiChevronRight} color="tertiary" />
