@@ -89,7 +89,7 @@ function VoiceBoxItemComponent({
                 펼치고 접는 동작(처리 다이얼로그)은 상태와 무관하게 그대로다 */}
             <Button
               label={isExpanded ? '접기' : item.status === 'RESOLVED' ? '답변 보기' : '처리하기'}
-              variant={isExpanded || item.status !== 'RESOLVED' ? 'secondary' : 'ghost'}
+              variant="secondary"
               size="sm"
               aria-expanded={isExpanded}
               onClick={() => onToggleExpand(item.id)}

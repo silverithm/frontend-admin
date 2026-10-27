@@ -1085,7 +1085,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 {/* 제목은 왼쪽에 고정하고, 남는 폭은 세 숫자가 똑같이 나눠 갖는다 */}
                 <HStack gap={3} vAlign="center">
                   <StackItem size="static">
-                    <Text type="body" weight="bold" color="primary">{group.title}</Text>
+                    <Text type="supporting" weight="semibold" color="secondary">{group.title}</Text>
                   </StackItem>
                   <StackItem size="fill">
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'center' }}>

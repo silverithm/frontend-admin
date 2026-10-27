@@ -663,15 +663,10 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                       {/* 액션 열 — 줄마다 버튼 조합(상세보기만 / 상세보기+승인+반려 / 상세보기+더보기)이
                           달라 왼쪽 시작점이 들쭉날쭉했다. 폭을 고정하고 오른쪽으로 정렬해
                           내용이 달라도 오른쪽 끝이 항상 같은 줄에 선다. */}
-                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 232, flexShrink: 0 }}>
-                        <Button
-                          label="상세보기"
-                          variant="secondary"
-                          size="sm"
-                          icon={<Icon icon={FiEye} />}
-                          onClick={() => handleOpenDetail(approval)}
-                        />
-                        {approval.status === 'PENDING' && isActionable(approval) && (
+                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 280, flexShrink: 0 }}>
+                        {/* 승인·반려 자리는 늘 확보 — 상세보기와 ⋯가 모든 행에서 같은 x에 선다 */}
+                        <div style={{ minWidth: 136, display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-2)' }}>
+                          {approval.status === 'PENDING' && isActionable(approval) && (
                           <>
                             {/* 내 차례인 문서 — 정상 흐름, 1차 액션으로 그대로 노출 */}
                             <Button
@@ -692,6 +687,15 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             />
                           </>
                         )}
+                        </div>
+                        <Button
+                          label="상세보기"
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={FiEye} />}
+                          onClick={() => handleOpenDetail(approval)}
+                        />
+                        <div style={{ width: 32, flexShrink: 0 }}>
                         {/* 되돌릴 수 없는 삭제와, 내 차례가 아닌 문서의 직권 처리는 매 줄에
                             늘 보이는 1차 버튼이 아니라 더보기(⋯) 메뉴 하나로 모은다. */}
                         {canManage && (
@@ -730,6 +734,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             ]}
                           />
                         )}
+                        </div>
                       </HStack>
                     </HStack>
                   </div>

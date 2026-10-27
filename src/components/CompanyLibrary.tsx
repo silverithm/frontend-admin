@@ -338,7 +338,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                         )}
                         <Button
                           label="받기"
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           icon={<Icon icon={FiDownload} size="sm" />}
                           onClick={() => handleDownload(item)}

@@ -497,7 +497,7 @@ export default function OrganizationProfilePage() {
               <VStack gap={0.5}>
                 {/* 페이지의 유일한 <h1> — 이전엔 Text로만 그려져 스크린리더가 제목을 찾을 수 없었다.
                     type="display-3"가 기존 크기(3xl)와 같으므로 화면은 그대로다. */}
-                <Heading level={1} type="display-3" color="primary" style={{ fontWeight: 'var(--font-weight-bold)' }}>기관 프로필</Heading>
+                <Heading level={1} color="primary">기관 프로필</Heading>
                 <Text type="supporting" color="secondary" style={{ color: 'var(--color-header-text-secondary)' }}>기관의 기본 정보와 계정을 관리합니다</Text>
               </VStack>
             </HStack>
@@ -600,7 +600,7 @@ export default function OrganizationProfilePage() {
                     // 구역으로 옮겼다). 기관 사실만 남기니 한 장으로 충분하다.
                     <Card padding={5}>
                       <VStack gap={3}>
-                        <Text type="label" weight="semibold" color="secondary">기관</Text>
+                        <Text type="body" weight="bold" color="primary">기관</Text>
                         <div className="carev-org-facts">
                           <div className="carev-org-fact">
                             <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -659,7 +659,7 @@ export default function OrganizationProfilePage() {
                     {/* 기관 직인 카드 */}
                     <Card padding={5} height="100%">
                       <VStack gap={4} height="100%">
-                        <Text type="body" weight="medium" color="primary">기관 직인</Text>
+                        <Text type="body" weight="bold" color="primary">기관 직인</Text>
                         {/* 남는 높이는 이 미리보기가 가져간다 — 고정 높이로 두면 옆 카드가 길어질 때
                             그 차이가 카드 아래 죽은 공간으로 남는다. 여기서 늘어나면 직인이 커 보일 뿐이다. */}
                         <div
@@ -731,7 +731,7 @@ export default function OrganizationProfilePage() {
                     {/* 내 서명 카드 */}
                     <Card padding={5} height="100%">
                       <VStack gap={4} height="100%">
-                        <Text type="body" weight="medium" color="primary">내 결재 서명</Text>
+                        <Text type="body" weight="bold" color="primary">내 결재 서명</Text>
                         <MySignatureCard
                           onNotification={(message, type) => {
                             if (type === 'error') {
