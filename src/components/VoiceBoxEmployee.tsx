@@ -24,6 +24,7 @@ import {
   getVoiceMessages,
   VoiceMessageItem,
 } from '@/lib/apiService';
+import { formatListDateTime } from '@/lib/formatDate';
 
 const STATUS_LABEL: Record<string, string> = {
   RECEIVED: '접수',
@@ -186,7 +187,7 @@ export default function VoiceBoxEmployee() {
                   <Badge variant={STATUS_VARIANT[item.status] ?? 'neutral'} label={statusLabel(item)} />
                 </HStack>
                 <Text type="supporting" color="secondary">
-                  {item.createdAt ? format(new Date(item.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko }) : ''}
+                  {item.createdAt ? formatListDateTime(item.createdAt) : ''}
                 </Text>
                 <Text type="body" color="secondary">{item.content}</Text>
                 {item.adminReply && (

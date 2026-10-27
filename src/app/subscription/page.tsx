@@ -7,6 +7,7 @@ import { subscriptionService } from '@/services/subscription';
 import { useAlert } from '@/components/Alert';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
+import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
@@ -138,13 +139,13 @@ export default function SubscriptionPage() {
       >
         <div style={{ maxWidth: 768, margin: '0 auto' }}>
           <VStack gap={6}>
-            <Text type="display-2" weight="bold">구독 관리</Text>
+            <Heading level={1}>구독 관리</Heading>
 
             {subscription ? (
               <Card padding={6}>
                 <VStack gap={5}>
                   <VStack gap={4}>
-                    <Text type="large" weight="semibold">현재 구독 정보</Text>
+                    <Text type="body" weight="bold">현재 구독 정보</Text>
 
                     <VStack gap={3}>
                       <HStack hAlign="between" vAlign="center">
@@ -274,7 +275,7 @@ export default function SubscriptionPage() {
             {/* 플랜 정보 */}
             <Card padding={6}>
               <VStack gap={4}>
-                <Text type="large" weight="semibold">Basic 플랜</Text>
+                <Text type="body" weight="bold">Basic 플랜</Text>
 
                 <HStack gap={1} vAlign="end">
                   <Text type="display-2" weight="bold">₩9,900</Text>

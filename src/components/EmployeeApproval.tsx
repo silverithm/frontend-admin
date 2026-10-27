@@ -42,6 +42,7 @@ import MySignatureCard from './approval/MySignatureCard';
 import DocumentViewerModal from './DocumentViewerModal';
 import { duration } from '@/theme/motion';
 import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
+import { formatListDateTime } from '@/lib/formatDate';
 
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -917,24 +918,22 @@ export default function EmployeeApproval() {
             <VStack gap={3}>
               {/* 기안 종류 필터 — 분류가 둘 이상일 때만 */}
               {templateCategories.length > 1 && (
-                <HStack gap={2} vAlign="center" wrap="wrap">
-                  <Text type="supporting" color="secondary">기안 종류</Text>
-                  <Button
-                    label={`전체 (${templates.length})`}
-                    variant={templateFilter === '' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setTemplateFilter('')}
-                  />
-                  {templateCategories.map((category) => (
-                    <Button
-                      key={category}
-                      label={`${category} (${templates.filter((t) => ((t.category || '').trim() || UNCATEGORIZED_LABEL) === category).length})`}
-                      variant={templateFilter === category ? 'secondary' : 'ghost'}
-                      size="sm"
-                      onClick={() => setTemplateFilter(category)}
-                    />
-                  ))}
-                </HStack>
+                <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                  <SegmentedControl
+                    value={templateFilter === '' ? '__all__' : templateFilter}
+                    onChange={(v) => setTemplateFilter(v === '__all__' ? '' : v)}
+                    label="기안 종류 필터"
+                  >
+                    <SegmentedControlItem value="__all__" label={`전체 (${templates.length})`} />
+                    {templateCategories.map((category) => (
+                      <SegmentedControlItem
+                        key={category}
+                        value={category}
+                        label={`${category} (${templates.filter((t) => ((t.category || '').trim() || UNCATEGORIZED_LABEL) === category).length})`}
+                      />
+                    ))}
+                  </SegmentedControl>
+                </div>
               )}
               {/* 양식 이름 검색 — 양식이 아홉 개를 넘어가면 분류 버튼만으로는 못 찾는다 */}
               {templates.length > 5 && (
@@ -1072,17 +1071,18 @@ export default function EmployeeApproval() {
           <>
             {/* 상태 필터 — 위 화면 전환 탭(TabList)과 크기를 다르게 둬 이건 '목록을
                 거르는 도구'이지 화면 전환이 아님을 보이게 한다 */}
+            <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
             <SegmentedControl
               value={approvalFilter}
               onChange={(value) => setApprovalFilter(value as ApprovalFilterType)}
               label="결재 상태 필터"
-              size="sm"
             >
               <SegmentedControlItem value="all" label={`전체 (${getStatusCount()})`} />
               <SegmentedControlItem value="pending" label={`진행중 (${getStatusCount('PENDING')})`} />
               <SegmentedControlItem value="approved" label={`승인됨 (${getStatusCount('APPROVED')})`} />
               <SegmentedControlItem value="rejected" label={`반려됨 (${getStatusCount('REJECTED')})`} />
             </SegmentedControl>
+            </div>
 
             {/* 기간·검색 — 결재 관리에는 있는데 여기만 없어서, 문서가 쌓이면 눈으로 훑는
                 수밖에 없었다. 같은 자리에 같은 손잡이를 둔다. */}
@@ -1110,6 +1110,23 @@ export default function EmployeeApproval() {
                     />
                   )}
                 </HStack>
+                {approvalCategories.length > 1 && (
+                  <div style={{ minWidth: 160 }}>
+                    <Selector
+                      label="기안 종류"
+                      isLabelHidden
+                      value={categoryFilter}
+                      onChange={(v) => setCategoryFilter(v ?? '')}
+                      options={[
+                        { value: '', label: `기안 종류 전체 (${approvals.length})` },
+                        ...approvalCategories.map((category) => ({
+                          value: category,
+                          label: `${category} (${approvals.filter((a) => categoryOf(a) === category).length})`,
+                        })),
+                      ]}
+                    />
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <TextInput
                     label="검색"
@@ -1123,28 +1140,6 @@ export default function EmployeeApproval() {
                 </div>
               </HStack>
             </Card>
-
-            {/* 기안 종류 필터 — 내 문서에 분류가 둘 이상 섞여 있을 때만 */}
-            {approvalCategories.length > 1 && (
-              <HStack gap={2} vAlign="center" wrap="wrap">
-                <Text type="supporting" color="secondary">기안 종류</Text>
-                <Button
-                  label={`전체 (${approvals.length})`}
-                  variant={categoryFilter === '' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCategoryFilter('')}
-                />
-                {approvalCategories.map((category) => (
-                  <Button
-                    key={category}
-                    label={`${category} (${approvals.filter((a) => categoryOf(a) === category).length})`}
-                    variant={categoryFilter === category ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setCategoryFilter(category)}
-                  />
-                ))}
-              </HStack>
-            )}
 
             {/* 결재 목록 — 예전엔 문서마다 독립된 카드였다. 바로 옆 결재 관리 화면은
                 하나의 표면 안에 구분선으로 나눈 목록이라 같은 전자결재 안에서도
@@ -1176,6 +1171,7 @@ export default function EmployeeApproval() {
                         <HStack hAlign="between" vAlign="center" gap={4}>
                           <VStack gap={1}>
                             <HStack gap={2} vAlign="center">
+                              <Text type="body" weight="semibold" color="primary">{approval.title}</Text>
                               <Badge {...approvalStatusBadge(approval.status)} />
                               {(approval.revision ?? 1) > 1 && (
                                 <Badge variant="neutral" label={`${approval.revision}차`} />
@@ -1185,11 +1181,9 @@ export default function EmployeeApproval() {
                               {revisedAwayIds.has(String(approval.id)) && (
                                 <Text type="supporting" color="secondary">다시 올림</Text>
                               )}
-                              <Text type="supporting" color="disabled">{approval.templateName}</Text>
                             </HStack>
-                            <Text weight="semibold" color="primary">{approval.title}</Text>
                             <Text type="supporting" color="secondary">
-                              {format(new Date(approval.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
+                              {[approval.templateName, formatListDateTime(approval.createdAt)].filter(Boolean).join(' · ')}
                             </Text>
                           </VStack>
                           <Icon icon={FiChevronRight} color="tertiary" />

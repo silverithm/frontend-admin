@@ -92,6 +92,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { subheaderStyle } from './subheaderStyle';
+import { formatListDate, formatListDateTime } from '@/lib/formatDate';
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
@@ -1084,7 +1085,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 {/* 제목은 왼쪽에 고정하고, 남는 폭은 세 숫자가 똑같이 나눠 갖는다 */}
                 <HStack gap={3} vAlign="center">
                   <StackItem size="static">
-                    <Text type="body" weight="bold" color="primary">{group.title}</Text>
+                    <Text type="supporting" weight="semibold" color="secondary">{group.title}</Text>
                   </StackItem>
                   <StackItem size="fill">
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', alignItems: 'center' }}>
@@ -1204,11 +1205,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none' }}>
-                              <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{task.content}</Text>
+                              <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>{task.content}</Text>
                             </div>
                             <Text as="p" type="supporting" color="secondary" maxLines={1}>
                               {task.scheduleTitle || ''}
-                              {task.scheduleStartDate ? ` · ${format(new Date(task.scheduleStartDate), 'M.d')}` : ''}
+                              {task.scheduleStartDate ? ` · ${formatListDate(task.scheduleStartDate)}` : ''}
                             </Text>
                           </div>
                           <div style={{ flexShrink: 0 }}>
@@ -1287,10 +1288,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <HStack gap={2} vAlign="center">
                           <Badge variant="neutral" label="운영" />
-                          <Text type="body" weight="medium" color="primary" maxLines={1}>{notice.title}</Text>
+                          <Text type="body" weight="semibold" color="primary" maxLines={1}>{notice.title}</Text>
                         </HStack>
                         <Text type="supporting" color="secondary">
-                          {notice.displayAuthor} · {notice.createdAt ? format(new Date(notice.createdAt), 'M.d') : ''}
+                          {notice.displayAuthor} · {notice.createdAt ? formatListDate(notice.createdAt) : ''}
                         </Text>
                       </div>
                     </ClickableRow>
@@ -1307,11 +1308,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <HStack gap={2} vAlign="center">
                           {notice.priority === 'HIGH' && <Badge variant="red" label="긴급" />}
-                          <Text type="body" weight="medium" color="primary" maxLines={1}>{notice.title}</Text>
+                          <Text type="body" weight="semibold" color="primary" maxLines={1}>{notice.title}</Text>
                         </HStack>
                         <Text type="supporting" color="secondary">
                           {notice.authorName && `${notice.authorName} · `}
-                          {notice.createdAt ? format(new Date(notice.createdAt), 'M.d') : ''}
+                          {notice.createdAt ? formatListDate(notice.createdAt) : ''}
                         </Text>
                       </div>
                     </ClickableRow>
@@ -1368,12 +1369,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                       onClick={() => onTabChange('approval')}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>
+                        <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>
                           {approval.title || approval.templateName || '결재 요청'}
                         </Text>
                         <Text type="supporting" color="secondary">
                           {approval.requesterName && `${approval.requesterName} · `}
-                          {approval.createdAt ? format(new Date(approval.createdAt), 'M.d') : ''}
+                          {approval.createdAt ? formatListDate(approval.createdAt) : ''}
                         </Text>
                       </div>
                       <div style={{ flexShrink: 0 }}>
@@ -1433,7 +1434,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           <Badge variant={meta.badgeVariant} label={meta.label} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{news.title}</Text>
+                          <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>{news.title}</Text>
                           <Text type="supporting" color="secondary">
                             {news.source} · {formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}
                           </Text>
@@ -1875,7 +1876,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           )}
                         </div>
                         <div style={{ marginTop: 'var(--spacing-0-5)', textDecoration: schedule.isCompleted ? 'line-through' : 'none', opacity: schedule.isCompleted ? 0.6 : 1 }}>
-                          <Text as="p" type="body" weight="medium" color="primary" maxLines={1}>{schedule.title}</Text>
+                          <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>
                         </div>
                         {schedule.location && (
                           <Text as="p" type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
@@ -2116,7 +2117,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                                       {task.isCompleted && task.completedAt && (
                                         <Text type="supporting" color="secondary">
                                           {task.completedByName ? `${task.completedByName} · ` : ''}
-                                          {format(new Date(task.completedAt), 'MM.dd HH:mm')}
+                                          {formatListDateTime(task.completedAt)}
                                         </Text>
                                       )}
                                     </HStack>

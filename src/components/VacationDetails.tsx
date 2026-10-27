@@ -52,21 +52,6 @@ type BadgeColorVariant =
   | 'cyan';
 
 // 직원 유형 뱃지의 Astryx 색상 변형 매핑 (표현용, roleUtils의 색상 의도를 반영)
-const getRoleBadgeVariant = (role?: string | null): BadgeColorVariant => {
-  const normalized = normalizeRoleKey(role);
-  if (!normalized) return 'neutral';
-  if (normalized === 'admin') return 'purple';
-  if (normalized === 'caregiver') return 'blue';
-  if (normalized === 'office') return 'green';
-
-  const palette: BadgeColorVariant[] = ['blue', 'green', 'orange', 'purple', 'pink', 'cyan'];
-  let hash = 0;
-  for (let index = 0; index < normalized.length; index += 1) {
-    hash = (hash << 5) - hash + normalized.charCodeAt(index);
-    hash |= 0;
-  }
-  return palette[Math.abs(hash) % palette.length];
-};
 
 const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
   date,
@@ -301,14 +286,14 @@ const VacationDetails: React.FC<VacationDetailsComponentProps> = ({
                                 <HStack gap={2} wrap="wrap" vAlign="center">
                                   {/* 휴무 종류 뱃지 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
                                   <Badge
-                                    variant={kind.badgeVariant}
+                                    variant="neutral"
                                     icon={<Icon icon="clock" size="sm" />}
                                     label={kind.label}
                                   />
 
                                   {/* 직원 유형 뱃지 */}
                                   <Badge
-                                    variant={getRoleBadgeVariant(resolvedRole)}
+                                    variant="neutral"
                                     icon={<Icon icon={FiBriefcase} size="sm" />}
                                     label={getRoleDisplayName(resolvedRole)}
                                   />

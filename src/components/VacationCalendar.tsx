@@ -15,7 +15,7 @@ import {
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
-import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload } from 'react-icons/fi';
+import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload, FiSliders, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
@@ -772,6 +772,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
             />
             <Button
               label="이번 달로 돌아가기"
+              tooltip="이번 달로"
               variant="ghost"
               size="sm"
               isIconOnly
@@ -794,6 +795,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                   data-tour="action-vacation-limit"
                   variant="ghost"
                   size="sm"
+                  icon={<Icon icon={FiSliders} size="sm" />}
                   onClick={onShowLimitPanel}
                 />
                 {onExportExcel && (
@@ -846,6 +848,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               label={isExpanded ? '접기' : '펼치기'}
               variant={isExpanded ? 'secondary' : 'ghost'}
               size="sm"
+              icon={<Icon icon={isExpanded ? FiMinimize2 : FiMaximize2} size="sm" />}
               isDisabled={isLoading}
               onClick={() => setIsExpanded(!isExpanded)}
             />
@@ -1140,15 +1143,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
           {/* 승인 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>승인</span>
+            <Badge variant="teal" label="승인" />
             <Text type="supporting" color="secondary">승인됨</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>대기</span>
+            <Badge variant="yellow" label="대기" />
             <Text type="supporting" color="secondary">대기중</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>거절</span>
+            <Badge variant="red" label="거절" />
             <Text type="supporting" color="secondary">거부됨</Text>
           </HStack>
 

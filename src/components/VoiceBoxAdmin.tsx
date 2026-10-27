@@ -24,6 +24,7 @@ import {
   updateVoiceMessage,
   VoiceMessageItem,
 } from '@/lib/apiService';
+import { formatListDateTime } from '@/lib/formatDate';
 
 const STATUS_VARIANT: Record<string, 'neutral' | 'blue' | 'green' | 'yellow'> = {
   RECEIVED: 'neutral',
@@ -88,7 +89,7 @@ function VoiceBoxItemComponent({
                 펼치고 접는 동작(처리 다이얼로그)은 상태와 무관하게 그대로다 */}
             <Button
               label={isExpanded ? '접기' : item.status === 'RESOLVED' ? '답변 보기' : '처리하기'}
-              variant={isExpanded || item.status !== 'RESOLVED' ? 'secondary' : 'ghost'}
+              variant="secondary"
               size="sm"
               aria-expanded={isExpanded}
               onClick={() => onToggleExpand(item.id)}
@@ -100,7 +101,7 @@ function VoiceBoxItemComponent({
         <Text type="supporting" color="secondary">
           {[
             item.isAnonymous || !item.authorName ? '익명' : item.authorName,
-            item.createdAt ? format(new Date(item.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko }) : null,
+            item.createdAt ? formatListDateTime(item.createdAt) : null,
           ].filter(Boolean).join(' · ')}
         </Text>
         {/* 띄어쓰기 없는 긴 토큰(URL 등)도 카드 밖으로 넘치지 않게 줄바꿈 보호 */}
@@ -235,11 +236,13 @@ export default function VoiceBoxAdmin() {
         description="직원들이 남긴 고충·신고와 건의를 확인하고 처리합니다."
       />
 
+      <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
       <SegmentedControl value={filter} onChange={(v) => setFilter(v as typeof filter)} label="유형 필터">
-        <SegmentedControlItem value="all" label={filter === 'all' ? `전체 (${messages.length})` : '전체'} />
-        <SegmentedControlItem value="GRIEVANCE" label={`고충·신고${filter === 'all' ? ` (${counts.grievance})` : ''}`} />
-        <SegmentedControlItem value="SUGGESTION" label={`건의${filter === 'all' ? ` (${counts.suggestion})` : ''}`} />
+        <SegmentedControlItem value="all" label={`전체 (${messages.length})`} />
+        <SegmentedControlItem value="GRIEVANCE" label={`고충·신고 (${counts.grievance})`} />
+        <SegmentedControlItem value="SUGGESTION" label={`건의 (${counts.suggestion})`} />
       </SegmentedControl>
+      </div>
 
       {/* 검색·상태 필터 — ApprovalManagement 결재 신청 화면과 같은 배치(회색 바닥 위 흰 카드) */}
       <Card padding={3}>

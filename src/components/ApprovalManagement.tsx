@@ -41,6 +41,7 @@ import { useAlert } from './Alert';
 import PageHeader from './PageHeader';
 import SectionHeader from './SectionHeader';
 import { duration } from '@/theme/motion';
+import { formatListDateTime } from '@/lib/formatDate';
 
 type TabType = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -425,17 +426,18 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         />
 
         {/* 탭 네비게이션 */}
+        <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
         <SegmentedControl
           value={activeTab}
           onChange={(value) => setActiveTab(value as TabType)}
-          label="결재 상태 탭"
-          layout="fill"
+          label="결재 상태 필터"
         >
           <SegmentedControlItem value="all" label={`전체 (${stats.all})`} />
           <SegmentedControlItem value="pending" label={`진행중 (${stats.pending})`} />
           <SegmentedControlItem value="approved" label={`승인됨 (${stats.approved})`} />
           <SegmentedControlItem value="rejected" label={`반려됨 (${stats.rejected})`} />
         </SegmentedControl>
+        </div>
 
         {/* 필터 영역 — muted는 캔버스와 같은 회색이라 카드 밖에서는 아무것도 구분되지 않았다.
             흰 표면(기본 Card)으로 올려 "회색 바닥 위의 흰 영역"이라는 위계를 만든다. */}
@@ -608,7 +610,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                         <Icon icon={FiFileText} size="md" color="secondary" />
                         <VStack gap={1} style={{ minWidth: 0 }}>
                           <HStack gap={2} vAlign="center">
-                            <Text weight="semibold" color="primary">{approval.title}</Text>
+                            <Text type="body" weight="semibold" color="primary">{approval.title}</Text>
                             <Badge {...approvalStatusBadge(approval.status)} />
                             {getLineProgress(approval) && (
                               <Badge variant="neutral" label={getLineProgress(approval)!} />
@@ -641,7 +643,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiCalendar} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">
-                                {format(new Date(approval.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
+                                {formatListDateTime(approval.createdAt)}
                               </Text>
                             </HStack>
                             {/* 내 차례가 아닌 문서는 누구 차례인지 알려준다 — 예전엔 이 문구가
@@ -663,15 +665,10 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                       {/* 액션 열 — 줄마다 버튼 조합(상세보기만 / 상세보기+승인+반려 / 상세보기+더보기)이
                           달라 왼쪽 시작점이 들쭉날쭉했다. 폭을 고정하고 오른쪽으로 정렬해
                           내용이 달라도 오른쪽 끝이 항상 같은 줄에 선다. */}
-                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 232, flexShrink: 0 }}>
-                        <Button
-                          label="상세보기"
-                          variant="secondary"
-                          size="sm"
-                          icon={<Icon icon={FiEye} />}
-                          onClick={() => handleOpenDetail(approval)}
-                        />
-                        {approval.status === 'PENDING' && isActionable(approval) && (
+                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 280, flexShrink: 0 }}>
+                        {/* 승인·반려 자리는 늘 확보 — 상세보기와 ⋯가 모든 행에서 같은 x에 선다 */}
+                        <div style={{ minWidth: 136, display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-2)' }}>
+                          {approval.status === 'PENDING' && isActionable(approval) && (
                           <>
                             {/* 내 차례인 문서 — 정상 흐름, 1차 액션으로 그대로 노출 */}
                             <Button
@@ -692,6 +689,15 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             />
                           </>
                         )}
+                        </div>
+                        <Button
+                          label="상세보기"
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={FiEye} />}
+                          onClick={() => handleOpenDetail(approval)}
+                        />
+                        <div style={{ width: 32, flexShrink: 0 }}>
                         {/* 되돌릴 수 없는 삭제와, 내 차례가 아닌 문서의 직권 처리는 매 줄에
                             늘 보이는 1차 버튼이 아니라 더보기(⋯) 메뉴 하나로 모은다. */}
                         {canManage && (
@@ -730,6 +736,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             ]}
                           />
                         )}
+                        </div>
                       </HStack>
                     </HStack>
                   </div>

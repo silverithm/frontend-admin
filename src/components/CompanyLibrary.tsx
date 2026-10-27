@@ -15,6 +15,7 @@ import { Text } from '@astryxdesign/core/Text';
 import PageHeader from './PageHeader';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Icon } from '@astryxdesign/core/Icon';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Badge } from '@astryxdesign/core/Badge';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -22,7 +23,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Loading } from '@/components/Loading';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { FiFolder, FiPlus, FiTrash2, FiDownload, FiEye, FiUploadCloud, FiFileText } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiDownload, FiEye, FiUploadCloud, FiFileText } from 'react-icons/fi';
 import {
   fetchCompanyLibrary,
   createCompanyLibraryItem,
@@ -31,6 +32,7 @@ import {
   MAX_UPLOAD_SIZE,
   MAX_UPLOAD_SIZE_MESSAGE,
 } from '@/lib/apiService';
+import { formatListDate } from '@/lib/formatDate';
 
 interface CompanyLibraryProps {
   /** 자료 업로드·삭제 권한. 열람은 canManage와 무관하게 누구나 가능하다. */
@@ -244,32 +246,21 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
 
         {/* 분류 필터 */}
         {!isLoading && (usedCategories.length > 0 || hasUncategorized) && (
-          <HStack gap={2} vAlign="center" wrap="wrap">
-            <Icon icon={FiFolder} size="sm" color="secondary" />
-            <Button
-              label={`전체 (${items.length})`}
-              variant={categoryFilter === '' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setCategoryFilter('')}
-            />
-            {usedCategories.map((category) => (
-              <Button
-                key={category}
-                label={`${category} (${categoryCounts.get(category) || 0})`}
-                variant={categoryFilter === category ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setCategoryFilter(category)}
-              />
-            ))}
-            {hasUncategorized && (
-              <Button
-                label={`${UNCATEGORIZED} (${categoryCounts.get(UNCATEGORIZED) || 0})`}
-                variant={categoryFilter === UNCATEGORIZED ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setCategoryFilter(UNCATEGORIZED)}
-              />
-            )}
-          </HStack>
+          <div style={{ alignSelf: 'flex-start', flexShrink: 0, maxWidth: '100%', overflowX: 'auto' }}>
+            <SegmentedControl
+              value={categoryFilter === '' ? '__all__' : categoryFilter}
+              onChange={(v) => setCategoryFilter(v === '__all__' ? '' : v)}
+              label="자료 분류 필터"
+            >
+              <SegmentedControlItem value="__all__" label={`전체 (${items.length})`} />
+              {usedCategories.map((category) => (
+                <SegmentedControlItem key={category} value={category} label={`${category} (${categoryCounts.get(category) || 0})`} />
+              ))}
+              {hasUncategorized && (
+                <SegmentedControlItem value={UNCATEGORIZED} label={`${UNCATEGORIZED} (${categoryCounts.get(UNCATEGORIZED) || 0})`} />
+              )}
+            </SegmentedControl>
+          </div>
         )}
 
         {isLoading ? (
@@ -321,7 +312,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                             {item.fileName}
                             {formatFileSize(item.fileSize) ? ` (${formatFileSize(item.fileSize)})` : ''}
                             {item.uploaderName ? ` · ${item.uploaderName}` : ''}
-                            {item.createdAt ? ` · ${format(new Date(item.createdAt), 'yyyy.MM.dd', { locale: ko })}` : ''}
+                            {item.createdAt ? ` · ${formatListDate(item.createdAt)}` : ''}
                           </Text>
                         </VStack>
                       </HStack>
@@ -337,7 +328,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                         )}
                         <Button
                           label="받기"
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           icon={<Icon icon={FiDownload} size="sm" />}
                           onClick={() => handleDownload(item)}

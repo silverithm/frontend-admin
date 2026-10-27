@@ -123,7 +123,7 @@ export default function DispatchAttendancePanel({
         return (
           <Card key={route.id} variant="muted" padding={3}>
             <VStack gap={2}>
-              <Text weight="medium">
+              <Text weight="bold">
                 {route.name} · {headline} · {seniors.length}명
               </Text>
               <div className="carev-dispatch-attendance-table-scroll">
@@ -189,7 +189,7 @@ export default function DispatchAttendancePanel({
                               onChange={(checked) => applyChange({ ...state, personalDropoff: checked })}
                             />
                           </td>
-                          <td style={{ minWidth: 96 }}>
+                          <td style={{ minWidth: 80 }}>
                             <TextInput
                               label={`${senior.name} 사유`}
                               isLabelHidden

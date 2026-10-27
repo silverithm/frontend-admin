@@ -36,6 +36,7 @@ import {
   IconThumbUp,
   IconThumbUpFilled,
   IconTrash,
+  IconMessageCircle,
 } from '@tabler/icons-react';
 import { FiSearch } from 'react-icons/fi';
 import DOMPurify from 'dompurify';
@@ -785,17 +786,18 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
                       )}
                       {/* 시설 유형 말머리 — 특정 유형으로 필터 중일 때는 중복이라 숨긴다 */}
                       {post.category && !category && (
-                        <div style={{ flexShrink: 0 }}>
+                        <div style={{ flexShrink: 0, width: 64 }}>
                           <Badge variant={getCategoryMeta(post.category).badgeVariant} label={getCategoryMeta(post.category).label} />
                         </div>
                       )}
                       {post.hasAccepted && <Icon icon={IconCheck} size="xsm" color="success" />}
                       <div style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-                        <Text type="body" weight={post.isPinned ? 'semibold' : 'medium'} color="primary" maxLines={1}>{post.title}</Text>
+                        <Text type="body" weight="semibold" color="primary" maxLines={1}>{post.title}</Text>
                       </div>
                       {post.commentCount > 0 && (
-                        <span style={{ flexShrink: 0, color: 'var(--color-text-accent)' }}>
-                          <Text type="supporting" weight="bold" color="inherit">[{post.commentCount}]</Text>
+                        <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
+                          <Icon icon={IconMessageCircle} size="xsm" color="accent" />
+                          <Text type="supporting" color="accent">{post.commentCount}</Text>
                         </span>
                       )}
                     </div>

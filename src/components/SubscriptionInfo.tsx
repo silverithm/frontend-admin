@@ -185,7 +185,7 @@ export default function SubscriptionInfo() {
         {/* 현재 구독 정보 카드 */}
         <Card padding={5} height="100%">
           <VStack gap={5}>
-            <Text type="large" weight="semibold">구독 정보</Text>
+            <Text type="body" weight="bold">구독 정보</Text>
 
             {subscription ? (
               <VStack gap={4}>
@@ -316,7 +316,7 @@ export default function SubscriptionInfo() {
         {(!subscription || subscription.planName !== SubscriptionType.FREE) && (
           <Card padding={5} height="100%">
             <VStack gap={4}>
-              <Text type="large" weight="semibold">Basic 플랜 혜택</Text>
+              <Text type="body" weight="bold">Basic 플랜 혜택</Text>
               <VStack gap={3}>
                 <HStack gap={2} vAlign="center">
                   <Icon icon="check" color="success" size="sm" />

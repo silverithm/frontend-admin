@@ -14,7 +14,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Center } from '@astryxdesign/core/Center';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
-import { IconClock, IconDownload, IconFlame, IconFolder, IconNews, IconPinned } from '@tabler/icons-react';
+import { IconClock, IconDownload, IconFlame, IconFolder, IconNews, IconPinned, IconMessageCircle } from '@tabler/icons-react';
 import type { TablerIcon } from '@tabler/icons-react';
 import { getBoardMeta, getLibraryMeta, formatFileSize, type BoardType } from './plazaStore';
 import { getNewsCategoryMeta, type NewsItem } from './newsMock';
@@ -113,15 +113,16 @@ export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate
         style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: 'var(--spacing-1) var(--spacing-2)', borderRadius: 'var(--radius-element)' }}
         onClick={() => onOpenPost(post.id, post.board)}
       >
-        <div style={{ flexShrink: 0 }}>
+        <div style={{ flexShrink: 0, width: 64 }}>
           {post.isPinned ? <Icon icon={IconPinned} size="xsm" color="secondary" /> : <Badge variant={meta.badgeVariant} label={meta.badgeLabel} />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Text type="body" color="primary" maxLines={1}>{post.title}</Text>
+          <Text type="body" weight="semibold" color="primary" maxLines={1}>{post.title}</Text>
         </div>
         {post.commentCount > 0 && (
-          <span style={{ flexShrink: 0, color: 'var(--color-text-accent)' }}>
-            <Text type="supporting" weight="bold" color="inherit">[{post.commentCount}]</Text>
+          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}>
+            <Icon icon={IconMessageCircle} size="xsm" color="accent" />
+            <Text type="supporting" color="accent">{post.commentCount}</Text>
           </span>
         )}
         <div style={{ flexShrink: 0 }}>
