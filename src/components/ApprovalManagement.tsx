@@ -41,6 +41,7 @@ import { useAlert } from './Alert';
 import PageHeader from './PageHeader';
 import SectionHeader from './SectionHeader';
 import { duration } from '@/theme/motion';
+import { formatListDateTime } from '@/lib/formatDate';
 
 type TabType = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -428,8 +429,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         <SegmentedControl
           value={activeTab}
           onChange={(value) => setActiveTab(value as TabType)}
-          label="결재 상태 탭"
-          layout="fill"
+          label="결재 상태 필터"
         >
           <SegmentedControlItem value="all" label={`전체 (${stats.all})`} />
           <SegmentedControlItem value="pending" label={`진행중 (${stats.pending})`} />
@@ -608,7 +608,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                         <Icon icon={FiFileText} size="md" color="secondary" />
                         <VStack gap={1} style={{ minWidth: 0 }}>
                           <HStack gap={2} vAlign="center">
-                            <Text weight="semibold" color="primary">{approval.title}</Text>
+                            <Text type="body" weight="semibold" color="primary">{approval.title}</Text>
                             <Badge {...approvalStatusBadge(approval.status)} />
                             {getLineProgress(approval) && (
                               <Badge variant="neutral" label={getLineProgress(approval)!} />
@@ -641,7 +641,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             <HStack gap={1} vAlign="center">
                               <Icon icon={FiCalendar} size="sm" color="tertiary" />
                               <Text type="supporting" color="secondary">
-                                {format(new Date(approval.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
+                                {formatListDateTime(approval.createdAt)}
                               </Text>
                             </HStack>
                             {/* 내 차례가 아닌 문서는 누구 차례인지 알려준다 — 예전엔 이 문구가

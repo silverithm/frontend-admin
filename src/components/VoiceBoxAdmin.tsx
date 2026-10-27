@@ -24,6 +24,7 @@ import {
   updateVoiceMessage,
   VoiceMessageItem,
 } from '@/lib/apiService';
+import { formatListDateTime } from '@/lib/formatDate';
 
 const STATUS_VARIANT: Record<string, 'neutral' | 'blue' | 'green' | 'yellow'> = {
   RECEIVED: 'neutral',
@@ -100,7 +101,7 @@ function VoiceBoxItemComponent({
         <Text type="supporting" color="secondary">
           {[
             item.isAnonymous || !item.authorName ? '익명' : item.authorName,
-            item.createdAt ? format(new Date(item.createdAt), 'yyyy년 MM월 dd일 HH:mm', { locale: ko }) : null,
+            item.createdAt ? formatListDateTime(item.createdAt) : null,
           ].filter(Boolean).join(' · ')}
         </Text>
         {/* 띄어쓰기 없는 긴 토큰(URL 등)도 카드 밖으로 넘치지 않게 줄바꿈 보호 */}
@@ -236,9 +237,9 @@ export default function VoiceBoxAdmin() {
       />
 
       <SegmentedControl value={filter} onChange={(v) => setFilter(v as typeof filter)} label="유형 필터">
-        <SegmentedControlItem value="all" label={filter === 'all' ? `전체 (${messages.length})` : '전체'} />
-        <SegmentedControlItem value="GRIEVANCE" label={`고충·신고${filter === 'all' ? ` (${counts.grievance})` : ''}`} />
-        <SegmentedControlItem value="SUGGESTION" label={`건의${filter === 'all' ? ` (${counts.suggestion})` : ''}`} />
+        <SegmentedControlItem value="all" label={`전체 (${messages.length})`} />
+        <SegmentedControlItem value="GRIEVANCE" label={`고충·신고 (${counts.grievance})`} />
+        <SegmentedControlItem value="SUGGESTION" label={`건의 (${counts.suggestion})`} />
       </SegmentedControl>
 
       {/* 검색·상태 필터 — ApprovalManagement 결재 신청 화면과 같은 배치(회색 바닥 위 흰 카드) */}

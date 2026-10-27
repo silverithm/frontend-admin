@@ -62,6 +62,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { duration } from '@/theme/motion';
+import { formatListDate, formatListDateTime } from '@/lib/formatDate';
 
 interface User {
   id: string;
@@ -939,7 +940,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                       value={seniorFloorFilter}
                       onChange={(v) => setSeniorFloorFilter(v as 'all' | '1' | '2')}
                       label="자리 층 필터"
-                      size="sm"
                     >
                       <SegmentedControlItem value="all" label="전체" />
                       <SegmentedControlItem value="1" label="1층" />
@@ -1220,7 +1220,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           header: '신청일',
                           renderCell: (u) => (
                             u.requestedAt
-                              ? <Text type="supporting">{format(new Date(u.requestedAt), 'yyyy-MM-dd HH:mm', { locale: ko })}</Text>
+                              ? <Text type="supporting">{formatListDateTime(u.requestedAt)}</Text>
                               : <Text type="supporting" color="disabled">-</Text>
                           ),
                         },
@@ -1357,8 +1357,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                               <Text type="supporting" color="disabled">-</Text>
                             ) : (
                               <VStack gap={0.5}>
-                                {u.approvedAt && <Text type="supporting">가입: {format(new Date(u.approvedAt), 'yyyy-MM-dd', { locale: ko })}</Text>}
-                                {u.lastLoginAt && <Text type="supporting">로그인: {format(new Date(u.lastLoginAt), 'yyyy-MM-dd HH:mm', { locale: ko })}</Text>}
+                                {u.approvedAt && <Text type="supporting">가입: {formatListDate(u.approvedAt)}</Text>}
+                                {u.lastLoginAt && <Text type="supporting">로그인: {formatListDateTime(u.lastLoginAt)}</Text>}
                                 {!u.approvedAt && !u.lastLoginAt && <Text type="supporting" color="disabled">-</Text>}
                               </VStack>
                             )

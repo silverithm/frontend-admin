@@ -760,7 +760,7 @@ export default function EmployeeCalendar() {
                                 {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
                                 {(() => {
                                   const kind = resolveVacationKind(vacation.type, vacation.duration);
-                                  return <Badge variant={kind.badgeVariant} label={kind.label} />;
+                                  return <Badge variant="neutral" label={kind.label} />;
                                 })()}
                                 <Text type="supporting">{getRoleText(vacation.role)}</Text>
                               </HStack>

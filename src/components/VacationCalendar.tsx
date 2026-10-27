@@ -1140,15 +1140,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
 
           {/* 승인 상태 */}
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-teal)', color: 'var(--color-text-teal)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>승인</span>
+            <Badge variant="teal" label="승인" />
             <Text type="supporting" color="secondary">승인됨</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-yellow)', color: 'var(--color-text-yellow)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>대기</span>
+            <Badge variant="yellow" label="대기" />
             <Text type="supporting" color="secondary">대기중</Text>
           </HStack>
           <HStack gap={1.5} vAlign="center">
-            <span style={{ padding: 'var(--spacing-0-5) var(--spacing-1-5)', background: 'var(--color-background-red)', color: 'var(--color-text-red)', borderRadius: 'var(--radius-full)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)' }}>거절</span>
+            <Badge variant="red" label="거절" />
             <Text type="supporting" color="secondary">거부됨</Text>
           </HStack>
 

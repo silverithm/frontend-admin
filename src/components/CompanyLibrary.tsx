@@ -31,6 +31,7 @@ import {
   MAX_UPLOAD_SIZE,
   MAX_UPLOAD_SIZE_MESSAGE,
 } from '@/lib/apiService';
+import { formatListDate } from '@/lib/formatDate';
 
 interface CompanyLibraryProps {
   /** 자료 업로드·삭제 권한. 열람은 canManage와 무관하게 누구나 가능하다. */
@@ -321,7 +322,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                             {item.fileName}
                             {formatFileSize(item.fileSize) ? ` (${formatFileSize(item.fileSize)})` : ''}
                             {item.uploaderName ? ` · ${item.uploaderName}` : ''}
-                            {item.createdAt ? ` · ${format(new Date(item.createdAt), 'yyyy.MM.dd', { locale: ko })}` : ''}
+                            {item.createdAt ? ` · ${formatListDate(item.createdAt)}` : ''}
                           </Text>
                         </VStack>
                       </HStack>

@@ -57,7 +57,6 @@ import {
     buildRoleNames,
     compareRoleNames,
     getMaxRoleLimitForDate,
-    getRoleBadgeClasses,
     getRoleDisplayName,
     getVacationRequestRole,
     normalizeRoleKey,
@@ -121,21 +120,7 @@ import { getLabAccess } from "@/lib/lab/labApi";
 import CompanyLibrary from "@/components/CompanyLibrary";
 import { hasSeenTour } from "@/lib/onboarding";
 import { useTabBadges } from "@/lib/useTabBadges";
-
-// 역할 배지 Tailwind 클래스 문자열을 Astryx Badge variant로 매핑
-type BadgeVariant =
-    | "neutral" | "blue" | "cyan" | "green" | "orange" | "pink" | "purple" | "red" | "teal" | "yellow";
-const roleBadgeVariant = (classes: string): BadgeVariant => {
-    if (classes.includes("purple")) return "purple";
-    if (classes.includes("blue")) return "blue";
-    if (classes.includes("emerald") || classes.includes("green")) return "green";
-    if (classes.includes("red") || classes.includes("rose")) return "red";
-    if (classes.includes("amber") || classes.includes("yellow")) return "yellow";
-    if (classes.includes("orange")) return "orange";
-    if (classes.includes("pink") || classes.includes("fuchsia")) return "pink";
-    if (classes.includes("teal") || classes.includes("cyan")) return "teal";
-    return "neutral";
-};
+import { formatListDate, formatListDateTime } from "@/lib/formatDate";
 
 type MainTab = "dashboard" | "notice" | "chat" | "schedule" | "approval" | "work" | "members" | "plaza" | "voice" | "tools" | "library" | "lab";
 
@@ -1242,7 +1227,7 @@ export default function AdminPage() {
             } else if (diffDays <= 7) {
                 return date > now ? `${diffDays}일 후` : `${diffDays}일 전`;
             } else {
-                return format(date, "MM/dd", {locale: ko});
+                return formatListDate(date);
             }
         } catch (error) {
             return "-";
@@ -1845,7 +1830,6 @@ export default function AdminPage() {
                                                         request,
                                                         memberRoleLookup
                                                     );
-                                                    const roleBadgeClasses = getRoleBadgeClasses(resolvedRole);
                                                     const requestKind = resolveVacationKind(request.type, request.duration);
 
                                                     return (
@@ -1909,10 +1893,10 @@ export default function AdminPage() {
                                                         </div>
                                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1)', flexWrap: "wrap" }}>
-                                                                <Badge variant={roleBadgeVariant(roleBadgeClasses)} label={getRoleText(resolvedRole)} />
+                                                                <Badge variant="neutral" label={getRoleText(resolvedRole)} />
                                                                 {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
-                                                                <Badge variant={requestKind.badgeVariant} label={requestKind.label} />
-                                                                <Text type="supporting" color="secondary">{formatDate(request.createdAt)}</Text>
+                                                                <Badge variant="neutral" label={requestKind.label} />
+                                                                <Text type="supporting" color="secondary">{formatListDateTime(request.createdAt)}</Text>
                                                             </div>
                                                             {isAdmin && (
                                                             <div style={{ display: "flex", gap: 'var(--spacing-3)', alignItems: "center" }}>

@@ -39,6 +39,7 @@ import {
   DEFAULT_TEMPLATE_CATEGORIES,
   UNCATEGORIZED_LABEL,
 } from '@/lib/defaultApprovalTemplates';
+import { formatListDateTime } from '@/lib/formatDate';
 
 /** '+ 새 대분류 직접 입력' 셀렉터 항목의 내부 값 */
 const NEW_CATEGORY_VALUE = '__new__';
@@ -673,30 +674,28 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
         {/* 대분류 필터 — 등록된 대분류가 있을 때만 노출 */}
         {!isLoading && (usedCategories.length > 0 || hasUncategorized) && (
           <HStack gap={2} vAlign="center" wrap="wrap">
-            <Icon icon={FiFolder} size="sm" color="secondary" />
-            <Button
-              label={`전체 (${templates.length})`}
-              variant={categoryFilter === '' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setCategoryFilter('')}
-            />
-            {usedCategories.map((category) => (
-              <Button
-                key={category}
-                label={`${category} (${templates.filter((t) => (t.category || '').trim() === category).length})`}
-                variant={categoryFilter === category ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setCategoryFilter(category)}
-              />
-            ))}
-            {hasUncategorized && (
-              <Button
-                label={`${UNCATEGORIZED_LABEL} (${templates.filter((t) => !(t.category || '').trim()).length})`}
-                variant={categoryFilter === UNCATEGORIZED_LABEL ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setCategoryFilter(UNCATEGORIZED_LABEL)}
-              />
-            )}
+            <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+              <SegmentedControl
+                value={categoryFilter === '' ? '__all__' : categoryFilter}
+                onChange={(v) => setCategoryFilter(v === '__all__' ? '' : v)}
+                label="양식 대분류 필터"
+              >
+                <SegmentedControlItem value="__all__" label={`전체 (${templates.length})`} />
+                {usedCategories.map((category) => (
+                  <SegmentedControlItem
+                    key={category}
+                    value={category}
+                    label={`${category} (${templates.filter((t) => (t.category || '').trim() === category).length})`}
+                  />
+                ))}
+                {hasUncategorized && (
+                  <SegmentedControlItem
+                    value={UNCATEGORIZED_LABEL}
+                    label={`${UNCATEGORIZED_LABEL} (${templates.filter((t) => !(t.category || '').trim()).length})`}
+                  />
+                )}
+              </SegmentedControl>
+            </div>
             {canManage && usedCategories.length > 0 && (
               <Button
                 label="대분류 이름 변경"
@@ -844,7 +843,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                       <TableCell>
                         <HStack>
                           <Text type="supporting">
-                            {format(new Date(template.updatedAt), 'MM.dd HH:mm', { locale: ko })}
+                            {formatListDateTime(template.updatedAt)}
                           </Text>
                         </HStack>
                       </TableCell>

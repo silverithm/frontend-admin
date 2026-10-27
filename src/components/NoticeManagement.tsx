@@ -43,6 +43,7 @@ import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import { sanitizeRichText, isRichText, richTextToPlain } from '@/lib/richText';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
+import { formatListDateTime } from '@/lib/formatDate';
 
 type ViewMode = 'list' | 'detail';
 type TabType = 'all' | 'published';
@@ -474,11 +475,11 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                               <VStack gap={2} align="start">
                                 <HStack gap={2} vAlign="center" wrap="wrap">
                                   <Badge variant="neutral" label="운영" />
-                                  <Heading level={4} maxLines={1}>{n.title}</Heading>
+                                  <Text type="body" weight="semibold" color="primary" maxLines={1}>{n.title}</Text>
                                 </HStack>
                                 <HStack gap={3} vAlign="center" wrap="wrap">
                                   <Text type="supporting">{n.displayAuthor}</Text>
-                                  <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                  <Text type="supporting">{formatListDateTime(n.createdAt) || '-'}</Text>
                                   <Text type="supporting">커뮤니티에서 보기</Text>
                                 </HStack>
                               </VStack>
@@ -515,7 +516,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <VStack gap={2} align="start">
                                 <HStack gap={2} vAlign="center" wrap="wrap">
-                                  <Heading level={4} maxLines={1}>{n.title}</Heading>
+                                  <Text type="body" weight="semibold" color="primary" maxLines={1}>{n.title}</Text>
                                   {/* 큰 민트 면 대신 핀 배지로 고정 여부를 알린다 — 커뮤니티(PlazaBoard)의
                                       고정글 배지와 같은 아이콘·문구를 써서 화면 전체에서 규칙을 맞춘다 */}
                                   {n.isPinned && (
@@ -529,7 +530,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                                 <Text type="supporting" maxLines={2}>{richTextToPlain(n.content)}</Text>
                                 <HStack gap={3} vAlign="center" wrap="wrap">
                                   <Text type="supporting">작성자: {n.authorName}</Text>
-                                  <Text type="supporting">작성일: {formatDate(n.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                  <Text type="supporting">{formatListDateTime(n.createdAt) || '-'}</Text>
                                   <HStack gap={1} vAlign="center">
                                     <Icon icon={FiEye} size="sm" color="secondary" />
                                     <Text type="supporting">{n.viewCount}</Text>
@@ -644,7 +645,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                   <Heading level={2}>{notice.title}</Heading>
                   <HStack gap={4} vAlign="center" wrap="wrap">
                     <Text type="supporting">작성자: {notice.authorName}</Text>
-                    <Text type="supporting">{formatDate(notice.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                    <Text type="supporting">{(formatListDateTime(notice.createdAt) || '-')}</Text>
                     <HStack gap={1} vAlign="center">
                       <Icon icon={FiEye} size="sm" color="secondary" />
                       <Text type="supporting">{notice.viewCount}</Text>
@@ -682,7 +683,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                           <HStack key={reader.id} gap={1.5} vAlign="center">
                             <Avatar name={reader.userName || '?'} src={reader.profileImageUrl || undefined} size="xsmall" />
                             <Text type="body">{reader.userName}</Text>
-                            <Text type="supporting">{formatDate(reader.readAt, 'MM.dd HH:mm')}</Text>
+                            <Text type="supporting">{(formatListDateTime(reader.readAt) || '-')}</Text>
                           </HStack>
                         ))}
                       </HStack>
@@ -732,7 +733,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                               <HStack gap={2} vAlign="center" width="100%">
                                 <Text type="body" weight="medium">{comment.authorName}</Text>
                                 <StackItem size="fill">
-                                  <Text type="supporting">{formatDate(comment.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
+                                  <Text type="supporting">{(formatListDateTime(comment.createdAt) || '-')}</Text>
                                 </StackItem>
                                 <Button
                                   label="삭제"
