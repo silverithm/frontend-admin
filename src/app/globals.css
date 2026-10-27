@@ -1259,7 +1259,8 @@ html {
 .carev-dispatch-attendance-table td:last-child input { min-width: 0; width: 100%; }
 .carev-dispatch-attendance-table td:first-child,
 .carev-dispatch-attendance-table th:first-child {
-  white-space: normal;
+  white-space: nowrap;
+  min-width: 56px;
 }
 .carev-dispatch-attendance-table tbody tr {
   border-top: 1px solid var(--color-border);
