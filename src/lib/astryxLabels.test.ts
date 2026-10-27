@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { patchFieldLabel, clearStaleWebpackCache, FIELD_LABEL_PATH } from '../../scripts/patch-astryx-labels.mjs';
+import { patchFieldLabel, clearStaleWebpackCache, ensureKoreanBuildCache, CACHE_STAMP, FIELD_LABEL_PATH } from '../../scripts/patch-astryx-labels.mjs';
 
 const ORIGINAL = "const statusText = isOptional ? 'Optional' : isRequired ? 'Required' : null;";
 
@@ -26,6 +26,30 @@ test('고친 뒤에는 지난 webpack 캐시만 지운다 — 다른 빌드 산�
     assert.equal(existsSync(join(root, '.next', 'cache', 'webpack')), false);
     assert.equal(existsSync(join(root, '.next', 'cache', 'images')), true);
     assert.equal(clearStaleWebpackCache(root, '.next'), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('표시 없는 빌드 캐시는 한 번만 비운다 — Vercel이 되살린 영어 캐시', () => {
+  const root = mkdtempSync(join(tmpdir(), 'astryx-stamp-'));
+  try {
+    const pack = join(root, '.next', 'cache', 'webpack', 'server-production', '0.pack');
+    mkdirSync(join(root, '.next', 'cache', 'webpack', 'server-production'), { recursive: true });
+    writeFileSync(pack, 'english');
+    assert.equal(ensureKoreanBuildCache(root, '.next'), true);
+    assert.equal(existsSync(pack), false);
+    assert.equal(readFileSync(join(root, '.next', 'cache', 'astryx-labels.stamp'), 'utf8'), CACHE_STAMP);
+    // 한국어로 다시 만든 캐시는 다음 배포에서 그대로 쓴다
+    mkdirSync(join(root, '.next', 'cache', 'webpack', 'server-production'), { recursive: true });
+    writeFileSync(pack, 'korean');
+    assert.equal(ensureKoreanBuildCache(root, '.next'), false);
+    assert.equal(readFileSync(pack, 'utf8'), 'korean');
+    // 캐시가 아예 없는 첫 빌드도 표시만 남긴다
+    const fresh = mkdtempSync(join(tmpdir(), 'astryx-fresh-'));
+    assert.equal(ensureKoreanBuildCache(fresh, '.next'), false);
+    assert.equal(existsSync(join(fresh, '.next', 'cache', 'astryx-labels.stamp')), true);
+    rmSync(fresh, { recursive: true, force: true });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
