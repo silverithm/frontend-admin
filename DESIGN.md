@@ -190,6 +190,20 @@ components:
 
 **The 13px 기준선 Rule.** 본문은 13px이고 스케일 비율은 1.2다. 개별 요소의 `font-size`를 직접 만지지 않는다. 크기를 바꿔야 하면 테마의 base/ratio를 바꿔 전체를 함께 움직인다.
 
+**The 역할 하나에 type 하나 Rule.** 같은 역할은 화면이 달라도 같은 Text type·weight를 쓴다(2026-10-27 — 같은 '목록 제목'이 화면마다 700/600/500으로 갈려 들쭉날쭉했다).
+
+| 역할 | Text type / weight |
+|---|---|
+| 화면 제목 | `PageHeader`(Heading 1) — 덮어쓰지 않는다 |
+| 카드·패널 머리 | body / bold |
+| 목록 한 줄의 제목 (공지·결재·고충·자료·채팅방 등) | body / semibold |
+| 부제·미리보기 | supporting / normal, secondary |
+| 메타 (작성자·날짜·시간·조회) | supporting / normal, tertiary |
+| 숫자 요약 | large 또는 body / bold, `tabular-nums` |
+| 꼬리표 | `Badge` (옅은 바탕) — `<span>`으로 손수 만들지 않는다 |
+
+여러 줄로 넘어가는 한글 본문(말풍선·공지·미리보기)에는 `.carev-keep-all`(`word-break: keep-all`)을 달아 낱말 중간에서 끊기지 않게 한다.
+
 **The 한 가족 Rule.** 새 서체를 들이지 않는다. 위계는 크기·굵기·색으로 만든다. 유일한 예외는 코드 블록의 모노스페이스다.
 
 ## Layout

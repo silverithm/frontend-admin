@@ -1765,3 +1765,8 @@ html {
 .carev-dispatch-chip:active {
     cursor: grabbing;
 }
+
+/* 한글을 낱말(띄어쓰기) 단위로만 줄바꿈 — 말풍선·공지·미리보기처럼 여러 줄로 넘어가는 본문에 단다.
+   기본값은 음절마다 끊을 수 있어 '전 / 원 참석', '발송됩니 / 다.'처럼 낱말이 쪼개졌다(2026-10-27).
+   아주 긴 낱말(URL 등)은 칸을 넘지 않게 아무 데서나 끊는다. */
+.carev-keep-all { word-break: keep-all; overflow-wrap: anywhere; }
