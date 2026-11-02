@@ -8,7 +8,7 @@ import { HStack } from "@astryxdesign/core/Stack";
 import { Heading } from "@astryxdesign/core/Heading";
 
 interface StandaloneTopBarProps {
-    /** 화면 제목 — 이 화면의 유일한 <h1> */
+    /** 화면 제목 — 이 화면의 1단계 제목(스크린리더에는 aria-level 1) */
     title: string;
     /** 뒤로 단추의 접근성 이름 ("뒤로", "관리자 홈으로") */
     backLabel: string;
@@ -58,7 +58,7 @@ export function StandaloneTopBar({ title, backLabel, onBack, actions, maxWidth }
                             icon={<Icon icon="chevronLeft" size="md" />}
                             onClick={onBack}
                         />
-                        {/* 보기는 탭 제목(PageHeader, 19)과 같은 h2 크기, 태그는 이 화면의 유일한 h1 */}
+                        {/* 보기는 탭 제목(PageHeader, 19)과 같은 h2 크기, 스크린리더에는 이 화면의 1단계 제목 */}
                         <Heading level={2} accessibilityLevel={1}>{title}</Heading>
                     </HStack>
                     {actions && <HStack gap={2} vAlign="center">{actions}</HStack>}

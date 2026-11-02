@@ -497,9 +497,9 @@ export default function EmployeeCalendar() {
                   return (
                     <div
                       key={`empty-${index}`}
+                      className={isExpanded ? undefined : 'carev-empcal-fit'}
                       style={{
                         minHeight: isExpanded ? 100 : undefined,
-                        aspectRatio: isExpanded ? undefined : '1 / 1',
                         borderBottom: '1px solid var(--color-border)',
                         borderRight: '1px solid var(--color-border)',
                       }}
@@ -542,13 +542,11 @@ export default function EmployeeCalendar() {
                   <button
                     key={format(date, 'yyyy-MM-dd')}
                     onClick={() => handleDateClick(date)}
-                    className="carev-empcal-cell"
+                    className={isExpanded ? 'carev-empcal-cell' : 'carev-empcal-cell carev-empcal-fit'}
                     style={{
                       minWidth: 0,
                       overflow: 'hidden',
-                      // 폰 폭에선 칸이 52라 정사각만으론 날짜(오늘은 28 동그라미)와 꼬리표 한 줄이 안 들어가 잘렸다
-                      minHeight: isExpanded ? 100 : 64,
-                      aspectRatio: isExpanded ? undefined : '1 / 1',
+                      minHeight: isExpanded ? 100 : undefined,
                       padding: 'var(--spacing-1)',
                       border: 'none',
                       borderBottom: '1px solid var(--color-border)',

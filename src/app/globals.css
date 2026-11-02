@@ -488,6 +488,10 @@ html {
 .carev-empnotice-item { transition: background-color var(--duration-fast) var(--ease-standard); }
 @media (hover: hover) { .carev-empnotice-item:hover { background-color: var(--color-background-muted); } }
 @media (hover: hover) { .carev-empcal-cell:hover { background-color: var(--color-background-surface); box-shadow: var(--shadow-inset-hover); } }
+/* 접힌 달력 칸은 정사각. 폰 폭(칸 52)에선 정사각만으론 날짜(오늘은 28 동그라미)와 꼬리표 한 줄이 안 들어가
+   잘렸다 — 그 폭에서만 비율을 풀고 최소 높이 64로. 비율과 최소 높이를 같이 주면 폭까지 64로 커져 칸이 넘친다. */
+.carev-empcal-fit { aspect-ratio: 1 / 1; }
+@media (max-width: 640px) { .carev-empcal-fit { aspect-ratio: auto; min-height: 64px; } }
 
 /* ── Phase 5: 일정/휴가 도메인 ── */
 
