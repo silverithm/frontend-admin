@@ -31,7 +31,7 @@ export default function BlogPostPage() {
 
     if (!post) {
         return (
-            <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+            <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
                 <Navbar />
                 <Section variant="transparent" padding={4} paddingBlock={10}>
                     <div style={contentWidth}>
@@ -53,7 +53,7 @@ export default function BlogPostPage() {
     }
 
     return (
-        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+        <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
             {/* 글 머리 */}

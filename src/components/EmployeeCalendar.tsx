@@ -546,7 +546,8 @@ export default function EmployeeCalendar() {
                     style={{
                       minWidth: 0,
                       overflow: 'hidden',
-                      minHeight: isExpanded ? 100 : undefined,
+                      // 폰 폭에선 칸이 52라 정사각만으론 날짜(오늘은 28 동그라미)와 꼬리표 한 줄이 안 들어가 잘렸다
+                      minHeight: isExpanded ? 100 : 64,
                       aspectRatio: isExpanded ? undefined : '1 / 1',
                       padding: 'var(--spacing-1)',
                       border: 'none',

@@ -24,7 +24,7 @@ export default function FAQPage() {
             : FAQ_DATA.filter((item) => item.category === selectedCategory);
 
     return (
-        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+        <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
             {/* 헤더 */}

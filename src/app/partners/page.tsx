@@ -129,7 +129,7 @@ export default function PartnersPage() {
     };
 
     return (
-        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+        <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
             {/* ── 히어로 ── */}

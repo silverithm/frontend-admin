@@ -286,7 +286,7 @@ export default function GuidePage() {
     const sections = activeTab === 'admin' ? ADMIN_GUIDE : EMPLOYEE_GUIDE;
 
     return (
-        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+        <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
             {/* 헤더 */}

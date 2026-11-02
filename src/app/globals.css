@@ -1853,3 +1853,8 @@ html {
 .carev-chat-filecard-name { font-size: var(--font-size-base); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .carev-chat-filecard-meta { font-size: var(--font-size-sm); font-weight: 400; opacity: 0.8; }
 @media (hover: hover) { .carev-chat-filecard:hover { background: rgba(0, 0, 0, 0.05); } .carev-chat-filecard-mine:hover { background: rgba(255, 255, 255, 0.12); } }
+
+/* 공개 페이지(홈·가이드·FAQ·요금 등)는 한글을 낱말 단위로만 줄바꿈한다 — 폰 폭에서 '기 / 관을',
+   '바 / 뀔 때마다'처럼 제목과 문장이 음절 중간에서 끊겼다(3차 덜어내기). 아주 긴 낱말(URL·메일)만
+   칸 끝에서 끊는다. break-word는 anywhere와 달리 최소 폭 계산을 바꾸지 않아 단추·배지 폭이 그대로다. */
+.carev-public-page { word-break: keep-all; overflow-wrap: break-word; }

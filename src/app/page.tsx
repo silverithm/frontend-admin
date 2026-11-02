@@ -359,7 +359,7 @@ export default function LandingPage() {
     };
 
     return (
-        <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+        <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <AlertContainer />
             <Navbar />
 
