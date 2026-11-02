@@ -50,9 +50,11 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: number;
+  /** 바깥 라벨(FieldLabel inputID)과 잇는 편집 영역 id */
+  id?: string;
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, minHeight = 280 }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, placeholder, minHeight = 280, id }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   // onChange로 내보낸 값 — 외부 value와 비교해 편집 중 커서 리셋을 막는다
   const lastEmittedRef = useRef<string>('');
@@ -298,6 +300,7 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
       {/* 본문 편집 영역 */}
       <div
         ref={editorRef}
+        id={id}
         className="carev-richtext-editor"
         contentEditable
         suppressContentEditableWarning

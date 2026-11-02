@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiChevronLeft, FiEye, FiMessageSquare, FiStar, FiTrash2 } from 'react-icons/fi';
+import { FiEye, FiMessageSquare, FiStar, FiTrash2 } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -39,6 +39,7 @@ import { toEditorHtml } from '@/lib/noticeContent';
 import { Notice, NoticeComment, NoticeReader, NoticePriority } from '@/types/notice';
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { StandaloneTopBar } from '@/components/StandaloneTopBar';
 
 type TabType = 'content' | 'comments' | 'readers';
 
@@ -251,46 +252,35 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
       <AlertContainer />
       <ConfirmContainer />
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
-        {/* 헤더 */}
-        <div className="carev-header-band" style={{ background: 'var(--color-header-background)', borderBottom: '1px solid var(--color-header-border)', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ maxWidth: 896, margin: '0 auto', padding: 'var(--spacing-4) var(--spacing-6)' }}>
-            <HStack hAlign="between" vAlign="center">
-              <HStack gap={4} vAlign="center">
-                <Button
-                  label="뒤로"
-                  variant="ghost"
-                  size="sm"
-                  isIconOnly
-                  icon={<Icon icon={FiChevronLeft} size="sm" />}
-                  onClick={() => router.push(isAdmin ? '/admin?tab=notice' : '/employee?tab=notice')}
-                />
-                <Heading level={3}>공지사항 상세</Heading>
-              </HStack>
-              {isAdmin && (
-                <HStack gap={2} vAlign="center">
-                  {isEditing ? (
-                    <>
-                      <Button label="취소" variant="secondary" size="sm" onClick={() => setIsEditing(false)} />
-                      <Button
-                        label={isSubmitting ? '저장 중...' : '저장'}
-                        variant="primary"
-                        size="sm"
-                        onClick={handleUpdate}
-                        isDisabled={isSubmitting}
-                        isLoading={isSubmitting}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Button label="삭제" variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} />
-                      <Button label="수정" variant="primary" size="sm" onClick={() => setIsEditing(true)} />
-                    </>
-                  )}
-                </HStack>
+        {/* 헤더 — 기관 프로필·공지 작성과 같은 64 띠 */}
+        <StandaloneTopBar
+          title="공지사항 상세"
+          backLabel="뒤로"
+          onBack={() => router.push(isAdmin ? '/admin?tab=notice' : '/employee?tab=notice')}
+          maxWidth={896}
+          actions={isAdmin ? (
+            <>
+              {isEditing ? (
+                <>
+                  <Button label="취소" variant="secondary" size="sm" onClick={() => setIsEditing(false)} />
+                  <Button
+                    label={isSubmitting ? '저장 중...' : '저장'}
+                    variant="primary"
+                    size="sm"
+                    onClick={handleUpdate}
+                    isDisabled={isSubmitting}
+                    isLoading={isSubmitting}
+                  />
+                </>
+              ) : (
+                <>
+                  <Button label="삭제" variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} />
+                  <Button label="수정" variant="primary" size="sm" onClick={() => setIsEditing(true)} />
+                </>
               )}
-            </HStack>
-          </div>
-        </div>
+            </>
+          ) : undefined}
+        />
 
         {/* 탭 */}
         <div style={{ background: 'var(--color-background-card)', borderBottom: '1px solid var(--color-border)' }}>

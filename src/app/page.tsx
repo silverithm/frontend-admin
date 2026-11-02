@@ -364,7 +364,7 @@ export default function LandingPage() {
             <Navbar />
 
             {/* ── 1. 5초 가치 제안 ── */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(1100)}>
                     {/* LCP 요소(H1·히어로 이미지)가 opacity:0으로 첫 페인트되면 LCP가 애니메이션 종료
                         시점까지 밀린다 — 히어로만 opacity 없이 transform으로만 등장시킨다. */}
@@ -437,7 +437,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 3~4. 문제 제기 + ROI 근거 ── */}
-            <Section variant="muted" padding={0} paddingBlock={10}>
+            <Section variant="muted" padding={4} paddingBlock={10}>
                 <div style={container(1100)}>
                     <motion.div {...fadeUp}>
                         <Grid columns={{ minWidth: 320, repeat: 'fit', max: 2 }} gap={8} align="center">
@@ -484,7 +484,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 5. 기능 ── */}
-            <Section id="features" variant="transparent" padding={0} paddingBlock={10}>
+            <Section id="features" variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(1000)}>
                     <VStack gap={8}>
                         <VStack gap={2}>
@@ -521,7 +521,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 6. 워크플로우 데모 ── */}
-            <Section id="process" variant="muted" padding={0} paddingBlock={10}>
+            <Section id="process" variant="muted" padding={4} paddingBlock={10}>
                 <div style={container(1000)}>
                     <VStack gap={8}>
                         <VStack gap={2}>
@@ -579,7 +579,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 7. 실제 화면 ── */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(1100)}>
                     <VStack gap={6}>
                         <VStack gap={2}>
@@ -619,7 +619,7 @@ export default function LandingPage() {
 
             {/* ── 함께하고 있는 기관 ── */}
             {FEATURED_PARTNERS.length > 0 && (
-                <Section variant="transparent" padding={0} paddingBlock={10}>
+                <Section variant="transparent" padding={4} paddingBlock={10}>
                     <div style={container()}>
                         <VStack gap={6}>
                             <VStack gap={2} hAlign="center">
@@ -650,7 +650,7 @@ export default function LandingPage() {
             )}
 
             {/* ── 8. 요금제 ── */}
-            <Section id="pricing" variant="muted" padding={0} paddingBlock={10}>
+            <Section id="pricing" variant="muted" padding={4} paddingBlock={10}>
                 <div style={container(880)}>
                     <VStack gap={8}>
                         <VStack gap={2} hAlign="center">
@@ -725,7 +725,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 데이터 보안 — "우리 기관 데이터는 어떻게 저장되나요?"에 대한 답 ── */}
-            <Section id="security" variant="transparent" padding={0} paddingBlock={10} dividers={['top']}>
+            <Section id="security" variant="transparent" padding={4} paddingBlock={10} dividers={['top']}>
                 <div style={container(1000)}>
                     <VStack gap={6}>
                         <VStack gap={2} hAlign="center">
@@ -759,7 +759,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 9. 리스크 완화 + 최종 CTA ── */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(720)}>
                     <VStack gap={5} hAlign="center">
                         <VStack gap={2} hAlign="center">
@@ -797,7 +797,7 @@ export default function LandingPage() {
             </Section>
 
             {/* ── 더 알아보기 ── */}
-            <Section variant="muted" padding={0} paddingBlock={8}>
+            <Section variant="muted" padding={4} paddingBlock={8}>
                 <div style={container(1000)}>
                     {/* 네 장이 1000px 한 줄에 들어가도록 최소 폭을 220으로 — 260이면 마지막 한 장이 혼자 다음 줄로 떨어진다 */}
                     <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>

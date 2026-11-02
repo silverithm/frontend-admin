@@ -133,7 +133,7 @@ export default function PartnersPage() {
             <Navbar />
 
             {/* ── 히어로 ── */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(720)}>
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
@@ -154,7 +154,7 @@ export default function PartnersPage() {
             </Section>
 
             {/* ── 갤러리 ── */}
-            <Section variant="muted" padding={0} paddingBlock={10}>
+            <Section variant="muted" padding={4} paddingBlock={10}>
                 <div style={container(galleryMaxWidth(PARTNER_ADS.length))}>
                     <VStack gap={6}>
                         {activeCategories.length > 1 && (
@@ -189,7 +189,7 @@ export default function PartnersPage() {
             </Section>
 
             {/* ── 광고 문의 ── */}
-            <Section id="inquiry" variant="transparent" padding={0} paddingBlock={10}>
+            <Section id="inquiry" variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(880)}>
                     <VStack gap={8}>
                         <VStack gap={2} hAlign="center">

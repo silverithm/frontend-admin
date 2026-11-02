@@ -39,7 +39,7 @@ export default function BlogPage() {
             <Navbar />
 
             {/* 헤더 */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 1152, margin: '0 auto' }}>
                     {/* H1이 LCP 후보 — opacity 애니메이션은 LCP를 늦추므로 transform만 사용 */}
                     <motion.div
@@ -60,7 +60,7 @@ export default function BlogPage() {
             </Section>
 
             {/* 글 목록 */}
-            <Section variant="transparent" padding={0} paddingBlock={6}>
+            <Section variant="transparent" padding={4} paddingBlock={6}>
                 <div style={{ width: '100%', maxWidth: 1152, margin: '0 auto' }}>
                     <Grid columns={{ minWidth: 320, repeat: 'fit' }} gap={5}>
                         {BLOG_POSTS.map((post, index) => (

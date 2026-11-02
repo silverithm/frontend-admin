@@ -20,7 +20,7 @@ const contactLinkStyle: React.CSSProperties = { color: 'var(--color-text-seconda
  */
 export default function SiteFooter() {
     return (
-        <Section id="contact" variant="transparent" padding={0} paddingBlock={8} dividers={['top']}>
+        <Section id="contact" variant="transparent" padding={4} paddingBlock={8} dividers={['top']}>
             <div style={{ width: '100%', maxWidth: 1152, marginInline: 'auto' }}>
                 <VStack gap={6}>
                     <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={6}>

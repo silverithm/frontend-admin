@@ -20,6 +20,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import PageHeader from './PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -913,12 +914,12 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
               )}
             </div>
           ) : (
-            <div style={{ padding: '80px var(--spacing-6)' }}>
-              <VStack gap={2} hAlign="center">
-                <FiFileText size={48} style={{ color: 'var(--color-icon-disabled)' }} />
-                <Text type="large" color="secondary">등록된 양식이 없습니다</Text>
-                <Text type="supporting">새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요</Text>
-                {canManage && (
+            <div style={{ padding: 'var(--spacing-10) var(--spacing-6)' }}>
+              <EmptyState
+                icon={<Icon icon={FiFileText} size="lg" />}
+                title="등록된 양식이 없습니다"
+                description="새 양식 등록 버튼을 눌러 양식 파일을 업로드하세요"
+                actions={canManage ? (
                   <Button
                     label="기본 양식 불러오기"
                     variant="primary"
@@ -926,8 +927,8 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                     isLoading={isSeeding}
                     onClick={handleSeedDefaults}
                   />
-                )}
-              </VStack>
+                ) : undefined}
+              />
             </div>
           )}
         </Card>
@@ -950,10 +951,6 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
           content={
             <LayoutContent>
               <VStack gap={4}>
-                <Text type="supporting">
-                  {editingTemplate ? '양식 정보를 수정하세요' : '양식 유형을 선택하고 등록하세요'}
-                </Text>
-
                 {/* 양식 유형 선택 */}
                 <VStack gap={2}>
                   <Text type="label">양식 유형</Text>

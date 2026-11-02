@@ -1034,11 +1034,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   {filteredSeniors.length === 0 ? (
                     <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <EmptyState
-                        icon={<Icon icon={FiHeart} size="lg" color="disabled" />}
+                        icon={<Icon icon={FiHeart} size="lg" />}
                         title={seniors.length === 0 ? '등록된 어르신이 없습니다' : '조건에 맞는 어르신이 없습니다'}
                         description={seniors.length === 0
-                          ? '어르신을 추가하여 관리를 시작하세요.'
-                          : '검색어나 층 필터를 바꿔 보세요.'}
+                          ? '어르신을 추가하여 관리를 시작하세요'
+                          : '검색어나 층 필터를 바꿔 보세요'}
                         actions={canManage && seniors.length === 0 ? (
                           <Button
                             label="어르신 추가"
@@ -1179,9 +1179,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   {filteredPendingUsers.length === 0 ? (
                     <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <EmptyState
-                        icon={<Icon icon={FiUserPlus} size="lg" color="disabled" />}
+                        icon={<Icon icon={FiUserPlus} size="lg" />}
                         title="가입 신청이 없습니다"
-                        description="현재 승인 대기 중인 사용자가 없습니다."
+                        description="직원이 가입 코드로 가입을 신청하면 여기서 승인합니다"
                       />
                     </div>
                   ) : (
@@ -1250,9 +1250,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                   {filteredMembers.length === 0 ? (
                     <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <EmptyState
-                        icon={<Icon icon={FiUsers} size="lg" color="disabled" />}
+                        icon={<Icon icon={FiUsers} size="lg" />}
                         title="회원이 없습니다"
-                        description="현재 등록된 회원이 없습니다."
+                        description="직원이 가입하고 승인되면 여기에 보입니다"
                       />
                     </div>
                   ) : (

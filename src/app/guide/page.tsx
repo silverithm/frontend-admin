@@ -290,7 +290,7 @@ export default function GuidePage() {
             <Navbar />
 
             {/* 헤더 */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
@@ -321,7 +321,7 @@ export default function GuidePage() {
             </Section>
 
             {/* 본문 */}
-            <Section variant="transparent" padding={0} paddingBlock={4}>
+            <Section variant="transparent" padding={4} paddingBlock={4}>
                 <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
                     <VStack gap={10}>
                         {sections.map((section, sectionIndex) => (
@@ -375,7 +375,7 @@ export default function GuidePage() {
             </Section>
 
             {/* CTA */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
                     <Card padding={8} variant="teal">
                         <VStack gap={4} hAlign="center">

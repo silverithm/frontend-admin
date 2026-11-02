@@ -411,44 +411,14 @@ export default function EmployeeCalendar() {
 
         {/* 캘린더 카드 */}
         <div style={CARD_STYLE}>
-          {/* 캘린더 헤더 */}
-          <div style={{ ...subheaderStyle, padding: 'var(--spacing-5)' }}>
-            <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-              <HStack gap={3} vAlign="center">
-                <Text type="display-3" as="h2" weight="bold" color="primary">
-                  {format(currentDate, 'yyyy년 M월', { locale: ko })}
-                </Text>
-                <Button label="오늘" variant="secondary" size="sm" onClick={goToToday} />
-              </HStack>
-              <HStack gap={2} vAlign="center">
-                {availableRoles.length > 0 && (
-                  <MultiSelector
-                    label="직종 필터"
-                    isLabelHidden
-                    size="sm"
-                    placeholder="전체 직종"
-                    options={availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
-                    value={roleFilters}
-                    onChange={(values) => setRoleFilters(values)}
-                    triggerDisplay="badges"
-                    hasSelectAll
-                    selectAllLabel="전체 직종"
-                  />
-                )}
-                <Button
-                  label={isExpanded ? '접기' : '펼치기'}
-                  variant={isExpanded ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                />
-                <Button
-                  label="휴무 신청"
-                  variant="primary"
-                  size="sm"
-                  icon={<Icon icon="calendar" size="sm" />}
-                  onClick={() => openRequestModal()}
-                />
-                <HStack gap={1} vAlign="center">
+          {/* 캘린더 헤더 — 일정·관리자 근무조정 달력과 같은 문법: 'yyyy년 M월' · ‹ › · 오늘, 동작은 오른쪽 끝 */}
+          <div style={{ ...subheaderStyle, padding: 'var(--spacing-4) var(--spacing-5)' }}>
+            <div className="carev-dash-cal-head">
+              <Text type="large" as="h2" weight="bold" color="primary">
+                {format(currentDate, 'yyyy년 M월', { locale: ko })}
+              </Text>
+              <HStack gap={1} vAlign="center">
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
                   <Button
                     label="이전 달"
                     variant="ghost"
@@ -465,13 +435,44 @@ export default function EmployeeCalendar() {
                     icon={<Icon icon="chevronRight" size="md" />}
                     onClick={goToNextMonth}
                   />
-                </HStack>
+                </div>
+                <Button label="오늘" variant="ghost" size="sm" onClick={goToToday} />
               </HStack>
-            </HStack>
+              <div className="carev-dash-cal-head-fill" />
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                {availableRoles.length > 0 && (
+                  <MultiSelector
+                    label="직종 필터"
+                    isLabelHidden
+                    size="sm"
+                    placeholder="전체 직종"
+                    options={availableRoles.map((role) => ({ value: role, label: getRoleDisplayName(role) }))}
+                    value={roleFilters}
+                    onChange={(values) => setRoleFilters(values)}
+                    triggerDisplay="badges"
+                    hasSelectAll
+                    selectAllLabel="전체 직종"
+                  />
+                )}
+                <Button
+                  label={isExpanded ? '접기' : '펼치기'}
+                  variant={isExpanded ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                />
+                <Button
+                  label="휴무 신청"
+                  variant="primary"
+                  size="sm"
+                  icon={<Icon icon="calendar" size="sm" />}
+                  onClick={() => openRequestModal()}
+                />
+              </HStack>
+            </div>
           </div>
 
           {/* 요일 헤더 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--color-border)', background: 'var(--color-background-muted)' }}>
             {WEEKDAYS.map((day, index) => (
               <div
                 key={day}
@@ -490,7 +491,7 @@ export default function EmployeeCalendar() {
           {isLoading ? (
             <Loading label="달력을 불러오는 중..." />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
               {calendarDays.map((date, index) => {
                 if (!date) {
                   return (
@@ -543,6 +544,8 @@ export default function EmployeeCalendar() {
                     onClick={() => handleDateClick(date)}
                     className="carev-empcal-cell"
                     style={{
+                      minWidth: 0,
+                      overflow: 'hidden',
                       minHeight: isExpanded ? 100 : undefined,
                       aspectRatio: isExpanded ? undefined : '1 / 1',
                       padding: 'var(--spacing-1)',

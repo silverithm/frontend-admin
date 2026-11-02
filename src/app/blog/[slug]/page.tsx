@@ -33,7 +33,7 @@ export default function BlogPostPage() {
         return (
             <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
                 <Navbar />
-                <Section variant="transparent" padding={0} paddingBlock={10}>
+                <Section variant="transparent" padding={4} paddingBlock={10}>
                     <div style={contentWidth}>
                         <EmptyState
                             title="글을 찾을 수 없습니다"
@@ -57,7 +57,7 @@ export default function BlogPostPage() {
             <Navbar />
 
             {/* 글 머리 */}
-            <Section variant="transparent" padding={0} paddingBlock={8}>
+            <Section variant="transparent" padding={4} paddingBlock={8}>
                 <div style={contentWidth}>
                     {/* 글 제목(H1)이 LCP 후보 — opacity 애니메이션은 LCP를 늦추므로 transform만 사용 */}
                     <motion.div
@@ -96,7 +96,7 @@ export default function BlogPostPage() {
             </Section>
 
             {/* 본문 */}
-            <Section variant="transparent" padding={0} paddingBlock={4}>
+            <Section variant="transparent" padding={4} paddingBlock={4}>
                 <div style={contentWidth}>
                     <Card padding={8}>
                         <div
@@ -108,7 +108,7 @@ export default function BlogPostPage() {
             </Section>
 
             {/* 하단 CTA */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={contentWidth}>
                     <Card padding={8} variant="teal">
                         <VStack gap={4} hAlign="center">

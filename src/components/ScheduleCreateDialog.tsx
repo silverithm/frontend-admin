@@ -74,9 +74,12 @@ const managerOptionLabel = (member: MemberLike) => {
   return `${member.name}${roleText ? ` (${roleText})` : ''}`;
 };
 
+// 월간일정 탭 등록 폼과 같은 28 동그라미 — 두 창의 색 고르기가 네모·동그라미로 달랐다
 const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
+  width: 28,
   height: 28,
-  borderRadius: 'var(--radius-inner)',
+  flexShrink: 0,
+  borderRadius: 'var(--radius-full)',
   border: selected ? '2px solid var(--color-border-focus, var(--color-accent))' : '1px solid var(--color-border)',
   background: value,
   cursor: 'pointer',
@@ -274,7 +277,6 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
           header={
             <DialogHeader
               title="일정 추가"
-              subtitle="일정 정보를 입력해주세요"
               onOpenChange={(open) => { if (!open) onClose(); }}
             />
           }
@@ -325,13 +327,7 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                   <Divider />
                   <VStack gap={1.5}>
                     <Heading level={4} accessibilityLevel={3}>색상</Heading>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${SCHEDULE_COLORS.length + 1}, minmax(0, 1fr))`,
-                        gap: 'var(--spacing-2)',
-                      }}
-                    >
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
                       <button
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, color: '' }))}

@@ -284,24 +284,24 @@ export default function VoiceBoxAdmin() {
         </StackItem>
       ) : messages.length === 0 ? (
         <StackItem size="fill">
-          <Card variant="muted" height="100%">
+          <Card padding={10} height="100%">
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <EmptyState
                 icon={<Icon icon={FiInbox} size="lg" />}
                 title="접수된 항목이 없습니다"
-                description="직원들이 고충·건의를 남기면 이곳에 표시됩니다."
+                description="직원들이 고충·건의를 남기면 이곳에 표시됩니다"
               />
             </div>
           </Card>
         </StackItem>
       ) : visibleMessages.length === 0 ? (
         <StackItem size="fill">
-          <Card variant="muted" height="100%">
+          <Card padding={10} height="100%">
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <EmptyState
                 icon={<Icon icon={FiSearch} size="lg" />}
                 title="검색 결과가 없습니다"
-                description="검색어나 상태 필터를 바꿔보세요."
+                description="검색어나 상태 필터를 바꿔 보세요"
               />
             </div>
           </Card>

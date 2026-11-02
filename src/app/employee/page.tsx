@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { logout as apiLogout, getMemberPermissions } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import EmployeeCalendar from '@/components/EmployeeCalendar';
+import { PageHeader } from '@/components/PageHeader';
 import VacationCalendar from '@/components/VacationCalendar';
 import { PendingVacationApprovals } from '@/components/work/PendingVacationApprovals';
 import EmployeeApproval from '@/components/EmployeeApproval';
@@ -520,6 +521,15 @@ export default function EmployeePage() {
                   transition={{ duration: duration.fast }}
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
+                  {/* 다른 탭은 본문 맨 위에 제목이 있는데 이 탭만 없었다 — 관리자 근무조정과 같은 자리 */}
+                  <div style={{ marginBottom: 'var(--spacing-3)', flexShrink: 0 }}>
+                    <PageHeader
+                      title="근무조정"
+                      description={hasPermission('WORK_MANAGE')
+                        ? '휴무 신청을 확인하고 근무표를 조정합니다'
+                        : '휴무를 신청하고 달력에서 휴무 현황을 확인합니다'}
+                    />
+                  </div>
                   {/* 근무조정 관리 권한(WORK_MANAGE)을 받은 직원은 관리자와 같은 달력을 보고
                       승인까지 한다. 권한을 켜 줘도 승인할 자리가 없어 "관리자랑 근무 조정
                       승인하는 기능을 쓸 수 없다"는 제보가 있었다. */}

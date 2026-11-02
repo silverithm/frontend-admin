@@ -300,8 +300,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                         <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <EmptyState
                                                 icon={<Icon icon={FiBriefcase} size="lg" />}
-                                                title="등록된 역할이 없습니다."
-                                                description="새 역할을 추가해주세요."
+                                                title="등록된 역할이 없습니다"
+                                                description="새 역할을 추가해주세요"
                                             />
                                         </div>
                                     </Card>
@@ -420,7 +420,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                         <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <EmptyState
                                                 icon={<Icon icon={FiUsers} size="lg" />}
-                                                title="표시할 회원이 없습니다."
+                                                title="표시할 회원이 없습니다"
                                             />
                                         </div>
                                     </Card>

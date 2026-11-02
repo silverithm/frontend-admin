@@ -270,9 +270,9 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
             <Card padding={10} height="100%">
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmptyState
-                  icon={<Icon icon={FiFileText} size="lg" color="tertiary" />}
+                  icon={<Icon icon={FiFileText} size="lg" />}
                   title={items.length === 0 ? '올려둔 자료가 없습니다' : '이 분류에 자료가 없습니다'}
-                  description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요.' : undefined}
+                  description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요' : undefined}
                   actions={
                     items.length === 0 && canManage
                       ? <Button label="자료 올리기" variant="primary" size="sm" icon={<Icon icon={FiPlus} size="sm" />} onClick={() => setShowUpload(true)} />

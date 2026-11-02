@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import {
-  IconArrowLeft,
   IconBuilding,
   IconMapPin,
   IconUser,
-  IconKey,
   IconTrash,
   IconCopy,
   IconPencil,
@@ -23,10 +20,10 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Banner } from '@astryxdesign/core/Banner';
+import { StandaloneTopBar } from '@/components/StandaloneTopBar';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Text } from '@astryxdesign/core/Text';
-import { Heading } from '@astryxdesign/core/Heading';
 import SectionHeader from '@/components/SectionHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -488,28 +485,14 @@ export default function OrganizationProfilePage() {
     <>
       <AlertContainer />
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
-      {/* 헤더 — 페이지 제목은 본문이 아니라 여기에만 둔다 (예전에는 헤더와 본문에 제목이 겹쳐 있었다) */}
-      <header className="carev-header-band" style={{ background: 'var(--color-header-background)', borderBottom: '1px solid var(--color-header-border)' }}>
-        <div style={{ ...pageContainer, paddingTop: 'var(--spacing-5)', paddingBottom: 'var(--spacing-5)' }}>
-          <HStack hAlign="between" vAlign="center" gap={4}>
-            <HStack gap={3} vAlign="center">
-              <Image src="/images/carev-favicon.png" alt="케어브이" width={36} height={36} style={{ borderRadius: 'var(--radius-inner)' }} />
-              <VStack gap={0.5}>
-                {/* 페이지의 유일한 <h1> — 이전엔 Text로만 그려져 스크린리더가 제목을 찾을 수 없었다.
-                    type="display-3"가 기존 크기(3xl)와 같으므로 화면은 그대로다. */}
-                <Heading level={1} color="primary">기관 프로필</Heading>
-                <Text type="supporting" color="secondary" style={{ color: 'var(--color-header-text-secondary)' }}>기관의 기본 정보와 계정을 관리합니다</Text>
-              </VStack>
-            </HStack>
-            <Button
-              label="관리자 홈으로"
-              variant="secondary"
-              icon={<Icon icon={IconArrowLeft} size="sm" />}
-              onClick={() => router.push('/admin')}
-            />
-          </HStack>
-        </div>
-      </header>
+      {/* 헤더 — 페이지 제목은 본문이 아니라 여기에만 둔다 (예전에는 헤더와 본문에 제목이 겹쳐 있었다).
+          공지 작성·상세와 같은 64 띠 — 예전엔 로고 + 제목 20 + 부제로 이 화면만 90이었다. */}
+      <StandaloneTopBar
+        title="기관 프로필"
+        backLabel="관리자 홈으로"
+        onBack={() => router.push('/admin')}
+        maxWidth={PAGE_MAX_WIDTH}
+      />
 
       {/* 메인 콘텐츠 */}
       <main style={{ ...pageContainer, paddingTop: 'var(--spacing-8)', paddingBottom: 'var(--spacing-10)' }}>
@@ -603,7 +586,7 @@ export default function OrganizationProfilePage() {
                         <Text type="body" weight="bold" color="primary">기관</Text>
                         <div className="carev-org-facts">
                           <div className="carev-org-fact">
-                            <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon icon={IconBuilding} size="md" color="accent" />
                             </div>
                             <VStack gap={0.5}>
@@ -860,58 +843,48 @@ export default function OrganizationProfilePage() {
                     </VStack>
                   </Card>
 
-                  {/* 체험 계정에는 탈퇴 카드가 없다. 그때 2열을 유지하면 오른쪽 안내 카드에
-                      버튼이 없어 아래가 비므로, 열 수를 실제 카드 수에 맞춘다. */}
-                  <Grid columns={{ minWidth: 300, max: isDemoMode ? 1 : 2 }} gap={4} align="stretch">
-                    <Card variant="blue" padding={5} height="100%">
-                      <VStack gap={4} height="100%">
-                        <HStack gap={3} vAlign="center">
-                          <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon icon={IconKey} size="md" color="accent" />
-                          </div>
-                          <VStack gap={0.5}>
-                            <Text type="body" weight="medium" color="primary">비밀번호 변경</Text>
-                            <Text type="supporting" color="secondary">계정 보안을 위해 주기적으로 변경하세요</Text>
-                          </VStack>
-                        </HStack>
-                        {/* 두 카드의 버튼 높이를 맞춘다 */}
-                        <div style={{ marginTop: 'auto' }} />
+                  {/* 계정 동작 두 줄을 흰 카드 한 장에 — 예전엔 파란 판(비밀번호)과 분홍 판(탈퇴)이
+                      같은 크기로 나란히 있어, 되돌릴 수 없는 탈퇴가 화면에서 가장 눈에 띄었다.
+                      탈퇴는 빨간 글자 단추로만 알리고, 누르면 지금처럼 확인 창이 한 번 더 묻는다. */}
+                  <Card padding={5}>
+                    <div className="carev-org-facts">
+                      <div className="carev-org-fact" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                        <VStack gap={0.5}>
+                          <Text type="body" weight="medium" color="primary">비밀번호 변경</Text>
+                          <Text type="supporting" color="secondary">계정 보안을 위해 주기적으로 변경하세요</Text>
+                        </VStack>
                         <Button
                           label="비밀번호 변경하기"
                           variant="secondary"
+                          size="sm"
                           onClick={() => setShowPasswordModal(true)}
                         />
-                      </VStack>
-                    </Card>
-
-                    {isDemoMode ? (
-                      <Banner
-                        status="info"
-                        title="체험 계정은 7일 후 자동 삭제됩니다"
-                        description="별도 탈퇴가 필요하지 않습니다"
-                      />
-                    ) : (
-                      <Card variant="red" padding={5} height="100%">
-                        <VStack gap={4} height="100%">
-                          <HStack gap={3} vAlign="center">
-                            <div style={{ width: ICON_BADGE_SIZE, height: ICON_BADGE_SIZE, flexShrink: 0, borderRadius: 'var(--radius-inner)', background: 'var(--color-background-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon icon={IconTrash} size="md" color="error" />
-                            </div>
+                      </div>
+                      <div className="carev-org-fact" style={{ justifyContent: 'space-between', flexWrap: 'wrap', paddingBottom: 0 }}>
+                        {isDemoMode ? (
+                          <VStack gap={0.5}>
+                            <Text type="body" weight="medium" color="primary">체험 계정은 7일 후 자동 삭제됩니다</Text>
+                            <Text type="supporting" color="secondary">별도 탈퇴가 필요하지 않습니다</Text>
+                          </VStack>
+                        ) : (
+                          <>
                             <VStack gap={0.5}>
                               <Text type="body" weight="medium" color="primary">회원탈퇴</Text>
                               <Text type="supporting" color="secondary">모든 데이터가 삭제되며 복구할 수 없습니다</Text>
                             </VStack>
-                          </HStack>
-                          <div style={{ marginTop: 'auto' }} />
-                          <Button
-                            label="회원탈퇴"
-                            variant="destructive"
-                            onClick={() => setShowDeleteModal(true)}
-                          />
-                        </VStack>
-                      </Card>
-                    )}
-                  </Grid>
+                            <div style={{ '--color-text-primary': 'var(--color-text-red)' } as CSSProperties}>
+                              <Button
+                                label="회원탈퇴"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowDeleteModal(true)}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
                 </ProfileSection>
             </VStack>
           </VStack>

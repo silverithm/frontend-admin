@@ -508,30 +508,40 @@ export const neutralTheme = defineTheme({
     // Status overrides reference --color-text-{hue} so text/icon colors
     // stay in sync with the palette anchors automatically.
     banner: {
+      // 3차 덜어내기(11/2): 진한 파랑·노랑 판이 화면에서 가장 셌다. 파랑은 케어브이 색에도 없다.
+      // 네 상태 모두 '옅은 바탕 + 1px 테두리' 한 모양으로 — 안내는 흰 바탕·회색 테두리·기본 글자색,
+      // 경고·오류·완료만 제 색을 옅게 깔고 같은 색 테두리를 둔다. 테두리는 inset 그림자라 크기가 그대로다.
       'status:info': {
-        backgroundColor: 'var(--color-background-blue)',
+        backgroundColor: 'var(--color-background-surface)',
+        boxShadow: 'inset 0 0 0 1px var(--color-border)',
         '--color-accent-muted': 'transparent',
-        '--color-text-primary': 'var(--color-text-blue)',
-        '--color-text-secondary': 'var(--color-text-blue)',
-        '--color-accent': 'var(--color-text-blue)',
       },
-      // success/warning/error banner bgs come from --color-{X}-muted, which
-      // already carries the correct light/dark tinted values. We only need
-      // to redirect the text/icon to the palette colored stop.
       'status:success': {
+        backgroundColor: 'color-mix(in srgb, var(--color-background-green) 35%, var(--color-background-surface))',
+        boxShadow: 'inset 0 0 0 1px var(--color-border-green)',
         '--color-text-primary': 'var(--color-text-green)',
         '--color-text-secondary': 'var(--color-text-green)',
         '--color-success': 'var(--color-text-green)',
       },
       'status:warning': {
+        backgroundColor: 'color-mix(in srgb, var(--color-background-yellow) 40%, var(--color-background-surface))',
+        boxShadow: 'inset 0 0 0 1px var(--color-border-yellow)',
         '--color-text-primary': 'var(--color-text-yellow)',
         '--color-text-secondary': 'var(--color-text-yellow)',
         '--color-warning': 'var(--color-text-yellow)',
       },
       'status:error': {
+        backgroundColor: 'color-mix(in srgb, var(--color-background-red) 35%, var(--color-background-surface))',
+        boxShadow: 'inset 0 0 0 1px var(--color-border-red)',
         '--color-text-primary': 'var(--color-text-red)',
         '--color-text-secondary': 'var(--color-text-red)',
         '--color-error': 'var(--color-text-red)',
+      },
+    },
+    // 안내 아이콘만 회색 — 상자 안 단추의 accent는 그대로 둔다
+    'banner-icon': {
+      'status:info': {
+        '--color-accent': 'var(--color-text-secondary)',
       },
     },
 

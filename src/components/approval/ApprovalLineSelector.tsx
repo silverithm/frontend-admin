@@ -18,6 +18,9 @@ const MAX_STEPS = 5;
 interface ApprovalLineSelectorProps {
   value: ApproverCandidate[];
   onChange: (line: ApproverCandidate[]) => void;
+  /** 결재선이 꼭 있어야 하는 곳에서만 켠다 — 양식의 기본 결재선처럼 비워도 되는 칸에서
+   *  창을 열자마자 노란 경고가 뜨면, 아무것도 안 했는데 잘못한 것처럼 보인다. */
+  isRequired?: boolean;
 }
 
 function candidateKey(candidate: ApproverCandidate) {
@@ -28,7 +31,7 @@ function candidateKey(candidate: ApproverCandidate) {
  * 결재선 지정 UI. 후보(회사 관리자 + 결재 권한 보유 직원)에서 순서대로 선택한다.
  * 마지막 단계가 최종 결재자(결재), 그 앞은 검토자(검토)로 자동 배정된다.
  */
-export default function ApprovalLineSelector({ value, onChange }: ApprovalLineSelectorProps) {
+export default function ApprovalLineSelector({ value, onChange, isRequired = false }: ApprovalLineSelectorProps) {
   const [candidates, setCandidates] = useState<ApproverCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -146,8 +149,8 @@ export default function ApprovalLineSelector({ value, onChange }: ApprovalLineSe
         </VStack>
       )}
 
-      {value.length === 0 && (
-        <Banner status="warning" title="결재선을 지정해주세요." description="최소 1명의 결재자가 필요합니다." />
+      {isRequired && value.length === 0 && (
+        <Banner status="warning" title="결재선을 지정해주세요" description="최소 1명의 결재자가 필요합니다" />
       )}
 
       {/* 후보 목록 */}

@@ -738,56 +738,48 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       )}
       <div ref={calendarRef} className="carev-vaccal-body" style={{ padding: 'var(--spacing-5)', display: 'flex', flexDirection: 'column' }}>
         {/* 헤더(월 표시·조작)와 달력 그리드 사이 구분선 — 일정·대시보드 달력 카드와 같은 문법으로 맞춘다 */}
-        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2} width="100%" style={{ paddingBottom: 'var(--spacing-4)', marginBottom: 'var(--spacing-4)', borderBottom: '1px solid var(--color-border)' }}>
-          <HStack gap={2} vAlign="center">
-            <Icon icon="calendar" size="sm" color="secondary" />
-            <VStack gap={0.5}>
-              <HStack gap={2} vAlign="center">
-                <Text type="large" weight="bold" color="primary">
-                  {format(currentDate, 'yyyy년 MM월', { locale: ko })}
-                </Text>
-                <Button
-                  label="월 선택"
-                  variant="secondary"
-                  size="sm"
-                  icon={<Icon icon="calendar" size="sm" />}
-                  onClick={handleOpenMonthPicker}
-                />
-              </HStack>
-            </VStack>
+        {/* 월 머리는 일정 달력과 같은 문법 — 'yyyy년 M월' · ‹ › · 오늘, 기관 동작은 오른쪽 끝으로 */}
+        <div className="carev-dash-cal-head" style={{ paddingBottom: 'var(--spacing-4)', marginBottom: 'var(--spacing-4)', borderBottom: '1px solid var(--color-border)' }}>
+          <Text type="large" as="h2" weight="bold" color="primary">
+            {format(currentDate, 'yyyy년 M월', { locale: ko })}
+          </Text>
+          <HStack gap={1} vAlign="center">
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-inner)' }}>
+              <Button
+                label="이전 달"
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                icon={<Icon icon="chevronLeft" size="md" />}
+                onClick={prevMonth}
+              />
+              <Button
+                label="다음 달"
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                icon={<Icon icon="chevronRight" size="md" />}
+                onClick={nextMonth}
+              />
+            </div>
+            <Button label="오늘" variant="ghost" size="sm" onClick={resetToCurrentMonth} />
+            <Button
+              label="월 선택"
+              tooltip="월 선택"
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              icon={<Icon icon="calendar" size="sm" />}
+              onClick={handleOpenMonthPicker}
+            />
           </HStack>
+          <div className="carev-dash-cal-head-fill" />
 
-          {/* 버튼 여덟 개가 모두 같은 무게였다(#39). 월 이동만 묶고, 관리자 주 동작(직원 휴무
-              추가)만 강조하며, 자주 안 누르는 새로고침·중요 행사는 더보기로 뺀다.
+          {/* 버튼 여덟 개가 모두 같은 무게였다(#39). 관리자 주 동작(직원 휴무 추가)만 강조하고,
+              자주 안 누르는 새로고침·중요 행사는 더보기로 뺀다.
               휴무 제한 설정·엑셀 내보내기는 온보딩 투어(data-tour)가 이 화면에서 직접
               가리키는 대상이라 접힌 메뉴 안에 두면 투어가 깨진다 — 무게만 ghost로 낮춰 둔다. */}
-          <HStack gap={1} vAlign="center">
-            <Button
-              label="이전 달"
-              variant="ghost"
-              size="sm"
-              isIconOnly
-              icon={<Icon icon="chevronLeft" size="md" />}
-              onClick={prevMonth}
-            />
-            <Button
-              label="이번 달로 돌아가기"
-              tooltip="이번 달로"
-              variant="ghost"
-              size="sm"
-              isIconOnly
-              icon={<Icon icon="clock" size="sm" />}
-              onClick={resetToCurrentMonth}
-            />
-            <Button
-              label="다음 달"
-              variant="ghost"
-              size="sm"
-              isIconOnly
-              icon={<Icon icon="chevronRight" size="md" />}
-              onClick={nextMonth}
-            />
-            <span style={{ width: 1, height: 20, background: 'var(--color-border)', margin: '0 var(--spacing-1)' }} />
+          <HStack gap={1} vAlign="center" wrap="wrap">
             {isAdmin && onShowLimitPanel ? (
               <>
                 <Button
@@ -864,7 +856,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               />
             )}
           </HStack>
-        </HStack>
+        </div>
 
         {/* 인터랙티브 캘린더 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-1)', background: 'var(--color-background-muted)', borderTopLeftRadius: 'var(--radius-inner)', borderTopRightRadius: 'var(--radius-inner)' }}>

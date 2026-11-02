@@ -129,10 +129,11 @@ const CARD_STYLE: CSSProperties = {
 };
 
 // 일정 색상 스와치 스타일
-// 한 줄을 균등하게 나눠 쓰는 그리드 칸이라 폭은 칸에 맡기고 정사각만 유지한다
+// 28 고정 — 칸 폭에 맡기면 640 창에서 40까지 커져 입력칸보다 센 덩어리가 됐다(3차 덜어내기)
 const colorSwatchStyle = (selected: boolean, value: string): CSSProperties => ({
-  width: '100%',
-  aspectRatio: '1 / 1',
+  width: 28,
+  height: 28,
+  flexShrink: 0,
   borderRadius: 'var(--radius-full)',
   padding: 'var(--spacing-0)',
   cursor: 'pointer',
@@ -1963,7 +1964,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           header={
             <DialogHeader
               title={selectedSchedule ? '일정 수정' : '일정 추가'}
-              subtitle="일정 정보를 입력해주세요"
               onOpenChange={(open) => { if (!open) { setShowCreateModal(false); setSelectedSchedule(null); } }}
             />
           }
@@ -2035,15 +2035,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                 <Divider />
                 <VStack gap={1.5}>
                   <Heading level={4} accessibilityLevel={3}>색상</Heading>
-                  {/* 한 줄을 꽉 채우는 균등 그리드 — 칸 수가 늘거나 줄어도 줄 끝이 맞는다 */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      // 없음 + 팔레트 + (팔레트 밖 기존 색이 있으면 그 한 칸)
-                      gridTemplateColumns: `repeat(${SCHEDULE_COLORS.length + 1 + (formData.color && !SCHEDULE_COLORS.some((c) => c.value === formData.color) ? 1 : 0)}, minmax(0, 1fr))`,
-                      gap: 'var(--spacing-2)',
-                    }}
-                  >
+                  {/* 없음 + 팔레트 + (팔레트 밖 기존 색이 있으면 그 한 칸) — 좁으면 다음 줄로 */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, color: '' }))}
@@ -2744,7 +2737,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   />
                   <VStack gap={1.5}>
                     <Heading level={4} accessibilityLevel={3}>색상</Heading>
-                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${SCHEDULE_COLORS.length}, minmax(0, 1fr))`, gap: 'var(--spacing-2)' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
                       {SCHEDULE_COLORS.map((color) => (
                         <button
                           key={color.value}

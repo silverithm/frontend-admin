@@ -13,6 +13,8 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import { FieldLabel } from '@astryxdesign/core/Field';
+import { StandaloneTopBar } from '@/components/StandaloneTopBar';
 import { createNotice } from '@/lib/apiService';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
 import { sanitizeRichText, richTextToPlain } from '@/lib/richText';
@@ -82,48 +84,24 @@ export default function NewNoticePage() {
     <>
       <AlertContainer />
       <div style={{ minHeight: '100vh', background: 'var(--color-background-muted)' }}>
-        {/* 헤더 */}
-        <div
-          className="carev-header-band"
-          style={{
-            background: 'var(--color-header-background)',
-            borderBottom: '1px solid var(--color-header-border)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-          }}
-        >
-          <div
-            style={{
-              maxWidth: 896,
-              margin: '0 auto',
-              padding: 'var(--spacing-4) var(--spacing-6)',
-            }}
-          >
-            <HStack hAlign="between" vAlign="center" gap={4}>
-              <HStack gap={2} vAlign="center">
-                <Button
-                  label="뒤로 가기"
-                  variant="ghost"
-                  size="sm"
-                  isIconOnly
-                  icon={<Icon icon="chevronLeft" size="md" />}
-                  onClick={() => router.back()}
-                />
-                <Text type="large" weight="bold">새 공지사항 작성</Text>
-              </HStack>
-              <Button
-                label={sendPushNotification ? '등록하고 알림 보내기' : '등록만 하기'}
-                variant="primary"
-                size="md"
-                icon={<Icon icon="check" size="sm" />}
-                isLoading={isSubmitting}
-                isDisabled={isSubmitting}
-                onClick={handleSubmit}
-              />
-            </HStack>
-          </div>
-        </div>
+        {/* 헤더 — 기관 프로필·공지 상세와 같은 64 띠 */}
+        <StandaloneTopBar
+          title="새 공지사항 작성"
+          backLabel="뒤로 가기"
+          onBack={() => router.back()}
+          maxWidth={896}
+          actions={
+            <Button
+              label={sendPushNotification ? '등록하고 알림 보내기' : '등록만 하기'}
+              variant="primary"
+              size="sm"
+              icon={<Icon icon="check" size="sm" />}
+              isLoading={isSubmitting}
+              isDisabled={isSubmitting}
+              onClick={handleSubmit}
+            />
+          }
+        />
 
         {/* 본문 */}
         <div
@@ -155,8 +133,10 @@ export default function NewNoticePage() {
 
                   {/* 내용 — 광장 글쓰기와 같은 서식 편집기를 쓴다 (글자 크기·색·정렬·목록) */}
                   <VStack gap={1} align="stretch" width="100%">
-                    <Text type="label" weight="medium" color="primary">내용</Text>
+                    {/* 제목처럼 '· 필수'를 단다 — 비우면 등록이 막히는데 표시가 없었다 */}
+                    <FieldLabel label="내용" inputID="notice-content" isRequired />
                     <RichTextEditor
+                      id="notice-content"
                       value={content}
                       onChange={(html) => setContent(html)}
                       placeholder="공지사항 내용을 입력하세요"

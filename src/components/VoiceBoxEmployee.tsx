@@ -164,11 +164,11 @@ export default function VoiceBoxEmployee() {
       <VStack gap={2}>
         <Text type="label" weight="semibold">내 제출 내역 ({myMessages.length})</Text>
         {isLoading ? null : myMessages.length === 0 ? (
-          <Card variant="muted">
+          <Card padding={8}>
             <EmptyState
               icon={<Icon icon={FiInbox} size="lg" />}
               title="제출한 내역이 없습니다"
-              description="건의나 고충을 남기면 처리 상태와 답변을 여기서 확인할 수 있습니다."
+              description="건의나 고충을 남기면 처리 상태와 답변을 여기서 확인할 수 있습니다"
             />
           </Card>
         ) : (

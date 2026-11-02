@@ -77,7 +77,7 @@ export default function RefundPolicyPage() {
         <main style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <Navbar />
 
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 760, marginInline: 'auto' }}>
                     <VStack gap={8}>
                         <VStack gap={2}>

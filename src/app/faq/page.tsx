@@ -28,7 +28,7 @@ export default function FAQPage() {
             <Navbar />
 
             {/* 헤더 */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
@@ -64,7 +64,7 @@ export default function FAQPage() {
             </Section>
 
             {/* 목록 */}
-            <Section variant="transparent" padding={0} paddingBlock={6}>
+            <Section variant="transparent" padding={4} paddingBlock={6}>
                 <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
                     {filteredFAQ.length === 0 ? (
                         <EmptyState
@@ -92,7 +92,7 @@ export default function FAQPage() {
             </Section>
 
             {/* 문의 CTA */}
-            <Section variant="transparent" padding={0} paddingBlock={10}>
+            <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
                     <Card padding={8} variant="teal">
                         <VStack gap={4} hAlign="center">

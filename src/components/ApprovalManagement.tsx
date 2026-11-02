@@ -747,21 +747,25 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
             </Card>
           </VStack>
         ) : (
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <EmptyState
-              icon={<Icon icon={FiFileText} size="lg" />}
-              title="결재 요청이 없습니다"
-              description={
-                categoryFilter
-                  ? `'${categoryFilter}' 종류의 결재 요청이 없습니다.`
-                  : '조건에 맞는 결재 요청이 없습니다.'
-              }
-              actions={
-                categoryFilter
-                  ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
-                  : undefined
-              }
-            />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <Card padding={10} height="100%">
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <EmptyState
+                  icon={<Icon icon={FiFileText} size="lg" />}
+                  title="결재 요청이 없습니다"
+                  description={
+                    categoryFilter
+                      ? `'${categoryFilter}' 종류만 보고 있습니다`
+                      : '직원이 결재를 올리면 여기에 보입니다'
+                  }
+                  actions={
+                    categoryFilter
+                      ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
+                      : undefined
+                  }
+                />
+              </div>
+            </Card>
           </div>
         )}
       </div>

@@ -546,22 +546,23 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                   </VStack>
                 ) : (
                   <div style={{ padding: 'var(--spacing-5)', height: '100%' }}>
-                    <VStack gap={4} align="center" width="100%" height="100%" justify="center">
+                    <VStack align="center" width="100%" height="100%" justify="center">
                       <div style={{ width: '100%' }}>
                         <EmptyState
                           icon={<Icon icon={FiBell} size="lg" />}
                           title="공지사항이 없습니다"
-                          description="아직 등록된 공지사항이 없습니다"
+                          description={canManage ? '새 공지를 쓰면 직원 모두에게 보입니다' : '새 공지가 올라오면 여기에 보입니다'}
+                          actions={canManage ? (
+                            <Button
+                              label="새 공지 작성"
+                              variant="primary"
+                              size="sm"
+                              icon={<Icon icon={FiPlus} size="sm" />}
+                              onClick={() => router.push('/admin/notice/new')}
+                            />
+                          ) : undefined}
                         />
                       </div>
-                      {canManage && (
-                        <Button
-                          label="새 공지 작성"
-                          variant="primary"
-                          icon={<Icon icon={FiPlus} size="sm" />}
-                          onClick={() => router.push('/admin/notice/new')}
-                        />
-                      )}
                     </VStack>
                   </div>
                 )}

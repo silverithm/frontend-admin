@@ -951,7 +951,7 @@ export default function EmployeeApproval() {
                 <EmptyState
                   isCompact
                   title="조건에 맞는 양식이 없습니다"
-                  description="검색어나 기안 종류를 바꿔 보세요."
+                  description="검색어나 기안 종류를 바꿔 보세요"
                   actions={
                     <Button
                       label="필터 초기화"
@@ -1056,12 +1056,16 @@ export default function EmployeeApproval() {
               ))}
             </VStack>
           ) : (
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <EmptyState
-                icon={<Icon icon={FiFileText} size="lg" />}
-                title="등록된 양식이 없습니다"
-                description="관리자에게 문의하세요"
-              />
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <Card padding={10} height="100%">
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <EmptyState
+                    icon={<Icon icon={FiFileText} size="lg" />}
+                    title="등록된 양식이 없습니다"
+                    description="관리자에게 문의하세요"
+                  />
+                </div>
+              </Card>
             </div>
           )
         )}
@@ -1194,26 +1198,30 @@ export default function EmployeeApproval() {
                 </VStack>
               </Card>
             ) : (
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <EmptyState
-                  icon={<Icon icon={FiFileText} size="lg" />}
-                  title={hasActiveFilter ? '조건에 맞는 결재 요청이 없습니다' : '결재 요청이 없습니다'}
-                  description={hasActiveFilter
-                    ? '기간이나 검색어를 바꿔 보세요.'
-                    : '새 기안 작성 버튼을 눌러 결재를 요청하세요'}
-                  actions={hasActiveFilter ? (
-                    <Button
-                      label="필터 초기화"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setDateFilter({ startDate: '', endDate: '' });
-                        setCategoryFilter('');
-                      }}
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <Card padding={10} height="100%">
+                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <EmptyState
+                      icon={<Icon icon={FiFileText} size="lg" />}
+                      title={hasActiveFilter ? '조건에 맞는 결재 요청이 없습니다' : '결재 요청이 없습니다'}
+                      description={hasActiveFilter
+                        ? '기간이나 검색어를 바꿔 보세요'
+                        : '새 기안 작성 버튼을 눌러 결재를 요청하세요'}
+                      actions={hasActiveFilter ? (
+                        <Button
+                          label="필터 초기화"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setDateFilter({ startDate: '', endDate: '' });
+                            setCategoryFilter('');
+                          }}
+                        />
+                      ) : undefined}
                     />
-                  ) : undefined}
-                />
+                  </div>
+                </Card>
               </div>
             )}
           </>
