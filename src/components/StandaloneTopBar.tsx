@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { HStack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
 
 interface StandaloneTopBarProps {
     /** 화면 제목 — 이 화면의 유일한 <h1> */
@@ -23,7 +23,7 @@ interface StandaloneTopBarProps {
  * 셸 밖에서 따로 열리는 화면(기관 프로필·공지 작성·공지 상세)의 맨 위 띠.
  *
  * 세 곳이 따로 적혀 높이 90·64·64, 제목 20·16·16, 왼쪽은 로고 또는 뒤로 단추로 제각각이었다.
- * 높이 64 · 뒤로 단추 + 제목(large 굵게) · 오른쪽 동작으로 여기서 한 번만 정한다.
+ * 높이 64 · 뒤로 단추 + 제목(탭 제목과 같은 19) · 오른쪽 동작으로 여기서 한 번만 정한다.
  * 띠 색과 안쪽 글씨·단추 색은 .carev-header-band 규칙을 그대로 따른다.
  */
 export function StandaloneTopBar({ title, backLabel, onBack, actions, maxWidth }: StandaloneTopBarProps) {
@@ -58,7 +58,8 @@ export function StandaloneTopBar({ title, backLabel, onBack, actions, maxWidth }
                             icon={<Icon icon="chevronLeft" size="md" />}
                             onClick={onBack}
                         />
-                        <Text type="large" as="h1" weight="bold" maxLines={1}>{title}</Text>
+                        {/* 보기는 탭 제목(PageHeader, 19)과 같은 h2 크기, 태그는 이 화면의 유일한 h1 */}
+                        <Heading level={2} accessibilityLevel={1}>{title}</Heading>
                     </HStack>
                     {actions && <HStack gap={2} vAlign="center">{actions}</HStack>}
                 </HStack>
