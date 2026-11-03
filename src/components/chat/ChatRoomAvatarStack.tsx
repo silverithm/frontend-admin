@@ -1,6 +1,6 @@
 "use client";
 
-import { FiUsers } from "react-icons/fi";
+import { chatAvatarLayout, MAX_AVATAR_CELLS, type AvatarCellSize } from "@/lib/chatAvatarLayout";
 
 /** 목록에서 방 아이콘 자리에 쓰는 참여자 한 명 */
 export interface ChatRoomAvatarPerson {
@@ -16,30 +16,62 @@ interface Props {
     size?: number;
 }
 
+/** 칸 크기별 첫 글자 크기 — 칸이 작을수록 한 단계씩 작게 */
+const INITIAL_FONT: Record<AvatarCellSize, string> = {
+    whole: "var(--font-size-base)",
+    half: "var(--font-size-sm)",
+    quarter: "var(--font-size-xs)",
+};
+
+/** 칸 사이 흰 선 — 얼굴끼리 맞붙으면 한 사람처럼 보인다 */
+const GAP = 1.5;
+
 /**
  * 채팅방 아이콘 — 항상 지름 `size`의 원 하나다 (목록 36 / 대화방·말풍선 채팅 28).
  *
- * - 1:1 대화(또는 참여자 1명): 상대 얼굴, 사진이 없으면 이름 첫 글자
- * - 3명 이상·2명 모임방: 틸 원 + 사람들 아이콘. 이니셜 두 개를 나란히 두면
- *   사람 이름처럼 읽혀서(`김 박`) 글자를 쓰지 않는다.
- * - 참여자를 못 받았으면 방 이름 첫 글자 — 빈 원을 두지 않는다.
- *
- * 글자는 11/600 한 가지였던 것을 Text 역할 표(supporting + semibold)와 같은 토큰으로 맞춘다.
+ * 참여자 얼굴을 한 원에 나눠 담는다(카카오톡과 같은 방식, 칸 규칙은 chatAvatarLayout·앱과 같다).
+ * 한동안 '사람들 아이콘 하나'로 줄였는데 단체방이 다 똑같아 보여 어느 방인지 얼굴로 찾을 수
+ * 없었다 — 사용자 요청(2026-11-03 "카톡처럼 4명 잘라서")으로 되돌린다.
+ * 참여자를 못 받았으면 방 이름 첫 글자 — 빈 원을 두지 않는다.
  */
 export function ChatRoomAvatarStack({ roomName, people, size = 36 }: Props) {
-    const list = people || [];
+    const shown = (people || []).slice(0, MAX_AVATAR_CELLS);
+    const layout = chatAvatarLayout(shown.length);
 
-    if (list.length >= 2) {
+    if (layout.grid === null) {
+        const person = shown[0];
+        const label = (person?.userName || roomName || "?").trim();
         return (
             <span aria-hidden style={circleStyle(size)}>
-                <FiUsers size={Math.round(size * 0.5)} />
+                <Cell name={label} url={person?.profileImageUrl} cellSize="whole" />
             </span>
         );
     }
 
-    const person = list[0];
-    const label = (person?.userName || roomName || "?").trim();
-    return <Face name={label} url={person?.profileImageUrl} size={size} />;
+    return (
+        <span
+            aria-hidden
+            style={{
+                ...circleStyle(size),
+                display: "inline-grid",
+                gap: GAP,
+                background: "var(--color-background-surface)",
+                gridTemplateColumns: layout.grid.columns,
+                gridTemplateRows: layout.grid.rows,
+                gridTemplateAreas: layout.grid.areas,
+            }}
+        >
+            {layout.cells.map((cell, i) => (
+                <Cell
+                    key={`${shown[i].userId}-${i}`}
+                    name={shown[i].userName}
+                    url={shown[i].profileImageUrl}
+                    cellSize={cell.size}
+                    area={cell.area}
+                />
+            ))}
+        </span>
+    );
 }
 
 function circleStyle(size: number): React.CSSProperties {
@@ -57,44 +89,51 @@ function circleStyle(size: number): React.CSSProperties {
     };
 }
 
-function Face({ name, url, size }: { name: string; url?: string | null; size: number }) {
+function initialStyle(cellSize: AvatarCellSize, area?: string): React.CSSProperties {
+    return {
+        gridArea: area,
+        width: "100%",
+        height: "100%",
+        minWidth: 0,
+        minHeight: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--color-background-teal)",
+        color: "var(--color-text-accent)",
+        fontSize: INITIAL_FONT[cellSize],
+        fontWeight: "var(--font-weight-semibold)",
+        lineHeight: 1,
+    };
+}
+
+/** 한 칸 — 사진이 있으면 칸을 꽉 채우고, 없으면(또는 안 열리면) 이름 첫 글자 */
+function Cell({ name, url, cellSize, area }: { name: string; url?: string | null; cellSize: AvatarCellSize; area?: string }) {
     const src = (url || "").trim();
-    const initial = name.slice(0, 1) || "?";
+    const initial = (name || "").trim().slice(0, 1) || "?";
 
     if (!src) {
-        return (
-            <span
-                aria-hidden
-                style={{
-                    ...circleStyle(size),
-                    fontSize: "var(--font-size-base)",
-                    fontWeight: "var(--font-weight-semibold)",
-                    lineHeight: 1,
-                }}
-            >
-                {initial}
-            </span>
-        );
+        return <span style={initialStyle(cellSize, area)}>{initial}</span>;
     }
 
     return (
-        <span aria-hidden style={circleStyle(size)}>
-            <img
-                src={src}
-                alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                /* 사진이 안 열려도 원이 비어 보이지 않게 첫 글자로 되돌린다 */
-                onError={(e) => {
-                    const img = e.currentTarget;
-                    const box = document.createElement("span");
-                    box.textContent = initial;
-                    box.setAttribute(
-                        "style",
-                        "font-size:var(--font-size-base);font-weight:var(--font-weight-semibold);line-height:1",
-                    );
-                    img.replaceWith(box);
-                }}
-            />
-        </span>
+        <img
+            src={src}
+            alt=""
+            style={{ gridArea: area, width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "cover", display: "block" }}
+            /* 사진이 안 열려도 칸이 비어 보이지 않게 첫 글자로 되돌린다 */
+            onError={(e) => {
+                const img = e.currentTarget;
+                const box = document.createElement("span");
+                box.textContent = initial;
+                const s = initialStyle(cellSize, area);
+                box.setAttribute(
+                    "style",
+                    `grid-area:${area ?? "auto"};width:100%;height:100%;display:flex;align-items:center;justify-content:center;` +
+                        `background:${s.background};color:${s.color};font-size:${s.fontSize};font-weight:${s.fontWeight};line-height:1`,
+                );
+                img.replaceWith(box);
+            }}
+        />
     );
 }

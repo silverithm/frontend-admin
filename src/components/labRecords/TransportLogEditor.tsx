@@ -4,7 +4,7 @@
  * 운행일지 쓰기 — 운전원·동승자, 출발·도착 시각, 탑승자(그날 출석한 어르신으로 채움), 어르신별 탑승·승하차 시각, 특이사항.
  * 같은 날·등원/하원·차량의 일지가 있으면 고쳐 쓰고(upsert), 저장 단추는 두 번 눌러도 한 번만 저장한다.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Selector } from '@astryxdesign/core/Selector';
@@ -12,6 +12,7 @@ import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { saveTransportLog } from '@/lib/lab/labApi';
+import { doneFirst, isRiderDone, mergePickedRiders, placeRider } from '@/lib/lab/transportRiderOrder';
 import type { LabStaff, TransportDirection, TransportLog } from '@/lib/lab/labTypes';
 import { ErrorBanner, SupportText, useNotify } from '@/components/lab/LabUi';
 import { dateLabel, errorText, readStored, writeStored } from '@/components/lab/labFormat';
@@ -42,7 +43,11 @@ interface Props {
 const NONE = 'none';
 
 function firstDraft(props: Props): LogDraft {
-  if (props.existing) return draftFromLog(props.existing);
+  if (props.existing) {
+    // 불러온 일지도 다 적은 분부터 — 이어 적을 분이 그 아래에 모인다
+    const loaded = draftFromLog(props.existing);
+    return { ...loaded, riders: doneFirst(loaded.riders, props.direction) };
+  }
   const riders = props.hasAttendance ? props.elders.filter((e) => props.present.has(e.id)).slice(0, MAX_RIDERS).map((e) => newRider(e.id, e.name)) : [];
   const staffIds = new Set(props.staff.map((s) => s.id));
   const stored = (key: string): number | null => {
@@ -73,13 +78,29 @@ export default function TransportLogEditor(props: Props) {
   const ids = draft.riders.map((r) => r.elderlyId);
   const nameOf = (id: number) => elders.find((e) => e.id === id)?.name ?? draft.riders.find((r) => r.elderlyId === id)?.name ?? '이름 없음';
 
+  // 고르기에서 명단을 바꿔도 적어 둔 순서(= 실제로 태운 순서)는 그대로, 새로 고른 분은 맨 뒤
   const pickRiders = (next: number[]) =>
-    setDraft((d) => {
-      const kept = new Map(d.riders.map((r) => [r.elderlyId, r]));
-      const riders: RiderDraft[] = next.map((id) => kept.get(id) ?? newRider(id, nameOf(id)));
-      return { ...d, riders };
-    });
-  const changeRider = (next: RiderDraft) => setDraft((d) => ({ ...d, riders: d.riders.map((r) => (r.elderlyId === next.elderlyId ? next : r)) }));
+    setDraft((d) => ({ ...d, riders: mergePickedRiders(d.riders, next, (id) => newRider(id, nameOf(id))) }));
+
+  // 시각을 다 적은 분은 위 묶음 끝으로 올린다(버그제보 11/3 — 다음 분을 찾아 목록을 오르내렸다).
+  // 칸을 벗어날 때만 값이 들어오므로 적는 도중에는 줄이 움직이지 않는다.
+  const rowRefs = useRef(new Map<number, HTMLDivElement>());
+  const riderBoxRef = useRef<HTMLDivElement>(null);
+  const scrollToNext = useRef(false);
+  const changeRider = (next: RiderDraft) => {
+    const before = draft.riders.find((r) => r.elderlyId === next.elderlyId);
+    if (before && !isRiderDone(before, direction) && isRiderDone(next, direction)) scrollToNext.current = true;
+    setDraft((d) => ({ ...d, riders: placeRider(d.riders, next, direction) }));
+  };
+  useEffect(() => {
+    if (!scrollToNext.current) return;
+    scrollToNext.current = false;
+    // 이미 다음 분 칸을 눌러 적기 시작했으면 화면을 움직이지 않는다(손가락 밑에서 칸이 도망가지 않게)
+    if (riderBoxRef.current?.contains(document.activeElement)) return;
+    const nextUp = draft.riders.find((r) => !isRiderDone(r, direction));
+    const el = nextUp ? rowRefs.current.get(nextUp.elderlyId) : null;
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [draft.riders, direction]);
   const outsideRiders = draft.riders.filter((r) => !elders.some((e) => e.id === r.elderlyId));
 
   const save = async () => {
@@ -107,6 +128,8 @@ export default function TransportLogEditor(props: Props) {
   };
 
   const boardedCount = draft.riders.filter((r) => r.boarded).length;
+  const doneCount = draft.riders.filter((r) => isRiderDone(r, direction)).length;
+  const timeLabel = direction === 'PICKUP' ? '승차' : '하차';
   return (
     <Card padding={4}>
       <VStack gap={4}>
@@ -151,14 +174,34 @@ export default function TransportLogEditor(props: Props) {
         {outsideRiders.length > 0 && <SupportText>목록에 없는 {outsideRiders.length}명(퇴소 등)은 기록에 그대로 남습니다.</SupportText>}
 
         {draft.riders.length > 0 && (
-          <div>
-            <Text type="label">어르신별 탑승 ({boardedCount}명 탑승 / {draft.riders.length}명)</Text>
-            <div className={own.riderBox}>
-              {draft.riders.map((r) => (
-                <TransportRiderRow key={r.elderlyId} rider={r} onChange={changeRider} isDisabled={saving} />
+          <VStack gap={1.5}>
+            <VStack gap={0.5}>
+              <Text type="label">어르신별 탑승 ({boardedCount}명 탑승 / {draft.riders.length}명)</Text>
+              <SupportText>{timeLabel} 시각을 적은 분은 위로 올라갑니다</SupportText>
+            </VStack>
+            <div className={own.riderBox} ref={riderBoxRef}>
+              {draft.riders.map((r, i) => (
+                <div
+                  key={r.elderlyId}
+                  className={own.riderItem}
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(r.elderlyId, el);
+                    else rowRefs.current.delete(r.elderlyId);
+                  }}
+                >
+                  {/* 다 적은 묶음과 아직 안 적은 묶음 사이 — 다음 분이 어디서부터인지 */}
+                  {i === doneCount && doneCount > 0 && (
+                    <div className={own.riderSplit}>
+                      <Text type="supporting" weight="semibold" color="secondary">
+                        아직 {timeLabel} 시각을 안 적은 분 {draft.riders.length - doneCount}명
+                      </Text>
+                    </div>
+                  )}
+                  <TransportRiderRow rider={r} onChange={changeRider} isDisabled={saving} />
+                </div>
               ))}
             </div>
-          </div>
+          </VStack>
         )}
 
         <TextArea

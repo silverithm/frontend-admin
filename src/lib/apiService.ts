@@ -17,6 +17,7 @@ import {
 import { buildApproveBody } from '@/lib/approvalComment';
 import type { WorkTask, WorkTaskInput } from '@/lib/workTasks';
 import { requestNotificationsRefresh } from '@/lib/alertBus';
+import { postChatFileDirect } from '@/lib/chatUploadDirect';
 import { ApprovalImportPreview, ApprovalImportRow, ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 
 // API 기본 URL (환경에 따라 변경될 수 있음)
@@ -2828,13 +2829,26 @@ export async function uploadChatFile(
         formData.append('batchSize', String(batch.size));
     }
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    const response = await fetch(`/api/v1/chat/rooms/${roomId}/files`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-    });
+    // Vercel 프록시(4.5MB)를 거치지 않고 백엔드로 바로 — chatUploadDirect.ts 설명
+    let response: Response;
+    try {
+        response = await postChatFileDirect(roomId, formData, {
+            backendUrl: process.env.NEXT_PUBLIC_API_URL || 'https://silverithm.site',
+            getToken: () => (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null),
+            refreshToken: refreshAccessTokenOnce,
+        });
+    } catch (error) {
+        // 토큰 갱신이 끝내 안 되면 다른 요청과 같이 로그아웃한다(잠깐 흔들린 실패는 그대로 둔다)
+        if (error instanceof Error && !isTransientError(error) && error.name !== 'TypeError') {
+            handleLogout();
+            throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+        throw error;
+    }
 
+    if (response.status === 413) {
+        throw new Error('파일이 너무 커서 보낼 수 없습니다');
+    }
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error || error.message || '파일 전송에 실패했습니다');

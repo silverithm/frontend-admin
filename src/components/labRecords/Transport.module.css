@@ -116,18 +116,28 @@
   background: var(--color-background-muted);
 }
 
-/* 탑승자 한 명 — 이름·탑승 칸 위, 시각·메모는 아래에 나란히 */
+/* 탑승자 한 명 — 이름·탑승 칸 위, 시각·메모는 아래에 나란히. 줄 사이 선은 감싸는 .riderItem이 긋는다 */
 .riderRow {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
   padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: 1px solid var(--color-border);
   min-width: 0;
 }
 
-.riderRow:last-child {
+.riderItem {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.riderItem:last-child {
   border-bottom: 0;
+}
+
+/* 다 적은 분 묶음과 아직 안 적은 분 묶음 사이 — 다음 분이 어디서부터인지 */
+.riderSplit {
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-background-muted);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .riderGrid {
