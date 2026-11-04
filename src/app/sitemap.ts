@@ -9,6 +9,9 @@ import { SITE_URL } from '@/lib/seo'
 // 실제로 내용을 고칠 때 이 상수를 함께 올린다.
 const CONTENT_UPDATED = '2026-08-09'
 
+// 홈은 가이드와 따로 바뀐다 — 2026-11-05 구조화 데이터 사실 정정(우편번호·설립일·기능), 가입·로그인 단추를 링크로.
+const HOME_UPDATED = '2026-11-05'
+
 /** 블로그 목록의 갱신일은 가장 최근 글의 작성일을 따른다. */
 function latestBlogDate(): string {
   return BLOG_POSTS.reduce(
@@ -23,7 +26,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
-      lastModified: CONTENT_UPDATED,
+      lastModified: HOME_UPDATED,
       changeFrequency: 'weekly',
       priority: 1,
     },

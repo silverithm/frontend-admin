@@ -137,7 +137,7 @@ export default function RootLayout({
     },
     image: 'https://carev.kr/images/carev-logo-text.png',
     description: '주간보호센터, 장기요양기관을 위한 근무표·전자결재·운영 관리 플랫폼',
-    foundingDate: '2024',
+    foundingDate: '2024-11-28', // 사업자등록증 개업연월일
     areaServed: {
       '@type': 'Country',
       name: '대한민국'
@@ -150,7 +150,7 @@ export default function RootLayout({
       streetAddress: '대학10길 41-8, 1층 101호',
       addressLocality: '관악구',
       addressRegion: '서울특별시',
-      postalCode: '08706',
+      postalCode: '08819', // 우체국 도로명주소 검색 기준 (2026-11-05 확인)
       addressCountry: 'KR'
     },
     contactPoint: {
@@ -193,18 +193,32 @@ export default function RootLayout({
     publisher: {
       '@id': 'https://carev.kr/#organization'
     },
+    // 같은 앱의 스토어 등록 페이지 — 웹·앱이 한 실체라고 검색엔진·AI에 알린다
+    sameAs: [
+      'https://apps.apple.com/kr/app/id6747028185',
+      'https://play.google.com/store/apps/details?id=com.silverithm.carev.app',
+    ],
     offers: {
       '@type': 'Offer',
       price: '9900',
       priceCurrency: 'KRW',
       category: '월 구독',
+      // 화면의 '₩9,900 /월 (부가세 포함)'을 그대로 — 월 단위·부가세 포함을 기계가 읽을 수 있게
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: 9900,
+        priceCurrency: 'KRW',
+        valueAddedTaxIncluded: true,
+        referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
+      },
       // /subscription은 로그인 전용(noindex)이라 크롤러가 가격을 검증할 수 없다.
       // 가격이 공개 노출된 홈으로 연결한다.
       url: 'https://carev.kr',
       availability: 'https://schema.org/InStock'
     },
     featureList: [
-      '요양기관 근무표 작성 및 자동 배정',
+      // 근무표를 자동으로 짜 주는 기능은 없다 — 화면에 있는 기능만 적는다
+      '근무조정 캘린더 — 근무표 편성, 날짜별 배치 인원 확인',
       '휴무 신청과 승인 관리',
       '월간 일정·담당자·할 일 및 수행완료 진행도 관리',
       '전자결재 — 표준 기안문(공문) 양식, 다단계 결재선, 서명·직인 자동 날인',

@@ -107,12 +107,12 @@ const Navbar: React.FC = () => {
         }
         endContent={
           loggedIn ? (
-            <Button label="내 케어브이" variant="primary" size="sm" onClick={() => router.push(workspacePath)} />
+            <Button label="내 케어브이" variant="primary" size="sm" href={workspacePath} />
           ) : (
             <HStack gap={2} vAlign="center">
               <Button label="체험하기" variant="secondary" size="sm" isLoading={isDemoLoading} onClick={handleStartDemo} />
-              <Button label="회원가입" variant="ghost" size="sm" onClick={() => router.push('/signup')} />
-              <Button label="로그인" variant="primary" size="sm" onClick={() => router.push('/login')} />
+              <Button label="회원가입" variant="ghost" size="sm" href="/signup" />
+              <Button label="로그인" variant="primary" size="sm" href="/login" />
             </HStack>
           )
         }

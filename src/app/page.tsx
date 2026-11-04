@@ -399,20 +399,20 @@ export default function LandingPage() {
                                             label="30일 무료로 시작하기"
                                             variant="primary"
                                             size="lg"
-                                            onClick={() => router.push('/signup')}
+                                            href="/signup"
                                             endContent={<Icon icon={FiArrowRight} size="sm" color="inherit" />}
                                         />
                                         <Button
                                             label="로그인"
                                             variant="secondary"
                                             size="lg"
-                                            onClick={() => router.push('/login')}
+                                            href="/login"
                                         />
                                         <Button
                                             label="커뮤니티 둘러보기"
                                             variant="ghost"
                                             size="lg"
-                                            onClick={() => router.push('/plaza')}
+                                            href="/plaza"
                                         />
                                     </HStack>
 
@@ -705,7 +705,7 @@ export default function LandingPage() {
                                             label={plan.ctaLabel}
                                             variant={plan.isRecommended ? 'primary' : 'secondary'}
                                             size="lg"
-                                            onClick={() => router.push(planDestination(plan.id, authState))}
+                                            href={planDestination(plan.id, authState)}
                                             style={{ width: '100%' }}
                                         />
                                     </VStack>
@@ -775,7 +775,7 @@ export default function LandingPage() {
                                 label="30일 무료로 시작하기"
                                 variant="primary"
                                 size="lg"
-                                onClick={() => router.push('/signup')}
+                                href="/signup"
                                 endContent={<Icon icon={FiArrowRight} size="sm" color="inherit" />}
                             />
                             <Button
