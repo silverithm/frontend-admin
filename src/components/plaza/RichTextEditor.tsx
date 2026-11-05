@@ -313,8 +313,11 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
           padding: 'var(--spacing-4)',
           overflowY: 'auto',
           outline: 'none',
-          fontSize: 'var(--font-size-md, 15px)',
-          lineHeight: 1.7,
+          /* 쓸 때와 저장 후가 같아 보여야 한다 —
+             --font-size-md는 테마에 없는 토큰이라 늘 폴백 15px였고, 보기는 13px(--font-size-base)였다.
+             줄간격도 보기(.carev-richtext-view)와 같은 --text-body-leading으로 맞춘다. */
+          fontSize: 'var(--text-body-size)',
+          lineHeight: 'var(--text-body-leading)',
           color: 'var(--color-text-primary)',
         }}
       />

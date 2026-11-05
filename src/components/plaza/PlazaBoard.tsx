@@ -72,17 +72,11 @@ import {
   updatePost,
 } from './plazaApi';
 import { duration } from '@/theme/motion';
+import { normalizeEditorHtml } from '@/lib/richText';
+import { toEditorHtml } from '@/lib/noticeContent';
 
 /** 리치 에디터 도입 전의 글은 plain text — HTML 태그 유무로 구분한다 */
 const looksLikeHtml = (content: string) => /<([a-z][a-z0-9]*)\b[^>]*>/i.test(content);
-
-/** plain text 글을 에디터(HTML)에 넣을 때 태그로 오해되지 않게 이스케이프 */
-const plainToHtml = (content: string) =>
-  content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
 
 /** HTML에서 텍스트만 추출 — 빈 내용 검증용 */
 const htmlToText = (html: string) => {
@@ -306,7 +300,9 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
     setFormBoard(post.board);
     setFormCategory(post.category);
     setFormTitle(post.title);
-    setFormContent(looksLikeHtml(post.content) ? post.content : plainToHtml(post.content));
+    // 평문 글은 toEditorHtml이 이스케이프 후 <br>로 바꾼다(\r\n도 함께 정리).
+    // 편집기에 들어가는 값부터 정규화 — 더러운 채로 들어가면 저장 때 그대로 다시 쌓인다.
+    setFormContent(normalizeEditorHtml(looksLikeHtml(post.content) ? post.content : toEditorHtml(post.content)));
     setFormAnonymous(post.isAnonymous);
     setFormOfficial(post.isOfficial);
     setFormPinned(post.isPinned);
@@ -344,7 +340,8 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
     setIsSubmitting(true);
     try {
       if (editingPostId) {
-        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: sanitizeContent(formContent.trim()), isAnonymous: formAnonymous, contactInfo: contactToSave, contactPublic: formContactPublic });
+        // 소독 뒤 정규화 — 편집기가 남긴 보이지 않는 빈 줄을 저장 전에 걷어낸다
+        await updatePost(editingPostId, { board: formBoard, category: categoryToSave, title: formTitle.trim(), content: normalizeEditorHtml(sanitizeContent(formContent)).trim(), isAnonymous: formAnonymous, contactInfo: contactToSave, contactPublic: formContactPublic });
         showAlert({ type: 'success', title: '수정 완료', message: '게시글이 수정되었습니다.' });
         await reloadDetail(editingPostId);
       } else {
@@ -352,7 +349,8 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
           board: formBoard,
           category: categoryToSave,
           title: formTitle.trim(),
-          content: sanitizeContent(formContent.trim()),
+          // 소독 뒤 정규화 — 편집기가 남긴 보이지 않는 빈 줄을 저장 전에 걷어낸다
+          content: normalizeEditorHtml(sanitizeContent(formContent)).trim(),
           isAnonymous: formAnonymous,
           contactInfo: contactToSave,
           contactPublic: formContactPublic,
@@ -571,7 +569,8 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
                   /* --font-size-md는 존재하지 않는 토큰이라 항상 폴백(15px)만 적용되던 문제 —
                      실존 토큰인 --font-size-base로 교체 (하단 평문 폴백의 Text type="body"와 크기 통일) */
                   style={{ minHeight: 80, fontSize: 'var(--font-size-base)', color: 'var(--color-text-primary)' }}
-                  dangerouslySetInnerHTML={{ __html: sanitizeContent(post.content) }}
+                  /* 이미 저장된 글도 그릴 때 정규화 — 수정 전까지 세로로 늘어난 채로 두지 않는다 */
+                  dangerouslySetInnerHTML={{ __html: normalizeEditorHtml(sanitizeContent(post.content)) }}
                 />
               ) : (
                 <div style={{ whiteSpace: 'pre-wrap', minHeight: 80 }}>

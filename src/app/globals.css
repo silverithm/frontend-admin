@@ -1699,7 +1699,15 @@ html {
 /* 상세 화면에서 리치 텍스트 본문 렌더 */
 .carev-richtext-view ul { list-style: disc; padding-left: 1.5em; margin: 0.4em 0; }
 .carev-richtext-view ol { list-style: decimal; padding-left: 1.5em; margin: 0.4em 0; }
-.carev-richtext-view { line-height: 1.7; word-break: break-word; }
+/* 같은 글이 '수정 한 번'에 달라 보이면 안 된다.
+   수정 전 평문 보기는 <Text type="body">(--text-body-size / --text-body-leading)로 그려진다.
+   여기서 1.7 같은 제 값을 쓰면 수정 뒤 줄마다 10.5%씩 높아져 글이 세로로 늘어난 것처럼 보였다.
+   그래서 평문 보기와 같은 토큰을 쓴다. 편집기(.carev-richtext-editor)도 같은 값이다. */
+.carev-richtext-view {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  word-break: break-word;
+}
 .carev-richtext-size-btn {
   display: inline-flex;
   align-items: center;

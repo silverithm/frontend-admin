@@ -34,7 +34,7 @@ import {
   getNoticeReaders,
 } from '@/lib/apiService';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
-import { sanitizeRichText, isRichText, richTextToPlain } from '@/lib/richText';
+import { sanitizeRichText, normalizeEditorHtml, isRichText, richTextToPlain } from '@/lib/richText';
 import { toEditorHtml } from '@/lib/noticeContent';
 import { Notice, NoticeComment, NoticeReader, NoticePriority } from '@/types/notice';
 import { useAlert } from '@/components/Alert';
@@ -90,7 +90,8 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
       const data = response.notice || response;
       setNotice(data);
       setTitle(data.title || '');
-      setContent(toEditorHtml(data.content || ''));
+      // 편집기에 들어가는 값부터 정규화 — 더러운 채로 들어가면 저장 때 그대로 다시 쌓인다
+      setContent(normalizeEditorHtml(toEditorHtml(data.content || '')));
       setPriority(data.priority || 'NORMAL');
       setIsPinned(data.isPinned || false);
     } catch (error) {
@@ -130,7 +131,8 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
     try {
       await updateNotice(id, {
         title: title.trim(),
-        content: sanitizeRichText(content).trim(),
+        // 소독 뒤 정규화 — 편집기가 남긴 보이지 않는 빈 줄을 저장 전에 걷어낸다
+        content: normalizeEditorHtml(sanitizeRichText(content)).trim(),
         priority,
         isPinned,
       });
@@ -349,7 +351,8 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                       <div
                         className="carev-richtext-view"
                         style={{ width: '100%', fontSize: 'var(--font-size-base)', color: 'var(--color-text-primary)' }}
-                        dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.content) }}
+                        /* 이미 저장된 글도 그릴 때 정규화 — 수정 전까지 세로로 늘어난 채로 두지 않는다 */
+                        dangerouslySetInnerHTML={{ __html: normalizeEditorHtml(sanitizeRichText(notice.content)) }}
                       />
                     ) : (
                       <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>

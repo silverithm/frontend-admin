@@ -17,7 +17,7 @@ import { FieldLabel } from '@astryxdesign/core/Field';
 import { StandaloneTopBar } from '@/components/StandaloneTopBar';
 import { createNotice } from '@/lib/apiService';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
-import { sanitizeRichText, richTextToPlain } from '@/lib/richText';
+import { sanitizeRichText, normalizeEditorHtml, richTextToPlain } from '@/lib/richText';
 import { NoticePriority } from '@/types/notice';
 import { useAlert } from '@/components/Alert';
 
@@ -55,7 +55,8 @@ export default function NewNoticePage() {
     try {
       await createNotice({
         title: title.trim(),
-        content: sanitizeRichText(content).trim(),
+        // 소독 뒤 정규화 — 편집기가 남긴 보이지 않는 빈 줄을 저장 전에 걷어낸다
+        content: normalizeEditorHtml(sanitizeRichText(content)).trim(),
         priority,
         isPinned,
         sendPushNotification,

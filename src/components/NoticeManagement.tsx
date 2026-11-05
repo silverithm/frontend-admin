@@ -41,7 +41,8 @@ import { fetchOfficialNotices, type ApiOfficialNotice } from '@/components/plaza
 import { Notice, NoticeComment, NoticeReader, NoticePriority, NoticeStatus } from '@/types/notice';
 import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
-import { sanitizeRichText, isRichText, richTextToPlain } from '@/lib/richText';
+import { sanitizeRichText, normalizeEditorHtml, isRichText, richTextToPlain } from '@/lib/richText';
+import { toEditorHtml } from '@/lib/noticeContent';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
 import { formatListDateTime } from '@/lib/formatDate';
 
@@ -185,17 +186,9 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
       const data = response.notice || response; // API가 { notice: {...} } 형태로 반환
       setNotice(data);
       setTitle(data.title || '');
-      // 옛 평문 공지를 서식 에디터에 그대로 넣으면 줄바꿈이 사라진다 — 이스케이프 후 <br>로 변환
-      const raw = data.content || '';
-      setContent(
-        isRichText(raw)
-          ? raw
-          : raw
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/\n/g, '<br>'),
-      );
+      // 옛 평문 공지를 서식 에디터에 그대로 넣으면 줄바꿈이 사라진다 — toEditorHtml이 이스케이프 후 <br>로 바꾼다.
+      // 편집기에 들어가는 값부터 정규화 — 더러운 채로 들어가면 저장 때 그대로 다시 쌓인다.
+      setContent(normalizeEditorHtml(toEditorHtml(data.content || '')));
       setPriority(data.priority || 'NORMAL');
       setIsPinned(data.isPinned || false);
 
@@ -285,7 +278,8 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
     try {
       await updateNotice(selectedNoticeId, {
         title: title.trim(),
-        content: sanitizeRichText(content).trim(),
+        // 소독 뒤 정규화 — 편집기가 남긴 보이지 않는 빈 줄을 저장 전에 걷어낸다
+        content: normalizeEditorHtml(sanitizeRichText(content)).trim(),
         priority,
         isPinned,
       });
@@ -661,7 +655,8 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                     <div
                       className="carev-richtext-view"
                       style={{ width: '100%', fontSize: 'var(--font-size-base)', color: 'var(--color-text-primary)' }}
-                      dangerouslySetInnerHTML={{ __html: sanitizeRichText(notice.content) }}
+                      /* 이미 저장된 글도 그릴 때 정규화 — 수정 전까지 세로로 늘어난 채로 두지 않는다 */
+                      dangerouslySetInnerHTML={{ __html: normalizeEditorHtml(sanitizeRichText(notice.content)) }}
                     />
                   ) : (
                     <div style={{ width: '100%', whiteSpace: 'pre-wrap' }}>
