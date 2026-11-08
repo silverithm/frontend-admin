@@ -1794,6 +1794,12 @@ html {
    기본값은 음절마다 끊을 수 있어 '전 / 원 참석', '발송됩니 / 다.'처럼 낱말이 쪼개졌다(2026-10-27).
    아주 긴 낱말(URL 등)은 칸을 넘지 않게 아무 데서나 끊는다. */
 .carev-keep-all { word-break: keep-all; overflow-wrap: anywhere; }
+/* 대시보드 — 휴무자 이름·요일이 음절 중간에서 갈리지 않게 ("강태/윤", "(월요/일)").
+   astryx Text가 글자마다 word-break:break-word를 ID 세 겹 우선순위(:not(#\#)×3)로 박아
+   부모에 keep-all을 줘도 안 내려간다 — 그래서 여기만 !important로 덮는다.
+   긴 낱말은 overflow-wrap(Text 기본 break-word)이 그대로 잘라 준다. */
+.carev-dash-root { word-break: keep-all; overflow-wrap: break-word; }
+.carev-dash-root :is(span, p, div) { word-break: keep-all !important; }
 
 
 /* ── 채팅 2차 다듬기 (R4) ─────────────────────────────────────────── */

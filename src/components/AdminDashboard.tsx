@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -1029,9 +1029,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         transition={{ duration: duration.fastMax }}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
-        <HStack gap={2} vAlign="center">
+        {/* 폰 폭에서는 날짜가 인사말 아래 줄로 내려간다 — 한 줄에 같이 끼우면 둘 다 낱말 중간에서 잘렸다
+            ("(월요/일)", "(1577-/1389)"). 전화번호는 한 덩어리로 둔다. */}
+        <HStack gap={2} vAlign="center" wrap="wrap">
           <Text type="body" weight="bold" color="primary">
-            {getDailyGreeting()}
+            {keepPhoneNumbersTogether(getDailyGreeting())}
           </Text>
           <Text type="supporting" color="secondary">
             {format(new Date(), 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
@@ -2383,5 +2385,20 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         onCreated={reloadCalendarMonth}
       />
     </div>
+  );
+}
+
+/** 문장 안 전화번호(괄호 포함)를 줄바꿈 없이 한 덩어리로 — "(1577-" / "1389)"처럼 하이픈에서 갈리지 않게 */
+function keepPhoneNumbersTogether(text: string): ReactNode {
+  const parts = text.split(/(\(?\d{2,4}-\d{3,4}(?:-\d{4})?\)?)/);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <span key={i} style={{ whiteSpace: 'nowrap' }}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
   );
 }
