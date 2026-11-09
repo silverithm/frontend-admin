@@ -28,7 +28,8 @@ import { TimeInput } from '@astryxdesign/core/TimeInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Popover } from '@astryxdesign/core/Popover';
-import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
+import { matchesScheduleFilter } from '@/lib/scheduleFilter';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
@@ -301,7 +302,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
-  // 일정 필터: 빈 배열이면 전체 표시. 'myTasks' | 'label:<id>' | 'noLabel' 값을 담는다.
+  // 일정 필터: 빈 배열이면 전체 표시. 값 규칙(담당자·일정 구분)은 lib/scheduleFilter.
   // 기관별로 localStorage에 저장해 새로고침·재방문 시에도 유지한다.
   const [scheduleFilterValues, setScheduleFilterValues] = useState<string[]>([]);
   const [isScheduleFilterOpen, setIsScheduleFilterOpen] = useState(false);
@@ -593,18 +594,11 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     );
   };
 
-  // 일정 필터 — 선택된 옵션 중 하나라도 맞으면 보여준다. 아무것도 선택 안 했으면 전체 표시.
-  const scheduleMatchesFilter = (schedule: Schedule) => {
-    if (scheduleFilterValues.length === 0) return true;
-    return scheduleFilterValues.some((v) => {
-      if (v === 'myTasks') return isMySchedule(schedule);
-      if (v === 'noLabel') return !schedule.label;
-      if (v.startsWith('label:')) return String(schedule.label?.id ?? '') === v.slice('label:'.length);
-      return false;
-    });
-  };
+  // 일정 필터 — 담당자 묶음·일정 구분 묶음 각각 하나라도 맞고, 두 묶음을 다 골랐으면 둘 다 맞아야 보인다.
   const visibleSchedules = useMemo(
-    () => (scheduleFilterValues.length === 0 ? schedules : schedules.filter(scheduleMatchesFilter)),
+    () => (scheduleFilterValues.length === 0
+      ? schedules
+      : schedules.filter((s) => matchesScheduleFilter(s, scheduleFilterValues, (x) => isMySchedule(x as Schedule)))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [schedules, scheduleFilterValues, currentMemberId, currentUserEmail]
   );
@@ -692,12 +686,23 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     });
   }, [visibleSchedules, calendarWeeks, isExpanded, currentDate]);
 
-  // 이번 달 일정 진행도
+  // 이번 달 일정 진행도 — 필터를 걸면 걸린 일정만 센다(대시보드 달력과 같은 규칙).
+  // 담당자 한 명을 고르면 곧 그 사람의 이번 달 수행률이다.
   const monthProgress = useMemo(() => {
-    const total = schedules.length;
-    const done = schedules.filter((s) => s.isCompleted).length;
+    const total = visibleSchedules.length;
+    const done = visibleSchedules.filter((s) => s.isCompleted).length;
     return { total, done, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
-  }, [schedules]);
+  }, [visibleSchedules]);
+  const progressScopeText = scheduleFilterValues.length > 0 ? '필터한 일정' : '이번 달 일정';
+
+  // 골라 둔 담당자가 이번 달 일정에 없을 때 필터 목록에 띄울 이름
+  const filterPersonName = useCallback(
+    (personKey: string) => (
+      managerCandidates.find((m) => managerOptionValue(m) === personKey)?.name
+      ?? members.find((m) => `MEMBER:${m.id}` === personKey)?.name
+    ),
+    [managerCandidates, members],
+  );
 
   // 수정/삭제 권한 (관리자 또는 작성자 본인)
   const canManageSchedule = (schedule: Schedule) =>
@@ -1502,7 +1507,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                 </HStack>
                 {/* 일정 모드: 이번 달 수행 진행도 — 곁눈으로 읽는 값이라 알약으로 묶는다 */}
                 {!isDispatchMode && (
-                  <div className="carev-dash-cal-stat" title={`이번 달 일정 수행완료 ${monthProgress.percent}%`}>
+                  <div className="carev-dash-cal-stat" title={`${progressScopeText} 수행완료 ${monthProgress.percent}%`}>
                     <HStack gap={1.5} vAlign="center">
                       <Icon icon={IconCircleCheckFilled} size="xsm" color="success" />
                       <Text type="supporting" color="secondary" hasTabularNumbers>
@@ -1510,7 +1515,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       </Text>
                       <div
                         role="progressbar"
-                        aria-label="이번 달 일정 진행도"
+                        aria-label={`${progressScopeText} 진행도`}
                         aria-valuenow={monthProgress.percent}
                         aria-valuemin={0}
                         aria-valuemax={100}
@@ -1597,17 +1602,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       placement="below"
                       alignment="start"
                       content={
-                        <CheckboxList
-                          label="일정 필터"
-                          value={scheduleFilterValues}
+                        <ScheduleFilterPanel
+                          values={scheduleFilterValues}
                           onChange={updateScheduleFilterValues}
-                        >
-                          <CheckboxListItem label="담당 업무" value="myTasks" />
-                          {customCategories.map((label) => (
-                            <CheckboxListItem key={label.id} label={label.name} value={`label:${label.id}`} />
-                          ))}
-                          <CheckboxListItem label="구분 없음" value="noLabel" />
-                        </CheckboxList>
+                          labels={customCategories}
+                          schedules={schedules}
+                          fallbackName={filterPersonName}
+                        />
                       }
                     >
                       <Button

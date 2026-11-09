@@ -18,7 +18,8 @@ import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Popover } from '@astryxdesign/core/Popover';
-import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
+import { matchesScheduleFilter } from '@/lib/scheduleFilter';
 import {
   IconUsers,
   IconCalendar,
@@ -196,6 +197,8 @@ interface ScheduleItem {
   /** 일정에 등록된 할 일 수 / 그중 완료된 수 */
   taskTotal?: number;
   taskCompleted?: number;
+  /** 할 일 — 일정 필터의 담당자 묶음이 할 일 담당자까지 본다 */
+  tasks?: { assigneeMemberId?: number | null; assigneeName?: string | null }[];
   participants?: { id: number; memberName: string; userName?: string; status?: string }[];
 }
 
@@ -307,7 +310,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
   // 달력이 보고 있는 달 (월간일정 탭처럼 앞뒤로 넘길 수 있다)
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => startOfMonth(new Date()));
   const [isMonthLoading, setIsMonthLoading] = useState(false);
-  // 일정 필터: 빈 배열이면 전체 표시. 'myTasks' | 'label:<id>' | 'noLabel' 값을 담는다.
+  // 일정 필터: 빈 배열이면 전체 표시. 값 규칙(담당자·일정 구분)은 lib/scheduleFilter.
   // 월간일정 탭(ScheduleCalendar)과 같은 규칙 — 기관별로 localStorage에 저장한다.
   const [scheduleFilterValues, setScheduleFilterValues] = useState<string[]>([]);
   const [isScheduleFilterOpen, setIsScheduleFilterOpen] = useState(false);
@@ -666,18 +669,11 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
     });
   };
 
-  // 일정 필터 — 선택된 옵션 중 하나라도 맞으면 보여준다. 아무것도 선택 안 했으면 전체 표시.
-  const scheduleMatchesFilter = (schedule: ScheduleItem) => {
-    if (scheduleFilterValues.length === 0) return true;
-    return scheduleFilterValues.some((v) => {
-      if (v === 'myTasks') return isMySchedule(schedule);
-      if (v === 'noLabel') return !schedule.label;
-      if (v.startsWith('label:')) return String(schedule.label?.id ?? '') === v.slice('label:'.length);
-      return false;
-    });
-  };
+  // 일정 필터 — 담당자 묶음·일정 구분 묶음 각각 하나라도 맞고, 두 묶음을 다 골랐으면 둘 다 맞아야 보인다.
   const visibleMonthlySchedules = useMemo(
-    () => (scheduleFilterValues.length === 0 ? monthlySchedules : monthlySchedules.filter(scheduleMatchesFilter)),
+    () => (scheduleFilterValues.length === 0
+      ? monthlySchedules
+      : monthlySchedules.filter((s) => matchesScheduleFilter(s, scheduleFilterValues, (x) => isMySchedule(x as ScheduleItem)))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monthlySchedules, scheduleFilterValues, currentMemberId, currentUserEmail, myTasks],
   );
@@ -723,6 +719,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
 
     return dayMap;
   }, [visibleMonthlySchedules]);
+
+  // 골라 둔 담당자가 이번 달 일정에 없을 때 필터 목록에 띄울 이름
+  const filterPersonName = useCallback(
+    (personKey: string) => members.find((m) => `MEMBER:${m.id}` === personKey)?.name,
+    [members],
+  );
 
   // 보고 있는 달의 일정 진행도
   const monthlyProgress = useMemo(() => {
@@ -1505,7 +1507,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         <HStack gap={1.5} vAlign="center">
                           <Icon icon={IconCircleCheckFilled} size="xsm" color="success" />
                           <Text type="supporting" color="secondary" hasTabularNumbers>{monthlyProgress.done}/{monthlyProgress.total}</Text>
-                          <div role="progressbar" aria-label="이번 달 일정 진행도" aria-valuenow={monthlyProgress.percent} aria-valuemin={0} aria-valuemax={100} style={{ width: 48, height: 4, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}>
+                          <div role="progressbar" aria-label={scheduleFilterValues.length > 0 ? "필터한 일정 진행도" : "이번 달 일정 진행도"} aria-valuenow={monthlyProgress.percent} aria-valuemin={0} aria-valuemax={100} style={{ width: 48, height: 4, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}>
                             <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${monthlyProgress.percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
                           </div>
                         </HStack>
@@ -1544,17 +1546,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         placement="below"
                         alignment="start"
                         content={
-                          <CheckboxList
-                            label="일정 필터"
-                            value={scheduleFilterValues}
+                          <ScheduleFilterPanel
+                            values={scheduleFilterValues}
                             onChange={updateScheduleFilterValues}
-                          >
-                            <CheckboxListItem label="담당 업무" value="myTasks" />
-                            {customCategories.map((label) => (
-                              <CheckboxListItem key={label.id} label={label.name} value={`label:${label.id}`} />
-                            ))}
-                            <CheckboxListItem label="구분 없음" value="noLabel" />
-                          </CheckboxList>
+                            labels={customCategories}
+                            schedules={monthlySchedules}
+                            fallbackName={filterPersonName}
+                          />
                         }
                       >
                         <Button
