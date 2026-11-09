@@ -29,7 +29,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Popover } from '@astryxdesign/core/Popover';
 import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
-import { matchesScheduleFilter } from '@/lib/scheduleFilter';
+import { matchesScheduleFilter, scheduleFilterButtonLabel, type FilterableSchedule } from '@/lib/scheduleFilter';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
@@ -302,6 +302,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
+  // 관리자 로그인의 app_user.id — '나'에서 관리자 담당(ADMIN) 일정을 알아보는 데만 쓴다
+  const [currentAdminId, setCurrentAdminId] = useState<number | null>(null);
   // 일정 필터: 빈 배열이면 전체 표시. 값 규칙(담당자·일정 구분)은 lib/scheduleFilter.
   // 기관별로 localStorage에 저장해 새로고침·재방문 시에도 유지한다.
   const [scheduleFilterValues, setScheduleFilterValues] = useState<string[]>([]);
@@ -393,9 +395,13 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     }
     if (typeof window !== 'undefined') {
       setCurrentUserEmail(localStorage.getItem('userEmail') || '');
-      // 직원 로그인 시 userId에 member id가 저장된다 (담당자 매칭용)
-      const storedMemberId = Number(localStorage.getItem('userId'));
-      setCurrentMemberId(Number.isFinite(storedMemberId) && storedMemberId > 0 ? storedMemberId : null);
+      // userId는 직원 로그인이면 members.id, 관리자 로그인이면 app_user.id다. 두 번호는 겹칠 수 있어
+      // 관리자 번호를 직원 번호로 쓰면 같은 번호 직원의 일정·할 일이 '나'로 잡혔다(2026-11-09).
+      const storedId = Number(localStorage.getItem('userId'));
+      const validId = Number.isFinite(storedId) && storedId > 0 ? storedId : null;
+      const isEmployeeLogin = localStorage.getItem('loginType') === 'employee';
+      setCurrentMemberId(isEmployeeLogin ? validId : null);
+      setCurrentAdminId(isEmployeeLogin ? null : validId);
     }
   }, [currentDate, isDispatchMode]);
 
@@ -587,20 +593,31 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   // 내가 관련된 일정인지 (담당자 / 참석자 / 작성자)
   const isMySchedule = (schedule: Schedule) => {
     if (schedule.authorId && schedule.authorId === currentUserEmail) return true;
+    if (currentAdminId != null && schedule.managerType === 'ADMIN'
+        && Number(schedule.managerId) === currentAdminId) return true;
     if (currentMemberId == null) return false;
+    // 일정 담당자 본인 — 대시보드 달력과 같은 규칙. 빠져 있어서 할 일 없이 담당만 맡은
+    // 일정이 이 탭의 '나'(예전 '담당 업무')에서 안 보였다. managerId는 MEMBER일 때만 members.id다.
+    if (schedule.managerId != null && (schedule.managerType || 'MEMBER') === 'MEMBER'
+        && Number(schedule.managerId) === currentMemberId) return true;
     if (schedule.tasks?.some((t) => Number(t.assigneeMemberId) === currentMemberId)) return true;
     return !!schedule.participants?.some(
       (p) => Number((p as { memberId?: number }).memberId ?? p.userId) === currentMemberId
     );
   };
 
+  // 필터의 '나' — 판정과 '나' 옆 완료 수가 같은 함수를 쓴다
+  const isMineForFilter = useCallback(
+    (schedule: FilterableSchedule) => isMySchedule(schedule as Schedule),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentMemberId, currentAdminId, currentUserEmail],
+  );
   // 일정 필터 — 담당자 묶음·일정 구분 묶음 각각 하나라도 맞고, 두 묶음을 다 골랐으면 둘 다 맞아야 보인다.
   const visibleSchedules = useMemo(
     () => (scheduleFilterValues.length === 0
       ? schedules
-      : schedules.filter((s) => matchesScheduleFilter(s, scheduleFilterValues, (x) => isMySchedule(x as Schedule)))),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [schedules, scheduleFilterValues, currentMemberId, currentUserEmail]
+      : schedules.filter((s) => matchesScheduleFilter(s, scheduleFilterValues, isMineForFilter))),
+    [schedules, scheduleFilterValues, isMineForFilter]
   );
 
   // 날짜에 해당하는 일정 가져오기
@@ -1608,11 +1625,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                           labels={customCategories}
                           schedules={schedules}
                           fallbackName={filterPersonName}
+                          isMine={isMineForFilter}
                         />
                       }
                     >
                       <Button
-                        label={scheduleFilterValues.length > 0 ? `일정 필터 (${scheduleFilterValues.length})` : '일정 필터'}
+                        label={scheduleFilterButtonLabel(scheduleFilterValues, schedules, filterPersonName)}
                         variant={scheduleFilterValues.length > 0 ? 'primary' : 'ghost'}
                         size="sm"
                         icon={<Icon icon={IconUserCheck} size="sm" />}

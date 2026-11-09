@@ -16,6 +16,7 @@ import {
     matchesScheduleFilter,
     personFilterValue,
     labelFilterValue,
+    scheduleFilterButtonLabel,
     MY_SCHEDULES_FILTER,
     NO_LABEL_FILTER,
     type FilterableSchedule,
@@ -109,4 +110,12 @@ test("골라 둔 사람은 이번 달에 맡은 일정이 없어도 남는다", 
         { key: "MEMBER:40", name: "최간호", total: 0, done: 0 },
     ]);
     assert.equal(collectPersonOptions([], [personFilterValue("MEMBER:41")])[0].name, "이름 없음");
+});
+
+test("단추 글자 — 한 사람만 고르면 이름, 그 밖에는 개수", () => {
+    assert.equal(scheduleFilterButtonLabel([], all), "일정 필터");
+    assert.equal(scheduleFilterButtonLabel([personFilterValue("MEMBER:9")], all), "일정 필터 · 김요양");
+    assert.equal(scheduleFilterButtonLabel([MY_SCHEDULES_FILTER], all), "일정 필터 · 나");
+    assert.equal(scheduleFilterButtonLabel([labelFilterValue(7)], all), "일정 필터 (1)");
+    assert.equal(scheduleFilterButtonLabel([personFilterValue("MEMBER:9"), labelFilterValue(7)], all), "일정 필터 (2)");
 });

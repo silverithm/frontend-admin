@@ -19,7 +19,7 @@ import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Popover } from '@astryxdesign/core/Popover';
 import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
-import { matchesScheduleFilter } from '@/lib/scheduleFilter';
+import { matchesScheduleFilter, scheduleFilterButtonLabel, type FilterableSchedule } from '@/lib/scheduleFilter';
 import {
   IconUsers,
   IconCalendar,
@@ -280,6 +280,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
   const [elderAttendance, setElderAttendance] = useState({ total: 0, present: 0, absent: 0, personalPickup: 0, personalDropoff: 0 });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
+  // 관리자 로그인의 app_user.id — '나'에서 관리자 담당(ADMIN) 일정을 알아보는 데만 쓴다
+  const [currentAdminId, setCurrentAdminId] = useState<number | null>(null);
   const [togglingScheduleId, setTogglingScheduleId] = useState<string | null>(null);
   const [myTasks, setMyTasks] = useState<ScheduleTask[]>([]);
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
@@ -376,9 +378,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCurrentUserEmail(localStorage.getItem('userEmail') || '');
-      // 직원 로그인 시 userId에 member id가 저장된다 (담당자 매칭용)
-      const storedMemberId = Number(localStorage.getItem('userId'));
-      setCurrentMemberId(Number.isFinite(storedMemberId) && storedMemberId > 0 ? storedMemberId : null);
+      // userId는 직원 로그인이면 members.id, 관리자 로그인이면 app_user.id다. 두 번호는 겹칠 수 있어
+      // 관리자 번호를 직원 번호로 쓰면 같은 번호 직원의 일정·할 일이 '나'로 잡혔다(2026-11-09).
+      const storedId = Number(localStorage.getItem('userId'));
+      const validId = Number.isFinite(storedId) && storedId > 0 ? storedId : null;
+      const isEmployeeLogin = localStorage.getItem('loginType') === 'employee';
+      setCurrentMemberId(isEmployeeLogin ? validId : null);
+      setCurrentAdminId(isEmployeeLogin ? null : validId);
     }
   }, []);
 
@@ -657,6 +663,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
   // 월간일정 탭(ScheduleCalendar)의 '내 업무만'과 같은 규칙이다.
   const isMySchedule = (schedule: ScheduleItem) => {
     if (schedule.authorId && schedule.authorId === currentUserEmail) return true;
+    if (currentAdminId != null && schedule.managerType === 'ADMIN'
+        && Number(schedule.managerId) === currentAdminId) return true;
     if (currentMemberId == null) return false;
     // managerId는 managerType이 MEMBER일 때만 members.id 공간이다 — ADMIN이면 app_user.id라
     // currentMemberId(항상 members.id)와 비교하면 우연히 겹칠 수 있다(V1.88 사고 참고).
@@ -669,13 +677,18 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
     });
   };
 
+  // 필터의 '나' — 판정과 '나' 옆 완료 수가 같은 함수를 쓴다
+  const isMineForFilter = useCallback(
+    (schedule: FilterableSchedule) => isMySchedule(schedule as ScheduleItem),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentMemberId, currentAdminId, currentUserEmail, myTasks],
+  );
   // 일정 필터 — 담당자 묶음·일정 구분 묶음 각각 하나라도 맞고, 두 묶음을 다 골랐으면 둘 다 맞아야 보인다.
   const visibleMonthlySchedules = useMemo(
     () => (scheduleFilterValues.length === 0
       ? monthlySchedules
-      : monthlySchedules.filter((s) => matchesScheduleFilter(s, scheduleFilterValues, (x) => isMySchedule(x as ScheduleItem)))),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [monthlySchedules, scheduleFilterValues, currentMemberId, currentUserEmail, myTasks],
+      : monthlySchedules.filter((s) => matchesScheduleFilter(s, scheduleFilterValues, isMineForFilter))),
+    [monthlySchedules, scheduleFilterValues, isMineForFilter],
   );
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -1544,7 +1557,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         onOpenChange={setIsScheduleFilterOpen}
                         label="일정 필터"
                         placement="below"
-                        alignment="start"
+                        alignment="end"
                         content={
                           <ScheduleFilterPanel
                             values={scheduleFilterValues}
@@ -1552,11 +1565,12 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                             labels={customCategories}
                             schedules={monthlySchedules}
                             fallbackName={filterPersonName}
+                            isMine={isMineForFilter}
                           />
                         }
                       >
                         <Button
-                          label={scheduleFilterValues.length > 0 ? `일정 필터 (${scheduleFilterValues.length})` : '일정 필터'}
+                          label={scheduleFilterButtonLabel(scheduleFilterValues, monthlySchedules, filterPersonName)}
                           variant={scheduleFilterValues.length > 0 ? 'primary' : 'ghost'}
                           size="sm"
                           icon={<Icon icon={IconUserCheck} size="sm" />}

@@ -141,3 +141,22 @@ export function collectPersonOptions(
     .map((option) => ({ ...option, name: option.name || fallbackName(option.key) || '이름 없음' }))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko') || a.key.localeCompare(b.key));
 }
+
+/**
+ * '일정 필터' 단추 글자. 한 사람만 골랐으면 이름을 보인다 — 달력이 지금 누구의 일정인지
+ * 단추만 봐도 알게(점검하면서 사람을 바꿔 가며 본다). 그 밖에는 고른 개수.
+ */
+export function scheduleFilterButtonLabel(
+  values: string[],
+  schedules: FilterableSchedule[],
+  fallbackName?: (personKey: string) => string | undefined,
+): string {
+  if (values.length === 0) return '일정 필터';
+  if (values.length === 1 && values[0] === MY_SCHEDULES_FILTER) return '일정 필터 · 나';
+  if (values.length === 1 && values[0].startsWith(PERSON_PREFIX)) {
+    const key = values[0].slice(PERSON_PREFIX.length);
+    const person = collectPersonOptions(schedules, values, fallbackName).find((option) => option.key === key);
+    if (person) return `일정 필터 · ${person.name}`;
+  }
+  return `일정 필터 (${values.length})`;
+}

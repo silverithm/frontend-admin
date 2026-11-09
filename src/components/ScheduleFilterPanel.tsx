@@ -26,6 +26,17 @@ interface ScheduleFilterPanelProps {
   schedules: FilterableSchedule[];
   /** 골라 둔 사람이 이번 달 일정에 없을 때 쓸 이름 */
   fallbackName?: (personKey: string) => string | undefined;
+  /** '나'의 완료 수를 세는 데 쓴다 — 화면마다 '내 일정' 판정이 다르다 */
+  isMine?: (schedule: FilterableSchedule) => boolean;
+}
+
+/** 이름 옆 숫자 — 다른 사람 줄과 같은 모양으로 '나'에도 붙인다 */
+function DoneCount({ done, total }: { done: number; total: number }) {
+  return (
+    <Text type="supporting" color="secondary" hasTabularNumbers>
+      {total > 0 ? `완료 ${done}/${total}` : '일정 없음'}
+    </Text>
+  );
 }
 
 /**
@@ -41,13 +52,20 @@ export default function ScheduleFilterPanel({
   labels,
   schedules,
   fallbackName,
+  isMine,
 }: ScheduleFilterPanelProps) {
   const kindValues = values.filter(isKindFilterValue);
   const personValues = values.filter(isPersonFilterValue);
+  const kindMatched = useMemo(() => schedules.filter((s) => matchesKindFilter(s, values)), [schedules, values]);
   const people = useMemo(
-    () => collectPersonOptions(schedules.filter((s) => matchesKindFilter(s, values)), values, fallbackName),
-    [schedules, values, fallbackName],
+    () => collectPersonOptions(kindMatched, values, fallbackName),
+    [kindMatched, values, fallbackName],
   );
+  const mine = useMemo(() => {
+    if (!isMine) return null;
+    const list = kindMatched.filter(isMine);
+    return { total: list.length, done: list.filter((s) => s.isCompleted).length };
+  }, [kindMatched, isMine]);
 
   return (
     // 담당자가 많은 기관에서도 화면 밖으로 넘치지 않게 팝오버 안에서 스크롤한다
@@ -59,17 +77,17 @@ export default function ScheduleFilterPanel({
             value={personValues}
             onChange={(next) => onChange([...next, ...kindValues])}
           >
-            <CheckboxListItem label="나" value={MY_SCHEDULES_FILTER} />
+            <CheckboxListItem
+              label="나"
+              value={MY_SCHEDULES_FILTER}
+              endContent={mine ? <DoneCount done={mine.done} total={mine.total} /> : undefined}
+            />
             {people.map((person) => (
               <CheckboxListItem
                 key={person.key}
                 label={person.name}
                 value={personFilterValue(person.key)}
-                endContent={
-                  <Text type="supporting" color="secondary" hasTabularNumbers>
-                    {person.total > 0 ? `완료 ${person.done}/${person.total}` : '이달 없음'}
-                  </Text>
-                }
+                endContent={<DoneCount done={person.done} total={person.total} />}
               />
             ))}
           </CheckboxList>
