@@ -9,6 +9,8 @@ import { FormSchema } from '@/types/formSchema';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import OfficialDocument from '@/components/approval/OfficialDocument';
 import { buildSampleApproval } from '@/components/approval/templatePreview';
+import { useBlankFormPrint } from '@/components/approval/useBlankFormPrint';
+import { canPrintBlankForm } from '@/lib/blankForm';
 import ViewerSelector from '@/components/approval/ViewerSelector';
 import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
 import { Button } from '@astryxdesign/core/Button';
@@ -33,7 +35,7 @@ import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder, { ExistingFormTemplateOption } from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
-import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight, FiPrinter } from 'react-icons/fi';
 import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
@@ -111,6 +113,12 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   const [companyName, setCompanyName] = useState('');
   // 양식 순서 조정(위/아래 이동)
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  const { printBlankForm, printElement: blankFormPrintElement } = useBlankFormPrint(companyName);
+  /** 손으로 채울 빈 서식 — 결재란은 이 양식의 기본 결재선 칸 수 */
+  const handlePrintBlankForm = (template: ApprovalTemplate) => {
+    printBlankForm(template, parseDefaultLine(template.defaultApprovalLine)?.length ?? 0);
+  };
 
   // 템플릿 로드
   useEffect(() => {
@@ -619,6 +627,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   return (
     <>
       <AlertContainer />
+      {blankFormPrintElement}
       <TemplateBulkUploadDialog
         isOpen={showBulkUpload}
         onClose={() => setShowBulkUpload(false)}
@@ -882,6 +891,14 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                             <MoreMenu
                               label="더 보기"
                               items={[
+                                // 종이에 손으로 채워 쓰는 서식 (2026-11-11 제보)
+                                ...(canPrintBlankForm(template)
+                                  ? [{
+                                      label: '빈 서식 인쇄',
+                                      icon: FiPrinter,
+                                      onClick: () => handlePrintBlankForm(template),
+                                    }]
+                                  : []),
                                 {
                                   label: '삭제',
                                   icon: FiTrash2,
@@ -1193,6 +1210,21 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                     <Text type="body" color="secondary">미리볼 서식이 없습니다. 편집에서 항목을 추가해주세요.</Text>
                   )}
                 </LayoutContent>
+              }
+              footer={
+                canPrintBlankForm(previewTemplate) ? (
+                  <LayoutFooter hasDivider>
+                    <HStack gap={2} hAlign="end">
+                      {/* 미리보기의 예시 값이 아니라 칸이 빈 종이 서식을 찍는다 */}
+                      <Button
+                        label="빈 서식 인쇄"
+                        variant="secondary"
+                        icon={<Icon icon={FiPrinter} />}
+                        onClick={() => handlePrintBlankForm(previewTemplate)}
+                      />
+                    </HStack>
+                  </LayoutFooter>
+                ) : undefined
               }
             />
           </Dialog>

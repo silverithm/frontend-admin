@@ -12,6 +12,7 @@ import { chunkRowForDocTable, docRowColumnTemplate, formatFieldValueText, groupF
 import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 import ApprovalImageValue from './ApprovalImageValue';
+import { printDocumentElement } from './printDocument';
 
 interface OfficialDocumentProps {
   approval: ApprovalRequest;
@@ -87,51 +88,6 @@ function formatDateFull(value?: string): string {
   } catch {
     return '-';
   }
-}
-
-/** 문서를 숨은 iframe으로 복제해 인쇄 (모달/오버레이 환경에서도 안전) */
-function printDocumentElement(element: HTMLElement) {
-  const iframe = document.createElement('iframe');
-  iframe.setAttribute('aria-hidden', 'true');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentDocument;
-  if (!doc) {
-    document.body.removeChild(iframe);
-    window.print();
-    return;
-  }
-
-  const headHtml = Array.from(
-    document.querySelectorAll('link[rel="stylesheet"], style'),
-  )
-    .map((node) => node.outerHTML)
-    .join('');
-
-  doc.open();
-  doc.write(
-    `<!doctype html><html><head><meta charset="utf-8"><title>전자결재 인쇄</title>${headHtml}</head>` +
-    `<body style="background:#fff">${element.outerHTML}</body></html>`,
-  );
-  doc.close();
-
-  // 스타일시트 로드 대기 후 인쇄
-  window.setTimeout(() => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } finally {
-      window.setTimeout(() => {
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      }, 1000);
-    }
-  }, 350);
 }
 
 /** 폼 데이터 본문을 공문 표로 렌더 */

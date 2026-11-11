@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiPlus, FiFileText, FiEye, FiDownload, FiChevronRight, FiEdit3, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiFileText, FiEye, FiDownload, FiChevronRight, FiEdit3, FiSearch, FiPrinter } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -38,6 +38,8 @@ import { useAlert } from './Alert';
 import { useConfirm } from './ConfirmDialog';
 import FormRenderer from './approval/FormRenderer';
 import OfficialDocument from './approval/OfficialDocument';
+import { useBlankFormPrint } from './approval/useBlankFormPrint';
+import { canPrintBlankForm } from '@/lib/blankForm';
 import MySignatureCard from './approval/MySignatureCard';
 import DocumentViewerModal from './DocumentViewerModal';
 import { duration } from '@/theme/motion';
@@ -103,6 +105,13 @@ export default function EmployeeApproval() {
 
   const [userId, setUserId] = useState('');
   const [companyName, setCompanyName] = useState('');
+
+  const { printBlankForm, printElement: blankFormPrintElement } = useBlankFormPrint(companyName);
+
+  /** 손으로 채울 빈 서식 — 결재란은 작성 화면과 같은 기본 결재선(본인 제외) 칸 수 */
+  const handlePrintBlankForm = (template: ApprovalTemplate) => {
+    printBlankForm(template, parseDefaultApprovalLine(template.defaultApprovalLine, userId).length);
+  };
 
   // 클라이언트에서만 userId를 설정 (SSR 하이드레이션 불일치 방지)
   useEffect(() => {
@@ -880,6 +889,7 @@ export default function EmployeeApproval() {
     <>
       <AlertContainer />
       <ConfirmContainer />
+      {blankFormPrintElement}
       {/* 셸이 flex 컬럼으로 감싸므로 남은 높이를 모두 차지한다 */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column', gap: 'var(--spacing-5)' }}>
         {/* 헤더 */}
@@ -964,11 +974,13 @@ export default function EmployeeApproval() {
               )}
               {filteredTemplates.map((template) => (
                 <Card key={template.id}>
-                  <HStack hAlign="between" vAlign="center" gap={4}>
-                    <HStack gap={4} vAlign="start">
+                  {/* 폰처럼 좁으면 단추 묶음이 이름 아래 줄로 내려간다 — 한 줄에 우기면
+                      양식 이름이 한 글자씩 세로로 갈렸다 */}
+                  <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap">
+                    <HStack gap={4} vAlign="start" style={{ flex: '1 1 260px', minWidth: 0 }}>
                       <Icon icon={FiFileText} color="secondary" size="lg" />
-                      <VStack gap={1}>
-                        <HStack gap={2} vAlign="center">
+                      <VStack gap={1} style={{ minWidth: 0 }}>
+                        <HStack gap={2} vAlign="center" wrap="wrap">
                           <Text weight="semibold" color="primary">{template.name}</Text>
                           {(template.category || '').trim() && (
                             <Badge variant="neutral" label={(template.category || '').trim()} />
@@ -991,7 +1003,17 @@ export default function EmployeeApproval() {
                         )}
                       </VStack>
                     </HStack>
-                    <HStack gap={2} vAlign="center">
+                    <HStack gap={2} vAlign="center" wrap="wrap" hAlign="end">
+                      {/* 종이에 손으로 채워 쓰는 기관이 있다(2026-11-11 제보) — 칸마다 쓸 자리를 그린 서식을 찍는다 */}
+                      {canPrintBlankForm(template) && (
+                        <Button
+                          label="빈 서식 인쇄"
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={FiPrinter} />}
+                          onClick={() => handlePrintBlankForm(template)}
+                        />
+                      )}
                       {/* 온라인 양식은 내려받을 파일이 없다. 화면에서 채우는 것이 이 양식을 쓰는
                           유일한 방법이라 그리로 보낸다 — 전에는 버튼이 하나도 없어서
                           눌러도 아무 일이 없었다. */}
