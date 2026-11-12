@@ -47,7 +47,7 @@ export function PageHeader({
     return (
         // 액션이 둘 이상인 화면(결재 신청·양식 관리)은 좁은 폭에서 제목 줄이 넘치므로
         // 줄바꿈을 항상 허용한다. 넘치지 않으면 한 줄 그대로다.
-        // 면 없이 아래 1px 선만 둔다(2단 머리 — DESIGN.md). 바로 아래에 이미 선이 있는 곳은 그쪽을 없앤다.
+        // 면 없이 아래 1px 선만 둔다(DESIGN.md "카드 머리줄"의 페이지 제목 항목). 바로 아래에 이미 선이 있는 곳은 그쪽을 없앤다.
         <div
             style={{
                 paddingBottom: 'var(--spacing-3)',

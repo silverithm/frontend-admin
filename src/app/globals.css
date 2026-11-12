@@ -117,9 +117,8 @@ html {
   --color-header-text-secondary: light-dark(#E1F0EE, #b9dcd2);
   --color-header-selected: rgb(255 255 255 / 0.16);
   --color-header-hover: rgb(255 255 255 / 0.10);
-  /* 2단 머리(페이지 안쪽 카드·패널 머리줄) — 1단과 같은 기본 틸을 아주 옅게(6%), 선은 25%.
-     대비: #171717 on #F1F7F6 16.9:1 · #2a3038 on #F1F7F6 12.6:1 / 다크 #fafafa on #12302b 13.6:1 */
-  --color-subheader-background: light-dark(#F1F7F6, #12302b);
+  /* 페이지 제목(PageHeader) 아래 선 — 기본 틸을 25% 섞은 선. 카드·패널 머리줄은 2026-11-12부터
+     옅은 틸 면 없이 흰 면 + --color-border 선이라(subheaderStyle.ts) 면 토큰은 없앴다. */
   --color-subheader-border: light-dark(#C3DDDB, #1f5a4d);
 }
 /* 1단 머리줄(진한 기본 틸 면) 안쪽 — 글씨·아이콘은 흰색으로 물려받고, 탭·버튼은 흰 반투명 면.
