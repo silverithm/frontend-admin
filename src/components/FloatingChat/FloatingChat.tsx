@@ -776,7 +776,8 @@ export function FloatingChat() {
                         background: 'var(--color-accent)',
                         color: 'var(--color-on-accent)',
                         boxShadow: 'var(--shadow-med)',
-                        transition: 'background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard)',
+                        // transform은 누르는 동안 0.94로 눌리는 반응(globals.css 반응 A)이 부드럽게 들고 나도록 함께 둔다
+                        transition: 'background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard)',
                     }}
                     icon={
                         <AnimatePresence mode="wait">

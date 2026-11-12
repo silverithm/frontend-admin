@@ -665,7 +665,7 @@ html {
 .carev-chat-image { transition: filter var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-chat-image:hover { filter: brightness(0.9); } }
 /* 리액션 이모지 배지 */
-.carev-reaction-badge { transition: box-shadow var(--duration-fast-min) var(--ease-standard) !important; }
+.carev-reaction-badge { transition: box-shadow var(--duration-fast-min) var(--ease-standard), transform var(--duration-fast) var(--ease-standard) !important; }
 @media (hover: hover) { .carev-reaction-badge:hover { box-shadow: var(--shadow-inset-hover); } }
 /* 파일 업로드 드롭존 */
 .carev-upload-dropzone { transition: background var(--duration-fast-min) var(--ease-standard), box-shadow var(--duration-fast-min) var(--ease-standard); }
@@ -1933,3 +1933,55 @@ html {
    '바 / 뀔 때마다'처럼 제목과 문장이 음절 중간에서 끊겼다(3차 덜어내기). 아주 긴 낱말(URL·메일)만
    칸 끝에서 끊는다. break-word는 anywhere와 달리 최소 폭 계산을 바꾸지 않아 단추·배지 폭이 그대로다. */
 .carev-public-page { word-break: keep-all; overflow-wrap: break-word; }
+
+/* ══ 반응(Motion) — 눌림·뼈대·전환·아래에서 올라오는 확인 창 (DESIGN.md "Motion") ══════════════
+   가만히 있는 화면은 바꾸지 않는다. 여기 규칙은 누르는 동안·불러오는 동안·바뀌는 순간에만 보인다.
+   움직임은 "눌렸다·바뀌었다·기다리는 중이다"를 알리는 데만 쓴다. 되튀는 이징은 쓰지 않는다. */
+
+/* A. 눌림 — 단추는 누르는 동안 0.97로 줄어든다. 들어갈 때 110ms, 놓을 때는 각 요소의 기본 전환(--duration-fast), 감속 --ease-standard.
+   Astryx Button·IconButton(·ToggleButton)은 안정 클래스 .astryx-button으로 그려지고, 라이브러리가 이미 :active에
+   scale(.98)과 transform 전환을 걸어 둔다. 그 규칙이 ID 세 겹(:not(#\#)×3) 우선순위라 값을 바꾸려면 !important가
+   필요하다 — 해시 클래스가 아니라 안정 클래스에만 건다.
+   빼는 것: 비활성(:disabled·aria-disabled), 붙어 있는 단추 묶음(ButtonGroup·ToggleButtonGroup — Astryx도 줄이지 않는다),
+   끌어 옮기는 손잡이·끌 수 있는 요소 안, 문서 미리보기 안. 스위치·체크박스·라디오·세그먼트·달력 날짜 칸은
+   .astryx-button이 아니라 이 규칙이 닿지 않는다. */
+@media (prefers-reduced-motion: no-preference) {
+  .astryx-button:active:not(:disabled, [aria-disabled="true"], :is(.astryx-button-group, .astryx-toggle-button-group, .carev-fchat-handle, [draggable="true"], .carev-doc-page) *) {
+    transform: scale(0.97) !important;
+    transition-duration: 110ms !important;
+  }
+  /* <button>으로 만든 작은 누름 요소 — 요소 선택자로 넓게 걸면 행·달력 칸까지 줄어들어 이름으로만 고른다 */
+  :is(.carev-annual-month-title, .carev-dispatch-stat-trigger, .carev-chat-rail-strip-label, .carev-richtext-color-btn, .carev-richtext-size-btn, .carev-reaction-badge):active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: 110ms !important;
+  }
+  /* 둥글게 떠 있는 단추(플로팅 채팅 열기)는 조금 더 — 0.94. 끄는 중(data-dragging)에는 손잡이가 들려야 하므로 줄이지 않는다 */
+  .carev-fchat-root:not([data-dragging]) .carev-fchat-fab:active:not(:disabled) {
+    transform: scale(0.94) !important;
+    transition-duration: 110ms !important;
+  }
+}
+.carev-annual-month-title,
+.carev-dispatch-stat-trigger,
+.carev-chat-rail-strip-label,
+.carev-richtext-color-btn,
+.carev-richtext-size-btn { transition: transform var(--duration-fast) var(--ease-standard); }
+/* 바탕 전환이 없던 줄에만 더한다 — 이미 있는 줄(.carev-row·.carev-dash-row)은 제 전환을 쓴다 */
+.carev-wt-row,
+.carev-wt-done-toggle,
+.carev-chat-rail-sechead,
+.carev-annual-item,
+.carev-formbuilder-preset-item { transition: background-color var(--duration-fast) var(--ease-standard); }
+/* 폭이 넓은 줄은 줄어들지 않는다 — 누르는 동안 바탕만 hover(--color-background-muted)보다 한 단계 진하게.
+   ClickableRow·행 버튼은 인라인으로 background:none을 줘서 !important로만 덮인다.
+   행 안의 다른 단추를 누를 때는 줄 전체가 눌린 것처럼 보이지 않게 :has로 거른다.
+   ClickableCard·Astryx Item(채팅방 목록 등)은 라이브러리가 이미 눌림 바탕을 갖고 있어 여기서 다루지 않는다. */
+:is(button.carev-row, .carev-dash-row, .carev-wt-row, .carev-wt-done-toggle, .carev-chat-rail-sechead, .carev-annual-item, .carev-formbuilder-preset-item, .carev-member-item):active:not(:has(:is(button, a):active)) {
+  background-color: var(--color-background-gray) !important;
+  transition-duration: 110ms;
+}
+/* 동작 줄이기 — 위 크기 변화는 no-preference 안에만 있어 저절로 꺼지고, 라이브러리 기본 scale(.98)만 여기서 끈다.
+   바탕 변화(눌린 줄·Astryx 눌림 덧칠)는 그대로 남는다. */
+@media (prefers-reduced-motion: reduce) {
+  .astryx-button:active { transform: none !important; }
+}
