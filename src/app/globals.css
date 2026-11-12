@@ -1991,3 +1991,28 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .carev-skel-rows .astryx-skeleton { animation: none !important; opacity: 1 !important; }
 }
+
+/* C. 전환 — 탭을 바꿔 본문이 갈릴 때 새 본문이 6px 아래에서 떠오르며 나타난다(200ms, --ease-standard).
+   셸(관리자·직원)의 탭 키로 다시 마운트되는 본문 래퍼 한 곳에만 단다. 나가는 쪽 움직임은 없다.
+   끝 값은 transform: none + fill-mode backwards — 끝난 뒤 transform이 남으면 position: fixed 자식의 기준이 바뀐다. */
+@keyframes carev-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.carev-enter { animation: carev-enter 200ms var(--ease-standard) backwards; }
+/* 목록 첫 등장 — 위에서 8줄까지 30ms 간격, 9번째부터는 기다리지 않고 바로 있다.
+   처음 불러온 뒤 한 번만 단다(useStaggerOnce가 끝나면 클래스를 뗀다) — 갱신마다 다시 흔들리지 않게.
+   주기적으로 다시 받는 화면(채팅·알림·대시보드)에는 달지 않는다. */
+.carev-stagger > :nth-child(-n+8) { animation: carev-enter 200ms var(--ease-standard) backwards; }
+.carev-stagger > :nth-child(2) { animation-delay: 30ms; }
+.carev-stagger > :nth-child(3) { animation-delay: 60ms; }
+.carev-stagger > :nth-child(4) { animation-delay: 90ms; }
+.carev-stagger > :nth-child(5) { animation-delay: 120ms; }
+.carev-stagger > :nth-child(6) { animation-delay: 150ms; }
+.carev-stagger > :nth-child(7) { animation-delay: 180ms; }
+.carev-stagger > :nth-child(8) { animation-delay: 210ms; }
+@media (prefers-reduced-motion: reduce) {
+  /* 전역 블록은 길이만 0.01ms로 줄여 지연(backwards로 투명) 동안 깜빡일 수 있다 — 아예 끈다 */
+  .carev-enter,
+  .carev-stagger > * { animation: none !important; }
+}

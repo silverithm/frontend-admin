@@ -2,7 +2,6 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { logout as apiLogout, getMemberPermissions } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
 import EmployeeCalendar from '@/components/EmployeeCalendar';
@@ -57,7 +56,6 @@ import {
   IconMailbox,
   IconFolder,
 } from '@tabler/icons-react';
-import { duration } from '@/theme/motion';
 
 // 탭 구성은 관리자 화면(src/app/admin/page.tsx)과 같은 순서·라벨·아이콘을 따른다.
 // 관리자 전용 기능(회원관리·편의기능 등)만 권한으로 항목을 숨긴다.
@@ -355,15 +353,13 @@ export default function EmployeePage() {
           {/* 메인 콘텐츠 */}
           <div className="carev-emp-body">
           <main style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
-            {/* 탭별 콘텐츠 */}
-            <AnimatePresence mode="wait">
+            {/* 탭별 콘텐츠 — 탭 키로 래퍼가 다시 마운트될 때 .carev-enter(globals.css 반응 C)가
+                200ms 동안 6px 아래에서 떠오르며 나타난다. 나가는 쪽은 움직이지 않는다(기다리게 하지 않는다). */}
+            <>
               {activeMainTab === 'dashboard' ? (
-                <motion.div
+                <div
                   key="dashboard"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} onOpenSchedule={({ id, startDate }) => {
@@ -372,51 +368,39 @@ export default function EmployeePage() {
                     setScheduleFocusId(id);
                     setActiveMainTab('schedule');
                   }} />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'notice' ? (
-                <motion.div
+                <div
                   key="notice"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 직원은 NOTICE_MANAGE 권한 보유 여부가 공지 관리 권한이다 */}
                   <NoticeManagement canManage={hasPermission('NOTICE_MANAGE')} />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'chat' ? (
-                <motion.div
+                <div
                   key="chat"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* ChatManagement의 isAdmin prop은 실제로는 "채팅방 생성·삭제 권한"이다. 전용 채팅 권한이 없어
                       공지 관리 권한(NOTICE_MANAGE)을 대신 기준으로 쓰고 있다 — 기존 동작 유지, 이 컴포넌트는 다른
                       작업자가 수정 중이라 손대지 않는다. */}
                   <ChatManagement onNotification={showNotification} isAdmin={hasPermission('NOTICE_MANAGE')} initialRoomId={railRoomId} initialRoomNonce={railRoomNonce} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'schedule' ? (
-                <motion.div
+                <div
                   key="schedule"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.mediumMin }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <ScheduleCalendar isAdmin={hasPermission('SCHEDULE_MANAGE')} mode="schedule" initialMonth={scheduleFocusMonth} initialScheduleId={scheduleFocusId} onInitialScheduleOpened={() => setScheduleFocusId(null)} onNotification={showNotification} />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'tools' ? (
-                <motion.div
+                <div
                   key={`tools-${activeTool}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.mediumMin }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 도구가 둘 이상이 되면 전환 바를 띄운다 */}
@@ -443,14 +427,11 @@ export default function EmployeePage() {
                   {activeTool === 'aipost' && (
                     <AiPostWriter companyName={companyName} onNotification={showNotification} />
                   )}
-                </motion.div>
+                </div>
               ) : activeMainTab === 'approval' ? (
-                <motion.div
+                <div
                   key="approval"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/*
@@ -489,36 +470,27 @@ export default function EmployeePage() {
                     // 이 서브탭 버튼 자체가 APPROVAL_TEMPLATE 권한으로 가려져 있어 항상 true지만, 의도를 명시적으로 남긴다
                     <ApprovalTemplateManager canManage={hasPermission('APPROVAL_TEMPLATE')} />
                   ) : null}
-                </motion.div>
+                </div>
               ) : activeMainTab === 'plaza' ? (
-                <motion.div
+                <div
                   key="plaza"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <PlazaManagement />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'voice' ? (
-                <motion.div
+                <div
                   key="voice"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <VoiceBoxEmployee />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'work' ? (
-                <motion.div
+                <div
                   key="work"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 다른 탭은 본문 맨 위에 제목이 있는데 이 탭만 없었다 — 관리자 근무조정과 같은 자리 */}
@@ -555,35 +527,29 @@ export default function EmployeePage() {
                   ) : (
                       <EmployeeCalendar />
                   )}
-                </motion.div>
+                </div>
               ) : activeMainTab === 'library' ? (
-                <motion.div
+                <div
                   key="library"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* 전용 권한이 없어 열람은 모두 열고, 업로드·삭제만 canManage=false로 막는다(관리자만 자료 관리) */}
                   <CompanyLibrary canManage={false} onNotification={showNotification} />
-                </motion.div>
+                </div>
               ) : activeMainTab === 'members' ? (
-                <motion.div
+                <div
                   key="members"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: duration.fast }}
+                  className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
                   <UserManagement
                     onNotification={showNotification}
                     canManage={hasPermission('MEMBER_MANAGE')}
                   />
-                </motion.div>
+                </div>
               ) : null}
-            </AnimatePresence>
+            </>
           </main>
 
           {/* 채팅 탭에서는 패널을 그리지 않는다 — 다만 언마운트는 하지 않는다. 안 읽은 수 폴링이

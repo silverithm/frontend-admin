@@ -23,6 +23,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Loading } from '@/components/Loading';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { useStaggerOnce } from '@/hooks/useStaggerOnce';
 import { FiPlus, FiTrash2, FiDownload, FiEye, FiUploadCloud, FiFileText } from 'react-icons/fi';
 import {
   fetchCompanyLibrary,
@@ -85,6 +86,8 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
   const { confirm, ConfirmContainer } = useConfirm();
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // 처음 불러온 뒤 한 번만 위 8줄이 차례로 떠오른다(globals.css 반응 C) — 거르기·올리기 뒤에는 다시 흔들리지 않는다
+  const staggerClass = useStaggerOnce(!isLoading);
   const [categoryFilter, setCategoryFilter] = useState('');
 
   const [showUpload, setShowUpload] = useState(false);
@@ -287,7 +290,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
         ) : (
           /* 카드 여러 장 대신 하나의 표면 안에서 구분선으로 나눈다(ApprovalManagement 결재 목록과 같은 규칙) */
           <Card padding={0}>
-            <VStack gap={0}>
+            <VStack gap={0} className={staggerClass}>
               {visibleItems.map((item, idx) => (
                 <Fragment key={item.id}>
                   {idx > 0 && <Divider />}

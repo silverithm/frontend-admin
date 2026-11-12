@@ -16,6 +16,7 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Loading } from './Loading';
+import { useStaggerOnce } from '@/hooks/useStaggerOnce';
 import { Icon } from '@astryxdesign/core/Icon';
 import { FiInbox, FiSearch } from 'react-icons/fi';
 import { useAlert } from './Alert';
@@ -156,6 +157,8 @@ export default function VoiceBoxAdmin() {
   const [statusFilter, setStatusFilter] = useState<'all' | VoiceMessageItem['status']>('all');
   const [messages, setMessages] = useState<VoiceMessageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // 처음 불러온 뒤 한 번만 위 8줄이 차례로 떠오른다(globals.css 반응 C) — 거르기·저장 뒤에는 다시 흔들리지 않는다
+  const staggerClass = useStaggerOnce(!isLoading);
   // 항목별 편집 상태 (상태·답변 초안)
   const [drafts, setDrafts] = useState<Record<number, { status: string; reply: string }>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -308,7 +311,7 @@ export default function VoiceBoxAdmin() {
       ) : (
         /* 카드 여러 장 대신 하나의 표면 안에서 구분선으로 나눈다(ApprovalManagement 결재 목록과 같은 규칙) */
         <Card padding={0}>
-          <VStack gap={0}>
+          <VStack gap={0} className={staggerClass}>
             {visibleMessages.map((item, idx) => {
               const draft = draftFor(item);
               return (

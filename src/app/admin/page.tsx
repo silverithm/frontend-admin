@@ -24,7 +24,7 @@ import {
     getMemberUsers,
     getPositions,
 } from "@/lib/apiService";
-import {motion, AnimatePresence} from "framer-motion";
+import {AnimatePresence} from "framer-motion";
 import VacationCalendar from "@/components/VacationCalendar";
 import ScheduleCalendar from "@/components/ScheduleCalendar";
 import AnnualScheduleView from "@/components/AnnualScheduleView";
@@ -109,7 +109,6 @@ import {
     IconSparkles,
     IconFlask,
 } from "@tabler/icons-react";
-import { duration } from '@/theme/motion';
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Layout, LayoutContent, LayoutFooter } from "@astryxdesign/core/Layout";
 import OnboardingTour from "@/components/OnboardingTour";
@@ -1464,15 +1463,14 @@ export default function AdminPage() {
             {/* 본문 + 우측 상시 채팅 레일 */}
             <div className="carev-admin-body">
             <main style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
-                {/* 탭별 컨텐츠 */}
-                <AnimatePresence mode="wait" initial={false}>
+                {/* 탭별 컨텐츠 — 탭 키로 래퍼가 다시 마운트될 때 .carev-enter(globals.css 반응 C)가
+                    200ms 동안 6px 아래에서 떠오르며 나타난다. 나가는 쪽은 움직이지 않는다(기다리게 하지 않는다).
+                    예전 AnimatePresence(mode="wait")는 옛 본문이 사라질 때까지 새 본문을 붙잡아 두었다. */}
+                <>
                     {activeMainTab === "dashboard" ? (
-                        <motion.div
+                        <div
                             key="dashboard"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <AdminDashboard onTabChange={(tab) => {
@@ -1487,39 +1485,30 @@ export default function AdminPage() {
                                 setScheduleMode("schedule");
                                 setActiveMainTab("schedule");
                             }} />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "notice" ? (
-                        <motion.div
+                        <div
                             key="notice"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* 관리자는 로그인 타입 자체가 공지 관리 권한이다 */}
                             <NoticeManagement canManage={isAdmin} onOpenPlazaPost={handleOpenPlazaPost} />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "chat" ? (
-                        <motion.div
+                        <div
                             key="chat"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* ChatManagement의 isAdmin prop은 실제로는 "채팅방 생성·삭제 권한"이다(다른 작업자가 수정 중이라 이 파일은 손대지 않는다).
                                 관리자는 로그인 타입 자체가 그 권한이므로 명시적으로 넘긴다. */}
                             <ChatManagement onNotification={showNotification} isAdmin={isAdmin} initialRoomId={railRoomId} initialRoomNonce={railRoomNonce} onUnreadChange={setChatUnread} onActiveRoomChange={setActiveChatRoomId} />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "schedule" ? (
-                        <motion.div
+                        <div
                             key={`schedule-${scheduleMode}`}
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {scheduleMode === "annual" ? (
@@ -1539,14 +1528,11 @@ export default function AdminPage() {
                                     onNotification={showNotification}
                                 />
                             )}
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "tools" ? (
-                        <motion.div
+                        <div
                             key={`tools-${activeTool}`}
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* 도구가 둘 이상이 되면 모바일에서도 고를 수 있도록 전환 바를 띄운다 */}
@@ -1569,14 +1555,11 @@ export default function AdminPage() {
                             {activeTool === "minutes" && (
                                 <MeetingMinutes onNotification={showNotification} />
                             )}
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "approval" ? (
-                        <motion.div
+                        <div
                             key={`approval-${approvalSubTab}`}
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {approvalSubTab === "management" && isAdmin ? (
@@ -1586,36 +1569,27 @@ export default function AdminPage() {
                             ) : (
                                 <EmployeeApproval />
                             )}
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "plaza" ? (
-                        <motion.div
+                        <div
                             key="plaza"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <PlazaManagement />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "voice" ? (
-                        <motion.div
+                        <div
                             key="voice"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <VoiceBoxAdmin />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "work" ? (
-                        <motion.div
+                        <div
                             key="work"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             {/* 다른 탭은 전부 본문 맨 위에 제목이 있는데 이 탭만 없어서,
@@ -1950,36 +1924,27 @@ export default function AdminPage() {
                                     </Card>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "library" ? (
-                        <motion.div
+                        <div
                             key="library"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <CompanyLibrary canManage={isAdmin} onNotification={showNotification} />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "lab" && isAdmin && labEnabled ? (
-                        <motion.div
+                        <div
                             key="lab"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <LabHome />
-                        </motion.div>
+                        </div>
                     ) : activeMainTab === "members" ? (
-                        <motion.div
+                        <div
                             key="members"
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            exit={{opacity: 0}}
-                            transition={{duration: duration.fastMin}}
+                            className="carev-enter"
                             style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
                         >
                             <UserManagement
@@ -1988,9 +1953,9 @@ export default function AdminPage() {
                                 canManage={isAdmin}
                                 onPendingCountChange={onMembersPendingChange}
                             />
-                        </motion.div>
+                        </div>
                     ) : null}
-                </AnimatePresence>
+                </>
 
             </main>
 

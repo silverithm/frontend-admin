@@ -14,6 +14,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
+import { CountUp } from './CountUp';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -1118,7 +1119,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           }}
                         >
                           <Text type="large" weight="bold" color={stat.tone === 'alert' && stat.value > 0 ? 'inherit' : 'primary'}>
-                            {stat.value}
+                            {/* 처음 보일 때만 0에서 값까지 센다(400ms). 갱신·동작 줄이기·0은 바로 값 */}
+                            <CountUp value={stat.value} />
                           </Text>
                           <Text type="supporting" color="secondary">{stat.label}</Text>
                         </div>
