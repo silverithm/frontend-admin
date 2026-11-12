@@ -40,10 +40,13 @@ import { Notice, NoticeComment, NoticeReader, NoticePriority } from '@/types/not
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { StandaloneTopBar } from '@/components/StandaloneTopBar';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 type TabType = 'content' | 'comments' | 'readers';
 
 export default function NoticeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // 좁은 화면(640px 미만)에서 삭제·나가기 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+  const sheetProps = useBottomSheetDialog();
   const { id } = use(params);
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
@@ -481,6 +484,7 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
         onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}
         purpose="form"
         width={440}
+        {...sheetProps}
       >
         <Layout
           header={<DialogHeader title="공지사항 삭제" onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }} />}

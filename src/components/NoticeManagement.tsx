@@ -45,6 +45,7 @@ import { sanitizeRichText, normalizeEditorHtml, isRichText, richTextToPlain } fr
 import { toEditorHtml } from '@/lib/noticeContent';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
 import { formatListDateTime } from '@/lib/formatDate';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 type ViewMode = 'list' | 'detail';
 type TabType = 'all' | 'published';
@@ -82,6 +83,8 @@ interface NoticeManagementProps {
 }
 
 export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: NoticeManagementProps) {
+  // 좁은 화면(640px 미만)에서 삭제·나가기 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+  const sheetProps = useBottomSheetDialog();
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
@@ -768,6 +771,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
         onOpenChange={(o) => { if (!o) setShowDeleteConfirm(false); }}
         purpose="required"
         width={440}
+        {...sheetProps}
       >
         <Layout
           header={<DialogHeader title="공지사항 삭제" onOpenChange={(o) => { if (!o) setShowDeleteConfirm(false); }} />}

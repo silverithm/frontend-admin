@@ -65,6 +65,7 @@ import DispatchSettings from './DispatchSettings';
 import DispatchBoard from './DispatchBoard';
 import DispatchAttendancePanel from './DispatchAttendancePanel';
 import { duration } from '@/theme/motion';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -199,6 +200,8 @@ interface ScheduleFormData {
 }
 
 export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', initialMonth = null, initialScheduleId = null, onInitialScheduleOpened, onNotification }: ScheduleCalendarProps) {
+  // 좁은 화면(640px 미만)에서 삭제·나가기 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+  const sheetProps = useBottomSheetDialog();
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [currentDate, setCurrentDate] = useState(() => initialMonth ?? new Date());
@@ -2661,6 +2664,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
         onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}
         purpose="required"
         width={440}
+        {...sheetProps}
       >
         <Layout
           header={

@@ -24,6 +24,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import PageHeader from '@/components/PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { duration } from '@/theme/motion';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 interface Member {
     id: string;
@@ -47,6 +48,8 @@ interface PositionManagementProps {
 }
 
 const PositionManagement: React.FC<PositionManagementProps> = ({ organizationName, onNotification, isAdmin = true }) => {
+    // 좁은 화면(640px 미만)에서 삭제·나가기 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+    const sheetProps = useBottomSheetDialog();
     const [activeTab, setActiveTab] = useState<'positions' | 'assign'>('positions');
     const [positions, setPositions] = useState<Position[]>([]);
     const [members, setMembers] = useState<Member[]>([]);
@@ -480,6 +483,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                 onOpenChange={(o) => { if (!o) { setShowDeleteModal(false); setSelectedPosition(null); } }}
                 purpose="required"
                 width={440}
+                {...sheetProps}
             >
                 <Layout
                     header={

@@ -63,6 +63,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { duration } from '@/theme/motion';
 import { formatListDate, formatListDateTime } from '@/lib/formatDate';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 interface User {
   id: string;
@@ -267,6 +268,8 @@ interface UserManagementProps {
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNotification, canManage = true, onPendingCountChange }) => {
+  // 좁은 화면(640px 미만)에서 삭제·나가기 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+  const sheetProps = useBottomSheetDialog();
   const [activeTab, setActiveTab] = useState<'pending' | 'members' | 'roles' | 'seniors'>('pending');
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
 
@@ -1414,6 +1417,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           onOpenChange={(o) => { if (!o) setShowDeleteModal(false); }}
           purpose="form"
           width={440}
+          {...sheetProps}
         >
           <Layout
             header={<DialogHeader title="회원 삭제 확인" onOpenChange={(o) => { if (!o) setShowDeleteModal(false); }} />}
@@ -1787,6 +1791,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
           onOpenChange={(o) => { if (!o) setShowDeleteSeniorModal(false); }}
           purpose="form"
           width={440}
+          {...sheetProps}
         >
           <Layout
             header={<DialogHeader title="어르신 삭제 확인" onOpenChange={(o) => { if (!o) setShowDeleteSeniorModal(false); }} />}

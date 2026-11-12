@@ -7,6 +7,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 export interface ConfirmConfig {
   title?: string;
@@ -35,6 +36,8 @@ export function ConfirmDialog({
   const iconName = type === 'danger' ? 'error' : type === 'warning' ? 'warning' : 'info';
   const iconColor = type === 'danger' ? 'error' : type === 'warning' ? 'warning' : 'accent';
   const confirmVariant = type === 'danger' ? 'destructive' : 'primary';
+  // 640px 미만에서는 화면 아래에 붙어 올라오는 창, 그 이상은 지금 그대로 가운데 창
+  const sheetProps = useBottomSheetDialog();
 
   return (
     <Dialog
@@ -44,6 +47,7 @@ export function ConfirmDialog({
       }}
       purpose="form"
       width={440}
+      {...sheetProps}
     >
       <Layout
         header={

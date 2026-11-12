@@ -25,6 +25,7 @@ import {
     getPositions,
 } from "@/lib/apiService";
 import {AnimatePresence} from "framer-motion";
+import { useBottomSheetDialog } from "@/hooks/useBottomSheetDialog";
 import VacationCalendar from "@/components/VacationCalendar";
 import ScheduleCalendar from "@/components/ScheduleCalendar";
 import AnnualScheduleView from "@/components/AnnualScheduleView";
@@ -131,6 +132,8 @@ type ScheduleMode = "schedule" | "annual";
 // 편의기능 탭에 들어가는 부가 도구들. 새 편의기능을 붙일 때 여기에 키를 추가한다.
 type ToolKey = "dispatch" | "aipost" | "minutes";
 export default function AdminPage() {
+    // 좁은 화면(640px 미만)에서 휴무 삭제 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+    const sheetProps = useBottomSheetDialog();
     const router = useRouter();
     const [activeMainTab, setActiveMainTab] = useState<MainTab>("dashboard");
     /** 우측 레일에서 고른 대화방 — 채팅 탭이 열릴 때 이 방을 편다 */
@@ -2026,6 +2029,7 @@ export default function AdminPage() {
                     onOpenChange={(open) => { if (!open) cancelDelete(); }}
                     purpose="required"
                     width={420}
+                    {...sheetProps}
                 >
                     {selectedDeleteVacation && (
                         <Layout

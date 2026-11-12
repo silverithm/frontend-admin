@@ -57,6 +57,7 @@ import { FiCornerUpLeft, FiPaperclip, FiMessageCircle, FiSearch, FiTrash2, FiLog
 import { IconPin, IconPinnedOff } from '@tabler/icons-react';
 
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
+import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 interface ChatManagementProps {
     onNotification: (message: string, type: "success" | "error" | "info") => void;
@@ -254,6 +255,8 @@ function renderWithMentions(content: string, isMyMessage: boolean) {
 // @/lib/chatMessageGrouping으로 옮겨 플로팅 채팅과 같은 규칙을 공유한다.
 
 export function ChatManagement({ onNotification, isAdmin = true, initialRoomId = null, initialRoomNonce = 0, onUnreadChange, onActiveRoomChange }: ChatManagementProps) {
+    // 좁은 화면(640px 미만)에서 삭제·나가기 확인 창을 화면 아래에 붙여 올린다(DESIGN.md "Motion")
+    const sheetProps = useBottomSheetDialog();
     const [rooms, setRooms] = useState<ChatRoom[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<number | null>(initialRoomId);
 
@@ -3250,6 +3253,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 onOpenChange={(open) => { if (!open) { setShowDeleteConfirm(false); setConfirmRoomId(null); } }}
                 purpose="required"
                 width={400}
+                {...sheetProps}
             >
                 <Layout
                     header={
@@ -3296,6 +3300,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 onOpenChange={(open) => { if (!open) { setShowLeaveConfirm(false); setConfirmRoomId(null); } }}
                 purpose="required"
                 width={400}
+                {...sheetProps}
             >
                 <Layout
                     header={

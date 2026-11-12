@@ -2016,3 +2016,16 @@ html {
   .carev-enter,
   .carev-stagger > * { animation: none !important; }
 }
+
+/* D. 아래에서 올라오는 확인 창 — 640px 미만에서 확인·경고·짧은 선택 창(useBottomSheetDialog)이 화면 아래에 붙어 올라온다.
+   위치·폭·모서리·아래 여백은 Dialog에 넘기는 값(width·position·인라인 style)이 맡고, 여기서는 올라오는 움직임과 단추 줄만 다룬다.
+   라이브러리 Dialog 안쪽 해시 클래스는 건드리지 않는다. 640px 이상에서는 클래스가 붙지 않아 지금 그대로 가운데 창이다. */
+@keyframes carev-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+/* 단추는 한 줄에 폭을 나눠 채우고, 손가락으로 누르기 좋게 높이 44px(--spacing-11) 이상 */
+.carev-sheet .astryx-layout-footer .astryx-button {
+  flex: 1 1 0;
+  min-height: var(--spacing-11);
+}
