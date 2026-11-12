@@ -730,7 +730,7 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
         {/* 템플릿 목록 */}
         <Card padding={0}>
           {isLoading ? (
-            <Loading label="양식을 불러오는 중..." />
+            <Loading variant="rows" label="양식을 불러오는 중..." />
           ) : isSeeding && templates.length === 0 ? (
             <Loading label="기본 양식을 준비하는 중..." />
           ) : templates.length > 0 ? (

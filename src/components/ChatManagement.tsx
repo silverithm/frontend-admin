@@ -1834,7 +1834,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                 {listTab === 'rooms' && (
                 <div style={{ flex: 1, overflowY: "auto" }}>
                     {isLoadingRooms ? (
-                        <Loading size="inline" height={128} label="채팅방을 불러오는 중..." />
+                        <Loading variant="rows" size="inline" height={128} label="채팅방을 불러오는 중..." />
                     ) : rooms.length === 0 ? (
                         <div style={{ padding: 'var(--spacing-6)' }}>
                             <EmptyState

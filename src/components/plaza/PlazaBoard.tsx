@@ -730,7 +730,7 @@ export default function PlazaBoard({ board, category = null, onCategoryChange, o
           {isLoading ? (
             /* 목록이 화면 높이를 채우므로 로딩·빈 상태는 영역 정중앙에 둔다
                (Astryx Center: "Use it for empty states, loading screens") */
-            <Loading height="100%" label="게시글을 불러오는 중..." />
+            <Loading variant="rows" height="100%" label="게시글을 불러오는 중..." />
           ) : posts.length === 0 ? (
             <Center height="100%">
               <div style={{ padding: 'var(--spacing-8)' }}>

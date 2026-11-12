@@ -378,7 +378,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
   // 검색할 때마다 덮으면 입력창이 통째로 사라졌다 나타나서 글자를 칠 수 없다.
   if (isLoading && isFirstLoad) {
     return (
-      <Loading label="결재 목록을 불러오는 중..." />
+      <Loading variant="rows" label="결재 목록을 불러오는 중..." />
     );
   }
 

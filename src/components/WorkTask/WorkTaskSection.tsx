@@ -107,7 +107,7 @@ export default function WorkTaskSection({ meId, members, isOpen, onToggle, openT
       {isOpen && (
         <div className="carev-chat-rail-section">
           {status === 'loading' ? (
-            <Loading size="inline" height={72} label="업무를 불러오는 중..." />
+            <Loading variant="rows" size="inline" label="업무를 불러오는 중..." />
           ) : status === 'error' ? (
             <div className="carev-chat-rail-notice">
               <Banner

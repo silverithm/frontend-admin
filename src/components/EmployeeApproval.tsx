@@ -1175,7 +1175,7 @@ export default function EmployeeApproval() {
                 여러 장인 것처럼 보인다. ClickableRow는 진짜 <button>이라 Tab으로 도달하고
                 Enter/Space로 열리며(키보드 접근성 유지), 겉모습은 style로 완전히 지운다. */}
             {isLoading ? (
-              <Loading label="결재 목록을 불러오는 중..." />
+              <Loading variant="rows" label="결재 목록을 불러오는 중..." />
             ) : filteredApprovals.length > 0 ? (
               <Card padding={0}>
                 <VStack gap={0}>

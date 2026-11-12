@@ -264,7 +264,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
         )}
 
         {isLoading ? (
-          <Loading label="자료를 불러오는 중..." />
+          <Loading variant="rows" label="자료를 불러오는 중..." />
         ) : visibleItems.length === 0 ? (
           <StackItem size="fill">
             <Card padding={10} height="100%">

@@ -15,7 +15,7 @@ import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Divider } from '@astryxdesign/core/Divider';
-import { Spinner } from '@astryxdesign/core/Spinner';
+import { Loading } from './Loading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { FiInbox, FiSearch } from 'react-icons/fi';
 import { useAlert } from './Alert';
@@ -276,10 +276,9 @@ export default function VoiceBoxAdmin() {
 
       {isLoading ? (
         <StackItem size="fill">
-          <Card variant="muted" height="100%">
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Spinner label="불러오는 중..." />
-            </div>
+          {/* 처음 불러오는 동안 목록 뼈대 — 들어올 목록(Card padding 0 + 구분선 줄)과 같은 표면에 그린다 */}
+          <Card padding={0} height="100%">
+            <Loading variant="rows" height="100%" label="불러오는 중..." />
           </Card>
         </StackItem>
       ) : messages.length === 0 ? (

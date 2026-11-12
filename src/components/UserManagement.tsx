@@ -877,7 +877,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
 
   if (isLoading) {
     return (
-      <Loading label="사용자 목록을 불러오는 중..." />
+      <Loading variant="rows" label="사용자 목록을 불러오는 중..." />
     );
   }
 

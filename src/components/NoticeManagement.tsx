@@ -353,7 +353,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
   if (isLoading && notices.length === 0 && viewMode === 'list') {
     return (
       <Card padding={0}>
-        <Loading label="공지사항을 불러오는 중..." />
+        <Loading variant="rows" label="공지사항을 불러오는 중..." />
       </Card>
     );
   }

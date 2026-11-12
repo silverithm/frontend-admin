@@ -1985,3 +1985,9 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .astryx-button:active { transform: none !important; }
 }
+
+/* B. 뼈대 — <Loading variant="rows" />가 그리는 목록 뼈대. 반짝임은 Astryx Skeleton 기본(1초 뒤부터 천천히 밝아졌다 흐려짐).
+   동작 줄이기에서는 멈추고, 흐린 시작 값(.25)에 머물면 막대가 거의 안 보이므로 또렷한 정지 막대로 둔다. */
+@media (prefers-reduced-motion: reduce) {
+  .carev-skel-rows .astryx-skeleton { animation: none !important; opacity: 1 !important; }
+}
