@@ -22,12 +22,14 @@ interface ScheduleFilterPanelProps {
   onChange: (values: string[]) => void;
   /** 기관이 만든 일정 구분 */
   labels: { id: string | number; name: string }[];
-  /** 보고 있는 달의 일정 전체(필터 걸기 전) — 담당자 목록과 완료 수를 여기서 센다 */
+  /** 보고 있는 달(연간일정은 그 해)의 일정 전체(필터 걸기 전) — 담당자 목록과 완료 수를 여기서 센다 */
   schedules: FilterableSchedule[];
   /** 골라 둔 사람이 이번 달 일정에 없을 때 쓸 이름 */
   fallbackName?: (personKey: string) => string | undefined;
   /** '나'의 완료 수를 세는 데 쓴다 — 화면마다 '내 일정' 판정이 다르다 */
   isMine?: (schedule: FilterableSchedule) => boolean;
+  /** 담당자를 정한 일정이 하나도 없을 때 문구 — 연간일정은 '이 달'이 아니라 '이 해'다 */
+  emptyPeopleText?: string;
 }
 
 /** 이름 옆 숫자 — 다른 사람 줄과 같은 모양으로 '나'에도 붙인다 */
@@ -40,7 +42,7 @@ function DoneCount({ done, total }: { done: number; total: number }) {
 }
 
 /**
- * '일정 필터' 팝오버 내용 — 월간일정 탭과 대시보드 달력이 같이 쓴다.
+ * '일정 필터' 팝오버 내용 — 월간일정 탭·연간일정·대시보드 달력이 같이 쓴다.
  *
  * 담당자 묶음을 위에 둔다: 원장이 월간 업무를 사람별로 점검하려고 여는 필터다(2026-11-09 요청).
  * 사람 옆 '완료 9/12'는 그 사람이 맡은 이번 달 일정 중 수행완료된 수 — 열기만 해도 누가
@@ -53,6 +55,7 @@ export default function ScheduleFilterPanel({
   schedules,
   fallbackName,
   isMine,
+  emptyPeopleText = '이 달에는 담당자를 정한 일정이 없습니다',
 }: ScheduleFilterPanelProps) {
   const kindValues = values.filter(isKindFilterValue);
   const personValues = values.filter(isPersonFilterValue);
@@ -93,7 +96,7 @@ export default function ScheduleFilterPanel({
           </CheckboxList>
           {people.length === 0 && (
             <Text type="supporting" color="secondary">
-              이 달에는 담당자를 정한 일정이 없습니다
+              {emptyPeopleText}
             </Text>
           )}
         </VStack>

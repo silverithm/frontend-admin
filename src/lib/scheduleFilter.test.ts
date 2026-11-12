@@ -7,13 +7,19 @@
  * - 구분과 담당자를 같이 고르면 둘 다 맞아야 보인다(같은 묶음 안은 하나만 맞아도)
  * - 서버가 실어 보내는 빈 label({id:null})도 '구분 없음'으로 잡힌다
  * - 담당자 목록은 이름순, 완료 수는 일정 단위, 골라 둔 사람은 이번 달에 없어도 남는다
+ * - 일정 탭(월간·연간)의 '나': 작성자·담당자·할 일 담당·참석자. 관리자 번호를 직원 번호로 읽지 않는다
+ * - 저장 키는 기관별, 깨진 저장값은 전체 보기로 읽는다
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
     collectPersonOptions,
+    isMineOnScheduleTab,
     matchesScheduleFilter,
+    parseStoredScheduleFilter,
+    readScheduleViewer,
+    scheduleFilterStorageKey,
     personFilterValue,
     labelFilterValue,
     scheduleFilterButtonLabel,
@@ -118,4 +124,58 @@ test("단추 글자 — 한 사람만 고르면 이름, 그 밖에는 개수", (
     assert.equal(scheduleFilterButtonLabel([MY_SCHEDULES_FILTER], all), "일정 필터 · 나");
     assert.equal(scheduleFilterButtonLabel([labelFilterValue(7)], all), "일정 필터 (1)");
     assert.equal(scheduleFilterButtonLabel([personFilterValue("MEMBER:9"), labelFilterValue(7)], all), "일정 필터 (2)");
+});
+
+// ── 일정 탭(월간·연간)의 '나' ──
+
+const storage = (values: Record<string, string>) => (key: string) => values[key] ?? null;
+
+test("직원 로그인의 userId는 직원 번호, 관리자 로그인의 userId는 관리자 번호로만 읽는다", () => {
+    assert.deepEqual(
+        readScheduleViewer(storage({ userId: "9", loginType: "employee", userEmail: "kim@example.com" })),
+        { email: "kim@example.com", memberId: 9, adminId: null },
+    );
+    assert.deepEqual(
+        readScheduleViewer(storage({ userId: "9", loginType: "admin", userEmail: "boss@example.com" })),
+        { email: "boss@example.com", memberId: null, adminId: 9 },
+    );
+    // 번호가 없거나 숫자가 아니면 아무도 아니다
+    assert.deepEqual(readScheduleViewer(storage({ loginType: "employee" })), { email: "", memberId: null, adminId: null });
+    assert.deepEqual(readScheduleViewer(storage({ userId: "abc" })), { email: "", memberId: null, adminId: null });
+});
+
+test("일정 탭의 '나'는 작성자·담당자·할 일 담당·참석자 어느 쪽이든 잡힌다", () => {
+    const me = { email: "kim@example.com", memberId: 9, adminId: null };
+    assert.equal(isMineOnScheduleTab({ authorId: "kim@example.com" }, me), true);
+    assert.equal(isMineOnScheduleTab({ managerId: 9, managerType: "MEMBER" }, me), true);
+    assert.equal(isMineOnScheduleTab({ managerId: 9 }, me), true); // 종류가 비어 있으면 직원으로 본다
+    assert.equal(isMineOnScheduleTab({ tasks: [{ assigneeMemberId: 9 }] }, me), true);
+    assert.equal(isMineOnScheduleTab({ participants: [{ memberId: 9 }] }, me), true);
+    assert.equal(isMineOnScheduleTab({ participants: [{ userId: "9" }] }, me), true);
+    assert.equal(isMineOnScheduleTab({ authorId: "lee@example.com", managerId: 10, managerType: "MEMBER" }, me), false);
+    assert.equal(isMineOnScheduleTab({}, me), false);
+});
+
+test("관리자 9번은 직원 9번의 일정을 자기 것으로 보지 않는다(그 반대도)", () => {
+    const admin = { email: "boss@example.com", memberId: null, adminId: 9 };
+    const member = { email: "kim@example.com", memberId: 9, adminId: null };
+    const memberJob = { managerId: 9, managerType: "MEMBER", tasks: [{ assigneeMemberId: 9 }], participants: [{ memberId: 9 }] };
+    const adminJob = { managerId: 9, managerType: "ADMIN" };
+    assert.equal(isMineOnScheduleTab(memberJob, admin), false);
+    assert.equal(isMineOnScheduleTab(adminJob, admin), true);
+    assert.equal(isMineOnScheduleTab(adminJob, member), false);
+    assert.equal(isMineOnScheduleTab(memberJob, member), true);
+    // 로그인 정보가 없으면(이메일도 빈 값) 작성자 없는 일정이 '나'로 잡히지 않는다
+    assert.equal(isMineOnScheduleTab({ authorId: "" }, { email: "", memberId: null, adminId: null }), false);
+});
+
+test("저장 키는 기관별이고, 깨진 저장값은 전체 보기로 읽는다", () => {
+    assert.equal(scheduleFilterStorageKey("12"), "carev.scheduleFilter.12");
+    assert.equal(scheduleFilterStorageKey(null), null);
+    assert.equal(scheduleFilterStorageKey(""), null);
+    assert.deepEqual(parseStoredScheduleFilter('["myTasks","person:MEMBER:9"]'), ["myTasks", "person:MEMBER:9"]);
+    assert.deepEqual(parseStoredScheduleFilter(null), []);
+    assert.deepEqual(parseStoredScheduleFilter("{깨짐"), []);
+    assert.deepEqual(parseStoredScheduleFilter('{"a":1}'), []);
+    assert.deepEqual(parseStoredScheduleFilter('["label:7", 3, null]'), ["label:7"]);
 });

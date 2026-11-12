@@ -1,8 +1,9 @@
 /**
  * 월간일정 '일정 필터' 규칙 — `node --test src/lib/scheduleFilter.test.ts`
  *
- * 월간일정 탭(ScheduleCalendar)과 대시보드 달력(AdminDashboard)이 같은 필터를 쓴다.
- * 고른 값은 기관별 localStorage(carev.scheduleFilter.<companyId>)에 문자열 배열로 저장된다.
+ * 월간일정 탭(ScheduleCalendar)·연간일정(AnnualScheduleView)·대시보드 달력(AdminDashboard)이 같은 필터를 쓴다.
+ * 고른 값은 기관별 localStorage(carev.scheduleFilter.<companyId>)에 문자열 배열로 저장된다 —
+ * 세 화면이 같은 키를 읽어, 월간에서 고른 사람이 연간으로 넘어가도 그대로 걸려 있다.
  *   일정 구분 — 'label:<id>' · 'noLabel'
  *   담당자    — 'myTasks'(나) · 'person:MEMBER:9' · 'person:ADMIN:3'
  *
@@ -159,4 +160,66 @@ export function scheduleFilterButtonLabel(
     if (person) return `일정 필터 · ${person.name}`;
   }
   return `일정 필터 (${values.length})`;
+}
+
+/** 저장 키 — 기관이 다르면 담당자·구분 번호가 다른 사람·다른 구분이라 기관별로 나눈다. */
+export const scheduleFilterStorageKey = (companyId: string | null | undefined) =>
+  (companyId ? `carev.scheduleFilter.${companyId}` : null);
+
+/** 저장해 둔 값 읽기. 깨져 있으면 전체 보기([])로 시작한다. */
+export function parseStoredScheduleFilter(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 지금 보고 있는 사람 — '나' 판정에 쓴다. */
+export interface ScheduleViewer {
+  /** 작성자 비교용(일정의 authorId는 이메일이다) */
+  email: string;
+  /** 직원 로그인일 때만 members.id */
+  memberId: number | null;
+  /** 관리자 로그인일 때만 app_user.id */
+  adminId: number | null;
+}
+
+/**
+ * 로그인 정보에서 보는 사람을 읽는다.
+ * localStorage의 userId는 직원 로그인이면 members.id, 관리자 로그인이면 app_user.id다. 두 번호는
+ * 겹칠 수 있어 관리자 번호를 직원 번호로 쓰면 같은 번호 직원의 일정·할 일이 '나'로 잡혔다(2026-11-09).
+ */
+export function readScheduleViewer(get: (key: string) => string | null): ScheduleViewer {
+  const storedId = Number(get('userId'));
+  const validId = Number.isFinite(storedId) && storedId > 0 ? storedId : null;
+  const isEmployeeLogin = get('loginType') === 'employee';
+  return {
+    email: get('userEmail') || '',
+    memberId: isEmployeeLogin ? validId : null,
+    adminId: isEmployeeLogin ? null : validId,
+  };
+}
+
+export interface MineCheckSchedule extends FilterableSchedule {
+  authorId?: string | null;
+  participants?: { memberId?: number | string | null; userId?: number | string | null }[] | null;
+}
+
+/**
+ * 일정 탭(월간·연간)의 '나' — 내가 작성했거나, 담당자이거나, 할 일을 맡았거나, 참석자인 일정.
+ * (대시보드 달력의 '나'는 판정이 달라 AdminDashboard에 따로 있다.)
+ * managerId는 담당자 종류에 따라 members.id 또는 app_user.id라, 종류가 맞을 때만 번호를 비교한다.
+ */
+export function isMineOnScheduleTab(schedule: MineCheckSchedule, viewer: ScheduleViewer): boolean {
+  if (schedule.authorId && schedule.authorId === viewer.email) return true;
+  if (viewer.adminId != null && schedule.managerType === 'ADMIN'
+      && Number(schedule.managerId) === viewer.adminId) return true;
+  if (viewer.memberId == null) return false;
+  if (!isBlank(schedule.managerId) && (schedule.managerType || 'MEMBER') === 'MEMBER'
+      && Number(schedule.managerId) === viewer.memberId) return true;
+  if (schedule.tasks?.some((t) => Number(t.assigneeMemberId) === viewer.memberId)) return true;
+  return !!schedule.participants?.some((p) => Number(p.memberId ?? p.userId) === viewer.memberId);
 }

@@ -16,11 +16,23 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Popover } from '@astryxdesign/core/Popover';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
-import { IconCircleCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
+import { IconCircleCheck, IconChevronsDown, IconChevronsUp, IconUserCheck } from '@tabler/icons-react';
 import { Loading } from '@/components/Loading';
 import PageHeader from '@/components/PageHeader';
-import { getSchedules } from '@/lib/apiService';
+import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
+import { getSchedules, getScheduleLabels, getScheduleManagerCandidates, getAllMembers } from '@/lib/apiService';
+import {
+  isMineOnScheduleTab,
+  matchesScheduleFilter,
+  parseStoredScheduleFilter,
+  readScheduleViewer,
+  scheduleFilterButtonLabel,
+  scheduleFilterStorageKey,
+  type FilterableSchedule,
+  type ScheduleViewer,
+} from '@/lib/scheduleFilter';
 import { Schedule, SCHEDULE_CATEGORIES, getScheduleColor } from '@/types/schedule';
 import { useAlert } from './Alert';
 
@@ -92,6 +104,66 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   /** 열자마자(또는 연도를 넘기면) 이번 달·일정 있는 첫 달로 스크롤하기 위한 달별 DOM 참조 */
   const monthRefs = useRef<(HTMLElement | null)[]>(Array(12).fill(null));
 
+  // ── 일정 필터 — 월간일정과 같은 규칙·같은 저장 키(lib/scheduleFilter).
+  // 월간에서 사람을 골라 두고 연간으로 넘어오면 그 사람의 한 해 일정이 그대로 보인다.
+  const [filterValues, setFilterValues] = useState<string[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [labels, setLabels] = useState<{ id: string; name: string }[]>([]);
+  /** 골라 둔 담당자가 이 해 일정에 없을 때 띄울 이름 (사람 키 "MEMBER:9" → 이름) */
+  const [personNames, setPersonNames] = useState<Map<string, string>>(() => new Map());
+  const [viewer, setViewer] = useState<ScheduleViewer>({ email: '', memberId: null, adminId: null });
+
+  useEffect(() => {
+    setViewer(readScheduleViewer((key) => localStorage.getItem(key)));
+    const key = scheduleFilterStorageKey(localStorage.getItem('companyId'));
+    if (key) setFilterValues(parseStoredScheduleFilter(localStorage.getItem(key)));
+
+    let cancelled = false;
+    // 일정 구분 목록과 사람 이름은 필터 팝오버에만 쓴다 — 못 받아와도 연간일정 자체는 그대로 보인다.
+    getScheduleLabels()
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : (data?.labels || data?.content || data?.data || []);
+        setLabels((list as { id: string | number; name: string }[]).map((l) => ({ id: String(l.id), name: l.name })));
+      })
+      .catch((error) => console.error('일정 구분 목록 로드 실패:', error));
+    Promise.allSettled([getAllMembers(), getScheduleManagerCandidates()]).then(([membersResult, candidatesResult]) => {
+      if (cancelled) return;
+      const names = new Map<string, string>();
+      const listOf = (result: PromiseSettledResult<unknown>): { id?: number | string; name?: string; role?: string | null }[] => {
+        if (result.status !== 'fulfilled') return [];
+        const data = result.value as { members?: unknown } | unknown[];
+        const list = Array.isArray(data) ? data : data?.members;
+        return Array.isArray(list) ? list : [];
+      };
+      for (const m of listOf(membersResult)) {
+        if (m.id != null && m.name) names.set(`MEMBER:${m.id}`, m.name);
+      }
+      // 담당자 후보에는 관리자(시설장)도 들어 있다 — 종류를 키에 넣어 직원 번호와 섞이지 않게 한다
+      for (const m of listOf(candidatesResult)) {
+        if (m.id != null && m.name) names.set(`${m.role === 'facility_admin' ? 'ADMIN' : 'MEMBER'}:${m.id}`, m.name);
+      }
+      setPersonNames(names);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const updateFilterValues = useCallback((values: string[]) => {
+    setFilterValues(values);
+    try {
+      const key = scheduleFilterStorageKey(localStorage.getItem('companyId'));
+      if (key) localStorage.setItem(key, JSON.stringify(values));
+    } catch {
+      // 저장 실패는 무시 — 필터는 이번 세션에서만 유지된다
+    }
+  }, []);
+
+  const isMineForFilter = useCallback(
+    (schedule: FilterableSchedule) => isMineOnScheduleTab(schedule, viewer),
+    [viewer],
+  );
+  const filterPersonName = useCallback((personKey: string) => personNames.get(personKey), [personNames]);
+
   // 1년치 조회는 한 달치보다 훨씬 무겁다. 화살표를 연달아 누르면 요청이 쌓이고,
   // 먼저 보낸 응답이 늦게 도착해 나중 연도를 덮어쓰는 일이 생긴다.
   // 마지막 요청 번호를 들고 있다가 그 응답만 반영한다.
@@ -138,6 +210,14 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
     loadYear(year);
   }, [year, loadYear]);
 
+  /** 필터에 걸린 일정 — 담당자 묶음·일정 구분 묶음 각각 하나라도 맞고, 둘 다 골랐으면 둘 다 맞아야 한다 */
+  const visibleSchedules = useMemo(
+    () => (filterValues.length === 0
+      ? schedules
+      : schedules.filter((s) => matchesScheduleFilter(s, filterValues, isMineForFilter))),
+    [schedules, filterValues, isMineForFilter],
+  );
+
   /**
    * 월별로 나눈다. 여러 달에 걸친 일정은 걸친 달마다 모두 넣는다 —
    * "3월에 뭐가 있나" 하고 볼 때 2월에 시작한 행사도 보여야 하기 때문이다.
@@ -146,7 +226,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
     const buckets: AnnualItem[][] = Array.from({ length: 12 }, () => []);
     // 날짜는 'yyyy-MM-dd' 문자열이라 Date로 만들지 않고 잘라 쓴다.
     // 1년치는 건수가 많아 Date 생성 비용이 그대로 체감으로 이어진다.
-    for (const schedule of schedules) {
+    for (const schedule of visibleSchedules) {
       const start = schedule.startDate?.substring(0, 10);
       if (!start || start.length < 10) continue;
       const end = schedule.endDate?.substring(0, 10) || start;
@@ -172,7 +252,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
       bucket.sort((a, b) => a.schedule.startDate.localeCompare(b.schedule.startDate));
     }
     return buckets;
-  }, [schedules, year]);
+  }, [visibleSchedules, year]);
 
   /** 접을 게 하나도 없으면(모든 달이 20건 이하) 토글이 눌러도 아무 변화가 없어 보인다 — 그럴 땐 비활성화한다 */
   const hasOverflow = useMemo(
@@ -198,6 +278,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   }, [isLoading, year]);
 
   const total = schedules.length;
+  const isFiltered = filterValues.length > 0;
   const thisYear = new Date().getFullYear();
   const thisMonth = new Date().getMonth();
 
@@ -229,9 +310,38 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
           )}
         </HStack>
         <HStack gap={2} vAlign="center">
-          <Text type="supporting" color="secondary">
-            {total === 0 ? '월간일정에서 등록하면 여기에 모여 보입니다' : `연간 ${total}건`}
+          <Text type="supporting" color="secondary" hasTabularNumbers>
+            {total === 0
+              ? '월간일정에서 등록하면 여기에 모여 보입니다'
+              : isFiltered
+                ? `연간 ${total}건 중 ${visibleSchedules.length}건`
+                : `연간 ${total}건`}
           </Text>
+          <Popover
+            isOpen={isFilterOpen}
+            onOpenChange={setIsFilterOpen}
+            label="일정 필터"
+            placement="below"
+            alignment="end"
+            content={
+              <ScheduleFilterPanel
+                values={filterValues}
+                onChange={updateFilterValues}
+                labels={labels}
+                schedules={schedules}
+                fallbackName={filterPersonName}
+                isMine={isMineForFilter}
+                emptyPeopleText="이 해에는 담당자를 정한 일정이 없습니다"
+              />
+            }
+          >
+            <Button
+              label={scheduleFilterButtonLabel(filterValues, schedules, filterPersonName)}
+              variant={isFiltered ? 'primary' : 'ghost'}
+              size="sm"
+              icon={<Icon icon={IconUserCheck} size="sm" />}
+            />
+          </Popover>
           <Button
             label={expandAll ? '접기' : '펼치기'}
             variant={expandAll ? 'primary' : 'ghost'}

@@ -29,7 +29,7 @@ import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { Popover } from '@astryxdesign/core/Popover';
 import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
-import { matchesScheduleFilter, scheduleFilterButtonLabel, type FilterableSchedule } from '@/lib/scheduleFilter';
+import { isMineOnScheduleTab, matchesScheduleFilter, scheduleFilterButtonLabel, type FilterableSchedule } from '@/lib/scheduleFilter';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import type { ISOTimeString } from '@astryxdesign/core/TimeInput';
 import { IconClipboardList, IconPlus, IconPaperclip, IconFileText, IconMapPin, IconBell, IconPencil, IconTrash, IconCircleCheck, IconCircleCheckFilled, IconChecklist, IconUserCheck, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
@@ -593,21 +593,12 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     }
   };
 
-  // 내가 관련된 일정인지 (담당자 / 참석자 / 작성자)
-  const isMySchedule = (schedule: Schedule) => {
-    if (schedule.authorId && schedule.authorId === currentUserEmail) return true;
-    if (currentAdminId != null && schedule.managerType === 'ADMIN'
-        && Number(schedule.managerId) === currentAdminId) return true;
-    if (currentMemberId == null) return false;
-    // 일정 담당자 본인 — 대시보드 달력과 같은 규칙. 빠져 있어서 할 일 없이 담당만 맡은
-    // 일정이 이 탭의 '나'(예전 '담당 업무')에서 안 보였다. managerId는 MEMBER일 때만 members.id다.
-    if (schedule.managerId != null && (schedule.managerType || 'MEMBER') === 'MEMBER'
-        && Number(schedule.managerId) === currentMemberId) return true;
-    if (schedule.tasks?.some((t) => Number(t.assigneeMemberId) === currentMemberId)) return true;
-    return !!schedule.participants?.some(
-      (p) => Number((p as { memberId?: number }).memberId ?? p.userId) === currentMemberId
-    );
-  };
+  // 내가 관련된 일정인지 (작성자 / 담당자 / 할 일 담당 / 참석자) — 연간일정과 같은 규칙(lib/scheduleFilter)
+  const isMySchedule = (schedule: Schedule) => isMineOnScheduleTab(schedule, {
+    email: currentUserEmail,
+    memberId: currentMemberId,
+    adminId: currentAdminId,
+  });
 
   // 필터의 '나' — 판정과 '나' 옆 완료 수가 같은 함수를 쓴다
   const isMineForFilter = useCallback(
