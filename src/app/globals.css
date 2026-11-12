@@ -1694,11 +1694,33 @@ html {
 .carev-doc-blank-table th { background: #f3f4f6; font-weight: 600; height: 24px; }
 .carev-doc-blank-table .carev-doc-blank-table-no { width: 40px; color: #374151; }
 
+/* 한 장에 들어가는 빈 서식(--fit) — 손으로 쓰려고 뽑는 종이라, 남는 종이를 쓰는 칸이 나눠 갖는다.
+   줄 트랙(--carev-blank-rows)은 blankRowTracks()가 만든다: 한 줄 칸은 15mm쯤까지, 사진·표는 정해 둔
+   높이까지 먼저 늘고, 그래도 남는 종이는 긴 글 칸이 줄 수 비율(fr)로 갖는다. 내용이 상한보다 긴 줄은
+   minmax(min-content, …)라 내용 높이를 그대로 지킨다(잘리지 않는다).
+   여러 장짜리 서식에는 이 클래스가 붙지 않는다 — 위에서부터 차례로 흐르는 지금 배치 그대로. */
+.carev-doc-page--blank.carev-doc-page--fit .carev-doc-fields {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--carev-blank-rows);
+  align-content: start;
+}
+/* 반복 항목 표는 늘어난 칸을 따라 줄마다 높아진다 */
+.carev-doc-page--blank.carev-doc-page--fit .carev-doc-blank-table { align-self: stretch; }
+/* 직인을 찍어 뽑는 빈 서식의 발신명의 — 직인이 기관명 줄 아래로 삐져나오는 만큼 자리를 둔다 */
+.carev-doc-page--blank .carev-doc-issuer { margin-top: 28px; padding-bottom: 22px; }
+/* 직인을 transform 없이 놓는다 — 인쇄 장 나눔은 transform 전 자리로 넘침을 재서, 종이 맨 아래에 오는
+   빈 서식에서는 직인이 31px 아래로 삐져나온 것으로 보고 빈 둘째 장을 만든다. */
+.carev-doc-page--blank .carev-doc-seal { top: calc(50% - 31px); transform: none; }
+
 @media print {
   /* 빈 서식은 칸이 많아 여러 장이 된다 — 한 줄이 두 장에 걸쳐 잘리지 않게 */
   .carev-doc-page--blank .carev-doc-field-row,
   .carev-doc-page--blank .carev-doc-approval-table,
   .carev-doc-page--blank .carev-doc-blank-table tr { break-inside: avoid; }
+  /* 발신명의(기관명·직인)만 다음 장에 홀로 넘어가지 않게 — 넘어가면 마지막 줄을 데리고 간다 */
+  .carev-doc-page--blank .carev-doc-issuer { break-inside: avoid; break-before: avoid; }
   .carev-doc-noprint,
   .carev-admin-sidebar,
   .carev-admin-mobile-header,

@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates, uploadFileToServer, reorderApprovalTemplates } from '@/lib/apiService';
+import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates, uploadFileToServer, reorderApprovalTemplates, getUserInfo } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { FormSchema } from '@/types/formSchema';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import OfficialDocument from '@/components/approval/OfficialDocument';
 import { buildSampleApproval } from '@/components/approval/templatePreview';
 import { useBlankFormPrint } from '@/components/approval/useBlankFormPrint';
+import BlankFormPrintButton from '@/components/approval/BlankFormPrintButton';
 import { canPrintBlankForm } from '@/lib/blankForm';
 import ViewerSelector from '@/components/approval/ViewerSelector';
 import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
@@ -62,8 +63,18 @@ function parseDefaultLine(value: unknown): ApproverCandidate[] | undefined {
   return undefined;
 }
 
-/** canManage: 양식 생성·수정·삭제·순서변경 권한. 관리자는 로그인 타입, 직원은 APPROVAL_TEMPLATE 권한 보유 여부로 넘겨받는다. */
-export default function ApprovalTemplateManager({ canManage = true }: { canManage?: boolean }) {
+/**
+ * canManage: 양식 생성·수정·삭제·순서변경 권한. 관리자는 로그인 타입, 직원은 APPROVAL_TEMPLATE 권한 보유 여부로 넘겨받는다.
+ * canStampSeal: 빈 서식을 기관 직인까지 찍어 뽑을 수 있는지 — 관리자 로그인만. 직인이 미리 찍힌 빈 종이는
+ *   무엇을 써넣어도 기관 문서처럼 보이므로 양식 관리 권한만으로는 주지 않는다.
+ */
+export default function ApprovalTemplateManager({
+  canManage = true,
+  canStampSeal = false,
+}: {
+  canManage?: boolean;
+  canStampSeal?: boolean;
+}) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([]);
@@ -114,11 +125,30 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
   // 양식 순서 조정(위/아래 이동)
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
+  /** 기관 직인 — 등록돼 있고 찍을 수 있는 사람(관리자)일 때만 '직인 찍어 인쇄'를 고를 수 있다 */
+  const [sealUrl, setSealUrl] = useState<string | null>(null);
+
   const { printBlankForm, printElement: blankFormPrintElement } = useBlankFormPrint(companyName);
   /** 손으로 채울 빈 서식 — 결재란은 이 양식의 기본 결재선 칸 수 */
-  const handlePrintBlankForm = (template: ApprovalTemplate) => {
-    printBlankForm(template, parseDefaultLine(template.defaultApprovalLine)?.length ?? 0);
+  const handlePrintBlankForm = (template: ApprovalTemplate, withSeal = false) => {
+    printBlankForm(template, parseDefaultLine(template.defaultApprovalLine)?.length ?? 0, {
+      sealUrl: withSeal ? sealUrl : null,
+    });
   };
+
+  // 직인은 기관 프로필에 등록한 것 — 못 받아 오면 지금처럼 직인 없이만 찍는다
+  useEffect(() => {
+    if (!canStampSeal) return;
+    let cancelled = false;
+    getUserInfo()
+      .then((info) => {
+        if (!cancelled) setSealUrl(info?.companySealUrl || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [canStampSeal]);
 
   // 템플릿 로드
   useEffect(() => {
@@ -886,19 +916,31 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                               icon={<Icon icon={template.isActive ? FiToggleRight : FiToggleLeft} size="sm" />}
                               onClick={() => handleToggleActive(template.id)}
                             />
+                            {/* 종이에 손으로 채워 쓰는 서식 (2026-11-11 제보) — 더보기(⋯) 안에 있으면 찾기 어려워
+                                줄에 바로 보이는 아이콘으로 꺼냈다. 찍을 수 없는 양식(파일 양식)은 자리만
+                                비워 두어 줄마다 아이콘 자리가 어긋나지 않게 한다. */}
+                            {canPrintBlankForm(template) ? (
+                              <BlankFormPrintButton
+                                display="icon"
+                                sealUrl={sealUrl}
+                                onPrint={(withSeal) => handlePrintBlankForm(template, withSeal)}
+                              />
+                            ) : (
+                              <span aria-hidden style={{ visibility: 'hidden' }}>
+                                <IconButton
+                                  variant="ghost"
+                                  size="sm"
+                                  label="빈 서식 인쇄"
+                                  icon={<Icon icon={FiPrinter} size="sm" />}
+                                  isDisabled
+                                />
+                              </span>
+                            )}
                             {/* 되돌릴 수 없는 삭제는 매 줄에 늘 보이는 1차 아이콘 대신
                                 더보기(⋯) 메뉴 안으로 옮긴다 — [#8] */}
                             <MoreMenu
                               label="더 보기"
                               items={[
-                                // 종이에 손으로 채워 쓰는 서식 (2026-11-11 제보)
-                                ...(canPrintBlankForm(template)
-                                  ? [{
-                                      label: '빈 서식 인쇄',
-                                      icon: FiPrinter,
-                                      onClick: () => handlePrintBlankForm(template),
-                                    }]
-                                  : []),
                                 {
                                   label: '삭제',
                                   icon: FiTrash2,
@@ -1216,11 +1258,10 @@ export default function ApprovalTemplateManager({ canManage = true }: { canManag
                   <LayoutFooter hasDivider>
                     <HStack gap={2} hAlign="end">
                       {/* 미리보기의 예시 값이 아니라 칸이 빈 종이 서식을 찍는다 */}
-                      <Button
-                        label="빈 서식 인쇄"
-                        variant="secondary"
-                        icon={<Icon icon={FiPrinter} />}
-                        onClick={() => handlePrintBlankForm(previewTemplate)}
+                      <BlankFormPrintButton
+                        display="button"
+                        sealUrl={sealUrl}
+                        onPrint={(withSeal) => handlePrintBlankForm(previewTemplate, withSeal)}
                       />
                     </HStack>
                   </LayoutFooter>

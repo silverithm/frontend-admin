@@ -1575,7 +1575,7 @@ export default function AdminPage() {
                             {approvalSubTab === "management" && isAdmin ? (
                                 <ApprovalManagement />
                             ) : approvalSubTab === "templates" && isAdmin ? (
-                                <ApprovalTemplateManager canManage={isAdmin} />
+                                <ApprovalTemplateManager canManage={isAdmin} canStampSeal={isAdmin} />
                             ) : (
                                 <EmployeeApproval />
                             )}

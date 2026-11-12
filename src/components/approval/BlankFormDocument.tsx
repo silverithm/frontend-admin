@@ -2,7 +2,7 @@
 
 import React, { Fragment } from 'react';
 import { FormSchema } from '@/types/formSchema';
-import { BlankCell, blankCellFor } from '@/lib/blankForm';
+import { BlankCell, blankCellFor, blankRowTracks } from '@/lib/blankForm';
 import { docRowColumnTemplate, groupFieldsIntoRows } from './formValueFormat';
 
 interface BlankFormDocumentProps {
@@ -12,6 +12,13 @@ interface BlankFormDocumentProps {
   companyName: string;
   /** 결재란 머리 (기안·검토·결재) */
   approvalHeaders: string[];
+  /**
+   * 기관 직인 — 넘기면 종이 아래에 발신명의(기관명)를 두고 그 끝에 직인을 찍는다.
+   * 전자결재에서는 최종 승인 때만 찍히는 도장이라, 찍을지는 인쇄하는 사람이 고른다(관리자만).
+   */
+  sealUrl?: string | null;
+  /** 종이가 남을 때 반복 항목 표에 더 그릴 줄 수 — 인쇄 직전에 재서 정한다(useBlankFormPrint) */
+  extraTableLines?: number;
   pageRef?: React.Ref<HTMLDivElement>;
 }
 
@@ -82,8 +89,10 @@ function BlankValue({ cell }: { cell: BlankCell }) {
  * 손으로 채우는 빈 서식 — 제출된 기안과 같은 공문 틀(carev-doc-*)에 값 대신 쓸 자리를 그린다.
  * 같은 틀이라 종이에 쓴 서식과 전자결재로 올린 문서가 같은 칸 배치로 나란히 보관된다.
  */
-export default function BlankFormDocument({ title, schema, companyName, approvalHeaders, pageRef }: BlankFormDocumentProps) {
+export default function BlankFormDocument({ title, schema, companyName, approvalHeaders, sealUrl, extraTableLines = 0, pageRef }: BlankFormDocumentProps) {
   const rows = groupFieldsIntoRows(schema.fields);
+  // 한 장에 들어가는 서식(carev-doc-page--fit)에서만 쓰이는 줄 트랙 — 남는 종이를 쓰는 칸이 나눠 갖는다
+  const fieldsStyle = { '--carev-blank-rows': blankRowTracks(rows, extraTableLines) } as React.CSSProperties;
 
   return (
     <div ref={pageRef} className="carev-doc-page carev-doc-page--blank">
@@ -116,7 +125,7 @@ export default function BlankFormDocument({ title, schema, companyName, approval
 
       <div className="carev-doc-title">{title}</div>
 
-      <div className="carev-doc-fields">
+      <div className="carev-doc-fields" style={fieldsStyle}>
         {rows.map((row, rowIndex) => {
           if (row.length === 1 && row[0].type === 'section') {
             return (
@@ -136,7 +145,7 @@ export default function BlankFormDocument({ title, schema, companyName, approval
                 <Fragment key={`${field.id}-${index}`}>
                   <div className="carev-doc-field-label">{field.label}</div>
                   <div className="carev-doc-field-value">
-                    <BlankValue cell={blankCellFor(field)} />
+                    <BlankValue cell={blankCellFor(field, extraTableLines)} />
                   </div>
                 </Fragment>
               ))}
@@ -144,8 +153,18 @@ export default function BlankFormDocument({ title, schema, companyName, approval
           );
         })}
       </div>
-      {/* 발신명의(아래 기관명·직인)는 넣지 않는다 — 직인은 결재가 끝난 전자 문서에만 찍히고,
-          기관명은 맨 위에 이미 있다. 넣으면 칸이 꽉 찬 서식에서 기관명만 다음 장으로 넘어간다. */}
+      {/* 발신명의(아래 기관명·직인)는 직인을 찍어 달라고 한 때만 넣는다 — 기관명은 맨 위에 이미 있고,
+          늘 넣으면 칸이 꽉 찬 서식에서 기관명만 다음 장으로 넘어간다.
+          모양은 결재 문서(OfficialDocument)의 발신명의와 같다: 기관명 끝 글자에 직인이 겹친다. */}
+      {sealUrl && (
+        <div className="carev-doc-issuer">
+          <span className="carev-doc-issuer-name">
+            {companyName}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={sealUrl} alt="기관 직인" className="carev-doc-seal" />
+          </span>
+        </div>
+      )}
     </div>
   );
 }
