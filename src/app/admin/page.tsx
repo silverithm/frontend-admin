@@ -64,6 +64,7 @@ import {
     type MemberRoleSource,
 } from "@/lib/roleUtils";
 import { exportWorkScheduleExcel } from "@/lib/workScheduleExcel";
+import CareforWorkExcelDialog from "@/components/CareforWorkExcelDialog";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Badge } from "@astryxdesign/core/Badge";
@@ -233,6 +234,12 @@ export default function AdminPage() {
     >("latest");
     const [members, setMembers] = useState<MemberRoleSource[]>([]);
     const [isExportingExcel, setIsExportingExcel] = useState(false);
+    // 엑셀 내보내기 → 케어포 8-2에 바로 올릴 파일 만들기 (근무·휴무만 담은 기존 엑셀은 창 안에서)
+    const [isCareforExcelOpen, setIsCareforExcelOpen] = useState(false);
+    const memberNames = useMemo(
+        () => members.map((member) => (member.name || "").trim()).filter(Boolean),
+        [members]
+    );
     const [positions, setPositions] = useState<Position[]>([]);
 
     // 다중 선택 관련 상태
@@ -1620,10 +1627,20 @@ export default function AdminPage() {
                                         onNameFilterChange={setNameFilter}
                                         sortOrder={sortOrder}
                                         memberRoleLookup={memberRoleLookup}
-                                        onExportExcel={handleExportWorkScheduleExcel}
+                                        onExportExcel={() => setIsCareforExcelOpen(true)}
                                         isExportingExcel={isExportingExcel}
                                     />
                                 </div>
+                                <CareforWorkExcelDialog
+                                    isOpen={isCareforExcelOpen}
+                                    onClose={() => setIsCareforExcelOpen(false)}
+                                    targetMonth={currentDate}
+                                    memberNames={memberNames}
+                                    vacations={allRequests}
+                                    onPlainExport={handleExportWorkScheduleExcel}
+                                    isPlainExporting={isExportingExcel}
+                                    onNotification={showNotification}
+                                />
 
                                 {/* 필터 및 휴무 목록 사이드바 */}
                                 <div className="carev-admin-work-side" data-tour="work-side">
