@@ -1985,9 +1985,25 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .astryx-button:active { transform: none !important; }
 }
+/* 비활성 단추는 눌러도 줄어들지 않는다 — 라이브러리 기본 scale(.98)이 비활성에도 걸려 있어 여기서 끈다 */
+.astryx-button:is(:disabled, [aria-disabled="true"]):active { transform: none !important; }
 
-/* B. 뼈대 — <Loading variant="rows" />가 그리는 목록 뼈대. 반짝임은 Astryx Skeleton 기본(1초 뒤부터 천천히 밝아졌다 흐려짐).
-   동작 줄이기에서는 멈추고, 흐린 시작 값(.25)에 머물면 막대가 거의 안 보이므로 또렷한 정지 막대로 둔다. */
+/* B. 뼈대 — <Loading variant="rows" />가 그리는 목록 뼈대.
+   Astryx Skeleton 기본은 막대 색이 --color-skeleton(#ebebeb)이고 1초(+줄마다 0.1초) 기다렸다가 흐려지기 시작한다.
+   바탕면(#f1f1f1) 위에서는 막대가 거의 안 보이고 처음 1초는 빈 자리처럼 보여, 이 뼈대 안에서만 막대를 1px 선과 같은
+   --color-border로 그리고 기다림 없이 처음부터 천천히 밝아졌다 흐려지게 한다(안정 클래스 .astryx-skeleton에만 건다).
+   동작 줄이기에서는 멈춘 또렷한 막대로 둔다. */
+@keyframes carev-skel-pulse {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+.carev-skel-rows .astryx-skeleton { background-color: var(--color-border) !important; }
+@media (prefers-contrast: more) {
+  .carev-skel-rows .astryx-skeleton { background-color: color-mix(in srgb, var(--color-border), var(--color-text-primary) 30%) !important; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .carev-skel-rows .astryx-skeleton { animation: carev-skel-pulse 900ms var(--ease-standard) infinite alternate !important; }
+}
 @media (prefers-reduced-motion: reduce) {
   .carev-skel-rows .astryx-skeleton { animation: none !important; opacity: 1 !important; }
 }
