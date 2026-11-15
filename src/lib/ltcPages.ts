@@ -3,6 +3,7 @@
 // 기준표 숫자는 원문과 대조한 날을 lastModified로 쓴다.
 
 import { LTC_VERIFIED_AT } from './ltc2026';
+import { STAFFING_VERIFIED_AT } from './ltcStaffing';
 
 export interface LtcPageMeta {
   path: string;
@@ -31,5 +32,11 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '주·야간보호 본인부담금 계산기',
     summary: '등급·이용시간·일수·감경 여부를 넣으면 한 달 급여비용과 본인부담금, 한도 초과분을 계산합니다.',
     lastModified: LTC_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/daycare-staffing-standard',
+    title: '주간보호센터 인력배치기준',
+    summary: '직종별 배치 기준과 이용자 수별 요양보호사 최소 인원(7명당 1명, 치매전담실 4명당 1명), 근무인원 세는 법.',
+    lastModified: STAFFING_VERIFIED_AT,
   },
 ];
