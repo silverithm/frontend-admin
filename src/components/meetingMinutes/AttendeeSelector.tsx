@@ -14,6 +14,7 @@ import { HStack, StackItem, VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
 import MemberItem from '@/components/MemberItem';
 import { getViewerCandidates } from '@/lib/apiService';
+import MemberAvatar from '@/components/MemberAvatar';
 import { ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
 import { MinutesAttendeeEntry } from '@/types/meetingMinutes';
 
@@ -185,6 +186,15 @@ export default function AttendeeSelector({ value, onChange }: AttendeeSelectorPr
                 background: 'var(--color-background-muted)',
               }}
             >
+              {candidate && (
+                <MemberAvatar
+                  name={candidate.name}
+                  id={candidate.approverId}
+                  type={candidate.approverType}
+                  imageUrl={candidate.profileImageUrl}
+                  size={20}
+                />
+              )}
               <Text type="supporting">{candidate?.name ?? `#${entry.refId}`}</Text>
               <IconButton
                 label={`${candidate?.name ?? '참석자'} 제거`}

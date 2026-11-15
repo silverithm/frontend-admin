@@ -23,6 +23,7 @@ import { useDispatchStore, generateId } from "@/lib/dispatchStore";
 import { getMemberUsers, getCompanyElders } from "@/lib/apiService";
 import type { ElderlyInfo } from "@/types/elderly";
 import { useConfirm } from "./ConfirmDialog";
+import { MemberFaces } from "@/components/MemberAvatar";
 import type { Route, RouteDriver, Senior, RouteType } from "@/types/dispatch";
 import { driverRoleLabel, findPrimaryDriverConflict } from "@/lib/vacationGuard";
 import { getUnassignedElders } from "@/lib/dispatchUnassigned";
@@ -652,9 +653,20 @@ export default function DispatchSettings({
                                   }}
                                 />
                               </HStack>
-                              <Text type="supporting" color="secondary">
-                                {driverNames || "운전자 미배정"}
-                              </Text>
+                              <HStack gap={1.5} vAlign="center">
+                                {driverNames && (
+                                  <MemberFaces
+                                    size={20}
+                                    max={3}
+                                    people={(route.routeDrivers || [])
+                                      .filter((d) => d.driverName?.trim())
+                                      .map((d) => ({ id: d.driverId || undefined, name: d.driverName.trim() }))}
+                                  />
+                                )}
+                                <Text type="supporting" color="secondary">
+                                  {driverNames || "운전자 미배정"}
+                                </Text>
+                              </HStack>
                               <Text type="supporting" color="disabled">
                                 어르신 {elderCount}명
                               </Text>

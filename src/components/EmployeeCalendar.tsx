@@ -1,5 +1,6 @@
 'use client';
 
+import MemberAvatar from '@/components/MemberAvatar';
 import { useState, useEffect, useMemo, CSSProperties } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -17,7 +18,6 @@ import { DateInput } from '@astryxdesign/core/DateInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { MultiSelector } from '@astryxdesign/core/MultiSelector';
 import { TextArea } from '@astryxdesign/core/TextArea';
-import { Avatar } from '@astryxdesign/core/Avatar';
 import { Banner } from '@astryxdesign/core/Banner';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import {
@@ -745,27 +745,20 @@ export default function EmployeeCalendar() {
                       >
                         <HStack hAlign="between" vAlign="center" gap={3}>
                           <HStack gap={3} vAlign="center">
-                            <Avatar name={vacation.userName || '?'} size="medium" />
+                            {/* 그 직원 프로필 사진(2026-11-16 — 예전엔 사진 주소 없이 이름 첫 글자만) */}
+                            <MemberAvatar name={vacation.userName || '?'} id={vacation.userId} size={48} />
                             <div>
-                              <HStack gap={2} vAlign="center" wrap="wrap">
-                                {/* 상태 Badge (관리자 달력처럼) */}
-                                {(() => {
-                                  const statusText = getStatusShortText(vacation.status);
-                                  return !isMyVacation && statusText ? (
-                                    <Badge variant={getVacationBadgeVariant(vacation.status)} label={statusText} />
-                                  ) : null;
-                                })()}
-                                <Text type="body" weight="semibold" color="primary">
-                                  {vacation.userName}
-                                  {isMyVacation && <Text type="supporting" color="accent">{' (나)'}</Text>}
+                              {/* 상태는 오른쪽 꼬리표 하나로만 — 이름 앞에도 같은 상태 알약이 있어 두 번 말했다 */}
+                              <Text type="body" weight="semibold" color="primary">
+                                {vacation.userName}
+                                {isMyVacation && <Text type="supporting" color="accent">{' (나)'}</Text>}
+                              </Text>
+                              {/* 휴무 종류 · 직종 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
+                              <div>
+                                <Text type="supporting" color="secondary">
+                                  {resolveVacationKind(vacation.type, vacation.duration).label} · {getRoleText(vacation.role)}
                                 </Text>
-                                {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
-                                {(() => {
-                                  const kind = resolveVacationKind(vacation.type, vacation.duration);
-                                  return <Badge variant="neutral" label={kind.label} />;
-                                })()}
-                                <Text type="supporting">{getRoleText(vacation.role)}</Text>
-                              </HStack>
+                              </div>
                               <HStack gap={2} vAlign="center" wrap="wrap">
                                 {vacation.reason && (
                                   <Text type="supporting" color="secondary">• {vacation.reason}</Text>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -29,6 +29,7 @@ import PageHeader from './PageHeader';
 import { parseDefaultApprovalLine } from '@/lib/approvalLine';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
+import MemberAvatar from '@/components/MemberAvatar';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getActiveApprovalTemplates, getMyApprovalRequests, createApprovalRequest, updateApprovalDraft, submitApprovalDraft, cancelApprovalRequest, updateApprovalAttachment, getApprovalRequesterId, uploadFileToServer, type ApprovalRequestPayload } from '@/lib/apiService';
 import { ApprovalRequest, ApprovalStatus, ApproverCandidate } from '@/types/approval';
@@ -1358,9 +1359,19 @@ export default function EmployeeApproval() {
                   && (!selectedTemplateInfo || selectedTemplateInfo.templateType === 'file') && (
                   <VStack gap={1}>
                     <Text type="label" weight="medium" color="primary">결재선 (양식에 지정됨)</Text>
-                    <Text type="supporting" color="secondary">
-                      {approvalLine.map((a, i) => `${i + 1}. ${a.name}${a.position ? ` (${a.position})` : ''}`).join('  →  ')}
-                    </Text>
+                    <HStack gap={2} vAlign="center" wrap="wrap">
+                      {approvalLine.map((a, i) => (
+                        <React.Fragment key={`${a.approverType}:${a.approverId}`}>
+                          {i > 0 && <Text type="supporting" color="secondary">→</Text>}
+                          <HStack gap={1} vAlign="center">
+                            <MemberAvatar name={a.name} id={a.approverId} type={a.approverType} imageUrl={a.profileImageUrl} size={20} />
+                            <Text type="supporting" color="secondary">
+                              {`${i + 1}. ${a.name}${a.position ? ` (${a.position})` : ''}`}
+                            </Text>
+                          </HStack>
+                        </React.Fragment>
+                      ))}
+                    </HStack>
                   </VStack>
                 )}
 

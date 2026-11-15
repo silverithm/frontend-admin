@@ -7,7 +7,7 @@
  * 연간 행사 계획을 세우거나 평가 자료를 만들 때 달을 오가지 않고 훑을 수 있게 하는 게 목적이다.
  */
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import { format, startOfYear, endOfYear } from 'date-fns';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
@@ -35,6 +35,7 @@ import {
 } from '@/lib/scheduleFilter';
 import { Schedule, SCHEDULE_CATEGORIES, getScheduleColor } from '@/types/schedule';
 import { useAlert } from './Alert';
+import { MemberName } from './MemberAvatar';
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
@@ -61,13 +62,13 @@ const periodText = (schedule: Schedule) => {
 };
 
 /** 라벨과 값을 한 줄로 놓는 상세 항목 */
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <HStack gap={3} vAlign="start">
       <span style={{ flexShrink: 0, width: 56 }}>
         <Text type="supporting" color="secondary">{label}</Text>
       </span>
-      <Text type="body" color="primary">{value}</Text>
+      {typeof value === 'string' ? <Text type="body" color="primary">{value}</Text> : value}
     </HStack>
   );
 }
@@ -488,11 +489,29 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
 
                       <DetailRow label="기간" value={periodText(detail)} />
                       {detail.location && <DetailRow label="장소" value={detail.location} />}
-                      {detail.managerName && <DetailRow label="담당자" value={detail.managerName} />}
+                      {detail.managerName && (
+                        <DetailRow
+                          label="담당자"
+                          value={
+                            <MemberName
+                              name={detail.managerName}
+                              id={detail.managerId}
+                              type={detail.managerType}
+                              size={24}
+                            />
+                          }
+                        />
+                      )}
                       {detail.participants && detail.participants.length > 0 && (
                         <DetailRow
                           label="참석자"
-                          value={detail.participants.map((p) => p.userName).join(', ')}
+                          value={
+                            <HStack gap={3} vAlign="center" wrap="wrap">
+                              {detail.participants.map((p) => (
+                                <MemberName key={p.id} name={p.userName} id={p.userId} size={24} />
+                              ))}
+                            </HStack>
+                          }
                         />
                       )}
                       {detail.content && (
@@ -525,7 +544,19 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                           ))}
                         </VStack>
                       )}
-                      {detail.authorName && <DetailRow label="작성자" value={detail.authorName} />}
+                      {detail.authorName && (
+                        <DetailRow
+                          label="작성자"
+                          value={
+                            <MemberName
+                              name={detail.authorName}
+                              id={detail.authorId?.includes('@') ? undefined : detail.authorId}
+                              email={detail.authorId?.includes('@') ? detail.authorId : undefined}
+                              size={24}
+                            />
+                          }
+                        />
+                      )}
                     </VStack>
                   </LayoutContent>
                 }

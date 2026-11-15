@@ -1,5 +1,7 @@
 'use client';
 
+import MemberAvatar, { MemberName } from '@/components/MemberAvatar';
+import { compareScheduleTime, scheduleWhenText } from '@/components/ScheduleDetailParts';
 import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -701,7 +703,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
       return selectedDateStr >= start && selectedDateStr <= end;
     }
     return start === selectedDateStr;
-  });
+    // 시각 순(종일 먼저) — 등록 순서대로 두면 타임라인이 09:30·14:00·11:00처럼 뒤섞였다
+  }).sort(compareScheduleTime);
 
   const monthlySchedulesByDay = useMemo(() => {
     const dayMap = new Map<string, ScheduleItem[]>();
@@ -1825,19 +1828,21 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                       {selectedDayVacations.map((person) => (
                         <span
                           key={person.id}
-                          title={person.kindLabel}
+                          title={`${person.name} · ${person.kindLabel}`}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 'var(--spacing-1)',
-                            padding: '2px var(--spacing-2)',
+                            gap: 6,
+                            padding: '2px var(--spacing-2) 2px 2px',
                             borderRadius: 'var(--radius-full)',
                             border: '1px solid var(--color-border)',
                             background: 'var(--color-background-muted)',
                           }}
                         >
+                          {/* 그 직원 사진(2026-11-16) + 이름 + 종류 원 — 월간일정 날짜 패널과 같은 알약 */}
+                          <MemberAvatar name={person.name} id={person.userId} size={20} />
+                          <Text type="supporting" color="primary">{person.name}</Text>
                           <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
-                          <Text type="supporting" color="secondary">{person.name}</Text>
                         </span>
                       ))}
                     </div>
@@ -1880,7 +1885,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                       <div style={{ paddingBottom: 'var(--spacing-4)', flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                           <Text type="supporting" weight="semibold" color="accent" hasTabularNumbers>
-                            {schedule.isAllDay ? '종일' : (schedule.startTime || '')}
+                            {schedule.isAllDay ? '종일' : scheduleWhenText(schedule).time}
                           </Text>
                           {(schedule.label?.name || schedule.category) && <Badge variant="neutral" label={schedule.label?.name || getCategoryLabel(schedule.category)} />}
                           {schedule.isCompleted && <Badge variant="green" label="수행완료" />}
@@ -1896,6 +1901,18 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         </div>
                         {schedule.location && (
                           <Text as="p" type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
+                        )}
+                        {/* 담당자 사진 + 이름(2026-11-16) */}
+                        {schedule.managerName && (
+                          <div style={{ marginTop: 'var(--spacing-1-5)', fontSize: 13 }}>
+                            <MemberName
+                              name={schedule.managerName}
+                              id={schedule.managerId}
+                              type={schedule.managerType}
+                              size={20}
+                              suffix="담당"
+                            />
+                          </div>
                         )}
                       </div>
                       <div style={{ flexShrink: 0, alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
@@ -2351,28 +2368,55 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 <Text type="supporting" color="secondary">
                   {format(new Date(), 'M월 d일 (EEEE)', { locale: ko })} 예정된 일정입니다.
                 </Text>
-                <VStack gap={2}>
-                  {schedules.slice(0, 6).map((schedule) => (
-                    <HStack key={schedule.id} gap={2} vAlign="center">
-                      <span
+                {/* 시각 순(종일 먼저)으로 다섯 줄까지 — 줄마다 분류·장소·담당과 담당 사진(2026-11-16, 앱 오늘 일정과 같은 모양).
+                    예전엔 등록 순서라 시각이 뒤섞였고 시각·제목만 있었다. */}
+                <div>
+                  {[...schedules].sort(compareScheduleTime).slice(0, 5).map((schedule, idx) => {
+                    const sub = [
+                      schedule.label?.name || getCategoryLabel(schedule.category),
+                      schedule.location?.trim() || null,
+                      schedule.managerName ? `${schedule.managerName} 담당` : null,
+                    ].filter(Boolean).join(' · ');
+                    return (
+                      <div
+                        key={schedule.id}
                         style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          flexShrink: 0,
-                          background: getScheduleColor(schedule),
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 'var(--spacing-3)',
+                          padding: 'var(--spacing-2-5, 10px) 0',
+                          borderTop: idx === 0 ? 'none' : '1px solid var(--color-border)',
                         }}
-                      />
-                      <Text type="supporting" color="secondary" hasTabularNumbers>
-                        {schedule.isAllDay ? '종일' : (schedule.startTime || '').slice(0, 5) || '-'}
-                      </Text>
-                      <Text type="body" weight="medium" maxLines={1}>{schedule.title}</Text>
-                    </HStack>
-                  ))}
-                  {schedules.length > 6 && (
-                    <Text type="supporting" color="secondary">외 {schedules.length - 6}건</Text>
+                      >
+                        <div style={{ minWidth: 44, flexShrink: 0 }}>
+                          <Text type="body" weight="semibold" color="primary" hasTabularNumbers>
+                            {schedule.isAllDay ? '종일' : (schedule.startTime || '').slice(0, 5) || '-'}
+                          </Text>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text type="body" weight="semibold" color="primary" maxLines={1}>{schedule.title}</Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, minWidth: 0 }}>
+                            <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: getScheduleColor(schedule) }} />
+                            <Text type="supporting" color="secondary" maxLines={1}>{sub}</Text>
+                          </div>
+                        </div>
+                        {schedule.managerName && (
+                          <MemberAvatar
+                            name={schedule.managerName}
+                            id={schedule.managerId}
+                            type={schedule.managerType}
+                            size={32}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                  {schedules.length > 5 && (
+                    <div style={{ paddingTop: 'var(--spacing-2)' }}>
+                      <Text type="supporting" color="secondary">외 {schedules.length - 5}건</Text>
+                    </div>
                   )}
-                </VStack>
+                </div>
               </VStack>
             </LayoutContent>
           }

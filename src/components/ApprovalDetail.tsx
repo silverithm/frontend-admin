@@ -24,6 +24,7 @@ import ApprovalAnnounceDialog from './approval/ApprovalAnnounceDialog';
 import DocumentViewerModal from './DocumentViewerModal';
 import { useConfirm } from './ConfirmDialog';
 import { useAlert } from './Alert';
+import MemberAvatar from './MemberAvatar';
 
 interface ApprovalDetailProps {
   approval: ApprovalRequest;
@@ -199,6 +200,7 @@ export default function ApprovalDetail({
                 {approval.status === 'PENDING' && hasLine && !isMyTurn && currentStep && (
                   <Banner
                     status="info"
+                    icon={<MemberAvatar name={currentStep.approverName} id={currentStep.approverId} type={currentStep.approverType} size={32} />}
                     title={`현재 ${currentStep.approverName}님의 결재 차례입니다.`}
                     description="관리자는 직권 승인(전결)으로 남은 검토 단계를 건너뛰고 즉시 처리할 수 있습니다."
                   />
@@ -223,9 +225,11 @@ export default function ApprovalDetail({
                   <Card variant="muted" padding={5}>
                     <VStack gap={3} hAlign="center">
                       <Text weight="semibold">HWP 양식으로 작성된 문서입니다</Text>
-                      <Text type="supporting" color="secondary" justify="center">
-                        {approval.templateName} · {approval.requesterName} 작성
-                      </Text>
+                      <HStack gap={2} vAlign="center" hAlign="center" wrap="wrap">
+                        <Text type="supporting" color="secondary">{approval.templateName} ·</Text>
+                        <MemberAvatar name={approval.requesterName} id={approval.requesterId} size={20} />
+                        <Text type="supporting" color="secondary">{approval.requesterName} 작성</Text>
+                      </HStack>
                       {approval.attachmentUrl ? (
                         <Button
                           label="문서 열어보기"
@@ -306,9 +310,12 @@ export default function ApprovalDetail({
                       <Text type="label" weight="semibold">결재 의견</Text>
                       {stepsWithComment.map((step) => (
                         <VStack key={step.id} gap={1}>
-                          <Text type="supporting" color="secondary">
-                            {step.roleLabel === 'FINAL' ? '결재' : '검토'} · {step.approverName}
-                          </Text>
+                          <HStack gap={2} vAlign="center">
+                            <MemberAvatar name={step.approverName} id={step.approverId} type={step.approverType} size={20} />
+                            <Text type="supporting" color="secondary">
+                              {step.roleLabel === 'FINAL' ? '결재' : '검토'} · {step.approverName}
+                            </Text>
+                          </HStack>
                           <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{step.comment}</Text>
                         </VStack>
                       ))}
@@ -327,6 +334,9 @@ export default function ApprovalDetail({
                         label={viewer.viewerType === 'POSITION'
                           ? `${viewer.viewerName} 전원`
                           : viewer.viewerName}
+                        icon={viewer.viewerType === 'POSITION' ? undefined : (
+                          <MemberAvatar name={viewer.viewerName} id={viewer.refId} type={viewer.viewerType} size={16} />
+                        )}
                       />
                     ))}
                   </HStack>

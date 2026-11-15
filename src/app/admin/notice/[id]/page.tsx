@@ -40,6 +40,7 @@ import { Notice, NoticeComment, NoticeReader, NoticePriority } from '@/types/not
 import { useAlert } from '@/components/Alert';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { StandaloneTopBar } from '@/components/StandaloneTopBar';
+import MemberAvatar from '@/components/MemberAvatar';
 import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 type TabType = 'content' | 'comments' | 'readers';
@@ -340,7 +341,18 @@ export default function NoticeDetailPage({ params }: { params: Promise<{ id: str
                     </HStack>
                     <Heading level={2}>{notice.title}</Heading>
                     <HStack gap={4} vAlign="center" wrap="wrap">
-                      <Text type="supporting">작성자: {notice.authorName}</Text>
+                      <HStack gap={1.5} vAlign="center">
+                        {/* 서버가 작성자 이름을 '관리자'로 고정하는 경우가 있어 그때는 사진을 붙이지 않는다 */}
+                        {notice.authorName && notice.authorName !== '관리자' && (
+                          <MemberAvatar
+                            name={notice.authorName}
+                            id={notice.authorId?.includes('@') ? undefined : notice.authorId}
+                            email={notice.authorId?.includes('@') ? notice.authorId : undefined}
+                            size={20}
+                          />
+                        )}
+                        <Text type="supporting">작성자: {notice.authorName}</Text>
+                      </HStack>
                       <Text type="supporting">{formatDate(notice.createdAt, 'yyyy.MM.dd HH:mm')}</Text>
                       <HStack gap={1} vAlign="center">
                         <Icon icon={FiEye} size="sm" color="secondary" />

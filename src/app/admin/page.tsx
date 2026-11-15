@@ -1,5 +1,7 @@
 "use client";
 
+import MemberAvatar from '@/components/MemberAvatar';
+import { vacationKindBadgeStyle } from '@/lib/monthVacations';
 import {useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import {useRouter} from "next/navigation";
 import {format, addMonths, subMonths, isSameDay, startOfMonth, endOfMonth} from "date-fns";
@@ -1836,7 +1838,8 @@ export default function AdminPage() {
                                                     return (
                                                     <li
                                                         key={request.id}
-                                                        style={{ padding: 'var(--spacing-2)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-none)', border: "1px solid var(--color-border)", transition: 'box-shadow var(--duration-fast-min) var(--ease-standard)' }}
+                                                        // 안쪽 사유 상자는 둥근데 바깥만 직각이던 것을 맞춘다(2026-11-16)
+                                                        style={{ padding: 'var(--spacing-2) var(--spacing-3)', background: 'var(--color-background-muted)', borderRadius: 'var(--radius-inner)', border: "1px solid var(--color-border)", transition: 'box-shadow var(--duration-fast-min) var(--ease-standard)' }}
                                                     >
                                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "flex-start", gap: 'var(--spacing-2)' }}>
@@ -1852,6 +1855,8 @@ export default function AdminPage() {
                                                                         />
                                                                     </div>
                                                                 )}
+                                                                {/* 신청한 직원 사진(2026-11-16) */}
+                                                                <MemberAvatar name={request.userName} id={request.userId} size={32} />
                                                                 <div>
                                                                     <div
                                                                         className="carev-name-filter"
@@ -1895,8 +1900,22 @@ export default function AdminPage() {
                                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-1)' }}>
                                                             <div style={{ display: "flex", alignItems: "center", gap: 'var(--spacing-1)', flexWrap: "wrap" }}>
                                                                 <Badge variant="neutral" label={getRoleText(resolvedRole)} />
-                                                                {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다 */}
-                                                                <Badge variant="neutral" label={requestKind.label} />
+                                                                {/* 휴무 종류 — 종류와 종일·반일 구분이 하나로 합쳐졌다. 달력과 같은 종류 색 원을 붙여
+                                                                    회색 알약 둘이 나란히 있어 어느 게 종류인지 안 보이던 것을 가른다 */}
+                                                                <span
+                                                                    style={{
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: 4,
+                                                                        padding: '1px var(--spacing-2) 1px 3px',
+                                                                        borderRadius: 'var(--radius-full)',
+                                                                        background: 'var(--color-background-card)',
+                                                                        border: '1px solid var(--color-border)',
+                                                                    }}
+                                                                >
+                                                                    <span style={vacationKindBadgeStyle(requestKind.color, 14)}>{requestKind.short}</span>
+                                                                    <Text type="supporting" color="primary">{requestKind.label}</Text>
+                                                                </span>
                                                                 <Text type="supporting" color="secondary">{formatListDateTime(request.createdAt)}</Text>
                                                             </div>
                                                             {isAdmin && (
@@ -2064,7 +2083,7 @@ export default function AdminPage() {
                                         </div>
                                         <VStack gap={1} align="start">
                                             <Text type="body" color="secondary">
-                                                <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.userName}</Text>님의 <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.date}</Text> 휴무를 정말 삭제하시겠습니까?
+                                                <Text type="body" weight="semibold" color="primary">{selectedDeleteVacation.userName}</Text>님의 <Text type="body" weight="semibold" color="primary">{(() => { const d = new Date(selectedDeleteVacation.date); return Number.isNaN(d.getTime()) ? selectedDeleteVacation.date : format(d, 'M월 d일 (EEE)', { locale: ko }); })()}</Text> 휴무를 정말 삭제하시겠습니까?
                                             </Text>
                                             <Text type="supporting" color="secondary">이 작업은 되돌릴 수 없습니다.</Text>
                                         </VStack>

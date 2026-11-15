@@ -18,6 +18,7 @@ import { Loading } from '@/components/Loading';
 import MeetingMinutesDetail from '@/components/meetingMinutes/MeetingMinutesDetail';
 import MeetingMinutesForm from '@/components/meetingMinutes/MeetingMinutesForm';
 import MeetingMinutesTemplateSettings from '@/components/meetingMinutes/MeetingMinutesTemplateSettings';
+import MemberAvatar from '@/components/MemberAvatar';
 import {
   getMeetingMinutesById,
   getMeetingMinutesList,
@@ -149,9 +150,13 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
                         />
                         <Text type="body" weight="medium">{minutes.title}</Text>
                       </HStack>
-                      <Text type="supporting" color="secondary">
-                        {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} · {minutes.authorName}
-                      </Text>
+                      <HStack gap={1.5} vAlign="center" wrap="wrap">
+                        <Text type="supporting" color="secondary">
+                          {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} ·
+                        </Text>
+                        <MemberAvatar name={minutes.authorName} id={minutes.authorRefId} type={minutes.authorType} size={20} />
+                        <Text type="supporting" color="secondary">{minutes.authorName}</Text>
+                      </HStack>
                     </VStack>
                     <Badge
                       variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount

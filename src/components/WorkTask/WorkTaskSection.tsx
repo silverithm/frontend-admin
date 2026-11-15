@@ -12,6 +12,7 @@ import WorkTaskDialog from '@/components/WorkTask/WorkTaskDialog';
 import { fetchWorkTasks } from '@/lib/apiService';
 import type { DirectChatMember } from '@/lib/directChat';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
+import { MemberFaces } from '@/components/MemberAvatar';
 import {
   IMPORTANCE_META,
   assigneeLabel,
@@ -189,6 +190,15 @@ function WorkTaskRow({ task, today, onOpen }: { task: WorkTask; today: string; o
           {due && <span className={`carev-wt-due carev-wt-due-${due.tone}`}>{due.text}</span>}
         </span>
         <span className="carev-wt-line">
+          {task.assignees.some((a) => a.name?.trim()) && (
+            <MemberFaces
+              size={20}
+              max={2}
+              people={task.assignees
+                .filter((a) => a.name?.trim())
+                .map((a) => ({ id: a.id, name: a.name!.trim() }))}
+            />
+          )}
           <span className="carev-wt-who">{who}</span>
           <span
             className="carev-wt-gauge"

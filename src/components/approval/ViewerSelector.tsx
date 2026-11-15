@@ -11,6 +11,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
 import MemberItem from '@/components/MemberItem';
+import MemberAvatar from '@/components/MemberAvatar';
 import { getViewerCandidates } from '@/lib/apiService';
 import {
   ApprovalViewerEntry,
@@ -185,6 +186,15 @@ export default function ViewerSelector({ value, onChange, description }: ViewerS
                   background: 'var(--color-background-muted)',
                 }}
               >
+                {candidate && (
+                  <MemberAvatar
+                    name={candidate.name}
+                    id={candidate.approverId}
+                    type={candidate.approverType}
+                    imageUrl={candidate.profileImageUrl}
+                    size={20}
+                  />
+                )}
                 <Text type="supporting">{candidate?.name ?? `#${entry.refId}`}</Text>
                 <IconButton
                   label={`${candidate?.name ?? '대상'} 제거`}

@@ -15,6 +15,8 @@ import { Grid } from '@astryxdesign/core/Grid';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import SignatureCanvas, { SignatureCanvasHandle } from '@/components/approval/SignatureCanvas';
 import { useConfirm } from '@/components/ConfirmDialog';
+import MemberAvatar from '@/components/MemberAvatar';
+import AttendeeAvatar from '@/components/meetingMinutes/AttendeeAvatar';
 import {
   completeMeetingMinutes,
   deleteMeetingMinutes,
@@ -172,9 +174,13 @@ export default function MeetingMinutesDetail({
           <Text type="supporting" color="secondary">서명 {minutes.signedCount}/{minutes.attendeeCount}</Text>
         </HStack>
         <Text type="large" weight="semibold">{minutes.title}</Text>
-        <Text type="supporting" color="secondary">
-          {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} · 작성 {minutes.authorName}
-        </Text>
+        <HStack gap={1.5} vAlign="center" wrap="wrap">
+          <Text type="supporting" color="secondary">
+            {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} · 작성
+          </Text>
+          <MemberAvatar name={minutes.authorName} id={minutes.authorRefId} type={minutes.authorType} size={20} />
+          <Text type="supporting" color="secondary">{minutes.authorName}</Text>
+        </HStack>
         {audioChunks.length > 0 && (
           <Text type="supporting" color="secondary">
             녹음 {audioChunks.length}조각{audioMinutes > 0 ? ` · 약 ${audioMinutes}분` : ''} 보관됨
@@ -263,6 +269,8 @@ export default function MeetingMinutesDetail({
           {attendees.map((attendee) => (
             <Card key={attendee.id} variant={attendee.signedAt ? 'default' : 'muted'} padding={3}>
               <HStack gap={2} vAlign="center" hAlign="between">
+                <HStack gap={2} vAlign="center" style={{ minWidth: 0 }}>
+                <AttendeeAvatar attendee={attendee} />
                 <VStack gap={0.5}>
                   <HStack gap={1} vAlign="center">
                     <Text type="body" weight="medium">{attendee.attendeeName}</Text>
@@ -274,6 +282,7 @@ export default function MeetingMinutesDetail({
                       : minutes.status === 'REGISTERED' ? '서명 대기' : '미서명'}
                   </Text>
                 </VStack>
+                </HStack>
                 {attendee.signedAt && attendee.signatureUrl ? (
                   // 서명 이미지는 투명 PNG — 밝은 바탕 위에 그대로 얹는다
                   <img

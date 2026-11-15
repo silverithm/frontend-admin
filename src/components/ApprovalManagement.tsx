@@ -25,6 +25,7 @@ import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
+import MemberAvatar from '@/components/MemberAvatar';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, getApprovalTemplates, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
 import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
@@ -622,7 +623,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                               끊는다. 좁은 화면에서는 알아서 다음 줄로 넘어간다. */}
                           <HStack gap={2} vAlign="center" wrap="wrap">
                             <HStack gap={1} vAlign="center">
-                              <Icon icon={FiUser} size="sm" color="tertiary" />
+                              <MemberAvatar name={approval.requesterName} id={approval.requesterId} size={20} />
                               <Text type="supporting" color="secondary">{approval.requesterName}</Text>
                             </HStack>
                             {/* 세로 선은 부모 높이를 따라가는데 이 줄은 높이가 정해져 있지 않아
@@ -654,7 +655,14 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                               <>
                                 <Divider orientation="vertical" style={{ height: 'var(--spacing-3)', alignSelf: 'center' }} />
                                 <HStack gap={1} vAlign="center">
-                                  <Icon icon={FiClock} size="sm" color="tertiary" />
+                                  {(() => {
+                                    const step = approval.approvalLine?.find((s) => s.status === 'PENDING');
+                                    return step ? (
+                                      <MemberAvatar name={step.approverName} id={step.approverId} type={step.approverType} size={20} />
+                                    ) : (
+                                      <Icon icon={FiClock} size="sm" color="tertiary" />
+                                    );
+                                  })()}
                                   <Text type="supporting" color="secondary">{getCurrentApproverName(approval)}님 결재 대기 중</Text>
                                 </HStack>
                               </>

@@ -45,6 +45,7 @@ import { sanitizeRichText, normalizeEditorHtml, isRichText, richTextToPlain } fr
 import { toEditorHtml } from '@/lib/noticeContent';
 import RichTextEditor from '@/components/plaza/RichTextEditor';
 import { formatListDateTime } from '@/lib/formatDate';
+import MemberAvatar from '@/components/MemberAvatar';
 import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 type ViewMode = 'list' | 'detail';
@@ -526,7 +527,18 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                                 </HStack>
                                 <Text type="supporting" maxLines={2}>{richTextToPlain(n.content)}</Text>
                                 <HStack gap={3} vAlign="center" wrap="wrap">
-                                  <Text type="supporting">작성자: {n.authorName}</Text>
+                                  <HStack gap={1.5} vAlign="center">
+                                  {/* 서버가 작성자 이름을 '관리자'로 고정하는 경우가 있어 그때는 사진을 붙이지 않는다 */}
+                                  {n.authorName && n.authorName !== '관리자' && (
+                                    <MemberAvatar
+                                      name={n.authorName}
+                                      id={n.authorId?.includes('@') ? undefined : n.authorId}
+                                      email={n.authorId?.includes('@') ? n.authorId : undefined}
+                                      size={20}
+                                    />
+                                  )}
+                                    <Text type="supporting">작성자: {n.authorName}</Text>
+                                  </HStack>
                                   <Text type="supporting">{formatListDateTime(n.createdAt) || '-'}</Text>
                                   <HStack gap={1} vAlign="center">
                                     <Icon icon={FiEye} size="sm" color="secondary" />
@@ -642,7 +654,18 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
                   </HStack>
                   <Heading level={2}>{notice.title}</Heading>
                   <HStack gap={4} vAlign="center" wrap="wrap">
-                    <Text type="supporting">작성자: {notice.authorName}</Text>
+                    <HStack gap={1.5} vAlign="center">
+                      {/* 서버가 작성자 이름을 '관리자'로 고정하는 경우가 있어 그때는 사진을 붙이지 않는다 */}
+                      {notice.authorName && notice.authorName !== '관리자' && (
+                        <MemberAvatar
+                          name={notice.authorName}
+                          id={notice.authorId?.includes('@') ? undefined : notice.authorId}
+                          email={notice.authorId?.includes('@') ? notice.authorId : undefined}
+                          size={20}
+                        />
+                      )}
+                      <Text type="supporting">작성자: {notice.authorName}</Text>
+                    </HStack>
                     <Text type="supporting">{(formatListDateTime(notice.createdAt) || '-')}</Text>
                     <HStack gap={1} vAlign="center">
                       <Icon icon={FiEye} size="sm" color="secondary" />

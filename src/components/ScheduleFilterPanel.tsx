@@ -5,6 +5,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
 import { VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import MemberAvatar from '@/components/MemberAvatar';
 import {
   collectPersonOptions,
   isKindFilterValue,
@@ -85,14 +86,22 @@ export default function ScheduleFilterPanel({
               value={MY_SCHEDULES_FILTER}
               endContent={mine ? <DoneCount done={mine.done} total={mine.total} /> : undefined}
             />
-            {people.map((person) => (
+            {people.map((person) => {
+              const [personType, personId] = person.key.split(':');
+              return (
               <CheckboxListItem
                 key={person.key}
-                label={person.name}
+                label={
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <MemberAvatar name={person.name} id={personId} type={personType} size={20} />
+                    <span>{person.name}</span>
+                  </span>
+                }
                 value={personFilterValue(person.key)}
                 endContent={<DoneCount done={person.done} total={person.total} />}
               />
-            ))}
+              );
+            })}
           </CheckboxList>
           {people.length === 0 && (
             <Text type="supporting" color="secondary">

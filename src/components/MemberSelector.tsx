@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { FiBriefcase, FiSearch, FiUser } from "react-icons/fi";
+import { FiSearch, FiUser } from "react-icons/fi";
 import { getMemberUsers, getPositions } from "@/lib/apiService";
 import type { Position } from "@/types/position";
 import {
@@ -20,6 +20,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Loading } from "@/components/Loading";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export interface Member extends MemberRoleSource {
   id: string;
@@ -247,20 +248,13 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
                 >
                   <HStack hAlign="between" vAlign="center" gap={3}>
                     <HStack gap={3} vAlign="center">
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 36,
-                          height: 36,
-                          borderRadius: 'var(--radius-full)',
-                          background: 'var(--color-background-muted)',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon icon={FiBriefcase} size="sm" color="secondary" />
-                      </div>
+                      <MemberAvatar
+                        name={member.name}
+                        id={member.id}
+                        type={member.role === "facility_admin" ? "ADMIN" : "MEMBER"}
+                        imageUrl={member.profileImageUrl}
+                        size={36}
+                      />
                       <VStack gap={0.5}>
                         <Text weight="medium">{member.name}</Text>
                         <Text type="supporting">{member.email}</Text>

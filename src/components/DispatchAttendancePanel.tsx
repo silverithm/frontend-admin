@@ -19,8 +19,9 @@ import { Text } from "@astryxdesign/core/Text";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { VStack } from "@astryxdesign/core/Stack";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { useElderAttendanceStore } from "@/lib/elderAttendanceStore";
+import MemberAvatar from "@/components/MemberAvatar";
 import type { DispatchSettings, RouteType, Senior } from "@/types/dispatch";
 import type { ElderDayAttendance } from "@/types/attendance";
 
@@ -123,9 +124,18 @@ export default function DispatchAttendancePanel({
         return (
           <Card key={route.id} variant="muted" padding={3}>
             <VStack gap={2}>
-              <Text weight="bold">
-                {route.name} · {headline} · {seniors.length}명
-              </Text>
+              <HStack gap={2} vAlign="center">
+                {mainDriver?.driverName?.trim() && (
+                  <MemberAvatar
+                    name={mainDriver.driverName.trim()}
+                    id={mainDriver.driverId || undefined}
+                    size={24}
+                  />
+                )}
+                <Text weight="bold">
+                  {route.name} · {headline} · {seniors.length}명
+                </Text>
+              </HStack>
               <div className="carev-dispatch-attendance-table-scroll">
                 <table className="carev-dispatch-attendance-table">
                   <thead>

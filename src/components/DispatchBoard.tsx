@@ -43,6 +43,7 @@ import type { VacationRequest } from "@/types/vacation";
 import type { ElderlyInfo } from "@/types/elderly";
 import { applyDispatchOverrides, getDailyDispatch } from "@/lib/dispatchAlgorithm";
 import { nextBoardingOrder } from "@/lib/dispatchBoardEdit";
+import MemberAvatar from "@/components/MemberAvatar";
 import { getUnassignedElders } from "@/lib/dispatchUnassigned";
 import {
   buildDispatchBoardText,
@@ -581,10 +582,14 @@ function RouteBlock({
             title={rd.reason || undefined}
             className="carev-dispatch-driver-chip"
             data-tone={rd.status === "대체" ? "warning" : "neutral"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            {rd.status === "대체"
-              ? `대체 · ${rd.driverRole ?? "대체운전"} ${rd.driver.driverName}`
-              : `${rd.driverRole ?? "운전자"} ${rd.driver.driverName}`}
+            <MemberAvatar name={rd.driver.driverName} id={rd.driver.driverId || undefined} size={20} />
+            <span>
+              {rd.status === "대체"
+                ? `대체 · ${rd.driverRole ?? "대체운전"} ${rd.driver.driverName}`
+                : `${rd.driverRole ?? "운전자"} ${rd.driver.driverName}`}
+            </span>
           </span>
         )}
 

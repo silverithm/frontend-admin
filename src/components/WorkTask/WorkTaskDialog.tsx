@@ -13,6 +13,7 @@ import { HStack, StackItem, VStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
+import MemberAvatar from '@/components/MemberAvatar';
 import type { DirectChatMember } from '@/lib/directChat';
 import { createWorkTask, deleteWorkTask, updateWorkTask } from '@/lib/apiService';
 import { IMPORTANCE_META, IMPORTANCE_ORDER, PROGRESS_STEP, type WorkTask, type WorkTaskImportance, type WorkTaskInput } from '@/lib/workTasks';
@@ -75,10 +76,15 @@ export default function WorkTaskDialog({ isOpen, task, members, meId, onClose, o
   const options = useMemo(() => {
     const list = members.map((m) => ({
       value: m.id,
+      icon: <MemberAvatar name={m.name} id={m.id} imageUrl={m.profileImageUrl} size={20} />,
       label: m.id === meId ? `${m.name} (나)` : m.position ? `${m.name} · ${m.position}` : m.name,
     }));
     for (const a of task?.assignees ?? []) {
-      if (!list.some((o) => o.value === a.id)) list.push({ value: a.id, label: a.name ?? '알 수 없는 사람' });
+      if (!list.some((o) => o.value === a.id)) list.push({
+        value: a.id,
+        icon: <MemberAvatar name={a.name ?? '?'} id={a.id} size={20} />,
+        label: a.name ?? '알 수 없는 사람',
+      });
     }
     return list;
   }, [members, meId, task]);

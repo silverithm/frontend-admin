@@ -9,6 +9,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Divider } from "@astryxdesign/core/Divider";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Spinner } from "@astryxdesign/core/Spinner";
+import MemberAvatar from "@/components/MemberAvatar";
 import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 
 import { approveVacation, bulkApproveVacations, getAllVacationRequests, rejectVacation } from "@/lib/apiService";
@@ -169,9 +170,12 @@ export function PendingVacationApprovals({
                                     >
                                         <VStack gap={1.5}>
                                             <HStack hAlign="between" vAlign="center">
-                                                <Text type="body" weight="medium" color="primary">
-                                                    {request.userName}
-                                                </Text>
+                                                <HStack gap={2} vAlign="center">
+                                                    <MemberAvatar name={request.userName} id={request.userId} size={20} />
+                                                    <Text type="body" weight="medium" color="primary">
+                                                        {request.userName}
+                                                    </Text>
+                                                </HStack>
                                                 <Text type="supporting" color="secondary">
                                                     {request.date}
                                                 </Text>

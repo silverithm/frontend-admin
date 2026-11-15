@@ -20,6 +20,8 @@ export interface VacationPerson {
   color: string;
   /** 툴팁용 종류 이름 */
   kindLabel: string;
+  /** 휴무를 쓴 사람 번호(대개 직원 번호) — 프로필 사진을 찾는다. 웹 이름 입력 신청은 'user_<시각>'이라 못 찾는다 */
+  userId: string | null;
 }
 
 /**
@@ -44,6 +46,7 @@ export const vacationKindBadgeStyle = (background: string, size = 12): CSSProper
 
 interface RawPerson {
   id?: string | number;
+  userId?: string | number | null;
   userName?: string;
   memberName?: string;
   name?: string;
@@ -65,6 +68,7 @@ const toPerson = (raw: RawPerson, index: number): VacationPerson | null => {
     short: kind.short,
     color: kind.color,
     kindLabel: kind.label,
+    userId: raw.userId != null && String(raw.userId).trim() ? String(raw.userId).trim() : null,
   };
 };
 

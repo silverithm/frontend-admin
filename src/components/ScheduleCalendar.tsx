@@ -16,6 +16,8 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Loading } from '@/components/Loading';
 import PageHeader from '@/components/PageHeader';
 import MemberItem from '@/components/MemberItem';
+import MemberAvatar, { MemberName } from '@/components/MemberAvatar';
+import { DetailLine, ScheduleCategoryTag, SchedulePeople, compareScheduleTime, scheduleWhenText } from '@/components/ScheduleDetailParts';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -351,6 +353,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [taskBusyId, setTaskBusyId] = useState<string | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
+  // 할 일 추가 칸 — 예전엔 늘 펼쳐져 상세의 절반을 차지했다. 단추를 눌러야 펼친다
+  const [showAddTask, setShowAddTask] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskForm, setEditTaskForm] = useState({ content: '', assigneeMemberId: '' });
 
@@ -626,7 +630,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
   // 선택 날짜 상세 패널에서 4번 독립 재계산되던 것을 한 번만 계산해 재사용
   const selectedDateSchedules = useMemo(
-    () => (selectedDate ? getSchedulesForDate(selectedDate) : []),
+    // 하루 안에서는 시각 순(종일 먼저) — 등록한 순서로 두면 09:30·14:00·11:00처럼 뒤섞였다
+    () => (selectedDate ? [...getSchedulesForDate(selectedDate)].sort(compareScheduleTime) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedDate, visibleSchedules]
   );
@@ -808,6 +813,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       }
       setNewTaskContent('');
       setNewTaskAssignee('');
+      setShowAddTask(false);
     } catch (error) {
       console.error('할 일 추가 실패:', error);
       showAlert({ type: 'error', title: '추가 실패', message: '할 일을 추가하지 못했습니다.' });
@@ -1846,19 +1852,21 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                         {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).map((person) => (
                           <span
                             key={person.id}
-                            title={person.kindLabel}
+                            title={`${person.name} · ${person.kindLabel}`}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 'var(--spacing-1)',
-                              padding: '2px var(--spacing-2)',
+                              gap: 6,
+                              padding: '2px var(--spacing-2) 2px 2px',
                               borderRadius: 'var(--radius-full)',
                               border: '1px solid var(--color-border)',
                               background: 'var(--color-background-muted)',
                             }}
                           >
+                            {/* 그 직원 사진(2026-11-16) + 이름 + 종류 원 */}
+                            <MemberAvatar name={person.name} id={person.userId} size={20} />
+                            <Text type="supporting" color="primary">{person.name}</Text>
                             <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
-                            <Text type="supporting" color="secondary">{person.name}</Text>
                           </span>
                         ))}
                       </div>
@@ -1898,8 +1906,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                         label={`할 일 ${schedule.taskCompleted || 0}/${schedule.taskTotal}`}
                                       />
                                     )}
-                                    <Text type="supporting">
-                                      {schedule.isAllDay ? '종일' : `${schedule.startTime || ''} - ${schedule.endTime || ''}`}
+                                    <Text type="supporting" hasTabularNumbers>
+                                      {schedule.isAllDay ? '종일' : scheduleWhenText(schedule).time}
                                     </Text>
                                     {schedule.startDate.split('T')[0] !== schedule.endDate.split('T')[0] && (
                                       <Text type="supporting" color="secondary">
@@ -1911,6 +1919,18 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                 {schedule.location && (
                                   <div style={{ marginTop: 'var(--spacing-0-5)' }}>
                                     <Text type="supporting" color="secondary" maxLines={1}>{schedule.location}</Text>
+                                  </div>
+                                )}
+                                {/* 담당자 사진 + 이름(2026-11-16 — 목록에서 누구 일인지 바로 보이게) */}
+                                {schedule.managerName && (
+                                  <div style={{ marginTop: 'var(--spacing-1-5)', fontSize: 13 }}>
+                                    <MemberName
+                                      name={schedule.managerName}
+                                      id={schedule.managerId}
+                                      type={schedule.managerType}
+                                      size={20}
+                                      suffix="담당"
+                                    />
                                   </div>
                                 )}
                               </div>
@@ -2279,13 +2299,59 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             header={
               <DialogHeader
                 title={selectedSchedule.title}
-                subtitle={selectedSchedule.label?.name || getCategoryText(selectedSchedule.category)}
-                onOpenChange={(open) => { if (!open) { setShowDetailModal(false); setSelectedSchedule(null); } }}
+                onOpenChange={(open) => { if (!open) { setShowDetailModal(false); setSelectedSchedule(null); setShowAddTask(false); } }}
               />
             }
             content={
               <LayoutContent>
-                <VStack gap={4}>
+                <VStack gap={5}>
+                  {/* 요약 — 분류(일정 색) · 날짜·시간 · 장소. 예전엔 날짜가 할 일 목록 아래에 묻혀 있었다 */}
+                  {(() => {
+                    const when = scheduleWhenText(selectedSchedule);
+                    return (
+                      <VStack gap={3}>
+                        <HStack gap={2} vAlign="center" wrap="wrap">
+                          <ScheduleCategoryTag
+                            label={selectedSchedule.label?.name || getCategoryText(selectedSchedule.category)}
+                            color={getScheduleColor(selectedSchedule)}
+                          />
+                          {selectedSchedule.sendNotification && (
+                            <Badge variant="neutral" label="알림 전송됨" icon={<Icon icon={IconBell} size="xsm" />} />
+                          )}
+                        </HStack>
+                        <DetailLine icon="calendar">
+                          <div>
+                            <Text type="body" weight="medium" color="primary">{when.date}</Text>
+                          </div>
+                          {when.time && (
+                            <div>
+                              <Text type="supporting" color="secondary" hasTabularNumbers>{when.time}</Text>
+                            </div>
+                          )}
+                        </DetailLine>
+                        {selectedSchedule.location && (
+                          <DetailLine icon={IconMapPin}>
+                            <Text type="body" color="primary">{selectedSchedule.location}</Text>
+                          </DetailLine>
+                        )}
+                      </VStack>
+                    );
+                  })()}
+
+                  {/* 사람 — 담당·등록·참석을 사진과 함께(예전엔 담당이 첨부 뒤 맨 아래, 작성자는 회색 글자 한 줄) */}
+                  {(selectedSchedule.managerName || selectedSchedule.authorName || (selectedSchedule.participants?.length ?? 0) > 0) && (
+                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
+                      <SchedulePeople schedule={selectedSchedule} members={members} roleOf={getMemberRoleText} />
+                    </div>
+                  )}
+
+                  {/* 내용 */}
+                  {selectedSchedule.content && (
+                    <div style={{ whiteSpace: 'pre-wrap', padding: 'var(--spacing-3) var(--spacing-4)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
+                      <Text type="body" color="primary">{selectedSchedule.content}</Text>
+                    </div>
+                  )}
+
                   {/* 수행 상태 */}
                   <div
                     style={{
@@ -2295,10 +2361,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       padding: 'var(--spacing-3)',
                       borderRadius: 'var(--radius-inner)',
                       border: `1px solid ${selectedSchedule.isCompleted ? 'var(--color-border-green)' : 'var(--color-border)'}`,
-                      background: selectedSchedule.isCompleted ? 'var(--color-background-green)' : 'var(--color-background-muted)',
+                      background: selectedSchedule.isCompleted ? 'var(--color-background-green)' : 'var(--color-background-card)',
                     }}
                   >
-                    <Icon icon={IconCircleCheck} size="md" color={selectedSchedule.isCompleted ? 'success' : 'tertiary'} />
+                    <Icon icon={selectedSchedule.isCompleted ? IconCircleCheckFilled : IconCircleCheck} size="md" color={selectedSchedule.isCompleted ? 'success' : 'tertiary'} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <Text type="body" weight="medium" color="primary">
                         {selectedSchedule.isCompleted ? '수행완료' : '진행 예정'}
@@ -2308,11 +2374,21 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                           담당자{selectedSchedule.managerName ? `(${selectedSchedule.managerName})` : ''}만 완료 처리할 수 있습니다
                         </Text>
                       )}
-                      {selectedSchedule.isCompleted && (
-                        <Text type="supporting" color="secondary">
-                          {selectedSchedule.completedByName ? `${selectedSchedule.completedByName} · ` : ''}
-                          {selectedSchedule.completedAt ? format(new Date(selectedSchedule.completedAt), 'yyyy.MM.dd HH:mm') : ''}
-                        </Text>
+                      {selectedSchedule.isCompleted && (selectedSchedule.completedByName || selectedSchedule.completedAt) && (
+                        <div style={{ marginTop: 2, fontSize: 13 }}>
+                          {selectedSchedule.completedByName ? (
+                            <MemberName
+                              name={selectedSchedule.completedByName}
+                              email={selectedSchedule.completedById}
+                              size={20}
+                              suffix={selectedSchedule.completedAt ? `· ${format(new Date(selectedSchedule.completedAt), 'M월 d일 HH:mm')}` : undefined}
+                            />
+                          ) : (
+                            <Text type="supporting" color="secondary">
+                              {format(new Date(selectedSchedule.completedAt!), 'M월 d일 HH:mm')}
+                            </Text>
+                          )}
+                        </div>
                       )}
                     </div>
                     {/* 할 일이 있으면 완료는 할 일 진행에 따라 자동으로 결정된다 */}
@@ -2355,14 +2431,15 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                   aria-valuemax={100}
                                   style={{ width: 100, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
                                 >
-                                  <div style={{ width: '100%', height: '100%', background: 'var(--color-background-green)', transformOrigin: 'left', transform: `scaleX(${percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
+                                  {/* 채움은 글자·선 색(success) — 예전 배경용 옅은 초록은 빈 막대와 거의 같아 안 보였다 */}
+                                  <div style={{ width: '100%', height: '100%', background: 'var(--color-success)', transformOrigin: 'left', transform: `scaleX(${percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
                                 </div>
                                 <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{percent}%</Text>
                               </HStack>
                             )}
                           </HStack>
 
-                          {tasks.length === 0 && (
+                          {tasks.length === 0 && !showAddTask && (
                             <Text type="supporting" color="secondary">
                               아직 등록된 할 일이 없습니다. 이 일정에서 해야 할 업무와 담당자를 추가해보세요.
                             </Text>
@@ -2413,17 +2490,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                     <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none', opacity: task.isCompleted ? 0.65 : 1 }}>
                                       <Text type="body" weight="medium" color="primary">{task.content}</Text>
                                     </div>
-                                    <div style={{ marginTop: 'var(--spacing-1)' }}>
-                                      <HStack gap={1.5} vAlign="center" wrap="wrap">
+                                    <div style={{ marginTop: 'var(--spacing-1-5)', fontSize: 13 }}>
+                                      <HStack gap={2} vAlign="center" wrap="wrap">
                                         {task.assigneeName ? (
-                                          <Badge variant="neutral" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
+                                          <MemberName name={task.assigneeName} id={task.assigneeMemberId} type="MEMBER" size={20} />
                                         ) : (
                                           <Badge variant="neutral" label="담당자 미지정" />
                                         )}
                                         {task.isCompleted && task.completedAt && (
                                           <Text type="supporting" color="secondary">
-                                            {task.completedByName ? `${task.completedByName} · ` : ''}
-                                            {format(new Date(task.completedAt), 'MM.dd HH:mm')}
+                                            {task.completedByName ? `${task.completedByName} 완료 · ` : '완료 · '}
+                                            {format(new Date(task.completedAt), 'M월 d일 HH:mm')}
                                           </Text>
                                         )}
                                       </HStack>
@@ -2473,85 +2550,57 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                             </div>
                           ))}
 
-                          {/* 할 일 추가 — 기관 구성원 누구나 */}
-                          <div style={{ padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
-                            <VStack gap={2}>
-                              <TextInput
-                                label="할 일 추가"
-                                value={newTaskContent}
-                                onChange={setNewTaskContent}
-                                placeholder="예) 소방점검표 작성"
-                              />
-                              <Selector
-                                label="담당자"
-                                width="100%"
-                                value={newTaskAssignee}
-                                options={[{ value: '', label: '담당자 미지정' }, ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
-                                onChange={setNewTaskAssignee}
-                              />
-                              <HStack hAlign="end">
-                                <Button
+                          {/* 할 일 추가 — 기관 구성원 누구나. 단추를 눌러야 칸이 펼쳐진다 */}
+                          {showAddTask ? (
+                            <div style={{ padding: 'var(--spacing-3)', borderRadius: 'var(--radius-inner)', background: 'var(--color-background-muted)' }}>
+                              <VStack gap={2}>
+                                <TextInput
                                   label="할 일 추가"
-                                  variant="secondary"
-                                  size="sm"
-                                  icon={<Icon icon={IconPlus} size="sm" />}
-                                  isLoading={isAddingTask}
-                                  isDisabled={isAddingTask || !newTaskContent.trim()}
-                                  onClick={handleAddTask}
+                                  value={newTaskContent}
+                                  onChange={setNewTaskContent}
+                                  placeholder="예) 소방점검표 작성"
                                 />
-                              </HStack>
-                            </VStack>
-                          </div>
+                                <Selector
+                                  label="담당자"
+                                  width="100%"
+                                  value={newTaskAssignee}
+                                  options={[{ value: '', label: '담당자 미지정' }, ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
+                                  onChange={setNewTaskAssignee}
+                                />
+                                <HStack hAlign="end" gap={2}>
+                                  <Button
+                                    label="취소"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setShowAddTask(false); setNewTaskContent(''); setNewTaskAssignee(''); }}
+                                  />
+                                  <Button
+                                    label="할 일 추가"
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<Icon icon={IconPlus} size="sm" />}
+                                    isLoading={isAddingTask}
+                                    isDisabled={isAddingTask || !newTaskContent.trim()}
+                                    onClick={handleAddTask}
+                                  />
+                                </HStack>
+                              </VStack>
+                            </div>
+                          ) : (
+                            <div>
+                              <Button
+                                label="할 일 추가"
+                                variant="secondary"
+                                size="sm"
+                                icon={<Icon icon={IconPlus} size="sm" />}
+                                onClick={() => setShowAddTask(true)}
+                              />
+                            </div>
+                          )}
                         </VStack>
                       </div>
                     );
                   })()}
-
-                  {/* 날짜/시간 */}
-                  <HStack gap={3} vAlign="start">
-                    <Icon icon="calendar" size="md" color="tertiary" />
-                    <VStack gap={0.5}>
-                      <Text type="body" weight="medium" color="primary">
-                        {format(new Date(selectedSchedule.startDate), 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
-                        {selectedSchedule.startDate !== selectedSchedule.endDate && (
-                          <> ~ {format(new Date(selectedSchedule.endDate), 'M월 d일 (EEEE)', { locale: ko })}</>
-                        )}
-                      </Text>
-                      {!selectedSchedule.isAllDay && selectedSchedule.startTime && (
-                        <Text type="supporting" color="secondary">
-                          {selectedSchedule.startTime} - {selectedSchedule.endTime}
-                        </Text>
-                      )}
-                      {selectedSchedule.isAllDay && (
-                        <Text type="supporting" color="secondary">종일</Text>
-                      )}
-                    </VStack>
-                  </HStack>
-
-                  {/* 장소 */}
-                  {selectedSchedule.location && (
-                    <HStack gap={3} vAlign="start">
-                      <Icon icon={IconMapPin} size="md" color="tertiary" />
-                      <Text type="body" color="primary">{selectedSchedule.location}</Text>
-                    </HStack>
-                  )}
-
-                  {/* 알림 */}
-                  {selectedSchedule.sendNotification && (
-                    <HStack gap={3} vAlign="start">
-                      <Icon icon={IconBell} size="md" color="tertiary" />
-                      <Text type="body" color="primary">알림 전송됨</Text>
-                    </HStack>
-                  )}
-
-                  {/* 내용 */}
-                  {selectedSchedule.content && (
-                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
-                      <div style={{ whiteSpace: 'pre-wrap' }}>
-                        <Text type="body" color="secondary">{selectedSchedule.content}</Text>
-                      </div>
-                    </div>
-                  )}
 
                   {/* 첨부파일 */}
                   {selectedSchedule.attachments && selectedSchedule.attachments.length > 0 && (
@@ -2579,50 +2628,6 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     </div>
                   )}
 
-                  {/* 담당자 — 참석자와 구분 표시 */}
-                  {selectedSchedule.managerName && (
-                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
-                      <VStack gap={2}>
-                        <Text type="label" weight="medium">담당자</Text>
-                        {/* 배지가 이미 '담당'이라고 말하고 있는데 줄 전체까지 틸로 칠해 두 번 강조됐다.
-                            색은 배지에 맡기고 면적은 비운다. 이름은 이 줄의 주인공이라 본문 크기로. */}
-                        <HStack gap={2} vAlign="center">
-                          <Badge variant="teal" label="담당" />
-                          <Text type="body" color="primary" weight="semibold">{selectedSchedule.managerName}</Text>
-                        </HStack>
-                      </VStack>
-                    </div>
-                  )}
-
-                  {/* 참석자 */}
-                  {selectedSchedule.participants && selectedSchedule.participants.length > 0 && (
-                    <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
-                      <VStack gap={2}>
-                        <Text type="label" weight="medium">참석자 {selectedSchedule.participants.length}명</Text>
-                        {selectedSchedule.participants.map((participant) => {
-                          const participantName = (participant as any).memberName || participant.userName || '참석자';
-                          // 참석자 응답에는 사진이 없어 회원 목록에서 찾아 붙인다
-                          const matched = members.find((m) => String(m.id) === String(participant.userId));
-                          return (
-                            <MemberItem
-                              key={participant.id}
-                              name={participantName}
-                              role={matched ? getMemberRoleText(matched) : undefined}
-                              imageUrl={matched?.profileImageUrl}
-                              density="compact"
-                            />
-                          );
-                        })}
-                      </VStack>
-                    </div>
-                  )}
-
-                  {/* 작성자 */}
-                  <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-border)' }}>
-                    <Text type="supporting" color="secondary">
-                      작성자: {selectedSchedule.authorName} · {format(new Date(selectedSchedule.createdAt), 'yyyy.MM.dd HH:mm')}
-                    </Text>
-                  </div>
                 </VStack>
               </LayoutContent>
             }
@@ -2636,7 +2641,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     <Button
                       label="닫기"
                       variant="ghost"
-                      onClick={() => { setShowDetailModal(false); setSelectedSchedule(null); }}
+                      onClick={() => { setShowDetailModal(false); setSelectedSchedule(null); setShowAddTask(false); }}
                     />
                     {(isAdmin || selectedSchedule.authorId === currentUserEmail) && (
                       <Button label="수정" variant="primary" onClick={() => handleEditSchedule()} />

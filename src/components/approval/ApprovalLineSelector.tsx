@@ -10,6 +10,7 @@ import MemberItem from '@/components/MemberItem';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Text } from '@astryxdesign/core/Text';
 import { VStack } from '@astryxdesign/core/Stack';
+import MemberAvatar from '@/components/MemberAvatar';
 import { getApproverCandidates } from '@/lib/apiService';
 import { ApproverCandidate } from '@/types/approval';
 
@@ -114,6 +115,13 @@ export default function ApprovalLineSelector({ value, onChange, isRequired = fal
                 }}
               >
                 <Badge variant={isLast ? 'teal' : 'neutral'} label={`${index + 1}. ${isLast ? '결재' : '검토'}`} />
+                <MemberAvatar
+                  name={approver.name}
+                  id={approver.approverId}
+                  type={approver.approverType}
+                  imageUrl={approver.profileImageUrl}
+                  size={24}
+                />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <Text weight="medium">{approver.name}</Text>
                   {approver.position && (

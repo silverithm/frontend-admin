@@ -25,6 +25,7 @@ import PageHeader from '@/components/PageHeader';
 import { Icon } from '@astryxdesign/core/Icon';
 import { duration } from '@/theme/motion';
 import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
+import MemberAvatar from '@/components/MemberAvatar';
 
 interface Member {
     id: string;
@@ -35,6 +36,7 @@ interface Member {
     status: string;
     position?: string;
     positionId?: number;
+    profileImageUrl?: string | null;
 }
 
 /** 관리자(시설장) 계정 구분자. MemberDTO.fromAppUser가 내려주는 값과 일치해야 한다. */
@@ -434,6 +436,14 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                         /* 관리자와 직원은 서로 다른 테이블이라 id가 겹칠 수 있다 — role을 키에 함께 쓴다 */
                                         <Card key={`${member.role}-${member.id}`} padding={4}>
                                             <HStack hAlign="between" vAlign="center">
+                                                <HStack gap={3} vAlign="center" style={{ minWidth: 0 }}>
+                                                <MemberAvatar
+                                                    name={member.name}
+                                                    id={member.id}
+                                                    type={isFacilityAdmin(member) ? 'ADMIN' : 'MEMBER'}
+                                                    imageUrl={member.profileImageUrl}
+                                                    size={36}
+                                                />
                                                 <VStack gap={0.5}>
                                                     <HStack gap={2} vAlign="center">
                                                         <Text weight="medium">{member.name}</Text>
@@ -442,6 +452,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                                                     </HStack>
                                                     <Text type="supporting" color="secondary">{member.email}</Text>
                                                 </VStack>
+                                                </HStack>
                                                 <div style={{ minWidth: 140 }}>
                                                     {isFacilityAdmin(member) ? (
                                                         /* 배정 API는 members 테이블만 고친다. 관리자 id를 그대로 보내면
