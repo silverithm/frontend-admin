@@ -32,8 +32,8 @@ export default function FAQPage() {
             <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
                         transition={{ duration: duration.mediumMax }}
                     >
                         <VStack gap={5} hAlign="center">

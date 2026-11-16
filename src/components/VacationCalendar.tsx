@@ -17,6 +17,7 @@ import CalendarSkeleton from './CalendarSkeleton';
 import AdminVacationAddModal from './AdminVacationAddModal';
 import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload, FiSliders, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -291,6 +292,12 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
   const handleRefresh = useCallback(() => {
     setIsLoading(true);
     fetchCalendarData(currentDate, 0, true); // forceRefresh = true
+  }, [fetchCalendarData, currentDate]);
+
+  // 새로고침 단추용 — 끝날 때까지 기다릴 수 있게 약속(Promise)을 돌려준다
+  const refreshAndWait = useCallback(async () => {
+    setIsLoading(true);
+    await fetchCalendarData(currentDate, 0, true);
   }, [fetchCalendarData, currentDate]);
 
   const prevMonth = useCallback(() => {
@@ -826,15 +833,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 />
               </>
             ) : (
-              <Button
-                label="데이터 새로고침"
-                variant="secondary"
-                size="sm"
-                isIconOnly
-                isLoading={isLoading}
-                icon={<Icon icon={FiRefreshCw} size="sm" />}
-                onClick={handleRefresh}
-              />
+              <RefreshButton label="데이터 새로고침" variant="secondary" size="sm" onRefresh={refreshAndWait} isDisabled={isLoading} />
             )}
             <Button
               label={isExpanded ? '접기' : '펼치기'}

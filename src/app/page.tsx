@@ -211,13 +211,6 @@ const RESOURCES = [
     { href: '/ltc', title: '장기요양 기준표', description: '2026년 주·야간보호 수가, 월 한도액, 본인부담금 계산기를 원문과 대조해 모았습니다.' },
 ];
 
-const fadeUp = {
-    initial: { opacity: 0, y: 16 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, margin: '-80px' },
-    transition: { duration: duration.mediumMax },
-};
-
 /* ─────────────────────────── 제품 화면 모형 (장식용) ───────────────────────────
    과거 마케팅 이미지는 근무표 단일 기능 시절 것이라 폐기했다.
    실제 제품 UI를 본뜬 경량 모형을 코드로 그려 기능 범위를 시각적으로 전달한다. */
@@ -439,7 +432,7 @@ export default function LandingPage() {
             {/* ── 3~4. 문제 제기 + ROI 근거 ── */}
             <Section variant="muted" padding={4} paddingBlock={10}>
                 <div style={container(1100)}>
-                    <motion.div {...fadeUp}>
+                    <div>
                         <Grid columns={{ minWidth: 320, repeat: 'fit', max: 2 }} gap={8} align="center">
                             <VStack gap={5}>
                                 <VStack gap={2}>
@@ -479,7 +472,7 @@ export default function LandingPage() {
 
                             <BeforeAfterMock />
                         </Grid>
-                    </motion.div>
+                    </div>
                 </div>
             </Section>
 
@@ -503,14 +496,14 @@ export default function LandingPage() {
                             {FEATURES.map((feature) => (
                                 <div key={feature.title}>
                                     <div style={{ paddingBlock: 'var(--spacing-5)' }}>
-                                        <motion.div {...fadeUp}>
+                                        <div>
                                             <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={4}>
                                                 <Heading level={3} type="display-3">
                                                     {feature.title}
                                                 </Heading>
                                                 <Text color="secondary">{feature.description}</Text>
                                             </Grid>
-                                        </motion.div>
+                                        </div>
                                     </div>
                                     <Divider />
                                 </div>
@@ -535,7 +528,7 @@ export default function LandingPage() {
 
                         <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
                             {PROCESS.map((item) => (
-                                <motion.div key={item.step} {...fadeUp} style={{ height: '100%' }}>
+                                <div key={item.step} style={{ height: '100%' }}>
                                     <Card padding={5} height="100%">
                                         <VStack gap={3}>
                                             <HStack gap={2} vAlign="center">
@@ -556,7 +549,7 @@ export default function LandingPage() {
                                             </VStack>
                                         </VStack>
                                     </Card>
-                                </motion.div>
+                                </div>
                             ))}
                         </Grid>
 
@@ -592,7 +585,7 @@ export default function LandingPage() {
                         </VStack>
                         <Grid columns={{ minWidth: 280, repeat: 'fit' }} gap={4}>
                             {PREVIEWS.map((preview) => (
-                                <motion.div key={preview.title} {...fadeUp} style={{ height: '100%' }}>
+                                <div key={preview.title} style={{ height: '100%' }}>
                                     <VStack gap={3} height="100%">
                                         <AspectRatio ratio={4 / 3} style={{ ...imageClip, border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-low)' }}>
                                             <Image
@@ -610,7 +603,7 @@ export default function LandingPage() {
                                             </Text>
                                         </VStack>
                                     </VStack>
-                                </motion.div>
+                                </div>
                             ))}
                         </Grid>
                     </VStack>
@@ -739,7 +732,7 @@ export default function LandingPage() {
                         </VStack>
                         <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={4}>
                             {SECURITY_POINTS.map((point) => (
-                                <motion.div key={point.title} {...fadeUp} style={{ height: '100%' }}>
+                                <div key={point.title} style={{ height: '100%' }}>
                                     <Card padding={5} height="100%">
                                         <VStack gap={2}>
                                             <HStack gap={2} vAlign="center">
@@ -751,7 +744,7 @@ export default function LandingPage() {
                                             <Text color="secondary">{point.description}</Text>
                                         </VStack>
                                     </Card>
-                                </motion.div>
+                                </div>
                             ))}
                         </Grid>
                     </VStack>

@@ -1,0 +1,56 @@
+/* ── 화면 껍데기(왼쪽 메뉴·휴대폰 상단 탭·채팅 둥근 단추) 보강 (2026-11-16) ──
+   admin/page.tsx · employee/page.tsx 가 불러온다. 사이드바가 보이는 폭은 globals.css와 같은 1024px 기준. */
+
+/* '더 있음' 페이드 — 스크롤 영역이 그쪽으로 더 밀릴 때만 data-fade-start/-end 가 붙는다(페이지의 useEdgeFade).
+   길이를 사용자 지정 속성으로 두고 @property로 등록해 붙고 떨어질 때 부드럽게 변한다. */
+@property --carev-fade-start { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --carev-fade-end { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
+.carev-edgefade-x,
+.carev-edgefade-y {
+  transition: --carev-fade-start var(--duration-fast) var(--ease-standard),
+    --carev-fade-end var(--duration-fast) var(--ease-standard);
+}
+.carev-edgefade-x[data-fade-start],
+.carev-edgefade-y[data-fade-start] { --carev-fade-start: var(--spacing-6); }
+.carev-edgefade-x[data-fade-end],
+.carev-edgefade-y[data-fade-end] { --carev-fade-end: var(--spacing-6); }
+.carev-edgefade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--carev-fade-start),
+    #000 calc(100% - var(--carev-fade-end)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--carev-fade-start),
+    #000 calc(100% - var(--carev-fade-end)), transparent 100%);
+}
+.carev-edgefade-y {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--carev-fade-start),
+    #000 calc(100% - var(--carev-fade-end)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--carev-fade-start),
+    #000 calc(100% - var(--carev-fade-end)), transparent 100%);
+}
+
+/* 휴대폰 상단 탭 줄 — 예전엔 오른쪽 끝에 늘 깔리던 페이드(globals.css .carev-tabfade::after)를
+   '더 밀 수 있을 때만' 보이는 마스크 페이드로 바꾼다. 우선순위를 높여 그쪽 규칙을 끈다. */
+.carev-admin-mobile-header .carev-tabfade::after,
+.carev-emp-mobile-header .carev-tabfade::after { display: none; }
+
+/* 채팅 둥근 단추(FloatingChat)
+   - 휴대폰 폭(상단 가로 탭이 보이는 1023px 이하): 숨긴다. 상단 탭의 '채팅'과 안 읽은 수 배지가 같은 일을 한다.
+   - 데스크톱: 단추 56px + 아래 여백 24px + 숨 쉴 자리만큼 본문 맨 아래에 여유를 준다(마지막 줄이 안 가려지게).
+     채팅 탭에서는 단추가 없으므로 여유도 없다(페이지가 data-fab로 알린다). */
+@media (max-width: 1023px) {
+  .carev-fchat-root { display: none !important; }
+}
+@media (min-width: 1024px) {
+  .carev-shell-main[data-fab='true'] { padding-bottom: calc(var(--spacing-4) + 64px) !important; }
+}
+
+/* 숫자 배지가 튈 때 감싸는 칸 — 줄 높이를 건드리지 않게 */
+.carev-badge-pop { display: inline-flex; }
+
+/* 하위 메뉴 펼침의 바깥 칸 — 높이가 0일 때 아무것도 비치지 않게 */
+.carev-subnav { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .carev-edgefade-x,
+  .carev-edgefade-y { transition: none; }
+}

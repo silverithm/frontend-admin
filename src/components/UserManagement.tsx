@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiRefreshCw, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera, FiUpload } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiUserX, FiUserCheck, FiTrash2, FiSearch, FiMail, FiShield, FiHeart, FiPlus, FiEdit2, FiBriefcase, FiCheck, FiCamera, FiUpload } from 'react-icons/fi';
 import { getPendingUsers, getMemberUsers, approveUser, rejectUser, deleteUser, updateUserStatus, getCompanyElders, addCompanyElder, updateCompanyElder, deleteCompanyElder, revealElderResidentNumber, getPositions, assignPositionToMember, getMemberPermissions, updateMemberPermissions, getCompanyAdmins, updateMyPosition, uploadMyProfileImage, deleteMyProfileImage, type PendingUser } from '@/lib/apiService';
 import { uploadMemberProfileImage, deleteMemberProfileImage } from '@/lib/memberProfileApi';
 import type { ElderlyInfo, ElderCareProfileInput, CareGrade, CognitionLevel, DiaperType, Gender, MealType } from '@/types/elderly';
@@ -38,8 +38,9 @@ import { useOrgPresenceStore } from '@/lib/orgPresenceStore';
 import { isAdminSession } from '@/lib/chatIdentity';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { Card } from '@astryxdesign/core/Card';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Button } from '@astryxdesign/core/Button';
-import { IconButton } from '@astryxdesign/core/IconButton';
+import { OutlineDangerButton } from '@/components/ui/OutlineDangerButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { NumberInput } from '@astryxdesign/core/NumberInput';
@@ -388,6 +389,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
         profileImageUrl: a.profileImageUrl ?? null,
         isAdminAccount: true,
       })));
+      return true;
     } catch (error) {
       console.error('사용자 목록 로드 오류:', error);
       onNotification('사용자 목록을 불러오는데 실패했습니다.', 'error');
@@ -396,6 +398,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
       setMembers([]);
       setPositions([]);
       setAdminAccounts([]);
+      return false;
     } finally {
       hasLoadedUsersRef.current = true;
       if (isInitialLoad) setIsLoading(false);
@@ -894,13 +897,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
         title="회원 관리"
         description="가입 신청을 승인하고, 종사자와 수급자 정보를 관리합니다."
         actions={
-          <IconButton
-            label="새로고침"
-            variant="ghost"
-            icon={<Icon icon={FiRefreshCw} />}
-            onClick={fetchUsers}
-            isLoading={processingId !== null}
-          />
+          <RefreshButton onRefresh={fetchUsers} isDisabled={processingId !== null} />
         }
       />
 
@@ -1234,7 +1231,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ organizationName, onNot
                           renderCell: (u: UserRow) => (
                             <HStack gap={2} hAlign="end">
                               <Button label="승인" size="sm" variant="primary" icon={<Icon icon={FiUserCheck} size="sm" />} onClick={() => handleApproveUser(u.id)} isDisabled={processingId === u.id} />
-                              <Button label="거절" size="sm" variant="destructive" icon={<Icon icon={FiUserX} size="sm" />} onClick={() => handleRejectUser(u.id)} isDisabled={processingId === u.id} />
+                              <OutlineDangerButton label="거절" size="sm" icon={<Icon icon={FiUserX} size="sm" />} onClick={() => handleRejectUser(u.id)} isDisabled={processingId === u.id} />
                             </HStack>
                           ),
                         }] : []),

@@ -87,9 +87,10 @@ const Navbar: React.FC = () => {
           <TopNavHeading
             heading="케어브이"
             headingHref="/"
+            // 로그인 화면과 같은 풀컬러 마크 — logo.png는 둘레 여백이 커서 28px로 두면 10px짜리 잎처럼 보여, 여백을 잘라낸 logo-mark.png를 쓴다
             logo={
               <Image
-                src="/images/logo.png"
+                src="/images/logo-mark.png"
                 alt=""
                 width={28}
                 height={28}

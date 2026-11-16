@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiBriefcase, FiPlus, FiEdit2, FiTrash2, FiSearch, FiRefreshCw, FiUsers, FiCheck, FiX } from 'react-icons/fi';
+import { FiBriefcase, FiPlus, FiEdit2, FiTrash2, FiSearch, FiUsers, FiCheck, FiX } from 'react-icons/fi';
 import { getPositions, createPosition, updatePosition, deletePosition, assignPositionToMember, getMembersIncludingAdmins } from '@/lib/apiService';
 import type { Position } from '@/types/position';
 import { getMemberRoleName, getRoleDisplayName } from '@/lib/roleUtils';
 import { Card } from '@astryxdesign/core/Card';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { TextInput } from '@astryxdesign/core/TextInput';
@@ -89,11 +90,13 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
 
             const memArray = memData?.members || [];
             setMembers(memArray);
+            return true;
         } catch (error) {
             console.error('데이터 로드 오류:', error);
             onNotification('데이터를 불러오는데 실패했습니다.', 'error');
             setPositions([]);
             setMembers([]);
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -220,12 +223,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({ organizationNam
                 title="역할 관리"
                 description={organizationName || undefined}
                 actions={
-                    <IconButton
-                        label="새로고침"
-                        icon={<Icon icon={FiRefreshCw} />}
-                        variant="ghost"
-                        onClick={fetchData}
-                    />
+                    <RefreshButton onRefresh={fetchData} />
                 }
             />
 

@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
-import { Grid } from '@astryxdesign/core/Grid';
+import { FitGrid } from '@/components/FitGrid';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Center } from '@astryxdesign/core/Center';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -18,7 +17,6 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Link } from '@astryxdesign/core/Link';
 import Navbar from '@/components/Navbar';
-import { duration } from '@/theme/motion';
 import { submitContactInquiry } from '@/lib/apiService';
 import InquirySubmittedDialog from '@/components/InquirySubmittedDialog';
 
@@ -86,11 +84,7 @@ export default function ContactPage() {
 
             <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 880, margin: '0 auto' }}>
-                    <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: duration.mediumMax }}
-                    >
+                    <div>
                         <VStack gap={8}>
                             <VStack gap={2} hAlign="center">
                                 <Heading level={1} type="display-1" justify="center" textWrap="balance">
@@ -101,7 +95,7 @@ export default function ContactPage() {
                                 </Text>
                             </VStack>
 
-                                <Grid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={6}>
+                                <FitGrid columns={{ minWidth: 260, repeat: 'fit', max: 2 }} gap={6}>
                                     <Card padding={6}>
                                         <form onSubmit={handleSubmit}>
                                             <VStack gap={4}>
@@ -227,9 +221,9 @@ export default function ContactPage() {
                                             </Card>
                                         </StackItem>
                                     </VStack>
-                                </Grid>
+                                </FitGrid>
                         </VStack>
-                    </motion.div>
+                    </div>
                 </div>
             </Section>
 

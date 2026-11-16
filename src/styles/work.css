@@ -1,0 +1,40 @@
+/* ── 업무 화면 보조 스타일 (2026-11-16) ── */
+
+/* 업무진행도 막대: 중요도가 아니라 상태로 색을 정한다.
+   진행 중은 한 가지 accent, 기한이 지난 것만 빨강, 끝난 것은 기존 초록(.carev-wt-gauge-done).
+   중요도는 칩(.carev-wt-imp)으로만 말한다. */
+.carev-wt-gauge-progress { background: var(--color-accent); }
+.carev-wt-gauge-overdue { background: var(--color-error); }
+
+/* 테두리만 있는 위험 단추 (OutlineDangerButton) — Astryx 변형 위에 얹으므로 !important */
+.carev-btn-danger-outline { display: contents; }
+.carev-btn-danger-outline > button {
+  background: transparent !important;
+  color: var(--color-error) !important;
+  border: 1px solid var(--color-error) !important;
+  box-shadow: none !important;
+}
+.carev-btn-danger-outline > button:hover:not(:disabled) {
+  background: var(--color-error-muted) !important;
+}
+.carev-btn-danger-outline > button:disabled { opacity: 0.5; }
+
+/* 새로고침 단추 (RefreshButton) — 불러오는 동안 아이콘이 돈다 */
+.carev-refresh-icon { display: inline-flex; align-items: center; justify-content: center; }
+.carev-refresh-swap { display: inline-flex; }
+.carev-refresh-icon[data-busy='true'] .carev-refresh-spin { animation: carev-refresh-rotate 0.9s linear infinite; }
+@keyframes carev-refresh-rotate { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  /* 돌지 않는 대신 흐려져 '불러오는 중'을 알린다 */
+  .carev-refresh-icon[data-busy='true'] { opacity: 0.45; }
+  .carev-refresh-icon[data-busy='true'] .carev-refresh-spin { animation: none; }
+}
+
+/* 방금 생긴 글 카드 — 옅은 accent 배경이 한 번 번쩍였다 원래 색으로 돌아온다 */
+@keyframes carev-flash {
+  from { background-color: color-mix(in srgb, var(--color-accent) 16%, var(--color-background-card)); }
+}
+.carev-flash { animation: carev-flash 1.4s ease-out 1; }
+@media (prefers-reduced-motion: reduce) {
+  .carev-flash { animation: none; }
+}

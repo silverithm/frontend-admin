@@ -7,6 +7,7 @@ import { LinkProvider } from '@astryxdesign/core/Link';
 import { LayerProvider } from '@astryxdesign/core/Layer';
 import { neutralTheme } from '@/theme/carev/neutral';
 import { ToastAboveDialogFix } from '@/components/ToastAboveDialogFix';
+import { CarevToaster } from '@/components/CarevToaster';
 
 /**
  * Astryx 디자인 시스템 루트 프로바이더.
@@ -20,6 +21,8 @@ export function AstryxProvider({ children }: { children: React.ReactNode }) {
         <LayerProvider toast={{ position: 'topEnd', maxVisible: 3 }}>
           {/* 다이얼로그가 열릴 때마다 Toast를 top layer 맨 위로 재승격 — 안 그러면 알림이 다이얼로그 뒤에 깔린다 */}
           <ToastAboveDialogFix />
+          {/* 앱 알림(useAlert) — 쌓이고 밀어서 닫는 sonner 알림 자리 하나 */}
+          <CarevToaster />
           <LinkProvider component={NextLink}>{children}</LinkProvider>
         </LayerProvider>
       </MotionConfig>

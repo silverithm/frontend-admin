@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
@@ -18,7 +19,10 @@ import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Icon } from '@astryxdesign/core/Icon';
-import { FiInbox } from 'react-icons/fi';
+import { FiCheck, FiInbox } from 'react-icons/fi';
+import { Loading } from '@/components/Loading';
+import { spring } from '@/theme/springs';
+import '@/styles/work.css';
 import { useAlert } from './Alert';
 import {
   createVoiceMessage,
@@ -61,13 +65,26 @@ export default function VoiceBoxEmployee() {
 
   const [myMessages, setMyMessages] = useState<VoiceMessageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // 제출 직후 단추가 잠깐 ✓로 바뀐다
+  const [isSubmitDone, setIsSubmitDone] = useState(false);
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 방금 생긴 글 카드 — 옅게 한 번 깜빡이고 화면에 들어오게 스크롤한다
+  const [flashId, setFlashId] = useState<number | null>(null);
+  const cardRefs = useRef(new Map<number, HTMLDivElement>());
 
-  const loadMine = useCallback(async () => {
+  useEffect(() => () => {
+    if (doneTimer.current) clearTimeout(doneTimer.current);
+  }, []);
+
+  const loadMine = useCallback(async (): Promise<VoiceMessageItem[] | null> => {
     try {
       const data = await getVoiceMessages('mine');
-      setMyMessages(Array.isArray(data) ? data : (data.messages || []));
+      const list: VoiceMessageItem[] = Array.isArray(data) ? data : (data.messages || []);
+      setMyMessages(list);
+      return list;
     } catch (error) {
       console.error('[VoiceBox] 내 내역 조회 실패:', error);
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +93,17 @@ export default function VoiceBoxEmployee() {
   useEffect(() => {
     loadMine();
   }, [loadMine]);
+
+  // 새 글이 그려진 다음 프레임에 그 카드로 스크롤 (동작 줄이기면 부드럽게 움직이지 않는다)
+  useEffect(() => {
+    if (flashId === null) return;
+    const el = cardRefs.current.get(flashId);
+    if (!el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    const t = setTimeout(() => setFlashId(null), 1600);
+    return () => clearTimeout(t);
+  }, [flashId]);
 
   const handleTypeChange = (value: string) => {
     const next = value as 'SUGGESTION' | 'GRIEVANCE';
@@ -89,6 +117,7 @@ export default function VoiceBoxEmployee() {
       return;
     }
     setIsSubmitting(true);
+    const prevIds = new Set(myMessages.map((m) => m.id));
     try {
       await createVoiceMessage({ type, title: title.trim(), content, isAnonymous });
       showAlert({
@@ -101,7 +130,13 @@ export default function VoiceBoxEmployee() {
       setTitle('');
       setContent('');
       setIsAnonymous(type === 'GRIEVANCE');
-      loadMine();
+      setIsSubmitDone(true);
+      if (doneTimer.current) clearTimeout(doneTimer.current);
+      doneTimer.current = setTimeout(() => setIsSubmitDone(false), 1200);
+      const list = await loadMine();
+      // 새로 생긴 글 = 제출 전 목록에 없던 것 중 가장 최근(id가 큰) 것
+      const added = list?.filter((m) => !prevIds.has(m.id)).sort((a, b) => b.id - a.id)[0];
+      if (added) setFlashId(added.id);
     } catch (error) {
       console.error('[VoiceBox] 제출 실패:', error);
       const message = error instanceof Error && error.message ? error.message : '접수에 실패했습니다.';
@@ -156,6 +191,18 @@ export default function VoiceBoxEmployee() {
               label={isSubmitting ? '접수 중...' : '제출'}
               variant="primary"
               isLoading={isSubmitting}
+              icon={
+                isSubmitDone ? (
+                  <motion.span
+                    style={{ display: 'inline-flex' }}
+                    initial={{ scale: 0.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={spring.pop}
+                  >
+                    <Icon icon={FiCheck} size="sm" />
+                  </motion.span>
+                ) : undefined
+              }
               onClick={handleSubmit}
             />
           </HStack>
@@ -164,7 +211,9 @@ export default function VoiceBoxEmployee() {
 
       <VStack gap={2}>
         <Text type="label" weight="semibold">내 제출 내역 ({myMessages.length})</Text>
-        {isLoading ? null : myMessages.length === 0 ? (
+        {isLoading ? (
+          <Loading variant="rows" label="내 제출 내역을 불러오는 중..." />
+        ) : myMessages.length === 0 ? (
           <Card padding={8}>
             <EmptyState
               icon={<Icon icon={FiInbox} size="lg" />}
@@ -174,7 +223,14 @@ export default function VoiceBoxEmployee() {
           </Card>
         ) : (
           myMessages.map((item) => (
-            <Card key={item.id}>
+            <div
+              key={item.id}
+              ref={(el) => {
+                if (el) cardRefs.current.set(item.id, el);
+                else cardRefs.current.delete(item.id);
+              }}
+            >
+            <Card className={flashId === item.id ? 'carev-flash' : undefined}>
               <VStack gap={2}>
                 <HStack gap={2} vAlign="center" hAlign="between">
                   <HStack gap={2} vAlign="center">
@@ -203,6 +259,7 @@ export default function VoiceBoxEmployee() {
                 )}
               </VStack>
             </Card>
+            </div>
           ))
         )}
       </VStack>

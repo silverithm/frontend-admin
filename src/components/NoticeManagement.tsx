@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiRefreshCw, FiPlus, FiTrash2, FiAlertTriangle, FiExternalLink } from 'react-icons/fi';
+import { FiEye, FiMessageSquare, FiUsers, FiBell, FiStar, FiSearch, FiPlus, FiTrash2, FiAlertTriangle, FiExternalLink } from 'react-icons/fi';
 import { IconPinned } from '@tabler/icons-react';
 import { Card } from '@astryxdesign/core/Card';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Button } from '@astryxdesign/core/Button';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { TextArea } from '@astryxdesign/core/TextArea';
@@ -176,8 +177,10 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
       if (response.stats) {
         setStats({ total: response.stats.total || 0, published: response.stats.published || 0 });
       }
+      return true;
     } catch (error) {
       console.error('공지사항 목록 로드 실패:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -377,16 +380,7 @@ export default function NoticeManagement({ canManage = true, onOpenPlazaPost }: 
             description="직원들에게 중요한 소식을 전달합니다"
             actions={
               <HStack gap={2} vAlign="center">
-                <Button
-                  label="새로고침"
-                  variant="ghost"
-                  size="sm"
-                  isIconOnly
-                  icon={<Icon icon={FiRefreshCw} size="sm" />}
-                  onClick={loadNotices}
-                  isDisabled={isLoading}
-                  isLoading={isLoading}
-                />
+                <RefreshButton size="sm" onRefresh={loadNotices} isDisabled={isLoading} />
                 {canManage && (
                   <Button
                     label="새 공지 작성"

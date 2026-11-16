@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
-import { Grid } from '@astryxdesign/core/Grid';
+import { FitGrid } from '@/components/FitGrid';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
@@ -136,8 +136,8 @@ export default function PartnersPage() {
             <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={container(720)}>
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
                         transition={{ duration: duration.mediumMax }}
                     >
                         <VStack gap={3} hAlign="center">
@@ -173,11 +173,11 @@ export default function PartnersPage() {
                         )}
 
                         {visibleAds.length > 0 ? (
-                            <Grid columns={{ minWidth: 300, repeat: 'fit', max: 3 }} gap={5} align="start">
+                            <FitGrid columns={{ minWidth: 300, repeat: 'fit', max: 3 }} gap={5} align="start">
                                 {visibleAds.map((ad) => (
                                     <PartnerCard key={ad.id} ad={ad} />
                                 ))}
-                            </Grid>
+                            </FitGrid>
                         ) : (
                             <EmptyState
                                 title="아직 등록된 기관이 없습니다"
@@ -208,7 +208,7 @@ export default function PartnersPage() {
                                     <form onSubmit={handleSubmit}>
                                         <VStack gap={4}>
                                             {/* 짧은 입력은 2열로 묶는다. 좁은 화면에서는 자동으로 1열로 내려간다. */}
-                                            <Grid columns={{ minWidth: 240, repeat: 'fit', max: 2 }} gap={4}>
+                                            <FitGrid columns={{ minWidth: 240, repeat: 'fit', max: 2 }} gap={4}>
                                                 <TextInput
                                                     label="기관명"
                                                     type="text"
@@ -258,7 +258,7 @@ export default function PartnersPage() {
                                                     placeholder="https://blog.naver.com/..."
                                                     htmlName="website"
                                                 />
-                                            </Grid>
+                                            </FitGrid>
                                             <TextArea
                                                 label="소개하고 싶은 내용"
                                                 value={form.message}
@@ -300,7 +300,7 @@ export default function PartnersPage() {
                                     </form>
                                 </Card>
 
-                                <Grid columns={{ minWidth: 240, repeat: 'fit', max: 3 }} gap={4} align="stretch">
+                                <FitGrid columns={{ minWidth: 240, repeat: 'fit', max: 3 }} gap={4} align="stretch">
                                     <Card padding={5} height="100%">
                                         <VStack gap={3}>
                                             <Heading level={3} type="display-3">
@@ -356,7 +356,7 @@ export default function PartnersPage() {
                                             </HStack>
                                         </VStack>
                                     </Card>
-                                </Grid>
+                                </FitGrid>
                             </VStack>
                     </VStack>
                 </div>

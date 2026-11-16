@@ -63,15 +63,8 @@ export default function BlogPage() {
             <Section variant="transparent" padding={4} paddingBlock={6}>
                 <div style={{ width: '100%', maxWidth: 1152, margin: '0 auto' }}>
                     <Grid columns={{ minWidth: 320, repeat: 'fit' }} gap={5}>
-                        {BLOG_POSTS.map((post, index) => (
-                            <motion.article
-                                key={post.slug}
-                                initial={{ opacity: 0, y: 16 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, margin: '-80px' }}
-                                transition={{ duration: duration.medium, delay: index * 0.05 }}
-                                style={{ height: '100%' }}
-                            >
+                        {BLOG_POSTS.map((post) => (
+                            <article key={post.slug} style={{ height: '100%' }}>
                                 <ClickableCard
                                     label={post.title}
                                     href={`/blog/${post.slug}`}
@@ -111,7 +104,7 @@ export default function BlogPage() {
                                         </HStack>
                                     </VStack>
                                 </ClickableCard>
-                            </motion.article>
+                            </article>
                         ))}
                     </Grid>
                 </div>

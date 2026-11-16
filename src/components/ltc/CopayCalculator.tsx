@@ -5,7 +5,8 @@
 // 자바스크립트 없이 받은 HTML에도 "예시 계산"이 들어 있어야 검색엔진이 이 페이지가 무엇을 답하는지 안다.
 // 계산식은 @/lib/ltc2026의 calcDaycareCopay 하나뿐이고, 여기서는 입력과 표시만 다룬다.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { RollingNumber } from '@/components/CountUp';
 import { Card } from '@astryxdesign/core/Card';
 import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
@@ -105,32 +106,32 @@ export default function CopayCalculator() {
             <VStack gap={3}>
               <ResultRow
                 label="1일 급여비용"
-                value={formatWon(result.dailyFee)}
+                amount={result.dailyFee}
                 note={`${gradeLabel(input.grade)} · ${hourBand(input.band).short}`}
               />
               <ResultRow
                 label="한 달 급여비용"
-                value={formatWon(result.totalFee)}
+                amount={result.totalFee}
                 note={`${formatWon(result.dailyFee)} × ${result.days}일`}
               />
               <ResultRow
                 label="적용 월 한도액"
-                value={formatWon(result.appliedLimit)}
+                amount={result.appliedLimit}
                 note={
                   result.addOnPercent > 0
                     ? `기본 ${formatWon(result.baseLimit)} + 추가 산정 ${result.addOnPercent}% (${result.addOnBasis})`
                     : '추가 산정 없음'
                 }
               />
-              <ResultRow label="공단 부담금" value={formatWon(result.insurerShare)} />
+              <ResultRow label="공단 부담금" amount={result.insurerShare} />
               <ResultRow
                 label={`본인부담금 (한도 안 ${result.copayPercent}%)`}
-                value={formatWon(result.copayWithinLimit)}
+                amount={result.copayWithinLimit}
               />
               {result.overLimit > 0 && (
                 <ResultRow
                   label="한도 초과분 (전액 본인부담)"
-                  value={formatWon(result.overLimit)}
+                  amount={result.overLimit}
                   note="월 한도액을 넘는 금액은 수급자가 전부 냅니다 (노인장기요양보험법 제40조제3항)"
                 />
               )}
@@ -140,7 +141,7 @@ export default function CopayCalculator() {
               <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap">
                 <Text weight="semibold">이번 달 본인부담금</Text>
                 <Text type="large" weight="bold" color="accent" hasTabularNumbers>
-                  {formatWon(result.totalCopay)}
+                  <RollingNumber value={result.totalCopay} format={formatWon} />
                 </Text>
               </HStack>
               <Text type="supporting" color="secondary">
@@ -154,15 +155,27 @@ export default function CopayCalculator() {
   );
 }
 
-function ResultRow({ label, value, note }: { label: string; value: string; note?: string }) {
+function ResultRow({ label, amount, note }: { label: string; amount: number; note?: string }) {
+  // 값이 바뀐 행만 한 번 옅게 물들였다 빠진다 — 입력을 바꿨을 때 어느 줄이 움직였는지 보이게
+  const prevRef = useRef(amount);
+  const [flashKey, setFlashKey] = useState(0);
+  useEffect(() => {
+    if (prevRef.current !== amount) {
+      prevRef.current = amount;
+      setFlashKey((k) => k + 1);
+    }
+  }, [amount]);
+
   return (
     <VStack gap={0.5}>
-      <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap">
-        <Text color="secondary">{label}</Text>
-        <Text weight="semibold" hasTabularNumbers>
-          {value}
-        </Text>
-      </HStack>
+      <div key={flashKey} className={flashKey > 0 ? 'carev-ltc-flash' : undefined}>
+        <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap">
+          <Text color="secondary">{label}</Text>
+          <Text weight="semibold" hasTabularNumbers>
+            {formatWon(amount)}
+          </Text>
+        </HStack>
+      </div>
       {note && (
         <Text type="supporting" color="secondary">
           {note}

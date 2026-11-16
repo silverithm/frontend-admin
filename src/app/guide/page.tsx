@@ -294,8 +294,8 @@ export default function GuidePage() {
             <Section variant="transparent" padding={4} paddingBlock={10}>
                 <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
                         transition={{ duration: duration.mediumMax }}
                     >
                         <VStack gap={5} hAlign="center">
@@ -325,14 +325,8 @@ export default function GuidePage() {
             <Section variant="transparent" padding={4} paddingBlock={4}>
                 <div style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}>
                     <VStack gap={10}>
-                        {sections.map((section, sectionIndex) => (
-                            <motion.div
-                                key={`${activeTab}-${section.heading}`}
-                                initial={{ opacity: 0, y: 16 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, margin: '-80px' }}
-                                transition={{ duration: duration.medium, delay: sectionIndex * 0.05 }}
-                            >
+                        {sections.map((section) => (
+                            <div key={`${activeTab}-${section.heading}`}>
                                 <VStack gap={5}>
                                     <VStack gap={2}>
                                         <HStack gap={2} vAlign="center" wrap="wrap">
@@ -369,7 +363,7 @@ export default function GuidePage() {
                                         ))}
                                     </Grid>
                                 </VStack>
-                            </motion.div>
+                            </div>
                         ))}
                     </VStack>
                 </div>

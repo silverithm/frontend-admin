@@ -333,19 +333,19 @@ export default function EmployeeCalendar() {
     }
   };
 
-  // 상태 라벨 텍스트 (달력 셀용) - 관리자 달력과 동일
-  const getStatusShortText = (status: string): string | null => {
-    const lowerStatus = status?.toLowerCase();
-    switch (lowerStatus) {
-      case 'approved':
-        return '승인됨';
-      case 'pending':
-        return '대기중';
-      case 'rejected':
-        return '거절됨';
-      default:
-        return null; // unused 등은 null 반환
-    }
+  // 셀 안 상태 점 — 관리자 달력(VacationCalendar cellStatusDotStyle)과 같은 모양·색
+  const cellStatusDotStyle = (status?: string): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      flexShrink: 0,
+      width: 6,
+      height: 6,
+      borderRadius: 'var(--radius-full)',
+      marginRight: 'var(--spacing-1)',
+    };
+    const lower = status?.toLowerCase();
+    if (lower === 'approved') return { ...base, backgroundColor: 'var(--color-icon-teal)' };
+    if (lower === 'rejected') return { ...base, backgroundColor: 'var(--color-icon-red)' };
+    return { ...base, backgroundColor: 'var(--color-icon-yellow)' };
   };
 
   const getRoleText = (role?: string) => getRoleDisplayName(role);
@@ -642,13 +642,8 @@ export default function EmployeeCalendar() {
                               style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-0-5)' }}
                               title={`${vacation.userName} - ${resolveVacationKind(vacation.type, vacation.duration).label} - ${getVacationStatusText(vacation.status)}`}
                             >
-                              {/* 상태 Badge (상태만 의미색) */}
-                              {(() => {
-                                const statusText = getStatusShortText(vacation.status);
-                                return statusText ? (
-                                  <Badge variant={getVacationBadgeVariant(vacation.status)} label={statusText} />
-                                ) : null;
-                              })()}
+                              {/* 상태는 6px 점으로만 — 글자 배지가 이름을 가렸다(관리자 달력 #38과 같은 표시, 뜻은 title로) */}
+                              <span style={cellStatusDotStyle(vacation.status)} title={getVacationStatusText(vacation.status)} />
                               {/* 이름 + 유형 표시 */}
                               <span
                                 style={{
@@ -658,7 +653,10 @@ export default function EmployeeCalendar() {
                                   alignItems: 'center',
                                   gap: 'var(--spacing-1)',
                                   minWidth: 0,
-                                  color: vacation.userName === userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
+                                  color: vacation.status?.toLowerCase() === 'rejected'
+                                    ? 'var(--color-text-red)'
+                                    : vacation.userName === userName ? 'var(--color-text-teal)' : 'var(--color-text-primary)',
+                                  textDecoration: vacation.status?.toLowerCase() === 'rejected' ? 'line-through' : undefined,
                                 }}
                               >
                                 <span style={{ minWidth: 0, overflow: 'hidden' }}>

@@ -14,6 +14,9 @@ import { ChatManagement } from '@/components/ChatManagement';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
 import NoticeRollingBanner from '@/components/NoticeRollingBanner';
 import { Badge } from '@astryxdesign/core/Badge';
+import { motion, useAnimationControls } from 'framer-motion';
+import { spring } from '@/theme/springs';
+import '@/styles/shell.css';
 import { ChatRail } from '@/components/ChatRail/ChatRail';
 import { FloatingChat } from '@/components/FloatingChat/FloatingChat';
 import NotificationPopups from '@/components/NotificationPopups';
@@ -72,6 +75,18 @@ export default function EmployeePage() {
   const router = useRouter();
   const { showAlert, AlertContainer } = useAlert();
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('dashboard');
+  // ── 화면 껍데기 보강(2026-11-16) — 관리자 화면(admin/page.tsx)과 같은 방식 ──
+  const [sideNavEl, setSideNavEl] = useState<HTMLElement | null>(null);
+  const [mobileNavEl, setMobileNavEl] = useState<HTMLElement | null>(null);
+  useEdgeFade(sideNavEl, 'y');
+  useEdgeFade(mobileNavEl, 'x');
+  // 탭이 바뀌면 고른 탭을 줄 가운데로 — 처음 그릴 때는 움직이지 않는다
+  const mobileTabDidMount = useRef(false);
+  useEffect(() => {
+    if (!mobileTabDidMount.current) { mobileTabDidMount.current = true; return; }
+    const target = mobileNavEl?.querySelector<HTMLElement>("[data-tab-active='true']");
+    target?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: scrollBehavior() });
+  }, [activeMainTab, mobileNavEl]);
   const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>('submit');
   /** 대시보드에서 누른 일정 — 일정 탭이 열리면 그 달로 가서 상세를 띄우고 비운다 */
   const [scheduleFocusMonth, setScheduleFocusMonth] = useState<Date | null>(null);
@@ -259,7 +274,7 @@ export default function EmployeePage() {
           </div>
 
           {/* 네비게이션 */}
-          <nav style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+          <nav ref={setSideNavEl} className="carev-edgefade-y" style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
             <Text as="p" type="supporting" weight="semibold" color="secondary">메뉴</Text>
             {TABS.map((tab) => (
               <div key={tab.key}>
@@ -269,7 +284,7 @@ export default function EmployeePage() {
                   size="md"
                   onClick={() => setActiveMainTab(tab.key as MainTab)}
                   icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? 'accent' : 'primary'} />}
-                  endContent={tab.key === 'chat' && chatUnread > 0 ? <Badge variant="error" label={chatUnread > 99 ? "99+" : String(chatUnread)} /> : undefined}
+                  endContent={tab.key === 'chat' && chatUnread > 0 ? <PopBadge label={chatUnread > 99 ? '99+' : String(chatUnread)} /> : undefined}
                   style={{ width: '100%', justifyContent: 'flex-start' }}
                 />
               </div>
@@ -321,16 +336,19 @@ export default function EmployeePage() {
             </div>
           </div>
           <div className="carev-tabfade">
-          <nav className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', padding: '0 var(--spacing-2)', marginBottom: -1 }}>
+          <nav ref={setMobileNavEl} className="scrollbar-hide carev-edgefade-x" style={{ display: 'flex', overflowX: 'auto', padding: '0 var(--spacing-2)', marginBottom: -1 }}>
             {TABS.map((tab) => (
-              <Button
-                key={tab.key}
-                label={tab.label}
-                variant={activeMainTab === tab.key ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveMainTab(tab.key as MainTab)}
-                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-              />
+              <span key={tab.key} data-tab-active={activeMainTab === tab.key} style={{ display: 'inline-flex', flexShrink: 0 }}>
+                <Button
+                  label={tab.label}
+                  variant={activeMainTab === tab.key ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveMainTab(tab.key as MainTab)}
+                  // 휴대폰에서는 둥근 채팅 단추를 숨기므로 안 읽은 수는 상단 탭이 알린다
+                  endContent={tab.key === 'chat' && chatUnread > 0 ? <PopBadge label={chatUnread > 99 ? '99+' : String(chatUnread)} /> : undefined}
+                  style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                />
+              </span>
             ))}
           </nav>
           </div>
@@ -352,7 +370,7 @@ export default function EmployeePage() {
 
           {/* 메인 콘텐츠 */}
           <div className="carev-emp-body">
-          <main style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
+          <main className="carev-shell-main" data-fab={activeMainTab !== 'chat'} style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
             {/* 탭별 콘텐츠 — 탭 키로 래퍼가 다시 마운트될 때 .carev-enter(globals.css 반응 C)가
                 200ms 동안 6px 아래에서 떠오르며 나타난다. 나가는 쪽은 움직이지 않는다(기다리게 하지 않는다). */}
             <>
@@ -577,4 +595,60 @@ export default function EmployeePage() {
       </div>
     </>
   );
+}
+
+/** 메뉴 숫자 배지 — 숫자가 바뀌면 한 번 살짝 튄다(1→1.2→1). 처음 그려질 때는 가만히 있는다. */
+function PopBadge({ label }: { label: string }) {
+  const controls = useAnimationControls();
+  const prev = useRef(label);
+  useEffect(() => {
+    if (prev.current === label) return;
+    prev.current = label;
+    void controls.start({ scale: 1.2, transition: spring.lead }).then(() => controls.start({ scale: 1, transition: spring.pop }));
+  }, [label, controls]);
+  return (
+    <motion.span className='carev-badge-pop' animate={controls}>
+      <Badge variant='error' label={label} />
+    </motion.span>
+  );
+}
+
+/** 동작 줄이기를 켠 사람에게는 스크롤도 부드럽게 하지 않는다 */
+function scrollBehavior(): ScrollBehavior {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
+/** 스크롤 영역이 그쪽으로 더 밀릴 때만 data-fade-start / data-fade-end 를 붙인다(globals가 아닌 styles/shell.css 의 페이드가 읽는다).
+  DOM 속성만 만지므로 다시 그리지 않는다. 안쪽 목록이 바뀌어도(하위 메뉴 펼침) 다시 잰다. */
+function useEdgeFade(el: HTMLElement | null, axis: 'x' | 'y') {
+  useEffect(() => {
+    if (!el) return;
+    const update = () => {
+      const pos = axis === 'x' ? el.scrollLeft : el.scrollTop;
+      const size = axis === 'x' ? el.scrollWidth : el.scrollHeight;
+      const view = axis === 'x' ? el.clientWidth : el.clientHeight;
+      el.toggleAttribute('data-fade-start', pos > 1);
+      el.toggleAttribute('data-fade-end', pos + view < size - 1);
+    };
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const settle = () => {
+      update();
+      // 높이가 움직이는 동안과 끝난 뒤에 한 번씩 더
+      timers.push(setTimeout(update, 200), setTimeout(update, 450));
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    const mo = new MutationObserver(settle);
+    mo.observe(el, { childList: true, subtree: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      ro.disconnect();
+      mo.disconnect();
+      timers.forEach(clearTimeout);
+    };
+  }, [el, axis]);
 }

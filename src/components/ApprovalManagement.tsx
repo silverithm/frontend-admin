@@ -4,11 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiFileText, FiSearch, FiRefreshCw, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud, FiClock } from 'react-icons/fi';
+import { FiFileText, FiSearch, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud, FiClock } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Divider } from '@astryxdesign/core/Divider';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Button } from '@astryxdesign/core/Button';
-import { IconButton } from '@astryxdesign/core/IconButton';
+import { OutlineDangerButton } from '@/components/ui/OutlineDangerButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import { Badge } from '@astryxdesign/core/Badge';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
@@ -225,8 +226,10 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
         });
       }
       setSelectedIds(new Set());
+      return true;
     } catch (error) {
       console.error('결재 목록 로드 실패:', error);
+      return false;
     } finally {
       setIsLoading(false);
       setIsFirstLoad(false);
@@ -430,15 +433,7 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                   onClick={() => setShowImport(true)}
                 />
               )}
-              <IconButton
-                label="새로고침"
-                tooltip="새로고침"
-                variant="ghost"
-                icon={<Icon icon={FiRefreshCw} />}
-                isLoading={isProcessing}
-                isDisabled={isProcessing}
-                onClick={loadApprovals}
-              />
+              <RefreshButton onRefresh={loadApprovals} isDisabled={isProcessing} />
             </HStack>
           }
         />
@@ -704,9 +699,8 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                               isDisabled={isProcessing}
                               onClick={() => setQuickApproveTarget(approval)}
                             />
-                            <Button
+                            <OutlineDangerButton
                               label="반려"
-                              variant="destructive"
                               size="sm"
                               icon={<Icon icon={FiX} />}
                               isDisabled={isProcessing}

@@ -12,6 +12,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import Navbar from '@/components/Navbar';
+import ScrollTable from '@/components/ltc/ScrollTable';
 import {
   CARE_GRADES,
   DAYCARE_UNITS,
@@ -127,7 +128,7 @@ export function DaycareFeeTable({ unit }: { unit: DaycareUnit }) {
   const grades = CARE_GRADES.filter((g) => dailyFee(g.id, unit, 'h3to6') !== null);
 
   return (
-    <div className="carev-ltc-tablewrap">
+    <ScrollTable>
       <table className="carev-ltc-table">
         <thead>
           <tr>
@@ -158,14 +159,14 @@ export function DaycareFeeTable({ unit }: { unit: DaycareUnit }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
 /** 등급별 월 한도액 — 2026년, 2025년, 인상액. */
 export function MonthlyLimitTable() {
   return (
-    <div className="carev-ltc-tablewrap">
+    <ScrollTable>
       <table className="carev-ltc-table">
         <thead>
           <tr>
@@ -186,14 +187,14 @@ export function MonthlyLimitTable() {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
 /** 한도 안에서 8~10시간 주·야간보호를 며칠까지 이용할 수 있는지 (1일 급여비용만으로 계산). */
 export function DaysWithinLimitTable() {
   return (
-    <div className="carev-ltc-tablewrap">
+    <ScrollTable>
       <table className="carev-ltc-table">
         <thead>
           <tr>
@@ -222,7 +223,7 @@ export function DaysWithinLimitTable() {
           })}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -339,7 +340,7 @@ export function LtcRelated({ currentPath }: { currentPath: string }) {
 /** 주·야간보호 직종별 배치 기준 — 노인복지법 시행규칙 별표 9 제4호 가목 표의 두 행(이용자 10명 이상·미만). */
 export function DaycareStaffRoleTable() {
   return (
-    <div className="carev-ltc-tablewrap">
+    <ScrollTable>
       <table className="carev-ltc-table">
         <thead>
           <tr>
@@ -358,14 +359,14 @@ export function DaycareStaffRoleTable() {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
 /** 이용자 수 구간별 요양보호사 의무 인원 — 고시 제48조제1항의 반올림·기본 1명 규칙을 적용한 값. */
 export function CaregiverBandTable({ unit, maxUsers }: { unit: CareUnit; maxUsers: number }) {
   return (
-    <div className="carev-ltc-tablewrap">
+    <ScrollTable>
       <table className="carev-ltc-table">
         <thead>
           <tr>
@@ -382,6 +383,6 @@ export function CaregiverBandTable({ unit, maxUsers }: { unit: CareUnit; maxUser
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }

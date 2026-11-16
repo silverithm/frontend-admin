@@ -1,9 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Banner } from '@astryxdesign/core/Banner';
 import { duration as motionDuration } from '@/theme/motion';
+import { toast } from 'sonner';
+import { raiseToaster } from '@/components/CarevToaster';
 
 // Astryx Dialog는 네이티브 <dialog> top layer를 사용하므로 z-index로는 알림을
 // 다이얼로그 위에 올릴 수 없다. Popover API로 알림도 top layer에 올린다
@@ -103,62 +105,35 @@ export function Alert({ type, title, message, duration = 5000, isVisible, onClos
 }
 
 // Hook for managing alerts
+/**
+ * 앱 알림 — sonner(CarevToaster)로 띄운다(2026-11-16). 부르는 쪽(showAlert·AlertContainer)은 그대로 둔다.
+ *
+ * 예전에는 새 알림이 앞 알림을 지워 한 번에 하나만 떴다. 이제 최대 3개까지 쌓이고(마우스를 올리면 펼침),
+ * 밀어서 닫을 수 있다. AlertContainer는 화면마다 그려 두던 자리라 이제 아무것도 그리지 않는다 —
+ * 알림은 앱 전체에 하나 있는 CarevToaster에 뜬다.
+ */
 export function useAlert() {
-  const [alerts, setAlerts] = useState<(AlertConfig & { id: string; isVisible: boolean })[]>([]);
-
-  // 렌더링마다 새 함수를 주면 이걸 의존성에 넣은 쪽(useCallback/useEffect)이 매 렌더 다시
-  // 돈다. 실제로 연간일정이 이 때문에 로딩에서 못 빠져나왔다. setAlerts만 쓰므로 []로 고정한다.
   const showAlert = useCallback((config: AlertConfig) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const alert = { ...config, id, isVisible: true };
-
-    // 기존 알림 모두 닫고 새 알림만 표시 (팝업 중첩 방지)
-    setAlerts(prev => {
-      prev.forEach(a => {
-        if (a.isVisible) {
-          setTimeout(() => {
-            setAlerts(p => p.filter(x => x.id !== a.id));
-          }, 300);
-        }
-      });
-      return [...prev.map(a => ({ ...a, isVisible: false })), alert];
+    raiseToaster();
+    const show = config.type === 'success' ? toast.success
+      : config.type === 'error' ? toast.error
+      : config.type === 'warning' ? toast.warning
+      : toast.info;
+    const id = show(config.title || config.message, {
+      description: config.title ? config.message : undefined,
+      duration: config.duration ?? 5000,
+      onDismiss: config.onClose ? () => config.onClose?.() : undefined,
+      onAutoClose: config.onClose ? () => config.onClose?.() : undefined,
     });
-
-    return id;
+    return String(id);
   }, []);
 
   const hideAlert = useCallback((id: string) => {
-    setAlerts(prev => prev.map(alert =>
-      alert.id === id ? { ...alert, isVisible: false } : alert
-    ));
-
-    // Remove from array after animation completes
-    setTimeout(() => {
-      setAlerts(prev => prev.filter(alert => alert.id !== id));
-    }, 300);
+    toast.dismiss(id);
   }, []);
 
-  // 컴포넌트 타입을 렌더링마다 새로 만들면 부모가 리렌더링될 때마다
-  // 알림이 언마운트→리마운트되며 등장 애니메이션이 무한 반복된다.
-  // useCallback으로 alerts가 바뀔 때만 타입이 갱신되게 고정한다.
-  const AlertContainer = useCallback(() => (
-    <>
-      {alerts.map(alert => (
-        <Alert
-          key={alert.id}
-          type={alert.type}
-          title={alert.title}
-          message={alert.message}
-          duration={alert.duration}
-          isVisible={alert.isVisible}
-          onClose={() => {
-            hideAlert(alert.id);
-            alert.onClose?.();
-          }}
-        />
-      ))}
-    </>
-  ), [alerts, hideAlert]);
+  // 화면마다 그리던 자리 — 이제 비어 있다(알림은 CarevToaster 하나에 뜬다). 타입은 고정해 둔다.
+  const AlertContainer = useCallback(() => null, []);
 
   return { showAlert, hideAlert, AlertContainer };
 }

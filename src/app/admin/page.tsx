@@ -26,8 +26,9 @@ import {
     getMemberUsers,
     getPositions,
 } from "@/lib/apiService";
-import {AnimatePresence, LayoutGroup, motion} from "framer-motion";
+import {AnimatePresence, LayoutGroup, motion, useAnimationControls} from "framer-motion";
 import { spring } from "@/theme/springs";
+import "@/styles/shell.css";
 import { useBottomSheetDialog } from "@/hooks/useBottomSheetDialog";
 import VacationCalendar from "@/components/VacationCalendar";
 import ScheduleCalendar from "@/components/ScheduleCalendar";
@@ -276,8 +277,38 @@ export default function AdminPage() {
             : key === "chat" ? chatUnread
             : key in tabCounts ? tabCounts[key as keyof typeof tabCounts]
             : 0;
-        return count > 0 ? <Badge variant="error" label={count > 99 ? "99+" : count} /> : undefined;
+        return count > 0 ? <PopBadge label={count > 99 ? "99+" : String(count)} /> : undefined;
     };
+
+    // ── 화면 껍데기 보강(2026-11-16) ──
+    // 왼쪽 메뉴 목록·휴대폰 상단 탭 줄: 더 밀 수 있는 쪽에만 옅은 페이드
+    const [sideNavEl, setSideNavEl] = useState<HTMLElement | null>(null);
+    const [mobileNavEl, setMobileNavEl] = useState<HTMLElement | null>(null);
+    useEdgeFade(sideNavEl, "y");
+    useEdgeFade(mobileNavEl, "x");
+    // 탭이 바뀌면 고른 탭을 줄 가운데로 — 처음 그릴 때는 움직이지 않는다
+    const mobileTabDidMount = useRef(false);
+    useEffect(() => {
+        if (!mobileTabDidMount.current) { mobileTabDidMount.current = true; return; }
+        const nav = mobileNavEl;
+        const target = nav?.querySelector<HTMLElement>("[data-tab-active='true']");
+        target?.scrollIntoView({ inline: "center", block: "nearest", behavior: scrollBehavior() });
+    }, [activeMainTab, mobileNavEl]);
+    // 메뉴를 고르면(하위 메뉴 포함) 고른 항목이 목록 안에 보이게 — 하위 메뉴가 다 펼쳐진 뒤에도 한 번 더
+    const sideDidMount = useRef(false);
+    useEffect(() => {
+        if (!sideDidMount.current) { sideDidMount.current = true; return; }
+        const nav = sideNavEl;
+        if (!nav) return;
+        const reveal = () => {
+            const pills = nav.querySelectorAll<HTMLElement>(".carev-nav-pill");
+            const item = pills[pills.length - 1]?.parentElement;
+            item?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
+        };
+        reveal();
+        const t = setTimeout(reveal, 220);
+        return () => clearTimeout(t);
+    }, [activeMainTab, approvalSubTab, scheduleMode, activeTool, sideNavEl]);
 
     const memberRoleLookup = useMemo(
         () => buildMemberRoleLookup(members),
@@ -1335,7 +1366,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* 네비게이션 */}
-                <nav style={{ flex: 1, overflowY: "auto", padding: "var(--spacing-4) var(--spacing-3)", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
+                <nav ref={setSideNavEl} className="carev-edgefade-y" style={{ flex: 1, overflowY: "auto", padding: "var(--spacing-4) var(--spacing-3)", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
                     {/* 고른 메뉴의 바탕 한 장이 메뉴 사이를 미끄러져 옮겨 간다(2026-11-16, designbookmark 'Sidebar').
                         단추는 모두 투명(ghost)으로 두고 바탕은 NavPill이 그린다 — 예전 secondary 바탕과 같은 색 */}
                     <LayoutGroup id="carev-sidebar">
@@ -1357,8 +1388,9 @@ export default function AdminPage() {
                             />
                             </div>
                             {/* 전자결재 서브탭 */}
+                            <AnimatePresence initial={false}>
                             {tab.key === "approval" && activeMainTab === "approval" && (
-                                <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
+                                <SubNav key="sub">
                                     <div className="carev-nav-item">
                                     {approvalSubTab === "submit" && <NavPill id="carev-subnav-approval" />}
                                     <Button label="결재 신청" variant="ghost" size="sm" onClick={() => setApprovalSubTab("submit")} style={{ width: "100%", justifyContent: "flex-start" }} />
@@ -1375,11 +1407,13 @@ export default function AdminPage() {
                                     <Button label="양식 관리" variant="ghost" size="sm" onClick={() => setApprovalSubTab("templates")} style={{ width: "100%", justifyContent: "flex-start" }} />
                                     </div>
                                     )}
-                                </div>
+                                </SubNav>
                             )}
+                            </AnimatePresence>
                             {/* 일정 서브탭 */}
+                            <AnimatePresence initial={false}>
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
-                                <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
+                                <SubNav key="sub">
                                     <div className="carev-nav-item">
                                     {scheduleMode === "schedule" && <NavPill id="carev-subnav-schedule" />}
                                     <Button label="월간일정" variant="ghost" size="sm" onClick={() => setScheduleMode("schedule")} style={{ width: "100%", justifyContent: "flex-start" }} />
@@ -1388,11 +1422,13 @@ export default function AdminPage() {
                                     {scheduleMode === "annual" && <NavPill id="carev-subnav-schedule" />}
                                     <Button label="연간일정" variant="ghost" size="sm" onClick={() => setScheduleMode("annual")} style={{ width: "100%", justifyContent: "flex-start" }} />
                                     </div>
-                                </div>
+                                </SubNav>
                             )}
+                            </AnimatePresence>
                             {/* 편의기능 서브탭 — 도구가 늘어나면 toolItems에만 추가하면 된다 */}
+                            <AnimatePresence initial={false}>
                             {tab.key === "tools" && activeMainTab === "tools" && isAdmin && (
-                                <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
+                                <SubNav key="sub">
                                     {toolItems.map((tool) => (
                                         <div key={tool.key} className="carev-nav-item">
                                         {activeTool === tool.key && <NavPill id="carev-subnav-tools" />}
@@ -1405,8 +1441,9 @@ export default function AdminPage() {
                                         />
                                         </div>
                                     ))}
-                                </div>
+                                </SubNav>
                             )}
+                            </AnimatePresence>
                         </div>
                     ))}
                     </Fragment>
@@ -1441,7 +1478,7 @@ export default function AdminPage() {
                 </div>
                 {/* 오른쪽 끝에 페이드를 깔아 '더 있다'를 알린다(globals.css .carev-tabfade) */}
                 <div className="carev-tabfade">
-                <nav className="scrollbar-hide" style={{ display: "flex", overflowX: "auto", padding: "0 var(--spacing-2)", marginBottom: -1 }}>
+                <nav ref={setMobileNavEl} className="scrollbar-hide carev-edgefade-x" style={{ display: "flex", overflowX: "auto", padding: "0 var(--spacing-2)", marginBottom: -1 }}>
                     {([
                         { key: "plaza", label: "커뮤니티" },
                         { key: "dashboard", label: "대시보드" }, { key: "notice", label: "공지" }, { key: "chat", label: "채팅" },
@@ -1452,8 +1489,8 @@ export default function AdminPage() {
                         ...(isAdmin ? [{ key: "tools" as const, label: "편의기능" as const }] : []),
                         ...(isAdmin && labEnabled ? [{ key: "lab" as const, label: "실험실" as const }] : []),
                     ] as { key: string; label: string }[]).map((tab) => (
+                        <span key={tab.key} data-tab-active={activeMainTab === tab.key} style={{ display: "inline-flex", flexShrink: 0 }}>
                         <Button
-                            key={tab.key}
                             label={tab.label}
                             variant={activeMainTab === tab.key ? "secondary" : "ghost"}
                             size="sm"
@@ -1461,6 +1498,7 @@ export default function AdminPage() {
                             endContent={tabBadgeEl(tab.key as MainTab)}
                             style={{ whiteSpace: "nowrap", flexShrink: 0 }}
                         />
+                        </span>
                     ))}
                 </nav>
                 </div>
@@ -1500,7 +1538,7 @@ export default function AdminPage() {
             {/* 메인 콘텐츠 */}
             {/* 본문 + 우측 상시 채팅 레일 */}
             <div className="carev-admin-body">
-            <main style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
+            <main className="carev-shell-main" data-fab={activeMainTab !== "chat"} style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
                 {/* 탭별 컨텐츠 — 탭 키로 래퍼가 다시 마운트될 때 .carev-enter(globals.css 반응 C)가
                     200ms 동안 6px 아래에서 떠오르며 나타난다. 나가는 쪽은 움직이지 않는다(기다리게 하지 않는다).
                     예전 AnimatePresence(mode="wait")는 옛 본문이 사라질 때까지 새 본문을 붙잡아 두었다. */}
@@ -2169,4 +2207,77 @@ export default function AdminPage() {
 /** 고른 메뉴의 바탕 — 같은 id끼리 framer-motion이 자리를 이어 받아 미끄러지게 옮긴다(동작 줄이기면 바로 옮김) */
 function NavPill({ id }: { id: string }) {
     return <motion.span aria-hidden layoutId={id} className="carev-nav-pill" transition={spring.nav} />;
+}
+
+/** 하위 메뉴 펼침 — 높이 0→auto + 투명도. 닫힐 때는 더 빠르게 접는다(동작 줄이기면 framer가 높이·투명도도 바로 바꾼다).
+    위쪽 여백·왼쪽 들여쓰기는 안쪽 칸이 가져 높이 0일 때 흔적이 남지 않는다. */
+function SubNav({ children }: { children: React.ReactNode }) {
+    return (
+        <motion.div
+            className="carev-subnav"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1, transition: { height: spring.nav, opacity: spring.fade } }}
+            exit={{ height: 0, opacity: 0, transition: { duration: 0.12, ease: "easeIn" } }}
+        >
+            <div style={{ paddingLeft: "var(--spacing-9)", paddingTop: "var(--spacing-1)", display: "flex", flexDirection: "column", gap: "var(--spacing-0-5)" }}>
+                {children}
+            </div>
+        </motion.div>
+    );
+}
+
+/** 메뉴 숫자 배지 — 숫자가 바뀌면 한 번 살짝 튄다(1→1.2→1). 처음 그려질 때는 가만히 있는다. */
+function PopBadge({ label }: { label: string }) {
+    const controls = useAnimationControls();
+    const prev = useRef(label);
+    useEffect(() => {
+        if (prev.current === label) return;
+        prev.current = label;
+        void controls.start({ scale: 1.2, transition: spring.lead }).then(() => controls.start({ scale: 1, transition: spring.pop }));
+    }, [label, controls]);
+    return (
+        <motion.span className="carev-badge-pop" animate={controls}>
+            <Badge variant="error" label={label} />
+        </motion.span>
+    );
+}
+
+/** 동작 줄이기를 켠 사람에게는 스크롤도 부드럽게 하지 않는다 */
+function scrollBehavior(): ScrollBehavior {
+    return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
+/** 스크롤 영역이 그쪽으로 더 밀릴 때만 data-fade-start / data-fade-end 를 붙인다(globals가 아닌 styles/shell.css 의 페이드가 읽는다).
+    DOM 속성만 만지므로 다시 그리지 않는다. 안쪽 목록이 바뀌어도(하위 메뉴 펼침) 다시 잰다. */
+function useEdgeFade(el: HTMLElement | null, axis: "x" | "y") {
+    useEffect(() => {
+        if (!el) return;
+        const update = () => {
+            const pos = axis === "x" ? el.scrollLeft : el.scrollTop;
+            const size = axis === "x" ? el.scrollWidth : el.scrollHeight;
+            const view = axis === "x" ? el.clientWidth : el.clientHeight;
+            el.toggleAttribute("data-fade-start", pos > 1);
+            el.toggleAttribute("data-fade-end", pos + view < size - 1);
+        };
+        const timers: ReturnType<typeof setTimeout>[] = [];
+        const settle = () => {
+            update();
+            // 높이가 움직이는 동안과 끝난 뒤에 한 번씩 더
+            timers.push(setTimeout(update, 200), setTimeout(update, 450));
+        };
+        update();
+        el.addEventListener("scroll", update, { passive: true });
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        const mo = new MutationObserver(settle);
+        mo.observe(el, { childList: true, subtree: true });
+        window.addEventListener("resize", update);
+        return () => {
+            el.removeEventListener("scroll", update);
+            window.removeEventListener("resize", update);
+            ro.disconnect();
+            mo.disconnect();
+            timers.forEach(clearTimeout);
+        };
+    }, [el, axis]);
 }

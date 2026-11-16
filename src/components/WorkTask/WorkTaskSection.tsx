@@ -8,6 +8,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Text } from '@astryxdesign/core/Text';
 import { FiCheckSquare, FiChevronDown, FiChevronRight, FiPlus } from 'react-icons/fi';
 import { Loading } from '@/components/Loading';
+import '@/styles/work.css';
 import WorkTaskDialog from '@/components/WorkTask/WorkTaskDialog';
 import { fetchWorkTasks } from '@/lib/apiService';
 import type { DirectChatMember } from '@/lib/directChat';
@@ -176,6 +177,8 @@ function WorkTaskRow({ task, today, onOpen }: { task: WorkTask; today: string; o
   const finished = isDone(task);
   const due = finished ? null : dueLabel(task.dueDate, today);
   const who = assigneeLabel(task.assignees);
+  // 막대 색은 상태로만: 끝남=초록, 기한 지남=빨강, 그 외=한 가지 accent (중요도는 칩으로)
+  const gaugeTone = finished ? 'done' : task.dueDate && task.dueDate < today ? 'overdue' : 'progress';
   return (
     <li>
       <button
@@ -209,7 +212,7 @@ function WorkTaskRow({ task, today, onOpen }: { task: WorkTask; today: string; o
             aria-label="수행도"
           >
             <span
-              className={`carev-wt-gauge-fill carev-wt-gauge-${finished ? 'done' : meta.tone}`}
+              className={`carev-wt-gauge-fill carev-wt-gauge-${gaugeTone}`}
               style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }}
             />
           </span>

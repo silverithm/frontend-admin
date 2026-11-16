@@ -1328,6 +1328,9 @@ html {
    "10시간 이상 13시간 이하" 같은 원문 구간명이 잘리면 표를 옮긴 의미가 없다.
    숫자는 오른쪽 정렬 + 고정폭 숫자로 자릿수를 맞추고, 넓은 표는 자기 안에서만 가로 스크롤한다. */
 .carev-ltc-tablewrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-element); background: var(--color-background-card); }
+/* 표가 잘려 있을 때만 '더 있음'을 알린다(ScrollTable이 data 속성을 켠다) — 다 들어오면 아무 표시 없음 */
+.carev-ltc-tablewrap[data-more-right] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.carev-ltc-tablewrap[data-more-left] .carev-ltc-table tr > :first-child { box-shadow: 6px 0 8px -6px rgb(0 0 0 / 0.28); }
 .carev-ltc-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
 .carev-ltc-table th,
 .carev-ltc-table td { padding: var(--spacing-2) var(--spacing-3); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); }
@@ -2147,3 +2150,46 @@ html {
   pointer-events: none;
 }
 @media print { .carev-doc-stamp-ink { display: none; } }
+
+/* ── 앱 알림 자리 (2026-11-16, sonner — src/components/CarevToaster.tsx) ──
+   popover(top layer)로 다이얼로그 위에 그린다. 자리 자체는 클릭을 막지 않고 알림만 누를 수 있다. */
+.carev-toaster-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+}
+.carev-toaster-layer [data-sonner-toaster] {
+  --border-radius: var(--radius-container, 12px);
+  font-family: var(--font-family-body);
+}
+/* 알림 더미 위에 마우스를 올리면 펼쳐진다 — 바깥 자리(.carev-toaster-layer)는 클릭을 막지 않게 none이라
+   목록(ol)에 다시 auto를 줘야 sonner가 마우스를 알아챈다. 알림이 없으면 목록이 그려지지 않는다. */
+.carev-toaster-layer [data-sonner-toaster] { pointer-events: auto; }
+.carev-toaster-layer [data-sonner-toast] { pointer-events: auto; }
+/* 닫기(X)는 예전 알림처럼 오른쪽 위에 */
+.carev-toaster-layer [data-sonner-toaster] [data-sonner-toast] {
+  /* unset이면 목록(ol)의 0을 물려받아 왼쪽에 남는다 — auto로 둔다 */
+  --toast-close-button-start: auto !important;
+  --toast-close-button-end: 0 !important;
+  --toast-close-button-transform: translate(35%, -35%) !important;
+}
+.carev-toaster-layer [data-sonner-toast] [data-title] { font-size: 14px; font-weight: 600; }
+.carev-toaster-layer [data-sonner-toast] [data-description] { font-size: 13px; }
+
+/* 계산기 결과 행 — 값이 바뀐 행만 한 번 옅게 물들었다 빠진다(동작 줄이기에서는 칠하지 않는다) */
+@keyframes carev-ltc-flash { from { background-color: var(--color-background-teal); } to { background-color: transparent; } }
+.carev-ltc-flash { border-radius: var(--radius-element); animation: carev-ltc-flash 900ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .carev-ltc-flash { animation: none; } }
+
+/* FitGrid(제휴·문의 칸 나눔) — Astryx Grid가 인라인으로 넣는 grid-template-columns를 !important로 덮는다.
+   칸 최소 = min(100%, max(최소 폭, 열 수로 나눈 폭)): 열 수는 --fit-max로 막히고, 칸이 하나뿐인 좁은 폭에서는 1fr로 꽉 찬다. */
+.carev-fit-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(var(--fit-min), calc((100% - (var(--fit-max) - 1) * var(--fit-gap)) / var(--fit-max)))), 1fr)) !important;
+}
