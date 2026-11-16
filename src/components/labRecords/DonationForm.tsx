@@ -3,7 +3,8 @@
 /** 후원금 한 건 입력 양식 — 받은 날짜, 후원자, 현금·물품, 금액(물품은 환산액), 지정 용도, 영수증 번호. */
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Selector } from '@astryxdesign/core/Selector';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Switch } from '@astryxdesign/core/Switch';

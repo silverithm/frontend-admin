@@ -3,7 +3,8 @@
 /** 직원 한 명의 급여 기준 편집 양식 — 직종·급여 방식·금액·가족·원천징수 비율·식대·입사일·선임·4대보험 가입. */
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Selector } from '@astryxdesign/core/Selector';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Switch } from '@astryxdesign/core/Switch';

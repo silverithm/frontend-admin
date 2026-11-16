@@ -7,7 +7,8 @@
  */
 import { useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Text } from '@astryxdesign/core/Text';
 import type { RecordLog, RecordLogKind } from '@/lib/lab/labTypes';
 import { RECORD_LOG_KINDS } from '@/lib/lab/recordLogRules';

@@ -2066,3 +2066,84 @@ html {
   flex: 1 1 0;
   min-height: var(--spacing-11);
 }
+
+/* ── 미끄러지는 탭 선택 표시 (2026-11-16, designbookmark 'Tab pill') ──
+   src/components/ui/SlidingSegmentedControl.tsx. 흰 바탕을 Astryx 칸에서 떼어 감싸개의 한 장으로 그리고,
+   그 한 장이 칸 사이를 스프링으로 옮겨 간다. 칸 자체(글자·접근성·키보드)는 Astryx 그대로.
+   Astryx(StyleX)는 :not(#\#)로 우선순위를 높여 두어 여기서는 !important로 덮는다. */
+.carev-seg {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  isolation: isolate;
+  border-radius: var(--radius-element);
+  background-color: var(--color-neutral);
+}
+.carev-seg[data-layout='fill'] { display: flex; width: 100%; }
+.carev-seg[data-layout='fill'] > .astryx-segmented-control { flex: 1 1 auto; }
+.carev-seg > .astryx-segmented-control {
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+}
+.carev-seg .astryx-segmented-control-item.selected {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+.carev-seg-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  border-radius: calc(var(--radius-element) - var(--spacing-0-5));
+  background-color: var(--color-background-surface);
+  box-shadow: var(--shadow-low);
+  pointer-events: none;
+}
+
+/* ── 왼쪽 메뉴 선택 바탕 (2026-11-16, designbookmark 'Sidebar') — admin/page.tsx NavPill ──
+   단추는 모두 투명(ghost), 고른 메뉴 뒤의 바탕 한 장(예전 secondary와 같은 --color-neutral)이 옮겨 다닌다. */
+.carev-nav-item { position: relative; isolation: isolate; }
+.carev-nav-item > :not(.carev-nav-pill) { position: relative; z-index: 1; }
+.carev-nav-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius-element);
+  background-color: var(--color-neutral);
+  pointer-events: none;
+}
+
+/* ── 할 일 끝냄 (2026-11-16, designbookmark 'Checkbox list') — ScheduleCalendar 할 일 줄 ──
+   가로줄을 text-decoration 대신 배경 선으로 그어 왼쪽부터 쓱 지나가게 한다(여러 줄이면 줄마다). */
+.carev-task-row {
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+.carev-task-text { transition: opacity var(--duration-fast) var(--ease-standard); }
+.carev-task-text[data-done='true'] { opacity: 0.65; }
+.carev-strike {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 calc(50% + 1px);
+  background-size: 0% 1.5px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-size 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.carev-task-text[data-done='true'] .carev-strike { background-size: 100% 1.5px; }
+@media (prefers-reduced-motion: reduce) {
+  .carev-strike, .carev-task-row, .carev-task-text { transition: none; }
+}
+
+/* ── 결재 도장 (2026-11-16) — OfficialDocument StampIn: 방금 승인한 칸의 서명 + 번지는 인주 자국 ── */
+.carev-doc-stamp { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.carev-doc-stamp-ink {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--color-text-red);
+  pointer-events: none;
+}
+@media print { .carev-doc-stamp-ink { display: none; } }

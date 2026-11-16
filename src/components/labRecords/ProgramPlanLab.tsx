@@ -2,7 +2,8 @@
 
 /** 프로그램 계획 — 연간계획 · 월간 계획표 · 의견수렴 세 보기를 오간다(평가 24·25·26 기준①③, 17 소통노력 기준③). */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import ProgramPlanAnnual from './ProgramPlanAnnual';
 import ProgramPlanFeedback from './ProgramPlanFeedback';
 import ProgramPlanMonth from './ProgramPlanMonth';

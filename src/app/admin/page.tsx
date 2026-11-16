@@ -26,7 +26,8 @@ import {
     getMemberUsers,
     getPositions,
 } from "@/lib/apiService";
-import {AnimatePresence} from "framer-motion";
+import {AnimatePresence, LayoutGroup, motion} from "framer-motion";
+import { spring } from "@/theme/springs";
 import { useBottomSheetDialog } from "@/hooks/useBottomSheetDialog";
 import VacationCalendar from "@/components/VacationCalendar";
 import ScheduleCalendar from "@/components/ScheduleCalendar";
@@ -70,7 +71,8 @@ import CareforWorkExcelDialog from "@/components/CareforWorkExcelDialog";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Badge } from "@astryxdesign/core/Badge";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { SegmentedControl } from "@/components/ui/SlidingSegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
 import { Heading } from "@astryxdesign/core/Heading";
 import PageHeader from "@/components/PageHeader";
@@ -1334,51 +1336,74 @@ export default function AdminPage() {
 
                 {/* 네비게이션 */}
                 <nav style={{ flex: 1, overflowY: "auto", padding: "var(--spacing-4) var(--spacing-3)", display: "flex", flexDirection: "column", gap: 'var(--spacing-1)' }}>
+                    {/* 고른 메뉴의 바탕 한 장이 메뉴 사이를 미끄러져 옮겨 간다(2026-11-16, designbookmark 'Sidebar').
+                        단추는 모두 투명(ghost)으로 두고 바탕은 NavPill이 그린다 — 예전 secondary 바탕과 같은 색 */}
+                    <LayoutGroup id="carev-sidebar">
                     {navGroups.map((group, groupIndex) => (
                     <Fragment key={group.title}>
                     <Text as="p" type="supporting" weight="semibold" color="secondary" style={groupIndex > 0 ? { marginTop: 'var(--spacing-3)' } : undefined}>{group.title}</Text>
                     {group.items.map((tab) => (
                         <div key={tab.key} data-tour={`nav-${tab.key}`}>
+                            <div className="carev-nav-item">
+                            {activeMainTab === tab.key && <NavPill id="carev-nav-pill" />}
                             <Button
                                 label={tab.label}
-                                variant={activeMainTab === tab.key ? "secondary" : "ghost"}
+                                variant="ghost"
                                 size="md"
                                 onClick={() => setActiveMainTab(tab.key as MainTab)}
                                 icon={<Icon icon={tab.icon} size="sm" color={activeMainTab === tab.key ? "accent" : "primary"} />}
                                 endContent={tabBadgeEl(tab.key as MainTab) ?? (tab.isNew ? <Badge variant="teal" label="NEW" /> : undefined)}
                                 style={{ width: "100%", justifyContent: "flex-start" }}
                             />
+                            </div>
                             {/* 전자결재 서브탭 */}
                             {tab.key === "approval" && activeMainTab === "approval" && (
                                 <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
-                                    <Button label="결재 신청" variant={approvalSubTab === "submit" ? "secondary" : "ghost"} size="sm" onClick={() => setApprovalSubTab("submit")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <div className="carev-nav-item">
+                                    {approvalSubTab === "submit" && <NavPill id="carev-subnav-approval" />}
+                                    <Button label="결재 신청" variant="ghost" size="sm" onClick={() => setApprovalSubTab("submit")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    </div>
                                     {isAdmin && (
-                                    <Button label="결재 관리" variant={approvalSubTab === "management" ? "secondary" : "ghost"} size="sm" onClick={() => setApprovalSubTab("management")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <div className="carev-nav-item">
+                                    {approvalSubTab === "management" && <NavPill id="carev-subnav-approval" />}
+                                    <Button label="결재 관리" variant="ghost" size="sm" onClick={() => setApprovalSubTab("management")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    </div>
                                     )}
                                     {isAdmin && (
-                                    <Button label="양식 관리" variant={approvalSubTab === "templates" ? "secondary" : "ghost"} size="sm" onClick={() => setApprovalSubTab("templates")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <div className="carev-nav-item">
+                                    {approvalSubTab === "templates" && <NavPill id="carev-subnav-approval" />}
+                                    <Button label="양식 관리" variant="ghost" size="sm" onClick={() => setApprovalSubTab("templates")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    </div>
                                     )}
                                 </div>
                             )}
                             {/* 일정 서브탭 */}
                             {tab.key === "schedule" && activeMainTab === "schedule" && isAdmin && (
                                 <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
-                                    <Button label="월간일정" variant={scheduleMode === "schedule" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("schedule")} style={{ width: "100%", justifyContent: "flex-start" }} />
-                                    <Button label="연간일정" variant={scheduleMode === "annual" ? "secondary" : "ghost"} size="sm" onClick={() => setScheduleMode("annual")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    <div className="carev-nav-item">
+                                    {scheduleMode === "schedule" && <NavPill id="carev-subnav-schedule" />}
+                                    <Button label="월간일정" variant="ghost" size="sm" onClick={() => setScheduleMode("schedule")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    </div>
+                                    <div className="carev-nav-item">
+                                    {scheduleMode === "annual" && <NavPill id="carev-subnav-schedule" />}
+                                    <Button label="연간일정" variant="ghost" size="sm" onClick={() => setScheduleMode("annual")} style={{ width: "100%", justifyContent: "flex-start" }} />
+                                    </div>
                                 </div>
                             )}
                             {/* 편의기능 서브탭 — 도구가 늘어나면 toolItems에만 추가하면 된다 */}
                             {tab.key === "tools" && activeMainTab === "tools" && isAdmin && (
                                 <div style={{ paddingLeft: 'var(--spacing-9)', marginTop: 'var(--spacing-1)', display: "flex", flexDirection: "column", gap: 'var(--spacing-0-5)' }}>
                                     {toolItems.map((tool) => (
+                                        <div key={tool.key} className="carev-nav-item">
+                                        {activeTool === tool.key && <NavPill id="carev-subnav-tools" />}
                                         <Button
-                                            key={tool.key}
                                             label={tool.label}
-                                            variant={activeTool === tool.key ? "secondary" : "ghost"}
+                                            variant="ghost"
                                             size="sm"
                                             onClick={() => setActiveTool(tool.key)}
                                             style={{ width: "100%", justifyContent: "flex-start" }}
                                         />
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -1386,6 +1411,7 @@ export default function AdminPage() {
                     ))}
                     </Fragment>
                     ))}
+                    </LayoutGroup>
                 </nav>
 
                 {/* 사이드바 하단 */}
@@ -2138,4 +2164,9 @@ export default function AdminPage() {
             )}
         </div>
     );
+}
+
+/** 고른 메뉴의 바탕 — 같은 id끼리 framer-motion이 자리를 이어 받아 미끄러지게 옮긴다(동작 줄이기면 바로 옮김) */
+function NavPill({ id }: { id: string }) {
+    return <motion.span aria-hidden layoutId={id} className="carev-nav-pill" transition={spring.nav} />;
 }

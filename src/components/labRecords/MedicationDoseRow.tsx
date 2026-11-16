@@ -3,7 +3,8 @@
 /** 오늘 투약 한 줄 — 어르신·시간대·약, 상태, 투약함·건너뜀·거부 단추. 단추를 누르면 줄 아래에 시각·투약자·상태 메모 칸이 열린다. */
 import { useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';

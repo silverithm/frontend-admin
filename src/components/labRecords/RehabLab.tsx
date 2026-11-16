@@ -2,7 +2,8 @@
 
 /** 기능회복훈련 — 날짜별 보기(기록·고치기)와 월간 보기(어르신별 요약·인쇄)를 오간다. */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { ErrorBanner } from '@/components/lab/LabUi';
 import { currentMonth, todayString } from '@/components/lab/labFormat';
 import { useLabElders } from '@/components/lab/useLabElders';

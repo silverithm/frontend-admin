@@ -18,7 +18,8 @@ import ApprovalImportDialog from '@/components/approval/ApprovalImportDialog';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
@@ -27,7 +28,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Loading } from '@/components/Loading';
 import MemberAvatar from '@/components/MemberAvatar';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { getApprovalRequests, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, getApprovalTemplates, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
+import { getApprovalRequests, getApprovalRequestById, approveApprovalRequest, rejectApprovalRequest, bulkApproveApprovalRequests, bulkRejectApprovalRequests, getApprovalTemplateById, getApprovalTemplates, cancelApprovalRequest, getApprovalRequesterId } from '@/lib/apiService';
 import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
 
 /** 서버가 "분류가 비어 있는 문서"로 알아듣는 값 (ApprovalRequestService.UNCATEGORIZED_FILTER) */
@@ -55,6 +56,9 @@ interface ApprovalManagementProps {
    */
   canManage?: boolean;
 }
+
+/** 승인 뒤 결재란에 서명이 찍히는 것을 보여 주는 시간 — 도장이 내려앉고(약 0.4초) 잠깐 머문 뒤 닫는다 */
+const STAMP_HOLD_MS = 1100;
 
 export default function ApprovalManagement({ canManage = true }: ApprovalManagementProps) {
   const { showAlert, AlertContainer } = useAlert();
@@ -281,6 +285,19 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     setIsProcessing(true);
     try {
       await approveApprovalRequest(String(id), options);
+      // 상세를 보며 승인했으면 결재란에 서명이 찍히는 것을 보여 주고 닫는다(2026-11-16 '도장').
+      // 예전에는 승인 즉시 창이 닫혀 내 서명이 들어갔는지 볼 수 없었다. 못 불러오면 예전처럼 바로 닫는다.
+      if (selectedApproval && String(selectedApproval.id) === String(id)) {
+        try {
+          const updated = await getApprovalRequestById(String(id));
+          if (updated) {
+            setSelectedApproval(updated);
+            await new Promise((resolve) => setTimeout(resolve, STAMP_HOLD_MS));
+          }
+        } catch {
+          // 다시 불러오기 실패 — 도장 없이 닫는다
+        }
+      }
       showAlert({ type: 'success', title: '승인 완료', message: '결재가 승인되었습니다.' });
       loadApprovals();
       setSelectedApproval(null);

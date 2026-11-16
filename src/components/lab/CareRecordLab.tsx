@@ -2,7 +2,8 @@
 
 /** 급여제공기록 — 하루 기록 · 월별 기록지 · 제공대장 세 화면을 묶는다. */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { ErrorBanner } from './LabUi';
 import CareRecordLabDaily from './CareRecordLabDaily';
 import CareRecordLabDelivery from './CareRecordLabDelivery';

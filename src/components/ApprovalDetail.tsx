@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { spring } from '@/theme/springs';
 import { ApprovalRequest } from '@/types/approval';
 import { approvalStatusBadge } from '@/lib/approvalStatus';
 import { FormSchema } from '@/types/formSchema';
@@ -54,6 +55,8 @@ export default function ApprovalDetail({
   isProcessing = false,
   canManage = false,
 }: ApprovalDetailProps) {
+  // 상세를 연 때의 상태 — 보는 동안 바뀔 때만 꼬리표를 움직인다
+  const openedStatus = useRef(approval.status);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
@@ -184,9 +187,16 @@ export default function ApprovalDetail({
               subtitle={approval.templateName}
               onOpenChange={(open) => { if (!open) onClose(); }}
               endContent={
-                <Badge
-                  {...approvalStatusBadge(approval.status)}
-                />
+                // 보는 동안 상태가 바뀌면(승인) 꼬리표가 살짝 튀며 바뀐다 — 처음 열 때는 가만히(2026-11-16)
+                <motion.span
+                  key={approval.status}
+                  style={{ display: 'inline-flex' }}
+                  initial={approval.status === openedStatus.current ? false : { scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={spring.pop}
+                >
+                  <Badge {...approvalStatusBadge(approval.status)} />
+                </motion.span>
               }
             />
           }

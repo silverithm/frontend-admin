@@ -28,7 +28,8 @@ import { MultiSelector } from '@astryxdesign/core/MultiSelector';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { TimeInput } from '@astryxdesign/core/TimeInput';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Popover } from '@astryxdesign/core/Popover';
 import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
 import { isMineOnScheduleTab, matchesScheduleFilter, scheduleFilterButtonLabel, type FilterableSchedule } from '@/lib/scheduleFilter';
@@ -67,6 +68,7 @@ import DispatchSettings from './DispatchSettings';
 import DispatchBoard from './DispatchBoard';
 import DispatchAttendancePanel from './DispatchAttendancePanel';
 import { duration } from '@/theme/motion';
+import { spring } from '@/theme/springs';
 import { useBottomSheetDialog } from '@/hooks/useBottomSheetDialog';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -2431,8 +2433,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                   aria-valuemax={100}
                                   style={{ width: 100, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-background-muted)', overflow: 'hidden' }}
                                 >
-                                  {/* 채움은 글자·선 색(success) — 예전 배경용 옅은 초록은 빈 막대와 거의 같아 안 보였다 */}
-                                  <div style={{ width: '100%', height: '100%', background: 'var(--color-success)', transformOrigin: 'left', transform: `scaleX(${percent / 100})`, transition: 'transform var(--duration-fast) var(--ease-standard)' }} />
+                                  {/* 채움은 글자·선 색(success) — 예전 배경용 옅은 초록은 빈 막대와 거의 같아 안 보였다.
+                                      할 일을 끝내면 스프링으로 차오른다(2026-11-16, designbookmark 'Checkbox list') */}
+                                  <motion.div
+                                    initial={false}
+                                    animate={{ scaleX: percent / 100 }}
+                                    transition={spring.fade}
+                                    style={{ width: '100%', height: '100%', background: 'var(--color-success)', transformOrigin: 'left' }}
+                                  />
                                 </div>
                                 <Text type="supporting" weight="semibold" color="primary" hasTabularNumbers>{percent}%</Text>
                               </HStack>
@@ -2448,6 +2456,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                           {tasks.map((task) => (
                             <div
                               key={task.id}
+                              className="carev-task-row"
                               style={{
                                 padding: 'var(--spacing-3)',
                                 borderRadius: 'var(--radius-inner)',
@@ -2487,8 +2496,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                               ) : (
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-2)' }}>
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none', opacity: task.isCompleted ? 0.65 : 1 }}>
-                                      <Text type="body" weight="medium" color="primary">{task.content}</Text>
+                                    {/* 끝내면 가로줄이 왼쪽부터 그어진다 — 여러 줄이어도 줄마다(CSS .carev-strike) */}
+                                    <div className="carev-task-text" data-done={task.isCompleted ? 'true' : undefined}>
+                                      <Text type="body" weight="medium" color="primary"><span className="carev-strike">{task.content}</span></Text>
                                     </div>
                                     <div style={{ marginTop: 'var(--spacing-1-5)', fontSize: 13 }}>
                                       <HStack gap={2} vAlign="center" wrap="wrap">

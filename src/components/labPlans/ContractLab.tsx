@@ -5,7 +5,8 @@
  * 보기를 바꿔도 입력 중인 내용이 사라지지 않게 숨기기만 한다. 종료한 계약에서 "퇴소 연계기록지 쓰기"를 누르면 두 번째 보기로 이어진다.
  */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { SupportText } from '@/components/lab/LabUi';
 import { useLabElders } from '@/components/lab/useLabElders';
 import ContractRecordsLab from './ContractRecordsLab';

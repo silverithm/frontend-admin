@@ -1,6 +1,8 @@
 'use client';
 
-import React, { Fragment, useRef } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { spring } from '@/theme/springs';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { FiPrinter } from 'react-icons/fi';
@@ -293,6 +295,17 @@ export default function OfficialDocument({
   const pageRef = useRef<HTMLDivElement>(null);
 
   const boxes = buildApprovalBoxes(approval);
+
+  // 결재란 칸이 이 화면을 보는 동안 '결재중'→승인으로 바뀌면 그 칸에 도장을 찍는다(2026-11-16).
+  // 문서를 처음 열 때 이미 승인된 칸은 그냥 그린다 — 열 때마다 도장이 튀면 소음이다.
+  const seenStatuses = useRef<string[] | null>(null);
+  const previous = seenStatuses.current;
+  const justSigned = boxes.map(
+    (box, index) => !!previous && previous[index] !== undefined && previous[index] !== 'APPROVED' && box.status === 'APPROVED',
+  );
+  useEffect(() => {
+    seenStatuses.current = boxes.map((box) => box.status);
+  });
   const hasFormData = approval.formData && Object.keys(approval.formData).length > 0;
   const isApproved = approval.status === 'APPROVED';
   const isRejected = approval.status === 'REJECTED';
@@ -349,12 +362,14 @@ export default function OfficialDocument({
                       '반려'
                     ) : box.signatureUrl ? (
                       // 서명 파일을 못 불러오면 서명 없이 승인했을 때와 같은 글자로(2026-11-16 숲속 원장 서명 깨짐)
-                      <SignatureImage
-                        src={box.signatureUrl}
-                        name={box.name}
-                        fallback={box.label === '기안' ? box.name : `${box.name} (인)`}
-                        className="carev-doc-signature-img"
-                      />
+                      <StampIn active={justSigned[index]}>
+                        <SignatureImage
+                          src={box.signatureUrl}
+                          name={box.name}
+                          fallback={box.label === '기안' ? box.name : `${box.name} (인)`}
+                          className="carev-doc-signature-img"
+                        />
+                      </StampIn>
                     ) : box.status === 'APPROVED' && box.name ? (
                       box.label === '기안' ? box.name : `${box.name} (인)`
                     ) : box.status === 'SKIPPED' ? (
@@ -438,5 +453,37 @@ export default function OfficialDocument({
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * 방금 승인한 칸의 서명 — 위에서 눌러 찍듯 내려앉고, 옅은 인주 자국이 번졌다 사라진다(2026-11-16 '도장').
+ * 결재 문화의 도장·서명을 그대로 빌렸다. 처음부터 승인돼 있던 칸은 움직이지 않는다([active] 거짓).
+ * 동작 줄이기를 켠 사람에게는 MotionConfig가 크기·회전을 빼고 나타나기만 한다.
+ */
+function StampIn({ active, children }: { active: boolean; children: React.ReactNode }) {
+  // 서명이 칸에 처음 나타난 순간에만 정한다 — 그 뒤 다시 그려져도 같은 모양을 유지해 그림이 새로 뜨지 않게
+  const [stamped] = useState(active);
+  return (
+    <span className="carev-doc-stamp">
+      {stamped && (
+        <motion.span
+          aria-hidden
+          className="carev-doc-stamp-ink"
+          initial={{ scale: 0.5, opacity: 0.45 }}
+          animate={{ scale: 1.5, opacity: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+        />
+      )}
+      <motion.span
+        style={{ display: 'inline-flex' }}
+        initial={stamped ? { scale: 1.9, rotate: -12, opacity: 0 } : false}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        // 크기·기울기는 스프링(눌렸다 서는 느낌), 나타남은 짧게 — 투명도까지 스프링이면 늦게 뜨고 깜빡인다
+        transition={{ ...spring.stamp, opacity: { duration: 0.12, ease: 'easeOut' } }}
+      >
+        {children}
+      </motion.span>
+    </span>
   );
 }

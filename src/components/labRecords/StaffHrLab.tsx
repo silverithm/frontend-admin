@@ -7,7 +7,8 @@
  */
 import { useMemo, useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Loading } from '@/components/Loading';
 import type { StaffCert, StaffCertKind } from '@/lib/lab/labTypes';
 import { isValidYmd } from '@/lib/lab/labDate';

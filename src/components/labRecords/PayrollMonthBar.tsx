@@ -3,7 +3,8 @@
 /** 월 급여대장 위쪽 줄 — 월 이동, 장기근속 기준, 지난달 복사·전체 저장·확정·인쇄 버튼과 이달 합계. */
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Chip, MonthStepper, SupportText } from '@/components/lab/LabUi';

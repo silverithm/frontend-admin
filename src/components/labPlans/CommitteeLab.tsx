@@ -4,7 +4,8 @@
  * 운영위원회 — 두 보기. ① 위원 명단(역할·임기·활동 여부, 5~15명·임기 3년·만료 임박), ② 회의(올해 현황·목록·회의록 편집·AI 정리·A4 인쇄).
  * 두 보기를 함께 그려 두고 하나만 보여 주므로, 보기를 바꿔도 적던 내용이 남는다.
  */
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { useState } from 'react';
 import { todayString } from '@/components/lab/labFormat';
 import { useCommitteeMembers } from './CommitteeData';

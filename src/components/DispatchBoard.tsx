@@ -21,7 +21,8 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Popover } from "@astryxdesign/core/Popover";
 import { DateInput } from "@astryxdesign/core/DateInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { SegmentedControl } from "@/components/ui/SlidingSegmentedControl";
 import type { ISODateString } from "@astryxdesign/core/Calendar";
 import {
   IconCopy,

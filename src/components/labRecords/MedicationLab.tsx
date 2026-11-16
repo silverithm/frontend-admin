@@ -5,7 +5,8 @@
  * 이 화면은 "무엇을 확인해야 하는가"만 알려 준다. 복용 가부·용량 판단은 의사 처방과 간호(조무)사의 몫이다.
  */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { ErrorBanner } from '@/components/lab/LabUi';
 import { useLabElders } from '@/components/lab/useLabElders';
 import MedicationRequests from './MedicationRequests';

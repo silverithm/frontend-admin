@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { VStack } from '@astryxdesign/core/Stack';
 import type { RiskKind } from '@/lib/lab/labTypes';
 import styles from './lab.module.css';

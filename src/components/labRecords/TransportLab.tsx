@@ -5,7 +5,8 @@
  * 고시 제34조 제4항의 이동서비스 일지 작성·보관과 2026 평가 지표 28(수칙 제공·종합보험)을 돕는다.
  */
 import { useCallback, useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { listLabStaff, listTransportVehicles } from '@/lib/lab/labApi';
 import { ErrorBanner } from '@/components/lab/LabUi';
 import { useLabElders } from '@/components/lab/useLabElders';

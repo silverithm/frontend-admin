@@ -5,7 +5,8 @@
  * 보기를 바꿔도 입력 중인 내용이 사라지지 않게 숨기기만 한다.
  */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { SupportText } from '@/components/lab/LabUi';
 import CommunityResourceLab from './CommunityResourceLab';
 import CommunityVolunteerLab from './CommunityVolunteerLab';

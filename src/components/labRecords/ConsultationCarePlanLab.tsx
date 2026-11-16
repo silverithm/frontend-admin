@@ -5,7 +5,8 @@
  * 어르신 목록은 한 번만 불러와 두 보기가 함께 쓴다.
  */
 import { useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { ErrorBanner } from '@/components/lab/LabUi';
 import { useLabElders } from '@/components/lab/useLabElders';
 import ConsultationCarePlanChangeView from './ConsultationCarePlanChangeView';

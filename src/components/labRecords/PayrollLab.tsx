@@ -7,7 +7,8 @@
  * 월 급여대장은 보기를 오가도 입력이 사라지지 않게 숨기기만 한다. 기준값 중 확인 안 된 것은 "대조 필요" 안내에 모아 둔다.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Loading } from '@/components/Loading';
 import { ErrorBanner } from '@/components/lab/LabUi';
 import { errorText } from '@/components/lab/labFormat';
