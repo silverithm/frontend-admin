@@ -275,7 +275,7 @@ export default function TemplateVersionHistory({ template, companyName, onClose,
         .carev-tver-item { all: unset; box-sizing: border-box; display: grid; gap: 2px; width: 100%; padding: 10px 12px; border-radius: var(--radius-inner); cursor: pointer; }
         .carev-tver-item:hover { background: var(--color-background-muted); }
         .carev-tver-item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
-        .carev-tver-item[aria-current='true'] { background: var(--color-background-muted); box-shadow: inset 3px 0 0 var(--color-accent); }
+        .carev-tver-item[aria-current='true'] { background: var(--color-background-muted); }
         .carev-tver-item-top { display: flex; align-items: center; gap: 6px; }
         .carev-tver-time { font-size: 15px; font-weight: 600; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
         .carev-tver-who { font-size: 13px; color: var(--color-text-secondary); }

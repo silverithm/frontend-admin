@@ -13,6 +13,7 @@ import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
 import { isGeneratedFieldId, orphanEntries } from '@/lib/retiredFields';
 import ApprovalImageValue from './ApprovalImageValue';
+import SignatureImage from './SignatureImage';
 import { printDocumentElement } from './printDocument';
 
 interface OfficialDocumentProps {
@@ -347,10 +348,11 @@ export default function OfficialDocument({
                     {box.status === 'REJECTED' ? (
                       '반려'
                     ) : box.signatureUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      // 서명 파일을 못 불러오면 서명 없이 승인했을 때와 같은 글자로(2026-11-16 숲속 원장 서명 깨짐)
+                      <SignatureImage
                         src={box.signatureUrl}
-                        alt={`${box.name} 서명`}
+                        name={box.name}
+                        fallback={box.label === '기안' ? box.name : `${box.name} (인)`}
                         className="carev-doc-signature-img"
                       />
                     ) : box.status === 'APPROVED' && box.name ? (

@@ -17,6 +17,7 @@ import SignatureCanvas, { SignatureCanvasHandle } from '@/components/approval/Si
 import { useConfirm } from '@/components/ConfirmDialog';
 import MemberAvatar from '@/components/MemberAvatar';
 import AttendeeAvatar from '@/components/meetingMinutes/AttendeeAvatar';
+import SignatureImage from '@/components/approval/SignatureImage';
 import {
   completeMeetingMinutes,
   deleteMeetingMinutes,
@@ -285,9 +286,9 @@ export default function MeetingMinutesDetail({
                 </HStack>
                 {attendee.signedAt && attendee.signatureUrl ? (
                   // 서명 이미지는 투명 PNG — 밝은 바탕 위에 그대로 얹는다
-                  <img
+                  <SignatureImage
                     src={attendee.signatureUrl}
-                    alt={`${attendee.attendeeName} 서명`}
+                    name={attendee.attendeeName}
                     style={{ height: 36, maxWidth: 96, objectFit: 'contain' }}
                   />
                 ) : minutes.status === 'REGISTERED' ? (
