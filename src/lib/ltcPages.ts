@@ -4,6 +4,7 @@
 
 import { LTC_VERIFIED_AT } from './ltc2026';
 import { STAFFING_VERIFIED_AT } from './ltcStaffing';
+import { STANDARD_HOURS_VERIFIED_AT } from './ltcStandardHours';
 
 export interface LtcPageMeta {
   path: string;
@@ -38,5 +39,11 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '주간보호센터 인력배치기준',
     summary: '직종별 배치 기준과 이용자 수별 요양보호사 최소 인원(7명당 1명, 치매전담실 4명당 1명), 근무인원 세는 법.',
     lastModified: STAFFING_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/monthly-standard-hours-2026',
+    title: '2026년 월 기준 근무시간',
+    summary: '근무인원 1명을 세는 달별 기준 시간(1~12월)과 근무가능일수. 2026년부터 공휴일이 된 노동절·제헌절, 대체공휴일 반영.',
+    lastModified: STANDARD_HOURS_VERIFIED_AT,
   },
 ];
