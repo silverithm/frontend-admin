@@ -15,6 +15,7 @@ import BlankFormPrintButton from '@/components/approval/BlankFormPrintButton';
 import { canPrintBlankForm } from '@/lib/blankForm';
 import ViewerSelector from '@/components/approval/ViewerSelector';
 import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
+import TemplateVersionHistory from '@/components/approval/TemplateVersionHistory';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
@@ -37,7 +38,7 @@ import { useConfirm } from './ConfirmDialog';
 import FormSchemaBuilder, { ExistingFormTemplateOption } from './approval/FormSchemaBuilder';
 import ApprovalLineSelector from './approval/ApprovalLineSelector';
 import type { ApprovalViewerEntry, ApproverCandidate } from '@/types/approval';
-import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight, FiPrinter } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiEdit2, FiEye, FiTrash2, FiUploadCloud, FiFileText, FiFolder, FiSearch, FiToggleLeft, FiToggleRight, FiPrinter, FiClock } from 'react-icons/fi';
 import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import {
   DEFAULT_APPROVAL_TEMPLATES,
@@ -132,6 +133,8 @@ export default function ApprovalTemplateManager({
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** 목록에서 바로 여는 미리보기 — 편집 화면에 들어가지 않고 모습만 확인한다 */
   const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
+  // 버전 기록(2026-11-16) — 저장할 때마다 남은 양식 모습을 골라 보고 되돌린다
+  const [historyTemplate, setHistoryTemplate] = useState<ApprovalTemplate | null>(null);
   /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
   const [companyName, setCompanyName] = useState('');
   // 양식 순서 조정(위/아래 이동)
@@ -951,9 +954,16 @@ export default function ApprovalTemplateManager({
                             )}
                             {/* 되돌릴 수 없는 삭제는 매 줄에 늘 보이는 1차 아이콘 대신
                                 더보기(⋯) 메뉴 안으로 옮긴다 — [#8] */}
+                            {/* 버전 기록(2026-11-16)은 줄 아이콘을 더 늘리면 표 끝이 잘려 ⋯ 메뉴가 안 보인다 —
+                                메뉴 안과 편집 창 아래에 둔다 */}
                             <MoreMenu
                               label="더 보기"
                               items={[
+                                {
+                                  label: '버전 기록',
+                                  icon: FiClock,
+                                  onClick: () => setHistoryTemplate(template),
+                                },
                                 {
                                   label: '삭제',
                                   icon: FiTrash2,
@@ -1165,15 +1175,28 @@ export default function ApprovalTemplateManager({
           }
           footer={
             <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="end">
-                <Button label="취소" variant="ghost" onClick={closeModal} />
-                <Button
-                  label={editingTemplate ? '저장' : '등록'}
-                  variant="primary"
-                  onClick={handleUpload}
-                  isLoading={isUploading}
-                  isDisabled={isUploadDisabled}
-                />
+              <HStack gap={2} hAlign="between" vAlign="center">
+                {/* 고치다 잘못되면 예전 모습으로 — 되돌리면 이 편집 창은 닫고 목록을 새로 불러온다 */}
+                {editingTemplate ? (
+                  <Button
+                    label="버전 기록"
+                    variant="ghost"
+                    icon={<Icon icon={FiClock} size="sm" />}
+                    onClick={() => setHistoryTemplate(editingTemplate)}
+                  />
+                ) : (
+                  <span />
+                )}
+                <HStack gap={2} hAlign="end">
+                  <Button label="취소" variant="ghost" onClick={closeModal} />
+                  <Button
+                    label={editingTemplate ? '저장' : '등록'}
+                    variant="primary"
+                    onClick={handleUpload}
+                    isLoading={isUploading}
+                    isDisabled={isUploadDisabled}
+                  />
+                </HStack>
               </HStack>
             </LayoutFooter>
           }
@@ -1231,6 +1254,20 @@ export default function ApprovalTemplateManager({
           }
         />
       </Dialog>
+      {historyTemplate && (
+        <TemplateVersionHistory
+          template={historyTemplate}
+          companyName={companyName}
+          onClose={() => setHistoryTemplate(null)}
+          onRestored={(message) => {
+            // 편집 창에서 열었다면 그 창의 내용은 되돌리기 전 모습이다 — 그대로 저장하면 되돌린 것이 덮인다
+            if (showUploadModal) closeModal();
+            void loadTemplates();
+            showAlert({ type: 'success', title: '되돌렸습니다', message });
+          }}
+          onError={(message) => showAlert({ type: 'error', title: '되돌리지 못했습니다', message })}
+        />
+      )}
       {/* 목록에서 바로 보는 미리보기 — 서식은 공문 모습으로, 파일 양식은 문서 뷰어로 */}
       {previewTemplate && (() => {
         const raw = previewTemplate.formSchema;

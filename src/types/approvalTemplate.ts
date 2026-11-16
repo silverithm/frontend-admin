@@ -51,3 +51,27 @@ export interface UpdateTemplateRequest {
   /** 기본 열람 대상 — 보내지 않으면 기존 설정을 유지한다 */
   defaultViewers?: ApprovalViewerEntry[];
 }
+
+/**
+ * 양식 버전 기록 한 줄(2026-11-16) — 저장할 때마다 서버가 그때 모습을 남긴다.
+ * BASELINE은 기록을 시작할 때 있던 모습(누가 만들었는지 모름).
+ */
+export interface ApprovalTemplateVersion {
+  id: number;
+  versionNo: number;
+  kind: 'BASELINE' | 'CREATED' | 'EDITED' | 'RESTORED';
+  restoredFromNo?: number | null;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  templateType: string;
+  /** 그때 항목 구성(JSON 문자열) */
+  formSchema?: string | null;
+  defaultApprovalLine?: string | null;
+  fileName?: string | null;
+  savedById?: string | null;
+  savedByName?: string | null;
+  createdAt: string;
+  /** 지금 양식과 같은 버전(가장 최근) */
+  current: boolean;
+}

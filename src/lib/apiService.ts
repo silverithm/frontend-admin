@@ -16,6 +16,7 @@ import {
 } from '@/types/auth';
 import { buildApproveBody } from '@/lib/approvalComment';
 import type { WorkTask, WorkTaskInput } from '@/lib/workTasks';
+import type { ApprovalTemplateVersion } from '@/types/approvalTemplate';
 import { requestNotificationsRefresh } from '@/lib/alertBus';
 import { postChatFileDirect } from '@/lib/chatUploadDirect';
 import { ApprovalImportPreview, ApprovalImportRow, ApprovalViewerEntry, ApproverCandidate, ViewerPositionCandidate } from '@/types/approval';
@@ -1746,6 +1747,19 @@ export async function updateApprovalTemplate(id: string, data: {
 export async function toggleApprovalTemplateActive(id: string) {
     return fetchWithAuth(`/api/v1/approval-templates/${id}?toggleActive=true`, {
         method: 'PUT',
+    });
+}
+
+// 양식 버전 기록 — 저장할 때마다 남은 그때 모습, 최근 것부터 (2026-11-16)
+export async function getApprovalTemplateVersions(id: string | number): Promise<ApprovalTemplateVersion[]> {
+    const data = await fetchWithAuth(`/api/v1/approval-templates/${id}/versions`);
+    return Array.isArray(data?.versions) ? data.versions : [];
+}
+
+// 예전 버전으로 되돌리기 (관리자) — 되돌린 모습도 새 버전으로 남는다
+export async function restoreApprovalTemplateVersion(id: string | number, versionId: number) {
+    return fetchWithAuth(`/api/v1/approval-templates/${id}/versions/${versionId}/restore`, {
+        method: 'POST',
     });
 }
 
