@@ -266,7 +266,8 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
   useEffect(() => {
     if (isLoading) return;
     const now = new Date();
-    const target = year === now.getFullYear() && byMonth[now.getMonth()]?.length > 0
+    // 올해라면 이번 달 일정이 없어도 이번 달로 간다(열면 '지금'이 보여야 한다)
+    const target = year === now.getFullYear()
       ? now.getMonth()
       : byMonth.findIndex((items) => items.length > 0);
     if (target < 0) return;
@@ -378,7 +379,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                 <section
                   key={monthLabel}
                   ref={(el) => { monthRefs.current[index] = el; }}
-                  className={`carev-annual-month${isCurrent ? ' carev-annual-month-current' : ''}`}
+                  className={`carev-annual-month${isCurrent ? ' carev-annual-month-current' : ''}${items.length === 0 ? ' carev-annual-month-empty' : ''}`}
                 >
                   <header className="carev-annual-month-head">
                     <button

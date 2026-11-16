@@ -4,6 +4,20 @@
 /* 케어브이 브랜드 테마 (astryx theme build 산출물, src/theme/carev/neutralTheme.ts 소스) */
 @import "../theme/carev/neutral.css";
 
+/* 공통 글씨 기준 — 요양기관 직원 중 연세 있는 분이 많아 11px 안팎의 옅은 회색 정보 줄이 읽히지 않았다.
+   테마 산출물(neutral.css)은 자동 생성이라 건드리지 않고, 비계층(unlayered) 규칙으로 덮어쓴다.
+   - 보조 글씨(type="supporting", .carev-wt-* 등)는 최소 12px
+   - 보조 글씨 색은 #737373(흰 바탕 4.74:1, 연회색 #f1f1f1 위 4.20:1)에서 #595959(7.00:1 / 6.20:1)로
+   - xs 이하는 달력 칸·칩처럼 좁은 곳에서만 쓰여 한 단계씩만 올린다 */
+:root,
+[data-astryx-theme="neutral"] {
+  --font-size-3xs: 0.5625rem;
+  --font-size-2xs: 0.625rem;
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.75rem;
+  --color-text-secondary: light-dark(#595959, #b8b8b8);
+}
+
 /* 전역 라이트 모드 고정 (Astryx light-dark() 토큰이 라이트값으로 해석되도록) */
 :root {
   color-scheme: light;
@@ -356,6 +370,38 @@ html {
     background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
     text-decoration: none;
   }
+}
+
+/* 연계기관 접기 단추 — 메뉴 버튼과 같은 좌우 여백·높이, 오른쪽에 화살표 */
+.carev-sidenav-exttoggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - var(--spacing-3) * 2);
+  min-height: 32px;
+  margin: 0 var(--spacing-3);
+  padding: 0 var(--spacing-3);
+  border: 0;
+  border-radius: var(--radius-element);
+  background: transparent;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .carev-sidenav-exttoggle:hover {
+    background-image: linear-gradient(var(--color-overlay-hover), var(--color-overlay-hover));
+  }
+}
+
+/* AI 글쓰기 '글 완성하기' 단추 — Astryx 비활성은 불투명도 .5라 진한 틸이 '연한 틸'로 보여 눌러도 되는 줄 안다.
+   사진이 없을 때는 틸을 걷어내 회색으로 확실히 꺼 보이게 하고, 켜질 때 색이 부드럽게 바뀐다.
+   (Astryx 규칙이 :not(#\#) 3중이라 !important가 필요하다. 글을 쓰는 중(aria-busy)에는 틸을 유지) */
+.carev-ai-cta {
+  transition: background-color var(--duration-medium-min) var(--ease-standard), color var(--duration-medium-min) var(--ease-standard);
+}
+.carev-ai-cta:disabled:not([aria-busy="true"]) {
+  background-color: var(--color-background-gray) !important;
+  color: var(--color-text-secondary) !important;
+  opacity: 1 !important;
 }
 
 /* 케어브이 광장 — 카페형 레이아웃: 좌측 보드 네비(데스크탑) + 메인, 모바일은 상단 가로 탭.
@@ -754,6 +800,13 @@ html {
   flex: 1;
   min-height: 0;
 }
+/* 일정이 없는 달 — 칸 높이를 110px에서 줄이고 바탕도 한 단계 낮춰, 일정 있는 달이 먼저 눈에 들어오게 한다.
+   (이번 달이면 테두리·그림자는 그대로 둬 위치를 잃지 않는다) */
+.carev-annual-month-empty { min-height: 0; gap: var(--spacing-1); background: transparent; }
+.carev-annual-month-empty:not(.carev-annual-month-current) { border-style: dashed; }
+.carev-annual-month-empty .carev-annual-month-head { border-bottom-color: transparent; padding-bottom: 0; }
+.carev-annual-month-empty .carev-annual-month-list-empty { justify-content: flex-start; align-items: flex-start; padding: 0 0 var(--spacing-1); }
+
 /* 일정이 없는 달 — 남는 칸을 비워두지 않고 안내를 가로세로 가운데에 놓는다 */
 .carev-annual-month-list-empty { align-items: center; justify-content: center; }
 /* 색 띠 없이 담백한 한 줄. 누르면 상세가 열리므로 hover로만 눌린다는 걸 알린다. */
@@ -1377,7 +1430,7 @@ html {
 /* CalendarSkeleton 반응형 */
 .carev-calskel-root { width: 100%; }
 .carev-calskel-header { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--color-border); }
-.carev-calskel-weekday { padding: var(--spacing-0-5) 0; text-align: center; font-weight: var(--font-weight-medium); font-size: var(--font-size-2xs); }
+.carev-calskel-weekday { padding: var(--spacing-0-5) 0; text-align: center; font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); }
 .carev-calskel-grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: var(--spacing-1); row-gap: var(--spacing-3); margin-top: var(--spacing-2); }
 .carev-calskel-cell { height: 60px; padding: var(--spacing-1); }
 .carev-calskel-footer { margin-top: var(--spacing-6); padding: var(--spacing-4); border-top: 1px solid var(--color-border); }

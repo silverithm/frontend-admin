@@ -38,6 +38,7 @@ import { duration } from '@/theme/motion';
 import { readAuthState, type AuthState } from '@/lib/authState';
 import { LEGAL_LINKS } from '@/lib/businessInfo';
 import { BASIC_PLAN, FREE_TRIAL_DAYS, PLAN_FEATURES } from '@/lib/pricing';
+import VideoFacade from '@/components/public/VideoFacade';
 
 /** 랜딩에 노출할 제휴 기관 — 없으면 섹션 자체를 렌더링하지 않는다. */
 const FEATURED_PARTNERS = getFeaturedAds();
@@ -555,13 +556,7 @@ export default function LandingPage() {
 
                         <VStack gap={3}>
                             <AspectRatio ratio={16 / 9} style={imageClip}>
-                                <iframe
-                                    style={{ width: '100%', height: '100%', border: 0 }}
-                                    src="https://www.youtube.com/embed/x2cJedS6vaU"
-                                    title="케어브이 가입 및 승인 절차 안내"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                />
+                                <VideoFacade videoId="x2cJedS6vaU" title="케어브이 가입 및 승인 절차 안내" />
                             </AspectRatio>
                             <Text type="supporting" color="secondary" justify="center">
                                 가입부터 승인까지 영상으로 확인해보세요

@@ -6,6 +6,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterv
 import { ko } from 'date-fns/locale';
 import { subheaderStyle } from '@/components/subheaderStyle';
 import { motion } from 'framer-motion';
+import { IconInfoCircle } from '@tabler/icons-react';
 import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -58,7 +59,13 @@ const CARD_STYLE: CSSProperties = {
   overflow: 'hidden',
 };
 
-export default function EmployeeCalendar() {
+interface EmployeeCalendarProps {
+  /** 대시보드 바로가기에서 넘어온 '휴무 신청 창 열기' 의도 — 열고 나면 onAutoOpened로 알린다 */
+  autoOpenRequest?: boolean;
+  onAutoOpened?: () => void;
+}
+
+export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened }: EmployeeCalendarProps = {}) {
   const { showAlert, AlertContainer } = useAlert();
   const [currentDate, setCurrentDate] = useState(new Date());
   // 기관이 "다음 달 휴무만 신청받기"를 켰는지
@@ -242,6 +249,7 @@ export default function EmployeeCalendar() {
   };
 
   // 휴무 신청 모달 열기
+  // (아래 effect가 openRequestModal 뒤에서 대시보드 바로가기 의도를 처리한다)
   const openRequestModal = (date?: Date) => {
     const targetDate = date || selectedDate || new Date();
 
@@ -262,6 +270,14 @@ export default function EmployeeCalendar() {
     });
     setShowRequestModal(true);
   };
+
+  // 대시보드 '휴무 신청' 바로가기 — 탭이 열리면 신청 창을 바로 띄우고 의도를 비운다
+  useEffect(() => {
+    if (!autoOpenRequest) return;
+    openRequestModal();
+    onAutoOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenRequest]);
 
   // 휴무 신청 제출
   const handleSubmitRequest = async () => {
@@ -396,18 +412,22 @@ export default function EmployeeCalendar() {
         )}
 
         {/* 보고 있는 달 휴무의 신청 마감 안내 — 마감일은 그 전 달에 있다 (9월 휴무 마감 = 8월 16일) */}
-        {viewMonthDeadline && (
+        {viewMonthDeadline && (viewMonthDeadlinePassed ? (
+          // 이미 지난 마감은 경고가 아니라 작은 안내 한 줄 — 달력 위를 크게 차지하지 않는다
+          <HStack gap={2} vAlign="center" role="note">
+            <Icon icon={IconInfoCircle} size="sm" />
+            <Text type="supporting" color="secondary">
+              {`${format(currentDate, 'M월', { locale: ko })} 휴무 신청이 ${format(viewMonthDeadline, 'M월 d일', { locale: ko })}에 마감됐습니다. 마감을 놓친 휴무는 관리자에게 문의해주세요.`}
+            </Text>
+          </HStack>
+        ) : (
           <Banner
-            status={viewMonthDeadlinePassed ? 'warning' : 'info'}
+            status="info"
             container="section"
-            title={viewMonthDeadlinePassed
-              ? `${format(currentDate, 'M월', { locale: ko })} 휴무 신청이 ${format(viewMonthDeadline, 'M월 d일', { locale: ko })}에 마감됐습니다`
-              : `${format(currentDate, 'M월', { locale: ko })} 휴무 신청 마감일: ${format(viewMonthDeadline, 'M월 d일', { locale: ko })}`}
-            description={viewMonthDeadlinePassed
-              ? '마감을 놓친 휴무는 관리자에게 문의해주세요.'
-              : '마감일까지 근무표에 반영할 휴무를 신청해주세요.'}
+            title={`${format(currentDate, 'M월', { locale: ko })} 휴무 신청 마감일: ${format(viewMonthDeadline, 'M월 d일', { locale: ko })}`}
+            description="마감일까지 근무표에 반영할 휴무를 신청해주세요."
           />
-        )}
+        ))}
 
         {/* 캘린더 카드 */}
         <div style={CARD_STYLE}>

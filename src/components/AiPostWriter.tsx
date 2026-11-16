@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import { Banner } from "@astryxdesign/core/Banner";
@@ -13,7 +13,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { Heading } from "@astryxdesign/core/Heading";
 import PageHeader from "@/components/PageHeader";
 import { Icon } from "@astryxdesign/core/Icon";
-import { IconSparkles, IconCopy, IconRefresh } from "@tabler/icons-react";
+import { IconSparkles, IconCopy, IconRefresh, IconCheck } from "@tabler/icons-react";
 
 type Channel = "band" | "blog" | "guardian" | "notice" | "instagram";
 
@@ -156,9 +156,19 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
     return parts.join("\n\n");
   };
 
-  const handleCopy = async (text: string, label: string) => {
+  // 복사 단추가 체크로 바뀌었다 1.2초 뒤 돌아온다(어느 단추를 눌렀는지 함께 기억)
+  const [copiedKey, setCopiedKey] = useState<"full" | "body" | null>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
+
+  const handleCopy = async (text: string, label: string, key: "full" | "body") => {
     try {
       await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopiedKey(null), 1200);
       onNotification?.(`${label}를 복사했어요. 밴드/블로그에 붙여넣으세요.`, "success");
     } catch {
       onNotification?.("복사에 실패했습니다. 직접 드래그해서 복사해주세요.", "error");
@@ -234,6 +244,7 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
               size="lg"
               isLoading={isGenerating}
               isDisabled={files.length === 0}
+              className="carev-ai-cta"
               onClick={handleGenerate}
               icon={<Icon icon={IconSparkles} size="sm" color="inherit" />}
               style={{ width: "100%" }}
@@ -269,18 +280,18 @@ export default function AiPostWriter({ companyName, onNotification }: AiPostWrit
 
               <HStack gap={2} wrap="wrap">
                 <Button
-                  label="전체 복사"
+                  label={copiedKey === "full" ? "복사됨" : "전체 복사"}
                   variant="primary"
                   size="md"
-                  onClick={() => handleCopy(buildFullText(true), "제목·본문·해시태그")}
-                  icon={<Icon icon={IconCopy} size="sm" color="inherit" />}
+                  onClick={() => handleCopy(buildFullText(true), "제목·본문·해시태그", "full")}
+                  icon={<Icon icon={copiedKey === "full" ? IconCheck : IconCopy} size="sm" color="inherit" />}
                 />
                 <Button
-                  label="본문만 복사"
+                  label={copiedKey === "body" ? "복사됨" : "본문만 복사"}
                   variant="secondary"
                   size="md"
-                  onClick={() => handleCopy(buildFullText(false), "본문")}
-                  icon={<Icon icon={IconCopy} size="sm" color="inherit" />}
+                  onClick={() => handleCopy(buildFullText(false), "본문", "body")}
+                  icon={<Icon icon={copiedKey === "body" ? IconCheck : IconCopy} size="sm" color="inherit" />}
                 />
                 <Button
                   label="다시 쓰기"

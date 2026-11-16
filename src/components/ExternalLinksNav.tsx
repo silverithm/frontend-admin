@@ -5,7 +5,9 @@ import { Text } from '@astryxdesign/core/Text';
 import { Link } from '@astryxdesign/core/Link';
 import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
-import { IconExternalLink, IconHome } from '@tabler/icons-react';
+import { IconChevronDown, IconExternalLink, IconHome } from '@tabler/icons-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { spring } from '@/theme/springs';
 import { EXTERNAL_LINKS } from '@/lib/externalLinks';
 import { getCompanyHomepage } from '@/lib/apiService';
 
@@ -71,6 +73,29 @@ function useCompanyHomepage(): CompanyLink[] {
   return links;
 }
 
+/** 연계기관 접힘 상태를 기억하는 키 — 기본은 접힘(위 메뉴 목록이 잘리지 않게) */
+const EXT_OPEN_KEY = 'carev:extlinks-open';
+
+function useExtLinksOpen(): [boolean, (next: boolean) => void] {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    try {
+      setOpen(localStorage.getItem(EXT_OPEN_KEY) === '1');
+    } catch {
+      // 저장소를 못 읽으면 접힌 채로 둔다
+    }
+  }, []);
+  const update = (next: boolean) => {
+    setOpen(next);
+    try {
+      localStorage.setItem(EXT_OPEN_KEY, next ? '1' : '0');
+    } catch {
+      // 저장 실패는 이번 방문에만 영향
+    }
+  };
+  return [open, update];
+}
+
 /**
  * 연계기관 바로가기 — 관리자·직원 사이드바 공용.
  *
@@ -83,6 +108,10 @@ function useCompanyHomepage(): CompanyLink[] {
  */
 export default function ExternalLinksNav() {
   const companyLinks = useCompanyHomepage();
+  const [open, setOpen] = useExtLinksOpen();
+  // MotionConfig의 reducedMotion은 height 같은 비-transform 속성을 막지 못해 직접 즉시로 바꾼다
+  const reduce = useReducedMotion();
+  const motionTransition = reduce ? { duration: 0 } : spring.nav;
 
   return (
     <VStack gap={0} align="stretch">
@@ -111,25 +140,51 @@ export default function ExternalLinksNav() {
         </>
       )}
 
-      <div style={{ padding: 'var(--spacing-1) var(--spacing-3)' }}>
-        <Text as="p" type="supporting" weight="semibold" color="secondary">연계기관</Text>
-      </div>
-      {EXTERNAL_LINKS.map((link) => (
-        <Link
-          key={link.url}
-          href={link.url}
-          target="_blank"
-          isStandalone
-          color="secondary"
-          tooltip={link.description}
-          className="carev-sidenav-extlink"
+      {/* '연계기관' 한 줄 — 눌러서 펼친다. 동작 줄이기면 MotionConfig가 높이 움직임을 즉시로 바꾼다 */}
+      <button
+        type="button"
+        className="carev-sidenav-exttoggle"
+        aria-expanded={open}
+        aria-controls="carev-extlinks-panel"
+        onClick={() => setOpen(!open)}
+      >
+        <Text type="supporting" weight="semibold" color="secondary">연계기관</Text>
+        <motion.span
+          aria-hidden
+          style={{ display: 'inline-flex' }}
+          initial={false}
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={motionTransition}
         >
-          <HStack gap={2} vAlign="center">
-            <Icon icon={IconExternalLink} size="sm" color="secondary" />
-            <Text type="body" color="secondary">{link.name}</Text>
-          </HStack>
-        </Link>
-      ))}
+          <Icon icon={IconChevronDown} size="sm" color="secondary" />
+        </motion.span>
+      </button>
+      <motion.div
+        id="carev-extlinks-panel"
+        initial={false}
+        animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+        transition={motionTransition}
+        style={{ overflow: 'hidden' }}
+        // 접힌 동안은 링크가 탭 순서에 끼지 않게
+        inert={!open}
+      >
+        {EXTERNAL_LINKS.map((link) => (
+          <Link
+            key={link.url}
+            href={link.url}
+            target="_blank"
+            isStandalone
+            color="secondary"
+            tooltip={link.description}
+            className="carev-sidenav-extlink"
+          >
+            <HStack gap={2} vAlign="center">
+              <Icon icon={IconExternalLink} size="sm" color="secondary" />
+              <Text type="body" color="secondary">{link.name}</Text>
+            </HStack>
+          </Link>
+        ))}
+      </motion.div>
     </VStack>
   );
 }

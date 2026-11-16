@@ -4,7 +4,6 @@
 
 import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
-import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
@@ -13,6 +12,7 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import Navbar from '@/components/Navbar';
 import ScrollTable from '@/components/ltc/ScrollTable';
+import '@/styles/public.css';
 import {
   CARE_GRADES,
   DAYCARE_UNITS,
@@ -76,19 +76,24 @@ export function LtcPage({
               </Link>
             )}
 
-            <HStack gap={2} vAlign="center" wrap="wrap">
-              <Badge variant="teal" label={badge} />
-              <Text type="supporting" color="secondary">
-                원문 대조 <time dateTime={verifiedAt}>{formatKoreanDate(verifiedAt)}</time>
-              </Text>
-            </HStack>
-
             <Heading level={1} type="display-2">
               {title}
             </Heading>
 
             <div className="carev-ltc-prose" style={{ fontSize: 'var(--font-size-lg)' }}>
               {lede}
+            </div>
+
+            {/* 검증 정보 — 결과·표 바로 위에 한 줄로 묶어 읽히게 (14px 이상, 옅은 배경) */}
+            <div className="carev-ltc-verify">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" /><path d="M9 12l2 2 4-4" /></svg>
+              {/* 휴대폰처럼 좁으면 두 줄로 쌓는다 — 한 줄에서 넘치면 '·'가 둘째 줄 맨 앞에 홀로 남았다 */}
+              <span className="carev-ltc-verify-text">
+                <span className="carev-ltc-verify-item">{badge}</span>
+                <span className="carev-ltc-verify-item">
+                  원문 대조 <time dateTime={verifiedAt}>{formatKoreanDate(verifiedAt)}</time>
+                </span>
+              </span>
             </div>
           </VStack>
         </div>
@@ -240,16 +245,17 @@ export interface LtcFaqItem {
 export function LtcFaq({ items }: { items: ReadonlyArray<LtcFaqItem> }) {
   return (
     <LtcBlock title="자주 묻는 질문">
-      <Card padding={6}>
-        <VStack gap={5}>
-          {items.map((item) => (
-            <VStack key={item.question} gap={1}>
-              <Heading level={3}>{item.question}</Heading>
-              <Text color="secondary">{item.answer}</Text>
-            </VStack>
-          ))}
-        </VStack>
-      </Card>
+      {/* 네이티브 details — 접혀 있어도 답이 서버 HTML에 그대로 있다. 화살표·높이 전환은 public.css */}
+      <div className="carev-faq">
+        {items.map((item) => (
+          <details key={item.question}>
+            <summary>
+              <h3 style={{ margin: 0, font: 'inherit' }}>{item.question}</h3>
+            </summary>
+            <p className="carev-faq-answer">{item.answer}</p>
+          </details>
+        ))}
+      </div>
     </LtcBlock>
   );
 }

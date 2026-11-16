@@ -1,0 +1,142 @@
+/* 공개 페이지(첫 화면·장기요양 정보·로그인) 2차 개선 전용 스타일.
+   globals.css의 .carev-ltc-* 를 고치지 않고 더 구체적인 선택자(.carev-ltc-tablewrap 안)로 덮는다. */
+
+/* ── 휴대폰 상단 메뉴 ── */
+.carev-m-toggle {
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-element);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.carev-m-toggle:focus-visible,
+.carev-m-sheet a:focus-visible { outline: 2px solid var(--color-text-accent); outline-offset: -2px; }
+@media (hover: hover) {
+  .carev-m-toggle:hover { background: var(--color-background-muted); }
+  .carev-m-sheet a:hover { background: var(--color-background-muted); }
+}
+.carev-m-sheet {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  background: var(--color-background-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-low);
+}
+.carev-m-sheet nav { display: flex; flex-direction: column; padding: var(--spacing-2) var(--spacing-4) var(--spacing-4); }
+.carev-m-sheet a.carev-m-link {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--spacing-2);
+  border-radius: var(--radius-element);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  text-decoration: none;
+}
+.carev-m-actions { display: flex; gap: var(--spacing-2); margin-top: var(--spacing-3); padding-top: var(--spacing-3); border-top: 1px solid var(--color-border); }
+.carev-m-actions > * { flex: 1; }
+/* 첫 줄: 로고 · 로그인 · ☰ 가 좁은 폭에서 붙지 않게 */
+@media (max-width: 767px) {
+  .carev-nav-end { gap: var(--spacing-1); }
+}
+
+/* ── 영상 칸(썸네일 + 재생 단추) ── */
+.carev-video { position: relative; width: 100%; height: 100%; background: #0f172a; }
+.carev-video-play { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.carev-video-play img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.carev-video-icon {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 72px; height: 72px; border-radius: 9999px;
+  background: rgb(15 118 110 / 0.95); color: #fff;
+  transition: transform 150ms ease;
+}
+.carev-video-play:focus-visible { outline: 3px solid var(--color-text-accent); outline-offset: -3px; }
+@media (hover: hover) { .carev-video-play:hover .carev-video-icon { transform: translate(-50%, -50%) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .carev-video-icon { transition: none; } }
+
+/* ── 검증 정보 한 줄 블록 ── */
+.carev-ltc-verify {
+  display: flex; align-items: flex-start; gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-element);
+  background: var(--color-background-teal);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+}
+.carev-ltc-verify svg { flex: none; margin-top: 2px; color: var(--color-text-teal); }
+.carev-ltc-verify-text { display: flex; flex-wrap: wrap; column-gap: var(--spacing-3); }
+.carev-ltc-verify-item + .carev-ltc-verify-item::before { content: '·'; margin-right: var(--spacing-3); color: var(--color-text-secondary); }
+@media (max-width: 560px) {
+  .carev-ltc-verify-text { flex-direction: column; }
+  .carev-ltc-verify-item + .carev-ltc-verify-item::before { content: none; }
+}
+
+/* ── FAQ 접기 (네이티브 details) ── */
+.carev-faq { border: 1px solid var(--color-border); border-radius: var(--radius-element); background: var(--color-background-card); }
+.carev-faq details + details { border-top: 1px solid var(--color-border); }
+.carev-faq summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-3);
+  min-height: 48px; padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); color: var(--color-text-primary);
+  cursor: pointer; list-style: none;
+}
+.carev-faq summary::-webkit-details-marker { display: none; }
+.carev-faq summary:focus-visible { outline: 2px solid var(--color-text-accent); outline-offset: -2px; border-radius: var(--radius-element); }
+.carev-faq summary::after {
+  content: ''; flex: none; width: 8px; height: 8px;
+  border-right: 2px solid var(--color-text-secondary); border-bottom: 2px solid var(--color-text-secondary);
+  transform: rotate(45deg); transition: transform 200ms ease;
+}
+.carev-faq details[open] summary::after { transform: rotate(-135deg); }
+.carev-faq .carev-faq-answer { padding: 0 var(--spacing-4) var(--spacing-4); color: var(--color-text-secondary); line-height: var(--text-supporting-leading); }
+/* 높이 전환 — 지원하는 브라우저에서만(미지원이면 즉시 열림) */
+@supports (interpolate-size: allow-keywords) {
+  .carev-faq { interpolate-size: allow-keywords; }
+  .carev-faq details::details-content { block-size: 0; overflow: hidden; transition: block-size 200ms ease, content-visibility 200ms allow-discrete; }
+  .carev-faq details[open]::details-content { block-size: auto; }
+}
+@media (hover: hover) { .carev-faq summary:hover { background: var(--color-background-muted); } }
+@media (prefers-reduced-motion: reduce) {
+  .carev-faq summary::after { transition: none; }
+  .carev-faq details::details-content { transition: none; }
+}
+
+/* ── 수가표 가독성 (globals .carev-ltc-* 를 한 단계 더 구체적으로 덮음) ── */
+.carev-ltc-tablewrap .carev-ltc-table th,
+.carev-ltc-tablewrap .carev-ltc-table td { padding: var(--spacing-1) var(--spacing-3); height: 36px; line-height: 1.35; }
+.carev-ltc-tablewrap .carev-ltc-table thead th { height: auto; padding-block: var(--spacing-2); line-height: 1.3; }
+.carev-ltc-tablewrap .carev-ltc-table .carev-ltc-num { font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 767px) {
+  .carev-ltc-tablewrap .carev-ltc-table thead th { white-space: normal; word-break: keep-all; min-width: 6em; }
+  .carev-ltc-tablewrap .carev-ltc-table thead th:first-child { min-width: 0; }
+}
+/* 머리 고정 — 표 칸이 세로로 넘칠 만큼 길 때 */
+.carev-ltc-tablewrap { max-height: 70vh; overflow-y: auto; }
+.carev-ltc-tablewrap .carev-ltc-table thead th { position: sticky; top: 0; z-index: 2; }
+.carev-ltc-tablewrap .carev-ltc-table thead tr > :first-child { z-index: 3; }
+/* 줄 강조 — 붙박이 첫 칸·강조 열도 같이 옅게 */
+@media (hover: hover) {
+  .carev-ltc-tablewrap .carev-ltc-table tbody tr:hover > * { background: var(--color-background-muted); }
+  .carev-ltc-tablewrap .carev-ltc-table tbody tr:hover > .carev-ltc-focus { background: var(--color-background-teal); filter: brightness(0.97); }
+}
+
+/* ── 로그인 화면 보조 링크 ── */
+.carev-login-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 var(--spacing-4);
+  border-radius: var(--radius-element);
+  color: var(--color-text-teal); font-weight: var(--font-weight-semibold); text-decoration: none;
+  background: transparent; border: 0; cursor: pointer; font-size: var(--font-size-md);
+}
+.carev-login-link:focus-visible { outline: 2px solid var(--color-text-accent); outline-offset: 2px; }
+@media (hover: hover) { .carev-login-link:hover { background: var(--color-background-teal); } }

@@ -23,6 +23,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Center } from '@astryxdesign/core/Center';
 import { Divider } from '@astryxdesign/core/Divider';
+import { ApprovalTurnLine } from '@/components/approval/ApprovalTurnLine';
 import ClickableRow from './ClickableRow';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Text } from '@astryxdesign/core/Text';
@@ -53,7 +54,13 @@ import type { FormSchema } from '@/types/formSchema';
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
 
-export default function EmployeeApproval() {
+interface EmployeeApprovalProps {
+  /** 대시보드 바로가기에서 넘어온 '새 기안 작성 창 열기' 의도 — 열고 나면 onAutoOpened로 알린다 */
+  autoOpenNew?: boolean;
+  onAutoOpened?: () => void;
+}
+
+export default function EmployeeApproval({ autoOpenNew = false, onAutoOpened }: EmployeeApprovalProps = {}) {
   const { showAlert, AlertContainer } = useAlert();
   const { confirm, ConfirmContainer } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('my-approvals');
@@ -75,6 +82,13 @@ export default function EmployeeApproval() {
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewApproval, setShowNewApproval] = useState(false);
+  // 대시보드 '결재 올리기' 바로가기 — 탭이 열리면 새 기안 창을 바로 띄우고 의도를 비운다
+  useEffect(() => {
+    if (!autoOpenNew) return;
+    setShowNewApproval(true);
+    onAutoOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenNew]);
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([]);
   const [selectedApproval, setSelectedApproval] = useState<ApprovalRequest | null>(null);
 
@@ -1218,6 +1232,8 @@ export default function EmployeeApproval() {
                             <Text type="supporting" color="secondary">
                               {[approval.templateName, formatListDateTime(approval.createdAt)].filter(Boolean).join(' · ')}
                             </Text>
+                            {/* 진행중이면 지금 누구 차례인지 — 결재선이 없는 옛 문서는 그리지 않는다 */}
+                            <ApprovalTurnLine status={approval.status} approvalLine={approval.approvalLine} />
                           </VStack>
                           <Icon icon={FiChevronRight} color="tertiary" />
                         </HStack>

@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties, 
 import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
+import '@/styles/staff.css';
 import { Text } from '@astryxdesign/core/Text';
 import { ClickableRow } from '@/components/ClickableRow';
 import DashboardClock from '@/components/DashboardClock';
@@ -48,6 +49,8 @@ import {
   IconPlus,
   IconChevronsDown,
   IconChevronsUp,
+  IconCalendarPlus,
+  IconFilePlus,
   type TablerIcon,
 } from '@tabler/icons-react';
 import {
@@ -104,6 +107,9 @@ interface AdminDashboardProps {
   isAdmin?: boolean;
   /** 일정을 누르면 월간일정 탭으로 넘어가 그 일정을 바로 연다. 없으면 대시보드 안에서 상세를 띄운다. */
   onOpenSchedule?: (target: { id: string; startDate: string }) => void;
+  /** 직원 화면 맨 위 바로가기('휴무 신청'·'결재 올리기') — 직원(isAdmin=false)일 때만 그린다. 보여 줄 단추를 고른다 */
+  quickActions?: Array<'vacation' | 'approval'>;
+  onQuickAction?: (action: 'vacation' | 'approval') => void;
 }
 
 interface VacationItem {
@@ -243,7 +249,7 @@ const iconBox = (_background: string, size = 32, _radius = 8): CSSProperties => 
   color: 'var(--color-icon-secondary)',
 });
 
-export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSchedule }: AdminDashboardProps) {
+export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSchedule, quickActions, onQuickAction }: AdminDashboardProps) {
   const { confirm, ConfirmContainer } = useConfirm();
   const [isLoading, setIsLoading] = useState(true);
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -1062,6 +1068,24 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         {/* 1초마다 갱신되는 시계만 별도 컴포넌트로 분리 — 대시보드 전체 리렌더 방지 */}
         <DashboardClock />
       </motion.div>
+
+      {/* 직원이 가장 자주 하는 두 가지 — 탭을 두세 번 지나지 않고 바로 신청 창으로 간다 */}
+      {!isAdmin && onQuickAction && quickActions && quickActions.length > 0 && (
+        <div className="carev-quick">
+          {quickActions.includes('vacation') && (
+            <button type="button" className="carev-quick-btn" onClick={() => onQuickAction('vacation')}>
+              <Icon icon={IconCalendarPlus} size="md" />
+              휴무 신청
+            </button>
+          )}
+          {quickActions.includes('approval') && (
+            <button type="button" className="carev-quick-btn" onClick={() => onQuickAction('approval')}>
+              <Icon icon={IconFilePlus} size="md" />
+              결재 올리기
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 오늘 현황 — 수급자(총원·출석·결석)와 종사자(총원·근무·휴무).
           문을 열 때 제일 먼저 봐야 하는 숫자라 맨 위에 두되, 한 줄 높이로만 쓴다.

@@ -1,0 +1,42 @@
+/* ── 직원·결재 화면 2차 보조 스타일 (2026-11-16) ── */
+
+/* 결재 목록의 '지금 누구 차례' — 단계 점: 끝난 단계는 채움, 지금 단계는 테두리, 남은 단계는 빈 점 */
+.carev-turn { display: inline-flex; align-items: center; gap: var(--spacing-2); min-width: 0; }
+.carev-turn-dots { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.carev-turn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-border);
+  background: transparent;
+}
+.carev-turn-dot[data-state='done'] { background: var(--color-accent); border-color: var(--color-accent); }
+.carev-turn-dot[data-state='current'] { border-color: var(--color-accent); background: var(--color-background-card); }
+
+/* 결재 관리 행 — 제목 영역을 누르면 상세가 열린다 */
+.carev-row-open { cursor: pointer; border-radius: var(--radius-element); }
+.carev-row-open:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* 직원 대시보드 맨 위 바로가기 — 눈에 잘 띄는 큰 단추 두 개 */
+.carev-quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--spacing-3); }
+.carev-quick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  min-height: 52px;
+  padding: 0 var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+  background: var(--color-background-card);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast-min) var(--ease-standard);
+}
+.carev-quick-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+@media (hover: hover) { .carev-quick-btn:hover { background: var(--color-background-muted); } }
+.carev-quick-btn:active { background: var(--color-background-muted); }
+@media (prefers-reduced-motion: reduce) { .carev-quick-btn { transition: none; } }

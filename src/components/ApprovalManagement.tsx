@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { FiFileText, FiSearch, FiCheck, FiX, FiEye, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud, FiClock } from 'react-icons/fi';
+import { FiFileText, FiSearch, FiCheck, FiX, FiCalendar, FiUser, FiAlertCircle, FiTrash2, FiUploadCloud } from 'react-icons/fi';
 import { Card } from '@astryxdesign/core/Card';
 import { Divider } from '@astryxdesign/core/Divider';
 import { RefreshButton } from '@/components/ui/RefreshButton';
@@ -12,6 +12,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { OutlineDangerButton } from '@/components/ui/OutlineDangerButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import { Badge } from '@astryxdesign/core/Badge';
+import { ApprovalTurnLine } from '@/components/approval/ApprovalTurnLine';
 import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
@@ -139,13 +140,6 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
     if (!approval.approvalLine || approval.approvalLine.length === 0) return null;
     const approved = approval.approvalLine.filter((step) => step.status === 'APPROVED').length;
     return `결재 ${approved}/${approval.approvalLine.length}`;
-  };
-
-  // 지금 결재 차례인 사람 이름 (결재선 없으면 null) — 내 차례가 아닌 문서에서
-  // "누가 처리해야 하는지"를 관리자에게 알려주는 데 쓴다.
-  const getCurrentApproverName = (approval: ApprovalRequest) => {
-    const currentStep = approval.approvalLine?.find((step) => step.status === 'PENDING');
-    return currentStep?.approverName ?? null;
   };
 
   // 타이핑이 멎은 뒤에만 검색어를 반영한다 (한글 조합이 끊기지 않게)
@@ -620,6 +614,23 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                             )}
                           </div>
                         )}
+                        {/* 제목 영역을 누르면 상세가 열린다 — 키보드(Tab·Enter·Space)로도 열린다.
+                            승인·반려·⋯·체크박스는 이 영역 밖의 형제라 서로의 클릭을 가로채지 않는다. */}
+                        <div
+                          className="carev-row-open"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${approval.title} 상세 열기`}
+                          onClick={() => handleOpenDetail(approval)}
+                          onKeyDown={(e) => {
+                            if (e.target !== e.currentTarget) return;
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleOpenDetail(approval);
+                            }
+                          }}
+                          style={{ display: 'flex', gap: 'var(--spacing-3)', alignItems: 'flex-start', minWidth: 0, flex: 1 }}
+                        >
                         <Icon icon={FiFileText} size="md" color="secondary" />
                         <VStack gap={1} style={{ minWidth: 0 }}>
                           <HStack gap={2} vAlign="center">
@@ -659,34 +670,22 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                                 {formatListDateTime(approval.createdAt)}
                               </Text>
                             </HStack>
-                            {/* 내 차례가 아닌 문서는 누구 차례인지 알려준다 — 예전엔 이 문구가
-                                액션 버튼 자리에 배지로 끼어 있어서, 문구가 있고 없고에 따라
-                                액션 열 폭이 줄마다 달라지고 오른쪽 끝이 들쭉날쭉했다.
-                                다른 메타 정보와 같은 줄, 같은 모양(아이콘+텍스트)으로 옮긴다. */}
-                            {approval.status === 'PENDING' && canManage && !isActionable(approval) && getCurrentApproverName(approval) && (
+                            {/* 진행중 문서는 지금 누구 차례인지 목록에서 바로 보인다(예전 '○○님 결재 대기 중' 글을 대신한다) */}
+                            {approval.status === 'PENDING' && approval.approvalLine && approval.approvalLine.length > 0 && (
                               <>
                                 <Divider orientation="vertical" style={{ height: 'var(--spacing-3)', alignSelf: 'center' }} />
-                                <HStack gap={1} vAlign="center">
-                                  {(() => {
-                                    const step = approval.approvalLine?.find((s) => s.status === 'PENDING');
-                                    return step ? (
-                                      <MemberAvatar name={step.approverName} id={step.approverId} type={step.approverType} size={20} />
-                                    ) : (
-                                      <Icon icon={FiClock} size="sm" color="tertiary" />
-                                    );
-                                  })()}
-                                  <Text type="supporting" color="secondary">{getCurrentApproverName(approval)}님 결재 대기 중</Text>
-                                </HStack>
+                                <ApprovalTurnLine status={approval.status} approvalLine={approval.approvalLine} />
                               </>
                             )}
                           </HStack>
                         </VStack>
+                        </div>
                       </HStack>
                       {/* 액션 열 — 줄마다 버튼 조합(상세보기만 / 상세보기+승인+반려 / 상세보기+더보기)이
                           달라 왼쪽 시작점이 들쭉날쭉했다. 폭을 고정하고 오른쪽으로 정렬해
                           내용이 달라도 오른쪽 끝이 항상 같은 줄에 선다. */}
-                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 280, flexShrink: 0 }}>
-                        {/* 승인·반려 자리는 늘 확보 — 상세보기와 ⋯가 모든 행에서 같은 x에 선다 */}
+                      <HStack gap={2} vAlign="center" hAlign="end" style={{ minWidth: 176, flexShrink: 0 }}>
+                        {/* 승인·반려 자리는 늘 확보 — ⋯가 모든 행에서 같은 x에 선다 */}
                         <div style={{ minWidth: 136, display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-2)' }}>
                           {approval.status === 'PENDING' && isActionable(approval) && (
                           <>
@@ -709,13 +708,6 @@ export default function ApprovalManagement({ canManage = true }: ApprovalManagem
                           </>
                         )}
                         </div>
-                        <Button
-                          label="상세보기"
-                          variant="secondary"
-                          size="sm"
-                          icon={<Icon icon={FiEye} />}
-                          onClick={() => handleOpenDetail(approval)}
-                        />
                         <div style={{ width: 32, flexShrink: 0 }}>
                         {/* 되돌릴 수 없는 삭제와, 내 차례가 아닌 문서의 직권 처리는 매 줄에
                             늘 보이는 1차 버튼이 아니라 더보기(⋯) 메뉴 하나로 모은다. */}

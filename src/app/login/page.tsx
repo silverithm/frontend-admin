@@ -21,6 +21,8 @@ import { subscriptionService } from '@/services/subscription';
 import { useAlert } from '@/components/Alert';
 import { LoginType } from '@/types/auth';
 import { readReturnPath } from '@/lib/authState';
+import NextLink from 'next/link';
+import '@/styles/public.css';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -276,9 +278,10 @@ export default function LoginPage() {
                   height={56}
                   priority
                 />
-                <Text type="supporting" color="secondary" justify="center">
+                {/* 로고 바로 아래 한 줄 소개 — 11~12px 회색은 잘 안 읽혀 한 단계 키우고 진하게 */}
+                <p style={{ margin: 0, textAlign: 'center', fontSize: 'var(--font-size-md)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-primary)' }}>
                   장기요양기관 근무 관리 솔루션
-                </Text>
+                </p>
               </VStack>
 
               <Card padding={6}>
@@ -374,19 +377,13 @@ export default function LoginPage() {
                   <Text type="supporting" color="secondary">계정이 없으신가요?</Text>
                   <Link href={returnPath ? `/signup?redirect=${encodeURIComponent(returnPath)}` : '/signup'}>회원가입</Link>
                 </HStack>
-                <Button
-                  label="메인으로"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/')}
-                />
-                <Button
-                  label="체험하기"
-                  variant="ghost"
-                  size="sm"
-                  isLoading={isDemoLoading}
-                  onClick={handleStartDemo}
-                />
+                {/* 둘 다 같은 모양의 보조 링크(틸 글자, 높이 44px) */}
+                <HStack gap={2} hAlign="center" vAlign="center">
+                  <NextLink href="/" className="carev-login-link">메인으로</NextLink>
+                  <button type="button" className="carev-login-link" disabled={isDemoLoading} onClick={handleStartDemo}>
+                    체험하기
+                  </button>
+                </HStack>
               </VStack>
             </VStack>
           </div>

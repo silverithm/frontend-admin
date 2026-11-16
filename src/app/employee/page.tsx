@@ -88,6 +88,8 @@ export default function EmployeePage() {
     target?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: scrollBehavior() });
   }, [activeMainTab, mobileNavEl]);
   const [approvalSubTab, setApprovalSubTab] = useState<ApprovalSubTab>('submit');
+  /** 대시보드 바로가기에서 온 '열 창' 의도 — 해당 탭이 창을 열고 나면 비운다 */
+  const [pendingOpen, setPendingOpen] = useState<'vacation' | 'approval' | null>(null);
   /** 대시보드에서 누른 일정 — 일정 탭이 열리면 그 달로 가서 상세를 띄우고 비운다 */
   const [scheduleFocusMonth, setScheduleFocusMonth] = useState<Date | null>(null);
   const [scheduleFocusId, setScheduleFocusId] = useState<string | null>(null);
@@ -380,7 +382,15 @@ export default function EmployeePage() {
                   className="carev-enter"
                   style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                 >
-                  <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false} onOpenSchedule={({ id, startDate }) => {
+                  <AdminDashboard onTabChange={(tab) => setActiveMainTab(tab as MainTab)} isAdmin={false}
+                    // 근무조정 관리 권한이 있으면 근무조정 탭이 관리자 달력이라 휴무 신청 창이 없다 — 단추를 빼 둔다
+                    quickActions={hasPermission('WORK_MANAGE') ? ['approval'] : ['vacation', 'approval']}
+                    onQuickAction={(action) => {
+                      setPendingOpen(action);
+                      if (action === 'vacation') setActiveMainTab('work');
+                      else { setApprovalSubTab('submit'); setActiveMainTab('approval'); }
+                    }}
+                    onOpenSchedule={({ id, startDate }) => {
                     const d = new Date(`${startDate.slice(0, 10)}T00:00:00`);
                     setScheduleFocusMonth(Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), 1));
                     setScheduleFocusId(id);
@@ -481,7 +491,10 @@ export default function EmployeePage() {
                     )}
                   </div>
                   {approvalSubTab === 'submit' ? (
-                    <EmployeeApproval />
+                    <EmployeeApproval
+                      autoOpenNew={pendingOpen === 'approval'}
+                      onAutoOpened={() => setPendingOpen(null)}
+                    />
                   ) : approvalSubTab === 'management' ? (
                     <ApprovalManagement canManage={hasPermission('APPROVAL_MANAGE')} />
                   ) : approvalSubTab === 'templates' ? (
@@ -543,7 +556,10 @@ export default function EmployeePage() {
                           </div>
                       </div>
                   ) : (
-                      <EmployeeCalendar />
+                      <EmployeeCalendar
+                        autoOpenRequest={pendingOpen === 'vacation'}
+                        onAutoOpened={() => setPendingOpen(null)}
+                      />
                   )}
                 </div>
               ) : activeMainTab === 'library' ? (

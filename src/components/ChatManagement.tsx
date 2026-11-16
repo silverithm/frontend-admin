@@ -2954,7 +2954,14 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                     </>
                 ) : (
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                        <Text type="body" color="secondary">채팅방을 선택하세요</Text>
+                        <EmptyState
+                            icon={<Icon icon={FiMessageCircle} size="lg" color="secondary" />}
+                            title="채팅방을 선택하세요"
+                            description="왼쪽 목록에서 대화를 고르면 여기에 나타납니다."
+                            actions={isAdmin ? (
+                                <Button label="새 대화" variant="primary" size="sm" onClick={() => setShowCreateModal(true)} />
+                            ) : undefined}
+                        />
                     </div>
                 )}
             </div>

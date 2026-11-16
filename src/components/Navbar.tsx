@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { TopNav, TopNavHeading, TopNavItem } from '@astryxdesign/core/TopNav';
@@ -8,6 +8,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { HStack } from '@astryxdesign/core/Stack';
 import { startDemo } from '@/lib/apiService';
 import { useAlert } from '@/components/Alert';
+import MobileNavSheet from '@/components/public/MobileNavSheet';
+import '@/styles/public.css';
 
 const navLinks = [
   { href: '/#features', label: '주요 기능' },
@@ -30,6 +32,10 @@ const Navbar: React.FC = () => {
   const [loggedIn, setLoggedIn] = useState(false);
   const [workspacePath, setWorkspacePath] = useState('/admin');
   const [isDemoLoading, setIsDemoLoading] = useState(false);
+  // 휴대폰 메뉴 시트
+  const [menuOpen, setMenuOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   const handleStartDemo = async () => {
     setIsDemoLoading(true);
@@ -107,17 +113,51 @@ const Navbar: React.FC = () => {
           </span>
         }
         endContent={
-          loggedIn ? (
-            <Button label="내 케어브이" variant="primary" size="sm" href={workspacePath} />
-          ) : (
-            <HStack gap={2} vAlign="center">
-              <Button label="체험하기" variant="secondary" size="sm" isLoading={isDemoLoading} onClick={handleStartDemo} />
-              <Button label="회원가입" variant="ghost" size="sm" href="/signup" />
-              <Button label="로그인" variant="primary" size="sm" href="/login" />
-            </HStack>
-          )
+          <HStack gap={2} vAlign="center" className="carev-nav-end">
+            {loggedIn ? (
+              <Button label="내 케어브이" variant="primary" size="sm" href={workspacePath} />
+            ) : (
+              <>
+                {/* 체험하기·회원가입은 데스크톱 상단에만 — 휴대폰에서는 메뉴 시트 안에 있다 */}
+                <span className="carev-nav-desktop" style={{ gap: 'var(--spacing-2)', alignItems: 'center' }}>
+                  <Button label="체험하기" variant="secondary" size="sm" isLoading={isDemoLoading} onClick={handleStartDemo} />
+                  <Button label="회원가입" variant="ghost" size="sm" href="/signup" />
+                </span>
+                <Button label="로그인" variant="primary" size="sm" href="/login" />
+              </>
+            )}
+            <button
+              ref={toggleRef}
+              type="button"
+              className="carev-m-toggle carev-nav-mobile-toggle"
+              aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
+              aria-expanded={menuOpen}
+              aria-controls="carev-mobile-menu"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                {menuOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
+            </button>
+          </HStack>
         }
       />
+      <MobileNavSheet id="carev-mobile-menu" open={menuOpen} links={navLinks} onClose={closeMenu} toggleRef={toggleRef}>
+        {!loggedIn && (
+          <div className="carev-m-actions">
+            <Button
+              label="체험하기"
+              variant="secondary"
+              isLoading={isDemoLoading}
+              onClick={() => {
+                closeMenu();
+                handleStartDemo();
+              }}
+            />
+            <Button label="회원가입" variant="ghost" href="/signup" onClick={closeMenu} />
+          </div>
+        )}
+      </MobileNavSheet>
       <AlertContainer />
     </div>
   );
