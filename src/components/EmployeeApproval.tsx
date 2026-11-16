@@ -46,6 +46,8 @@ import DocumentViewerModal from './DocumentViewerModal';
 import { duration } from '@/theme/motion';
 import { UNCATEGORIZED_LABEL } from '@/lib/defaultApprovalTemplates';
 import { formatListDateTime } from '@/lib/formatDate';
+import { pickLiveFormData } from '@/lib/retiredFields';
+import type { FormSchema } from '@/types/formSchema';
 
 type TabType = 'templates' | 'my-approvals';
 type ApprovalFilterType = 'all' | 'pending' | 'approved' | 'rejected';
@@ -692,7 +694,8 @@ export default function EmployeeApproval() {
     if (!source) return;
     const picked = templates.find((t) => String(t.id) === String(source.templateId));
     setApprovalForm({ templateId: String(source.templateId ?? ''), title: source.title ?? '', file: null });
-    setFormData(parseFormData(source.formData));
+    // 그 뒤에 양식에서 지운 항목의 값은 가져오지 않는다 — 새 기안에 보이지도 고치지도 못하는 값이 따라붙는다
+    setFormData(pickLiveFormData(parseTemplateSchema(picked?.formSchema), parseFormData(source.formData)));
     try {
       setApprovalLine(parseDefaultApprovalLine<ApproverCandidate>(picked?.defaultApprovalLine, getApprovalRequesterId()));
     } catch {
@@ -781,6 +784,17 @@ export default function EmployeeApproval() {
     } as ApprovalRequest;
   };
 
+  /** 양식 스키마 — 백엔드는 JSON 문자열로 준다. 항목 목록이 없으면 없는 것으로 본다 */
+  const parseTemplateSchema = (raw: unknown): FormSchema | undefined => {
+    if (!raw) return undefined;
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return parsed && Array.isArray((parsed as { fields?: unknown }).fields) ? (parsed as FormSchema) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
   /** 저장된 폼 값 — 백엔드가 JSON 문자열로 돌려줄 때가 있어 양쪽을 모두 받는다 */
   const parseFormData = (value: unknown): Record<string, any> | null => {
     if (!value) return null;
@@ -820,16 +834,7 @@ export default function EmployeeApproval() {
   const selectedTemplateInfo = templates.find(t => String(t.id) === approvalForm.templateId);
 
   // 백엔드는 formSchema를 JSON 문자열로 내려준다 — FormRenderer에는 파싱된 객체만 전달
-  const selectedTemplateSchema = (() => {
-    const raw = selectedTemplateInfo?.formSchema as unknown;
-    if (!raw) return undefined;
-    try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      return parsed && Array.isArray((parsed as { fields?: unknown }).fields) ? parsed : undefined;
-    } catch {
-      return undefined;
-    }
-  })();
+  const selectedTemplateSchema = parseTemplateSchema(selectedTemplateInfo?.formSchema);
 
   const isWideModal = selectedTemplateInfo?.templateType === 'form' || selectedTemplateInfo?.templateType === 'hybrid';
 

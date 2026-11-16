@@ -6,6 +6,7 @@ import { ko } from 'date-fns/locale';
 import { getApprovalTemplates, createApprovalTemplate, updateApprovalTemplate, toggleApprovalTemplateActive, deleteApprovalTemplate, getApproverCandidates, uploadFileToServer, reorderApprovalTemplates, getUserInfo } from '@/lib/apiService';
 import { ApprovalTemplate } from '@/types/approvalTemplate';
 import { FormSchema } from '@/types/formSchema';
+import { withRetiredFields, withoutRetiredFields } from '@/lib/retiredFields';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
 import OfficialDocument from '@/components/approval/OfficialDocument';
 import { buildSampleApproval } from '@/components/approval/templatePreview';
@@ -61,6 +62,17 @@ function parseDefaultLine(value: unknown): ApproverCandidate[] | undefined {
     }
   }
   return undefined;
+}
+
+/** 서버에 저장돼 있던 양식(고치기 전) — 문자열(JSON)로 온다. 못 읽으면 지운 항목을 남기지 않을 뿐이다 */
+function parseSavedSchema(value: unknown): FormSchema | null {
+  if (!value) return null;
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return parsed && Array.isArray((parsed as FormSchema).fields) ? (parsed as FormSchema) : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -445,7 +457,8 @@ export default function ApprovalTemplateManager({
           fileName: templateType !== 'form' ? fileName : undefined,
           fileSize: templateType !== 'form' ? fileSize : undefined,
           templateType,
-          formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
+          // 지운 항목의 이름을 남긴다 — 지난 문서에 그 항목으로 쓴 내용을 이 이름으로 보여 준다
+          formSchema: formSchema ? JSON.stringify(withRetiredFields(formSchema, parseSavedSchema(editingTemplate.formSchema))) : undefined,
           defaultApprovalLine: defaultLine.length > 0 ? JSON.stringify(defaultLine) : undefined,
           defaultViewers,
         });
@@ -460,7 +473,7 @@ export default function ApprovalTemplateManager({
           fileName: templateType !== 'form' ? fileName : undefined,
           fileSize: templateType !== 'form' ? fileSize : undefined,
           templateType,
-          formSchema: formSchema ? JSON.stringify(formSchema) : undefined,
+          formSchema: formSchema ? JSON.stringify(withoutRetiredFields(formSchema)) : undefined,
           defaultApprovalLine: defaultLine.length > 0 ? JSON.stringify(defaultLine) : undefined,
           defaultViewers,
         });

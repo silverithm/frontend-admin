@@ -11,6 +11,7 @@ import { FormSchema, FormFieldSchema } from '@/types/formSchema';
 import { chunkRowForDocTable, docRowColumnTemplate, formatFieldValueText, groupFieldsIntoRows, resolveFieldValue } from './formValueFormat';
 import { getFieldSpan } from '@/lib/formSchemaLogic';
 import { getFieldLabel, getValueLabel, sortFormEntries } from '@/lib/formFieldLabels';
+import { isGeneratedFieldId, orphanEntries } from '@/lib/retiredFields';
 import ApprovalImageValue from './ApprovalImageValue';
 import { printDocumentElement } from './printDocument';
 
@@ -139,7 +140,45 @@ function DocumentFieldsTable({
           </div>
         );
       })}
+      <OrphanFieldRows schema={schema} formData={formData} />
     </div>
+  );
+}
+
+/**
+ * 지금 양식에 없는 항목에 써 둔 내용 — 양식을 고친 뒤 지난 문서를 열어도 쓴 것이 다 보이게 맨 아래에 붙인다.
+ * (2026-11-16 업무일지: 원래 항목을 지운 뒤 지난 문서 본문이 화면에서 사라졌다 — src/lib/retiredFields.ts)
+ */
+function OrphanFieldRows({ schema, formData }: { schema: FormSchema; formData: Record<string, any> }) {
+  const orphans = orphanEntries(schema, formData);
+  if (orphans.length === 0) return null;
+  const single = docRowColumnTemplate([{ id: '', type: 'text', label: '', required: false, width: 'full' }]);
+  return (
+    <>
+      <div className="carev-doc-field-row" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="carev-doc-section-row">이전 양식 항목</div>
+      </div>
+      {orphans.map(({ key, field }) => {
+        const label = field?.label || (isGeneratedFieldId(key) ? '이전 항목' : getFieldLabel(key));
+        const raw = formData[key];
+        return (
+          <div key={`orphan-${key}`} className="carev-doc-field-row" style={{ gridTemplateColumns: single }}>
+            <div className="carev-doc-field-label">{label}</div>
+            <div className="carev-doc-field-value">
+              {field?.type === 'image' ? (
+                <ApprovalImageValue fileUrl={raw?.fileUrl} fileName={raw?.fileName} />
+              ) : field ? (
+                formatFieldValueText(field, formData)
+              ) : raw && typeof raw === 'object' && !Array.isArray(raw) && (raw.fileName || raw.name) ? (
+                String(raw.fileName || raw.name)
+              ) : (
+                getValueLabel(key, raw)
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
   );
 }
 

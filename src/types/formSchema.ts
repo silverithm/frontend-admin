@@ -125,4 +125,9 @@ export interface FormFieldSchema {
 export interface FormSchema {
   version: number;
   fields: FormFieldSchema[];
+  /**
+   * 양식을 고치며 지운 항목(이름·종류만). 지난 문서를 열 때 그 항목으로 써 둔 내용을
+   * 이 이름으로 맨 아래에 보여 준다 — 작성 화면은 쓰지 않는다. (src/lib/retiredFields.ts)
+   */
+  retiredFields?: FormFieldSchema[];
 }

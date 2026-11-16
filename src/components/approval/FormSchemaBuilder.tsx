@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { buildSampleApproval } from './templatePreview';
 import { FormSchema, FormFieldSchema, FieldType } from '@/types/formSchema';
+import { withoutRetiredFields } from '@/lib/retiredFields';
 import { formPresets } from '@/lib/formTemplatePresets';
 import FieldTypeSelector from './FieldTypeSelector';
 import FormFieldEditor from './FormFieldEditor';
@@ -240,9 +241,23 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
     updateSchema({ ...schema, fields });
   };
 
-  const removeField = (id: string) => {
-    const fields = schema.fields.filter((f) => f.id !== id);
-    updateSchema({ ...schema, fields });
+  // 이미 저장돼 있던 양식의 항목 — 이 항목으로 쓴 지난 문서가 있을 수 있다
+  const savedFieldIdsRef = useRef(new Set((initialSchema?.fields ?? []).map((f) => f.id)));
+
+  const removeField = async (id: string) => {
+    const target = schema.fields.find((f) => f.id === id);
+    // 저장된 양식의 항목을 지울 때만 묻는다 — 지난 문서 내용이 사라지는 줄 알고 놀라지 않게(2026-11-16 업무일지)
+    if (excludeTemplateId != null && target && target.type !== 'section' && savedFieldIdsRef.current.has(id)) {
+      const ok = await confirm({
+        title: `'${target.label}' 항목을 지울까요?`,
+        message: '이미 올린 문서에 이 항목으로 쓴 내용은 지워지지 않습니다. 지난 문서를 열면 맨 아래 \'이전 양식 항목\'에 그대로 보입니다.',
+        confirmText: '지우기',
+        cancelText: '취소',
+        type: 'warning',
+      });
+      if (!ok) return;
+    }
+    setSchema((current) => ({ ...current, fields: current.fields.filter((f) => f.id !== id) }));
     if (selectedFieldId === id) {
       setSelectedFieldId(null);
     }
@@ -286,7 +301,8 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
   const loadExistingTemplate = async (option: ExistingFormTemplateOption) => {
     if (!(await confirmOverwriteIfEditing())) return;
     const cloned: FormSchema = JSON.parse(JSON.stringify(option.formSchema));
-    updateSchema(cloned);
+    // 그 양식에서 지운 항목은 그 양식 문서의 것이다 — 이 양식으로 옮겨 오지 않는다
+    updateSchema(withoutRetiredFields(cloned));
     setSelectedFieldId(null);
     setShowTemplatePicker(false);
     setTemplatePickerQuery('');
