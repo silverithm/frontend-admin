@@ -233,7 +233,8 @@ export default function DaycareStaffingStandardPage() {
               </li>
               <li>
                 <strong>가산도 빠진다</strong> — 위반한 직종은 그달 인력추가배치 가산을 받지 못하고, 3개 직종 이상 위반하면 모든 직종의
-                가산이 빠집니다(제54조제3항).
+                가산이 빠집니다(제54조제3항). 가산 요건과 점수는{' '}
+                <Link href="/ltc/daycare-staffing-bonus">주간보호센터 인력추가배치 가산</Link>에 정리했습니다.
               </li>
               <li>
                 <strong>이용자가 늘어난 달</strong> — 요양보호사·간호(조무)사·사회복지사·물리(작업)치료사는 전월에 그 직종 기준을 지켰고

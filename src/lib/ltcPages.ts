@@ -4,6 +4,7 @@
 
 import { LTC_VERIFIED_AT } from './ltc2026';
 import { STAFFING_VERIFIED_AT } from './ltcStaffing';
+import { BONUS_VERIFIED_AT } from './ltcStaffingBonus';
 import { STANDARD_HOURS_VERIFIED_AT } from './ltcStandardHours';
 
 export interface LtcPageMeta {
@@ -45,5 +46,11 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '2026년 월 기준 근무시간',
     summary: '근무인원 1명을 세는 달별 기준 시간(1~12월)과 근무가능일수. 2026년부터 공휴일이 된 노동절·제헌절, 대체공휴일 반영.',
     lastModified: STANDARD_HOURS_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/daycare-staffing-bonus',
+    title: '주간보호센터 인력추가배치 가산',
+    summary: '요양보호사 1인당 6.4명 미만 요건, 직종별 가산점수, 이용자 수별 인정범위·추가산정, 가산금액 계산식과 예시(고시 제55·56조).',
+    lastModified: BONUS_VERIFIED_AT,
   },
 ];
