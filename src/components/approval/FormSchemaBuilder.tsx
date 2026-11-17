@@ -2,21 +2,17 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { buildSampleApproval } from './templatePreview';
 import { FormSchema, FormFieldSchema, FieldType } from '@/types/formSchema';
 import { withoutRetiredFields } from '@/lib/retiredFields';
 import { formPresets } from '@/lib/formTemplatePresets';
 import FieldTypeSelector from './FieldTypeSelector';
 import FormFieldEditor from './FormFieldEditor';
 import { getFieldSpan } from '@/lib/formSchemaLogic';
-import FormPreview from './FormPreview';
-import OfficialDocument from './OfficialDocument';
-import { ApprovalRequest, ApproverCandidate } from '@/types/approval';
+import TemplatePreviewDialog from './TemplatePreviewDialog';
+import { ApproverCandidate } from '@/types/approval';
 import { useConfirm } from '../ConfirmDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
-import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
-import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -163,7 +159,6 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [showFieldTypeSelector, setShowFieldTypeSelector] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewMode, setPreviewMode] = useState<'document' | 'form'>('document');
   const [showPresetMenu, setShowPresetMenu] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [templatePickerQuery, setTemplatePickerQuery] = useState('');
@@ -651,64 +646,14 @@ export default function FormSchemaBuilder({ initialSchema, onSchemaChange, templ
         )}
       </AnimatePresence>
 
-      {/* 미리보기 모달 — 공문(기본) / 입력 양식 전환 */}
-      <Dialog
+      {/* 미리보기 — 공문(기본) / 입력 양식 전환. 편집 창 맨 아래에서도 같은 창을 연다 */}
+      <TemplatePreviewDialog
         isOpen={showPreview}
-        onOpenChange={(open) => { if (!open) setShowPreview(false); }}
-        purpose="info"
-        width={previewMode === 'document' ? 880 : 672}
-        maxHeight="90vh"
-      >
-        <Layout
-          header={
-            <DialogHeader
-              title="양식 미리보기"
-              subtitle={previewMode === 'document'
-                ? '결재 완료 시 공문(표준 기안문) 형태 예시입니다'
-                : '직원이 작성하는 입력 양식 형태입니다'}
-              onOpenChange={(open) => { if (!open) setShowPreview(false); }}
-            />
-          }
-          content={
-            <LayoutContent>
-              <VStack gap={4}>
-                <SegmentedControl
-                  value={previewMode}
-                  onChange={(value) => setPreviewMode(value as 'document' | 'form')}
-                  label="미리보기 형태"
-                >
-                  <SegmentedControlItem value="document" label="공문 미리보기" />
-                  <SegmentedControlItem value="form" label="입력 양식" />
-                </SegmentedControl>
-
-                {previewMode === 'document' ? (
-                  <div style={{ background: 'var(--color-background-muted)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-inner)', overflowX: 'auto' }}>
-                    <OfficialDocument
-                      approval={buildSampleApproval(schema, templateName, defaultApprovalLine)}
-                      schema={schema}
-                      companyName={
-                        typeof window !== 'undefined'
-                          ? localStorage.getItem('companyName') || localStorage.getItem('organizationName') || '기관명'
-                          : '기관명'
-                      }
-                      showPrintButton={false}
-                    />
-                  </div>
-                ) : (
-                  <FormPreview schema={schema} approvalLine={defaultApprovalLine} />
-                )}
-              </VStack>
-            </LayoutContent>
-          }
-          footer={
-            <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="end">
-                <Button label="닫기" variant="secondary" onClick={() => setShowPreview(false)} />
-              </HStack>
-            </LayoutFooter>
-          }
-        />
-      </Dialog>
+        onClose={() => setShowPreview(false)}
+        schema={schema}
+        templateName={templateName}
+        defaultApprovalLine={defaultApprovalLine}
+      />
 
       {/* 기존 양식에서 불러오기 — 검색 가능한 스크롤 목록. 폼형만 대상, 비활성 양식은 뒤로 정렬 */}
       <Dialog

@@ -16,6 +16,7 @@ import { canPrintBlankForm } from '@/lib/blankForm';
 import ViewerSelector from '@/components/approval/ViewerSelector';
 import TemplateBulkUploadDialog from '@/components/approval/TemplateBulkUploadDialog';
 import TemplateVersionHistory from '@/components/approval/TemplateVersionHistory';
+import TemplatePreviewDialog from '@/components/approval/TemplatePreviewDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
@@ -134,6 +135,8 @@ export default function ApprovalTemplateManager({
   const fileInputRef = useRef<HTMLInputElement>(null);
   /** 목록에서 바로 여는 미리보기 — 편집 화면에 들어가지 않고 모습만 확인한다 */
   const [previewTemplate, setPreviewTemplate] = useState<ApprovalTemplate | null>(null);
+  /** 편집 창에서 여는 미리보기 — 저장 전 고치는 중인 모습 그대로(서식) 또는 올려 둔 파일 */
+  const [editPreview, setEditPreview] = useState<'form' | 'file' | null>(null);
   // 버전 기록(2026-11-16) — 저장할 때마다 남은 양식 모습을 골라 보고 되돌린다
   const [historyTemplate, setHistoryTemplate] = useState<ApprovalTemplate | null>(null);
   /** 공문 머리의 기관명 — 미리보기에도 실제와 같게 넣는다 */
@@ -631,6 +634,7 @@ export default function ApprovalTemplateManager({
   // 모달 닫기
   const closeModal = () => {
     setShowUploadModal(false);
+    setEditPreview(null);
     setEditingTemplate(null);
     setUploadForm({ name: '', description: '', file: null });
     setCategoryValue('');
@@ -1177,17 +1181,36 @@ export default function ApprovalTemplateManager({
           footer={
             <LayoutFooter hasDivider>
               <HStack gap={2} hAlign="between" vAlign="center">
-                {/* 고치다 잘못되면 예전 모습으로 — 되돌리면 이 편집 창은 닫고 목록을 새로 불러온다 */}
-                {editingTemplate ? (
-                  <Button
-                    label="버전 기록"
-                    variant="ghost"
-                    icon={<Icon icon={FiClock} size="sm" />}
-                    onClick={() => setHistoryTemplate(editingTemplate)}
-                  />
-                ) : (
-                  <span />
-                )}
+                <HStack gap={1} vAlign="center">
+                  {/* 미리보기(2026-11-17) — 폼 구성 도구 줄은 항목 목록 밑이라 한참 내려가야 보였다.
+                      저장하지 않은 지금 모습 그대로 공문·입력 양식으로 본다 */}
+                  {templateType !== 'file' ? (
+                    <Button
+                      label="미리보기"
+                      variant="ghost"
+                      icon={<Icon icon={FiEye} size="sm" />}
+                      isDisabled={!formSchema?.fields?.length}
+                      tooltip={formSchema?.fields?.length ? undefined : '항목을 추가하면 볼 수 있어요'}
+                      onClick={() => setEditPreview('form')}
+                    />
+                  ) : editingTemplate?.fileUrl && !uploadForm.file ? (
+                    <Button
+                      label="미리보기"
+                      variant="ghost"
+                      icon={<Icon icon={FiEye} size="sm" />}
+                      onClick={() => setEditPreview('file')}
+                    />
+                  ) : null}
+                  {/* 고치다 잘못되면 예전 모습으로 — 되돌리면 이 편집 창은 닫고 목록을 새로 불러온다 */}
+                  {editingTemplate ? (
+                    <Button
+                      label="버전 기록"
+                      variant="ghost"
+                      icon={<Icon icon={FiClock} size="sm" />}
+                      onClick={() => setHistoryTemplate(editingTemplate)}
+                    />
+                  ) : null}
+                </HStack>
                 <HStack gap={2} hAlign="end">
                   <Button label="취소" variant="ghost" onClick={closeModal} />
                   <Button
@@ -1267,6 +1290,24 @@ export default function ApprovalTemplateManager({
             showAlert({ type: 'success', title: '되돌렸습니다', message });
           }}
           onError={(message) => showAlert({ type: 'error', title: '되돌리지 못했습니다', message })}
+        />
+      )}
+      {/* 편집 창에서 여는 미리보기 — 편집 창 위에 뜬다 */}
+      {editPreview === 'form' && formSchema && (
+        <TemplatePreviewDialog
+          isOpen
+          onClose={() => setEditPreview(null)}
+          schema={formSchema}
+          templateName={uploadForm.name}
+          defaultApprovalLine={defaultLine}
+          companyName={companyName}
+        />
+      )}
+      {editPreview === 'file' && editingTemplate?.fileUrl && (
+        <DocumentViewerModal
+          fileUrl={editingTemplate.fileUrl}
+          fileName={editingTemplate.fileName || editingTemplate.name}
+          onClose={() => setEditPreview(null)}
         />
       )}
       {/* 목록에서 바로 보는 미리보기 — 서식은 공문 모습으로, 파일 양식은 문서 뷰어로 */}
