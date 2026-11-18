@@ -10,6 +10,7 @@ import { FiBell, FiCalendar, FiCheckSquare, FiEdit3, FiFileText, FiMessageCircle
 import { fetchChatRooms, fetchMyUnreadNotifications, markMyNotificationsRead, type MyNotification } from '@/lib/apiService';
 import { CHAT_VIEWING_EVENT, NOTIFICATIONS_REFRESH_EVENT, requestOpenChatRoom, viewingChatRoomIds } from '@/lib/alertBus';
 import { useDirectoryPerson } from '@/lib/memberDirectory';
+import { actorRefOf } from '@/lib/notificationActor';
 import { buildNotificationCards, type NotificationCard, type NotificationTarget } from '@/lib/notificationGroups';
 import { useVisiblePolling } from '@/lib/useVisiblePolling';
 import { requestOpenWorkTask } from '@/lib/workTasks';
@@ -61,8 +62,8 @@ export function whenText(createdAt: string, now: number = Date.now()): string {
  * 카드 왼쪽 얼굴 — 알림을 일으킨 사람(보낸 사람·기안자·신청자)의 사진, 오른쪽 아래에 알림 종류 표시.
  * 사람을 모르면(리마인더·옛 알림) 종류 아이콘만 그린다. 사진이 없는 사람은 이름 첫 글자.
  */
-function InboxFace({ actorId, target }: { actorId?: string | null; target: NotificationTarget | null }) {
-  const person = useDirectoryPerson({ id: actorId ?? null });
+function InboxFace({ notification, target }: { notification: MyNotification; target: NotificationTarget | null }) {
+  const person = useDirectoryPerson(actorRefOf(notification) ?? {});
   const icon = iconOf(target);
   if (!person) {
     return (
@@ -111,7 +112,7 @@ function InboxCard({
         </div>
       )}
       <div className="carev-inbox-main">
-        <InboxFace actorId={card.latest.actorId} target={card.target} />
+        <InboxFace notification={card.latest} target={card.target} />
         <div className="carev-inbox-text">
           <div className="carev-inbox-titleline">
             <span id={titleId} className="carev-inbox-title">{title}</span>

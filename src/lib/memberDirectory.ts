@@ -204,7 +204,7 @@ export function useMemberPhoto(ref: PersonRef, known?: string | null): string | 
  */
 export function useDirectoryPerson(ref: PersonRef): DirectoryPerson | null {
     const load = useMemberDirectory((s) => s.load);
-    const hasRef = Boolean(ref.id || ref.email);
+    const hasRef = Boolean(ref.id || ref.email || ref.name);
     const person = useMemberDirectory((s) => (hasRef ? findPerson(s, ref) : null));
     useEffect(() => {
         if (hasRef) void load();

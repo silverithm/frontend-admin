@@ -1103,6 +1103,12 @@ html {
    (안 그러면 앞 카드보다 짧은 뒤 카드가 앞 카드 뒤에 숨어 겹친 줄이 안 보인다) */
 .carev-inbox [data-sonner-toast] > [data-content],
 .carev-inbox [data-sonner-toast] [data-title] { display: block; width: 100%; height: 100%; }
+/* sonner는 자기 모양 카드(data-styled=true)에만 너비를 준다 — 사용자 카드는 글 길이만큼 줄어
+   한 줄짜리 알림이 오른쪽으로 밀려 들쭉날쭉했다(2026-11-19). 모든 카드를 같은 너비로 */
+.carev-inbox[data-sonner-toaster] [data-sonner-toast] { width: var(--width); }
+@media (max-width: 600px) {
+  .carev-inbox[data-sonner-toaster] [data-sonner-toast] { width: calc(100% - var(--mobile-offset-left) * 2); }
+}
 /* 접힌 더미의 뒤 카드 — 앞 카드 높이의 종이만 보이고 글자는 숨긴다(앞 카드와 글자가 겹쳐 보이지 않게).
    흰 화면 위에서도 겹친 줄이 보이게 한 단 어둡게 */
 .carev-inbox [data-sonner-toast][data-expanded='false'][data-front='false'] .carev-inbox-card {
