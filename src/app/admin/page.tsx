@@ -51,6 +51,7 @@ import { ChatRail } from "@/components/ChatRail/ChatRail";
 import { FloatingChat } from "@/components/FloatingChat/FloatingChat";
 import NotificationPopups from "@/components/NotificationPopups";
 import { requestNotificationsRefresh, setViewingChatRoom } from "@/lib/alertBus";
+import { getMyChatUserId } from "@/lib/chatIdentity";
 import type { NotificationTarget } from "@/lib/notificationGroups";
 import type { MyNotification } from "@/lib/apiService";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -215,6 +216,8 @@ export default function AdminPage() {
         null
     );
     const [userName, setUserName] = useState<string | null>(null);
+    /** 사이드바 아래 내 사진 — 관리자는 'admin_3', 관리 권한 직원은 '12' */
+    const [myChatId, setMyChatId] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
     // 휴무 목록 조회 기간. 기본값은 캘린더가 보고 있는 달이다.
@@ -364,6 +367,7 @@ export default function AdminPage() {
         if (userNameData) {
             setUserName(userNameData);
         }
+        setMyChatId(getMyChatUserId());
 
         const storedLoginType = localStorage.getItem('loginType');
         if (storedLoginType) setLoginType(storedLoginType);
@@ -1457,6 +1461,16 @@ export default function AdminPage() {
                     <div style={{ padding: "0 var(--spacing-3)" }}><SubscriptionStatus /></div>
                     <span data-tour="sidebar-help"><Button label="사용법 보기" variant="ghost" size="sm" onClick={() => setShowTour(true)} icon={<Icon icon={IconHelp} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} /></span>
                     <span data-tour="sidebar-profile"><Button label="기관 프로필" variant="ghost" size="sm" onClick={() => router.push("/admin/organization-profile")} icon={<Icon icon={IconBuilding} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} /></span>
+                    {/* 내 사진과 이름(2026-11-19) — 직원 화면 사이드바와 같은 자리. 누가 로그인했는지 한눈에 */}
+                    {userName && (
+                        <div style={{ padding: "var(--spacing-2) var(--spacing-3)", display: "flex", alignItems: "center", gap: 'var(--spacing-2)' }}>
+                            <MemberAvatar name={userName} id={myChatId} size={32} />
+                            <div style={{ minWidth: 0 }}>
+                                <Text as="p" type="supporting" weight="medium" color="primary" maxLines={1}>{userName}</Text>
+                                <Text as="p" type="supporting" color="secondary">{isAdmin ? "관리자" : "직원"}</Text>
+                            </div>
+                        </div>
+                    )}
                     <Button label="로그아웃" variant="ghost" size="sm" onClick={handleLogout} icon={<Icon icon={IconLogout} size="sm" color="secondary" />} style={{ width: "100%", justifyContent: "flex-start" }} />
                 </div>
             </aside>

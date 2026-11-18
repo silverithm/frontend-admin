@@ -41,3 +41,19 @@
 @media (hover: hover) { .carev-quick-btn:hover { background: var(--color-background-muted); } }
 .carev-quick-btn:active { background: var(--color-background-muted); }
 @media (prefers-reduced-motion: reduce) { .carev-quick-btn { transition: none; } }
+
+/* ── 4차(2026-11-19) — 사진을 더 붙인 곳 ── */
+
+/* 근무조정 달력 칸 — 얼굴 오른쪽 아래에 휴무 상태 점(승인 틸·대기 노랑·반려 빨강) */
+.carev-cal-face { position: relative; display: inline-flex; flex-shrink: 0; margin-right: var(--spacing-1); }
+.carev-cal-face-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  box-shadow: 0 0 0 1.5px var(--color-background-card);
+}
+
+/* 목록 보조 줄(파일 이름 · 올린 사람 · 날짜) — 사이에 가운뎃점, 사람은 사진과 함께 */
+.carev-meta-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--spacing-1-5); row-gap: 2px; min-width: 0; }
+.carev-meta-line > * + *::before { content: '·'; margin-right: var(--spacing-1-5); color: var(--color-text-disabled); }
+.carev-meta-who { display: inline-flex; align-items: center; gap: var(--spacing-1); min-width: 0; }

@@ -29,6 +29,7 @@ import {
 import { getMemberRoleName, getRoleDisplayName } from '@/lib/roleUtils';
 import { createRepeatedSchedules } from '@/lib/scheduleRepeatCreate';
 import ScheduleRepeatFields, { EMPTY_REPEAT } from '@/components/ScheduleRepeatFields';
+import MemberAvatar from '@/components/MemberAvatar';
 import type { RepeatRule } from '@/lib/scheduleRepeat';
 import {
   DEFAULT_CATEGORY_SETTINGS,
@@ -417,7 +418,20 @@ export default function ScheduleCreateDialog({ isOpen, initialDate, onClose, onC
                   hasClear
                   value={formData.managerId || null}
                   onChange={(value) => setFormData(prev => ({ ...prev, managerId: value || '' }))}
-                  options={managerCandidates.map((m) => ({ value: managerOptionValue(m), label: managerOptionLabel(m) }))}
+                  // 고를 때 얼굴로도 찾게 — 이름이 비슷한 사람이 많다(2026-11-19)
+                  options={managerCandidates.map((m) => ({
+                    value: managerOptionValue(m),
+                    label: managerOptionLabel(m),
+                    icon: (
+                      <MemberAvatar
+                        name={m.name || ''}
+                        id={m.id}
+                        type={m.role === ADMIN_ROLE ? 'ADMIN' : 'MEMBER'}
+                        imageUrl={m.profileImageUrl}
+                        size={20}
+                      />
+                    ),
+                  }))}
                 />
 
                 <Divider />

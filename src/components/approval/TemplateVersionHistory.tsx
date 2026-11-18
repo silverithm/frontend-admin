@@ -17,6 +17,7 @@ import { getApprovalTemplateVersions, restoreApprovalTemplateVersion } from '@/l
 import { diffVersions, parseVersionSchema, summarizeChanges } from '@/lib/templateVersionDiff';
 import type { ApprovalTemplate, ApprovalTemplateVersion } from '@/types/approvalTemplate';
 import type { ApproverCandidate } from '@/types/approval';
+import MemberAvatar from '@/components/MemberAvatar';
 
 /**
  * 양식 버전 기록(2026-11-16, 구글 시트 '버전 기록'처럼).
@@ -189,7 +190,12 @@ export default function TemplateVersionHistory({ template, companyName, onClose,
                                       <Badge variant="neutral" label="되돌림" />
                                     ) : null}
                                   </span>
-                                  <span className="carev-tver-who">{whoText(v)}</span>
+                                  <span className="carev-tver-who">
+                                    {v.kind !== 'BASELINE' && v.savedByName?.trim() ? (
+                                      <MemberAvatar name={v.savedByName.trim()} id={v.savedById} size={16} />
+                                    ) : null}
+                                    <span>{whoText(v)}</span>
+                                  </span>
                                   {summary ? <span className="carev-tver-summary">{summary}</span> : null}
                                 </button>
                               </li>
@@ -278,7 +284,7 @@ export default function TemplateVersionHistory({ template, companyName, onClose,
         .carev-tver-item[aria-current='true'] { background: var(--color-background-muted); }
         .carev-tver-item-top { display: flex; align-items: center; gap: 6px; }
         .carev-tver-time { font-size: 15px; font-weight: 600; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
-        .carev-tver-who { font-size: 13px; color: var(--color-text-secondary); }
+        .carev-tver-who { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-secondary); }
         .carev-tver-summary { font-size: 12px; line-height: 1.45; color: var(--color-text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .carev-tver-note { margin: var(--spacing-4) var(--spacing-2) 0; font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); }
         .carev-tver-detail { min-width: 0; }

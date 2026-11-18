@@ -2174,7 +2174,20 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                   hasClear
                   value={formData.managerId || null}
                   onChange={(value) => setFormData(prev => ({ ...prev, managerId: value || '' }))}
-                  options={managerCandidates.map((m) => ({ value: managerOptionValue(m), label: managerOptionLabel(m) }))}
+                  // 업무진행도 담당자 고르기와 같이 얼굴을 붙인다(2026-11-19)
+                  options={managerCandidates.map((m) => ({
+                    value: managerOptionValue(m),
+                    label: managerOptionLabel(m),
+                    icon: (
+                      <MemberAvatar
+                        name={m.name || ''}
+                        id={m.id}
+                        type={m.role === MANAGER_ADMIN_ROLE ? 'ADMIN' : 'MEMBER'}
+                        imageUrl={m.profileImageUrl}
+                        size={20}
+                      />
+                    ),
+                  }))}
                 />
 
                 <Divider />
@@ -2478,7 +2491,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                                     isLabelHidden
                                     width="100%"
                                     value={editTaskForm.assigneeMemberId}
-                                    options={[{ value: '', label: '담당자 미지정' }, ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
+                                    options={[
+                                      { value: '', label: '담당자 미지정' },
+                                      ...members.map((m) => ({
+                                        value: String(m.id),
+                                        label: m.name,
+                                        icon: <MemberAvatar name={m.name} id={m.id} imageUrl={m.profileImageUrl} size={20} />,
+                                      })),
+                                    ]}
                                     onChange={(value) => setEditTaskForm((prev) => ({ ...prev, assigneeMemberId: value }))}
                                   />
                                   <HStack gap={2} hAlign="end">

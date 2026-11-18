@@ -29,6 +29,8 @@ import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
 import { ChatFileCard } from '@/components/chat/ChatFileCard';
 import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from '@/components/chat/ChatRoomAvatarStack';
+import MemberAvatar from '@/components/MemberAvatar';
+import '@/styles/staff.css';
 import { chatRoomRowLabel, chatRoomRowDescription } from '@/components/chat/ChatRoomRow';
 import { ChatMessageText } from '@/components/chat/ChatMessageText';
 import ChatMemberPicker from '@/components/ChatMemberPicker';
@@ -2189,16 +2191,25 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             type="button"
                                                             onClick={() => handleSearchResultClick(m)}
                                                             style={{
-                                                                display: "block", width: "100%", textAlign: "left",
+                                                                display: "flex", alignItems: "flex-start", gap: 'var(--spacing-2)', width: "100%", textAlign: "left",
                                                                 padding: 'var(--spacing-2)', background: C.card,
                                                                 border: `1px solid ${C.border}`, borderRadius: 'var(--radius-inner)',
                                                                 cursor: "pointer",
                                                             }}
                                                         >
-                                                            <Text type="supporting" weight="semibold" color="primary">
-                                                                {m.senderName} · {formatMessageTime(m.createdAt)}
-                                                            </Text>
-                                                            <Text type="supporting" color="primary" maxLines={2}>{m.content}</Text>
+                                                            {/* 누가 한 말인지 얼굴로도 — 대화 화면 말풍선 옆 사진과 같은 사람(2026-11-19) */}
+                                                            <MemberAvatar
+                                                                name={m.senderName || "?"}
+                                                                id={m.senderId}
+                                                                imageUrl={participantAvatarMap.get(m.senderId || '')}
+                                                                size={24}
+                                                            />
+                                                            <span style={{ minWidth: 0, flex: 1 }}>
+                                                                <Text type="supporting" weight="semibold" color="primary">
+                                                                    {m.senderName} · {formatMessageTime(m.createdAt)}
+                                                                </Text>
+                                                                <Text type="supporting" color="primary" maxLines={2}>{m.content}</Text>
+                                                            </span>
                                                         </button>
                                                     ))}
                                                 </VStack>
@@ -2237,9 +2248,18 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                                             <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
                                                                 {chatAttachmentLabel(m)}
                                                             </Text>
-                                                            <Text type="supporting" color="secondary">
-                                                                {m.senderName} · {formatMessageTime(m.createdAt)}
-                                                            </Text>
+                                                            <span className="carev-meta-line">
+                                                                <span className="carev-meta-who">
+                                                                    <MemberAvatar
+                                                                        name={m.senderName || "?"}
+                                                                        id={m.senderId}
+                                                                        imageUrl={participantAvatarMap.get(m.senderId || '')}
+                                                                        size={16}
+                                                                    />
+                                                                    <Text type="supporting" color="secondary">{m.senderName}</Text>
+                                                                </span>
+                                                                <Text type="supporting" color="secondary">{formatMessageTime(m.createdAt)}</Text>
+                                                            </span>
                                                         </div>
                                                     </button>
                                                 ))}

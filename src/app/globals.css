@@ -88,6 +88,14 @@ html {
   outline: none;
 }
 
+/* Astryx 입력칸은 바깥 칸이 포커스를 그린다(틸 테두리 + 옅은 안쪽 띠). 위 전역 링이 안쪽 input에도
+   그려져 칸 안에 네모가 한 겹 더 보였다(2026-11-19, 채팅 검색·휴무 이름 검색 등 모든 입력칸).
+   안쪽 링만 끈다 — 포커스 표시는 바깥 칸이 그대로 한다. */
+:is(.astryx-text-input, .astryx-textarea, .astryx-number-input, .astryx-date-input,
+    .astryx-date-range-input, .astryx-date-time-input, .astryx-time-input) :is(input, textarea):focus-visible {
+  outline: none;
+}
+
 /* 동작 줄이기 설정 존중 (Astryx 모션 원칙) — framer-motion은 MotionConfig에서 처리 */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

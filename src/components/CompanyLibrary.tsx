@@ -23,6 +23,8 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Loading } from '@/components/Loading';
 import DocumentViewerModal from '@/components/DocumentViewerModal';
+import MemberAvatar from '@/components/MemberAvatar';
+import '@/styles/staff.css';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useStaggerOnce } from '@/hooks/useStaggerOnce';
 import { FiPlus, FiTrash2, FiDownload, FiEye, FiUploadCloud, FiFileText } from 'react-icons/fi';
@@ -312,12 +314,22 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
                           {item.description && (
                             <Text type="supporting" color="secondary">{item.description}</Text>
                           )}
-                          <Text type="supporting" color="disabled">
-                            {item.fileName}
-                            {formatFileSize(item.fileSize) ? ` (${formatFileSize(item.fileSize)})` : ''}
-                            {item.uploaderName ? ` · ${item.uploaderName}` : ''}
-                            {item.createdAt ? ` · ${formatListDate(item.createdAt)}` : ''}
-                          </Text>
+                          {/* 올린 사람은 사진과 함께 — 응답에 이름만 와서 회사에 한 명뿐인 이름일 때만 사진이 붙는다 */}
+                          <span className="carev-meta-line">
+                            <Text type="supporting" color="disabled">
+                              {item.fileName}
+                              {formatFileSize(item.fileSize) ? ` (${formatFileSize(item.fileSize)})` : ''}
+                            </Text>
+                            {item.uploaderName && (
+                              <span className="carev-meta-who">
+                                <MemberAvatar name={item.uploaderName} size={16} />
+                                <Text type="supporting" color="secondary">{item.uploaderName}</Text>
+                              </span>
+                            )}
+                            {item.createdAt && (
+                              <Text type="supporting" color="disabled">{formatListDate(item.createdAt)}</Text>
+                            )}
+                          </span>
                         </VStack>
                       </HStack>
                       <HStack gap={2} vAlign="center">

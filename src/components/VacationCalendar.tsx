@@ -29,6 +29,8 @@ import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 
 import { getVacationCalendar, getVacationForDate, getVacationDeadlineDates, getVacationEvents, type VacationEvent } from '@/lib/apiService';
 import VacationEventModal from './VacationEventModal';
+import MemberAvatar from './MemberAvatar';
+import '@/styles/staff.css';
 import { getHolidayName } from '@/lib/holidays';
 import {
   ALL_ROLE_FILTER,
@@ -626,7 +628,6 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
       width: 6,
       height: 6,
       borderRadius: 'var(--radius-full)',
-      marginRight: 'var(--spacing-1)',
     };
     if (status === 'approved') return { ...base, backgroundColor: 'var(--color-icon-teal)' };
     if (status === 'rejected') return { ...base, backgroundColor: 'var(--color-icon-red)' };
@@ -1033,7 +1034,11 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                           .slice(0, isExpanded ? vacations.length : COLLAPSED_VISIBLE_COUNT)
                           .map((vacation, idx) => (
                         <div key={idx} style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={cellStatusDotStyle(vacation.status)} title={getStatusText(vacation.status)} />
+                          {/* 얼굴 오른쪽 아래에 상태 점 — 점·얼굴·이름이 따로 서면 칸이 어수선하다(2026-11-19) */}
+                          <span className="carev-cal-face" title={getStatusText(vacation.status)}>
+                            <MemberAvatar name={vacation.userName || ''} id={vacation.userId} size={16} />
+                            <span className="carev-cal-face-dot" style={cellStatusDotStyle(vacation.status)} />
+                          </span>
                           {/* 이름을 누르면 그 사람 휴무만 필터링한다 (한 번 더 누르면 해제).
                               셀이 button이라 중첩 버튼은 만들 수 없어 마우스 클릭만 받고
                               전파를 끊는다 — 키보드로는 상단 직원 목록/검색으로 같은 필터가 가능하다. */}
@@ -1072,11 +1077,7 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                                 </span>
                               );
                             })()}
-                            {nameFilter === vacation.userName && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: 'var(--color-text-teal)' }}>
-                                <Icon icon="check" size="xsm" color="inherit" />
-                              </span>
-                            )}
+                            {/* 고른 사람은 틸 굵은 글씨로 보인다 — 얼굴이 들어오며 칸이 좁아 ✓ 표시는 뺐다(2026-11-19) */}
                           </span>
 
                         </div>
