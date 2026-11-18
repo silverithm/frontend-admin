@@ -2,6 +2,7 @@
 
 /* 결재 목록의 '지금 누구 차례' — 단계 점: 끝난 단계는 채움, 지금 단계는 테두리, 남은 단계는 빈 점 */
 .carev-turn { display: inline-flex; align-items: center; gap: var(--spacing-2); min-width: 0; }
+.carev-turn-who { display: inline-flex; align-items: center; gap: var(--spacing-1); min-width: 0; }
 .carev-turn-dots { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .carev-turn-dot {
   width: 8px;

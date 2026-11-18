@@ -132,6 +132,8 @@ interface NoticeItem {
   status?: string;
   createdAt?: string;
   authorName?: string;
+  /** 직원 번호 또는 시설장 이메일 — 작성자 사진 찾기용 */
+  authorId?: string;
   viewCount?: number;
 }
 
@@ -141,6 +143,7 @@ interface ApprovalItem {
   title?: string;
   templateName?: string;
   requesterName?: string;
+  requesterId?: string;
   createdAt?: string;
 }
 
@@ -209,11 +212,14 @@ interface ScheduleItem {
   taskCompleted?: number;
   /** 할 일 — 일정 필터의 담당자 묶음이 할 일 담당자까지 본다 */
   tasks?: { assigneeMemberId?: number | null; assigneeName?: string | null }[];
-  participants?: { id: number; memberName: string; userName?: string; status?: string }[];
+  /** userId — 참석 직원 번호(사진 찾기용) */
+  participants?: { id: number; userId?: string; memberName: string; userName?: string; status?: string }[];
 }
 
 interface VacationCalendarItem {
   id: string;
+  /** 휴무 신청자 — 대개 직원 번호(사진 찾기용) */
+  userId?: string;
   userName?: string;
   memberName?: string;
   name?: string;
@@ -1179,11 +1185,28 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                   borderLeft: '1px solid var(--color-border)',
                 }}
               >
-                <Text type="supporting" color="secondary" maxLines={2}>
-                  {employeeAttendance.vacationNames.length > 0
-                    ? `오늘 휴무 · ${employeeAttendance.vacationNames.join(', ')}`
-                    : '오늘 휴무 없음'}
-                </Text>
+                {employeeAttendance.vacationNames.length > 0 ? (
+                  // 오늘 휴무인 사람 얼굴(2026-11-18) — 이름만 늘어놓으면 누가 빠졌는지 한눈에 안 들어온다.
+                  // 출결 응답에는 이름만 와서, 같은 날 휴무 목록의 직원 번호로 사진을 찾는다
+                  <div className="carev-dash-offtoday">
+                    <Text type="supporting" color="secondary">오늘 휴무</Text>
+                    {employeeAttendance.vacationNames.slice(0, 6).map((name, i) => (
+                      <span key={`${name}-${i}`} className="carev-dash-offtoday-person">
+                        <MemberAvatar
+                          name={name}
+                          id={vacationCalendar.find((v) => (v.userName || v.memberName || v.name) === name)?.userId}
+                          size={20}
+                        />
+                        <Text type="supporting" color="primary">{name}</Text>
+                      </span>
+                    ))}
+                    {employeeAttendance.vacationNames.length > 6 && (
+                      <Text type="supporting" color="secondary">외 {employeeAttendance.vacationNames.length - 6}명</Text>
+                    )}
+                  </div>
+                ) : (
+                  <Text type="supporting" color="secondary">오늘 휴무 없음</Text>
+                )}
               </div>
             )}
           </div>
@@ -1357,10 +1380,21 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           {notice.priority === 'HIGH' && <Badge variant="red" label="긴급" />}
                           <Text type="body" weight="semibold" color="primary" maxLines={1}>{notice.title}</Text>
                         </HStack>
-                        <Text type="supporting" color="secondary">
-                          {notice.authorName && `${notice.authorName} · `}
-                          {notice.createdAt ? formatListDate(notice.createdAt) : ''}
-                        </Text>
+                        <HStack gap={1} vAlign="center">
+                          {/* 서버가 작성자를 '관리자'로 고정하는 때는 사진을 붙이지 않는다(공지 화면과 같은 규칙) */}
+                          {notice.authorName && notice.authorName !== '관리자' && (
+                            <MemberAvatar
+                              name={notice.authorName}
+                              id={notice.authorId?.includes('@') ? undefined : notice.authorId}
+                              email={notice.authorId?.includes('@') ? notice.authorId : undefined}
+                              size={20}
+                            />
+                          )}
+                          <Text type="supporting" color="secondary">
+                            {notice.authorName && `${notice.authorName} · `}
+                            {notice.createdAt ? formatListDate(notice.createdAt) : ''}
+                          </Text>
+                        </HStack>
                       </div>
                     </ClickableRow>
                   ))}
@@ -1419,10 +1453,15 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>
                           {approval.title || approval.templateName || '결재 요청'}
                         </Text>
-                        <Text type="supporting" color="secondary">
-                          {approval.requesterName && `${approval.requesterName} · `}
-                          {approval.createdAt ? formatListDate(approval.createdAt) : ''}
-                        </Text>
+                        <HStack gap={1} vAlign="center">
+                          {approval.requesterName && (
+                            <MemberAvatar name={approval.requesterName} id={approval.requesterId} size={20} />
+                          )}
+                          <Text type="supporting" color="secondary">
+                            {approval.requesterName && `${approval.requesterName} · `}
+                            {approval.createdAt ? formatListDate(approval.createdAt) : ''}
+                          </Text>
+                        </HStack>
                       </div>
                       <div style={{ flexShrink: 0 }}>
                         <Badge variant="yellow" label="대기" />
@@ -2168,7 +2207,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                                   <div style={{ marginTop: 'var(--spacing-1)' }}>
                                     <HStack gap={1.5} vAlign="center" wrap="wrap">
                                       {task.assigneeName ? (
-                                        <Badge variant="neutral" label={task.assigneeName} icon={<Icon icon={IconUserCheck} size="xsm" />} />
+                                        <span className="carev-dash-person-pill">
+                                          <MemberAvatar name={task.assigneeName} id={task.assigneeMemberId} size={20} />
+                                          <Text type="supporting" color="primary">{task.assigneeName}</Text>
+                                        </span>
                                       ) : (
                                         <Badge variant="neutral" label="담당자 미지정" />
                                       )}
@@ -2324,7 +2366,13 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                     </div>
                     <VStack gap={1} align="start">
                       <Text type="supporting" weight="medium" color="secondary">담당자</Text>
-                      <Badge variant="teal" label={selectedSchedule.managerName} />
+                      {/* 사진 달린 이름(2026-11-18) — 월간일정 상세와 같은 모양 */}
+                      <MemberName
+                        name={selectedSchedule.managerName}
+                        id={selectedSchedule.managerId}
+                        type={selectedSchedule.managerType}
+                        size={24}
+                      />
                     </VStack>
                   </HStack>
                 )}
@@ -2339,7 +2387,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                       <Text type="supporting" weight="medium" color="secondary">참석자</Text>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1-5)' }}>
                         {selectedSchedule.participants.map((p, i) => (
-                          <Badge key={i} variant="neutral" label={p.memberName || p.userName || '참석자'} />
+                          <span key={i} className="carev-dash-person-pill">
+                            <MemberAvatar name={p.memberName || p.userName || '참석자'} id={p.userId} size={20} />
+                            <Text type="supporting" color="primary">{p.memberName || p.userName || '참석자'}</Text>
+                          </span>
                         ))}
                       </div>
                     </VStack>

@@ -2018,6 +2018,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     onClick={() => { setSelectedRoom(null); setShowDrawer(false); setSidePanel(null); }}
                                 />
                             </span>
+                            {/* 방 얼굴(2026-11-18) — 목록과 같은 원. 1:1 방이면 상대 사진이라 누구와 말하는지 바로 보인다 */}
+                            <ChatRoomAvatarStack
+                                roomName={rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}
+                                people={rooms.find(r => r.id === selectedRoom)?.avatars || []}
+                                size={36}
+                            />
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <Text type="large" weight="semibold" maxLines={1}>
                                     {rooms.find(r => r.id === selectedRoom)?.name || "채팅방"}

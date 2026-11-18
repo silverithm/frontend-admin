@@ -1,6 +1,7 @@
 'use client';
 
 import { Text } from '@astryxdesign/core/Text';
+import MemberAvatar from '@/components/MemberAvatar';
 import type { ApprovalStep, ApprovalStatus } from '@/types/approval';
 import '@/styles/staff.css';
 
@@ -33,7 +34,11 @@ export function ApprovalTurnLine({ status, approvalLine }: ApprovalTurnLineProps
           />
         ))}
       </span>
-      <Text type="supporting" color="secondary">{text}</Text>
+      {/* 지금 차례인 사람 얼굴(2026-11-18) — 결재가 누구에게서 멈춰 있는지 이름보다 먼저 들어온다 */}
+      <span className="carev-turn-who">
+        <MemberAvatar name={current.approverName} id={current.approverId} type={current.approverType} size={16} />
+        <Text type="supporting" color="secondary">{text}</Text>
+      </span>
     </span>
   );
 }

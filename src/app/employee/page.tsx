@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { logout as apiLogout, getMemberPermissions } from '@/lib/apiService';
+import MemberAvatar from '@/components/MemberAvatar';
 import { useAlert } from '@/components/Alert';
 import EmployeeCalendar from '@/components/EmployeeCalendar';
 import { PageHeader } from '@/components/PageHeader';
@@ -54,7 +55,6 @@ import {
   IconFileText,
   IconUsers,
   IconLogout,
-  IconUser,
   IconUsersGroup,
   IconMailbox,
   IconFolder,
@@ -98,6 +98,8 @@ export default function EmployeePage() {
   const [activeTool, setActiveTool] = useState<ToolKey>('meetingMinutes');
   const toolInitializedRef = useRef(false);
   const [userName, setUserName] = useState('');
+  /** 직원 로그인 때 userId에 직원 번호가 남는다 — 사이드바 아래 내 사진 찾기용 */
+  const [myMemberId, setMyMemberId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
   /** 근무조정 관리 권한이 있을 때 보는 달 (관리자 화면과 같은 달력을 쓴다) */
@@ -126,6 +128,7 @@ export default function EmployeePage() {
     const company = localStorage.getItem('companyName') || '';
     setUserName(name);
     setCompanyName(company);
+    setMyMemberId(localStorage.getItem('userId'));
     // 배차 권한이 있으면 기존처럼 '배차관리'가 먼저 뜨고, 없는 직원만 '회의록'이 먼저 뜬다.
     // 권한을 아직 모르는 시점에 한 번만 정하고, 이후 권한이 새로고침돼도 사용자가 고른 탭을 덮어쓰지 않는다.
     const initTool = (perms: Permission[]) => {
@@ -298,7 +301,8 @@ export default function EmployeePage() {
             <ExternalLinksNav />
             <div style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-                <Icon icon={IconUser} size="sm" color="secondary" />
+                {/* 내 사진(2026-11-18) — 예전엔 사람 모양 아이콘. 사진이 없으면 이름 첫 글자 */}
+                <MemberAvatar name={userName || '직원'} id={myMemberId} size={32} />
                 <div style={{ minWidth: 0 }}>
                   <Text as="p" type="supporting" weight="medium" color="primary" maxLines={1}>{userName}</Text>
                   <Text as="p" type="supporting" color="secondary">직원</Text>

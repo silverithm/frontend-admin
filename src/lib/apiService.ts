@@ -3368,6 +3368,8 @@ export interface MyNotification {
     relatedEntityId: number | null;
     relatedEntityType: string | null;
     createdAt: string;
+    /** 알림을 일으킨 사람 — 직원 "12", 시설장 "admin_3" (서버 V1.111.0부터, 리마인더·옛 알림은 없다) */
+    actorId?: string | null;
 }
 
 /** 확인하지 않은 알림 (최근 며칠, 새것부터) */

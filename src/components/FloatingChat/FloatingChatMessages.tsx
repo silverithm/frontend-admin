@@ -10,7 +10,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Avatar } from "@astryxdesign/core/Avatar";
 import { ChatFileCard } from "@/components/chat/ChatFileCard";
-import { ChatRoomAvatarStack } from "@/components/chat/ChatRoomAvatarStack";
+import { ChatRoomAvatarStack, type ChatRoomAvatarPerson } from "@/components/chat/ChatRoomAvatarStack";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Loading } from "@/components/Loading";
 import DocumentViewerModal from "@/components/DocumentViewerModal";
@@ -56,6 +56,8 @@ const C = {
 interface FloatingChatMessagesProps {
     roomId: number;
     roomName: string;
+    /** 방 얼굴(목록과 같은 원) — 1:1 방이면 상대 사진 */
+    roomAvatars?: ChatRoomAvatarPerson[];
     participantCount: number;
     messages: ChatMessage[];
     isLoadingMessages: boolean;
@@ -100,6 +102,7 @@ function formatMessageTime(timestamp: string) {
 export function FloatingChatMessages({
     roomId,
     roomName,
+    roomAvatars,
     participantCount,
     messages,
     isLoadingMessages,
@@ -792,6 +795,7 @@ export function FloatingChatMessages({
                     icon={<Icon icon="chevronLeft" size="md" />}
                     onClick={onBack}
                 />
+                <ChatRoomAvatarStack roomName={roomName} people={roomAvatars || []} size={28} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <Text type="body" weight="semibold" color="primary" maxLines={1}>{roomName}</Text>
                     <Text type="supporting" color="secondary">참여자 {participantCount}명</Text>

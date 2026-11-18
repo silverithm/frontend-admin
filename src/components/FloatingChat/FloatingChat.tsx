@@ -735,6 +735,7 @@ export function FloatingChat() {
                                         <FloatingChatMessages
                                             roomId={selectedRoomId!}
                                             roomName={selectedRoom?.name || "채팅방"}
+                                            roomAvatars={selectedRoom?.avatars}
                                             participantCount={selectedRoom?.participantCount || 0}
                                             messages={messages}
                                             isLoadingMessages={isLoadingMessages}

@@ -197,3 +197,17 @@ export function useMemberPhoto(ref: PersonRef, known?: string | null): string | 
     }, [known, load]);
     return known || photo;
 }
+
+/**
+ * 사람 한 명 — 이름과 사진을 함께 쓰는 곳(알림 카드처럼 사람 번호만 오는 곳)을 위해.
+ * 못 찾으면 null — 남의 얼굴을 붙이느니 그리지 않는다.
+ */
+export function useDirectoryPerson(ref: PersonRef): DirectoryPerson | null {
+    const load = useMemberDirectory((s) => s.load);
+    const hasRef = Boolean(ref.id || ref.email);
+    const person = useMemberDirectory((s) => (hasRef ? findPerson(s, ref) : null));
+    useEffect(() => {
+        if (hasRef) void load();
+    }, [hasRef, load]);
+    return person;
+}
