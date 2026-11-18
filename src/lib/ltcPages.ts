@@ -3,6 +3,7 @@
 // 기준표 숫자는 원문과 대조한 날을 lastModified로 쓴다.
 
 import { LTC_VERIFIED_AT } from './ltc2026';
+import { HOME_CARE_VERIFIED_AT } from './ltcHomeCare';
 import { STAFFING_VERIFIED_AT } from './ltcStaffing';
 import { BONUS_VERIFIED_AT } from './ltcStaffingBonus';
 import { STANDARD_HOURS_VERIFIED_AT } from './ltcStandardHours';
@@ -22,6 +23,12 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '2026년 주·야간보호 수가표',
     summary: '등급과 하루 이용시간에 따른 1일 급여비용. 일반 주·야간보호와 치매전담실을 함께 정리했습니다.',
     lastModified: LTC_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/home-care-fee-2026',
+    title: '2026년 방문요양 수가표',
+    summary: '1회 급여제공시간별 급여비용(가-1~가-8), 등급별 제한, 하루 3회·2시간 간격, 중증·심야·휴일 가산, 가족인 요양보호사, 월 한도액 안 이용 횟수.',
+    lastModified: HOME_CARE_VERIFIED_AT,
   },
   {
     path: '/ltc/monthly-limit-2026',

@@ -176,7 +176,8 @@ export default function MonthlyLimit2026Page() {
             </ul>
             <p>
               한 달 본인부담금이 얼마인지는 <Link href="/ltc/daycare-copay-calculator">본인부담금 계산기</Link>로, 1일 금액은{' '}
-              <Link href="/ltc/daycare-fee-2026">2026년 주·야간보호 수가표</Link>로 확인하세요.
+              <Link href="/ltc/daycare-fee-2026">2026년 주·야간보호 수가표</Link>로 확인하세요. 방문요양을 한도 안에서 몇 번 받을 수
+              있는지는 <Link href="/ltc/home-care-fee-2026">2026년 방문요양 수가표</Link>에 등급별로 계산해 두었습니다.
             </p>
           </div>
         </LtcBlock>
