@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
@@ -13,7 +13,9 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Link } from '@astryxdesign/core/Link';
 import Navbar from '@/components/Navbar';
+import { splitLinkedText, type TextLink } from '@/lib/linkedText';
 import { duration } from '@/theme/motion';
 
 interface GuideStep {
@@ -23,7 +25,9 @@ interface GuideStep {
 
 interface GuideSection {
     heading: string;
+    /** 평문. 그 안의 글자 일부를 links로 블로그 글에 잇는다 */
     description: string;
+    links?: TextLink[];
     steps: GuideStep[];
 }
 
@@ -34,7 +38,8 @@ interface GuideSection {
 const ADMIN_GUIDE: GuideSection[] = [
     {
         heading: '관리자 시작하기',
-        description: '기관 계정을 만들고 직원을 합류시키는 첫 단계입니다.',
+        description: '기관 계정을 만들고 직원을 합류시키는 첫 단계입니다. 단계마다 확인할 것은 ‘케어브이 시작하기’ 글에 정리했습니다.',
+        links: [{ text: '케어브이 시작하기', href: '/blog/getting-started-admin-and-staff' }],
         steps: [
             {
                 title: '1. 회원가입',
@@ -58,7 +63,9 @@ const ADMIN_GUIDE: GuideSection[] = [
     },
     {
         heading: '휴무 요청 처리하기',
-        description: '근무조정 메뉴에서 직원의 휴무 신청을 확인하고 처리합니다.',
+        description:
+            '근무조정 메뉴에서 직원의 휴무 신청을 확인하고 처리합니다. 신청부터 승인까지의 흐름은 ‘휴무 신청부터 승인까지’ 글에 정리했습니다.',
+        links: [{ text: '휴무 신청부터 승인까지', href: '/blog/vacation-request-flow' }],
         steps: [
             {
                 title: '신청 확인과 처리',
@@ -80,7 +87,14 @@ const ADMIN_GUIDE: GuideSection[] = [
     },
     {
         heading: '전자결재 준비하기',
-        description: '자주 쓰는 문서를 양식으로 등록해두면, 다음부터는 빈칸만 채워 올립니다.',
+        description:
+            '자주 쓰는 문서를 양식으로 등록해두면, 다음부터는 빈칸만 채워 올립니다. 종이 결재에서 옮길 때 준비할 것은 ‘장기요양기관 인력관리, 휴무 관리부터 전자결재 도입까지’ 글에 정리했습니다.',
+        links: [
+            {
+                text: '장기요양기관 인력관리, 휴무 관리부터 전자결재 도입까지',
+                href: '/blog/ltc-facility-workforce-and-approval-guide',
+            },
+        ],
         steps: [
             {
                 title: '1. 양식 등록 — 전자결재 > 양식 관리',
@@ -171,7 +185,9 @@ const ADMIN_GUIDE: GuideSection[] = [
     },
     {
         heading: '그 밖의 메뉴',
-        description: '휴무 관리 외에 기관 운영에 쓰는 메뉴입니다.',
+        description:
+            '휴무 관리 외에 기관 운영에 쓰는 메뉴입니다. 관리자 페이지의 주요 메뉴가 하는 일은 ‘관리자 페이지 메뉴 한눈에 보기’ 글에도 정리했습니다.',
+        links: [{ text: '관리자 페이지 메뉴 한눈에 보기', href: '/blog/admin-menu-overview' }],
         steps: [
             {
                 title: '소통',
@@ -221,7 +237,9 @@ const EMPLOYEE_GUIDE: GuideSection[] = [
     },
     {
         heading: '휴무 신청하기',
-        description: '앱 또는 웹에서 휴무를 신청하고 결과를 확인합니다.',
+        description:
+            '앱 또는 웹에서 휴무를 신청하고 결과를 확인합니다. 연차·반차·필수 휴무를 구분해 쓰는 법은 ‘휴무 신청부터 승인까지’ 글에 정리했습니다.',
+        links: [{ text: '휴무 신청부터 승인까지', href: '/blog/vacation-request-flow' }],
         steps: [
             {
                 title: '신청 절차',
@@ -338,7 +356,17 @@ export default function GuidePage() {
                                                 label={activeTab === 'admin' ? '관리자' : '직원'}
                                             />
                                         </HStack>
-                                        <Text color="secondary">{section.description}</Text>
+                                        <Text color="secondary">
+                                            {splitLinkedText(section.description, section.links).map((segment, index) =>
+                                                segment.href ? (
+                                                    <Link key={index} href={segment.href}>
+                                                        {segment.text}
+                                                    </Link>
+                                                ) : (
+                                                    <Fragment key={index}>{segment.text}</Fragment>
+                                                )
+                                            )}
+                                        </Text>
                                     </VStack>
 
                                     <Grid columns={{ minWidth: 320, repeat: 'fit' }} gap={5}>

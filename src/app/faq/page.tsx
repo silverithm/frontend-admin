@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Section } from '@astryxdesign/core/Section';
 import { Card } from '@astryxdesign/core/Card';
@@ -12,8 +12,10 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Link } from '@astryxdesign/core/Link';
 import Navbar from '@/components/Navbar';
 import { FAQ_CATEGORIES as CATEGORIES, FAQ_DATA } from '@/lib/faqData';
+import { splitLinkedText } from '@/lib/linkedText';
 import { duration } from '@/theme/motion';
 
 export default function FAQPage() {
@@ -82,7 +84,18 @@ export default function FAQPage() {
                                             defaultIsOpen={false}
                                             trigger={item.question}
                                         >
-                                            <Text color="secondary">{item.answer}</Text>
+                                            {/* 글자는 answer 그대로(구조화 데이터와 같게), links에 적힌 글자만 링크로 */}
+                                            <Text color="secondary">
+                                                {splitLinkedText(item.answer, item.links).map((segment, index) =>
+                                                    segment.href ? (
+                                                        <Link key={index} href={segment.href}>
+                                                            {segment.text}
+                                                        </Link>
+                                                    ) : (
+                                                        <Fragment key={index}>{segment.text}</Fragment>
+                                                    )
+                                                )}
+                                            </Text>
                                         </Collapsible>
                                     </Section>
                                 ))}
