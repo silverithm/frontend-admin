@@ -1552,7 +1552,7 @@ export default function AdminPage() {
             {/* 메인 콘텐츠 */}
             {/* 본문 + 우측 상시 채팅 레일 */}
             <div className="carev-admin-body">
-            <main className="carev-shell-main" data-fab={activeMainTab !== "chat"} style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
+            <main className="carev-shell-main" style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: "auto", padding: 'var(--spacing-4)', display: "flex", flexDirection: "column" }}>
                 {/* 탭별 컨텐츠 — 탭 키로 래퍼가 다시 마운트될 때 .carev-enter(globals.css 반응 C)가
                     200ms 동안 6px 아래에서 떠오르며 나타난다. 나가는 쪽은 움직이지 않는다(기다리게 하지 않는다).
                     예전 AnimatePresence(mode="wait")는 옛 본문이 사라질 때까지 새 본문을 붙잡아 두었다. */}

@@ -376,7 +376,7 @@ export default function EmployeePage() {
 
           {/* 메인 콘텐츠 */}
           <div className="carev-emp-body">
-          <main className="carev-shell-main" data-fab={activeMainTab !== 'chat'} style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
+          <main className="carev-shell-main" style={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', width: '100%', padding: 'var(--spacing-4) var(--spacing-3)', display: 'flex', flexDirection: 'column' }}>
             {/* 탭별 콘텐츠 — 탭 키로 래퍼가 다시 마운트될 때 .carev-enter(globals.css 반응 C)가
                 200ms 동안 6px 아래에서 떠오르며 나타난다. 나가는 쪽은 움직이지 않는다(기다리게 하지 않는다). */}
             <>
