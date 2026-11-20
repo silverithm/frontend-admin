@@ -11,7 +11,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Loading } from '@/components/Loading';
+import { Skeleton } from '@astryxdesign/core/Skeleton';
+import { ListSkeletonRows, skelBarWidths } from '@/components/CalendarLoading';
 import { VStack, HStack } from '@astryxdesign/core/Stack';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
@@ -508,10 +509,9 @@ export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened
           </div>
 
           {/* 캘린더 그리드 */}
-          {isLoading ? (
-            <Loading label="달력을 불러오는 중..." />
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+          {/* 로딩 중에도 달력 틀·날짜는 그대로 두고 칸 안만 뼈대로 채운다. 스피너로 갈아끼우면 데이터가 튀어나온다(2026-11-20) */}
+          {(
+            <div className={isLoading ? undefined : 'carev-content-in'} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
               {calendarDays.map((date, index) => {
                 if (!date) {
                   return (
@@ -528,7 +528,7 @@ export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened
                 }
 
                 // 휴가 데이터 가져오기
-                const allVacations = getVacationsForDate(date);
+                const allVacations = isLoading ? [] : getVacationsForDate(date);
                 const vacations = allVacations;
                 const myVacations = vacations.filter(v => v.userName === userName);
                 const hasVacation = vacations.length > 0;
@@ -633,7 +633,7 @@ export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened
                       ))}
                       {/* 휴무 제한 표시 */}
                       {(() => {
-                        const maxPeople = getMaxPeopleForDate(date);
+                        const maxPeople = isLoading ? null : getMaxPeopleForDate(date);
                         if (maxPeople !== null && maxPeople > 0) {
                           const currentCount = vacations.filter(v => v.status?.toLowerCase() === 'approved').length;
                           const isFull = currentCount >= maxPeople;
@@ -645,6 +645,13 @@ export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened
                         }
                         return null;
                       })()}
+                      {isLoading && isSameMonth(date, currentDate) && (
+                        <div className="carev-skel-rows" aria-hidden="true" style={{ marginTop: 'var(--spacing-1)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-0-5)' }}>
+                          {skelBarWidths(date.getDate() + date.getMonth() * 3).map((w, i) => (
+                            <Skeleton key={i} width={`${w}%`} height={14} radius="rounded" index={(index % 7) + i} />
+                          ))}
+                        </div>
+                      )}
                       {hasVacation && (
                         <div
                           style={{
@@ -724,9 +731,13 @@ export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened
                   {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                 </Text>
                 <HStack gap={3} vAlign="center">
-                  <Text type="supporting">{dayVacations.length}명 휴무</Text>
+                  {isLoading ? (
+                    <div className="carev-skel-rows"><Skeleton width={72} height={14} radius={2} /></div>
+                  ) : (
+                    <Text type="supporting">{dayVacations.length}명 휴무</Text>
+                  )}
                   {(() => {
-                    const maxPeople = getMaxPeopleForDate(selectedDate);
+                    const maxPeople = isLoading ? null : getMaxPeopleForDate(selectedDate);
                     if (maxPeople !== null && maxPeople > 0) {
                       const approvedCount = dayVacations.filter(v => v.status?.toLowerCase() === 'approved').length;
                       const remaining = maxPeople - approvedCount;
@@ -747,6 +758,7 @@ export default function EmployeeCalendar({ autoOpenRequest = false, onAutoOpened
               {/* 휴가 목록 표시 */}
               {(() => {
                 const filteredVacations = dayVacations;
+                if (isLoading) return <ListSkeletonRows rows={3} rowHeight={72} />;
                 return filteredVacations.length > 0 ? (
                 <VStack gap={3}>
                   {filteredVacations.map((vacation, index) => {

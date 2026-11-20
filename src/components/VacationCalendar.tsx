@@ -14,6 +14,8 @@ import {
 } from '@/types/vacation';
 import AdminPanel from './AdminPanel';
 import CalendarSkeleton from './CalendarSkeleton';
+import { Skeleton } from '@astryxdesign/core/Skeleton';
+import { skelBarWidths } from './CalendarLoading';
 import AdminVacationAddModal from './AdminVacationAddModal';
 import { FiRefreshCw, FiAlertCircle, FiCamera, FiUserPlus, FiDownload, FiSliders, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import * as htmlToImage from 'html-to-image';
@@ -1019,14 +1021,15 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
                 )}
 
                 {isCurrentMonth && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', maxHeight: isExpanded ? 'none' : COLLAPSED_LIST_MAX_HEIGHT, overflow: isExpanded ? undefined : 'hidden' }}>
+                  <div className={isLoading ? undefined : 'carev-content-in'} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', maxHeight: isExpanded ? 'none' : COLLAPSED_LIST_MAX_HEIGHT, overflow: isExpanded ? undefined : 'hidden' }}>
                     {isLoading ? (
-                      // 로딩 중일 때 스켈레톤 표시
-                      <>
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="skeleton" style={{ borderRadius: 'var(--radius-full)', width: '100%', height: 14 }}></div>
+                      // 로딩 중일 때 스켈레톤 표시. 예전 .skeleton은 칸 바탕과 거의 같은 색이라 로딩 내내 빈 칸으로 보였다(2026-11-20) —
+                      // 보이는 막대(.carev-skel-rows)로 바꾸고, 날짜마다 줄 수·길이를 달리해 한 덩어리 무늬로 보이지 않게 한다.
+                      <div className="carev-skel-rows" aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+                        {skelBarWidths(day.getDate() + day.getMonth() * 3).map((w, i) => (
+                          <Skeleton key={i} width={`${w}%`} height={14} radius="rounded" index={index % 7 + i} />
                         ))}
-                      </>
+                      </div>
                     ) : vacations && vacations.length > 0 ? (
                       // 데이터가 있을 때
                       <>

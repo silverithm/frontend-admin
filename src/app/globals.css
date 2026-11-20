@@ -221,10 +221,18 @@ html {
 /* 상단 요약 카드 높이 — 각 카드가 두 줄만 보여주므로 높이를 내용에 맡기고(auto),
    남는 높이는 전부 월간일정(마지막 행)이 가져간다. 고정값을 쓰면 두 줄이 잘리거나
    빈 공간이 남는데, auto면 줄 수만 바꿔도 알아서 맞는다. */
+/* 월간일정 칸의 최소 높이(2026-11-20) — 예전엔 마지막 줄이 minmax(0, 1fr)이라 1280×800 같은 낮은 화면에
+   '내 할 일'까지 있으면 달력이 0으로 눌려 머리줄만 남았다. 이제 최소 높이 아래로는 줄지 않고
+   대시보드가 아래로 넘어가 본문(main)이 스크롤된다. 넓은 화면은 지금처럼 남는 높이를 다 가져간다.
+   달력 칸은 크기 격리(contain: size)로 제 내용 높이를 내세우지 않는다 — 안 그러면 주 칸 바닥값만큼(약 480px)
+   늘어나 큰 화면에서도 스크롤이 생겼다. 달력 안은 원래 제 안에서 스크롤한다. */
+.carev-dash-panels { --carev-dash-cal-min: 360px; }
 @media (min-width: 1024px) {
+  /* 폭이 좁아 줄이 auto인 휴대폰에서는 격리하면 달력이 0이 된다 — 줄 높이를 격자가 정하는 1024 이상만 */
+  .carev-dash-panel-cal { contain: size; }
   .carev-dash-panels {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, auto) minmax(0, 1fr);
+    grid-template-rows: repeat(2, auto) minmax(var(--carev-dash-cal-min), 1fr);
   }
   .carev-dash-panel-full { grid-column: 1 / -1; }
   .carev-dash-panel-news { grid-column: 1 / -1; }
@@ -232,15 +240,15 @@ html {
   .carev-dash-panels > * { min-height: 0; }
   /* 내 할 일이 맨 위 한 줄을 더 쓰면 요약 카드 줄이 fr 트랙으로 밀려 0으로 눌리고,
      월간일정이 암묵 행으로 빠진다. 줄 수를 하나 늘려 월간일정이 계속 마지막 fr을 갖게 한다. */
-  .carev-dash-panels--tasks { grid-template-rows: repeat(3, auto) minmax(0, 1fr); }
+  .carev-dash-panels--tasks { grid-template-rows: repeat(3, auto) minmax(var(--carev-dash-cal-min), 1fr); }
 }
 @media (min-width: 1440px) {
   .carev-dash-panels {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(var(--carev-dash-cal-min), 1fr);
   }
   .carev-dash-panel-news { grid-column: auto; }
-  .carev-dash-panels--tasks { grid-template-rows: auto auto minmax(0, 1fr); }
+  .carev-dash-panels--tasks { grid-template-rows: auto auto minmax(var(--carev-dash-cal-min), 1fr); }
 }
 .carev-dash-clock { display: none; }
 @media (min-width: 640px) { .carev-dash-clock { display: block; } }
@@ -2152,6 +2160,12 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .carev-skel-rows .astryx-skeleton { animation: none !important; opacity: 1 !important; }
 }
+
+/* B-2. 뼈대 → 실제 내용 — 달력·목록이 로드되면 내용이 0.18초 동안 옅게 떠오른다(2026-11-20).
+   뼈대가 갑자기 내용으로 바뀌며 튀는 것을 막는 용도라 위치 이동 없이 투명도만 쓴다. */
+@keyframes carev-content-in { from { opacity: 0; } to { opacity: 1; } }
+.carev-content-in { animation: carev-content-in 180ms var(--ease-standard) backwards; }
+@media (prefers-reduced-motion: reduce) { .carev-content-in { animation: none; } }
 
 /* C. 전환 — 탭을 바꿔 본문이 갈릴 때 새 본문이 6px 아래에서 떠오르며 나타난다(200ms, --ease-standard).
    셸(관리자·직원)의 탭 키로 다시 마운트되는 본문 래퍼 한 곳에만 단다. 나가는 쪽 움직임은 없다.

@@ -16,7 +16,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
-import { Skeleton } from '@astryxdesign/core/Skeleton';
+import DashboardSkeleton from './DashboardSkeleton';
+import { CalendarCellBars } from './CalendarLoading';
 import { CountUp } from './CountUp';
 import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
@@ -1038,22 +1039,14 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
   );
 
   if (isLoading) {
-    return (
-      <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
-        <div style={{ height: 56 }} />
-        <div className="carev-dash-panels" style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1 }}>
-          <Skeleton height={340} radius={3} />
-          <Skeleton height={340} radius={3} />
-          <div className="carev-dash-panel-full">
-            <Skeleton height={480} radius={3} />
-          </div>
-        </div>
-      </div>
-    );
+    // 실제 화면과 같은 틀의 뼈대 — 회색 판 세 장이면 데이터가 들어올 때 구조가 통째로 바뀌어 튄다(2026-11-20)
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div className="carev-dash-root" style={{ display: 'flex', minHeight: 0, flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
+    // 높이를 내용 아래로 줄이지 않는다(min-height: auto) — 화면이 낮으면 칸들이 눌리는 대신 대시보드가
+    // 아래로 넘어가 본문이 스크롤된다(2026-11-20). 달력 칸은 .carev-dash-panel-cal이 최소 높이만 내세운다.
+    <div className="carev-dash-root" style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 'var(--spacing-3)', paddingBottom: 'var(--spacing-4)' }}>
       {/* 1. Header Bar */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -1219,7 +1212,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: duration.mediumMin, delay: 0.15 }}
         className={myTasks.length > 0 ? "carev-dash-panels carev-dash-panels--tasks" : "carev-dash-panels"}
-        style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1, minHeight: 0 }}
+        style={{ display: 'grid', gap: 'var(--spacing-3)', flex: 1 }}
       >
         {/* 내 할 일 — 담당자로 지정된 업무를 여기서 바로 완료 처리한다 */}
         {myTasks.length > 0 && (
@@ -1535,7 +1528,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
         </div>
 
         {/* Bottom: 월간일정 (하단 전체 폭) */}
-        <div className="carev-dash-panel-full">
+        <div className="carev-dash-panel-full carev-dash-panel-cal">
           <Card padding={0} height="100%">
             <VStack gap={0} height="100%">
                   <div style={{ ...subheaderStyle, padding: 'var(--spacing-3) var(--spacing-4)' }}>
@@ -1550,7 +1543,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         <VStack gap={0} align="start">
                           <Text type="body" weight="bold" color="primary">월간일정</Text>
                           <Text type="supporting" color="secondary">
-                            {format(calendarMonth, 'yyyy년 M월', { locale: ko })} · {visibleMonthlySchedules.length}건
+                            {format(calendarMonth, 'yyyy년 M월', { locale: ko })}{isMonthLoading ? '' : ` · ${visibleMonthlySchedules.length}건`}
                             {isMonthLoading ? ' · 불러오는 중' : ''}
                           </Text>
                         </VStack>
@@ -1669,7 +1662,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 </div>
                 {/* 주 단위로 감싼다 — 여러 날 일정을 이어 그리는 바가 주 안에서 좌표를 잡기 때문.
                     행이 바닥값보다 낮아질 만큼 패널이 낮으면 잘리는 대신 스크롤한다 (월간일정 탭과 같은 안전판) */}
-                <div ref={weeksAreaRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <div ref={weeksAreaRef} className={isMonthLoading ? undefined : 'carev-content-in'} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {monthlyCalendarDays.weeks.map((week, weekIndex) => {
                   const layout = monthlyWeekBars[weekIndex];
                   // 펼침 모드에서는 행이 높이를 나눠 갖는 대신, 그 주에 실제로 그려야 하는
@@ -1698,7 +1691,8 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 >
                   {week.map(({ date, dayStr, inMonth, todayFlag, dayOfWeek, scheduleCount, daySchedules }) => {
                     const hiddenCount = layout?.hiddenCounts[dayStr] || 0;
-                    const dayVacations = monthVacations.get(dayStr) || [];
+                    // 달을 넘기는 동안은 이전 달 데이터를 새 달 날짜에 얹지 않는다 — 뼈대만 보인다(2026-11-20)
+                    const dayVacations = isMonthLoading ? [] : monthVacations.get(dayStr) || [];
                     const isLastWeek = weekIndex === monthlyCalendarDays.weeks.length - 1;
                     return (
                       <button
@@ -1741,7 +1735,17 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                           {format(date, 'd')}
                         </span>
                         {/* 오른쪽(또는 칸 전체) 휴무자 명단 */}
-                        {showsVacations(pane) && inMonth && (
+                        {isMonthLoading && inMonth && (
+                          <CalendarCellBars
+                            seed={date.getDate() + date.getMonth() * 3}
+                            barHeight={DASH_BAR_HEIGHT}
+                            gap={DASH_BAR_GAP}
+                            top={DASH_BAR_AREA_TOP}
+                            inset={DASH_BAR_EDGE_INSET}
+                            index={weekIndex + dayOfWeek}
+                          />
+                        )}
+                        {!isMonthLoading && showsVacations(pane) && inMonth && (
                           <CalendarVacationPane
                             people={dayVacations}
                             // 그날 일정이 없으면 휴무자가 칸을 통째로 쓴다 (왼쪽이 빈 채로 남지 않게)
@@ -1752,7 +1756,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                             roleByName={vacationRoleByName}
                           />
                         )}
-                        {showsSchedules(pane) && scheduleCount > 0 && inMonth && (
+                        {!isMonthLoading && showsSchedules(pane) && scheduleCount > 0 && inMonth && (
                           <>
                             {/* 모바일: 도트 표시 (일정 색상 그대로) */}
                             <div className="carev-dash-cal-dots" style={{ alignItems: 'center', justifyContent: 'flex-start', gap: 'var(--spacing-0-5)' }}>
@@ -1793,7 +1797,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
 
                   {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이 (월간일정 탭과 같은 규칙) */}
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} className="carev-dash-cal-bars">
-                    {showsSchedules(pane) && layout?.bars.flatMap((bar) =>
+                    {!isMonthLoading && showsSchedules(pane) && layout?.bars.flatMap((bar) =>
                       buildBarSegments(bar, pane, (col) => {
                         const day = week[col];
                         return !!day && (monthVacations.get(day.dayStr)?.length ?? 0) > 0;

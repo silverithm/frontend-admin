@@ -87,6 +87,7 @@ import type { DateRange } from "@astryxdesign/core/DateRangeInput";
 import type { ISODateString } from "@astryxdesign/core/Calendar";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Loading, LoadingOverlay } from "@/components/Loading";
+import { ListSkeletonRows } from "@/components/CalendarLoading";
 import { Banner } from "@astryxdesign/core/Banner";
 import { useToast } from "@astryxdesign/core/Toast";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
@@ -400,6 +401,9 @@ export default function AdminPage() {
         if (!isClient) return; // 클라이언트 사이드가 아니면 실행하지 않음
 
         if (localStorage.getItem("authToken")) {
+            // 달·조회 기간이 바뀌면 목록은 이전 데이터라 새 범위로 걸러 비어 보인다 — 받는 동안 로딩으로 둔다(2026-11-20).
+            // (승인·삭제 뒤의 다시 받기는 이 효과를 거치지 않아 목록이 깜빡이지 않는다)
+            setIsLoadingRequests(true);
             fetchMonthData();
             // fetchAllRequests(); // 제거: getVacationCalendar 데이터 사용
         }
@@ -1899,7 +1903,7 @@ export default function AdminPage() {
                                         )}
 
                                         {isLoadingRequests ? (
-                                            <Loading size="inline" height={128} label="휴무 신청을 불러오는 중..." />
+                                            <ListSkeletonRows rows={4} rowHeight={72} />
                                         ) : filteredRequests.length === 0 ? (
                                             <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                 <EmptyState isCompact title="조건에 맞는 휴무 요청이 없습니다." />

@@ -13,7 +13,8 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Loading } from '@/components/Loading';
+import { Skeleton } from '@astryxdesign/core/Skeleton';
+import { CalendarCellBars, ListSkeletonRows } from '@/components/CalendarLoading';
 import PageHeader from '@/components/PageHeader';
 import MemberItem from '@/components/MemberItem';
 import MemberAvatar, { MemberName } from '@/components/MemberAvatar';
@@ -350,6 +351,14 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   // 달력 칸을 일정/휴무자로 어떻게 나눠 볼지 (대시보드 달력과 선택을 공유한다)
   const [pane, setPane] = useState<CalendarPane>('both');
   const [monthVacations, setMonthVacations] = useState<Map<string, VacationPerson[]>>(new Map());
+  // 휴무자 명단은 일정과 따로 받는다 — 일정만 끝나고 휴무자가 늦게 들어와 칸이 한 번 더 튀지 않게 둘 다 기다린다(2026-11-20)
+  const [isVacationsLoading, setIsVacationsLoading] = useState(true);
+  // 마지막으로 일정을 다 받은 달 — 같은 달을 다시 받을 때(저장·완료·삭제 뒤)는 뼈대를 띄우지 않아
+  // 달력이 깜빡이지 않는다. 처음 열 때와 달을 넘길 때만 뼈대.
+  const [schedulesMonthKey, setSchedulesMonthKey] = useState<string | null>(null);
+  const isCalendarLoading =
+    !isDispatchMode &&
+    ((isLoading && schedulesMonthKey !== format(currentDate, 'yyyy-MM')) || isVacationsLoading);
   // 할 일 관련
   const [newTaskContent, setNewTaskContent] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
@@ -428,6 +437,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
   useEffect(() => {
     if (isDispatchMode) return;
     let cancelled = false;
+    setIsVacationsLoading(true);
     fetchMonthVacations(currentDate)
       .then((map) => {
         if (!cancelled) setMonthVacations(map);
@@ -435,6 +445,9 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       .catch((error) => {
         console.error('휴무자 명단 로드 실패:', error);
         if (!cancelled) setMonthVacations(new Map());
+      })
+      .finally(() => {
+        if (!cancelled) setIsVacationsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -572,6 +585,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
       const endDate = format(endOfMonth(currentDate), 'yyyy-MM-dd');
       const data = await getSchedules(startDate, endDate);
       setSchedules(Array.isArray(data) ? data : data.schedules || []);
+      setSchedulesMonthKey(format(currentDate, 'yyyy-MM'));
     } catch (error) {
       console.error('일정 데이터 로드 실패:', error);
       showAlert({ type: 'error', title: '로드 실패', message: '일정 데이터를 불러오지 못했습니다.' });
@@ -1354,7 +1368,8 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
     const isCurrentMonth = isSameMonth(date, currentDate);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const dayNumStyle = getDayNumStyle(date);
-    const dayVacations = monthVacations.get(dateStr) || [];
+    // 로딩 중에는 이전 달 데이터가 새 달 날짜에 얹히지 않게 비운다
+    const dayVacations = isCalendarLoading ? [] : monthVacations.get(dateStr) || [];
     // 그날 일정이 하나도 없으면 휴무자가 칸을 통째로 쓴다 (왼쪽 60%가 빈 채로 남지 않게)
     const hasSchedulesToday = getSchedulesForDate(date).length > 0;
     const vacFraction = pane === 'both' && !hasSchedulesToday ? 1 : vacationPaneFraction(pane);
@@ -1394,7 +1409,17 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
           </span>
         </div>
         {/* 오른쪽(또는 칸 전체) 휴무자 명단 — 지난달·다음달 칸은 숫자만 보여준다 */}
-        {isCurrentMonth && showsVacations(pane) && (
+        {isCurrentMonth && isCalendarLoading && (
+          <CalendarCellBars
+            seed={date.getDate() + date.getMonth() * 3}
+            barHeight={BAR_HEIGHT}
+            gap={BAR_GAP}
+            top={BAR_AREA_TOP}
+            inset={BAR_EDGE_INSET}
+            index={date.getDay() + Math.floor((date.getDate() - 1) / 7)}
+          />
+        )}
+        {isCurrentMonth && !isCalendarLoading && showsVacations(pane) && (
           <CalendarVacationPane
             people={dayVacations}
             fraction={vacFraction}
@@ -1405,7 +1430,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
             roleByName={vacationRoleByName}
           />
         )}
-        {isCurrentMonth && showsSchedules(pane) && hiddenCount > 0 && (
+        {isCurrentMonth && !isCalendarLoading && showsSchedules(pane) && hiddenCount > 0 && (
           <div
             style={{
               position: 'absolute',
@@ -1686,16 +1711,15 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
             {/* 캘린더 그리드 */}
             <div className="carev-schedcal-scroll">
-            {isLoading ? (
-              <Loading label="달력을 불러오는 중..." />
-            ) : isDispatchMode ? (
+            {isDispatchMode ? (
               <div className="carev-schedcal-cols">
                 {calendarDays.map((date, index) =>
                   date ? renderDispatchDayCell(date) : <div key={`empty-${index}`} style={EMPTY_CELL_STYLE} />
                 )}
               </div>
             ) : (
-              <div className="carev-schedcal-weeks">
+              // 로딩 중에도 달력 틀(날짜 숫자)은 그대로 두고 칸 안만 뼈대로 채운다. 끝나면 내용이 옅게 떠오른다(2026-11-20)
+              <div className={isCalendarLoading ? 'carev-schedcal-weeks' : 'carev-schedcal-weeks carev-content-in'}>
                 {calendarWeeks.map((week, weekIndex) => {
                   const layout = weekBarLayouts[weekIndex];
                   /*
@@ -1715,7 +1739,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                     const maxPeople = showsVacations(pane)
                       ? week.reduce((max, d) => {
                           if (!d) return max;
-                          const count = monthVacations.get(format(d, 'yyyy-MM-dd'))?.length ?? 0;
+                          const count = isCalendarLoading ? 0 : monthVacations.get(format(d, 'yyyy-MM-dd'))?.length ?? 0;
                           return Math.max(max, count);
                         }, 0)
                       : 0;
@@ -1734,7 +1758,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       {/* 여러 날 일정을 하나의 바로 이어서 표시하는 오버레이.
                           휴무자를 같이 볼 때는 칸 오른쪽이 명단 자리라 하루 단위로 끊어 그린다. */}
                       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-                        {showsSchedules(pane) && layout?.bars.flatMap((bar) =>
+                        {!isCalendarLoading && showsSchedules(pane) && layout?.bars.flatMap((bar) =>
                           buildBarSegments(bar, pane, (col) => {
                             const d = week[col];
                             return !!d && (monthVacations.get(format(d, 'yyyy-MM-dd'))?.length ?? 0) > 0;
@@ -1829,10 +1853,16 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                       <Text type="large" as="h3" weight="bold" color="primary">
                         {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
                       </Text>
-                      <Text type="supporting">
-                        {selectedDateSchedules.length}개 일정 · 완료 {selectedDateSchedules.filter((s) => s.isCompleted).length}개
-                        {' · '}휴무 {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length}명
-                      </Text>
+                      {isCalendarLoading ? (
+                        <div className="carev-skel-rows" style={{ padding: 'var(--spacing-0-5) 0' }}>
+                          <Skeleton width={150} height={14} radius={2} />
+                        </div>
+                      ) : (
+                        <Text type="supporting">
+                          {selectedDateSchedules.length}개 일정 · 완료 {selectedDateSchedules.filter((s) => s.isCompleted).length}개
+                          {' · '}휴무 {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length}명
+                        </Text>
+                      )}
                     </VStack>
                     <Button
                       label="닫기"
@@ -1846,7 +1876,7 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
                 </div>
 
                 {/* 그날 휴무자 — 달력 칸에서는 이름만 몇 줄 보이므로 여기서 전부 펼친다 */}
-                {(monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length > 0 && (
+                {!isCalendarLoading && (monthVacations.get(format(selectedDate, 'yyyy-MM-dd')) || []).length > 0 && (
                   <div style={{ padding: 'var(--spacing-4) var(--spacing-5) 0' }}>
                     <VStack gap={1.5}>
                       <Text type="label" weight="semibold" color="secondary">휴무자</Text>
@@ -1878,8 +1908,10 @@ export default function ScheduleCalendar({ isAdmin = false, mode = 'schedule', i
 
                 {/* 일정 목록 (스크롤 가능) */}
                 <div style={{ padding: 'var(--spacing-5)', flex: 1, overflowY: 'auto' }}>
-                  {selectedDateSchedules.length > 0 ? (
-                    <VStack gap={2}>
+                  {isCalendarLoading ? (
+                    <ListSkeletonRows rows={3} rowHeight={64} />
+                  ) : selectedDateSchedules.length > 0 ? (
+                    <VStack gap={2} className="carev-content-in">
                       {selectedDateSchedules.map((schedule) => (
                         <div
                           key={schedule.id}

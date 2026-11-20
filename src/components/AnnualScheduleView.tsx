@@ -19,7 +19,8 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Popover } from '@astryxdesign/core/Popover';
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { IconCircleCheck, IconChevronsDown, IconChevronsUp, IconUserCheck } from '@tabler/icons-react';
-import { Loading } from '@/components/Loading';
+import { Skeleton } from '@astryxdesign/core/Skeleton';
+import { skelRand } from '@/components/CalendarLoading';
 import PageHeader from '@/components/PageHeader';
 import ScheduleFilterPanel from '@/components/ScheduleFilterPanel';
 import { getSchedules, getScheduleLabels, getScheduleManagerCandidates, getAllMembers } from '@/lib/apiService';
@@ -360,17 +361,12 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
         </HStack>
       </div>
 
-      {isLoading && schedules.length === 0 ? (
-        <div className="carev-annual-body" style={{ display: 'flex' }}>
-          <Loading size="section" label="연간 일정을 불러오는 중..." />
-        </div>
-      ) : (
-        // 연도를 바꿔 다시 불러오는 중에는 화면을 비우지 않고 흐리게만 둔다.
-        // 통째로 사라졌다 나타나면 멈춘 것처럼 보인다.
-        <div className="carev-annual-body" style={isLoading ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
-          <div className="carev-annual-grid">
+      {/* 처음 열 때나 연도를 바꿔 다시 불러올 때는 12개 달 카드 틀을 그대로 두고 줄만 뼈대로 채운다(2026-11-20).
+          스피너로 갈아끼우면 데이터가 들어올 때 카드가 한꺼번에 튀어나오고, 옛 연도 일정을 흐리게 남기면 틀린 연도 내용이 보인다. */}
+      <div className="carev-annual-body">
+          <div className={isLoading ? 'carev-annual-grid' : 'carev-annual-grid carev-content-in'}>
             {MONTH_LABELS.map((monthLabel, index) => {
-              const items = byMonth[index];
+              const items = isLoading ? [] : byMonth[index];
               const isCurrent = year === thisYear && index === thisMonth;
               const expanded = expandAll || !!expandedMonths[index];
               const shown = expanded ? items : items.slice(0, MONTH_ITEM_LIMIT);
@@ -379,7 +375,7 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                 <section
                   key={monthLabel}
                   ref={(el) => { monthRefs.current[index] = el; }}
-                  className={`carev-annual-month${isCurrent ? ' carev-annual-month-current' : ''}${items.length === 0 ? ' carev-annual-month-empty' : ''}`}
+                  className={`carev-annual-month${isCurrent ? ' carev-annual-month-current' : ''}${!isLoading && items.length === 0 ? ' carev-annual-month-empty' : ''}`}
                 >
                   <header className="carev-annual-month-head">
                     <button
@@ -390,11 +386,17 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                     >
                       <Text type="label" weight="bold" color={isCurrent ? 'accent' : 'primary'}>{monthLabel}</Text>
                     </button>
-                    {items.length > 0 && <Badge variant="neutral" label={items.length} />}
+                    {!isLoading && items.length > 0 && <Badge variant="neutral" label={items.length} />}
                   </header>
 
-                  <div className={`carev-annual-month-list${items.length === 0 ? ' carev-annual-month-list-empty' : ''}`}>
-                    {items.length === 0 ? (
+                  <div className={`carev-annual-month-list${!isLoading && items.length === 0 ? ' carev-annual-month-list-empty' : ''}`}>
+                    {isLoading ? (
+                      <div className="carev-skel-rows" role="status" aria-label="불러오는 중" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', width: '100%' }}>
+                        {Array.from({ length: 3 + Math.round(skelRand(index + 1) * 1) }, (_, row) => (
+                          <Skeleton key={row} width={`${60 + Math.round(skelRand(index + 1, row + 1) * 38)}%`} height={16} radius={2} index={index + row} />
+                        ))}
+                      </div>
+                    ) : items.length === 0 ? (
                       <Text type="supporting" color="disabled">일정 없음</Text>
                     ) : (
                       <>
@@ -587,7 +589,6 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
             )}
           </Dialog>
         </div>
-      )}
     </div>
   );
 }
