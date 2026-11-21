@@ -397,7 +397,8 @@ export default function AnnualScheduleView({ onSelectMonth }: AnnualScheduleView
                         ))}
                       </div>
                     ) : items.length === 0 ? (
-                      <Text type="supporting" color="disabled">일정 없음</Text>
+                      /* 빈 달 바탕(#f1f1f1) 위 'disabled'(#a3a3a3)는 2.2:1 — 보조색으로 읽히게(6.2:1) */
+                      <Text type="supporting" color="secondary">일정 없음</Text>
                     ) : (
                       <>
                         {shown.map(({ schedule, dayLabel }) => (

@@ -16,6 +16,13 @@
   --font-size-xs: 0.6875rem;
   --font-size-sm: 0.75rem;
   --color-text-secondary: light-dark(#595959, #b8b8b8);
+  /* 보조보다 한 단계 옅은 글씨(직무·개수 등). 흰 바탕 4.74:1, #f1f1f1 위 4.20:1 —
+     Astryx 'disabled'(#a3a3a3, 2.5:1)를 읽어야 하는 글씨에 쓰던 자리를 바꾼다. */
+  --carev-text-tertiary: light-dark(#737373, #9a9a9a);
+  /* 틸 바탕 아바타의 이니셜 — #0f766e는 #cae1df 위 4.0:1이라 한 단계 짙게(5.5:1) */
+  --carev-avatar-ink: light-dark(#0b5f58, #99e2d3);
+  /* 빨간 숫자 배지 — Astryx 'error'(#e33f4a) 위 흰 글자는 4.1:1. 같은 빨강을 한 단계 짙게(4.75:1) */
+  --carev-badge-error: light-dark(#d6343f, #ff705d);
 }
 
 /* 전역 라이트 모드 고정 (Astryx light-dark() 토큰이 라이트값으로 해석되도록) */
@@ -339,8 +346,31 @@ html {
    걸릴 너비 자체가 주어지지 않고 바깥 overflow:hidden에 원시 픽셀 단위로 잘려
    "장ㄷ"처럼 글자가 반토막 났다. 이름도 최소 너비까지는 줄어들게 해 말줄임표가
    제대로 뜨게 한다. */
-.carev-cal-vacname { flex: 0 1 auto; min-width: 16px; overflow: hidden; }
-.carev-cal-vacrole { flex: 0 3 auto; min-width: 0; overflow: hidden; }
+/* 배지+이름 덩어리 — 줄바꿈되지 않고, 세 글자(글씨 크기×3)+배지 몫까지는 지킨다(칸보다 넓게는 아니다).
+   좁은 일요일 칸에서 '최…'만 남고 직무가 자리를 차지하던 것을 막는다. */
+.carev-cal-vacwho { display: flex; align-items: center; gap: 3px; flex: 0 1 auto; min-width: min(calc(3 * var(--text-supporting-size) + 17px), 100%); }
+.carev-cal-vacname { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+/* 직무는 두 글자 남짓이 안 들어가면 아예 다음 줄로 넘겨 숨긴다 — 남은 몇 px에 '요'의 반쪽만
+   찍히던 것(낱자 잘림)을 막는다. 줄 높이 한 줄로 묶어 넘어간 줄은 보이지 않는다. */
+.carev-cal-vacrow { flex-wrap: wrap; height: calc(var(--text-supporting-size) * var(--text-supporting-leading)); overflow: hidden; }
+/* 줄바꿈 여부는 flex-basis로 정해진다 — 두 글자 남짓(글씨 크기×2.2)을 바탕으로 두고 남는 자리만큼 늘어나되
+   글자 길이(max-content)를 넘지 않는다. 그래서 자리가 있으면 '요양…'처럼 말줄임으로라도 남는다. */
+.carev-cal-vacrole { flex: 1 1 calc(2.2 * var(--text-supporting-size)); min-width: 0; max-width: max-content; overflow: hidden; }
+/* 이름보다 한 단계 옅은 글씨(직무·+N). Astryx 'disabled'(#a3a3a3)는 흰 바탕 2.5:1이라 못 쓴다 — 4.74:1 */
+.carev-cal-vacrole-text { color: var(--carev-text-tertiary); }
+/* 꽉 찬 빨간 배지(안 읽은 수·결재 수) — 흰 글자 대비를 4.5:1 위로 */
+.astryx-badge.error { background-color: var(--carev-badge-error); }
+
+/* 대시보드 '내 할 일' 한 줄 — 상자 없이 줄 사이 머리카락 선으로 나눈다(옆 칸 목록과 같은 결) */
+.carev-dash-task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) 0;
+}
+.carev-dash-task-row + .carev-dash-task-row { border-top: 1px solid var(--color-border); }
+.carev-dash-task-title { color: var(--color-text-primary); }
+.carev-dash-task-row[data-done] .carev-dash-task-title { color: var(--color-text-secondary); text-decoration: line-through; }
 
 .carev-dash-viewall { transition: opacity var(--duration-fast-min) var(--ease-standard); }
 @media (hover: hover) { .carev-dash-viewall:hover { opacity: 0.7; } }
@@ -1481,6 +1511,8 @@ html {
 .carev-ltc-table thead .carev-ltc-focus { color: var(--color-text-teal); }
 .carev-ltc-prose { color: var(--color-text-secondary); line-height: var(--text-supporting-leading); }
 .carev-ltc-prose p + p { margin-top: var(--spacing-3); }
+/* 본문 한 줄 88자 → 70자 안팎 — 긴 줄은 다음 줄 첫머리를 찾느라 눈이 헤맨다(Impeccable line-length, Emil 65ch) */
+.carev-ltc-prose p, .carev-ltc-prose li { max-width: 68ch; }
 .carev-ltc-prose ul { margin: var(--spacing-2) 0; padding-left: var(--spacing-5); list-style: disc; }
 .carev-ltc-prose li { margin: var(--spacing-1) 0; }
 .carev-ltc-prose li::marker { color: var(--color-text-accent); }
@@ -2086,6 +2118,29 @@ html {
    '바 / 뀔 때마다'처럼 제목과 문장이 음절 중간에서 끊겼다(3차 덜어내기). 아주 긴 낱말(URL·메일)만
    칸 끝에서 끊는다. break-word는 anywhere와 달리 최소 폭 계산을 바꾸지 않아 단추·배지 폭이 그대로다. */
 .carev-public-page { word-break: keep-all; overflow-wrap: break-word; }
+/* 블로그 카드 제목 — 두 줄 말줄임(maxLines)이 낱말 단위 줄바꿈을 풀어 '전자/결재'처럼 낱말 가운데서 끊겼다.
+   낱말 단위로 끊고 두 줄 길이를 고르게(balance) 해 마지막 줄에 한두 글자만 남지 않게 한다. */
+.carev-public-page .carev-blog-card-title { word-break: keep-all; overflow-wrap: break-word; }
+/* 공개 홈(설득하는 화면)만 — 테마는 제목 크기를 단계(level)로 정해 h1 22px·h2 19px·h3 16px였다.
+   첫 화면 제목이 섹션 제목과 거의 같아 눈이 머물 곳이 없었다(크기 차 1.19배).
+   h1은 39px까지, h2는 27px까지 키우고 큰 글씨는 자간을 살짝 좁힌다(-0.02em). 문구는 그대로. */
+.carev-home h1.astryx-heading {
+  font-size: clamp(1.75rem, 1.1rem + 2.2vw, var(--font-size-5xl));
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+}
+.carev-home h2.astryx-heading {
+  font-size: clamp(1.375rem, 1.15rem + 0.9vw, var(--font-size-3xl));
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+/* 히어로 제품 그림 — 창 전체(테두리·그림자 포함)가 아래로 이어지며 옅어진다(fade crop).
+   네 방향 여백에 떠 있는 '상자'로 보이지 않게 아래 테두리를 그리지 않는 셈이 된다. */
+.carev-home-hero-frame {
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+.carev-home-hero-shot { max-height: 620px; overflow: hidden; }
 
 /* ══ 반응(Motion) — 눌림·뼈대·전환·아래에서 올라오는 확인 창 (DESIGN.md "Motion") ══════════════
    가만히 있는 화면은 바꾸지 않는다. 여기 규칙은 누르는 동안·불러오는 동안·바뀌는 순간에만 보인다.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatListDate, formatListDateTime } from './formatDate.ts';
+import { formatAgoOrDate, formatListDate, formatListDateTime } from './formatDate.ts';
 
 const now = new Date(2026, 9, 27, 12, 0);
 
@@ -15,4 +15,12 @@ test('다른 해는 연도를 붙인다', () => {
 test('빈 값·잘못된 값은 빈 문자열', () => {
   assert.equal(formatListDateTime(null, now), '');
   assert.equal(formatListDateTime('nope', now), '');
+});
+
+test('일주일 안은 상대 시간, 넘으면 날짜', () => {
+  assert.equal(formatAgoOrDate(new Date(2026, 9, 23, 12, 0), now), '4일 전');
+  assert.equal(formatAgoOrDate(new Date(2026, 9, 26, 23, 0), now), '약 13시간 전');
+  assert.equal(formatAgoOrDate(new Date(2026, 9, 15, 12, 0), now), '10.15');
+  assert.equal(formatAgoOrDate(new Date(2025, 11, 1, 12, 0), now), '2025.12.01');
+  assert.equal(formatAgoOrDate(null, now), '');
 });

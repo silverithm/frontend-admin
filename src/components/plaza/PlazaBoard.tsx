@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
 import { ClickableRow } from '@/components/ClickableRow';
@@ -74,6 +72,7 @@ import {
 import { duration } from '@/theme/motion';
 import { normalizeEditorHtml } from '@/lib/richText';
 import { toEditorHtml } from '@/lib/noticeContent';
+import { formatAgoOrDate } from '@/lib/formatDate';
 
 /** 리치 에디터 도입 전의 글은 plain text — HTML 태그 유무로 구분한다 */
 const looksLikeHtml = (content: string) => /<([a-z][a-z0-9]*)\b[^>]*>/i.test(content);
@@ -96,7 +95,8 @@ type SortKey = 'latest' | 'popular' | 'comments';
 
 const PAGE_SIZE = 10;
 
-const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ko });
+// 일주일이 넘으면 '12일 전' 대신 날짜로 — src/lib/formatDate.ts
+const timeAgo = (iso: string) => formatAgoOrDate(iso);
 
 interface PlazaBoardProps {
   /** 표시할 보드. 카페형 셸(PlazaManagement)의 좌측 네비가 제어한다 */

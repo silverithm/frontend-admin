@@ -3,7 +3,7 @@
 import MemberAvatar, { MemberName } from '@/components/MemberAvatar';
 import { compareScheduleTime, scheduleWhenText } from '@/components/ScheduleDetailParts';
 import { useState, useEffect, useMemo, useRef, useCallback, type CSSProperties, type ReactNode } from 'react';
-import { format, formatDistanceToNow, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import '@/styles/staff.css';
@@ -101,7 +101,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { subheaderStyle } from './subheaderStyle';
-import { formatListDate, formatListDateTime } from '@/lib/formatDate';
+import { formatListDate, formatListDateTime, formatAgoOrDate } from '@/lib/formatDate';
 
 interface AdminDashboardProps {
   onTabChange: (tab: string) => void;
@@ -1243,23 +1243,16 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                 </div>
 
                 <div style={{ padding: 'var(--spacing-3) var(--spacing-4) var(--spacing-4)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-                  <VStack gap={1}>
+                  <VStack gap={0}>
                     {[...myTasks]
                       .sort((a, b) => Number(a.isCompleted) - Number(b.isCompleted))
                       .map((task) => (
+                        /* 줄마다 테두리 상자를 두르면 카드 안에 카드가 한 겹 더 생긴다(옆 공지·결재 칸은
+                           상자 없이 줄로 쌓는다). 상자는 빼고 줄 사이에 머리카락 선만 긋는다. */
                         <div
                           key={task.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'var(--spacing-2)',
-                            padding: 'var(--spacing-2)',
-                            borderRadius: 'var(--radius-element)',
-                            border: '1px solid var(--color-border)',
-                            /* [#12] 완료 줄을 초록 배경으로 칠하면 남은 일보다 더 눈에 띈다.
-                               배경은 빼고 줄 전체를 흐리게 해 '끝난 일'이 뒤로 물러나게 한다. */
-                            opacity: task.isCompleted ? 0.6 : 1,
-                          }}
+                          className="carev-dash-task-row"
+                          data-done={task.isCompleted ? 'true' : undefined}
                         >
                           <Icon
                             icon={task.isCompleted ? 'success' : IconUserCheck}
@@ -1267,8 +1260,10 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                             color={task.isCompleted ? 'success' : 'secondary'}
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ textDecoration: task.isCompleted ? 'line-through' : 'none' }}>
-                              <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>{task.content}</Text>
+                            {/* [#12] 끝난 일은 줄 전체를 흐리게(opacity) 했더니 보조 글씨가 흰 바탕에서
+                                2.8:1로 떨어졌다. 흐리기 대신 제목을 보조색+취소선으로 물러나게 한다. */}
+                            <div className="carev-dash-task-title">
+                              <Text as="p" type="body" weight="semibold" color="inherit" maxLines={1}>{task.content}</Text>
                             </div>
                             <Text as="p" type="supporting" color="secondary" maxLines={1}>
                               {task.scheduleTitle || ''}
@@ -1515,7 +1510,7 @@ export default function AdminDashboard({ onTabChange, isAdmin = true, onOpenSche
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <Text as="p" type="body" weight="semibold" color="primary" maxLines={1}>{news.title}</Text>
                           <Text type="supporting" color="secondary">
-                            {news.source} · {formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}
+                            {news.source} · {formatAgoOrDate(news.publishedAt)}
                           </Text>
                         </div>
                       </a>

@@ -85,7 +85,8 @@ function circleStyle(size: number): React.CSSProperties {
         alignItems: "center",
         justifyContent: "center",
         background: "var(--color-background-teal)",
-        color: "var(--color-text-accent)",
+        // 틸 바탕(#cae1df) 위 강조 틸 글자는 4.0:1 — 한 단계 짙은 잉크로 4.5:1 위(globals.css --carev-avatar-ink)
+        color: "var(--carev-avatar-ink)",
     };
 }
 
@@ -100,7 +101,8 @@ function initialStyle(cellSize: AvatarCellSize, area?: string): React.CSSPropert
         alignItems: "center",
         justifyContent: "center",
         background: "var(--color-background-teal)",
-        color: "var(--color-text-accent)",
+        // 틸 바탕(#cae1df) 위 강조 틸 글자는 4.0:1 — 한 단계 짙은 잉크로 4.5:1 위(globals.css --carev-avatar-ink)
+        color: "var(--carev-avatar-ink)",
         fontSize: INITIAL_FONT[cellSize],
         fontWeight: "var(--font-weight-semibold)",
         lineHeight: 1,

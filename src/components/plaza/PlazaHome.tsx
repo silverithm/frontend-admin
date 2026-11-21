@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
 import { ClickableRow } from '@/components/ClickableRow';
@@ -22,6 +20,7 @@ import { dedupeNews } from './newsDedup';
 import { fetchLibraryItems, fetchPosts, type ApiLibraryItem, type ApiPostSummary } from './plazaApi';
 import { duration } from '@/theme/motion';
 import { subheaderStyle } from '@/components/subheaderStyle';
+import { formatAgoOrDate } from '@/lib/formatDate';
 
 export type PlazaMenu = 'home' | 'free' | 'review' | 'tip' | 'job_offer' | 'job_seek' | 'news' | 'library';
 
@@ -33,7 +32,8 @@ interface PlazaHomeProps {
   onOpenPost: (postId: number, board: BoardType) => void;
 }
 
-const timeAgo = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ko });
+// 일주일이 넘으면 '12일 전' 대신 날짜로 — src/lib/formatDate.ts
+const timeAgo = (iso: string) => formatAgoOrDate(iso);
 
 function WidgetHeader({ icon, title, onMore }: { icon: TablerIcon; title: string; onMore?: () => void }) {
   return (
@@ -191,7 +191,7 @@ export default function PlazaHome({ newsItems, isNewsLoading = false, onNavigate
                         <Text type="body" color="primary" maxLines={1}>{news.title}</Text>
                       </div>
                       <div style={{ flexShrink: 0 }}>
-                        <Text type="supporting" color="secondary">{formatDistanceToNow(news.publishedAt, { addSuffix: true, locale: ko })}</Text>
+                        <Text type="supporting" color="secondary">{formatAgoOrDate(news.publishedAt)}</Text>
                       </div>
                     </a>
                   );

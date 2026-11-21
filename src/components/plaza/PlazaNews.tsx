@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -17,6 +15,7 @@ import { getNewsCategoryMeta, type NewsItem } from './newsMock';
 import { clusterNews } from './newsDedup';
 import { fetchExternalNotices, type ExternalNotice } from '@/lib/externalNoticeApi';
 import { duration } from '@/theme/motion';
+import { formatAgoOrDate } from '@/lib/formatDate';
 
 /** 상단 출처 필터 — 공단 게시판 4종은 각각, 언론 기사는 하나로 묶는다 */
 const SOURCE_FILTERS = [
@@ -175,7 +174,7 @@ export default function PlazaNews({ newsItems }: { newsItems: NewsItem[] }) {
                   <div style={{ flexShrink: 0 }}>
                     <Text type="supporting" color="secondary">
                       {row.sourceName ? `${row.sourceName} · ` : ''}
-                      {formatDistanceToNow(row.date, { addSuffix: true, locale: ko })}
+                      {formatAgoOrDate(row.date)}
                     </Text>
                   </div>
                 </a>

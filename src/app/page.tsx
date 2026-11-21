@@ -236,7 +236,7 @@ const mockTitlebar: React.CSSProperties = {
 /** 히어로: 실제 관리자 대시보드 캡처 (시연 데이터, 기관명은 가명) */
 function DashboardPreview() {
     return (
-        <div style={{ ...mockFrame, maxWidth: 960, marginInline: 'auto', width: '100%' }}>
+        <div className="carev-home-hero-frame" style={{ ...mockFrame, maxWidth: 1100, marginInline: 'auto', width: '100%' }}>
             <div style={mockTitlebar}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-icon-red)', display: 'inline-block' }} />
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-icon-yellow)', display: 'inline-block' }} />
@@ -245,15 +245,20 @@ function DashboardPreview() {
                     <Text type="supporting" color="secondary">carev.kr — 관리자 대시보드</Text>
                 </span>
             </div>
-            <Image
-                src="/images/dashboard-preview.jpg"
-                alt="케어브이 관리자 대시보드 실제 화면 — 출근·휴무 현황, 공지사항, 전자결재, 요양 소식, 월간일정이 한 화면에 보인다"
-                width={1720}
-                height={812}
-                sizes="(max-width: 1024px) 100vw, 960px"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
-                priority
-            />
+            {/* 화면 전체를 줄여 상자에 넣으면 글씨가 6px쯤 돼 읽히지 않는다(Stageshow '상자에 갇힌 그림').
+                지금 화면을 이야기가 일어나는 칸(메뉴·오늘 현황·내 할 일·공지·결재·달력 머리)까지만 잘라
+                읽히는 크기로 두고, 아래는 옅게 사라지게 해 창이 계속 이어지는 것처럼 보인다. */}
+            <div className="carev-home-hero-shot">
+                <Image
+                    src="/images/dashboard-hero-1121.jpg"
+                    alt="케어브이 관리자 대시보드 실제 화면 — 출근·휴무 현황, 공지사항, 전자결재, 요양 소식, 월간일정이 한 화면에 보인다"
+                    width={2352}
+                    height={1640}
+                    sizes="(max-width: 1100px) 100vw, 1100px"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    priority
+                />
+            </div>
         </div>
     );
 }
@@ -287,12 +292,12 @@ function BeforeAfterMock() {
 /** 실제 화면 미리보기 — 운영 화면 캡처 (시연용 데모 데이터, 가명 처리) */
 const PREVIEWS = [
     {
-        src: '/images/preview-work.jpg',
-        width: 1720,
-        height: 812,
+        src: '/images/preview-work-1121.jpg',
+        width: 880,
+        height: 660,
         title: '근무조정 캘린더',
         description: '역할별 휴무 현황과 승인 흐름이 달력에 바로 보입니다',
-        alt: '근무조정 캘린더 화면 — 날짜별 휴무 인원과 승인 상태, 우측 휴무 신청 목록',
+        alt: '근무조정 캘린더 화면 — 날짜마다 휴무자 얼굴·이름과 휴무 종류(연차·반차 등)',
     },
     {
         src: '/images/preview-approval.jpg',
@@ -303,9 +308,9 @@ const PREVIEWS = [
         alt: '전자결재 표준 기안문 — 문서번호, 기안·검토·결재 결재란과 품의 내용 표',
     },
     {
-        src: '/images/preview-plaza.jpg',
-        width: 1400,
-        height: 1110,
+        src: '/images/preview-plaza-1121.jpg',
+        width: 868,
+        height: 652,
         title: '케어브이 커뮤니티',
         description: '요양 뉴스·게시판·자료실이 한곳에 모입니다',
         alt: '케어브이 커뮤니티 위젯 — 인기글, 요양 소식, 최신글, 새 자료 목록',
@@ -353,7 +358,7 @@ export default function LandingPage() {
     };
 
     return (
-        <main className="carev-public-page" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
+        <main className="carev-public-page carev-home" style={{ minHeight: '100vh', background: 'var(--color-background-surface)' }}>
             <AlertContainer />
             <Navbar />
 
@@ -432,7 +437,7 @@ export default function LandingPage() {
 
             {/* ── 3~4. 문제 제기 + ROI 근거 ── */}
             <Section variant="muted" padding={4} paddingBlock={10}>
-                <div style={container(1100)}>
+                <div style={container(1000)}>
                     <div>
                         <Grid columns={{ minWidth: 320, repeat: 'fit', max: 2 }} gap={8} align="center">
                             <VStack gap={5}>
@@ -568,7 +573,7 @@ export default function LandingPage() {
 
             {/* ── 7. 실제 화면 ── */}
             <Section variant="transparent" padding={4} paddingBlock={10}>
-                <div style={container(1100)}>
+                <div style={container(1000)}>
                     <VStack gap={6}>
                         <VStack gap={2}>
                             <Heading level={2} type="display-2" textWrap="balance">

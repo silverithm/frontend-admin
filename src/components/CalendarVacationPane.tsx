@@ -26,6 +26,10 @@ const rowStyle: CSSProperties = {
   alignItems: 'center',
   gap: 3,
   minWidth: 0,
+  // 칸을 통째로 쓸 때(가운데 정렬)는 세로 flex의 자식이 제 글자 폭만큼 커져
+  // 칸보다 넓으면 양옆이 같이 잘렸다("최유진"이 "되유진"처럼, 배지가 반쪽으로).
+  // 칸 폭을 넘지 않게 묶어야 이름 말줄임(…)이 걸린다.
+  maxWidth: '100%',
 };
 
 /**
@@ -53,6 +57,9 @@ export default function CalendarVacationPane({
 
   // 칸을 통째로 쓸 때는 가운데로 모은다 (한쪽에 치우쳐 있으면 빈 칸처럼 보인다)
   const isFullWidth = fraction >= 1;
+  // 그날 휴무자가 없으면 나눔선도 긋지 않는다 — 일정이 있는 날마다 빈 칸 옆에
+  // 세로줄만 남아 달력 전체에 뜻 없는 줄이 늘어서 보였다.
+  const showDivider = hasDivider && people.length > 0;
 
   return (
     <div
@@ -65,8 +72,8 @@ export default function CalendarVacationPane({
         right: 'var(--spacing-1)',
         bottom: 'var(--spacing-1)',
         width: `calc(${fraction * 100}% - var(--spacing-2))`,
-        paddingLeft: hasDivider ? 'var(--spacing-1)' : 0,
-        borderLeft: hasDivider ? '1px solid var(--color-border)' : 'none',
+        paddingLeft: showDivider ? 'var(--spacing-1)' : 0,
+        borderLeft: showDivider ? '1px solid var(--color-border)' : 'none',
         alignItems: isFullWidth ? 'center' : 'stretch',
         gap: 1,
         overflow: 'hidden',
@@ -80,21 +87,27 @@ export default function CalendarVacationPane({
             return (
               <div
                 key={person.id}
+                className="carev-cal-vacrow"
                 style={rowStyle}
                 title={role
                   ? `${person.name} · ${role} · ${person.kindLabel}`
                   : `${person.name} · ${person.kindLabel}`}
               >
-                <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
-                {/* 이름이 먼저다 — 자리가 모자라면 뒤의 직무부터 줄어들고 이름은 그대로 남는다 */}
-                <span className="carev-cal-vacname">
-                  <Text type="supporting" color="secondary" maxLines={1}>
-                    {person.name}
-                  </Text>
+                {/* 배지+이름은 한 덩어리로 줄바꿈되지 않는다 — 자리가 모자라면 직무만 다음(숨은) 줄로 넘어간다.
+                    이름은 세 글자까지 지키고, 칸이 그보다 좁으면(일정과 반으로 나눈 칸) 말줄임이 걸린다. */}
+                <span className="carev-cal-vacwho">
+                  <span style={vacationKindBadgeStyle(person.color)}>{person.short}</span>
+                  <span className="carev-cal-vacname">
+                    <Text type="supporting" color="secondary" maxLines={1}>
+                      {person.name}
+                    </Text>
+                  </span>
                 </span>
                 {role && (
-                  <span className="carev-cal-vacrole">
-                    <Text type="supporting" color="disabled" maxLines={1}>
+                  // 직무는 이름보다 한 단계 옅게 — 'disabled'(#a3a3a3)는 흰 바탕에서
+                  // 2.5:1이라 읽기 어렵다. 굵기·크기는 그대로 두고 대비만 4.5:1 위로.
+                  <span className="carev-cal-vacrole carev-cal-vacrole-text">
+                    <Text type="supporting" color="inherit" maxLines={1}>
                       {role}
                     </Text>
                   </span>
@@ -103,9 +116,11 @@ export default function CalendarVacationPane({
             );
           })}
           {hidden > 0 && (
-            <Text type="supporting" color="disabled">
-              +{hidden}
-            </Text>
+            <span className="carev-cal-vacrole-text">
+              <Text type="supporting" color="inherit">
+                +{hidden}
+              </Text>
+            </span>
           )}
         </>
       )}

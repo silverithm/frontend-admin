@@ -87,7 +87,7 @@ export default function BlogPage() {
                                             </HStack>
                                         </HStack>
 
-                                        <Heading level={2} type="display-3" maxLines={2}>
+                                        <Heading level={2} type="display-3" maxLines={2} textWrap="balance" className="carev-blog-card-title">
                                             {post.title}
                                         </Heading>
 
