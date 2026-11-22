@@ -4,6 +4,7 @@
 
 import { LTC_VERIFIED_AT } from './ltc2026';
 import { HOME_CARE_VERIFIED_AT } from './ltcHomeCare';
+import { NURSING_HOME_VERIFIED_AT } from './ltcNursingHomeStaffing';
 import { STAFFING_VERIFIED_AT } from './ltcStaffing';
 import { BONUS_VERIFIED_AT } from './ltcStaffingBonus';
 import { STANDARD_HOURS_VERIFIED_AT } from './ltcStandardHours';
@@ -59,5 +60,11 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '주간보호센터 인력추가배치 가산',
     summary: '요양보호사 1인당 6.4명 미만 요건, 직종별 가산점수, 이용자 수별 인정범위·추가산정, 가산금액 계산식과 예시(고시 제55·56조).',
     lastModified: BONUS_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/nursing-home-staffing-standard',
+    title: '요양원 인력배치기준',
+    summary: '노인요양시설 요양보호사 입소자 2.1명당 1명(치매전담실 2명당), 직종별 기준, 2.3명당에서 바뀐 개정과 2026년 12월 31일 유예 기한, 노인요양공동생활가정 3명당 1명.',
+    lastModified: NURSING_HOME_VERIFIED_AT,
   },
 ];

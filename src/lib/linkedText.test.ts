@@ -40,7 +40,7 @@ test('문장에 없는 링크·앞 링크와 겹치는 링크는 건너뛴다(�
     assert.deepEqual(splitLinkedText('링크 없음'), [{ text: '링크 없음' }]);
 });
 
-test('인력배치 기준 FAQ — 허브·인력배치기준·월 기준 근무시간 세 곳으로 간다', () => {
+test('인력배치 기준 FAQ — 허브·주간보호 인력배치기준·월 기준 근무시간·요양원 인력배치기준 네 곳으로 간다', () => {
     const item = FAQ_DATA.find((f) => f.question === '인력배치 기준은 어디서 확인하나요?');
     assert.ok(item);
     const links = splitLinkedText(item.answer, item.links).filter((s) => s.href);
@@ -48,6 +48,7 @@ test('인력배치 기준 FAQ — 허브·인력배치기준·월 기준 근무�
         { text: '장기요양 기준표', href: '/ltc' },
         { text: '주간보호센터 인력배치기준', href: '/ltc/daycare-staffing-standard' },
         { text: '2026년 월 기준 근무시간', href: '/ltc/monthly-standard-hours-2026' },
+        { text: '요양원 인력배치기준', href: '/ltc/nursing-home-staffing-standard' },
     ]);
     // 예전처럼 주소를 글자로만 적어 두지 않는다
     assert.equal(item.answer.includes('carev.kr/'), false);
@@ -66,7 +67,7 @@ test('FAQ 답 전부 — 조각을 이으면 원래 답, 링크 글자는 답 �
         assert.equal(segments.filter((s) => s.href).length, item.links?.length ?? 0, `${item.question}: 빠진 링크`);
         linkCount += item.links?.length ?? 0;
     }
-    assert.equal(linkCount, 11);
+    assert.equal(linkCount, 12);
 });
 
 test('FAQ 링크 대상이 실제로 있다 — /blog 글은 글 목록에, /ltc는 페이지 파일로', () => {
