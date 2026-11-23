@@ -4,6 +4,7 @@
 
 import { LTC_VERIFIED_AT } from './ltc2026';
 import { HOME_CARE_VERIFIED_AT } from './ltcHomeCare';
+import { NURSING_HOME_BONUS_VERIFIED_AT } from './ltcNursingHomeBonus';
 import { NURSING_HOME_VERIFIED_AT } from './ltcNursingHomeStaffing';
 import { STAFFING_VERIFIED_AT } from './ltcStaffing';
 import { BONUS_VERIFIED_AT } from './ltcStaffingBonus';
@@ -66,5 +67,11 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '요양원 인력배치기준',
     summary: '노인요양시설 요양보호사 입소자 2.1명당 1명(치매전담실 2명당), 직종별 기준, 2.3명당에서 바뀐 개정과 2026년 12월 31일 유예 기한, 노인요양공동생활가정 3명당 1명.',
     lastModified: NURSING_HOME_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/nursing-home-staffing-bonus',
+    title: '요양원 인력추가배치 가산',
+    summary: '일반실 요양보호사는 가산점수 미산정, 치매전담실 실별 최대 2명 1.3점, 간호(조무)사 19.0명 미만 요건, 입소자 수별 인정범위, 한시 가산(2026년 12월 31일까지), 간호사·야간직원배치 가산.',
+    lastModified: NURSING_HOME_BONUS_VERIFIED_AT,
   },
 ];

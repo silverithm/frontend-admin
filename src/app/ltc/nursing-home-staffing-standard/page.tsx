@@ -523,7 +523,8 @@ export default function NursingHomeStaffingStandardPage() {
             <p>
               그달 예상 입소자 수로 직종별 의무 인원을 먼저 구하고, 직원마다 한 달 실근무시간(휴게시간 제외)이 월 기준 근무시간에
               닿는지 확인합니다. 교대 형태별 편성 순서와 야간 배분은{' '}
-              <Link href="/blog/nursing-home-three-shift-schedule">요양원 근무표 짜는 법</Link>에 정리했습니다.
+              <Link href="/blog/nursing-home-three-shift-schedule">요양원 근무표 짜는 법</Link>에 정리했습니다. 기준보다 직원을 더 둘
+              때 받는 가산과 점수는 <Link href="/ltc/nursing-home-staffing-bonus">요양원 인력추가배치 가산</Link>에 정리했습니다.
             </p>
             <p>
               케어브이 근무조정에서는 직종별 휴무 인원 한도를 정해 두면, 직종을 하나 골랐을 때 캘린더에서 휴무자가 있는 날짜마다
