@@ -2921,6 +2921,21 @@ export async function fetchChatSharedFiles(roomId: number) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/files`);
 }
 
+/**
+ * '파일 모아보기' 한 쪽 — 종류·검색어·달로 거른다(서버 /files?size=…).
+ * 옛 서버는 이 매개변수를 몰라 통째로 준다 — 받는 쪽이 hasMore 유무로 가린다(chatFilesBrowse.ts).
+ */
+export async function fetchChatFilesPage(
+    roomId: number,
+    opts: { kind: 'IMAGE' | 'VIDEO' | 'FILE'; q?: string; beforeId?: number; month?: string; size?: number },
+) {
+    const params = new URLSearchParams({ kind: opts.kind, size: String(opts.size ?? 60) });
+    if (opts.q) params.set('q', opts.q);
+    if (opts.beforeId != null) params.set('beforeId', String(opts.beforeId));
+    if (opts.month) params.set('month', opts.month);
+    return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/files?${params.toString()}`);
+}
+
 /** 방 안 메시지 검색 */
 export async function searchChatMessages(roomId: number, keyword: string) {
     return fetchWithAuth(`/api/v1/chat/rooms/${roomId}/messages/search?keyword=${encodeURIComponent(keyword)}`);

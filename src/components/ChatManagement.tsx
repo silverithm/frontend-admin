@@ -4,7 +4,7 @@ import { subheaderStyle } from '@/components/subheaderStyle';
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Client, IMessage } from "@stomp/stompjs";
 import { createRoomBoundState, isStaleRoomResponse } from '@/lib/chatRoomSwitch';
-import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, fetchChatSharedFiles, searchChatMessages, setChatRoomPinned, renameChatRoom, CHAT_ROOM_NAME_MAX } from '@/lib/apiService';
+import { fetchChatRooms, fetchChatMessages, fetchChatMessagesAround, fetchFirstMessageOnDate, markChatAsRead, toggleChatReaction, createChatRoom, fetchChatParticipants, addChatParticipants, deleteChatRoom, leaveChatRoom, deleteChatMessage, editChatMessage, uploadChatFile, updateChatRoomNotice, searchChatMessages, setChatRoomPinned, renameChatRoom, CHAT_ROOM_NAME_MAX } from '@/lib/apiService';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog';
 import { openOrCreateDirectRoom } from '@/lib/directChat';
 import { getMyChatUserId } from '@/lib/chatIdentity';
@@ -24,6 +24,7 @@ import DocumentViewerModal from '@/components/DocumentViewerModal';
 import { ChatPhotoGroup } from '@/components/chat/ChatPhotoGroup';
 import { ChatImageLightbox, type ChatLightboxItem } from '@/components/chat/ChatImageLightbox';
 import { ChatAttachmentLabel } from '@/components/chat/ChatAttachmentLabel';
+import { ChatFilesBrowser } from '@/components/chat/ChatFilesBrowser';
 import { ChatImage } from '@/components/chat/ChatImage';
 import { ChatVideoBubble } from '@/components/chat/ChatVideoBubble';
 import MemberItem from '@/components/MemberItem';
@@ -364,8 +365,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
     // 웹소켓 구독 콜백(아래)이 매번 재구독되지 않도록 최신 값을 ref로도 들고 있는다
     const isJumpedToOlderRef = useRef(false);
     useEffect(() => { isJumpedToOlderRef.current = isJumpedToOlder; }, [isJumpedToOlder]);
-    const [sharedFiles, setSharedFiles] = useState<ChatMessage[]>([]);
-    const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     /** @를 입력하면 뜨는 참가자 추천 — null이면 닫힘 */
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     /** 왼쪽 목록 전환 — 대화방 / 직원 */
@@ -512,8 +511,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         setSearchResults(fresh.searchResults);
         setIsSearching(false);
         setJumpToDate(fresh.jumpToDate);
-        setSharedFiles(fresh.sharedFiles);
-        setIsLoadingFiles(false);
         setHighlightedMessageId(fresh.highlightedMessageId);
         setIsJumpedToOlder(fresh.isJumpedToOlder);
         setMentionQuery(fresh.mentionQuery);
@@ -1346,24 +1343,6 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
         return fetchMessages(selectedRoom); // 내부에서 isJumpedToOlder도 false로 되돌리고 맨 아래로 스크롤한다
     };
 
-    /** 방에서 주고받은 파일 모아보기 */
-    const loadSharedFiles = async () => {
-        if (!selectedRoom) return;
-        setIsLoadingFiles(true);
-        try {
-            const requestedRoom = selectedRoom;
-            const response = await fetchChatSharedFiles(requestedRoom);
-            if (isStaleRoomResponse(requestedRoom, selectedRoomRef.current)) return; // 그사이 방을 옮겼다
-            setSharedFiles(response.files || []);
-        } catch (error) {
-            console.error("파일 목록 로드 실패:", error);
-            onNotification("파일 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요", "error");
-            setSharedFiles([]);
-        } finally {
-            setIsLoadingFiles(false);
-        }
-    };
-
     /** 방 공지 등록/해제 — messageId가 null이면 내린다 */
     const changeNotice = async (messageId: number | null) => {
         if (!selectedRoom) return;
@@ -2049,7 +2028,7 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                     tooltip="주고받은 파일"
                                     variant={sidePanel === 'files' ? 'secondary' : 'ghost'}
                                     icon={<Icon icon={FiPaperclip} />}
-                                    onClick={() => { setSidePanel(sidePanel === 'files' ? null : 'files'); if (sidePanel !== 'files') loadSharedFiles(); }}
+                                    onClick={() => setSidePanel(sidePanel === 'files' ? null : 'files')}
                                 />
                                 <IconButton
                                     label="채팅방 정보"
@@ -2141,7 +2120,8 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
                         {/* 검색 / 파일함 패널 — 대화 위에 얹지 않고 헤더 아래 한 줄로 펼친다 */}
                         {sidePanel && (
-                            <div style={{ borderBottom: `1px solid ${C.border}`, background: C.bgGray, maxHeight: 280, overflowY: "auto" }}>
+                            // 파일함은 안쪽 목록이 스스로 스크롤하고 끝에서 다음 쪽을 받는다 — 바깥은 높이를 묶지 않는다
+                            <div style={{ borderBottom: `1px solid ${C.border}`, background: C.bgGray, maxHeight: sidePanel === 'search' ? 280 : undefined, overflowY: sidePanel === 'search' ? "auto" : "hidden" }}>
                                 {sidePanel === 'search' ? (
                                     <div style={{ padding: 'var(--spacing-3)' }}>
                                         <VStack gap={2}>
@@ -2217,55 +2197,22 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
                                         </VStack>
                                     </div>
                                 ) : (
-                                    <div style={{ padding: 'var(--spacing-3)' }}>
-                                        {isLoadingFiles ? (
-                                            <Text type="supporting" color="secondary">불러오는 중...</Text>
-                                        ) : sharedFiles.length === 0 ? (
-                                            <Text type="supporting" color="secondary">주고받은 파일이 없습니다.</Text>
-                                        ) : (
-                                            <VStack gap={1}>
-                                                {sharedFiles.map((m) => (
-                                                    <button
-                                                        key={m.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (!m.fileUrl) return;
-                                                            const media = chatMediaType(m);
-                                                            if (media === "IMAGE") setImagePreview({ items: [{ fileUrl: m.fileUrl, fileName: m.fileName || "이미지" }], index: 0 });
-                                                            // 동영상은 뷰어가 그릴 줄 모른다 — 새 탭에서 브라우저 기본 재생기로 연다
-                                                            else if (media === "VIDEO") window.open(m.fileUrl, "_blank", "noopener");
-                                                            else if (isViewableDocument(m.fileName)) setViewerFile({ fileUrl: m.fileUrl, fileName: m.fileName || "문서" });
-                                                            else window.open(m.fileUrl, "_blank", "noopener");
-                                                        }}
-                                                        style={{
-                                                            display: "flex", alignItems: "center", gap: 'var(--spacing-2)', width: "100%",
-                                                            padding: 'var(--spacing-2)', background: C.card, border: `1px solid ${C.border}`,
-                                                            borderRadius: 'var(--radius-inner)', cursor: "pointer", textAlign: "left",
-                                                        }}
-                                                    >
-                                                        <ChatAttachmentLabel kind={chatMediaType(m) === "IMAGE" ? "IMAGE" : chatMediaType(m) === "VIDEO" ? "VIDEO" : "FILE"} />
-                                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                                            <Text type="supporting" weight="semibold" color="primary" maxLines={1}>
-                                                                {chatAttachmentLabel(m)}
-                                                            </Text>
-                                                            <span className="carev-meta-line">
-                                                                <span className="carev-meta-who">
-                                                                    <MemberAvatar
-                                                                        name={m.senderName || "?"}
-                                                                        id={m.senderId}
-                                                                        imageUrl={participantAvatarMap.get(m.senderId || '')}
-                                                                        size={16}
-                                                                    />
-                                                                    <Text type="supporting" color="secondary">{m.senderName}</Text>
-                                                                </span>
-                                                                <Text type="supporting" color="secondary">{formatMessageTime(m.createdAt)}</Text>
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </VStack>
-                                        )}
-                                    </div>
+                                    <ChatFilesBrowser<ChatMessage>
+                                        key={selectedRoom ?? 0}
+                                        roomId={selectedRoom!}
+                                        maxHeight="min(460px, 52vh)"
+                                        onOpenPhoto={(photos, index) => setImagePreview({
+                                            items: photos.filter(p => p.fileUrl).map(p => ({ fileUrl: p.fileUrl!, fileName: p.fileName || "이미지" })),
+                                            index: Math.max(0, index),
+                                        })}
+                                        onOpenOther={(m) => {
+                                            if (!m.fileUrl) return;
+                                            // 동영상은 뷰어가 그릴 줄 모른다 — 새 탭에서 브라우저 기본 재생기로 연다
+                                            if (chatMediaType(m) === "VIDEO") window.open(m.fileUrl, "_blank", "noopener");
+                                            else if (isViewableDocument(m.fileName)) setViewerFile({ fileUrl: m.fileUrl, fileName: m.fileName || "문서" });
+                                            else window.open(m.fileUrl, "_blank", "noopener");
+                                        }}
+                                    />
                                 )}
                             </div>
                         )}
@@ -3051,10 +2998,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
                         {/* 사진 */}
                         <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
-                            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                            {/* 여기는 지금 불러온 대화 안의 것만 보인다 — 방 전체는 '모두 보기'(파일 모아보기)에서 찾는다 */}
+                            <div style={{ marginBottom: 'var(--spacing-3)', display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-2)' }}>
                                 <Text type="label" weight="semibold">
                                     사진 ({drawerImageMessages.length})
                                 </Text>
+                                <Button size="sm" variant="ghost" label="모두 보기" onClick={() => { setShowDrawer(false); setSidePanel('files'); }} />
                             </div>
                             {drawerImageMessages.length > 0 ? (
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 'var(--spacing-2)' }}>
@@ -3088,10 +3037,12 @@ export function ChatManagement({ onNotification, isAdmin = true, initialRoomId =
 
                         {/* 파일 */}
                         <div style={{ padding: 'var(--spacing-4)', borderBottom: `1px solid ${C.border}` }}>
-                            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+                            {/* 여기는 지금 불러온 대화 안의 것만 보인다 — 방 전체는 '모두 보기'(파일 모아보기)에서 찾는다 */}
+                            <div style={{ marginBottom: 'var(--spacing-3)', display: "flex", alignItems: "center", justifyContent: "space-between", gap: 'var(--spacing-2)' }}>
                                 <Text type="label" weight="semibold">
                                     파일 ({drawerFileMessages.length})
                                 </Text>
+                                <Button size="sm" variant="ghost" label="모두 보기" onClick={() => { setShowDrawer(false); setSidePanel('files'); }} />
                             </div>
                             {drawerFileMessages.length > 0 ? (
                                 <VStack gap={1}>

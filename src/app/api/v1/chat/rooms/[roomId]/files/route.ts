@@ -23,10 +23,15 @@ export async function GET(
 ) {
   try {
     const { roomId } = await params;
-    const type = request.nextUrl.searchParams.get('type');
     const authHeader = request.headers.get('authorization');
 
-    const query = type ? `?type=${encodeURIComponent(type)}` : '';
+    // 종류·검색어·이어 받기·달·쪽 크기를 그대로 넘긴다 — 하나도 없으면 서버가 예전처럼 통째로 준다
+    const forwarded = new URLSearchParams();
+    for (const key of ['type', 'kind', 'q', 'beforeId', 'month', 'size']) {
+      const value = request.nextUrl.searchParams.get(key);
+      if (value) forwarded.set(key, value);
+    }
+    const query = forwarded.size > 0 ? `?${forwarded.toString()}` : '';
     const backendResponse = await fetch(`${BACKEND_URL}/api/v1/chat/rooms/${roomId}/files${query}`, {
       headers: authHeader ? { Authorization: authHeader, Accept: 'application/json' } : { Accept: 'application/json' },
     });
