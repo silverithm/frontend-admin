@@ -367,7 +367,8 @@ export default function NursingHomeStaffingStandardPage() {
               입소정원이 {GROUP_HOME_RESIDENTS.from}~{GROUP_HOME_RESIDENTS.to}명이라 그 범위를 모두 계산했습니다. 입소자 7명은 7 ÷ 3
               = 2.33이라 2명, 치매전담형은 7 ÷ 2.5 = 2.8이라 3명입니다. 그 밖의 직원은 원문 표에서 시설의 장·사무국장·사회복지사 세
               칸을 합친 칸이 1명, 간호사 또는 간호조무사·물리치료사 또는 작업치료사 두 칸을 합친 칸이 1명이고, 나머지 직종 칸은 비어
-              있습니다.
+              있습니다. 요양보호사를 이 기준보다 더 둘 때의 가산은{' '}
+              <Link href="/ltc/group-home-staffing-bonus">노인요양공동생활가정 인력추가배치 가산</Link>에 정리했습니다.
             </p>
           }
         >

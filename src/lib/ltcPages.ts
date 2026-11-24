@@ -3,6 +3,7 @@
 // 기준표 숫자는 원문과 대조한 날을 lastModified로 쓴다.
 
 import { LTC_VERIFIED_AT } from './ltc2026';
+import { GROUP_HOME_BONUS_VERIFIED_AT } from './ltcGroupHomeBonus';
 import { HOME_CARE_VERIFIED_AT } from './ltcHomeCare';
 import { NURSING_HOME_BONUS_VERIFIED_AT } from './ltcNursingHomeBonus';
 import { NURSING_HOME_VERIFIED_AT } from './ltcNursingHomeStaffing';
@@ -73,5 +74,11 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '요양원 인력추가배치 가산',
     summary: '일반실 요양보호사는 가산점수 미산정, 치매전담실 실별 최대 2명 1.3점, 간호(조무)사 19.0명 미만 요건, 입소자 수별 인정범위, 한시 가산(2026년 12월 31일까지), 간호사·야간직원배치 가산.',
     lastModified: NURSING_HOME_BONUS_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/group-home-staffing-bonus',
+    title: '노인요양공동생활가정 인력추가배치 가산',
+    summary: '요양보호사 1인당 2.4명 미만이면 추가 1명당 1.2점, 가산점수의 합에 더하는 0.4점·0.25점, 조리원 1.2점, 입소자 수별 인정범위와 요양보호사 가산 요건 인원, 야간직원배치 기관당 0.9점.',
+    lastModified: GROUP_HOME_BONUS_VERIFIED_AT,
   },
 ];
