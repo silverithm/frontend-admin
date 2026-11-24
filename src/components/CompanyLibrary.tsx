@@ -27,7 +27,7 @@ import MemberAvatar from '@/components/MemberAvatar';
 import '@/styles/staff.css';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useStaggerOnce } from '@/hooks/useStaggerOnce';
-import { FiPlus, FiTrash2, FiDownload, FiEye, FiUploadCloud, FiFileText } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiDownload, FiEye, FiUploadCloud, FiFileText, FiSearch } from 'react-icons/fi';
 import {
   fetchCompanyLibrary,
   createCompanyLibraryItem,
@@ -92,6 +92,7 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
   // 처음 불러온 뒤 한 번만 위 8줄이 차례로 떠오른다(globals.css 반응 C) — 거르기·올리기 뒤에는 다시 흔들리지 않는다
   const staggerClass = useStaggerOnce(!isLoading);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [search, setSearch] = useState('');
 
   const [showUpload, setShowUpload] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: '' });
@@ -141,11 +142,21 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
     return counts;
   }, [items]);
 
+  // 분류 탭과 검색어(제목·설명, 공백 구분 단어가 모두 들어 있어야 함)를 함께 건다
   const visibleItems = useMemo(() => {
-    if (!categoryFilter) return items;
-    if (categoryFilter === UNCATEGORIZED) return items.filter((i) => !normalizeCategory(i.category));
-    return items.filter((i) => normalizeCategory(i.category) === categoryFilter);
-  }, [items, categoryFilter]);
+    const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return items.filter((i) => {
+      if (categoryFilter) {
+        const cat = normalizeCategory(i.category);
+        if (categoryFilter === UNCATEGORIZED ? cat : cat !== categoryFilter) return false;
+      }
+      if (words.length === 0) return true;
+      const haystack = `${i.title} ${i.description || ''}`.toLowerCase();
+      return words.every((w) => haystack.includes(w));
+    });
+  }, [items, categoryFilter, search]);
+
+  const isSearching = search.trim() !== '';
 
   const closeUpload = () => {
     setShowUpload(false);
@@ -269,6 +280,13 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
           </div>
         )}
 
+        {/* 자료 검색 — 분류 탭과 함께 걸린다 */}
+        {!isLoading && items.length > 0 && (
+          <div style={{ maxWidth: 360, flexShrink: 0 }}>
+            <TextInput label="자료 검색" isLabelHidden placeholder="제목·설명 검색" startIcon={FiSearch} hasClear value={search} onChange={(v) => setSearch(v)} />
+          </div>
+        )}
+
         {isLoading ? (
           <Loading variant="rows" label="자료를 불러오는 중..." />
         ) : visibleItems.length === 0 ? (
@@ -277,13 +295,13 @@ export default function CompanyLibrary({ canManage = true, onNotification }: Com
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmptyState
                   icon={<Icon icon={FiFileText} size="lg" />}
-                  title={items.length === 0 ? '올려둔 자료가 없습니다' : '이 분류에 자료가 없습니다'}
-                  description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요' : undefined}
+                  title={items.length === 0 ? '올려둔 자료가 없습니다' : isSearching ? '검색 결과가 없습니다' : '이 분류에 자료가 없습니다'}
+                  description={items.length === 0 ? '자주 쓰는 서식이나 매뉴얼을 올려두면 직원들이 바로 받아볼 수 있어요' : isSearching ? '다른 검색어로 시도해보세요.' : undefined}
                   actions={
                     items.length === 0 && canManage
                       ? <Button label="자료 올리기" variant="primary" size="sm" icon={<Icon icon={FiPlus} size="sm" />} onClick={() => setShowUpload(true)} />
                       : items.length > 0
-                        ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => setCategoryFilter('')} />
+                        ? <Button label="전체 보기" variant="secondary" size="sm" onClick={() => { setCategoryFilter(''); setSearch(''); }} />
                         : undefined
                   }
                 />

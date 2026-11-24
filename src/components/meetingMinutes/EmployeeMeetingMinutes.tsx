@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FiFileText } from 'react-icons/fi';
+import { FiFileText, FiSearch } from 'react-icons/fi';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
@@ -17,6 +17,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { SegmentedControl } from '@/components/ui/SlidingSegmentedControl';
 import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { Grid } from '@astryxdesign/core/Grid';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
@@ -30,6 +31,7 @@ import {
   getMySignature,
   signMeetingMinutes,
 } from '@/lib/apiService';
+import { filterMinutesByTitle, groupMinutesByMonth } from '@/lib/meetingMinutesList';
 import {
   MEETING_MINUTES_STATUS_LABEL,
   MeetingMinutes as MeetingMinutesModel,
@@ -75,6 +77,7 @@ export default function EmployeeMeetingMinutes({ onNotification }: EmployeeMeeti
   const [isLoading, setIsLoading] = useState(true);
   const [detail, setDetail] = useState<MeetingMinutesModel | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [search, setSearch] = useState('');
 
   const reload = useCallback(async () => {
     try {
@@ -92,14 +95,11 @@ export default function EmployeeMeetingMinutes({ onNotification }: EmployeeMeeti
     void reload();
   }, [reload]);
 
-  const sortedItems = useMemo(() => {
-    return [...items].sort((a, b) => {
-      const aWaiting = needsMySignature(a) ? 1 : 0;
-      const bWaiting = needsMySignature(b) ? 1 : 0;
-      if (aWaiting !== bWaiting) return bWaiting - aWaiting;
-      return b.meetingStartAt.localeCompare(a.meetingStartAt);
-    });
-  }, [items]);
+  // 서명 필요가 맨 위 묶음, 그 아래는 월별(최신순) — 검색은 제목 기준
+  const sections = useMemo(() => {
+    const sorted = [...filterMinutesByTitle(items, search)].sort((a, b) => b.meetingStartAt.localeCompare(a.meetingStartAt));
+    return groupMinutesByMonth(sorted, { label: '서명 필요', predicate: needsMySignature });
+  }, [items, search]);
 
   const openDetail = async (id: number) => {
     setIsDetailLoading(true);
@@ -131,52 +131,70 @@ export default function EmployeeMeetingMinutes({ onNotification }: EmployeeMeeti
       />
 
       {/* 목록 */}
-      {sortedItems.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState
           icon={<Icon icon={FiFileText} size="lg" color="tertiary" />}
           title="확인할 회의록이 없습니다"
           description="참석자로 지정된 회의록이 등록되면 여기에 나타납니다."
         />
       ) : (
-        <VStack gap={2}>
-          {sortedItems.map((minutes) => {
-            const waiting = needsMySignature(minutes);
-            return (
-              <ClickableCard
-                key={minutes.id}
-                label={`${minutes.title} 회의록 열기`}
-                onClick={() => void openDetail(minutes.id)}
-                padding={4}
-              >
-                <HStack gap={3} vAlign="center" hAlign="between">
-                  <VStack gap={0.5}>
-                    <HStack gap={2} vAlign="center">
-                      {waiting && <Badge variant="yellow" label="서명 필요" />}
+        <>
+          <div style={{ maxWidth: 360 }}>
+            <TextInput label="회의록 검색" isLabelHidden placeholder="회의록 제목 검색" startIcon={FiSearch} hasClear value={search} onChange={(v) => setSearch(v)} />
+          </div>
+          {sections.length === 0 && (
+            <EmptyState
+              icon={<Icon icon={FiFileText} size="lg" color="tertiary" />}
+              title="검색 결과가 없습니다"
+              description="다른 검색어로 시도해보세요."
+              actions={<Button label="전체 보기" variant="secondary" size="sm" onClick={() => setSearch('')} />}
+            />
+          )}
+          {sections.map((section) => (
+            <VStack key={section.key} gap={2}>
+              <Text type="label" weight="semibold" color="secondary">{section.label} · {section.items.length}</Text>
+              <VStack gap={2}>
+                {section.items.map((minutes) => {
+                  const waiting = needsMySignature(minutes);
+                  return (
+                    <ClickableCard
+                      key={minutes.id}
+                      label={`${minutes.title} 회의록 열기`}
+                      onClick={() => void openDetail(minutes.id)}
+                      padding={4}
+                    >
+                    <HStack gap={3} vAlign="center" hAlign="between">
+                      <VStack gap={0.5}>
+                        <HStack gap={2} vAlign="center">
+                          {waiting && <Badge variant="yellow" label="서명 필요" />}
+                          <Badge
+                            variant={minutes.status === 'COMPLETED' ? 'green'
+                              : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}
+                            label={MEETING_MINUTES_STATUS_LABEL[minutes.status]}
+                          />
+                          <Text type="body" weight="medium">{minutes.title}</Text>
+                        </HStack>
+                        <HStack gap={1.5} vAlign="center" wrap="wrap">
+                          <Text type="supporting" color="secondary">
+                            {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} ·
+                          </Text>
+                          <MemberAvatar name={minutes.authorName} id={minutes.authorRefId} type={minutes.authorType} size={20} />
+                          <Text type="supporting" color="secondary">{minutes.authorName}</Text>
+                        </HStack>
+                      </VStack>
                       <Badge
-                        variant={minutes.status === 'COMPLETED' ? 'green'
-                          : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}
-                        label={MEETING_MINUTES_STATUS_LABEL[minutes.status]}
+                        variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount
+                          ? 'green' : 'neutral'}
+                        label={`서명 ${minutes.signedCount}/${minutes.attendeeCount}`}
                       />
-                      <Text type="body" weight="medium">{minutes.title}</Text>
                     </HStack>
-                    <HStack gap={1.5} vAlign="center" wrap="wrap">
-                      <Text type="supporting" color="secondary">
-                        {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} ·
-                      </Text>
-                      <MemberAvatar name={minutes.authorName} id={minutes.authorRefId} type={minutes.authorType} size={20} />
-                      <Text type="supporting" color="secondary">{minutes.authorName}</Text>
-                    </HStack>
-                  </VStack>
-                  <Badge
-                    variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount
-                      ? 'green' : 'neutral'}
-                    label={`서명 ${minutes.signedCount}/${minutes.attendeeCount}`}
-                  />
-                </HStack>
-              </ClickableCard>
-            );
-          })}
-        </VStack>
+                    </ClickableCard>
+                  );
+                })}
+              </VStack>
+            </VStack>
+          ))}
+        </>
       )}
 
       {/* 상세 + 서명 */}

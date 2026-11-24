@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { FiFileText, FiPlus, FiSettings } from 'react-icons/fi';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { FiFileText, FiPlus, FiSearch, FiSettings } from 'react-icons/fi';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -12,6 +12,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
 import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import PageHeader from '@/components/PageHeader';
 import { HStack, VStack } from '@astryxdesign/core/Stack';
 import { Loading } from '@/components/Loading';
@@ -24,6 +25,7 @@ import {
   getMeetingMinutesList,
   listMeetingMinutesTemplates,
 } from '@/lib/apiService';
+import { filterMinutesByTitle, groupMinutesByMonth } from '@/lib/meetingMinutesList';
 import {
   MEETING_MINUTES_STATUS_LABEL,
   MeetingMinutes as MeetingMinutesModel,
@@ -56,6 +58,12 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
   const [templates, setTemplates] = useState<MinutesTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialog, setDialog] = useState<DialogMode>({ kind: 'closed' });
+  const [search, setSearch] = useState('');
+
+  const sections = useMemo(
+    () => groupMinutesByMonth(filterMinutesByTitle(items, search)),
+    [items, search],
+  );
 
   const reload = useCallback(async () => {
     try {
@@ -127,48 +135,66 @@ export default function MeetingMinutes({ onNotification }: MeetingMinutesProps) 
           description="회의록 작성을 눌러 첫 회의를 기록해 보세요. 녹음하면 실시간 자막이 쌓이고, AI가 섹션별로 정리해 줍니다."
         />
       ) : (
-        // 예전엔 회의록마다 독립된 카드라 흰 덩어리가 여러 장 떠 있었다. 결재 관리와
-        // 같은 방식으로 한 표면 안에 구분선으로 나눈다 — 행 클릭 동작은 그대로 둔다.
-        <Card padding={0}>
-          <VStack gap={0}>
-            {items.map((minutes, rowIndex) => (
-              <div key={minutes.id}>
-                {rowIndex > 0 && <Divider />}
-                <ClickableCard
-                  label={`${minutes.title} 회의록 열기`}
-                  onClick={() => void openDetail(minutes.id)}
-                  padding={4}
-                  variant="transparent"
-                >
-                  <HStack gap={3} vAlign="center" hAlign="between">
-                    <VStack gap={0.5}>
-                      <HStack gap={2} vAlign="center">
+        <>
+          <div style={{ maxWidth: 360 }}>
+            <TextInput label="회의록 검색" isLabelHidden placeholder="회의록 제목 검색" startIcon={FiSearch} hasClear value={search} onChange={(v) => setSearch(v)} />
+          </div>
+          {sections.length === 0 && (
+            <EmptyState
+              icon={<Icon icon={FiFileText} size="lg" color="tertiary" />}
+              title="검색 결과가 없습니다"
+              description="다른 검색어로 시도해보세요."
+              actions={<Button label="전체 보기" variant="secondary" size="sm" onClick={() => setSearch('')} />}
+            />
+          )}
+          {sections.map((section) => (
+            <VStack key={section.key} gap={2}>
+              <Text type="label" weight="semibold" color="secondary">{section.label} · {section.items.length}</Text>
+              {/* 예전엔 회의록마다 독립된 카드라 흰 덩어리가 여러 장 떠 있었다. 결재 관리와
+                  같은 방식으로 한 표면 안에 구분선으로 나눈다 — 월별로 표면을 나눈다. */}
+              <Card padding={0}>
+                <VStack gap={0}>
+                  {section.items.map((minutes, rowIndex) => (
+                    <div key={minutes.id}>
+                      {rowIndex > 0 && <Divider />}
+                      <ClickableCard
+                        label={`${minutes.title} 회의록 열기`}
+                        onClick={() => void openDetail(minutes.id)}
+                        padding={4}
+                        variant="transparent"
+                      >
+                      <HStack gap={3} vAlign="center" hAlign="between">
+                        <VStack gap={0.5}>
+                          <HStack gap={2} vAlign="center">
+                            <Badge
+                              variant={minutes.status === 'COMPLETED' ? 'green'
+                                : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}
+                              label={MEETING_MINUTES_STATUS_LABEL[minutes.status]}
+                            />
+                            <Text type="body" weight="medium">{minutes.title}</Text>
+                          </HStack>
+                          <HStack gap={1.5} vAlign="center" wrap="wrap">
+                            <Text type="supporting" color="secondary">
+                              {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} ·
+                            </Text>
+                            <MemberAvatar name={minutes.authorName} id={minutes.authorRefId} type={minutes.authorType} size={20} />
+                            <Text type="supporting" color="secondary">{minutes.authorName}</Text>
+                          </HStack>
+                        </VStack>
                         <Badge
-                          variant={minutes.status === 'COMPLETED' ? 'green'
-                            : minutes.status === 'REGISTERED' ? 'blue' : 'neutral'}
-                          label={MEETING_MINUTES_STATUS_LABEL[minutes.status]}
+                          variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount
+                            ? 'green' : 'neutral'}
+                          label={`서명 ${minutes.signedCount}/${minutes.attendeeCount}`}
                         />
-                        <Text type="body" weight="medium">{minutes.title}</Text>
                       </HStack>
-                      <HStack gap={1.5} vAlign="center" wrap="wrap">
-                        <Text type="supporting" color="secondary">
-                          {formatWhen(minutes)}{minutes.location ? ` · ${minutes.location}` : ''} ·
-                        </Text>
-                        <MemberAvatar name={minutes.authorName} id={minutes.authorRefId} type={minutes.authorType} size={20} />
-                        <Text type="supporting" color="secondary">{minutes.authorName}</Text>
-                      </HStack>
-                    </VStack>
-                    <Badge
-                      variant={minutes.attendeeCount > 0 && minutes.signedCount === minutes.attendeeCount
-                        ? 'green' : 'neutral'}
-                      label={`서명 ${minutes.signedCount}/${minutes.attendeeCount}`}
-                    />
-                  </HStack>
-                </ClickableCard>
-              </div>
-            ))}
-          </VStack>
-        </Card>
+                      </ClickableCard>
+                    </div>
+                  ))}
+                </VStack>
+              </Card>
+            </VStack>
+          ))}
+        </>
       )}
 
       {/* 작성/수정 */}

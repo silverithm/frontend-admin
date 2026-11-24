@@ -40,6 +40,9 @@ import {
 
 type CategoryFilter = 'all' | LibraryCategory;
 
+/** 서버가 한 번에 주는 최대 개수(50) */
+const PAGE_SIZE = 50;
+
 interface PlazaLibraryProps {
   /** full: 전체 화면(카테고리 필터·검색 툴바), compact: 커뮤니티 통합 화면의 사이드 카드 */
   variant?: 'full' | 'compact';
@@ -55,6 +58,8 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
   const [accessNoticeOpen, setAccessNoticeOpen] = useState(false);
   const [items, setItems] = useState<ApiLibraryItem[]>([]);
   const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -71,13 +76,15 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
   const [editingItem, setEditingItem] = useState<ApiLibraryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
 
   // 신고 다이얼로그
   const [reportTargetId, setReportTargetId] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState(REPORT_REASONS[0]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    // 검색어가 바뀌면 첫 쪽부터
+    const timer = setTimeout(() => { setDebouncedSearch(search.trim()); setPage(0); }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -102,21 +109,33 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       const data = await fetchLibraryItems({
         category: isCompact ? undefined : categoryFilter,
         search: debouncedSearch || undefined,
-        size: 50,
+        page: isCompact ? 0 : page,
+        size: PAGE_SIZE,
       });
+      // 마지막 쪽 자료를 모두 지운 뒤라면 앞 쪽으로
+      if ((data.content?.length ?? 0) === 0 && page > 0 && !isCompact) {
+        setPage(page - 1);
+        return;
+      }
       setItems(data.content ?? []);
       setTotalElements(data.totalElements ?? (data.content?.length || 0));
+      setTotalPages(Math.max(1, data.totalPages ?? 1));
     } catch (error) {
       console.error('[Plaza] 자료 목록 조회 실패:', error);
       setItems([]);
     } finally {
       setIsLoading(false);
     }
-  }, [categoryFilter, debouncedSearch, isCompact, access]);
+  }, [categoryFilter, debouncedSearch, isCompact, access, page]);
 
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  const goToPage = (next: number) => {
+    setPage(next);
+    listScrollRef.current?.scrollTo({ top: 0 });
+  };
 
   /** 쓰기 동작 공통 가드 — 비로그인이면 로그인 안내 후 차단 */
   const requireLogin = (): boolean => {
@@ -473,7 +492,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', height: '100%' }}>
         {/* 툴바 */}
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
-          <SegmentedControl value={categoryFilter} onChange={(v) => setCategoryFilter(v as CategoryFilter)} label="자료 카테고리" size="sm">
+          <SegmentedControl value={categoryFilter} onChange={(v) => { setCategoryFilter(v as CategoryFilter); setPage(0); }} label="자료 카테고리" size="sm">
             <SegmentedControlItem value="all" label="전체" />
             {LIBRARY_META.map((c) => (
               <SegmentedControlItem key={c.value} value={c.value} label={c.label} />
@@ -490,7 +509,7 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
         {/* 자료 목록 — 남은 높이를 채우고 내부 스크롤 */}
         <div style={{ flex: 1, minHeight: 0 }}>
         <Card padding={0} height="100%">
-          <div className="carev-plaza-scroll" style={{ height: '100%', overflowY: 'auto' }}>
+          <div ref={listScrollRef} className="carev-plaza-scroll" style={{ height: '100%', overflowY: 'auto' }}>
           {isLoading || items.length === 0 ? emptyOrLoading : (
             <VStack gap={0}>
               {items.map((item, idx) => {
@@ -557,6 +576,20 @@ export default function PlazaLibrary({ variant = 'full' }: PlazaLibraryProps) {
           </div>
         </Card>
         </div>
+
+        {/* 전체 개수 + 쪽 이동 (광장 게시판과 같은 모양) */}
+        {!isLoading && totalElements > 0 && (
+          <HStack gap={3} hAlign="center" vAlign="center" wrap="wrap">
+            <Text type="supporting" color="secondary" hasTabularNumbers>전체 {totalElements}개</Text>
+            {totalPages > 1 && (
+              <HStack gap={2} vAlign="center">
+                <Button variant="secondary" size="sm" label="이전" isDisabled={page <= 0} onClick={() => goToPage(page - 1)} />
+                <Text type="supporting" color="secondary" hasTabularNumbers>{page + 1} / {totalPages}</Text>
+                <Button variant="secondary" size="sm" label="다음" isDisabled={page >= totalPages - 1} onClick={() => goToPage(page + 1)} />
+              </HStack>
+            )}
+          </HStack>
+        )}
       </div>
 
       {dialogs}
