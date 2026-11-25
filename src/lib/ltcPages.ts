@@ -7,6 +7,7 @@ import { GROUP_HOME_BONUS_VERIFIED_AT } from './ltcGroupHomeBonus';
 import { HOME_CARE_VERIFIED_AT } from './ltcHomeCare';
 import { NURSING_HOME_BONUS_VERIFIED_AT } from './ltcNursingHomeBonus';
 import { NURSING_HOME_VERIFIED_AT } from './ltcNursingHomeStaffing';
+import { OVER_CAPACITY_VERIFIED_AT } from './ltcOverCapacity';
 import { STAFFING_VERIFIED_AT } from './ltcStaffing';
 import { BONUS_VERIFIED_AT } from './ltcStaffingBonus';
 import { STANDARD_HOURS_VERIFIED_AT } from './ltcStandardHours';
@@ -62,6 +63,12 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '주간보호센터 인력추가배치 가산',
     summary: '요양보호사 1인당 6.4명 미만 요건, 직종별 가산점수, 이용자 수별 인정범위·추가산정, 가산금액 계산식과 예시(고시 제55·56조).',
     lastModified: BONUS_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/daycare-over-capacity',
+    title: '주·야간보호 정원초과 감액',
+    summary: '정원 초과비율별 급여비용 산정비율(5% 미만 90%~30% 이상 50%), 인원 세는 법, 정원별 초과 인원표, 인지지원등급 정원의 10%, 가산 제외와 감액 상한(고시 제65조).',
+    lastModified: OVER_CAPACITY_VERIFIED_AT,
   },
   {
     path: '/ltc/nursing-home-staffing-standard',

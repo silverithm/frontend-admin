@@ -451,7 +451,8 @@ export default function DaycareStaffingBonusPage() {
               </li>
               <li>
                 <strong>정원초과 감액</strong>이 적용되는 달은 급여 제공일수 중 정원초과가 생긴 날의 비율만큼 인력추가배치 가산을 빼고
-                적용합니다(제54조제2항).
+                적용합니다(제54조제2항). 감액 비율과 인원 세는 법은{' '}
+                <Link href="/ltc/daycare-over-capacity">주·야간보호 정원초과 감액</Link>에 정리했습니다.
               </li>
               <li>
                 <strong>인력배치기준 위반 감액</strong>이 적용되는 달은 위반한 직종의 가산을 적용하지 않고, 3개 직종 이상 위반하면 전
