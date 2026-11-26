@@ -106,7 +106,7 @@ export const STAFFING_SOURCES: ReadonlyArray<StaffingSource> = [
     url: 'https://www.law.go.kr/법령/노인복지법시행규칙',
   },
   {
-    name: '노인장기요양보험법 시행규칙 제23조(장기요양기관의 지정) — 재가급여 기관의 시설·인력은 노인복지법 시행규칙 별표 9',
+    name: '노인장기요양보험법 시행규칙 제23조(장기요양기관 지정기준 등) — 재가급여 기관의 시설·인력은 노인복지법 시행규칙 별표 9',
     url: 'https://www.law.go.kr/법령/노인장기요양보험법시행규칙/제23조',
   },
   {
