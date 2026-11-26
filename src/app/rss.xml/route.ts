@@ -1,57 +1,50 @@
 import { BLOG_POSTS } from '@/lib/blogPosts'
+import { LTC_HUB_DESCRIPTION, LTC_HUB_PATH, LTC_HUB_TITLE, LTC_HUB_UPDATED, LTC_PAGES } from '@/lib/ltcPages'
+import { buildRssXml, type RssItem } from '@/lib/rssFeed'
 import { SITE_URL } from '@/lib/seo'
 
-// 블로그 RSS 피드.
+// 블로그 글과 장기요양 기준표 RSS 피드.
 // 네이버 서치어드바이저는 sitemap과 별개로 RSS 제출을 지원하고, 새 글 수집이 사이트맵보다 빠르다.
 // 구글도 피드를 보조 발견 경로로 사용한다.
+// 기준표는 ltcPages.ts 목록을 그대로 쓰므로, 새 기준표를 목록에 넣으면 피드에도 자동으로 들어간다.
 
 export const dynamic = 'force-static'
 
-/** XML 텍스트 노드에 들어갈 수 없는 문자를 이스케이프한다. */
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
-}
-
-/** yyyy-MM-dd → RFC 822 (RSS 2.0이 요구하는 날짜 형식) */
-function toRfc822(date: string): string {
-  return new Date(`${date}T09:00:00+09:00`).toUTCString()
-}
-
 export async function GET() {
-  const posts = [...BLOG_POSTS].sort((a, b) => (a.date < b.date ? 1 : -1))
-  const lastBuild = posts[0] ? toRfc822(posts[0].date) : new Date(0).toUTCString()
+  const blogItems: RssItem[] = BLOG_POSTS.map((post) => ({
+    title: post.title,
+    link: `${SITE_URL}/blog/${post.slug}`,
+    description: post.excerpt,
+    category: post.category,
+    date: post.date,
+  }))
 
-  const items = posts
-    .map(
-      (post) => `    <item>
-      <title>${escapeXml(post.title)}</title>
-      <link>${SITE_URL}/blog/${post.slug}</link>
-      <guid isPermaLink="true">${SITE_URL}/blog/${post.slug}</guid>
-      <description>${escapeXml(post.excerpt)}</description>
-      <category>${escapeXml(post.category)}</category>
-      <pubDate>${toRfc822(post.date)}</pubDate>
-    </item>`
-    )
-    .join('\n')
+  const ltcItems: RssItem[] = [
+    {
+      title: LTC_HUB_TITLE,
+      link: `${SITE_URL}${LTC_HUB_PATH}`,
+      description: LTC_HUB_DESCRIPTION,
+      category: '장기요양 기준표',
+      date: LTC_HUB_UPDATED,
+    },
+    ...LTC_PAGES.map((page) => ({
+      title: page.title,
+      link: `${SITE_URL}${page.path}`,
+      description: page.summary,
+      category: '장기요양 기준표',
+      date: page.lastModified,
+    })),
+  ]
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>케어브이 블로그</title>
-    <link>${SITE_URL}/blog</link>
-    <description>요양기관 근무표 작성 노하우, 휴무 관리 팁, 케어브이 기능 업데이트 소식</description>
-    <language>ko</language>
-    <lastBuildDate>${lastBuild}</lastBuildDate>
-    <atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml" />
-${items}
-  </channel>
-</rss>
-`
+  const xml = buildRssXml(
+    {
+      title: '케어브이 블로그·장기요양 기준표',
+      link: `${SITE_URL}/blog`,
+      description: '요양기관 근무표 작성 노하우, 휴무 관리 팁, 케어브이 기능 업데이트 소식과 장기요양 기준표',
+      selfUrl: `${SITE_URL}/rss.xml`,
+    },
+    [...ltcItems, ...blogItems],
+  )
 
   return new Response(xml, {
     headers: {

@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next'
 import { BLOG_POSTS } from '@/lib/blogPosts'
-import { LTC_HUB_PATH, LTC_PAGES } from '@/lib/ltcPages'
-import { LTC_VERIFIED_AT } from '@/lib/ltc2026'
+import { LTC_HUB_PATH, LTC_HUB_UPDATED, LTC_PAGES } from '@/lib/ltcPages'
 import { SITE_URL } from '@/lib/seo'
 
 // lastModified에 new Date()를 쓰면 크롤링할 때마다 "방금 수정됨"으로 보고되어
@@ -31,16 +30,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
+      // 가이드는 2026-11-19 단계 설명에서 블로그 글로 실제 링크를 걸었다(2de82ad).
       url: `${SITE_URL}/guide`,
-      lastModified: CONTENT_UPDATED,
+      lastModified: '2026-11-19',
       changeFrequency: 'monthly',
       priority: 0.9,
     },
     {
-      // FAQ는 홈·가이드와 따로 갱신된다 (2026-10-10 결제 문항을 실제 판매 조건(월간만)에 맞춤).
+      // FAQ는 홈·가이드와 따로 갱신된다 (2026-10-10 결제 문항을 실제 판매 조건(월간만)에 맞춤,
+      // 2026-11-19 답에 기준표·블로그 실제 링크 2de82ad, 2026-11-22 인력배치 답에 요양원 기준표 링크 45a4df8).
       // 공유 상수를 쓰면 바뀌지 않은 페이지의 날짜까지 함께 부풀려진다.
       url: `${SITE_URL}/faq`,
-      lastModified: '2026-10-10',
+      lastModified: '2026-11-22',
       changeFrequency: 'monthly',
       priority: 0.9,
     },
@@ -92,11 +93,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  // 장기요양 기준표 — 고시 원문과 대조한 날을 갱신일로 쓴다.
+  // 장기요양 기준표 — 고시 원문과 대조한 날을 갱신일로 쓴다. 허브는 목록 중 가장 최근 기준표 날짜.
   const ltcRoutes: MetadataRoute.Sitemap = [
     {
       url: `${SITE_URL}${LTC_HUB_PATH}`,
-      lastModified: LTC_VERIFIED_AT,
+      lastModified: LTC_HUB_UPDATED,
       changeFrequency: 'monthly',
       priority: 0.8,
     },

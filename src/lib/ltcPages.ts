@@ -20,6 +20,10 @@ export interface LtcPageMeta {
 }
 
 export const LTC_HUB_PATH = '/ltc';
+/** 허브 제목·설명 — 페이지 메타데이터와 RSS가 같은 글자를 쓴다 */
+export const LTC_HUB_TITLE = '장기요양 기준표 2026 — 수가·월 한도액·본인부담금';
+export const LTC_HUB_DESCRIPTION =
+  '2026년 장기요양 주·야간보호·방문요양 수가, 등급별 월 한도액, 본인부담금 계산법, 주간보호센터·요양원 인력배치기준과 인력추가배치 가산, 월 기준 근무시간을 보건복지부 고시·법령 원문과 대조해 한곳에 정리했습니다.';
 
 export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
   {
@@ -89,3 +93,9 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     lastModified: GROUP_HOME_BONUS_VERIFIED_AT,
   },
 ];
+
+// 허브(/ltc)는 기준표 목록을 그대로 보여 주므로, 목록 중 가장 최근에 바뀐 기준표 날짜가 허브의 갱신일이다.
+// (허브 날짜를 LTC_VERIFIED_AT에 묶어 두면 새 기준표를 11개 붙이는 동안에도 사이트맵이 2026-10-04로 남는다.)
+export const LTC_HUB_UPDATED: string = [LTC_VERIFIED_AT, ...LTC_PAGES.map((page) => page.lastModified)].reduce(
+  (latest, date) => (date > latest ? date : latest),
+);

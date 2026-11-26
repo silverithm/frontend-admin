@@ -5,15 +5,14 @@ import { Text } from '@astryxdesign/core/Text';
 import { VStack } from '@astryxdesign/core/Stack';
 import { LtcBlock, LtcPage, LtcSources } from '@/components/ltc/LtcParts';
 import { LTC_SOURCES } from '@/lib/ltc2026';
-import { LTC_HUB_PATH, LTC_PAGES } from '@/lib/ltcPages';
+import { LTC_HUB_DESCRIPTION, LTC_HUB_PATH, LTC_HUB_TITLE, LTC_PAGES } from '@/lib/ltcPages';
 import { OG_IMAGES, SITE_URL, buildBreadcrumbJsonLd, jsonLdScriptProps } from '@/lib/seo';
 
 const URL = `${SITE_URL}${LTC_HUB_PATH}`;
-const DESCRIPTION =
-  '2026년 장기요양 주·야간보호·방문요양 수가, 등급별 월 한도액, 본인부담금 계산법, 주간보호센터·요양원 인력배치기준과 인력추가배치 가산, 월 기준 근무시간을 보건복지부 고시·법령 원문과 대조해 한곳에 정리했습니다.';
+const DESCRIPTION = LTC_HUB_DESCRIPTION;
 
 export const metadata: Metadata = {
-  title: '장기요양 기준표 2026 — 수가·월 한도액·본인부담금',
+  title: LTC_HUB_TITLE,
   description: DESCRIPTION,
   keywords: '장기요양 기준표, 2026 장기요양 수가, 장기요양 월 한도액, 장기요양 본인부담금, 주간보호 수가, 방문요양 수가, 주야간보호 비용, 주간보호센터 인력배치기준, 요양원 인력배치기준, 요양원 인력추가배치 가산',
   openGraph: {
