@@ -22,6 +22,7 @@ import { ClickableCard } from '@astryxdesign/core/ClickableCard';
 import { Grid } from '@astryxdesign/core/Grid';
 import { VStack, HStack, StackItem } from '@astryxdesign/core/Stack';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -38,6 +39,7 @@ import { duration } from '@/theme/motion';
 import { readAuthState, type AuthState } from '@/lib/authState';
 import { LEGAL_LINKS } from '@/lib/businessInfo';
 import { BASIC_PLAN, FREE_TRIAL_DAYS, PLAN_FEATURES } from '@/lib/pricing';
+import { LTC_PAGES } from '@/lib/ltcPages';
 import VideoFacade from '@/components/public/VideoFacade';
 
 /** 랜딩에 노출할 제휴 기관 — 없으면 섹션 자체를 렌더링하지 않는다. */
@@ -813,6 +815,22 @@ export default function LandingPage() {
                             </ClickableCard>
                         ))}
                     </Grid>
+
+                    {/* 기준표 바로가기 — 홈에서 기준표로 가는 링크가 허브 카드 1개뿐이라, 구글이 새 기준표를
+                        '참조 페이지 없음'으로 두고 몇 주씩 읽어 가지 않았다(2026-11-26 서치콘솔 URL 검사).
+                        목록은 ltcPages.ts를 그대로 쓰므로 새 기준표를 등록하면 여기에도 생긴다. */}
+                    <nav aria-label="장기요양 기준표" className="carev-home-ltc-links">
+                        <Text weight="semibold">장기요양 기준표</Text>
+                        <ul>
+                            {LTC_PAGES.map((page) => (
+                                <li key={page.path}>
+                                    <Link href={page.path}>
+                                        <Text type="supporting" color="inherit">{page.title}</Text>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
                 </div>
             </Section>
 

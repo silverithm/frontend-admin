@@ -2142,6 +2142,14 @@ html {
 }
 .carev-home-hero-shot { max-height: 620px; overflow: hidden; }
 
+/* 홈 '더 알아보기' 아래 장기요양 기준표 바로가기 — 카드 아래 글자 링크 목록(넓으면 3열, 좁으면 1열) */
+.carev-home-ltc-links { margin-top: var(--spacing-8); display: flex; flex-direction: column; gap: var(--spacing-3); }
+.carev-home-ltc-links ul {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--spacing-2) var(--spacing-6);
+}
+.carev-home-ltc-links li { min-width: 0; }
+
 /* ══ 반응(Motion) — 눌림·뼈대·전환·아래에서 올라오는 확인 창 (DESIGN.md "Motion") ══════════════
    가만히 있는 화면은 바꾸지 않는다. 여기 규칙은 누르는 동안·불러오는 동안·바뀌는 순간에만 보인다.
    움직임은 "눌렸다·바뀌었다·기다리는 중이다"를 알리는 데만 쓴다. 되튀는 이징은 쓰지 않는다. */
