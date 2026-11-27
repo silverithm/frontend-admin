@@ -3,6 +3,7 @@
 // 기준표 숫자는 원문과 대조한 날을 lastModified로 쓴다.
 
 import { LTC_VERIFIED_AT } from './ltc2026';
+import { GRADE_CRITERIA_VERIFIED_AT } from './ltcGradeCriteria';
 import { GROUP_HOME_BONUS_VERIFIED_AT } from './ltcGroupHomeBonus';
 import { HOME_CARE_VERIFIED_AT } from './ltcHomeCare';
 import { NURSING_HOME_BONUS_VERIFIED_AT } from './ltcNursingHomeBonus';
@@ -23,7 +24,7 @@ export const LTC_HUB_PATH = '/ltc';
 /** 허브 제목·설명 — 페이지 메타데이터와 RSS가 같은 글자를 쓴다 */
 export const LTC_HUB_TITLE = '장기요양 기준표 2026 — 수가·월 한도액·본인부담금';
 export const LTC_HUB_DESCRIPTION =
-  '2026년 장기요양 주·야간보호·방문요양 수가, 등급별 월 한도액, 본인부담금 계산법, 주간보호센터·요양원 인력배치기준과 인력추가배치 가산, 월 기준 근무시간을 보건복지부 고시·법령 원문과 대조해 한곳에 정리했습니다.';
+  '2026년 장기요양 주·야간보호·방문요양 수가, 등급별 월 한도액, 본인부담금 계산법, 주간보호센터·요양원 인력배치기준과 인력추가배치 가산, 월 기준 근무시간, 장기요양등급 판정기준을 보건복지부 고시·법령 원문과 대조해 한곳에 정리했습니다.';
 
 export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
   {
@@ -43,6 +44,12 @@ export const LTC_PAGES: ReadonlyArray<LtcPageMeta> = [
     title: '2026년 장기요양 등급별 월 한도액',
     summary: '재가급여 월 한도액과 2025년 대비 인상액, 한도 안에서 주·야간보호를 며칠까지 이용할 수 있는지.',
     lastModified: LTC_VERIFIED_AT,
+  },
+  {
+    path: '/ltc/ltc-grade-criteria',
+    title: '장기요양등급 판정기준',
+    summary: '1~5등급·인지지원등급의 장기요양인정 점수 구간(95·75·60·51·45점), 치매 요건, 52개 조사항목과 점수 산정 순서, 등급별 이용 급여, 유효기간과 갱신.',
+    lastModified: GRADE_CRITERIA_VERIFIED_AT,
   },
   {
     path: '/ltc/daycare-copay-calculator',
