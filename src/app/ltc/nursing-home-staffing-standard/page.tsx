@@ -256,7 +256,7 @@ export default function NursingHomeStaffingStandardPage() {
               <li>
                 <strong>급여비용</strong> — 노인요양시설의 1일당 급여비용은 요양보호사 수가 입소자 2.1명당 1명 이상이면 고시
                 제44조제1항제1호, 미만이면 제2호의 금액으로 산정합니다. 한 번 지급된 뒤에는 제1호·제2호를 바꿔 다시 산정하지
-                못합니다(제44조제1항제3호).
+                못합니다(제44조제1항제3호). 등급별 금액은 <Link href="/ltc/nursing-home-fee-2026">2026년 요양원 수가표</Link>에 있습니다.
               </li>
               <li>
                 <strong>감액 기준</strong> — 제2호로 급여비용을 산정하는 노인요양시설의 요양보호사 인력배치기준 위반 감액은 입소자
